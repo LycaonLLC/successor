@@ -207,3 +207,100 @@ Before building interiors or assembling the settlement:
    primitive replacements.
 7. Budget repeated props as instances and author LOD/material variants only
    through explicit, reversible item-pipeline work.
+
+## Production-pass decisions (2026-07-29)
+
+Status: records what the production pass actually selected, tested, and rejected;
+this is not a promotion decision, and no item was copied into a building GLB.
+
+### Selected items
+
+All paths below were present and their SHA-256 values were verified against the
+named GLB. Spans are X × Y × Z from `items/item_audit.json`. `furniture` is the
+`successor.structure-collision.v3` sidecar treatment; assembly props have no
+unit sidecar box. The runtime target is an external GLB instance through the
+Unity/HDRP GLB import path, not embedded building geometry.
+
+| Asset id | Lane | Promoted? | Exact relative source path | SHA-256 | Measured span X × Y × Z m | Host unit or assembly | Local centre (glTF X, Z m) | Yaw | Clearance treatment | Intended runtime loader |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `clone_pod_west` | promoted-runtime | yes | `client-3d/public/assets/world-items/clone_pod.glb` | `87a99d66eca1c0bf805bdc642d1b154384b360278badbe7e9d931a141a695fc4` | 1.560 × 1.560 × 2.440 | clone | -3.30, -3.00 | 0° | furniture: `item_clone_pod_west` | external GLB; Unity/HDRP import |
+| `clone_pod_centre` | promoted-runtime | yes | `client-3d/public/assets/world-items/clone_pod.glb` | `87a99d66eca1c0bf805bdc642d1b154384b360278badbe7e9d931a141a695fc4` | 1.560 × 1.560 × 2.440 | clone | 0.00, -3.00 | 0° | furniture: `item_clone_pod_centre` | external GLB; Unity/HDRP import |
+| `clone_pod_east` | promoted-runtime | yes | `client-3d/public/assets/world-items/clone_pod.glb` | `87a99d66eca1c0bf805bdc642d1b154384b360278badbe7e9d931a141a695fc4` | 1.560 × 1.560 × 2.440 | clone | 3.30, -3.00 | 0° | furniture: `item_clone_pod_east` | external GLB; Unity/HDRP import |
+| `clone_terminal` | promoted-runtime | yes | `client-3d/public/assets/world-items/clone_terminal.glb` | `f7d03b0715d08dddfb18b1c37f7235cce1b7bb05aab5043e87f9c5ec3ca4809f` | 0.840 × 1.020 × 1.740 | clone | -4.30, -0.80 | 0° | furniture: `item_clone_terminal` | external GLB; Unity/HDRP import |
+| `battery_bank_quad` | grok45-vehicle | no | `vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_battery_bank_quad.glb` | `9c5861242be5a602389613f78fbfcf8f92bfd81f4d11764332d65c223756703c` | 1.551 × 1.064 × 0.554 | clone | -3.85, 2.75 | 0° | furniture: `item_battery_bank_quad` | external GLB; Unity/HDRP import |
+| `workbench_fold` | grok45-vehicle | no | `vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_workbench_fold.glb` | `e174c2be8893c13f389d53ce5d5682f639b46780afb3215cdb9d44b6e05aac70` | 1.310 × 0.497 × 0.879 | clone | 4.60, 0.60 | 90° | furniture: `item_workbench_fold` | external GLB; Unity/HDRP import |
+| `service_tool_cabinet` | grok45-vehicle | no | `vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_service_tool_cabinet.glb` | `d4df11094f1c357dea9c593886a26a147c587898c38857b8c158a5994ffd6f86` | 0.940 × 0.325 × 1.088 | clone | 4.78, 2.70 | 90° | furniture: `item_service_tool_cabinet` | external GLB; Unity/HDRP import |
+| `bank_terminal_civic` | promoted-runtime | yes | `client-3d/public/assets/world-items/bank_terminal_civic.glb` | `eb825f81370b014660499bcb7fc67480895b3734683ba6647234203b996c2151` | 1.008 × 0.678 × 1.650 | commerce | -3.60, -3.86 | 0° | furniture: `item_bank_terminal_civic` | external GLB; Unity/HDRP import |
+| `trade_terminal` | promoted-runtime | yes | `client-3d/public/assets/world-items/trade_terminal.glb` | `90a2602192261b3e5f14cc738c49d240ae44776166acf1779239527d23179805` | 1.158 × 0.725 × 1.350 | commerce | 0.00, -3.84 | 0° | furniture: `item_trade_terminal` | external GLB; Unity/HDRP import |
+| `pa_terminal` | promoted-runtime | yes | `client-3d/public/assets/world-items/pa_terminal.glb` | `237c21c6284b7f6617ae4bc7fbff3e8230888064a6bf5f240c3389abce15086a` | 1.058 × 0.658 × 1.750 | commerce | 3.20, -3.85 | 0° | furniture: `item_pa_terminal` | external GLB; Unity/HDRP import |
+| `cargo_crate_long_a` | grok45-vehicle | no | `vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_cargo_crate_long.glb` | `3a9ad93fb319da0b1bd4e2e54a2c374b0fbaef9c42a6a77b21b21caae5bbc26c` | 1.565 × 0.665 × 0.614 | commerce | -5.45, 3.20 | 90° | furniture: `item_cargo_crate_long_a` | external GLB; Unity/HDRP import |
+| `cargo_crate_long_b` | grok45-vehicle | no | `vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_cargo_crate_long.glb` | `3a9ad93fb319da0b1bd4e2e54a2c374b0fbaef9c42a6a77b21b21caae5bbc26c` | 1.565 × 0.665 × 0.614 | commerce | -5.45, 1.50 | 90° | furniture: `item_cargo_crate_long_b` | external GLB; Unity/HDRP import |
+| `cargo_crate_small` | grok45-vehicle | no | `vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_cargo_crate_small.glb` | `d6bba4347b624e6e057e5272a3d81d667aafdaa9370006d2ff93271a45f5bc01` | 0.779 × 0.768 × 0.669 | commerce | 5.30, 3.55 | 0° | furniture: `item_cargo_crate_small` | external GLB; Unity/HDRP import |
+| `open_shelving` | homebuilder | no | `successor/homebuilder-wave-20260719/furniture/assets/successor_home_open_shelving_standard.glb` | `a132742abc08a6d3ab4ff617d560b8e5df9c1361d53c454c1cf26c9f1894dafa` | 1.000 × 0.280 × 1.800 | commerce | -5.20, -4.30 | 0° | furniture: `item_open_shelving` | external GLB; Unity/HDRP import |
+| `bunk_bed` | homebuilder | no | `successor/homebuilder-wave-20260719/furniture/assets/successor_home_bunk_bed_standard.glb` | `371436dd20e9972d3ebee5f9e44696aa043de4a5d1a74bb49228ed2c0edbdeca` | 1.061 × 2.097 × 1.700 | shelter | -1.75, -1.05 | 0° | furniture: `item_bunk_bed` | external GLB; Unity/HDRP import |
+| `footlocker_frontier` | promoted-runtime | yes | `client-3d/public/assets/world-items/footlocker_frontier.glb` | `f8bbc53ff96b0020466da861e6cdce2ac43090db6384d14e8656fa83a71e75ad` | 1.000 × 0.580 × 0.522 | shelter | -1.35, 2.35 | 0° | furniture: `item_footlocker_frontier` | external GLB; Unity/HDRP import |
+| `utility_water_tank` | grok45-vehicle | no | `vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_utility_water_tank.glb` | `db6d8045cb39eff428a40d0e2c7fabe83241f2010573ba8946c7d44503f05297` | 0.860 × 0.670 × 0.773 | shelter | 2.35, -2.10 | 0° | furniture: `item_utility_water_tank` | external GLB; Unity/HDRP import |
+| `shelf_unit` | everyday | no | `successor/everyday-wave-20260719/everyday-world-props/assets/successor_everyday_shelf_unit.glb` | `7af8a4cf5322c46818317b6fae6de4a9d56ba333b5575a7a591f10b06c237f6c` | 0.810 × 0.320 × 1.350 | shelter | 2.55, 2.62 | 0° | furniture: `item_shelf_unit` | external GLB; Unity/HDRP import |
+| `travel_terminal` | promoted-runtime | yes | `client-3d/public/assets/world-items/travel_terminal_grok_wedge.glb` | `a26cc0591111b5456c1ac6822d35f9b5895171cf8c036d792b62643788cbad2a` | 0.826 × 1.581 × 0.605 | assembly | n/a; assembly world cell 28.50, 22.50 | 0° | no unit sidecar box | external GLB; Three `GLTFLoader` instanced prop path |
+| `player_spawn` | pawn-pack | yes | `client-3d/public/assets/pawn-pack/pawn_male.glb` | `6eaac9062bcfbc5efdf40c64f9e3236402a0d81832f1e0e8f4ce9a0a4dacac42` | 1.984 × 1.752 × 0.289 | assembly | n/a; assembly world cell 26.00, 26.50 | 8° | no unit sidecar box | pawn-pack `GLTFLoader` |
+| `knox_vale` | pawn-pack | yes | `client-3d/public/assets/pawn-pack/pawn_female.glb` | `16d8c879aabc58b5ee176edcfc0b0dc43fc695e7d59f4a2ef6d6a15890e7d000` | 1.984 × 1.752 × 0.295 | assembly | n/a; assembly world cell 32.40, 11.00 | 195° | no unit sidecar box | pawn-pack `GLTFLoader` |
+| `resident_a` | pawn-pack | yes | `client-3d/public/assets/pawn-pack/pawn_female.glb` | `16d8c879aabc58b5ee176edcfc0b0dc43fc695e7d59f4a2ef6d6a15890e7d000` | 1.984 × 1.752 × 0.295 | assembly | n/a; assembly world cell 18.60, 18.40 | 40° | no unit sidecar box | pawn-pack `GLTFLoader` |
+| `resident_b` | pawn-pack | yes | `client-3d/public/assets/pawn-pack/pawn_male_bare.glb` | `5c182b3f7dcbb33a61965f633e66e820342f6d0f46746e30bce591a5b3182bca` | 1.984 × 1.752 × 0.289 | assembly | n/a; assembly world cell 13.20, 17.60 | 250° | no unit sidecar box | pawn-pack `GLTFLoader` |
+| `equipment_vibrosword` | pawn-pack | yes | `client-3d/public/assets/pawn-pack/vibrosword.glb` | `f81f42214828e71baafac2f0905f3b3b3c1558da329876976f67639721027121` | 0.047 × 0.164 × 1.004 | assembly | n/a; assembly world cell 26.90, 26.50 | 20° | no unit sidecar box | pawn-pack `GLTFLoader` |
+| `mineral_power_skid` | extraction parent-reset-01 | no | `successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_mineral_power_skid.glb` | `b16fbbc4421b953139fef711aa4799b2b9841b2e029618e5afef4346e3177145` | 2.189 × 1.515 × 2.031 | assembly | n/a; assembly world cell 17.40, 9.60 | 0° | no unit sidecar box | external GLB; Unity/HDRP import |
+| `mineral_dust_filter` | extraction parent-reset-01 | no | `successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_mineral_dust_filter.glb` | `cf8d6517cabfa62b10245eb5a0a505f4d6b19adca50da82fb658246167ce2ba5` | 2.116 × 1.878 × 2.375 | assembly | n/a; assembly world cell 17.40, 12.40 | 0° | no unit sidecar box | external GLB; Unity/HDRP import |
+| `petrochemical_separator_skid` | extraction parent-reset-01 | no | `successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_petrochemical_separator_skid.glb` | `76a07ea99a11d5091fccbe743ca55e8941cde3d256526458efb3df9debe69881` | 1.649 × 1.531 × 1.415 | assembly | n/a; assembly world cell 17.60, 14.60 | 90° | no unit sidecar box | external GLB; Unity/HDRP import |
+
+### Conditional items
+
+- `successor_extraction_extraction_maintenance_cart` — not placed: low profile risks disappearing against sand at gameplay distance.
+- `successor_extraction_extraction_survey_tripod` — not placed: thin legs are fragile at gameplay distance.
+- `successor_extraction_petrochemical_flowline_manifold` — not placed: noisy pipework lacks a dominant gameplay-facing silhouette.
+- `successor_extraction_mineral_core_sampler` — not placed: small appendages weaken distant clarity.
+- `bank_terminal_civic` — tested but no additional placement: generic civic finish is redundant beside the placed terminal.
+- `pa_terminal` — tested but no additional placement: compact kiosk can blend into adjacent props without contextual signage.
+- `workbench_field` (`bench_welder.glb`) — tested but not placed: workshop-specific material response duplicates the placed folding bench.
+- `infra_001` — not placed: generic service-rack silhouette needs placement context.
+- `infra_021` — not placed: surface detail competes with the main volume.
+- `successor_everyday_workbench` — not placed: familiar furniture-scale silhouette is not a landmark.
+- `successor_everyday_bedroll` — not placed: flat silhouette is too weak on sand.
+- `successor_everyday_wooden_crate_open` — not placed: open, thin silhouette is weak at gameplay distance.
+
+### Rejected items
+
+- `successor_vehicle_component_rear_worklight` — standalone scale is too small and detail-dependent; reads as a vehicle attachment.
+- `infra_121` — dense undifferentiated greebles do not make a clear standalone gameplay read.
+- `successor_home_base_cabinet_standard` — boxy placeholder-like silhouette with little gameplay identity.
+- `successor_home_wall_sconce_standard` — wall-mounted scale and tiny silhouette are unsuitable for a freestanding world item.
+- Shallow extraction proof — rejected as obsolete rounded box-and-cap placeholder output; the later parent-reset assets were judged separately.
+- `medical-bio-lab/parent-reset-01` primary equipment — rejected for repetitive black cylinder/box forms and over-bright white/pink display grammar.
+- Ten-item infrastructure Grok proof batch — rejected; it is superseded for the limited parent-reset candidates but remains generic monochrome cabinet output.
+- Handheld parent-reset lane — hold/review-required and has no architectural function; not selected.
+
+### Future item-remake proposals
+
+The visual verdicts retain `bank_terminal_civic` (generic civic finish),
+`pa_terminal` (can blend without signage), and `workbench_field` / actual
+`bench_welder.glb` (workshop-specific but redundant here) as preserved promoted
+assets that are visually weak for this setting. Replace them only in explicit
+item-remake work; replacement is outside this architecture pass. No preserved
+item was replaced incidentally.
+
+### Corrections to earlier sections
+
+The earlier extraction table labels its order `X×Y×Z`, but each listed value is
+`X×Z×Y`. Measured `X×Y×Z` values from `items/item_audit.json` are:
+
+| Earlier claim -> measured | Source |
+| --- | --- |
+| mineral power skid `2.189×2.031×1.515` -> `2.189×1.515×2.031` | `items/item_audit.json` |
+| mineral control panel `2.015×2.351×1.649` -> `2.015×1.649×2.351` | `items/item_audit.json` |
+| extraction maintenance cart `1.526×2.192×1.275` -> `1.526×1.275×2.192` | `items/item_audit.json` |
+| extraction survey tripod `1.360×3.714×1.079` -> `1.360×1.079×3.714` | `items/item_audit.json` |
+| mineral survey scanner `2.068×3.762×1.649` -> `2.068×1.649×3.762` | `items/item_audit.json` |
+| mineral dust filter `2.116×2.375×1.878` -> `2.116×1.878×2.375` | `items/item_audit.json` |
+| petrochemical separator skid `1.649×1.415×1.531` -> `1.649×1.531×1.415` | `items/item_audit.json` |
+| petrochemical flowline manifold `2.196×1.553×1.700` -> `2.196×1.700×1.553` | `items/item_audit.json` |
+| mineral core sampler `1.649×2.916×1.455` -> `1.649×1.455×2.916` | `items/item_audit.json` |
+| requested `water_tank_frontier.glb` -> runtime `tank_water_frontier.glb` | `items/item_audit.json`; `items/visual_verdicts.md` |
+| requested `workbench_field.glb` -> runtime `bench_welder.glb` | `items/item_audit.json`; `items/visual_verdicts.md` |

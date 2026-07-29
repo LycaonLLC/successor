@@ -7,6 +7,16 @@ script, texture, or render was opened, imported, traced, or used as reference.
 
 Proof root (git-ignored): `verification/ledgers/artifacts/dustgate-opus5-20260729/`
 
+> **Superseded in part by the production pass.** This record is the direction
+> study and its measured visual rules still stand. Its geometry, pivots, part
+> counts and material handling do not: the buildings were rebuilt as standalone
+> products in structure-local coordinates, with real UV0, PBR textures, bevels,
+> LODs, manifests, `successor.structure-collision.v3` sidecars and an addressable
+> `door_slide` contract. See `PRODUCTION_RECORD.md`, whose section 1 lists every
+> change and the reason for it. Where the two disagree, the production record
+> and the artifacts under
+> `verification/ledgers/artifacts/dustgate-opus5-production-20260729/` win.
+
 ## 1. The three direction studies
 
 All three were built from freshly generated primitives and rendered through the
