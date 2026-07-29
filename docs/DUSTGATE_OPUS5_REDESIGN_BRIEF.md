@@ -111,6 +111,13 @@ before the building production pass.
 
 - Inspect manifests and existing proof before choosing props. A numeric
   generator `PASS` is not sufficient visual acceptance.
+- Resolve the latest artifact per lane and then per exact asset id using the
+  audit's lineage table. Do not assume the shallow manifest, the deepest
+  directory, or every file in a newer bounded batch is canonical. A bounded
+  reset supersedes only ids it actually contains.
+- Pin every proposed source-library instance by exact relative path and actual
+  file SHA-256. Old shallow, rejected, proof-copy, and superseded siblings are
+  excluded even when they share a plausible display name.
 - Use real authored assets for furniture, storage, tools, tanks, power,
   terminals, and equipment when they fit the function, scale, and new
   direction.

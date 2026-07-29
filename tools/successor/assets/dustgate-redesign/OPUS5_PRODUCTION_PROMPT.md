@@ -33,6 +33,11 @@ inspection.
   contracts. They are compatibility inputs, not architecture style baselines.
 - Inspect and reuse strong Grok-authored/promoted world items before making a
   new prop. Keep them external and instanced through ids/manifests.
+- Resolve every source-library candidate through the latest-lineage table in
+  `EXISTING_WORLD_ITEM_AUDIT.md`. Never default to a shallow manifest or judge,
+  copy, or place an obsolete sibling. A later bounded batch supersedes only
+  exact ids it contains. Pin the final input by exact relative path and actual
+  SHA-256 before generation begins.
 - There are no roads, paths, lanes, travel aprons, connective paving,
   route-shaped terrain marks, curbs, traffic/road furniture, or implied
   corridors.
@@ -120,6 +125,22 @@ listed in `EXISTING_WORLD_ITEM_AUDIT.md`. Update that record with selected,
 conditional, and rejected ids plus visual evidence. For every selected item,
 record hash, source manifest, dimensions, origin/socket, local placement,
 clearance, collision handling, promotion state, and intended runtime loader.
+
+Treat lineage resolution as a blocking preflight for item use:
+
+1. use the active runtime artifact for an already promoted id;
+2. otherwise resolve the exact source id through the audit's lane table;
+3. verify the actual file SHA-256 against the pinned record/report;
+4. inspect the proof and GLB from that exact lineage;
+5. exclude all older shallow, smoke, proof-copy, and rejected siblings.
+
+The corrected latest extraction parent is materially better than its obsolete
+shallow predecessor and must receive a fair audit. Test its listed power skid,
+control panel, maintenance cart, survey equipment, dust filter, separator,
+manifold, and core sampler at their real scale where functionally plausible.
+Do not force them into an interior by shrinking them. The latest medical reset
+and most infrastructure variants remain visually weak; do not use them merely
+because they are newer or numerically valid.
 
 At minimum test these functional combinations:
 
