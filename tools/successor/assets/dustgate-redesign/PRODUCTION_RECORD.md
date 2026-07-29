@@ -416,7 +416,12 @@ clone pods, the clone/bank/trade/PA terminals, the frontier footlocker, Grok
 cargo crates, battery bank, folding workbench, tool cabinet, water tank, and
 three extraction skids tested **outdoors at their real size**, because the audit
 verdict is that those are site equipment and shrinking them to dress a room was
-explicitly rejected.
+explicitly rejected. The skids now stand as a loose yard on the open desert east
+of commerce — (36.8, 9.4) yaw 24°, (39.4, 12.9) yaw −38°, (36.2, 14.8) yaw 112°
+— non-collinear and at unrelated yaws. Round 1 of this pass stacked all three in
+the four-cell alley between the clone and commerce units at 2.8-cell spacing,
+which crowded the only direct link between the two buildings and read as a
+service lane; the alley is now clear walkable sand.
 
 **GR0K has no promoted asset.** Its anchor at (24, 19.5) is reserved and
 recorded as reserved; nothing was invented to fill it.
@@ -432,22 +437,117 @@ fallback. The two filename mismatches are explicit aliases:
 `water_tank_frontier` → `tank_water_frontier.glb` and `workbench_field` →
 `bench_welder.glb`.
 
-There are no roads, paths, lanes, aprons, kerbs, paving, traffic furniture or
-route-shaped ground marks anywhere in the layout. The only ground features are
-wind-drift swells and the rubble spill at the collapsed end of the windbreak.
+There are no roads, paths, lanes, aprons, kerbs, paving, traffic furniture,
+rectangular ground patches or route-shaped ground marks anywhere in the layout.
+The desert is one continuous plane. The only authored relief is the ancient
+remnant landform along the north and the mass fallen off it; `assembly.json`
+records `ground_relief` and `roads_paths_aprons_or_paving: none authored`.
 
-The ancient windbreak was rebuilt once during this pass: the first version
-generated evenly spaced piers of one width and read as a row of shipping
-containers behind the settlement. It is now ten hand-tuned piers on one
-continuous eroded footing, varying in width, depth, height, batter and lean,
-collapsing eastward into rubble.
+---
 
-**Post-pass visual-review rejection:** although the swells are not connected
-route geometry, their box-built silhouettes read as rectangular plazas or road
-aprons in the gameplay frames. The rebuilt windbreak still reads too much like
-a repeated row of industrial monoliths. Both assembly-only elements are
-rejected pending a fresh correction pass; this does not reject or modify the
-three standalone building products.
+## 11a. Assembly correction pass (2026-07-29, post-review)
+
+Visual review of the first assembly rejected two assembly-only elements. The
+three standalone building products were not rejected and were not touched: the
+nine unit GLB and six manifest/collision sha256 values are byte-identical before
+and after this pass (`clone_lod0` `5ddd6ae6…`, `clone_lod1` `8460df57…`,
+`clone_lod2` `3ee5702e…`, `commerce_lod0` `ef4b31cb…`, `commerce_lod1`
+`d9a7f40f…`, `commerce_lod2` `a7493ef3…`, `shelter_lod0` `8fb15ac4…`,
+`shelter_lod1` `5aed074e…`, `shelter_lod2` `7cfb4498…`). The correction changes
+only `prodassemble.py`, its preserved iteration prompt, and this record; no unit
+authoring source or standalone product changed. The rejected frames are preserved under
+`assembly/rejected-precorrection-ignored/` (git-ignored, like every artifact).
+
+**Rejected defect 1 — the wind-drift swells.** Four low `boxm` solids with
+truncated flat tops. They were never connected route geometry, but a truncated
+box is a rectangle, and in `03_gameplay_frame.png` they read as a tan plaza with
+hard straight edges running across the middle of the frame. **Removed.**
+`terrain()` now authors one continuous 180 m sand plane and nothing else. A
+plain desert surface is better than fake naturalism.
+
+**Rejected defect 2 — the windbreak.** Ten hand-tuned battered boxes on a shared
+plinth. Varying width, height, batter and lean did not help: a box row is a box
+row, and it still read as shipping containers or tombstones. **Rebuilt from
+zero** as a swept solid. Forty-two authored stations, each contributing one
+15-point cross-section of ONE closed mesh; consecutive sections are bridged, so
+there is no repeated element and no seam where a pier could start or stop. It
+runs from x −7 to x 49 — off both edges of the 42-cell block — so it reads as
+terrain that continues, not as an object placed in a plot.
+
+Macro silhouette, authored not generated: a heavy 9.4 m massif west of the clone
+unit, sheared through at x 7, a collapsed 2-3 m spine sanded over across the
+middle with a single surviving stub at x 17-18, breached almost to sand level at
+x 23, then rising again to an 8.7 m massif east of commerce. **The settlement
+sits inside the breach, which is why a settlement is there at all.**
+
+Four corrections were made against rendered frames during this pass, each after
+looking at the result:
+
+1. **Round 1 → 2.** Narrow crests on 10-11.5 m stations killed the modular
+   reading but produced a jagged natural rock ridge with pointed summits that
+   dominated the top of the gameplay frame. Crests were broadened into a dished
+   bench between two eroded rims — a natural ridge has no reason to be higher at
+   both edges of a flat top than in the middle, so the rim is the one
+   construction cue the form keeps — and peaks were dropped below 9.5 m.
+2. **Round 2 → 3.** The massifs read as smooth grey lumps. Added a per-station
+   windward flute (23 authored values against 42 stations, on a station pitch
+   that itself varies from 0.45 to 2.7 cells, so the fluting never lands on a
+   regular rhythm) which steps the scarp in and out into vertical buttresses and
+   clefts. The flute moves the section's whole outer envelope, not individual
+   points: weighting points differently folds the profile back on itself and the
+   sweep self-intersects.
+3. **Round 3 → 5.** A 6-8 m lee toe on a shallow exponent made a large smooth
+   ruled surface between stations that read as folded drapery, and letting the
+   depth collapse as fast as the height turned the shear into a blade. The lee
+   toe is now roughly 0.8 of the windward toe on a 1.40 exponent, and the
+   collapsed run keeps its width while losing its height.
+4. **Round 5 → 6, the one that mattered.** `pk.Unit.consolidate` smooth-shades
+   every part and marks sharp edges above 38°. That is right for cast panels and
+   wrong for stone: on a low-poly swept landform it blends whole runs of facets
+   into one continuous curved surface, and rounds 2-5 all read as creased cloth
+   in close inspection no matter what the silhouette did. `facet()` flat-shades
+   the consolidated remnant parts and the same geometry reads as rock.
+
+Twenty blocks of fallen mass sit where the remnant actually failed — the shear
+at x 7, the breach at x 21-25 and the two scarp feet — not scattered evenly. The
+largest are tabular (long in one axis, strongly leaned, barely tapered) and read
+as collapsed courses off the crest; the rest is broken rubble. Each is built
+from four jittered rings whose centres step along a lean vector, so the lean is
+in the vertices and no object transform is needed. Nothing is collinear, nothing
+forms a line or a fan, and nothing comes near the door approaches on the south
+faces.
+
+Under the locked north-up 60° camera an element of height `h` standing north of
+a target projects its crest `h / tan 60 = 0.577 h` cells south on screen. Every
+station that has a building behind it satisfies `crest_y + crest_half_width +
+0.577 × crest_z + windward_flute ≤ wall_y`. Computed over all 42 stations: the
+worst such station is x 5.4 at a projected y of 3.78 against the clone's north
+wall at y 6.0, a 2.22-cell margin. The four stations that do project past y 5
+(x 2.9 and x 37.1-40.9) stand in open desert west of the clone and east of
+commerce, with nothing behind them. Confirmed in `02_gameplay_wide.png`: all
+three units fully legible, no roof occluded, the alley clear, and the remnant
+reading as backdrop. The southernmost point of the remnant's toe reaches y 2.52,
+leaving at least 2.5 cells of open walkable desert between it and any building;
+the travel terminal, the spawn and all three sliding-door approaches — which are
+on the south faces, the far side of every unit — are untouched.
+
+Micro erosion is deterministic: one `random.Random(20260729)` drives every
+section jitter, station offset and fragment ring. Verified by running
+`prodassemble.py` twice back to back — `assembly.json` is byte-identical, so the
+geometry, bounds, triangle counts and instanced mesh datablocks reproduce
+exactly. The nine PNGs are **not** byte-identical between runs: Cycles is left
+on its default sampling seed, so frame bytes carry sampling noise even though the
+scene does not. Scene totals for the corrected assembly: 416 mesh objects,
+162,006 triangles, nine frames. `09_remnant_shear.png` is the added close proof
+that the remnant is one swept mass with a real shear, not a row of piers.
+
+**Still honest about the remnant:** the `ancient` tiling texture is projected
+per-polygon, so the strata bands change direction across facets; at close range
+that reads as coarse bedding rather than authored rock surfacing. The collapsed
+run between x 9 and x 16 still shows some flat-lying shelf facets in
+`09_remnant_shear.png` — they read as broken slabs, which is the intent, but they
+are a consequence of a 15-point section, not authored detail. Nothing in this
+section is a runtime asset, is exported, or is proposed for promotion.
 
 ---
 
