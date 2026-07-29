@@ -1,4 +1,4 @@
-# Opus-5 Lead Task: Rebuild Dustgate From Zero
+# Opus-5 Lead Task: Rebuild the Starting Settlement From Zero
 
 You are the lead 3-D environment designer and technical artist for a from-zero
 Dustgate redesign study in Successor.
@@ -16,6 +16,23 @@ Important:
   4.5 LTS CLI.
 - Build the three direction studies, inspect them, choose the strongest, and
   continue autonomously into a coherent selected layout/blockout.
+- Treat the settlement view as an assembly and validation surface, not the
+  authored asset. Clone, commerce, and shelter must each remain independently
+  placeable/exportable units with local origins and functional contracts.
+- Preserve the existing promoted player, customization, clothing, equipment,
+  and item assets. They are required compatibility/runtime-proof inputs, not
+  environment style references.
+- Inspect the existing promoted and source-library world items before
+  authoring props. Reuse strong real items as independent instances, never as
+  geometry baked into a building. Read and update
+  `EXISTING_WORLD_ITEM_AUDIT.md`; manifest pass status is not visual proof.
+- Model functional openings, not facade theater: every enterable unit needs
+  the real renderer's independently addressable `door_slide`, floor,
+  interior-keep, wall, roof, and cutaway families, with measured door travel,
+  threshold clearance, and closed collision blocker.
+- Treat `Dustgate` as a legacy working label. Produce and select a stronger
+  resident-credible display name under the naming contract in the brief, but
+  do not rename fixture ids or runtime paths in this source-stage lane.
 - Use deterministic Blender Python and preserve editable source. Keep
   generated binary and proof output in the ignored proof root named in the
   brief.
