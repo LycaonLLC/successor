@@ -18,6 +18,12 @@ const slowActorId = "slow-consumer";
 const generatedPacketCount = 10;
 const slowConsumerFloodPacketCount = 2_048;
 const healthyReceiptLatencyLimitMs = 2_000;
+// The fixture clock advances manually while the headless client estimates
+// issued_at_tick from wall time. A saturated CI runner can therefore let a
+// valid move arrive up to the authority's bounded future-tick allowance ahead
+// of the fixture clock. Advance past that allowance between probes so this
+// backpressure test measures delivery isolation, not Move cooldown timing.
+const healthyMoveAdvanceTicks = 8;
 const injectedSlowConsumerBufferCapBytes = 4_096;
 
 type JsonRecord = Record<string, unknown>;
@@ -131,7 +137,7 @@ describe("headless outbound slow-consumer isolation", () => {
           const commandStartedAt = performance.now();
           const result = await healthy.handleVerb("/move 1 0 1 Right false");
           const commandId = queuedCommandId(result);
-          await advanceManualClock(activeRuntime.gameUrl, 1);
+          await advanceManualClock(activeRuntime.gameUrl, healthyMoveAdvanceTicks);
           const receipt = await receiptCollector.waitFor(commandId);
           const latencyMs = Math.round((performance.now() - commandStartedAt) * 100) / 100;
           healthyReceipts.push({ ...receipt, latencyMs });
