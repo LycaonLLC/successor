@@ -1684,6 +1684,7 @@ describe("GameShard", () => {
     if (characterId === undefined) throw new Error("test identity character id missing");
     const submitActorIds: string[] = [];
     const submittedActors: RustAuthorityActorUpsertInput[] = [];
+    const linkDeadCalls: boolean[] = [];
     const deployRowsFor = (rustActorId: string): RustAuthorityInventorySnapshot[] => ([
           { container: `${rustActorId}:field-pack`, stackId: 1, item: "Stimpak A", itemId: 1001, variantId: 0, quantity: 16, reserved: 0, available: 16 },
           { container: `${rustActorId}:field-pack`, stackId: 2, item: "Field Bandage", itemId: 1002, variantId: 0, quantity: 16, reserved: 0, available: 16 },
@@ -1724,22 +1725,25 @@ describe("GameShard", () => {
           areaResourceSpawns: [],
         };
       },
-      setActorLinkDead: async ({ actorId, linkDead }) => ({
-        tick: 23,
-        actor: rustActorSnapshot({
-          id: actorId,
-          link_dead: linkDead,
-          professions: profileProfessions,
-          activeTitle: profileTitle,
-          vitals: profileVitals,
-          credits: profileCredits,
-        }),
-        inventory: durableRows.map((row) => ({ ...row })),
-        reservations: [],
-        timelineEvents: [],
-        resourceSpawns: [],
-        areaResourceSpawns: [],
-      }),
+      setActorLinkDead: async ({ actorId, linkDead }) => {
+        linkDeadCalls.push(linkDead);
+        return {
+          tick: 23,
+          actor: rustActorSnapshot({
+            id: actorId,
+            link_dead: linkDead,
+            professions: profileProfessions,
+            activeTitle: profileTitle,
+            vitals: profileVitals,
+            credits: profileCredits,
+          }),
+          inventory: durableRows.map((row) => ({ ...row })),
+          reservations: [],
+          timelineEvents: [],
+          resourceSpawns: [],
+          areaResourceSpawns: [],
+        };
+      },
     };
 
     try {
@@ -1752,6 +1756,7 @@ describe("GameShard", () => {
         { container: `${characterId}:field-pack`, stackId: 93, item: "Creature Meat", itemId: 2103, variantId: 3, quantity: 4, reserved: 0, available: 4 },
       ];
       firstSocket.emitClose();
+      await waitFor(() => linkDeadCalls.length === 1);
 
       internals.applyRustAuthorityTickOutput({
         schema: "successor.rust-authority-bridge-tick.v1",
@@ -1886,8 +1891,11 @@ describe("GameShard", () => {
       expect(helloActor(reenterSocket, identity.actorId)).toMatchObject({
         x: 22,
         y: 23,
+        link_dead: false,
         credits: profileCredits,
       });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(linkDeadCalls).toEqual([true]);
       const inventoryRows = (packets(reenterSocket).find((packet) => packet.type === "game.hello")?.snapshot?.inventory ?? []) as RustAuthorityInventorySnapshot[];
       const characterRows = inventoryRows.filter((row) => row.container.startsWith(`${identity.actorId}:`));
       expect(characterRows).toEqual(durableRows);

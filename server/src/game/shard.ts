@@ -3578,6 +3578,9 @@ export class GameShard {
     for (const rustActorId of rustActorIds) {
       this.rustAuthorityRegisteredActorIds.delete(rustActorId);
       this.rustAuthorityActorUpserts.delete(rustActorId);
+      this.rustAuthorityLinkDeadActorIds.delete(rustActorId);
+      this.rustAuthorityDesiredLinkDead.delete(rustActorId);
+      this.rustAuthorityLinkDeadEffects.delete(rustActorId);
     }
     const removedActorIds = uniqueActorIds(
       rustActorIds.map((actorId) => this.typescriptActorIdForRustPlaceholder(actorId)),
@@ -5107,6 +5110,8 @@ export class GameShard {
     this.rustAuthorityRegisteredActorIds.delete(rustActorId);
     this.rustAuthorityLinkDeadActorIds.delete(rustActorId);
     this.rustAuthorityActorUpserts.delete(rustActorId);
+    this.rustAuthorityDesiredLinkDead.delete(rustActorId);
+    this.rustAuthorityLinkDeadEffects.delete(rustActorId);
   }
 
 
