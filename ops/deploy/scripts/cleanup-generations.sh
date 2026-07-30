@@ -21,6 +21,7 @@ restart=0
 trap 'if [[ "$restart" == 1 ]]; then systemctl unmask successor.service; systemctl start successor.service || true; elif [[ "$was_masked" == 0 ]]; then systemctl unmask successor.service; fi' EXIT
 systemctl stop successor.service || true
 systemctl is-active --quiet successor.service && fail 'authority remains active during cleanup'
+mkdir -p "$RUN_DIR"
 exec 9>"$RUN_DIR/authority.lock"
 flock -n 9 || fail 'authority lock is busy'
 # Keep the newest known-good previous generation and recent failed attempts.

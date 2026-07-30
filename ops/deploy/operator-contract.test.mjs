@@ -10,6 +10,7 @@ const read = (name) => readFile(path.join(root, name), "utf8");
 describe("operator deployment contracts", () => {
   it("keeps maintenance sequential and rollback state-aware", async () => {
     const maintenance = await read("ops/deploy/scripts/maintenance-deploy.sh");
+    const deploy = await read("ops/deploy/scripts/deploy.sh");
     const rollback = await read("ops/deploy/scripts/rollback.sh");
     assert.match(maintenance, /SUCCESSOR_MAINTENANCE_ACK/);
     assert.match(maintenance, /SUCCESSOR_RELEASE_SEAL_SHA256/);
@@ -19,6 +20,8 @@ describe("operator deployment contracts", () => {
     assert.match(rollback, /TARGET_DIGEST/);
     assert.match(rollback, /incompatible state generation/);
     assert.match(rollback, /successor-restore\.sh/);
+    assertRuntimeDirectoryRecreatedAfterStop(deploy);
+    assertRuntimeDirectoryRecreatedAfterStop(rollback);
   });
 
   it("requires retention policy and binds post-session evidence", async () => {
@@ -30,6 +33,7 @@ describe("operator deployment contracts", () => {
     assert.match(backup, /was_active/);
     assert.match(backup, /systemctl start successor\.service/);
     assert.match(backup, /graceful checkpoint barrier missing/);
+    assertRuntimeDirectoryRecreatedAfterStop(backup);
     assert.match(retention, /RETENTION_ENABLED/);
     assert.match(retention, /keep_recent/);
     assert.match(review, /successor\.post-session-review\.v1/);
@@ -37,6 +41,11 @@ describe("operator deployment contracts", () => {
     assert.match(review, /SUCCESSOR_SESSION_ID/);
     assert.match(review, /METRICS/);
     assert.match(review, /JOURNAL/);
+  });
+
+  it("recreates the runtime directory after stopping authority maintenance jobs", async () => {
+    const cleanup = await read("ops/deploy/scripts/cleanup-generations.sh");
+    assertRuntimeDirectoryRecreatedAfterStop(cleanup);
   });
 
   it("refuses standalone service without bound control and manifest evidence", async () => {
@@ -96,3 +105,12 @@ describe("operator deployment contracts", () => {
     }
   });
 });
+
+function assertRuntimeDirectoryRecreatedAfterStop(script) {
+  const stopOffset = script.indexOf("systemctl stop successor.service");
+  const lockOffset = script.indexOf("authority.lock", stopOffset);
+  const recreateOffset = script.indexOf("mkdir -p", stopOffset);
+  assert.ok(stopOffset >= 0, "maintenance script must stop successor.service");
+  assert.ok(lockOffset > stopOffset, "maintenance script must open the authority lock after stopping");
+  assert.ok(recreateOffset > stopOffset && recreateOffset < lockOffset, "maintenance script must recreate its runtime directory after stopping and before opening the authority lock");
+}

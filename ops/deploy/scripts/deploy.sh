@@ -15,6 +15,7 @@ flock -n 8 || fail 'maintenance lock is busy'
 systemctl mask --runtime successor.service
 trap 'systemctl unmask successor.service' EXIT
 systemctl stop successor.service || true
+mkdir -p "${SUCCESSOR_RUN_DIR:-/run/successor}"
 exec 9>"${SUCCESSOR_RUN_DIR:-/run/successor}/authority.lock"
 flock -n 9 || fail 'authority lock is busy'
 /usr/bin/docker pull "$IMAGE_REF"

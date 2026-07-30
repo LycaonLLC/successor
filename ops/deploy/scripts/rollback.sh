@@ -30,6 +30,7 @@ systemctl mask --runtime successor.service
 trap 'systemctl unmask successor.service >/dev/null 2>&1 || true' EXIT
 systemctl stop successor.service || true
 systemctl is-active --quiet successor.service && fail 'authority remains active after stop'
+mkdir -p "$RUN_DIR"
 exec 9>"$RUN_DIR/authority.lock"
 flock -n 9 || fail 'authority lock is busy'
 

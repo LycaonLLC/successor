@@ -40,6 +40,9 @@ trap restore_service EXIT
 systemctl stop successor.service || true
 stopped=1
 systemctl is-active --quiet successor.service && fail 'authority is still active after stop'
+# The authority service may own the runtime directory through its service
+# sandbox. Recreate it after the stop before opening the maintenance-side lock.
+mkdir -p "$RUN_DIR"
 exec 9>"$RUN_DIR/authority.lock"
 flock -n 9 || fail 'another authority or maintenance operation owns authority.lock'
 mountpoint -q "$STATE_DIR" || fail 'state mount disappeared'
