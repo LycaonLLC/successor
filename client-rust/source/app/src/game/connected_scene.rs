@@ -392,6 +392,19 @@ impl ConnectedScene {
             let id = self.wm.window_id(idx).to_string();
             let mut actions = Vec::new();
             crate::windows::content(&mut self.ui, &id, rect, &self.win_model, &self.icons, &mut actions);
+            for a in actions {
+                match a {
+                    crate::windows::WindowAction::Select(item) => {
+                        self.win_model.inventory.selected = Some(item);
+                    }
+                    crate::windows::WindowAction::EquipItem(item) => {
+                        if let Some(it) = self.win_model.inventory.items.iter_mut().find(|i| i.id == item) {
+                            it.equipped = !it.equipped;
+                        }
+                    }
+                    _ => {}
+                }
+            }
         }
         self.renderer.render_ui(gpu, &self.ui.buf, self.ui.quads, w, h);
     }

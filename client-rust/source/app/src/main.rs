@@ -177,7 +177,7 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
     let mut ui = UiBuilder::new(icons.meta);
     let mut search = TextField::new(48);
     let mut hud_state = hud::HudState::default();
-    let win_model = successor_client::windows::WindowModel::sample();
+    let mut win_model = successor_client::windows::WindowModel::sample();
     // Register the demo windows with cascaded default bounds + toolbar icons.
     let mut wm = WindowManager::new();
     for (i, (id, title, icon)) in hud::DEMO_WINDOWS.iter().enumerate() {
@@ -241,7 +241,9 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
                 let mut actions = Vec::new();
                 successor_client::windows::content(&mut ui, &id, rect, &win_model, &icons, &mut actions);
                 for a in actions {
-                    println!("window {id} action: {a:?}");
+                    if let successor_client::windows::WindowAction::Select(item) = a {
+                        win_model.inventory.selected = Some(item);
+                    }
                 }
             }
             scene.renderer.render_ui(&mut gpu, &ui.buf, ui.quads, w as u32, h as u32);
