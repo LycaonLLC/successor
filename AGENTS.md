@@ -105,6 +105,54 @@ remain independent of `main` and must still come from
 Do not add another gameplay client, world fixture, combat authority, or asset
 manifest without an explicit product decision and a canonical-context update.
 
+## Rust client (client-rust/)
+
+`client-rust/` is the in-development native Rust client intended to eventually
+replace `client-3d/`, `desktop/`, and `client-tui/`. Until parity is proven and
+a product promotion happens, the existing clients remain the supported player
+surfaces; `client-rust/` must not be published, linked from the site, or added
+to the download ledger.
+
+It is a standalone Cargo workspace, deliberately outside the root Rust
+workspace and the pnpm workspace. Root repo gates do not cover it; its own
+gates are mandatory for any change under `client-rust/`:
+
+- `make -C client-rust verify` — unit tests, perf regression vs machine
+  baseline, stripped-size regression vs machine baseline and absolute ceilings.
+- `make -C client-rust check-allocs` — steady-state frame loop must report
+  `frame-allocs 0`; any per-frame heap allocation is a gate failure.
+- `make -C client-rust runtime-check` — frame-time p50/p99, peak RSS, and
+  allocation stats for the standard demo scene vs baseline and ceilings.
+- `make -C client-rust nostd` — the engine crates must keep building for
+  `thumbv7em-none-eabihf` (no_std purity proof).
+
+Hard budgets (`client-rust/budgets.json` is authoritative):
+
+- stripped wasm <= 2.0 MiB; stripped native binary <= 3.0 MiB;
+- zero steady-state heap allocations per frame;
+- peak RSS in the standard scene <= 256 MiB;
+- frame p99 <= 4.0 ms on the `darwin-arm64-apple-m2-max` class;
+- regressions: size +max(16 KiB, 1%), perf +10%, RSS +5% vs the checked-in
+  per-machine baseline.
+
+Machine baselines live in `client-rust/bench/baselines/<machine-id>.json` and
+change ONLY via `make -C client-rust bench-baseline`, reviewed like code; an
+intentional regression ships the new baseline in the same change with a
+written justification. No baseline for your machine means capture one first.
+
+Engine rules: `successor-engine-core` and `successor-engine-render` are
+`#![no_std]` + `alloc`; no `core::fmt` in shipped paths; platform access only
+through `successor-platform`; rendering backends only through the `Gpu` trait.
+The wasm FFI import list in `client-rust/source/platform/src/web/` and the JS
+shim `client-rust/web/successor.js` must change in lockstep. New dependencies
+are weighed against the size gate — wgpu, winit, bevy, tokio, and wasm-bindgen
+are explicitly rejected. The wire protocol reuses `crates/successor-net` types;
+gameplay authority stays in Rust `successor-sim` — the client renders streamed
+state and submits commands, exactly like the existing clients. The ECS carries
+a repo-tailored prefab/JSON/asset layer (versioned `schema`/`format`
+discriminators, manifest-by-stable-id, `resolveRuntimePublicPath` fail-closed
+rules) mirroring how `client-3d`/`client` consume assets.
+
 ## Authority boundary
 
 Rust `successor-sim` owns deterministic gameplay: movement, pathing, structure

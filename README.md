@@ -31,6 +31,7 @@ client-3d/       Three.js client, HUD, shaders, effects, weather, and GLB loader
 client-tui/      terminal client and terminal journeys
 client/          renderer-neutral protocol, state projection, commands, and headless host
 desktop/         Electron distribution of client-3d
+client-rust/     in-development native Rust client (no_std engine, GL renderer, Colyseus protocol)
 site/            marketing, account, connect, browser-launch, and download shell
 server/          network edge, rooms, persistence projection, chat, and Rust bridge
 crates/          deterministic Rust simulation, net types, inventory, and WASM bindings

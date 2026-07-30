@@ -1,0 +1,21 @@
+[package]
+name = "successor-platform"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Compile-time platform backend (desktop GLFW/GL, web WebGL2) implementing the engine Gpu trait and I/O surface."
+build = "build.rs"
+
+[dependencies]
+successor-engine-core.workspace = true
+successor-engine-render.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tungstenite.workspace = true
+url.workspace = true
+parking_lot = "0.12"
+native-tls = "0.2"
+[features]
+default = []
+std = ["successor-engine-core/std", "successor-engine-render/std"]
+alloc-count = ["successor-engine-core/alloc-count", "successor-engine-render/alloc-count"]

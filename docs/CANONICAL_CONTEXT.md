@@ -21,10 +21,14 @@ focused design detail and cannot introduce another active runtime path.
 | Gameplay authority | `crates/successor-sim/` | Deterministic world simulation and gameplay mutations |
 | Shared Rust contracts | `crates/successor-{core,inventory,net,wasm}/` | Types, inventory primitives, wire commands, and platform bindings |
 | Public deployment | `ops/deploy/` | Immutable client/site publication, AWS infrastructure, and single-writer server operation |
+| Native client (in development) | `client-rust/` | no_std Rust engine + platform-abstracted renderer (desktop GL, web WebGL2; TUI/mobile later); reuses `successor-net` wire types; not yet a supported player surface |
 
 There are two supported player-facing clients. `client/` is a shared package,
 not a third visual client. Both clients submit the same server commands and
 render the same authoritative state.
+
+A third, in-development Rust client lives in `client-rust/`; it is not yet a
+supported player-facing client and ships nothing.
 
 ## Public alpha topology
 

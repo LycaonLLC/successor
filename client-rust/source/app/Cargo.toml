@@ -1,0 +1,32 @@
+[package]
+name = "successor-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Successor native/web Rust client: composition root binding engine, renderer, platform, and protocol."
+
+[lib]
+name = "successor_client"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "successor"
+path = "src/main.rs"
+
+[dependencies]
+successor-engine-core.workspace = true
+successor-engine-render.workspace = true
+successor-platform.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+successor-client-proto.workspace = true
+serde_json.workspace = true
+successor-net = { path = "../../../crates/successor-net" }
+
+[features]
+default = []
+alloc-count = [
+    "successor-engine-core/alloc-count",
+    "successor-engine-render/alloc-count",
+    "successor-platform/alloc-count",
+]

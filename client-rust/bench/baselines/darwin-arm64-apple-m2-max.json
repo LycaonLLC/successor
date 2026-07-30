@@ -1,0 +1,32 @@
+{
+  "machine": "darwin-arm64-apple-m2-max",
+  "rustc": "rustc 1.92.0 (ded5c06cf 2025-12-08)",
+  "date": "2026-07-29",
+  "benches": {
+    "ecs/query1/4096": {
+      "median_ns": 27751.11
+    },
+    "ecs/query2/4096": {
+      "median_ns": 131891.83
+    },
+    "ecs/spawn-set/4096": {
+      "median_ns": 379952.71
+    },
+    "math/mat4-mul/1024": {
+      "median_ns": 53277.12
+    },
+    "render/build-drawlist/4096": {
+      "median_ns": 1468812.27
+    }
+  },
+  "sizes": {
+    "native_stripped": 876200,
+    "wasm_stripped": 125954
+  },
+  "runtime": {
+    "frame_p50_ms": 2.5412,
+    "frame_p99_ms": 2.7255,
+    "peak_rss_bytes": 8241152,
+    "frame_allocs_steady": 0
+  }
+}

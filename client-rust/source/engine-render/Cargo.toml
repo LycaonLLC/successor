@@ -1,0 +1,23 @@
+[package]
+name = "successor-engine-render"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "no_std render graph (Gpu trait, multi-camera, RTT, shadows, dither) for the Successor Rust client."
+
+[dependencies]
+successor-engine-core.workspace = true
+libm.workspace = true
+
+[features]
+default = []
+std = ["successor-engine-core/std"]
+alloc-count = ["successor-engine-core/alloc-count"]
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "engine"
+harness = false
+required-features = ["std"]

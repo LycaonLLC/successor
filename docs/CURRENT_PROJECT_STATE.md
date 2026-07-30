@@ -55,6 +55,7 @@ registered Successor worktree. The supported components are:
 | `desktop/` | Electron packaging and isolated local-authority lifecycle |
 | `site/` | Marketing, account, launch, legal, roadmap, and download presentation |
 | `ops/deploy/` | AWS infrastructure and immutable release/operator scripts |
+| `client-rust/` | In-development native Rust client (no_std engine, GL renderer, Colyseus protocol) — pre-parity, unshipped, standalone workspace |
 
 There is no supported 2D game client. `client/` has one headless entry point and
 contains no visual runtime; graphical presentation belongs to `client-3d/`.
