@@ -100,7 +100,7 @@ try {
   const releasePointer = await release.json();
   assert(releasePointer.sourceCommit === EXPECTED_SOURCE_COMMIT, "release pointer source commit mismatch");
   assert(releasePointer.clientReleaseId === EXPECTED_CLIENT_RELEASE_ID, "release pointer client id mismatch");
-  assert(releasePointer.browserManifestSha256 === EXPECTED_MANIFEST_SHA256, "release pointer manifest mismatch");
+  assert(releasePointer.manifestSha256 === EXPECTED_MANIFEST_SHA256, "release pointer manifest mismatch");
   assert(releasePointer.entry === EXPECTED_ENTRY, "release pointer entry mismatch");
 
   await page.goto(ACCOUNT_URL, { waitUntil: "domcontentloaded", timeout: 120_000 });
@@ -293,7 +293,7 @@ try {
     client: {
       sourceCommit: releasePointer.sourceCommit,
       clientReleaseId: releasePointer.clientReleaseId,
-      manifestSha256: releasePointer.browserManifestSha256,
+      manifestSha256: releasePointer.manifestSha256,
       entry: releasePointer.entry,
       frameOrigin: new URL(gameFrame.url()).origin,
     },
