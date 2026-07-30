@@ -60,7 +60,18 @@ jobs:
       - run: pnpm security:audit
       - run: pnpm -r build
       - run: cargo build --locked -p successor-sim --example authority_bridge_server
-      - run: pnpm -r test
+      - name: test site
+        run: pnpm --dir site test
+      - name: test shared client
+        run: pnpm --dir client test
+      - name: test graphical client
+        run: pnpm --dir client-3d test
+      - name: test terminal client
+        run: pnpm --dir client-tui test
+      - name: test desktop packaging
+        run: pnpm --dir desktop test
+      - name: test server serially
+        run: pnpm --dir server test:ci
 
   provenance:
     name: provenance audit

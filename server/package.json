@@ -10,6 +10,7 @@
     "start": "node dist/index.js",
     "lint": "eslint src",
     "test": "vitest run --passWithNoTests",
+    "test:ci": "vitest run --passWithNoTests --no-file-parallelism",
     "test:durability": "vitest run src/durability-process.integration.test.ts src/lifecycleSupervisor.test.ts src/game/routes.test.ts src/game/shard.test.ts -t \"checkpoint|first entry|first-entry|readyz|readiness|hosted durability|final checkpoint\"",
     "bench:chat": "tsx scripts/bench-chat-hub.ts",
     "bench:chat:ws": "tsx scripts/bench-chat-websocket.ts",
