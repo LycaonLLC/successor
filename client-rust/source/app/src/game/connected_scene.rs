@@ -35,9 +35,13 @@ struct ActorPawn {
     entities: Vec<Entity>,
     animator: PawnAnimator,
     lane: WeaponLane,
-    last: (f32, f32),
-    yaw: f32,
+    /// Authoritative sim target position (from the store).
+    target: (f32, f32),
+    /// Smoothed rendered position (lerped toward `target` each frame) — this is
+    /// what drives both the transform and the gait speed, so neither snaps.
+    render_pos: (f32, f32),
     speed: f32,
+    yaw: f32,
     present: bool,
 }
 
@@ -198,6 +202,9 @@ impl ConnectedScene {
 
     /// The player's current world position (falls back to the slice centre).
     pub fn player_pos(&self) -> Vec3 {
+        if let Some(p) = self.pawns.get(&self.player_id) {
+            return vec3(p.render_pos.0 + 0.5, 0.0, p.render_pos.1 + 0.5);
+        }
         self.store
             .actors
             .get(&self.player_id)
@@ -205,12 +212,17 @@ impl ConnectedScene {
             .unwrap_or(self.center)
     }
 
+    /// The player's current smoothed gait speed (diagnostic: should be stable
+    /// while walking, not oscillating 0↔spike).
+    pub fn player_speed(&self) -> f32 {
+        self.pawns.get(&self.player_id).map(|p| p.speed).unwrap_or(0.0)
+    }
     pub fn actor_count(&self) -> usize {
         self.store.actors.len()
     }
 
     /// Spawn a pawn (one entity per body part) for a new actor.
-    fn spawn_pawn(&mut self, id: &str, skin_hex: Option<&str>, faction: Option<[f32; 3]>) {
+    fn spawn_pawn(&mut self, id: &str, x: f32, y: f32, skin_hex: Option<&str>, faction: Option<[f32; 3]>) {
         let base = skin_tint(skin_hex);
         let color = faction_tinted(base, faction);
         let material = self.renderer.add_material(color);
@@ -223,7 +235,16 @@ impl ConnectedScene {
         }
         self.pawns.insert(
             id.to_string(),
-            ActorPawn { entities, animator: PawnAnimator::new(&self.template), lane: WeaponLane::Unarmed, last: (0.0, 0.0), yaw: 0.0, speed: 0.0, present: true },
+            ActorPawn {
+                entities,
+                animator: PawnAnimator::new(&self.template),
+                lane: WeaponLane::Unarmed,
+                target: (x, y),
+                render_pos: (x, y),
+                speed: 0.0,
+                yaw: 0.0,
+                present: true,
+            },
         );
     }
 
@@ -246,19 +267,11 @@ impl ConnectedScene {
         for (id, x, y, skin, faction) in &live {
             if !self.pawns.contains_key(id) {
                 let fac = faction.as_deref().map(faction_rgb);
-                self.spawn_pawn(id, skin.as_deref(), fac);
+                self.spawn_pawn(id, *x, *y, skin.as_deref(), fac);
             }
             if let Some(p) = self.pawns.get_mut(id) {
                 p.present = true;
-                let (lx, ly) = p.last;
-                let (dx, dy) = (x - lx, y - ly);
-                let dist = (dx * dx + dy * dy).sqrt();
-                let speed = if dt > 0.0 { dist / dt } else { 0.0 };
-                if dist > 1e-3 {
-                    p.yaw = dx.atan2(dy);
-                }
-                p.last = (*x, *y);
-                p.speed = speed;
+                p.target = (*x, *y);
             }
         }
 
@@ -268,10 +281,27 @@ impl ConnectedScene {
         let ids: Vec<String> = self.pawns.keys().cloned().collect();
         for id in ids {
             let (present, speed, yaw, wx, wz, entities) = {
-                let live_pos = live.iter().find(|(lid, ..)| lid == &id).map(|(_, x, y, ..)| (*x, *y));
-                let p = self.pawns.get(&id).unwrap();
-                let (x, y) = live_pos.unwrap_or(p.last);
-                (p.present, p.speed, p.yaw, x + 0.5, y + 0.5, p.entities.clone())
+                let p = self.pawns.get_mut(&id).unwrap();
+                if !p.present {
+                    (false, 0.0, 0.0, 0.0, 0.0, p.entities.clone())
+                } else {
+                    // Chase the authoritative target smoothly; derive gait speed
+                    // from the *rendered* motion so it never spikes to 0 between
+                    // sparse position packets.
+                    let (tx, ty) = p.target;
+                    let (rx, ry) = p.render_pos;
+                    let k = (dt * 12.0).min(1.0);
+                    let nx = rx + (tx - rx) * k;
+                    let ny = ry + (ty - ry) * k;
+                    let moved = ((nx - rx) * (nx - rx) + (ny - ry) * (ny - ry)).sqrt();
+                    let inst = if dt > 0.0 { moved / dt } else { 0.0 };
+                    p.speed = p.speed * 0.72 + inst * 0.28; // EMA → stable gait input
+                    if moved > 1e-4 {
+                        p.yaw = (tx - rx).atan2(ty - ry);
+                    }
+                    p.render_pos = (nx, ny);
+                    (true, p.speed, p.yaw, nx + 0.5, ny + 0.5, p.entities.clone())
+                }
             };
             if !present {
                 // Hide departed pawns below the world.
