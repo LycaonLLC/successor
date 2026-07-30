@@ -1,0 +1,1 @@
+{"name":"market-opus5-rebuild-tools","private":true,"version":"0.0.0","type":"module","dependencies":{"@gltf-transform/cli":"^4.4.2","@gltf-transform/core":"^4.4.2","@gltf-transform/extensions":"^4.4.2","@gltf-transform/functions":"^4.4.2","puppeteer-core":"^23.11.1","three":"^0.169.0"}}
