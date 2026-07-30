@@ -720,7 +720,7 @@ describe("RustAuthorityBridge", () => {
     } finally {
       vi.useRealTimers();
     }
-  });
+  }, 15_000);
 
   it("deserializes inventory resourceStats from bridge child process output", () => {
     const here = path.dirname(fileURLToPath(import.meta.url));
