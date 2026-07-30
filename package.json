@@ -41,6 +41,7 @@
     "verify:full": "node tools/verification/verify-full.mjs",
     "verify:standalone": "node tools/verification/standalone/run.mjs",
     "verify:public-browser": "node tools/verification/public-browser-proof.mjs",
+    "verify:public-native": "node tools/verification/public-native-proof.mjs",
     "play:gate": "node tools/verification/play-gate.mjs",
     "play:flow": "node tools/successor/play-flows/cli.mjs",
     "tui:gate": "node client-tui/journeys/runner.mjs",
