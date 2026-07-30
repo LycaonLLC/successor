@@ -16,6 +16,8 @@
     "site:build": "pnpm --dir site build",
     "site:test": "pnpm --dir site test && pnpm --dir site check:budget",
     "server:local:persistent": "node scripts/server-local-persistent.mjs",
+    "client-rust:build": "make -C client-rust all",
+    "client-rust:verify": "make -C client-rust verify",
     "bugreports": "pnpm --dir server bugreports",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",

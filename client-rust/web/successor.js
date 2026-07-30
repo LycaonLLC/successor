@@ -1,0 +1,386 @@
+// Successor Rust Client — WebGL2, WebSockets, Fetch, and Input JS loader.
+"use strict";
+
+const canvas = document.getElementById("app");
+const gl = canvas.getContext("webgl2");
+
+if (!gl) {
+    console.error("WebGL2 is not supported by this browser.");
+}
+
+// Input state tracking
+const keyState = new Uint8Array(13);
+const keyMap = {
+    "KeyW": 0,
+    "KeyA": 1,
+    "KeyS": 2,
+    "KeyD": 3,
+    "ArrowUp": 4,
+    "ArrowDown": 5,
+    "ArrowLeft": 6,
+    "ArrowRight": 7,
+    "Space": 8,
+    "Enter": 9,
+    "Escape": 10,
+    "Backspace": 11,
+    "ShiftLeft": 12
+};
+
+window.addEventListener("keydown", (e) => {
+    const code = keyMap[e.code];
+    if (code !== undefined) {
+        keyState[code] = 1;
+    }
+});
+
+window.addEventListener("keyup", (e) => {
+    const code = keyMap[e.code];
+    if (code !== undefined) {
+        keyState[code] = 0;
+    }
+});
+
+window.addEventListener("blur", () => {
+    keyState.fill(0);
+});
+
+const charQueue = [];
+window.addEventListener("keypress", (e) => {
+    if (e.key.length === 1) {
+        charQueue.push(e.key.charCodeAt(0));
+    }
+});
+
+// Resource table: WebGL objects referenced by integer ID from WASM.
+// Index 0 = null/invalid.
+const glResources = [null];
+
+function glAlloc(obj) {
+    glResources.push(obj);
+    return glResources.length - 1;
+}
+
+function glGet(id) {
+    return id > 0 && id < glResources.length ? glResources[id] : null;
+}
+
+// WebSocket connections table
+const wsConnections = [null];
+
+let wasmMemory;
+let wasmExports = {};
+
+// Helper: Decode a string (ptr + len) from WASM memory
+function getString(ptr, len) {
+    if (!wasmMemory) return "";
+    const bytes = new Uint8Array(wasmMemory.buffer, ptr, len);
+    return new TextDecoder().decode(bytes);
+}
+
+const importObject = {
+    env: {
+        // --- WebGL2 Functions ---
+        glClearColor: (r, g, b, a) => gl.clearColor(r, g, b, a),
+        glClear: (mask) => gl.clear(mask),
+        glViewport: (x, y, w, h) => gl.viewport(x, y, w, h),
+        glEnable: (cap) => gl.enable(cap),
+        glDisable: (cap) => gl.disable(cap),
+        glCullFace: (mode) => gl.cullFace(mode),
+        glDepthMask: (flag) => gl.depthMask(flag !== 0),
+        glColorMask: (r, g, b, a) => gl.colorMask(r !== 0, g !== 0, b !== 0, a !== 0),
+
+        glCreateShader: (type) => glAlloc(gl.createShader(type)),
+        glShaderSource: (shader, ptr, len) => {
+            const src = getString(ptr, len);
+            gl.shaderSource(glGet(shader), src);
+        },
+        glCompileShader: (shader) => gl.compileShader(glGet(shader)),
+        glGetShaderiv: (shader, pname) => {
+            const param = gl.getShaderParameter(glGet(shader), pname);
+            return typeof param === "boolean" ? (param ? 1 : 0) : param;
+        },
+        glGetShaderInfoLog: (shader, bufPtr, maxLen) => {
+            const log = gl.getShaderInfoLog(glGet(shader)) || "";
+            const bytes = new TextEncoder().encode(log);
+            const truncated = bytes.subarray(0, maxLen);
+            const dest = new Uint8Array(wasmMemory.buffer, bufPtr, maxLen);
+            dest.set(truncated);
+            return truncated.length;
+        },
+        glDeleteShader: (shader) => {
+            gl.deleteShader(glGet(shader));
+            glResources[shader] = null;
+        },
+
+        glCreateProgram: () => glAlloc(gl.createProgram()),
+        glAttachShader: (program, shader) => gl.attachShader(glGet(program), glGet(shader)),
+        glLinkProgram: (program) => gl.linkProgram(glGet(program)),
+        glGetProgramiv: (program, pname) => {
+            const param = gl.getProgramParameter(glGet(program), pname);
+            return typeof param === "boolean" ? (param ? 1 : 0) : param;
+        },
+        glGetProgramInfoLog: (program, bufPtr, maxLen) => {
+            const log = gl.getProgramInfoLog(glGet(program)) || "";
+            const bytes = new TextEncoder().encode(log);
+            const truncated = bytes.subarray(0, maxLen);
+            const dest = new Uint8Array(wasmMemory.buffer, bufPtr, maxLen);
+            dest.set(truncated);
+            return truncated.length;
+        },
+        glUseProgram: (program) => gl.useProgram(glGet(program)),
+        glDeleteProgram: (program) => {
+            gl.deleteProgram(glGet(program));
+            glResources[program] = null;
+        },
+
+        glGetUniformLocation: (program, ptr, len) => {
+            const name = getString(ptr, len);
+            const loc = gl.getUniformLocation(glGet(program), name);
+            if (!loc) return -1;
+            return glAlloc(loc);
+        },
+        glUniform1i: (loc, val) => gl.uniform1i(glGet(loc), val),
+        glUniform1f: (loc, val) => gl.uniform1f(glGet(loc), val),
+        glUniform2f: (loc, x, y) => gl.uniform2f(glGet(loc), x, y),
+        glUniform3f: (loc, x, y, z) => gl.uniform3f(glGet(loc), x, y, z),
+        glUniform4f: (loc, x, y, z, w) => gl.uniform4f(glGet(loc), x, y, z, w),
+        glUniformMatrix4fv: (loc, count, transpose, ptr) => {
+            const view = new Float32Array(wasmMemory.buffer, ptr, 16);
+            gl.uniformMatrix4fv(glGet(loc), transpose !== 0, view);
+        },
+        glUniform3fv: (loc, count, ptr) => {
+            const view = new Float32Array(wasmMemory.buffer, ptr, count * 3);
+            gl.uniform3fv(glGet(loc), view);
+        },
+        glUniform1fv: (loc, count, ptr) => {
+            const view = new Float32Array(wasmMemory.buffer, ptr, count);
+            gl.uniform1fv(glGet(loc), view);
+        },
+
+        glGenTexture: () => glAlloc(gl.createTexture()),
+        glDeleteTexture: (tex) => {
+            gl.deleteTexture(glGet(tex));
+            glResources[tex] = null;
+        },
+        glBindTexture: (target, tex) => gl.bindTexture(target, glGet(tex)),
+        glActiveTexture: (unit) => gl.activeTexture(unit),
+        glTexParameteri: (target, pname, param) => gl.texParameteri(target, pname, param),
+        glTexImage2D: (target, level, internalFormat, width, height, border, format, type, ptr, len) => {
+            const pixels = len > 0 ? new Uint8Array(wasmMemory.buffer, ptr, len) : null;
+            gl.texImage2D(target, level, internalFormat, width, height, border, format, type, pixels);
+        },
+
+        glGenBuffer: () => glAlloc(gl.createBuffer()),
+        glDeleteBuffer: (buf) => {
+            gl.deleteBuffer(glGet(buf));
+            glResources[buf] = null;
+        },
+        glBindBuffer: (target, buf) => gl.bindBuffer(target, glGet(buf)),
+        glBufferData: (target, ptr, len, usage) => {
+            const bytes = new Uint8Array(wasmMemory.buffer, ptr, len);
+            gl.bufferData(target, bytes, usage);
+        },
+
+        glGenVertexArray: () => glAlloc(gl.createVertexArray()),
+        glDeleteVertexArray: (vao) => {
+            gl.deleteVertexArray(glGet(vao));
+            glResources[vao] = null;
+        },
+        glBindVertexArray: (vao) => gl.bindVertexArray(glGet(vao)),
+        glVertexAttribPointer: (index, size, type, normalized, stride, offset) => {
+            gl.vertexAttribPointer(index, size, type, normalized !== 0, stride, offset);
+        },
+        glEnableVertexAttribArray: (index) => gl.enableVertexAttribArray(index),
+        glDisableVertexAttribArray: (index) => gl.disableVertexAttribArray(index),
+
+        glDrawArrays: (mode, first, count) => gl.drawArrays(mode, first, count),
+        glDrawElements: (mode, count, type, offset) => gl.drawElements(mode, count, type, offset),
+
+        glGenFramebuffer: () => glAlloc(gl.createFramebuffer()),
+        glDeleteFramebuffer: (fbo) => {
+            gl.deleteFramebuffer(glGet(fbo));
+            glResources[fbo] = null;
+        },
+        glBindFramebuffer: (target, fbo) => gl.bindFramebuffer(target, glGet(fbo)),
+        glFramebufferTexture2D: (target, attachment, texTarget, tex, level) => {
+            gl.framebufferTexture2D(target, attachment, texTarget, glGet(tex), level);
+        },
+        glCheckFramebufferStatus: (target) => gl.checkFramebufferStatus(target),
+        glDrawBuffers: (ptr, len) => {
+            const attachments = new Uint32Array(wasmMemory.buffer, ptr, len);
+            gl.drawBuffers(Array.from(attachments));
+        },
+        glPixelStorei: (pname, param) => gl.pixelStorei(pname, param),
+
+        // --- Window/Input/Time Functions ---
+        js_init: (titlePtr, titleLen, w, h) => {
+            const title = getString(titlePtr, titleLen);
+            console.log(`js_init: "${title}", target size ${w}x${h}`);
+        },
+        js_log: (ptr, len) => {
+            const str = getString(ptr, len);
+            console.log(str);
+        },
+        js_get_canvas_size: (w_ptr, h_ptr) => {
+            const w_arr = new Int32Array(wasmMemory.buffer, w_ptr, 1);
+            const h_arr = new Int32Array(wasmMemory.buffer, h_ptr, 1);
+            w_arr[0] = canvas.width;
+            h_arr[0] = canvas.height;
+        },
+        js_now_ms: () => performance.now(),
+        js_is_key_down: (key) => {
+            return key < 13 ? keyState[key] : 0;
+        },
+        js_set_cursor_visible: (visible) => {
+            canvas.style.cursor = visible ? "default" : "none";
+        },
+        js_poll_char: () => {
+            return charQueue.length > 0 ? charQueue.shift() : -1;
+        },
+
+        // --- WebSocket & Fetch Functions ---
+        js_ws_connect: (urlPtr, urlLen) => {
+            const url = getString(urlPtr, urlLen);
+            try {
+                const ws = new WebSocket(url);
+                ws.binaryType = "arraybuffer";
+                
+                const handle = wsConnections.length;
+                const state = {
+                    ws,
+                    open: false,
+                    openReported: false,
+                    closed: false,
+                    error: false,
+                    queue: []
+                };
+                
+                wsConnections.push(state);
+                
+                ws.onopen = () => { state.open = true; };
+                ws.onmessage = (e) => { state.queue.push(new Uint8Array(e.data)); };
+                ws.onclose = () => { state.closed = true; };
+                ws.onerror = () => { state.error = true; };
+                
+                return handle;
+            } catch (e) {
+                console.error("WebSocket connect failed:", e);
+                return 0;
+            }
+        },
+        js_ws_send: (id, ptr, len) => {
+            const state = wsConnections[id];
+            if (state && state.ws.readyState === WebSocket.OPEN) {
+                const bytes = new Uint8Array(wasmMemory.buffer, ptr, len).slice();
+                state.ws.send(bytes);
+            }
+        },
+        js_ws_poll: (id, bufPtr, maxLen) => {
+            const state = wsConnections[id];
+            if (!state) return -2;
+            
+            if (state.error) {
+                state.error = false;
+                return -2;
+            }
+            
+            if (state.open && !state.openReported) {
+                state.openReported = true;
+                return -3;
+            }
+            
+            if (state.queue.length > 0) {
+                const msg = state.queue.shift();
+                const len = Math.min(msg.length, maxLen);
+                const dest = new Uint8Array(wasmMemory.buffer, bufPtr, len);
+                dest.set(msg.subarray(0, len));
+                return len;
+            }
+            
+            if (state.closed) {
+                return -1;
+            }
+            
+            return 0;
+        },
+        js_ws_close: (id) => {
+            const state = wsConnections[id];
+            if (state) {
+                state.ws.close();
+            }
+        },
+        js_fetch_post_json: (urlPtr, urlLen, bodyPtr, bodyLen, outPtr, outMaxLen) => {
+            const url = getString(urlPtr, urlLen);
+            const body = getString(bodyPtr, bodyLen);
+            
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", url, false); // synchronous XMLHttpRequest
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.send(body);
+                
+                if (xhr.status === 200) {
+                    const text = xhr.responseText;
+                    const bytes = new TextEncoder().encode(text);
+                    const len = Math.min(bytes.length, outMaxLen);
+                    const dest = new Uint8Array(wasmMemory.buffer, outPtr, len);
+                    dest.set(bytes.subarray(0, len));
+                    return len;
+                } else {
+                    console.error("fetch_post_json server error status:", xhr.status);
+                    return -1;
+                }
+            } catch (e) {
+                console.error("fetch_post_json network error:", e);
+                return -1;
+            }
+        }
+    }
+};
+
+let lastTime = performance.now();
+
+// Load the WASM module
+fetch("successor_client.wasm")
+    .then(response => response.arrayBuffer())
+    .then(bytes => WebAssembly.instantiate(bytes, importObject))
+    .then(results => {
+        const instance = results.instance;
+        wasmMemory = instance.exports.memory;
+        wasmExports = instance.exports;
+
+        // Call init if present
+        if (typeof wasmExports.init === "function") {
+            wasmExports.init();
+        }
+
+        // Call resize on resize
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (typeof wasmExports.resize === "function") {
+                wasmExports.resize(canvas.width, canvas.height);
+            }
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        // Animation / Frame loop
+        function tick(time) {
+            const dt = (time - lastTime) / 1000.0;
+            lastTime = time;
+
+            if (typeof wasmExports.update === "function") {
+                wasmExports.update(dt);
+            }
+            if (typeof wasmExports.render === "function") {
+                wasmExports.render();
+            }
+
+            requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+    })
+    .catch(err => {
+        console.error("WASM instantiation failed:", err);
+    });

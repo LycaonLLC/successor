@@ -1,0 +1,30 @@
+{
+  "_comment": "Synthetic fixture representing game.hello",
+  "type": "game.hello",
+  "sessionId": "test-session-id-12345",
+  "playerActorId": "actor-player-1",
+  "snapshot": {
+    "schema": "successor.authoritative-shard-snapshot.v1",
+    "shardId": "open-desert-persistent",
+    "tick": 42,
+    "playerActorId": "actor-player-1",
+    "actors": {
+      "actor-player-1": {
+        "id": "actor-player-1",
+        "label": "player",
+        "display_name": "Dev Player",
+        "areaId": "open-desert-overworld",
+        "x": 521.0,
+        "y": 520.0,
+        "direction": "right",
+        "vitals": {
+          "health": 100.0,
+          "action": 80.0,
+          "spirit": 50.0
+        },
+        "lifeState": "alive"
+      }
+    }
+  },
+  "serverTime": "2026-07-29T12:00:00Z"
+}

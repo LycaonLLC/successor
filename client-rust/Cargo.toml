@@ -1,0 +1,43 @@
+[workspace]
+resolver = "2"
+members = [
+    "source/engine-core",
+    "source/engine-render",
+    "source/platform",
+    "source/client-proto",
+    "source/app",
+]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+successor-engine-core = { path = "source/engine-core" }
+successor-engine-render = { path = "source/engine-render" }
+successor-platform = { path = "source/platform" }
+successor-client-proto = { path = "source/client-proto" }
+# no_std float math (only external dep of the engine crates)
+libm = "0.2"
+# std-side crates (platform / proto / app shell only)
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rmp-serde = "1"
+tungstenite = { version = "0.24", features = ["native-tls"] }
+url = "2"
+
+# Size-first profile: the client is gated on stripped binary size (budgets.json).
+# Deliberately NOT sharing the root workspace, whose release profile is opt-level=3
+# for sim determinism and whose clippy.toml bans HashMap/Instant workspace-wide.
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+# Debug builds must also abort: the no_std engine crates cannot unwind.
+# Ignored by test/bench profiles, which Cargo forces back to panic="unwind".
+[profile.dev]
+panic = "abort"

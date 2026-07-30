@@ -1,0 +1,20 @@
+[package]
+name = "successor-engine-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "no_std ECS, math, and runtime for the Successor Rust client."
+
+[dependencies]
+libm.workspace = true
+
+[features]
+default = []
+# Enables std so the libtest harness links (unit tests / host tooling). Never
+# enabled for shipping game builds.
+std = []
+# Bare-metal panic handler (off by default). Our std artifacts never enable it;
+# provided for a future genuine no_std binary embedding. See rt/panic.rs.
+panic-handler = []
+# Wraps the global allocator with an atomic per-frame counter (see rt::alloc).
+alloc-count = []
