@@ -704,6 +704,8 @@ export class AlphaControlStore {
   createBugReport(input: PersistBugReportInput): PersistedBugReport {
     const body = input.body
       .trim()
+      // Intentionally strip C0 controls except tab/newline/carriage-return, plus DEL.
+      // eslint-disable-next-line no-control-regex
       .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/gu, "");
     const validId = (value: string, max: number): boolean => {
       const bytes = Buffer.byteLength(value, "utf8");
