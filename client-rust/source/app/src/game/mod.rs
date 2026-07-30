@@ -4,6 +4,7 @@
 
 pub mod authority;
 pub mod combat_fx;
+pub mod connected_scene;
 pub mod command_queue;
 pub mod interp;
 pub mod prediction;
