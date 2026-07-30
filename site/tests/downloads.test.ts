@@ -166,13 +166,28 @@ describe("download surfaces", () => {
     expect(formatSize(52_400_000)).toBe("52.4 MB");
   });
 
-  it("the shipped development manifest matches the durable release-ledger schema", () => {
+  it("the shipped manifest matches the live four-target release ledger", () => {
     const manifest = JSON.parse(
       readFileSync(sitePath("public/downloads/manifest.json"), "utf8"),
-    ) as { schema: string; builds: unknown[] };
+    ) as {
+      schema: string;
+      releaseId: string;
+      version: string;
+      builds: Array<Record<string, unknown>>;
+    };
     expect(manifest.schema).toBe("successor.downloads.v1");
-    expect(manifest.builds).toEqual([]);
+    expect(manifest.releaseId).toBe("successor-alpha@cdab7dccacc1d75c");
+    expect(manifest.version).toBe("0.0.4");
+    expect(manifest.builds).toHaveLength(4);
+    expect(manifest.builds.every(isPublishableBuild)).toBe(true);
+    expect(manifest.builds.map((build) => build.targetId).sort()).toEqual([
+      "3d-linux-x64",
+      "3d-macos-arm64",
+      "tui-linux-x64",
+      "tui-macos-arm64",
+    ]);
     const parsed = parseManifest(manifest);
+    expect(parsed?.builds.size).toBe(4);
     expect(parsed?.targets.map((target) => target.targetId).sort()).toEqual([
       "3d-linux-x64",
       "3d-macos-arm64",

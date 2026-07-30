@@ -103,7 +103,7 @@ describe("roadmap route", () => {
   it("grounds live claims in current world facts only", () => {
     expect(roadmap).toContain("Open desert and Verdance forest");
     expect(roadmap).toContain("Browser play, Linux, and macOS builds are live.");
-    expect(roadmap).toContain("The public package is not ready.");
+    expect(roadmap).toContain("Public Linux and macOS packages are available now.");
     expect(roadmap).not.toMatch(/sea travel|territorial claims|two planets|marketplace is live/i);
   });
 });

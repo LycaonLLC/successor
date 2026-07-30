@@ -1,4 +1,45 @@
 {
   "schema": "successor.downloads.v1",
-  "builds": []
+  "releaseId": "successor-alpha@cdab7dccacc1d75c",
+  "version": "0.0.4",
+  "publishedAt": "2026-07-30T03:50:34Z",
+  "source": {
+    "commit": "656f79edb08ba4eba81f49d00fb7fa24b7fee3ed",
+    "tree": "7e4fb327d90d48d7f95d89075a28f8796bd2b75f"
+  },
+  "serverImage": "595529182031.dkr.ecr.us-east-1.amazonaws.com/successor-staging-1/server@sha256:e461648246084787e2985413b8ef6005e829d10873baa0a09fcb35a6a369166d",
+  "builds": [
+    {
+      "targetId": "3d-linux-x64",
+      "version": "0.0.4",
+      "sizeBytes": 310733999,
+      "sha256": "8f9657459a81aac9a81fbc08022521140537757bd86f395c8170871a98268981",
+      "url": "https://d2kf3ri6r74a0m.cloudfront.net/downloads/successor-alpha-cdab7dccacc1d75c/656f79edb08ba4eba81f49d00fb7fa24b7fee3ed/successor-desktop-0.0.4-linux-x64.tar.gz",
+      "publishedAt": "2026-07-30T03:50:34Z"
+    },
+    {
+      "targetId": "3d-macos-arm64",
+      "version": "0.0.4",
+      "sizeBytes": 309789344,
+      "sha256": "4849ec03f2f319b63646e1475e4e937f1cbe3afb4ff9341491c0a58abadd4781",
+      "url": "https://d2kf3ri6r74a0m.cloudfront.net/downloads/successor-alpha-cdab7dccacc1d75c/656f79edb08ba4eba81f49d00fb7fa24b7fee3ed/successor-desktop-0.0.4-macos-arm64.tar.gz",
+      "publishedAt": "2026-07-30T03:50:34Z"
+    },
+    {
+      "targetId": "tui-linux-x64",
+      "version": "0.0.4",
+      "sizeBytes": 45712567,
+      "sha256": "e9f186ff735caa2f461a79d847f3b7781a28e52a07caccf39d5be010d35226ac",
+      "url": "https://d2kf3ri6r74a0m.cloudfront.net/downloads/successor-alpha-cdab7dccacc1d75c/656f79edb08ba4eba81f49d00fb7fa24b7fee3ed/successor-tui-0.0.4-linux-x64.tar.gz",
+      "publishedAt": "2026-07-30T03:50:34Z"
+    },
+    {
+      "targetId": "tui-macos-arm64",
+      "version": "0.0.4",
+      "sizeBytes": 38837102,
+      "sha256": "c524e0fd9298822b9a5ce6c06f97e14645ba9133485f4115e8195d76e9ba0a56",
+      "url": "https://d2kf3ri6r74a0m.cloudfront.net/downloads/successor-alpha-cdab7dccacc1d75c/656f79edb08ba4eba81f49d00fb7fa24b7fee3ed/successor-tui-0.0.4-macos-arm64.tar.gz",
+      "publishedAt": "2026-07-30T03:50:34Z"
+    }
+  ]
 }
