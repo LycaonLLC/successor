@@ -124,7 +124,7 @@ def load_unit(uid: str, with_items: bool, with_proxy: bool):
             if os.path.exists(path):
                 place_item(path, cx, cy, yaw, pu.FLOOR_TOP)
             else:
-                print(f"[prodproof] MISSING item source: {path}")
+                raise FileNotFoundError(f"required proof item source missing: {path}")
     if with_proxy:
         # The threshold proxy stands beside the opening, not in it: round 1 put
         # it dead centre and it occluded the whole threshold crop.

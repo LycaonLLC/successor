@@ -40,8 +40,6 @@ from dgpaths import REPO_ROOT
 BLOCK_W, BLOCK_H = 42, 32
 RES = 1600
 
-REPO = pb.PROMOTED_ROOT
-
 #: unit id -> (north-west cell, cell size). Sizes MUST match the manifests.
 PLACEMENTS = {
     "clone": ((4, 6), (12, 10)),
@@ -56,7 +54,7 @@ PLACEMENTS = {
 PAWNS = os.path.join(REPO_ROOT, "client-3d", "public", "assets", "pawn-pack")
 FREESTANDING = (
     ("travel_terminal", (28.5, 22.5),
-     os.path.join(REPO, "travel_terminal_grok_wedge.glb"), 0.0, -90.0,
+     pb.item_source("travel_terminal_grok_wedge"), 0.0, -90.0,
      "Dustgate travel terminal; -90 X matches props-mapping assetRotationDegrees"),
     ("player_spawn", (26.0, 26.5), os.path.join(PAWNS, "pawn_male.glb"), 8.0, 0.0,
      "ordinary player spawn, promoted clothed pawn"),
@@ -87,12 +85,6 @@ YARD_PROPS = (
     ("mineral_dust_filter", (39.4, 12.9), -38.0),
     ("petrochemical_separator_skid", (36.2, 14.8), 112.0),
 )
-EXTRACTION_DIR = os.path.join(
-    pb.SOURCE_ROOT,
-    "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets",
-)
-
-
 def bx(cell_x: float) -> float:
     return cell_x
 
@@ -146,20 +138,19 @@ def instance_unit(uid: str, cell: tuple[int, int], size: tuple[int, int]) -> dic
 
 
 def place_external(path: str, cx: float, cy: float, yaw_deg: float,
-                   label: str, x_rot_deg: float = 0.0) -> dict | None:
+                   label: str, x_rot_deg: float = 0.0) -> dict:
     """Instance an external asset at a world cell.
 
     `x_rot_deg` reproduces the mapping's `assetRotationDegrees`: the travel
     terminal is authored Z-up in its own GLB and the runtime corrects it with
     `[-90, 0, 0]`, so an assembly that skips that lays it flat on the sand."""
     if not os.path.exists(path):
-        print(f"[prodassemble] MISSING {label}: {path}")
-        return None
+        raise FileNotFoundError(f"required external asset missing for {label}: {path}")
     before = set(bpy.context.scene.objects)
     bpy.ops.import_scene.gltf(filepath=path)
     objects = [o for o in bpy.context.scene.objects if o not in before]
     if not objects:
-        return None
+        raise RuntimeError(f"required external asset imported no objects for {label}: {path}")
     pk.rest_pose_from_glb(path, objects)
     container = bpy.data.objects.new(f"ext_{label}", None)
     bpy.context.scene.collection.objects.link(container)
@@ -509,7 +500,7 @@ def build() -> dict:
 
     for name, (cx, cy), yaw in YARD_PROPS:
         record = place_external(
-            os.path.join(EXTRACTION_DIR, f"successor_extraction_{name}.glb"),
+            pb.item_source(f"successor_extraction_{name}"),
             cx, cy, yaw, name)
         if record:
             record["role"] = "extraction-scale yard equipment, tested outdoors"

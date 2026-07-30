@@ -39,6 +39,7 @@ import bpy  # type: ignore
 
 import dgkit as dg
 import prodkit as pk
+import proditems as pi
 import produnits as pu
 from dgpaths import REPO_ROOT
 from prodkit import DoorSpec, Unit
@@ -57,27 +58,40 @@ EQUIPPED_DEPTH_M = 0.62
 # instanced world items: external assets, never embedded geometry
 # --------------------------------------------------------------------------
 
-SOURCE_ROOT = os.path.abspath(os.environ.get(
-    "SUCCESSOR_PROP_SOURCE_ROOT",
-    os.path.join(os.path.expanduser("~"), "dev", "games", "source-assets", "props"),
-))
-PROMOTED_ROOT = os.path.join(
-    REPO_ROOT, "client-3d", "public", "assets", "world-items",
-)
-
 EXTRACTION = ("successor/full-spectrum-wave-20260720/extraction-installations/"
               "parent-reset-01/assets")
 VEHICLE = "vehicles/successor/grok45-wave-20260718/components/assets"
 EVERYDAY = "successor/everyday-wave-20260719/everyday-world-props/assets"
 HOMEBUILD = "successor/homebuilder-wave-20260719/furniture/assets"
+_ITEM_SOURCE_CACHE: dict[str, str] | None = None
 
 
 def _promoted(name: str) -> str:
-    return os.path.join(PROMOTED_ROOT, name)
+    return item_source(os.path.splitext(name)[0])
 
 
 def _source(lane: str, name: str) -> str:
-    return os.path.join(SOURCE_ROOT, lane, name)
+    del lane
+    return item_source(os.path.splitext(name)[0])
+
+
+def item_source(item_id: str) -> str:
+    """Return a hash-validated source path for one audited world item.
+
+    `proditems.build_candidates()` prefers the committed `source-items/`
+    snapshot for non-runtime assets and verifies every file against the
+    explicit hash table. Keeping this resolver here makes the authoring,
+    render-proof, and assembly lanes consume the same exact inputs.
+    """
+    global _ITEM_SOURCE_CACHE
+    if _ITEM_SOURCE_CACHE is None:
+        _ITEM_SOURCE_CACHE = {
+            row["id"]: row["sourcePath"] for row in pi.build_candidates()
+        }
+    try:
+        return _ITEM_SOURCE_CACHE[item_id]
+    except KeyError as exc:
+        raise KeyError(f"world item is not in the pinned audit: {item_id}") from exc
 
 
 #: (item id, absolute glb, lane label, promoted?, footprint w x d in metres,
