@@ -677,6 +677,7 @@ describe("RustAuthorityBridge", () => {
   it("counts delayed in-flight commands towards the backlog limit to prevent unbounded growth", async () => {
     vi.useFakeTimers();
     try {
+      const backlogLimit = 64;
       const here = path.dirname(fileURLToPath(import.meta.url));
       const slicePath = path.resolve(here, "../../../client/public/successor-slice/open-desert-slice.json");
       const bridge = new RustAuthorityBridge({
@@ -684,6 +685,7 @@ describe("RustAuthorityBridge", () => {
         slicePath,
         command: "tail",
         args: ["-f", "/dev/null"],
+        maxPendingRequests: backlogLimit,
       });
 
       const envelope: ClientCommandEnvelope = {
@@ -694,12 +696,10 @@ describe("RustAuthorityBridge", () => {
         command: { Move: { dx: 1, dy: 0, duration_ticks: 8 } },
       };
 
-      // Submit 8192 commands and catch their rejections to avoid unhandled rejection errors on close
-      const promises = [];
-      for (let i = 0; i < 8192; i++) {
-        const p = bridge.submitCommand({ actorId: "actor:1", envelope, timeoutMs: 10 });
-        p.catch(() => {});
-        promises.push(p);
+      // Fill the injected cap and catch rejections to avoid unhandled errors on close.
+      // Production still defaults to the hard 8,192-request ceiling.
+      for (let i = 0; i < backlogLimit; i++) {
+        bridge.submitCommand({ actorId: "actor:1", envelope, timeoutMs: 10 }).catch(() => {});
       }
 
       // Flush them all to child stdin
@@ -708,10 +708,10 @@ describe("RustAuthorityBridge", () => {
       // Let their timeouts pass so they become delayed in-flight
       vi.advanceTimersByTime(15);
 
-      // Verify backlog size is 8192
-      expect(bridge.debugStatus().backlogSize).toBe(8192);
+      // Verify every delayed in-flight command still counts against the cap.
+      expect(bridge.debugStatus().backlogSize).toBe(backlogLimit);
 
-      // Submit 8193rd command - it should reject immediately with backlog full error
+      // The next command must reject immediately with the backlog-full error.
       await expect(bridge.submitCommand({ actorId: "actor:1", envelope })).rejects.toThrow(
         "rust authority bridge backlog is full"
       );

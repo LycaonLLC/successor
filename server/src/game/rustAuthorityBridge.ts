@@ -16,6 +16,8 @@ export interface RustAuthorityBridgeOptions {
   areaInterestRadiusCells?: number;
   command?: string;
   args?: string[];
+  /** Bounded backlog limit override for tests or deliberately smaller deployments. */
+  maxPendingRequests?: number;
   /** Hex-encoded 32-byte key; omitted in production to generate once per bridge. */
   craftRollKey?: string;
 }
@@ -1133,6 +1135,7 @@ export class RustAuthorityBridge {
   private readonly logger?: Pick<FastifyBaseLogger, "warn" | "debug" | "info">;
   private readonly craftRollKey: string;
   private readonly areaInterestRadiusCells: number;
+  private readonly maxPendingRequests: number;
   private readonly child: ChildProcessWithoutNullStreams;
   private readonly stdoutLines: Interface;
   private readonly pending = new Map<number, RustAuthorityDiagnosticPending>();
@@ -1150,6 +1153,10 @@ export class RustAuthorityBridge {
     this.craftRollKey = options.craftRollKey ?? randomBytes(32).toString("hex");
     this.logger = options.logger;
     this.areaInterestRadiusCells = options.areaInterestRadiusCells ?? defaultAreaInterestRadiusCells;
+    this.maxPendingRequests = typeof options.maxPendingRequests === "number"
+      && Number.isFinite(options.maxPendingRequests)
+      ? Math.max(1, Math.min(maxPendingBridgeRequests, Math.trunc(options.maxPendingRequests)))
+      : maxPendingBridgeRequests;
     const launchSlice = rustAuthorityLaunchSlice(options);
     const launchOptions = { ...options, slicePath: launchSlice.slicePath };
     const launch = options.command
@@ -1190,7 +1197,7 @@ export class RustAuthorityBridge {
 
   observeCommand(observation: RustAuthorityDiagnosticObservation): void {
     if (this.closed || this.child.exitCode !== null || this.child.killed) return;
-    if (this.pending.size >= maxPendingBridgeRequests) {
+    if (this.pending.size >= this.maxPendingRequests) {
       this.logger?.warn({ pending: this.pending.size }, "rust authority bridge diagnostic dropping command because backlog is full");
       return;
     }
@@ -1282,7 +1289,7 @@ export class RustAuthorityBridge {
     if (this.closed || this.child.exitCode !== null || this.child.killed) {
       return Promise.reject(new Error("rust authority bridge is closed"));
     }
-    if (this.liveBacklogSize() >= maxPendingBridgeRequests) {
+    if (this.liveBacklogSize() >= this.maxPendingRequests) {
       return Promise.reject(new Error("rust authority bridge backlog is full"));
     }
     const responseTimeoutMs = timeoutMs ?? 2_500;
@@ -1452,7 +1459,7 @@ export class RustAuthorityBridge {
     if (this.closed || this.child.exitCode !== null || this.child.killed) {
       return Promise.reject(new Error("rust authority bridge is closed"));
     }
-    if (this.liveBacklogSize() >= maxPendingBridgeRequests) {
+    if (this.liveBacklogSize() >= this.maxPendingRequests) {
       return Promise.reject(new Error("rust authority bridge backlog is full"));
     }
     return new Promise((resolve, reject) => {
