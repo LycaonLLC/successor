@@ -1,11 +1,24 @@
-"""Deterministic tileable PBR texture library for the Sinter-Frame Civic market.
+"""Deterministic tileable PBR micro-texture library for the market building.
 
-Micro detail only: grain, pitting, mill marks, patina, trowel swirl.
-Every macro feature (joints, seams, reveals, bolts, louvers) is real geometry.
+TEXTURE POLICY (rewritten for pass 2)
+=====================================
+The pass-1 library was rejected for "repeated elongated steel marks, dotted /
+pitted brass, broad cloudy noise, uniform surface damage". The cause was
+structural, not cosmetic: the tiles carried LOW-frequency content (Worley cells
+at 13-36 cells/tile, fbm at freq 3-6), so every 5 m the same blob pattern
+reappeared and read as a stamp.
 
-Uniform texel density: 204.8 px/m across every material.
-  1024 px maps -> 5.0 m tile     512 px maps -> 2.5 m tile
+The rule now enforced by `assert_micro_only()`:
 
+  * A tile may only contain features smaller than 1/8 of the tile. All energy
+    below 8 cycles/tile is measured and must stay under a hard amplitude budget.
+  * Macro variation (panel-to-panel tone, dust, abrasion, grime, streaks, edge
+    response, contact AO) is authored per-vertex in COLOR_0 at architectural
+    scale by build_market.py -- never in the tile.
+  * Normal amplitude is small: these are surface finishes, not relief maps.
+    Every macro relief feature is real geometry.
+
+Uniform density 256 px/m: 512 px maps = 2.0 m tile, 256 px ORM = same 2.0 m.
 Run:  python3 src/gen_textures.py
 """
 import hashlib
@@ -15,17 +28,27 @@ import os
 import numpy as np
 from PIL import Image
 
-OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "build", "textures")
-TEXEL_DENSITY = 204.8  # px per metre, every material
+OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                   "build", "textures")
+TEXEL_DENSITY = 256.0
+TILE_M = 2.0
+RES = 512
+RES_ORM = 256
+LOW_FREQ_CUTOFF = 8          # cycles/tile: below this counts as "macro"
+LOW_FREQ_BUDGET = 0.055      # max rms amplitude allowed below the cutoff
+
+WRITTEN = {}
+CHECKS = []
+
 
 # ---------------------------------------------------------------- noise core
-
 def _lattice(seed, freq):
     return np.random.default_rng(seed).random((freq, freq)).astype(np.float32)
 
 
 def vnoise(u, v, freq, seed):
-    """Periodic value noise. u,v in tile units (period 1.0)."""
+    """Periodic value noise, period 1.0 in tile units."""
+    freq = int(freq)
     g = _lattice(seed, freq)
     cx, cy = u * freq, v * freq
     x0 = np.floor(cx).astype(np.int64)
@@ -42,17 +65,18 @@ def vnoise(u, v, freq, seed):
 
 
 def fbm(u, v, freq, octaves, seed, gain=0.5):
-    total = np.zeros_like(u, dtype=np.float32)
+    tot = np.zeros_like(u, dtype=np.float32)
     amp, norm = 1.0, 0.0
     for o in range(octaves):
-        total += amp * vnoise(u, v, freq * (2 ** o), seed + o * 97)
+        tot += amp * vnoise(u, v, freq * (2 ** o), seed + o * 97)
         norm += amp
         amp *= gain
-    return total / norm
+    return tot / norm
 
 
-def worley(u, v, cells, seed, jitter=0.85, order=0):
-    """Periodic Worley. order=0 -> F1, order=1 -> F2."""
+def worley(u, v, cells, seed, jitter=0.9, order=0):
+    """Periodic Worley F(order+1). Used only at HIGH cell counts (fine grain)."""
+    cells = int(cells)
     rng = np.random.default_rng(seed)
     off = (rng.random((cells, cells, 2)).astype(np.float32) - 0.5) * jitter
     py, px = v * cells, u * cells
@@ -85,36 +109,35 @@ def smooth(x, a, b):
 
 def srgb(lin):
     lin = np.clip(lin, 0.0, 1.0)
-    return np.where(lin <= 0.0031308, lin * 12.92, 1.055 * np.power(lin, 1 / 2.4) - 0.055)
+    return np.where(lin <= 0.0031308, lin * 12.92,
+                    1.055 * np.power(lin, 1 / 2.4) - 0.055)
+
+
+def dblur(a, radius, axis):
+    """Periodic box blur along one axis: anisotropy without lattice stretching."""
+    a = np.ascontiguousarray(a, np.float32)
+    r = max(1, int(radius))
+    acc = np.zeros_like(a)
+    for k in range(-r, r + 1):
+        acc += np.roll(a, k, axis=axis)
+    return acc / float(2 * r + 1)
 
 
 def resize(arr, res):
-    # Image.fromarray(..., "F") reinterprets the raw buffer: the array MUST be
-    # C-contiguous float32 or the result is silently garbage (NaN/noise).
     arr = np.ascontiguousarray(arr, dtype=np.float32)
     if arr.shape[0] == res:
         out = arr
     elif arr.ndim == 2:
-        out = np.asarray(Image.fromarray(arr, "F").resize((res, res), Image.LANCZOS), np.float32)
+        out = np.asarray(Image.fromarray(arr, "F").resize((res, res), Image.LANCZOS),
+                         np.float32)
     else:
         out = np.stack([np.asarray(
             Image.fromarray(np.ascontiguousarray(arr[..., i]), "F")
             .resize((res, res), Image.LANCZOS), np.float32)
             for i in range(arr.shape[2])], -1)
     if not np.isfinite(out).all():
-        raise ValueError(f"non-finite value after resize {arr.shape} -> {res}")
+        raise ValueError("non-finite after resize")
     return out
-
-
-def dblur(a, radius, axis):
-    """Periodic box blur along one axis: real anisotropy without lattice stretch."""
-    a = np.ascontiguousarray(a, np.float32)
-    n = a.shape[axis]
-    r = max(1, int(radius))
-    acc = np.zeros_like(a)
-    for k in range(-r, r + 1):
-        acc += np.roll(a, k, axis=axis)
-    return acc / float(2 * r + 1)
 
 
 def height_to_normal(h, strength):
@@ -124,33 +147,68 @@ def height_to_normal(h, strength):
     return n / np.linalg.norm(n, axis=-1, keepdims=True)
 
 
-WRITTEN = {}
+# ------------------------------------------------------- micro-only assertion
+def low_freq_rms(a, cutoff=LOW_FREQ_CUTOFF):
+    """RMS amplitude of content below `cutoff` cycles/tile, DC removed."""
+    a = np.asarray(a, np.float32)
+    if a.ndim == 3:
+        a = a.mean(-1)
+    F = np.fft.rfft2(a - a.mean())
+    n = a.shape[0]
+    fy = np.fft.fftfreq(n) * n
+    fx = np.fft.rfftfreq(n) * n
+    R = np.sqrt(fy[:, None] ** 2 + fx[None, :] ** 2)
+    keep = (R > 0) & (R < cutoff)
+    # Parseval: rms of the low band
+    p = (np.abs(F[keep]) ** 2).sum() * 2.0 / (n * n) ** 2
+    return float(np.sqrt(max(p, 0.0)))
 
 
-def write_set(name, bc_lin, height, rough, metal, ao, res_bc, res_n, res_orm, nstr):
-    os.makedirs(OUT, exist_ok=True)
-    for lbl, a in (("basecolor", bc_lin), ("height", height), ("roughness", rough),
-                   ("metallic", metal), ("ao", ao)):
-        if not np.isfinite(a).all():
-            raise ValueError(f"{name}.{lbl}: non-finite input")
-    bc = (np.clip(srgb(resize(bc_lin, res_bc)), 0, 1) * 255).round().astype(np.uint8)
-    nrm = ((height_to_normal(resize(height, res_n), nstr) * 0.5 + 0.5) * 255).round().astype(np.uint8)
-    orm = np.stack([resize(ao, res_orm), resize(rough, res_orm), resize(metal, res_orm)], -1)
-    orm = (np.clip(orm, 0, 1) * 255).round().astype(np.uint8)
-    for suffix, data in (("basecolor", bc), ("normal", nrm), ("orm", orm)):
-        # a map that is flat or full-range-noise means the pipeline broke
-        for c in range(3):
-            ch = data[..., c]
-            if suffix == "normal" and c == 2:
-                continue
-            if int(ch.max()) - int(ch.min()) < 2:
-                print(f"    note: {name}_{suffix} channel {c} is flat ({ch.mean():.0f})")
-        p = os.path.join(OUT, f"market_{name}_{suffix}.png")
-        Image.fromarray(data, "RGB").save(p, optimize=True)
-        h = hashlib.sha256(open(p, "rb").read()).hexdigest()
-        WRITTEN[f"market_{name}_{suffix}.png"] = {
-            "sha256": h, "res": data.shape[0], "bytes": os.path.getsize(p)}
-        print(f"  {os.path.basename(p):40s} {data.shape[0]:5d}px {os.path.getsize(p)/1024:8.1f} KB")
+def high_freq_rms(a, cutoff=LOW_FREQ_CUTOFF):
+    """RMS amplitude of content AT OR ABOVE `cutoff` cycles/tile."""
+    a = np.asarray(a, np.float32)
+    if a.ndim == 3:
+        a = a.mean(-1)
+    F = np.fft.rfft2(a - a.mean())
+    n = a.shape[0]
+    fy = np.fft.fftfreq(n) * n
+    fx = np.fft.rfftfreq(n) * n
+    R = np.sqrt(fy[:, None] ** 2 + fx[None, :] ** 2)
+    keep = R >= cutoff
+    p = (np.abs(F[keep]) ** 2).sum() * 2.0 / (n * n) ** 2
+    return float(np.sqrt(max(p, 0.0)))
+
+
+def assert_micro_present(name, label, a, floor):
+    """A tile with no high-frequency energy is a flat swatch, not a material."""
+    r = high_freq_rms(a)
+    CHECKS.append({"map": f"{name}.{label}", "kind": "high_freq_floor",
+                   "high_freq_rms": round(r, 5), "floor": floor,
+                   "pass": bool(r >= floor)})
+    if r < floor:
+        raise AssertionError(
+            f"{name}.{label}: micro energy {r:.4f} < floor {floor} "
+            f"(>={LOW_FREQ_CUTOFF} cycles/tile). Tile is visually flat.")
+    return r
+
+
+def assert_micro_only(name, label, a, budget=LOW_FREQ_BUDGET):
+    r = low_freq_rms(a)
+    CHECKS.append({"map": f"{name}.{label}", "kind": "low_freq_ceiling",
+                   "low_freq_rms": round(r, 5),
+                   "budget": budget, "pass": bool(r <= budget)})
+    if r > budget:
+        raise AssertionError(
+            f"{name}.{label}: macro energy {r:.4f} > budget {budget} "
+            f"(<{LOW_FREQ_CUTOFF} cycles/tile). Tiles must carry micro detail only.")
+    return r
+
+
+def contrast(x, k, pivot=None):
+    """Expand local contrast of a normalised mask about its own mean."""
+    x = np.asarray(x, np.float32)
+    m = float(x.mean()) if pivot is None else pivot
+    return np.clip((x - m) * k + m, 0.0, 1.0)
 
 
 def col(r, g, b):
@@ -161,179 +219,181 @@ def tint(mask, base, other):
     return base[None, None, :] + (other - base)[None, None, :] * mask[..., None]
 
 
+def write_set(name, bc_lin, height, rough, metal_const, ao, nstr, micro_floor=0.012):
+    os.makedirs(OUT, exist_ok=True)
+    bc_srgb = srgb(bc_lin)                 # perceptual space for both bounds
+    assert_micro_only(name, "basecolor", bc_srgb)
+    assert_micro_present(name, "basecolor", bc_srgb, micro_floor)
+    assert_micro_only(name, "height", height, budget=LOW_FREQ_BUDGET * 1.6)
+    assert_micro_only(name, "roughness", rough, budget=LOW_FREQ_BUDGET * 1.6)
+    bc = (np.clip(srgb(resize(bc_lin, RES)), 0, 1) * 255).round().astype(np.uint8)
+    nrm = ((height_to_normal(resize(height, RES), nstr) * 0.5 + 0.5) * 255
+           ).round().astype(np.uint8)
+    m = np.full((RES_ORM, RES_ORM), float(metal_const), np.float32)
+    orm = np.stack([resize(ao, RES_ORM), resize(rough, RES_ORM), m], -1)
+    orm = (np.clip(orm, 0, 1) * 255).round().astype(np.uint8)
+    for suffix, data in (("basecolor", bc), ("normal", nrm), ("orm", orm)):
+        p = os.path.join(OUT, f"market_{name}_{suffix}.png")
+        Image.fromarray(data, "RGB").save(p, optimize=True)
+        WRITTEN[f"market_{name}_{suffix}.png"] = {
+            "sha256": hashlib.sha256(open(p, "rb").read()).hexdigest(),
+            "res": int(data.shape[0]), "bytes": os.path.getsize(p)}
+        print(f"  {os.path.basename(p):38s} {data.shape[0]:4d}px "
+              f"{os.path.getsize(p)/1024:7.1f} KB")
+    dev = float(np.abs(height_to_normal(resize(height, RES), nstr)[..., :2]).max())
+    g = np.asarray(Image.fromarray(bc, "RGB").convert("L"), np.float32) / 255.0
+    print(f"    metallic={metal_const:.2f} normal_xy_max={dev:.3f} "
+          f"lowfreq={low_freq_rms(srgb(bc_lin)):.4f} "
+          f"microfreq={high_freq_rms(srgb(bc_lin)):.4f} "
+          f"srgb_sd={g.std():.4f}")
+
+
 # ---------------------------------------------------------------- materials
-
-def make_sinter(res=1024):
-    """Solar-sintered basalt sand: coarse aggregate, pitting, casting lift lines."""
-    u, v = grid_uv(res)
-    base = col(0.052, 0.046, 0.040)
-    pale = col(0.115, 0.104, 0.088)   # exposed lighter aggregate
-    warm = col(0.078, 0.058, 0.041)   # iron-warm firing blotch
-
-    # ~14 cm aggregate over a 5 m tile, with a second finer grain population
-    agg_c = worley(u, v, 36, 11, 0.95)
-    agg_f = worley(u, v, 84, 13, 0.95)
-    grain = np.clip(agg_c * 0.62 + agg_f * 0.38, 0, 1)
-    # soft, wide transition reads as packed aggregate rather than leopard spots
-    facet = smooth(grain, 0.12, 1.00) * 0.72 + grain * 0.28
-    facet = facet * (0.80 + 0.20 * fbm(u, v, 2, 3, 17))
-    fine = fbm(u, v, 30, 4, 21)
-
-    blotch = fbm(u, v, 3, 4, 31)
-    # blowholes: sparse, round, genuinely dark
-    pit_f = worley(u, v, 22, 41, 1.0)
-    pits = smooth(1.0 - pit_f, 0.80, 1.0) * smooth(fbm(u, v, 5, 3, 47), 0.42, 0.85)
-    vesic = smooth(1.0 - worley(u, v, 64, 43, 1.0), 0.86, 1.0)
-
-    # casting lift lines: 8 per 5 m tile = one every 0.625 m, softened + wavering
-    wob = (fbm(u, v, 4, 3, 53) - 0.5) * 0.06
-    band = np.abs((((v + wob) * 8.0) % 1.0) - 0.5) * 2.0
-    lift = smooth(band, 0.80, 1.0) * (0.45 + 0.55 * fbm(u, v, 6, 3, 59))
-
-    c = tint(facet * 0.62 + fine * 0.22, base, pale)
-    c = c + (warm - base)[None, None, :] * (smooth(blotch, 0.45, 0.95) * 0.55)[..., None]
-    c *= (1.0 - pits * 0.62)[..., None]
-    c *= (1.0 - vesic * 0.30)[..., None]
-    c *= (1.0 - lift * 0.13)[..., None]
-
-    h = facet * 0.70 + fine * 0.22 - pits * 1.6 - vesic * 0.55 - lift * 0.40 + blotch * 0.10
-    r = 0.88 - facet * 0.12 + pits * 0.05 + vesic * 0.03
-    m = np.zeros_like(u)
-    ao = np.clip(1.0 - pits * 0.75 - vesic * 0.30 - lift * 0.20 - (1.0 - facet) * 0.16, 0.15, 1.0)
-    write_set("sinter", c, h, r, m, ao, res, res, res // 2, 3.2)
+def make_sinter():
+    """Solar-sintered basalt: fine packed aggregate + sparse vesicles. No blobs."""
+    u, v = grid_uv(RES)
+    base, pale = col(0.030, 0.026, 0.022), col(0.176, 0.158, 0.130)
+    agg = worley(u, v, 190, 11, 0.95)            # ~1 cm aggregate on a 2 m tile
+    agg2 = worley(u, v, 330, 13, 0.95)
+    grain = contrast(np.clip(agg * 0.62 + agg2 * 0.38, 0, 1), 1.55)
+    fine = fbm(u, v, 96, 3, 21)
+    # vesicles: sparse pinholes, NOT a dot grid -- threshold hard, keep ~2%
+    ves_f = worley(u, v, 120, 41, 1.0)
+    ves = smooth(1.0 - ves_f, 0.93, 1.0) * smooth(fbm(u, v, 64, 2, 47), 0.60, 0.92)
+    c = tint(np.clip(grain * 0.78 + fine * 0.34 - 0.06, 0, 1), base, pale)
+    c *= (1.0 - ves * 0.55)[..., None]
+    h = grain * 0.42 + fine * 0.20 - ves * 0.95
+    r = 0.86 - grain * 0.07 + ves * 0.04
+    ao = np.clip(1.0 - ves * 0.45 - (1.0 - grain) * 0.10, 0.45, 1.0)
+    write_set("sinter", c, h, r, 0.0, ao, 1.15, micro_floor=0.030)
 
 
-def make_ceramic(res=1024):
-    """Imported ceramic composite panel: fine speckle, mottle, micro scratches."""
-    u, v = grid_uv(res)
-    base = col(0.560, 0.530, 0.487)
-    dark = col(0.470, 0.443, 0.405)
-    speck = worley(u, v, 220, 71, 1.0)
-    mottle = fbm(u, v, 5, 5, 81)
-    micro = fbm(u, v, 60, 3, 91)
-    scratch = smooth(fbm(u + fbm(u, v, 4, 2, 95) * 0.05, v, 2, 2, 101), 0.62, 0.66)
-    scratch *= smooth(fbm(u, v, 9, 3, 107), 0.45, 0.85)
-
-    c = tint(smooth(mottle, 0.3, 0.9) * 0.55 + micro * 0.12, base, dark)
-    c += (col(0.62, 0.60, 0.56) - base)[None, None, :] * (smooth(speck, 0.55, 1.0) * 0.35)[..., None]
-    c *= (1.0 - scratch * 0.10)[..., None]
-
-    h = micro * 0.30 + speck * 0.18 - scratch * 0.55 + mottle * 0.08
-    r = 0.44 + mottle * 0.14 + scratch * 0.22 + micro * 0.05
-    m = np.zeros_like(u)
-    ao = np.clip(1.0 - scratch * 0.18 - (1.0 - speck) * 0.06, 0.35, 1.0)
-    write_set("ceramic", c, h, r, m, ao, res, res, res // 2, 1.2)
+def make_ceramic():
+    """Imported ceramic composite: very fine speckle + micro crazing only."""
+    u, v = grid_uv(RES)
+    base, dark = col(0.632, 0.612, 0.574), col(0.428, 0.412, 0.382)
+    speck = contrast(worley(u, v, 300, 71, 1.0), 1.45)
+    micro = fbm(u, v, 120, 3, 91)
+    craze = smooth(1.0 - worley(u, v, 46, 101, 1.0, order=1), 0.90, 1.0)
+    craze *= smooth(fbm(u, v, 72, 2, 107), 0.55, 0.90)
+    c = tint(np.clip(micro * 0.50 + speck * 0.46 - 0.06, 0, 1), base, dark)
+    c *= (1.0 - craze * 0.16)[..., None]
+    h = micro * 0.16 + speck * 0.12 - craze * 0.50
+    r = 0.42 + micro * 0.07 + craze * 0.16
+    ao = np.clip(1.0 - craze * 0.22, 0.62, 1.0)
+    write_set("ceramic", c, h, r, 0.0, ao, 0.55, micro_floor=0.014)
 
 
-def make_screed(res=1024):
-    """Polished sinter floor screed: trowel swirl, aggregate, hairline cracks."""
-    u, v = grid_uv(res)
-    base = col(0.085, 0.079, 0.071)
-    poli = col(0.115, 0.107, 0.096)
-    wx = fbm(u, v, 3, 3, 131) - 0.5
-    wy = fbm(u, v, 3, 3, 137) - 0.5
-    swirl = fbm(u + wx * 0.22, v + wy * 0.22, 6, 5, 141)
-    agg = worley(u, v, 110, 151, 0.95)
-    crack = 1.0 - worley(u, v, 13, 161, 1.0, order=1)
-    crack = smooth(crack, 0.80, 0.99) * smooth(fbm(u, v, 4, 3, 167), 0.35, 0.8)
-    grind = smooth(swirl, 0.42, 0.92)
-
-    c = tint(grind * 0.7 + agg * 0.3, base, poli)
-    c += (col(0.14, 0.132, 0.118) - base)[None, None, :] * (smooth(agg, 0.6, 1.0) * grind * 0.5)[..., None]
-    c *= (1.0 - crack * 0.55)[..., None]
-
-    h = agg * 0.25 + swirl * 0.12 - crack * 0.9
-    r = 0.62 - grind * 0.34 + crack * 0.25
-    m = np.zeros_like(u)
-    ao = np.clip(1.0 - crack * 0.6 - (1.0 - agg) * 0.08, 0.25, 1.0)
-    write_set("screed", c, h, r, m, ao, res, res, res // 2, 1.6)
+def make_plaster():
+    """Interior lime plaster on the soffits/ceilings: float texture, warm."""
+    u, v = grid_uv(RES)
+    base, warm = col(0.512, 0.482, 0.432), col(0.706, 0.680, 0.622)
+    fl = fbm(u, v, 80, 3, 311)
+    grit = contrast(worley(u, v, 260, 317, 1.0), 1.45)
+    c = tint(np.clip(fl * 0.58 + grit * 0.40 - 0.07, 0, 1), base, warm)
+    h = fl * 0.22 + grit * 0.10
+    r = 0.72 + fl * 0.08
+    ao = np.clip(1.0 - (1.0 - grit) * 0.07, 0.80, 1.0)
+    write_set("plaster", c, h, r, 0.0, ao, 0.50, micro_floor=0.014)
 
 
-def make_roofmetal(res=512):
-    """Chalky galvanised sheet: spangle, roll marks, dull oxide patches."""
-    u, v = grid_uv(res)
-    base = col(0.300, 0.305, 0.300)
-    ox = col(0.170, 0.155, 0.140)
-    spangle = worley(u, v, 26, 181, 1.0)
-    roll = fbm(u * 0.12, v * 26.0, 6, 3, 191)
-    patch = smooth(fbm(u, v, 4, 4, 197), 0.56, 0.92)
-    grit = fbm(u, v, 40, 3, 199)
-
-    c = tint(smooth(spangle, 0.3, 0.95) * 0.5 + roll * 0.18 + grit * 0.1, base, col(0.36, 0.365, 0.36))
-    c = c + (ox - base)[None, None, :] * (patch * 0.85)[..., None]
-
-    h = spangle * 0.22 + roll * 0.30 + grit * 0.12 - patch * 0.2
-    r = 0.46 + spangle * 0.10 + patch * 0.34 + grit * 0.05
-    m = np.clip(1.0 - patch * 0.85, 0.0, 1.0)
-    ao = np.clip(1.0 - patch * 0.16, 0.5, 1.0)
-    write_set("roofmetal", c, h, r, m, ao, res, res, res // 2, 1.1)
+def make_screed():
+    """Ground/polished screed floor: fine trowel grain + sparse fine aggregate."""
+    u, v = grid_uv(RES)
+    base, poli = col(0.055, 0.051, 0.046), col(0.182, 0.172, 0.154)
+    trowel = dblur(fbm(u, v, 110, 3, 141), RES // 90, axis=1)
+    trowel = (trowel - trowel.min()) / (np.ptp(trowel) + 1e-9)
+    agg = contrast(worley(u, v, 240, 151, 0.95), 1.5)
+    hair = smooth(1.0 - worley(u, v, 40, 161, 1.0, order=1), 0.94, 1.0)
+    hair *= smooth(fbm(u, v, 56, 2, 167), 0.62, 0.94)
+    c = tint(np.clip(trowel * 0.40 + agg * 0.56 - 0.06, 0, 1), base, poli)
+    c *= (1.0 - hair * 0.42)[..., None]
+    h = agg * 0.18 + trowel * 0.10 - hair * 0.62
+    r = 0.50 + agg * 0.10 - trowel * 0.10 + hair * 0.16
+    ao = np.clip(1.0 - hair * 0.36 - (1.0 - agg) * 0.06, 0.55, 1.0)
+    write_set("screed", c, h, r, 0.0, ao, 0.70, micro_floor=0.026)
 
 
-def make_steel(res=512):
-    """Dark machined structural steel: brushed grain, drag scratches, mill flats."""
-    u, v = grid_uv(res)
-    base = col(0.086, 0.088, 0.093)
-    # anisotropy by filtering isotropic noise, never by stretching the lattice
-    brush = dblur(fbm(u, v, 128, 2, 211), res // 24, axis=1)
+def make_roofmetal():
+    """Chalky galvanised sheet: fine spangle + faint roll grain. No oxide blobs."""
+    u, v = grid_uv(RES)
+    base, brt = col(0.222, 0.226, 0.220), col(0.406, 0.412, 0.402)
+    spangle = contrast(worley(u, v, 150, 181, 1.0), 1.45)
+    roll = dblur(fbm(u, v, 128, 2, 191), RES // 64, axis=0)
+    roll = (roll - roll.min()) / (np.ptp(roll) + 1e-9)
+    grit = fbm(u, v, 150, 2, 199)
+    c = tint(np.clip(spangle * 0.52 + roll * 0.26 + grit * 0.20 - 0.06, 0, 1), base, brt)
+    h = spangle * 0.20 + roll * 0.14 + grit * 0.10
+    r = 0.56 + spangle * 0.08 + grit * 0.05
+    ao = np.clip(1.0 - (1.0 - spangle) * 0.07, 0.80, 1.0)
+    write_set("roofmetal", c, h, r, 1.0, ao, 0.62, micro_floor=0.022)
+
+
+def make_steel():
+    """Dark structural steel: fine unidirectional brush grain, no drag streaks."""
+    u, v = grid_uv(RES)
+    base, brt = col(0.042, 0.044, 0.047), col(0.178, 0.184, 0.193)
+    brush = dblur(fbm(u, v, 220, 2, 211), RES // 64, axis=1)
+    brush = contrast(brush, 1.45)
     brush = (brush - brush.min()) / (np.ptp(brush) + 1e-9)
-    fineb = dblur(fbm(u, v, 200, 1, 213), res // 40, axis=1)
+    fineb = dblur(fbm(u, v, 340, 1, 213), RES // 96, axis=1)
     fineb = (fineb - fineb.min()) / (np.ptp(fineb) + 1e-9)
-    coarse = fbm(u, v, 5, 4, 217)
-    drag = dblur(smooth(fbm(u, v, 150, 1, 223), 0.74, 0.80), res // 10, axis=1)
-    drag = np.clip(drag * 3.0, 0, 1)
-    micro = fbm(u, v, 90, 2, 229)
-
-    c = tint(brush * 0.55 + fineb * 0.25 + micro * 0.08, base, col(0.128, 0.131, 0.137))
-    c += (col(0.185, 0.188, 0.196) - base)[None, None, :] * (drag * 0.55)[..., None]
-    c *= (1.0 - smooth(coarse, 0.72, 1.0) * 0.10)[..., None]
-
-    h = brush * 0.45 + fineb * 0.25 + micro * 0.10 - drag * 0.35
-    r = 0.42 + brush * 0.10 + fineb * 0.08 + coarse * 0.08 - drag * 0.14
-    m = np.full_like(u, 1.0) - drag * 0.03
-    ao = np.clip(1.0 - drag * 0.06 - (1.0 - brush) * 0.05, 0.7, 1.0)
-    write_set("steel", c, h, r, m, ao, res, res, res // 2, 1.1)
+    micro = fbm(u, v, 170, 2, 229)
+    c = tint(np.clip(brush * 0.66 + fineb * 0.40 + micro * 0.20 - 0.08, 0, 1), base, brt)
+    h = brush * 0.26 + fineb * 0.16 + micro * 0.08
+    r = 0.40 + brush * 0.08 + fineb * 0.05
+    ao = np.clip(1.0 - (1.0 - brush) * 0.05, 0.86, 1.0)
+    write_set("steel", c, h, r, 1.0, ao, 0.55, micro_floor=0.018)
 
 
-def make_brass(res=512):
-    """Aged brass: fine turning marks, patina in the cavities, handled polish."""
-    u, v = grid_uv(res)
-    base = col(0.482, 0.352, 0.132)
-    pat = col(0.232, 0.244, 0.168)   # muted green-grey verdigris
-    pol = col(0.640, 0.508, 0.238)   # rubbed highlight
-    turn = dblur(fbm(u, v, 110, 2, 241), res // 36, axis=0)
+def make_brass():
+    """Satin brass: fine turning marks only. No pits, no dots, no verdigris blobs.
+
+    Patina and handled polish are authored per-vertex where hands actually go.
+    """
+    u, v = grid_uv(RES)
+    base, pol = col(0.340, 0.242, 0.086), col(0.622, 0.494, 0.238)
+    turn = dblur(fbm(u, v, 200, 2, 241), RES // 72, axis=0)
+    turn = contrast(turn, 1.40)
     turn = (turn - turn.min()) / (np.ptp(turn) + 1e-9)
-    cav = smooth(fbm(u, v, 6, 5, 251), 0.62, 0.96)      # patina only in the low areas
-    grain = fbm(u, v, 70, 2, 257)
-    # shallow dents: darken, never brighten
-    dent = smooth(1.0 - worley(u, v, 18, 263, 1.0), 0.84, 1.0)
+    fineg = fbm(u, v, 260, 2, 257)
+    c = tint(np.clip(turn * 0.70 + fineg * 0.32 - 0.07, 0, 1), base, pol)
+    h = turn * 0.20 + fineg * 0.09
+    r = 0.32 + turn * 0.09 + fineg * 0.05
+    ao = np.clip(1.0 - (1.0 - turn) * 0.05, 0.88, 1.0)
+    write_set("brass", c, h, r, 1.0, ao, 0.50, micro_floor=0.016)
 
-    c = tint(turn * 0.55 + grain * 0.15, base, pol)
-    c = c + (pat - base)[None, None, :] * (cav * 0.62)[..., None]
-    c *= (1.0 - dent * 0.20)[..., None]
 
-    h = turn * 0.30 + grain * 0.12 - dent * 0.9 - cav * 0.20
-    r = 0.26 + cav * 0.40 + turn * 0.08 + dent * 0.16
-    m = np.clip(1.0 - cav * 0.45, 0.0, 1.0)
-    ao = np.clip(1.0 - cav * 0.26 - dent * 0.30, 0.4, 1.0)
-    write_set("brass", c, h, r, m, ao, res, res, res // 2, 1.4)
-
+MAKERS = [make_sinter, make_ceramic, make_plaster, make_screed, make_roofmetal,
+          make_steel, make_brass]
 
 if __name__ == "__main__":
-    print("Generating market PBR texture library (204.8 px/m):")
-    make_sinter()
-    make_ceramic()
-    make_screed()
-    make_roofmetal()
-    make_steel()
-    make_brass()
+    print(f"Micro-only PBR library @ {TEXEL_DENSITY:.0f} px/m "
+          f"({RES}px = {TILE_M} m tile):")
+    for f in MAKERS:
+        print(f"\n[{f.__name__[5:]}]")
+        f()
     meta = {
         "texel_density_px_per_m": TEXEL_DENSITY,
-        "tile_metres": {"1024": 5.0, "512": 2.5},
-        "orm_packing": "R=occlusion, G=roughness, B=metallic",
-        "colour_space": {"basecolor": "sRGB", "normal": "linear tangent-space (OpenGL +Y)",
+        "tile_metres": TILE_M,
+        "resolution": {"basecolor": RES, "normal": RES, "orm": RES_ORM},
+        "orm_packing": "R=micro AO, G=roughness, B=metallic (constant per material)",
+        "colour_space": {"basecolor": "sRGB",
+                         "normal": "linear tangent-space (OpenGL +Y)",
                          "orm": "linear"},
+        "micro_only_policy": {
+            "low_freq_cutoff_cycles_per_tile": LOW_FREQ_CUTOFF,
+            "low_freq_rms_budget": LOW_FREQ_BUDGET,
+            "rationale": "macro variation lives in COLOR_0, not in the tile",
+        },
+        "micro_only_checks": CHECKS,
         "textures": WRITTEN,
     }
     json.dump(meta, open(os.path.join(OUT, "textures.json"), "w"), indent=1)
-    total = sum(v["bytes"] for v in WRITTEN.values())
-    print(f"\n{len(WRITTEN)} textures, {total/1024/1024:.2f} MB on disk")
+    tot = sum(x["bytes"] for x in WRITTEN.values())
+    lo = [c for c in CHECKS if c["kind"] == "low_freq_ceiling"]
+    worst = max(lo, key=lambda c: c["low_freq_rms"] / c["budget"])
+    print(f"\n{len(WRITTEN)} textures, {tot/1024/1024:.2f} MB on disk")
+    print(f"micro-only checks: {sum(1 for c in CHECKS if c['pass'])}/{len(CHECKS)} pass"
+          f" | tightest: {worst['map']} {worst['low_freq_rms']:.4f}/{worst['budget']}")
+    print("TEXTURES_OK")
