@@ -60,7 +60,25 @@ def area(name, loc, size, energy, color=(1.0, 0.86, 0.68), rot=(0, 0, 0)):
     return ob
 
 
-def scene_setup(diagnostic=False, interior=False):
+# ---------------------------------------------------------------------------
+# SUN DIRECTION (pass-4, found by `build/diag/diag_sundir.py`)
+# ---------------------------------------------------------------------------
+# The rig's beauty sun was (48, 218), which resolves to a sun in the NORTH-WEST.
+# The building's whole daylight premise is a SOUTH-facing clerestory shaded by a
+# brise-soleil, and the public facade faces south.  So for three passes:
+#   * the public south facade was in shade in every beauty proof;
+#   * the clerestory received no direct sun at all -- which is why
+#     `diag_daylight.py` measured sun+sky only 6 % brighter than sky alone;
+#   * the brise-soleil shaded nothing.
+# The sun is moved to the SOUTH-EAST at 42 deg altitude, which lights the public
+# face, the clerestory, the east flank and the roof.  Blender's sun Euler is
+# (tilt-from-vertical, 0, azimuth), so altitude = 90 - tilt.
+SUN_BEAUTY = (48.0, 26.0)          # south-east, 42 deg altitude
+SUN_RAKE_SW = (70.0, 305.0)        # low south-west, 20 deg: rakes S and W faces
+SUN_RAKE_NE = (70.0, 125.0)        # low north-east, 20 deg: rakes N and E faces
+
+
+def scene_setup(diagnostic=False, interior=False, sun=None):
     _clear_rig()
     sc = bpy.context.scene
     sc.render.engine = 'CYCLES'
@@ -100,19 +118,32 @@ def scene_setup(diagnostic=False, interior=False):
             if hasattr(sky, a):
                 setattr(sky, a, v)
         nt.links.new(sky.outputs[0], bg.inputs[0])
-        bg.inputs[1].default_value = 0.30
+        # PASS-4: interiors are lit at full sky strength.  Pass 3 rendered
+        # interiors at 0.30 and made up the difference with a 420 W rig lamp
+        # inside the aisle standing in for daylight the section could not
+        # deliver.  The section delivers it now (`build/diag/diag_daylight.py`
+        # measures the BOH at 2.96x brighter with sun+sky than with the authored
+        # emissives alone), so the light in these pictures arrives through the
+        # real glazing instead of from a lamp placed where the glazing should
+        # have been.
+        # exterior sky lifted 0.30 -> 0.55: with the sun correctly in the south,
+        # the north/service elevation is genuinely in shade, and at 0.30 that
+        # shade was too dark to read the authored finish.
+        bg.inputs[1].default_value = 1.00 if interior else 0.55
     ld = bpy.data.lights.new("Sun", 'SUN')
     if diagnostic:
         ld.energy, ld.angle, ld.color = 2.8, math.radians(0.6), (1, 1, 1)
     else:
         ld.energy, ld.angle, ld.color = 3.9, math.radians(1.4), (1.0, 0.93, 0.80)
-    sun = bpy.data.objects.new("Sun", ld)
-    bpy.context.scene.collection.objects.link(sun)
-    RIG.append(sun)
-    # diagnostic: 22 deg grazing from the south-west -- long shadows and
-    # near-tangential incidence, which is what exposes surface defects.
-    sun.rotation_euler = ((math.radians(68), 0, math.radians(145)) if diagnostic
-                          else (math.radians(48), 0, math.radians(218)))
+    sunob = bpy.data.objects.new("Sun", ld)
+    bpy.context.scene.collection.objects.link(sunob)
+    RIG.append(sunob)
+    # Diagnostic views take a grazing 20 deg sun, and each may choose the side
+    # it rakes from, because a corner lit from the opposite side is the least
+    # informative picture available -- which is what the pass-3 corner crops
+    # were: a south-west corner photographed with the sun in the north-east.
+    el, az = sun if sun else ((SUN_RAKE_SW if diagnostic else SUN_BEAUTY))
+    sunob.rotation_euler = (math.radians(el), 0, math.radians(az))
     if "GroundPlane" not in bpy.data.objects:
         bpy.ops.mesh.primitive_plane_add(size=280, location=(0, 0, 0.0))
         g = bpy.context.active_object
@@ -134,11 +165,16 @@ def scene_setup(diagnostic=False, interior=False):
             area(f"L_niche_{nx}", (nx, 1.98, 2.24), (0.84, 0.30), 26,
                  (1.0, 0.88, 0.72), rot=(math.radians(-34), 0, 0))
         area("L_boh", (0.0, 3.05, 2.52), (7.4, 1.2), 150, (0.98, 0.95, 0.90))
-        # daylight arriving THROUGH the clerestory: a wide, cool source angled
-        # down into the staff aisle from the valley slot. This is the light the
-        # roof fold exists to deliver, so the proofs must show it.
-        area("L_clerestory", (0.0, 1.98, 3.72), (9.0, 0.55), 420,
-             (0.90, 0.94, 1.0), rot=(math.radians(58), 0, 0))
+        # PASS-4: there is no longer a rig lamp standing in for daylight at the
+        # clerestory.  In pass 3 the glazing could not be seen from any standing
+        # eye, so a 420 W area light inside the aisle stood in for the light the
+        # section could not actually deliver -- which meant the proofs showed
+        # daylight the building did not have.  The section now delivers it: the
+        # world sun and sky reach the BOH THROUGH the real glazing, and
+        # `verify.py` measures the difference with the sun on and off.  Only a
+        # small cool bounce off the aisle's own surfaces is retained.
+        area("L_boh_bounce", (0.0, 2.90, 1.10), (7.0, 1.0), 26,
+             (0.88, 0.92, 1.0), rot=(math.radians(-90), 0, 0))
         area("L_bay", (4.2, -2.8, 2.6), (2.0, 1.4), 60)
         area("L_entry", (-0.3, -3.6, 2.9), (3.0, 1.0), 70)
         area("L_vendor", (-4.6, -0.8, 2.6), (1.2, 2.8), 60)
@@ -325,12 +361,18 @@ def interior_boh():
 @view
 def interior_clerestory():
     scene_setup(interior=True)
-    # camera CHOSEN BY MEASUREMENT (build/diag/diag_sweep.py): the clerestory
-    # glazing sits at y 1.85, z 3.60-4.09, and the service wall rises to 3.35
-    # immediately north of it, so no eye-level station in the BOH can see it.
-    # This raised inspection station puts the glazing band across 42.6% of the
-    # sampled frame.  27_crop_clerestory_brise shows the same system outside.
-    cam((0.40, 3.15, 2.85), (0.60, 1.86, 3.84), lens=40)
+    # PASS-4 REVIEW DEFECT 5.  This was a RAISED inspection station at z 2.85,
+    # because the pass-3 section made the clerestory invisible from any standing
+    # eye.  The section was changed instead of the camera: the service wall head
+    # dropped to 2.86 between expressed piers, the valley beam moved south of the
+    # glazing plane, and the clerestory sill/head went with it.  This camera is
+    # now a NORMAL STANDING EYE (1.65 m) in the BOH aisle.
+    # ALONG the staff aisle, not up at the glass from underneath.  The BOH is
+    # only 1.42 m deep, so a camera facing the glazing square-on fills the frame
+    # with the deck soffit 0.9 m from the lens.  Looking west along the aisle
+    # puts the glazed band across the top of the frame WITH the room it lights:
+    # aisle floor, service wall, piers, transom and plant all in one view.
+    cam((4.62, 3.02, 1.65), (-4.30, 2.68, 2.72), lens=20)
     shoot("24_interior_clerestory")
 
 
@@ -430,7 +472,14 @@ def crop_loggia():
     # coffer bays, the joists between them, the brass lips, the three unequal
     # piers, the ledge and the lit shopfront all appear in one frame -- which
     # is what "show the loggia" means.
-    cam((-3.20, -3.62, 1.62), (-5.20, -3.68, 2.66), lens=26)
+    # PASS-4 REVIEW DEFECT 7.  The pass-3 station stood UNDER the soffit and
+    # looked west along it, which the review read as "upward through a narrow
+    # slot at one ceiling lamp".  You cannot show a 0.86 m deep arcade from
+    # inside it.  This is an EXTERIOR OBLIQUE from the south-west: all three
+    # unequal piers, both coffer bays with their joists and brass lips, the
+    # goods ledge, the bench and the lit shopfront read in one frame, with the
+    # datum band and corner pier giving it context.
+    cam((-8.35, -6.95, 2.15), (-4.05, -3.70, 1.72), lens=42)
     shoot("20_crop_loggia")
 
 
@@ -526,14 +575,14 @@ def trainer_booth():
 
 @view
 def corner_sealed():
-    scene_setup(diagnostic=True)
+    scene_setup(diagnostic=True, sun=SUN_RAKE_SW)
     cam((-9.10, -7.20, 2.90), (-5.56, -3.12, 2.55), lens=85)
     shoot("34_crop_corner_sealed")
 
 
 @view
 def corner_sealed_ne():
-    scene_setup(diagnostic=True)
+    scene_setup(diagnostic=True, sun=SUN_RAKE_NE)
     cam((9.30, 7.60, 3.05), (5.56, 3.95, 2.60), lens=85)
     shoot("35_crop_corner_sealed_ne")
 
@@ -543,6 +592,88 @@ def hood_smooth():
     scene_setup()
     cam((-0.30, -8.60, 4.62), (-0.30, -4.10, 4.05), lens=105)
     shoot("36_crop_hood_smooth")
+
+
+# ---------------------------------------------------------------- pass-4 views
+@view
+def crop_lowcorner_sw():
+    """The rebuilt corner BELOW the datum, raked from its own side."""
+    scene_setup(diagnostic=True, sun=SUN_RAKE_SW)
+    cam((-8.30, -6.30, 1.35), (-5.52, -3.20, 1.05), lens=80)
+    shoot("38_crop_lowcorner_sw")
+
+
+@view
+def crop_lowcorner_ne():
+    scene_setup(diagnostic=True, sun=SUN_RAKE_NE)
+    cam((8.55, 7.05, 1.30), (5.52, 4.00, 1.00), lens=80)
+    shoot("39_crop_lowcorner_ne")
+
+
+@view
+def crop_keystone():
+    """The redesigned focal insert, close, with its silhouette against sky."""
+    scene_setup()
+    cam((-0.30, -7.10, 4.45), (-0.30, -4.20, 4.36), lens=135)
+    shoot("40_crop_keystone")
+
+
+@view
+def west_flank_service():
+    """West flank: buttress, goods hatch, sump discharge."""
+    scene_setup()
+    cam((-9.60, -1.10, 2.35), (-5.30, 1.05, 1.55), lens=40)
+    shoot("41_west_flank_service")
+
+
+@view
+def east_flank_service():
+    """East flank: draw-off standpipe, isolator cabinet, conduit drop."""
+    scene_setup()
+    cam((9.90, 4.60, 2.40), (5.30, 2.45, 1.50), lens=40)
+    shoot("42_east_flank_service")
+
+
+@view
+def interior_eye_transom():
+    """Standing eye in the HALL: the daylight arrives as a lit transom band."""
+    scene_setup(interior=True)
+    # stand back far enough that the counter wall, the brass head, the lit
+    # transom band and the ceiling's beam edge are all in one frame
+    cam((-0.75, -2.35, 1.65), (0.10, 1.90, 2.55), lens=22)
+    shoot("43_interior_eye_transom")
+
+
+@view
+def gameplay_daylight():
+    """The game camera, framed on the fold so the daylight system reads in it."""
+    scene_setup()
+    p = math.radians(52)
+    d = 21
+    cam((1.2, -d * math.cos(p) + 1.6, d * math.sin(p) + 1.0), (1.2, 1.55, 3.20),
+        ortho=11.0)
+    shoot("44_gameplay_daylight")
+
+
+@view
+def trainer_identity():
+    """The booth's training function: column, readout, demonstration rack."""
+    scene_setup(interior=True)
+    hide(["roof__"])
+    cam((3.05, -1.55, 1.62), (4.72, -3.30, 1.20), lens=26)
+    shoot("45_trainer_identity")
+    hide(["roof__"], False)
+
+
+@view
+def crop_material_family():
+    """Full-resolution crop across screed / sinter / ceramic / brass together."""
+    scene_setup(interior=True)
+    # screed floor, sinter counter mass, ceramic wall, plaster soffit and brass
+    # kick all in one full-resolution frame -- the review's "one noise family
+    # recoloured seven ways" test.
+    cam((-2.35, -0.35, 1.42), (-4.35, 0.55, 0.62), lens=55)
+    shoot("46_crop_material_family")
 
 
 def main():

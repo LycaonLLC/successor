@@ -114,7 +114,12 @@ required = ["01_front", "02_back", "03_left", "04_right", "05_top",
             "28_term_bank_face", "29_term_trade_face", "30_term_assoc_face",
             "31_boh_route_from_rear_door", "32_boh_route_along_aisle",
             "33_trainer_booth", "34_crop_corner_sealed",
-            "35_crop_corner_sealed_ne", "36_crop_hood_smooth"]
+            "35_crop_corner_sealed_ne", "36_crop_hood_smooth",
+            # pass-4 acceptance evidence, one per rejected item
+            "38_crop_lowcorner_sw", "39_crop_lowcorner_ne", "40_crop_keystone",
+            "41_west_flank_service", "42_east_flank_service",
+            "43_interior_eye_transom", "44_gameplay_daylight",
+            "45_trainer_identity", "46_crop_material_family"]
 for r in required:
     ck(any(v.startswith(r) for v in views), f"required view: {r}")
 dark = [v for v in views
@@ -339,7 +344,11 @@ for r_ in cs:
 # of each view so the margin is visible rather than merely asserted.
 for v in ("03_left.png", "04_right.png", "16_crop_uv_seam_corner.png",
           "01_front.png", "02_back.png", "34_crop_corner_sealed.png",
-          "35_crop_corner_sealed_ne.png"):
+          "35_crop_corner_sealed_ne.png",
+          # pass-4: the lower corner is tested in its own right, in raking
+          # light from its own side, which is where the void used to be
+          "38_crop_lowcorner_sw.png", "39_crop_lowcorner_ne.png",
+          "41_west_flank_service.png", "42_east_flank_service.png"):
     fp = os.path.join(PF, v)
     if not os.path.exists(fp):
         ck(False, f"{v}: expected proof view missing")
@@ -376,13 +385,114 @@ rough = sorted(v["rough_mean"] for v in ms.values())
 ck(rough[-1] - rough[0] >= 0.45,
    f"roughness spans {rough[0]:.2f}..{rough[-1]:.2f} "
    f"(spread {rough[-1]-rough[0]:.2f})")
-bands = [c for c in tex["micro_only_checks"] if c["kind"] == "micro_band"]
-ck(len(bands) == 7 and all(c["pass"] for c in bands),
-   f"{len(bands)}/7 materials inside their own micro-energy band")
-mm = {c["map"].split(".")[0]: c["high_freq_rms"] for c in bands}
-ck(max(mm.values()) / max(min(mm.values()), 1e-9) >= 2.5,
-   f"micro energy ratio coarsest/quietest = "
-   f"{max(mm.values())/max(min(mm.values()),1e-9):.2f} (materials differ)")
+# PASS-4 REVIEW DEFECT 3.  Pass 3 enforced a micro-energy BAND -- a floor as
+# well as a ceiling -- which made "every material must contain visible noise" a
+# build requirement and produced the evenly distributed speckle the review
+# rejected.  The floor is gone.  Only the CEILING is checked, and the checks
+# below prove separation comes from response instead.
+caps = [c for c in tex["micro_only_checks"] if c["kind"] == "micro_ceiling"]
+ck(len(caps) == 7 and all(c["pass"] for c in caps),
+   f"{len(caps)}/7 base-colour maps within their micro-energy CEILING")
+ck(not [c for c in tex["micro_only_checks"] if c["kind"] == "high_freq_floor"],
+   "no minimum micro-energy floor is enforced on any map (flat is allowed)")
+resp = {r["material"]: r for r in tex["material_response"]}
+ck(len(resp) == 7, f"{len(resp)}/7 materials record a measured response")
+quiet = {k: v for k, v in resp.items() if k not in ("sinter", "screed")}
+ck(max(r["basecolor_micro"] for r in quiet.values()) <= 0.006,
+   f"the 5 quiet materials are near-flat in albedo "
+   f"(max {max(r['basecolor_micro'] for r in quiet.values()):.4f} <= 0.006)")
+# detail must live in the RESPONSE maps, not in the albedo
+worse = [k for k, r in resp.items()
+         if r["roughness_micro"] <= r["basecolor_micro"]]
+ck(not worse,
+   f"every material carries more micro detail in roughness than in base colour "
+   f"(offenders: {worse})")
+vals = sorted(r["mean_linear_value"] for r in resp.values())
+ck(vals[-1] / max(vals[0], 1e-9) >= 5.0,
+   f"value separation {vals[0]:.3f}..{vals[-1]:.3f} = "
+   f"{vals[-1]/max(vals[0],1e-9):.1f}x")
+ck(len({r["metallic"] for r in resp.values()}) == 2,
+   "palette spans dielectric and metallic response")
+
+print("=== 18. lower corner: below the datum, tested separately ===")
+# PASS-4 REVIEW DEFECT 1.  Pass 3's corner probe fired rays and asked only
+# "did it hit something".  It passed while the picture still showed a void,
+# because the geometry was DOUBLED: two wall solids presented coplanar faces
+# that occluded each other's ambient rays at zero distance.  These checks test
+# the section BELOW `band_top` on its own, and test the two things that were
+# actually wrong -- duplicate surfaces, and light reaching the surface.
+lc = json.load(open(os.path.join(B, "diag", "lowcorner_v2.json")))
+for cn in ("SW", "NE"):
+    rows = [r for r in lc[cn] if r.get("hit")]
+    low = [r for r in rows if r["z"] <= 2.42]          # strictly below the datum
+    ck(len(low) >= 24, f"{cn}: {len(low)} sampled surfaces below the datum")
+    ck(all(r["hit"] for r in low), f"{cn}: every lower-corner sample hits geometry")
+    ck(not [r for r in low if r.get("dup")],
+       f"{cn}: no duplicate coplanar surface in front of any lower sample "
+       f"(this is what rendered black)")
+    ck(min(r["sky"] for r in low) >= 0.45,
+       f"{cn}: worst lower-corner sky visibility {min(r['sky'] for r in low):.2f} "
+       f">= 0.45 (was ~0.00 where the coplanar pair sat)")
+    mats = {r["mat"] for r in low}
+    ck(len(mats) >= 2,
+       f"{cn}: lower corner presents {len(mats)} materials {sorted(mats)} "
+       f"-- a construction condition, not one blank return")
+    cham = [r for r in low if r["face"] == "cham"]
+    ck(len(cham) >= 8 and all(r["hit"] for r in cham),
+       f"{cn}: the chamfered arris is a real third plane ({len(cham)} samples)")
+
+print("=== 19. daylight section reads from a standing eye ===")
+# PASS-4 REVIEW DEFECT 5.  Pass 3 admitted the clerestory could not be seen by a
+# standing player and answered with a raised inspection camera.  These checks
+# fail if that is ever true again: they measure from real 1.65 m stations.
+ray = json.load(open(os.path.join(B, "diag", "standing_daylight.json")))
+# The BOH ceiling is deliberately dropped over the two plant bays and open to
+# the north deck between them, so the clerestory is visible from the open middle
+# of the aisle.  Stations under a dropped soffit are measured and reported but
+# not required -- that is the section, not an excuse.
+openb = [st for st in ray["stations"] if st["open_bay"]]
+ck(len(openb) >= 3, f"{len(openb)} open-bay standing stations measured")
+for st in openb:
+    ck(st["standable"],
+       f"{st['name']} is outside every authored collision proxy at eye height")
+    ck(st["glazing_hits"] >= st["samples"] * 0.30,
+       f"standing eye {st['name']} at z=1.65 sees the clerestory glazing "
+       f"({st['glazing_hits']}/{st['samples']} = "
+       f"{st['glazing_hits']/st['samples']*100:.0f}% of sampled rays)")
+    ck(st["beyond_is_exterior"] == st["glazing_hits"],
+       f"{st['name']}: all {st['glazing_hits']} glazing rays continue OUTSIDE "
+       f"the envelope -- the glass is an aperture, not a panel")
+ck(ray["clear_aperture"],
+   "no member stands in front of the glazing plane on the standing sightline")
+ck(ray["service_wall_head"] <= 3.00,
+   f"service wall head {ray['service_wall_head']:.2f} m is below the glazing "
+   f"sill {ray['glazing_sill']:.2f} m by "
+   f"{ray['glazing_sill'] - ray['service_wall_head']:.2f} m")
+ck(ray["niches_enclosed"],
+   "the terminal niches remain enclosed above their heads")
+ck(ray["beam_south_of_glazing"],
+   "the valley beam sits south of the glazing plane (it used to block the sill)")
+dl = json.load(open(os.path.join(B, "diag", "daylight.json")))
+ratio = dl["A_sun_sky"]["mean"] / max(dl["C_none"]["mean"], 1e-9)
+ck(ratio >= 2.0,
+   f"BOH is {ratio:.2f}x brighter with daylight than with authored emissives "
+   f"alone -- the daylight system does real work")
+
+print("=== 20. render rig points the sun where the design says it does ===")
+# PASS-4.  For three passes the beauty sun sat in the NORTH-WEST while the
+# building's public facade and its clerestory both face SOUTH, so the front was
+# in shade in every proof and the brise-soleil shaded nothing.
+import math as _m
+sd = json.load(open(os.path.join(B, "diag", "sundir.json")))
+ck(sd["beauty"]["toward"][1] < -0.30,
+   f"beauty sun is in the south (toward y={sd['beauty']['toward'][1]:.3f})")
+ck(sd["beauty"]["lights_south_facade"] > 0.30,
+   f"public south facade is lit (cos={sd['beauty']['lights_south_facade']:.3f})")
+ck(sd["beauty"]["lights_clerestory"] > 0.30,
+   f"south-facing clerestory receives direct sun "
+   f"(cos={sd['beauty']['lights_clerestory']:.3f})")
+ck(20.0 <= sd["beauty"]["altitude_deg"] <= 60.0,
+   f"sun altitude {sd['beauty']['altitude_deg']:.0f} deg is plausible")
 
 print()
 print(f"{len(FAILS)} FAILURES" if FAILS else "VERIFY_ALL_OK")
