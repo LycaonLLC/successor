@@ -197,7 +197,13 @@ impl UiBuilder {
         let fill = if r.held { style.active } else if r.hovered { style.hover } else { style.fill };
         self.rect(x, y, w, h, fill);
         self.border(x, y, w, h, 1.0, style.edge);
-        let px = (h * 0.34).max(1.5);
+        // Size the 5×7 label so it fits the button: glyph height = 7·px must fit
+        // ~half the height, and the whole label width = n·6·px must fit ~85% of
+        // the width — take the smaller so long labels ("UNEQUIP") never overflow.
+        let n = label.chars().count().max(1) as f32;
+        let px_h = (h * 0.5) / GLYPH_H as f32;
+        let px_w = (w * 0.85) / (n * (GLYPH_W as f32 + 1.0));
+        let px = px_h.min(px_w).max(1.0);
         let tw = Self::text_width(label, px);
         let tx = x + (w - tw) * 0.5;
         let ty = y + (h - GLYPH_H as f32 * px) * 0.5;
