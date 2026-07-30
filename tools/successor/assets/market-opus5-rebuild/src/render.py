@@ -144,6 +144,22 @@ def scene_setup(diagnostic=False, interior=False):
         area("L_vendor", (-4.6, -0.8, 2.6), (1.2, 2.8), 60)
 
 
+def loggia_practicals():
+    """Rig lamps standing in for the AUTHORED coffer downlights (log_coffer_lamp_*).
+
+    The loggia soffit faces north and the beauty sun comes from the north-west,
+    so the coffers sit in their own shadow.  The building answers that with
+    recessed downlights; the render rig has to represent them or the proof
+    shows an unlit soffit and proves nothing.
+    """
+    # The authored coffer downlights are EMISSIVE geometry and light the
+    # soffit themselves; a rig lamp in the same place double-counts and blows
+    # the pan to white.  The rig therefore adds only a low fill from the
+    # arcade's open south side, standing in for ground bounce off the apron.
+    area("L_log_fill", (-4.10, -2.60, 1.35), (3.2, 1.8), 26, (1.0, 0.93, 0.84),
+         rot=(math.radians(78), 0, 0))
+
+
 def cam(loc, target, ortho=None, lens=42, shift=0.0):
     c = bpy.data.cameras.new("C")
     if ortho:
@@ -309,7 +325,12 @@ def interior_boh():
 @view
 def interior_clerestory():
     scene_setup(interior=True)
-    cam((-1.95, 2.95, 1.70), (2.90, 2.20, 3.60), lens=26)
+    # camera CHOSEN BY MEASUREMENT (build/diag/diag_sweep.py): the clerestory
+    # glazing sits at y 1.85, z 3.60-4.09, and the service wall rises to 3.35
+    # immediately north of it, so no eye-level station in the BOH can see it.
+    # This raised inspection station puts the glazing band across 42.6% of the
+    # sampled frame.  27_crop_clerestory_brise shows the same system outside.
+    cam((0.40, 3.15, 2.85), (0.60, 1.86, 3.84), lens=40)
     shoot("24_interior_clerestory")
 
 
@@ -374,7 +395,7 @@ def crop_counter():
 @view
 def crop_seam():
     scene_setup(diagnostic=True)
-    cam((7.95, -6.35, 2.62), (5.42, -3.55, 2.18), lens=80)
+    cam((-8.40, -6.10, 2.86), (-5.56, -3.12, 2.62), lens=78)
     shoot("16_crop_uv_seam_corner")
 
 
@@ -402,22 +423,126 @@ def diag_massing():
 @view
 def crop_loggia():
     scene_setup()
-    cam((-7.0, -6.9, 2.35), (-4.25, -3.55, 1.75), lens=58)
+    loggia_practicals()
+    # Framed to read, not to maximise fill.  Aiming a long lens straight up at
+    # a recessed luminaire gives a clipped white rectangle and proves nothing;
+    # this stands at the arcade's east end and looks WEST ALONG it, so the two
+    # coffer bays, the joists between them, the brass lips, the three unequal
+    # piers, the ledge and the lit shopfront all appear in one frame -- which
+    # is what "show the loggia" means.
+    cam((-3.20, -3.62, 1.62), (-5.20, -3.68, 2.66), lens=26)
     shoot("20_crop_loggia")
 
 
 @view
 def crop_rear_detail():
     scene_setup()
-    cam((-3.60, 8.2, 2.55), (0.85, 4.0, 1.85), lens=72)
+    cam((1.34, 7.05, 1.92), (1.30, 3.80, 1.20), lens=42)
     shoot("26_crop_rear_service_door")
+
+
+@view
+def clerestory_ext_close():
+    scene_setup()
+    # from above the south roof plane, looking north at the glazing band, its
+    # brise-soleil blades and the valley gutter the fold exists to drain
+    # CHOSEN BY MEASUREMENT (diag_sweep.py): glazing band + brise + valley fill
+    # 61.5% of the sampled frame from here.  Aimed down the fold from above the
+    # south plane, which is the only station where the whole system is legible.
+    cam((-1.60, -1.60, 5.60), (-0.60, 1.85, 3.80), lens=40)
+    shoot("37_crop_clerestory_glazing")
 
 
 @view
 def crop_clerestory_ext():
     scene_setup()
-    cam((-2.20, -5.6, 7.4), (0.20, 1.75, 4.05), lens=70)
+    cam((-1.10, -3.20, 8.10), (0.30, 2.05, 4.10), lens=58)
     shoot("27_crop_clerestory_brise")
+
+
+# ------------------------------------------------------------ pass-3 views
+# These exist because the pass-3 review gate named specific things the old
+# proof set did not actually demonstrate.  Each one is aimed at ONE claim.
+@view
+def term_bank():
+    scene_setup(interior=True)
+    hide(["roof__"])
+    cam((-2.375, -0.62, 1.48), (-2.375, 1.72, 1.18), lens=40)
+    shoot("28_term_bank_face")
+    hide(["roof__"], False)
+
+
+@view
+def term_trade():
+    scene_setup(interior=True)
+    hide(["roof__"])
+    cam((0.475, -0.62, 1.42), (0.475, 1.72, 1.06), lens=40)
+    shoot("29_term_trade_face")
+    hide(["roof__"], False)
+
+
+@view
+def term_assoc():
+    scene_setup(interior=True)
+    hide(["roof__"])
+    cam((3.325, -0.62, 1.52), (3.325, 1.72, 1.24), lens=40)
+    shoot("30_term_assoc_face")
+    hide(["roof__"], False)
+
+
+@view
+def boh_route():
+    scene_setup(interior=True)
+    hide(["roof__"])
+    # Standing IN the rear doorway, looking west along the proven staff route.
+    # (A straight-south view from here faces the niche backs 1.16 m away: the
+    # corridor runs east-west, so the proof must look along it.)
+    # Standing on the rear threshold (y 3.61 is the inner wall face), looking
+    # west along the proven staff route.  A straight-south view from here faces
+    # the niche backs 1.16 m away, and y > 3.61 puts the camera INSIDE the wall
+    # thickness, which is what made the first attempt a field of jamb.
+    cam((1.30, 3.56, 1.55), (-2.60, 2.98, 1.02), lens=24)
+    shoot("31_boh_route_from_rear_door")
+    hide(["roof__"], False)
+
+
+@view
+def boh_route_along():
+    scene_setup(interior=True)
+    hide(["roof__"])
+    cam((3.98, 3.03, 1.52), (-4.90, 3.02, 1.06), lens=20)
+    shoot("32_boh_route_along_aisle")
+    hide(["roof__"], False)
+
+
+@view
+def trainer_booth():
+    scene_setup(interior=True)
+    hide(["roof__"])
+    cam((4.20, -0.95, 1.60), (4.24, -3.30, 0.86), lens=26)
+    shoot("33_trainer_booth")
+    hide(["roof__"], False)
+
+
+@view
+def corner_sealed():
+    scene_setup(diagnostic=True)
+    cam((-9.10, -7.20, 2.90), (-5.56, -3.12, 2.55), lens=85)
+    shoot("34_crop_corner_sealed")
+
+
+@view
+def corner_sealed_ne():
+    scene_setup(diagnostic=True)
+    cam((9.30, 7.60, 3.05), (5.56, 3.95, 2.60), lens=85)
+    shoot("35_crop_corner_sealed_ne")
+
+
+@view
+def hood_smooth():
+    scene_setup()
+    cam((-0.30, -8.60, 4.62), (-0.30, -4.10, 4.05), lens=105)
+    shoot("36_crop_hood_smooth")
 
 
 def main():

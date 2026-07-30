@@ -149,6 +149,36 @@ def tube(name, mat, c, r_out, r_in, h, axis=2, n=20, group="", wear="",
     return _finish(name, bm, mat, 0.0, 1, group, wear, tile, phase)
 
 
+def smooth(ob, angle_deg=38.0):
+    """Smooth shading with edges above `angle_deg` kept sharp.
+
+    Pass-3 review defect 6: the entry hood showed obvious faceting at
+    inspection distance.  Raising the segment count alone does not fix it --
+    every face was FLAT shaded, so each facet read as its own tone.  Since
+    Blender 4.1 the `sharp_edge` attribute is honoured by normal computation
+    directly, so this needs no auto-smooth flag and no modifier to apply: mark
+    every face smooth, then mark only the genuinely creased edges sharp.  The
+    glTF exporter writes the resulting split normals into NORMAL.
+    """
+    if ob is None:
+        return ob
+    me = ob.data
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    thr = math.radians(angle_deg)
+    for f in bm.faces:
+        f.smooth = True
+    for e in bm.edges:
+        if len(e.link_faces) == 2:
+            e.smooth = e.calc_face_angle(math.pi) < thr
+        else:
+            e.smooth = True
+    bm.to_mesh(me)
+    bm.free()
+    me.update()
+    return ob
+
+
 def arc_pts(cx, cz, r, a0, a1, n, r_in=None):
     """Points along an arc; if r_in given, returns a closed arc band (a shell)."""
     out = [(cx + math.cos(a0 + (a1 - a0) * i / n) * r,

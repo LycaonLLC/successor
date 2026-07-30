@@ -2,9 +2,11 @@
 
 Fresh art direction for the settlement market. No inherited reference image or
 brief was used. The only outside context read was the allowed terminal
-manifests, which name the settlement *Dustgate* and establish a palette of
-basalt, ceramic, brass, steel, teal glass and amber/cyan glow. The building is
-authored to *host* those fixtures without copying their material system.
+manifests, which establish a palette of basalt, ceramic, brass, steel, teal
+glass and amber/cyan glow. The building is authored to *host* those fixtures
+without copying their material system. The settlement is referred to
+generically here: the place name those manifests use was rejected at review,
+and no replacement has been chosen.
 
 This document describes the **built** scheme. The first authored pass
 ("Sinter-Frame Civic", a stepped box) was rejected at the human review gate;

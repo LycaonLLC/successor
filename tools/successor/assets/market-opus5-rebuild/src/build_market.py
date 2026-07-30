@@ -1,4 +1,4 @@
-"""Deterministic generator -- SCHEME E: "Valley Market", Dustgate settlement.
+"""Deterministic generator -- SCHEME E: "Valley Market".
 
 Authoring space: +X east, +Y north, +Z up; public front = -Y (glTF +Z).
 Run:  blender -b --factory-startup -noaudio -P src/build_market.py -- [--stage full]
@@ -30,7 +30,7 @@ import os
 import sys
 
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mlib as M   # noqa: E402
@@ -76,9 +76,13 @@ P = dict(
     # --- west loggia (three unequal bays, never a ring)
     log_x0=-5.56, log_x1=-2.34, log_y=-3.98, log_top=3.05,
     # --- trainer bay (projects south-east)
-    tr_x0=2.72, tr_y=-3.72, tr_top=2.94,
+    # trainer bay: deepened from -3.72 to -4.06 so the consultation booth can
+    # hold a table and two usable seats (pass-3 review defect 3).  The three
+    # south setbacks stay unequal -- hood -4.16, bay -4.06, loggia -3.98.
+    tr_x0=2.72, tr_y=-4.06, tr_top=2.94,
     # --- service wall / niches
-    bulk_y0=1.85, bulk_th=0.34, niche_y1=2.50, niche_w=1.34, niche_h=2.30,
+    bulk_y0=1.85, bulk_th=0.34, niche_y1=2.32, niche_w=1.34, niche_h=2.30,
+    niche_back_t=0.13,                  # pocket back slab; thin, to widen the BOH
     pass_x=-4.66, pass_w=0.95, pass_h=2.10,
     # --- back of house
     boh_ceil=2.75, svc_x=1.30, svc_w=1.15, svc_h=2.20,
@@ -96,6 +100,24 @@ P["hood_apex"] = P["hood_spr"] + P["hood_ro"]        # 4.60 -> breaks the eave
 P["hood_op0"] = P["hood_cx"] - P["hood_ri"]          # entry opening, west jamb
 P["hood_op1"] = P["hood_cx"] + P["hood_ri"]          # entry opening, east jamb
 MAT = {}
+
+# ---------------------------------------------------------------------------
+# TRAINER CONSULTATION BOOTH (pass-3 review defect 3)
+# ---------------------------------------------------------------------------
+# Authored as explicit rectangles so the fitout, the collision proxies, the
+# seat placement and the clearance proofs all read the SAME numbers.
+#   table     -- at the bay mouth, reachable from the hall, seats on both sides
+#   credenza  -- waist height, in the bay's dead south-west corner only
+#   seated    -- the volume a seated person occupies, proven clear
+#   standing  -- the customer's standing approach at the table's north edge
+TRN = dict(
+    tx0=3.50, tx1=4.90, ty0=-2.92, ty1=-2.50,        # consultation table
+    cx0=3.10, cx1=3.86, cy0=-3.66, cy1=-3.34,        # credenza (bay SW corner)
+    trainer_seat=(4.30, -3.30, 180.0),               # behind the table, facing +N
+    visitor_seat=(3.43, -2.14, 0.0),                 # drawn up to the table, N side
+    seated_clear_h=1.30,                             # head height when seated
+    stand_y0=-2.44, stand_y1=-1.94,                  # standing approach band
+)
 
 
 P["y_eave_s"] = P["sy"] - P["over_s"]     # -3.30 south eave line
@@ -150,10 +172,24 @@ def materials():
                                    emit=(0.32, 0.88, 0.96), emit_str=9.0)
 
 
-# texel density: 2.0 m tile. tile value = metres per tile repeat.
-TILES = {"MKT_Sinter": 2.0, "MKT_Ceramic": 2.0, "MKT_Plaster": 2.0,
-         "MKT_Screed": 2.0, "MKT_RoofMetal": 2.0, "MKT_Steel": 1.0,
-         "MKT_Brass": 1.0}
+# PER-MATERIAL tile scale (pass-3 review defect 7).  These are read from the
+# texture library's own MATERIAL_SCALE table rather than restated here, so the
+# scale a tile was DESIGNED for and the scale it is PROJECTED at cannot drift
+# apart.  Every material used to sit on the same 2.0 m tile, which is why
+# screed, sinter and ceramic all read as one grain.
+def _tile_scales():
+    import json as _j
+    meta = os.path.join(TEX, "textures.json")
+    with open(meta) as fh:
+        ms = _j.load(fh)["material_scale"]
+    return {f"MKT_{k}": v["tile_m"] for k, v in
+            (("Sinter", ms["sinter"]), ("Ceramic", ms["ceramic"]),
+             ("Plaster", ms["plaster"]), ("Screed", ms["screed"]),
+             ("RoofMetal", ms["roofmetal"]), ("Steel", ms["steel"]),
+             ("Brass", ms["brass"]))}
+
+
+TILES = _tile_scales()
 
 
 # ------------------------------------------------------------ tagged wrappers
@@ -295,6 +331,168 @@ def shell_wall(prefix, axis, sign, outer, u0, u1, top, openings=(), group="",
     return o
 
 
+# ---------------------------------------------------------------------------
+# PUNCHED-OPENING ASSEMBLIES (pass-3 review defect 5, second and larger cause)
+# ---------------------------------------------------------------------------
+# `shell_wall` cuts openings through the plinth/band/skin bands, but only the
+# vendor shopfront ever had anything PUT IN one.  The south daylight slot, both
+# west high slots, both BOH windows, the trainer bay window and all three rear
+# vents were left as literal holes in the envelope, which is why 03_left,
+# 04_right and 16 showed "tall black gaps where side/front/rear systems fail to
+# close".  They failed to close because nothing was ever authored to close
+# them.  Every opening now receives a complete assembly with real depth:
+# external surround, set-back glazing frame with rebate, glass, mullions where
+# the span needs one, an external sill that projects and drips, and an internal
+# liner.  Vents get blade louvres over a dark backing plate, so they read as
+# serviced equipment rather than as a void.
+def rot_about(ob, pivot, axis, deg):
+    """Rotate an object's MESH DATA about `pivot`.
+
+    mlib bakes world coordinates into the mesh and leaves every object at the
+    identity transform, so setting `rotation_euler` rotates about the WORLD
+    origin and throws the part across the site.  That is what happened to the
+    louvre blades (up to 0.68 m outside the footprint) and, silently, to the
+    fanlight bars, which is why only the vertical one appeared in the hood
+    crop.  Transforming the mesh data about the part's own pivot is correct.
+    """
+    R = Matrix.Rotation(math.radians(deg), 4, axis)
+    T = Matrix.Translation(Vector(pivot))
+    ob.data.transform(T @ R @ T.inverted())
+    return ob
+
+
+def _wp(axis, u, t, z):
+    """(along-wall u, across-thickness t, z) -> authoring (x, y, z)."""
+    return (u, t, z) if axis == 1 else (t, u, z)
+
+
+def _ws(axis, du, dt, dz):
+    return (du, dt, dz) if axis == 1 else (dt, du, dz)
+
+
+def window_assembly(name, axis, sign, outer, u0, u1, z0, z1, group,
+                    sill=True, brow=False):
+    """A complete glazed opening: surround, frame, glass, mullions, sill, liner."""
+    p, o = P, []
+    inner = outer - sign * p["wt"]
+    uc, uw = (u0 + u1) / 2.0, u1 - u0
+    zc, zh = (z0 + z1) / 2.0, z1 - z0
+    tg = outer - sign * 0.12                      # glazing plane, set back
+    # 1. external surround -- a picture frame standing 25 mm off the face
+    for nm, cz, dz in (("head", z1 + 0.045, 0.09), ("cill", z0 - 0.045, 0.09)):
+        o.append(B(f"{name}_sur_{nm}", MAT["brass"],
+                   _wp(axis, uc, outer - sign * 0.0125, cz),
+                   _ws(axis, uw + 0.18, 0.055, dz), bev=0.005, group=group, lod=1))
+    for s in (-1, 1):
+        o.append(B(f"{name}_sur_jamb_{s}", MAT["brass"],
+                   _wp(axis, uc + s * (uw / 2 + 0.045), outer - sign * 0.0125, zc),
+                   _ws(axis, 0.09, 0.055, zh + 0.18), bev=0.005, group=group, lod=1))
+    # 2. glazing frame with a real rebate, set back 0.12 into the reveal
+    for nm, cz, dz in (("head", z1 - 0.035, 0.07), ("cill", z0 + 0.035, 0.07)):
+        o.append(B(f"{name}_frm_{nm}", MAT["steel"], _wp(axis, uc, tg, cz),
+                   _ws(axis, uw, 0.09, dz), bev=0.004, group=group, lod=1))
+    for s in (-1, 1):
+        o.append(B(f"{name}_frm_jamb_{s}", MAT["steel"],
+                   _wp(axis, uc + s * (uw / 2 - 0.035), tg, zc),
+                   _ws(axis, 0.07, 0.09, zh - 0.14), bev=0.004, group=group, lod=1))
+    # 3. GLASS -- lod 2 so the opening is still closed at the lowest LOD
+    o.append(B(f"{name}_glass", MAT["glass"], _wp(axis, uc, tg, zc),
+               _ws(axis, uw - 0.05, 0.018, zh - 0.05), group=group, lod=2))
+    # 4. mullions where the span asks for one (never a repeated grid)
+    nmul = max(0, int(uw / 0.62))
+    for i in range(nmul):
+        mu = u0 + uw * (i + 1) / (nmul + 1)
+        o.append(B(f"{name}_mullion_{i}", MAT["steel"], _wp(axis, mu, tg, zc),
+                   _ws(axis, 0.045, 0.10, zh - 0.10), bev=0.004, group=group, lod=1))
+    # 5. external sill: projects past the face and throats, so it drips clear
+    if sill:
+        o.append(B(f"{name}_sill", MAT["brass"],
+                   _wp(axis, uc, outer + sign * 0.045, z0 - 0.055),
+                   _ws(axis, uw + 0.22, 0.14, 0.055), bev=0.006, group=group, lod=1))
+        o.append(B(f"{name}_sill_drip", MAT["brass"],
+                   _wp(axis, uc, outer + sign * 0.10, z0 - 0.095),
+                   _ws(axis, uw + 0.22, 0.035, 0.045), bev=0.004, group=group,
+                   lod=1))
+    # 6. brow / hood over openings that face the sun
+    if brow:
+        o.append(B(f"{name}_brow", MAT["steel"],
+                   _wp(axis, uc, outer + sign * 0.085, z1 + 0.135),
+                   _ws(axis, uw + 0.34, 0.22, 0.06), bev=0.005, group=group, lod=1))
+        for s in (-1, 1):
+            o.append(B(f"{name}_brow_stay_{s}", MAT["steel"],
+                       _wp(axis, uc + s * (uw / 2 + 0.10), outer + sign * 0.05,
+                           z1 + 0.065),
+                       _ws(axis, 0.035, 0.14, 0.10), bev=0.004, group=group, lod=1))
+    # 7. internal liner, so the reveal reads as a built opening from inside
+    o.append(B(f"{name}_liner_head", MAT["ceramic"],
+               _wp(axis, uc, inner + sign * 0.025, z1 - 0.022),
+               _ws(axis, uw + 0.06, 0.05, 0.045), bev=0.004, group=group, lod=1))
+    o.append(B(f"{name}_liner_cill", MAT["ceramic"],
+               _wp(axis, uc, inner + sign * 0.025, z0 + 0.022),
+               _ws(axis, uw + 0.06, 0.05, 0.045), bev=0.004, group=group, lod=1))
+    return o
+
+
+def louvre_assembly(name, axis, sign, outer, u0, u1, z0, z1, group, blades=5):
+    """A vent opening filled with weather blades over a dark backing plate."""
+    p, o = P, []
+    inner = outer - sign * p["wt"]
+    uc, uw = (u0 + u1) / 2.0, u1 - u0
+    zc, zh = (z0 + z1) / 2.0, z1 - z0
+    # backing plate: the visible backing the review asks for -- a vent is not a
+    # hole, it is a serviced closure with mesh behind it
+    o.append(B(f"{name}_backing", MAT["seal"],
+               _wp(axis, uc, inner + sign * 0.03, zc),
+               _ws(axis, uw + 0.02, 0.03, zh + 0.02), group=group, lod=2))
+    o.append(B(f"{name}_mesh", MAT["steel"], _wp(axis, uc, inner + sign * 0.065, zc),
+               _ws(axis, uw - 0.02, 0.012, zh - 0.02), group=group, lod=1))
+    # blade set, tilted to shed sand and rain
+    tb = outer - sign * 0.055
+    for i in range(blades):
+        bz = z0 + (i + 0.5) * zh / blades
+        b = B(f"{name}_blade_{i}", MAT["steel"], _wp(axis, uc, tb, bz),
+              _ws(axis, uw - 0.03, 0.10, 0.030), bev=0.004, group=group, lod=1)
+        o.append(rot_about(b, _wp(axis, uc, tb, bz), 'X' if axis == 1 else 'Y',
+                           -32.0 if axis == 1 else 32.0))
+    # frame around the blades
+    for nm, cz, dz in (("head", z1 - 0.022, 0.045), ("cill", z0 + 0.022, 0.045)):
+        o.append(B(f"{name}_frm_{nm}", MAT["steel"], _wp(axis, uc, tb, cz),
+                   _ws(axis, uw, 0.12, dz), bev=0.004, group=group, lod=1))
+    for s in (-1, 1):
+        o.append(B(f"{name}_frm_jamb_{s}", MAT["steel"],
+                   _wp(axis, uc + s * (uw / 2 - 0.022), tb, zc),
+                   _ws(axis, 0.045, 0.12, zh - 0.09), bev=0.004, group=group, lod=1))
+    return o
+
+
+def build_openings():
+    """Every punched opening in the envelope, closed with a real assembly."""
+    p, o = P, []
+    # south daylight slot band (over the hall, west of the entry)
+    o += window_assembly("wall_front__win_slot_s", 1, -1, p["sy"], -4.10, -2.60,
+                         2.62, 3.30, "F", brow=True)
+    # west high slots: two unequal openings lighting the hall
+    for i, (a, b) in enumerate(((-2.30, -1.70), (-0.70, -0.10))):
+        o += window_assembly(f"wall_left__win_slot_w{i}", 0, -1, -p["mx"], a, b,
+                             2.62, 3.30, "L")
+    # BOH windows, both flanks, at working height over the staff aisle
+    o += window_assembly("wall_left__win_boh", 0, -1, -p["mx"], 2.55, 3.05,
+                         1.50, 2.30, "L")
+    o += window_assembly("wall_right__win_boh", 0, +1, p["mx"], 2.55, 3.05,
+                         1.50, 2.30, "R")
+    # trainer bay window: the booth's own daylight, on the deepened bay wall
+    o += window_assembly("wall_front__win_bay", 1, -1, p["tr_y"], 3.55, 4.95,
+                         0.95, 2.30, "F", brow=True)
+    # rear vents: each one closed with blades over dark backing
+    o += louvre_assembly("wall_back__vent_storage", 1, +1, p["ny"], -4.55, -3.35,
+                         2.72, 3.34, "B", blades=5)
+    o += louvre_assembly("wall_back__vent_tank", 1, +1, p["ny"], 1.95, 2.75,
+                         2.05, 2.62, "B", blades=4)
+    o += louvre_assembly("wall_back__vent_gear", 1, +1, p["ny"], 3.85, 4.85,
+                         2.86, 3.30, "B", blades=4)
+    return o
+
+
 def build_shell():
     p, o = P, []
     ft = p["floor_top"]
@@ -354,8 +552,17 @@ def build_shell():
     # ---------------- trainer bay walls (the third south setback)
     o += shell_wall("wall_front__bay_s_", 1, -1, p["tr_y"], p["tr_x0"], p["mx"],
                     p["tr_top"], [(3.55, 4.95, 0.95, 2.30)], group="F")
-    o += shell_wall("wall_right__bay_w_", 0, +1, p["tr_x0"], p["tr_y"], p["sy"],
+    # The bay's west wall.  It was authored with sign +1, which put the wall
+    # body at x 2.38..2.72 -- OUTSIDE the bay, standing in the entry apron with
+    # its finished face turned inward, and 0.34 m away from its own collision
+    # proxy (`shell__bay_west`, x 2.72..3.06) and from the bay screed.  sign is
+    # -1: outward normal west, body 2.72..3.06.  It now also runs north to the
+    # interior face so it forms the portal's west jamb instead of leaving a
+    # 0.34 m square notch at the re-entrant corner.
+    o += shell_wall("wall_right__bay_w_", 0, -1, p["tr_x0"], p["tr_y"], p["sy_in"],
                     p["tr_top"], group="R")
+    o += build_corner_joints()
+    o += build_openings()
     # spandrel over the bay portal, closing bay roof to the main deck
     o.append(B("wall_front__bay_spandrel", MAT["ceramic"],
                ((p["tr_x0"] + p["mx"]) / 2, p["sy"] - 0.035,
@@ -374,6 +581,92 @@ def build_shell():
                ((p["tr_x0"] + p["mx"]) / 2, p["sy_in"] + 0.03, p["base_top"] - 0.02),
                (p["mx"] - p["tr_x0"] - 0.04, 0.06, 0.10), bev=0.006, group="F",
                lod=1))
+    return o
+
+
+# ---------------------------------------------------------------------------
+# ENVELOPE CORNER JOINTS (pass-3 review defect 5)
+# ---------------------------------------------------------------------------
+# `shell_wall` insets the ceramic skin 0.07 m behind each wall's outer plane
+# (the tectonic step between the heavy sinter base and the light panel skin).
+# Where two walls meet at an outside corner, each skin runs to the OTHER wall's
+# outer plane, so a 0.07 x 0.07 m vertical shaft was left open from the datum
+# band up to the gable -- 0.82 m tall on the flanks, 0.38 m on the bay.  Those
+# are the "tall black corner voids" in 03_left, 04_right and
+# 16_crop_uv_seam_corner: they read as missing geometry because they ARE
+# missing geometry.
+#
+# They are not simply filled.  The panel system needs a corner condition, so
+# one is authored: a sealing backing block, a folded closure angle lapping both
+# skin faces, a head flashing that terminates the joint under the verge, and a
+# projecting sill with a weep so the joint drains onto the datum band instead
+# of into the wall.  Depth is real: 0.07 m of backing, 0.008 m of proud metal.
+CORNER_QUIRK = 0.07          # skin inset, and therefore the joint width
+
+
+def corner_joint(name, xc, yc, sx, sy, z1, group):
+    """One authored corner joint at (xc, yc); sx/sy are the outward signs."""
+    p, o = P, []
+    q = CORNER_QUIRK
+    bt, dt = p["base_top"], p["band_top"]
+
+    def spanx(d):
+        return (min(xc, xc - sx * d), max(xc, xc - sx * d))
+
+    def spany(d):
+        return (min(yc, yc - sy * d), max(yc, yc - sy * d))
+
+    def bx(nm, dx0, dx1, dy0, dy1, z0, zz1, mat, bev=0.006, lod=1):
+        ax0, ax1 = sorted((xc - sx * dx0, xc - sx * dx1))
+        ay0, ay1 = sorted((yc - sy * dy0, yc - sy * dy1))
+        return B(f"{name}_{nm}", mat, ((ax0 + ax1) / 2, (ay0 + ay1) / 2, (z0 + zz1) / 2),
+                 (ax1 - ax0, ay1 - ay0, zz1 - z0), bev=bev, group=group, lod=lod)
+
+    # 1. BACKING -- seals the shaft completely, full quirk depth, all LODs.
+    # SINTER, not steel: the corner is where the structural core turns, and the
+    # panel skin returns into it.  Steel here was both tectonically wrong (a
+    # 0.07 m steel post carrying a ceramic rainscreen) and, at 0.042 albedo,
+    # dark enough that the joint still read as a void in raking light even
+    # though ray casts prove it solid.
+    o.append(bx("back", 0.0, q, 0.0, q, dt, z1, MAT["sinter"], bev=0.0, lod=2))
+    # 2. CLOSURE ANGLE -- two legs lapping the skin faces, standing 8 mm proud
+    o.append(bx("angle_x", q, q + 0.008, 0.0, 0.15, dt + 0.03, z1 - 0.03,
+                MAT["brass"], bev=0.003))
+    o.append(bx("angle_y", 0.0, 0.15, q, q + 0.008, dt + 0.03, z1 - 0.03,
+                MAT["brass"], bev=0.003))
+    # 3. HEAD FLASHING -- terminates the joint under the verge/deck above
+    o.append(bx("head", -0.03, 0.11, -0.03, 0.11, z1 - 0.035, z1, MAT["brass"],
+                bev=0.004))
+    # 4. SILL -- sits on the datum band and projects, so water leaves the joint
+    o.append(bx("sill", -0.04, 0.13, -0.04, 0.13, dt - 0.018, dt + 0.030,
+                MAT["brass"], bev=0.005))
+    # 5. WEEP -- the joint drains onto the band, not into the wall
+    o.append(CY(f"{name}_weep", MAT["brass"],
+                (xc - sx * 0.145, yc - sy * 0.055, dt + 0.006), 0.011, 0.055,
+                axis=0, n=8, group=group, lod=1))
+    # 6. BAND CORNER -- the brass datum band has its own 0.035 notch; close it
+    o.append(B(f"{name}_band_corner", MAT["brass"],
+               ((spanx(-0.035)[0] + spanx(-0.035)[1]) / 2,
+                (spany(-0.035)[0] + spany(-0.035)[1]) / 2, (bt + dt) / 2),
+               (0.035, 0.035, dt - bt), bev=0.004, group=group, lod=1))
+    return o
+
+
+def build_corner_joints():
+    """Every outside corner of the envelope, sealed and expressed."""
+    p, o = P, []
+    # (name, xc, yc, sx, sy, z1, group).  z1 is the height at which the corner
+    # is taken over by the gable, verge or bay deck above.
+    corners = [
+        ("wall_left__corner_sw", -p["mx"], p["sy"], -1, -1, 3.40, "L"),
+        ("wall_left__corner_nw", -p["mx"], p["ny"], -1, +1, 3.40, "L"),
+        ("wall_right__corner_ne", p["mx"], p["ny"], +1, +1, 3.40, "R"),
+        ("wall_right__corner_bay_se", p["mx"], p["tr_y"], +1, -1, 2.96, "R"),
+        ("wall_front__corner_bay_sw", p["tr_x0"], p["tr_y"], -1, -1, 2.96, "F"),
+        ("wall_front__corner_bay_re", p["tr_x0"], p["sy"], -1, -1, 2.96, "F"),
+    ]
+    for (nm, xc, yc, sx, sy, z1, grp) in corners:
+        o += corner_joint(nm, xc, yc, sx, sy, z1, grp)
     return o
 
 
@@ -447,28 +740,35 @@ def build_hood():
     p, o = P, []
     cx, ro, ri, spr = p["hood_cx"], p["hood_ro"], p["hood_ri"], p["hood_spr"]
     y0, y1 = p["hood_y"], p["sy"]                 # -4.20 .. -3.12
-    seg = 20 if DETAIL else 10
+    # PASS-3 REVIEW DEFECT 6.  The hood is the identity element and must
+    # survive a close crop; `13_crop_facade_hood` showed obvious faceting.
+    # Two causes, both fixed here: 20 segments over a half turn is a 9 deg
+    # facet (a 0.30 m chord at r=1.90), and every face was FLAT shaded, so
+    # each facet read as its own tone.  48 segments gives a 3.75 deg / 0.124 m
+    # facet, and M.smooth() interpolates normals across the barrel while
+    # keeping the cut ends and the springing crease sharp.
+    seg = 48 if DETAIL else 12
     # --- the vault shell: a real arched tunnel, not an applied outline
     shell = M.arc_pts(cx, spr, ro, 0.0, math.pi, seg, r_in=ri)
-    o.append(PR("wall_front__hood_shell", MAT["ceramic"], shell, 1, y0, y1,
-                bev=0.010, group="F"))
+    o.append(M.smooth(PR("wall_front__hood_shell", MAT["ceramic"], shell, 1, y0, y1,
+                         bev=0.010, group="F"), 30.0))
     # --- side piers carrying the vault down to the ground
     for s in (-1, 1):
         o.append(B(f"wall_front__hood_pier_{s}", MAT["sinter"],
                    (cx + s * (ri + ro) / 2, (y0 + y1) / 2, (p["floor_top"] + spr) / 2),
                    (ro - ri, y1 - y0, spr - p["floor_top"]), bev=0.014, group="F"))
     # --- deep brass reveal on the outer face: a modelled order, not a thin line
-    o.append(PR("wall_front__hood_face", MAT["brass"],
-                M.arc_pts(cx, spr, ro, 0.0, math.pi, seg, r_in=ro - 0.16),
-                1, y0 - 0.055, y0 + 0.075, bev=0.008, group="F"))
+    o.append(M.smooth(PR("wall_front__hood_face", MAT["brass"],
+                         M.arc_pts(cx, spr, ro, 0.0, math.pi, seg, r_in=ro - 0.16),
+                         1, y0 - 0.055, y0 + 0.075, bev=0.008, group="F"), 30.0))
     for s in (-1, 1):
         o.append(B(f"wall_front__hood_facepier_{s}", MAT["brass"],
                    (cx + s * (ro - 0.08), y0 + 0.010, (p["floor_top"] + spr) / 2),
                    (0.16, 0.13, spr - p["floor_top"]), bev=0.008, group="F"))
     # inner soffit reveal, so the throat reads deep from outside
-    o.append(PR("wall_front__hood_soffit", MAT["brass"],
-                M.arc_pts(cx, spr, ri + 0.09, 0.0, math.pi, seg, r_in=ri),
-                1, y0 + 0.16, y1, group="F", lod=1))
+    o.append(M.smooth(PR("wall_front__hood_soffit", MAT["brass"],
+                         M.arc_pts(cx, spr, ri + 0.09, 0.0, math.pi, seg, r_in=ri),
+                         1, y0 + 0.16, y1, group="F", lod=1), 30.0))
     if not DETAIL:
         return o
     # --- springing course: where the arch lands on the piers
@@ -490,18 +790,82 @@ def build_hood():
                    (cx + s * (ri - 0.10), (y0 + y1) / 2 + 0.06, spr + 0.075),
                    (0.10, y1 - y0 - 0.54, 0.014), group="F"))
     # --- glazed fanlight in the lunette above the door head
-    o.append(PR("wall_front__fan_glass", MAT["glass"],
-                M.arc_pts(cx, spr, ri - 0.02, 0.0, math.pi, seg), 1,
-                p["sy"] + 0.02, p["sy"] + 0.06, group="F"))
+    o.append(M.smooth(PR("wall_front__fan_glass", MAT["glass"],
+                         M.arc_pts(cx, spr, ri - 0.02, 0.0, math.pi, seg), 1,
+                         p["sy"] + 0.02, p["sy"] + 0.06, group="F"), 30.0))
     o.append(B("wall_front__fan_sill", MAT["steel"], (cx, p["sy"] + 0.04, spr),
                (2 * ri, 0.10, 0.09), bev=0.006, group="F"))
     for k, a in enumerate((math.radians(52), math.radians(90), math.radians(128))):
-        o.append(B(f"wall_front__fan_bar_{k}", MAT["steel"],
-                   (cx + math.cos(a) * (ri / 2), p["sy"] + 0.04,
-                    spr + math.sin(a) * (ri / 2)),
+        piv = (cx + math.cos(a) * (ri / 2), p["sy"] + 0.04,
+               spr + math.sin(a) * (ri / 2))
+        o.append(B(f"wall_front__fan_bar_{k}", MAT["steel"], piv,
                    (0.055, 0.075, ri - 0.06), bev=0.004, group="F",
                    phase=(0, 0, math.degrees(a))))
-        o[-1].rotation_euler = (0, math.radians(90) - a, 0)
+        rot_about(o[-1], piv, 'Y', 90.0 - math.degrees(a))
+    # --- HOOD JUNCTIONS, GLAZING FRAME, DRAINAGE, WALL PENETRATION
+    # (pass-3 review defect 6 asks for these by name).
+    # 1. the fanlight is a framed assembly, not a floating glass sheet:
+    #    a rebated outer frame following the arch, on the same 48 segments.
+    o.append(M.smooth(PR("wall_front__fan_frame", MAT["steel"],
+                         M.arc_pts(cx, spr, ri + 0.005, 0.0, math.pi, seg,
+                                   r_in=ri - 0.075),
+                         1, p["sy"] - 0.010, p["sy"] + 0.085, bev=0.004,
+                         group="F", lod=1), 30.0))
+    o.append(M.smooth(PR("wall_front__fan_stop", MAT["brass"],
+                         M.arc_pts(cx, spr, ri - 0.055, 0.0, math.pi, seg,
+                                   r_in=ri - 0.080),
+                         1, p["sy"] + 0.062, p["sy"] + 0.082, group="F", lod=1),
+                      30.0))
+    # 2. WALL PENETRATION: the vault passes through the south wall, so the
+    #    junction is expressed as a returned reveal rather than two solids
+    #    intersecting.  A lining follows the arch through the wall thickness.
+    o.append(M.smooth(PR("wall_front__hood_lining", MAT["ceramic"],
+                         M.arc_pts(cx, spr, ri + 0.055, 0.0, math.pi, seg, r_in=ri),
+                         1, p["sy"], p["sy_in"], group="F", lod=1), 30.0))
+    o.append(M.smooth(PR("wall_front__hood_penetration_ring", MAT["brass"],
+                         M.arc_pts(cx, spr, ri + 0.10, 0.0, math.pi, seg,
+                                   r_in=ri + 0.045),
+                         1, p["sy_in"] - 0.035, p["sy_in"] + 0.005, group="F",
+                         lod=1), 30.0))
+    # 3. DRAINAGE: the vault's outer face sheds onto a throated drip at the
+    #    springing, which discharges through two spouts clear of the piers.
+    for s in (-1, 1):
+        o.append(B(f"wall_front__hood_drip_{s}", MAT["brass"],
+                   (cx + s * (ri + ro) / 2, y0 - 0.045, spr + 0.115),
+                   (ro - ri + 0.20, 0.10, 0.055), bev=0.005, group="F", lod=1))
+        # the drip discharges into a downpipe run down the OUTER face of each
+        # pier (a forward spout would have projected past the authored
+        # footprint), ending in a shoe that spills onto the apron nosing
+        dx_ = cx + s * (ro - 0.245)
+        o.append(M.smooth(CY(f"wall_front__hood_hopper_{s}", MAT["brass"],
+                             (dx_, y0 + 0.055, spr + 0.055), 0.075, 0.13, n=14,
+                             r2=0.045, group="F", lod=1), 38.0))
+        o.append(M.smooth(CY(f"wall_front__hood_downpipe_{s}", MAT["brass"],
+                             (dx_, y0 + 0.055, (p["floor_top"] + spr) / 2 + 0.10),
+                             0.042, spr - p["floor_top"] - 0.10, n=12, group="F",
+                             lod=1), 38.0))
+        for kk, zz in enumerate((0.72, 1.68)):
+            o.append(B(f"wall_front__hood_pipe_clip_{s}_{kk}", MAT["steel"],
+                       (dx_, y0 + 0.055, zz), (0.11, 0.055, 0.045), bev=0.004,
+                       group="F", lod=1))
+        o.append(M.smooth(CY(f"wall_front__hood_shoe_{s}", MAT["brass"],
+                             (dx_, y0 + 0.055, p["floor_top"] + 0.145), 0.055, 0.19,
+                             n=12, r2=0.042, group="F", lod=1), 38.0))
+        o.append(B(f"wall_front__hood_spill_{s}", MAT["sinter"],
+                   (dx_, y0 + 0.055, p["floor_top"] + 0.015), (0.28, 0.28, 0.05),
+                   bev=0.010, group="F", lod=1))
+        # 4. the springing junction gets a real impost block, so the curve
+        #    lands on the pier instead of merging into it
+        o.append(B(f"wall_front__hood_impost_{s}", MAT["sinter"],
+                   (cx + s * (ri + ro) / 2, (y0 + y1) / 2, spr - 0.135),
+                   (ro - ri + 0.16, y1 - y0 + 0.06, 0.13), bev=0.010, group="F"))
+        o.append(B(f"wall_front__hood_impost_lip_{s}", MAT["brass"],
+                   (cx + s * (ri + ro) / 2, y0 - 0.045, spr - 0.135),
+                   (ro - ri + 0.20, 0.05, 0.045), bev=0.004, group="F", lod=1))
+    # 5. the head of the arch meets the eave: a flashed saddle, since the hood
+    #    apex (4.60) breaks the south eave line (4.42)
+    o.append(B("wall_front__hood_saddle", MAT["brass"], (cx, p["sy"] + 0.02, 4.425),
+               (2 * ro - 0.30, p["wt"] + 0.10, 0.05), bev=0.005, group="F", lod=1))
     # --- entry apron nosing and the two bollard lamps flanking the arrival
     o.append(B("wall_front__hood_nosing", MAT["brass"],
                (cx, y0 - 0.02, p["floor_top"] - 0.02), (2 * ro + 0.24, 0.10, 0.07),
@@ -589,9 +953,33 @@ def build_loggia():
         o.append(B(f"wall_front__log_bench_leg_{s}", MAT["steel"],
                    (-3.20 + s * 0.44, p["sy"] - 0.42, 0.21), (0.08, 0.38, 0.34),
                    bev=0.006, group="F"))
-    # loggia lighting: a warm line in the deck, washing the shopfront
+    # loggia lighting: a warm line in the deck washing the shopfront, PLUS a
+    # recessed downlight in each coffer.  The pass-3 review found
+    # `20_crop_loggia` did not show the coffers it claimed; the reason was not
+    # only the camera -- the coffered soffit is north-facing and had a single
+    # lamp 1.3 m away from either coffer, so the pans were lit by sky bounce
+    # alone.  A coffered soffit with recessed downlights is also simply what
+    # this element should be.
     o.append(B("wall_front__log_lamp", MAT["lamp"], (-4.20, p["sy"] - 0.30, top - 0.10),
                (2.20, 0.11, 0.015), group="F"))
+    for i in range(len(LOG_PIERS) - 1):
+        x0 = LOG_PIERS[i][0] + LOG_PIERS[i][1] * 0.5
+        x1 = LOG_PIERS[i + 1][0] - LOG_PIERS[i + 1][1] * 0.5
+        cxc, cyc = (x0 + x1) / 2, (ly + p["sy"]) / 2
+        # The coffer pan's underside is at top-0.225.  The luminaire has to
+        # sit BELOW it or the emissive face is enclosed in plaster and emits
+        # into the inside of the pan -- which is exactly what the first
+        # attempt did, giving an unlit soffit in `20_crop_loggia`.
+        pan_soffit = top - 0.225
+        o.append(B(f"wall_front__log_coffer_housing_{i}", MAT["steel"],
+                   (cxc, cyc, top - 0.160), (0.40, 0.30, 0.10), bev=0.008,
+                   group="F", lod=1))
+        o.append(B(f"wall_front__log_coffer_bezel_{i}", MAT["brass"],
+                   (cxc, cyc, pan_soffit - 0.008), (0.44, 0.34, 0.016), bev=0.005,
+                   group="F", lod=1))
+        o.append(B(f"wall_front__log_coffer_lamp_{i}", MAT["lamp"],
+                   (cxc, cyc, pan_soffit - 0.013), (0.34, 0.24, 0.012),
+                   group="F"))
     return o
 
 
@@ -1017,6 +1405,29 @@ CEIL_LINER = 0.05
 BOH_SOFFIT = 2.62
 BAY_CEIL = 2.78
 
+# ---------------------------------------------------------------------------
+# THE RESERVED BACK-OF-HOUSE STAFF ROUTE (pass-3 review defect 2)
+# ---------------------------------------------------------------------------
+# A declared corridor band running the length of the BOH.  Bulky plant may
+# only occupy the PIER ALCOVES south of BOH_ROUTE_Y0 (where the service wall
+# has no niche pocket) or the strip north of BOH_ROUTE_Y1 against the rear
+# wall.  0.90 m is the width the review gate requires; the band is 0.90 m and
+# the real clear width is wider almost everywhere, which verify.py measures.
+BOH_ROUTE_Y0 = 2.58
+BOH_ROUTE_Y1 = 3.48
+BOH_ROUTE_MIN_W = 0.90
+# The route the gate requires: rear entrance -> BOH aisle -> rear of all three
+# service fixtures.  West and east of this span the BOH is working recess, not
+# corridor, and is furnished as such; verify.py's sampled path check measures
+# the real width along the real route rather than trusting this band.
+BOH_ROUTE_X0 = -2.72
+BOH_ROUTE_X1 = 3.68
+# water-plant columns.  NOT in the alcove between trade and association: that
+# alcove overlaps the rear door's x-span (0.725..1.875), which is how the old
+# tank came to stand in the doorway.  They go in the alcove between the bank
+# and trade niches, which no opening looks through.
+BOH_FILTER_X = (-1.19, -0.71)
+
 
 def build_ceilings():
     p, o = P, []
@@ -1068,6 +1479,124 @@ def build_ceilings():
 NICHE_KEYS = ("bank", "trade", "assoc")
 MARKS = {"bank": "bar", "trade": "cross", "assoc": "ring"}
 
+# Each service point projects a DIFFERENT head south of the wall face (pass-3
+# review defect 8: "the three service niches differ mostly by imported terminal
+# silhouette").  The head also carries the wash lamp in FRONT of the terminal's
+# interaction face -- the previous head lamp sat behind it.
+#   bank  -- deepest: a private, hooded transaction recess
+#   trade -- middle: an open inspection gantry
+#   assoc -- shallowest: a public registry brow
+DOCK_HEAD_Y = {"bank": 1.50, "trade": 1.58, "assoc": 1.66}
+# hardware lives on the PIERS beside each opening (|dx| >= 0.84) and north of
+# y = 1.50, which keeps the fixture cell and the 0.8 m front-clearance box
+# completely free.  verify_clearance re-proves this every build.
+DOCK_SIDE_X = 0.90
+
+
+def dock_identity(k, cx, y0, hp, ft, nh):
+    """Non-repeating service identity: privacy / inspection / registry hardware.
+
+    Everything here is placed on the pier faces or above head height, never in
+    the customer approach.  No lettering: shapes and lit slots only.
+    """
+    o = []
+    if k == "bank":
+        # PRIVACY: deep hood with side fins, a screened deposit drawer on the
+        # west pier, and a discretion line marked in the floor screed.
+        for s in (-1, 1):
+            o.append(B(f"interior__dock_bank_fin_{s}", MAT["ceramic"],
+                       (cx + s * 0.755, (y0 + hp) / 2, ft + 1.62),
+                       (0.10, y0 - hp, 1.42), bev=0.008))
+            o.append(B(f"interior__dock_bank_fin_edge_{s}", MAT["brass"],
+                       (cx + s * 0.755, hp + 0.018, ft + 1.62),
+                       (0.115, 0.036, 1.42), bev=0.005, lod=1))
+        o.append(B("interior__dock_bank_drawer", MAT["steel"],
+                   (cx - DOCK_SIDE_X, y0 - 0.11, ft + 1.02), (0.40, 0.22, 0.30),
+                   bev=0.010))
+        o.append(B("interior__dock_bank_drawer_pull", MAT["brass"],
+                   (cx - DOCK_SIDE_X, y0 - 0.225, ft + 1.02), (0.30, 0.04, 0.05),
+                   bev=0.004, lod=1))
+        o.append(B("interior__dock_bank_slot", MAT["brass"],
+                   (cx - DOCK_SIDE_X, y0 - 0.225, ft + 1.24), (0.26, 0.04, 0.055),
+                   bev=0.004, lod=1))
+        o.append(B("interior__dock_bank_seal", MAT["cyan"],
+                   (cx - DOCK_SIDE_X, y0 - 0.235, ft + 1.42), (0.10, 0.02, 0.10)))
+        # ledger ledge on the east pier, to write on while queueing
+        o.append(B("interior__dock_bank_ledge", MAT["ceramic"],
+                   (cx + DOCK_SIDE_X, y0 - 0.17, ft + 0.96), (0.46, 0.34, 0.05),
+                   bev=0.008))
+        for s in (-1, 1):
+            o.append(B(f"interior__dock_bank_ledge_leg_{s}", MAT["steel"],
+                       (cx + DOCK_SIDE_X + s * 0.19, y0 - 0.12, ft + 0.47),
+                       (0.045, 0.045, 0.94), bev=0.004, lod=1))
+    elif k == "trade":
+        # INSPECTION: an open gantry over the counter mouth carrying a hanging
+        # scale, a goods rail on the east pier, and a lit inspection strip.
+        o.append(CY("interior__dock_trade_gantry", MAT["steel"],
+                    (cx, hp + 0.05, ft + nh - 0.10), 0.038, p_niche_w() + 0.50,
+                    axis=0, n=12))
+        for s in (-1, 1):
+            o.append(B(f"interior__dock_trade_gantry_leg_{s}", MAT["steel"],
+                       (cx + s * (p_niche_w() / 2 + 0.24), hp + 0.05, ft + nh / 2),
+                       (0.06, 0.06, nh - 0.10), bev=0.005))
+        o.append(CY("interior__dock_trade_hook", MAT["brass"],
+                    (cx + 0.34, hp + 0.05, ft + nh - 0.34), 0.014, 0.46, n=8, lod=1))
+        o.append(CY("interior__dock_trade_pan", MAT["brass"],
+                    (cx + 0.34, hp + 0.05, ft + nh - 0.60), 0.15, 0.05, n=16,
+                    r2=0.11, lod=1))
+        # goods rail + weight shelf on the east pier
+        o.append(B("interior__dock_trade_shelf", MAT["ceramic"],
+                   (cx + DOCK_SIDE_X + 0.05, y0 - 0.15, ft + 0.92), (0.40, 0.30, 0.06),
+                   bev=0.008))
+        o.append(B("interior__dock_trade_shelf_apron", MAT["sinter"],
+                   (cx + DOCK_SIDE_X + 0.05, y0 - 0.11, ft + 0.45), (0.36, 0.22, 0.88),
+                   bev=0.010))
+        for i, dz in enumerate((0.0, 0.16, 0.30)):
+            o.append(CY(f"interior__dock_trade_weight_{i}", MAT["brass"],
+                        (cx + DOCK_SIDE_X - 0.13 + i * 0.13, y0 - 0.15,
+                         ft + 0.99 + dz * 0.0), 0.045 - i * 0.008,
+                        0.10 - i * 0.018, n=12, lod=1))
+        # west pier: a lit inspection strip washing the goods being checked
+        o.append(B("interior__dock_trade_strip_housing", MAT["steel"],
+                   (cx - DOCK_SIDE_X, y0 - 0.09, ft + 1.86), (0.34, 0.16, 0.10),
+                   bev=0.006, lod=1))
+        o.append(B("interior__dock_trade_strip", MAT["lamp"],
+                   (cx - DOCK_SIDE_X, y0 - 0.13, ft + 1.81), (0.28, 0.09, 0.02)))
+    else:
+        # REGISTRY: a public notice frame on the west pier and a waiting bench
+        # on the east pier -- this is the service you wait at, not queue at.
+        o.append(B("interior__dock_assoc_notice", MAT["ceramic"],
+                   (cx - DOCK_SIDE_X, y0 - 0.055, ft + 1.52), (0.52, 0.05, 0.86),
+                   bev=0.008))
+        o.append(B("interior__dock_assoc_notice_frame", MAT["brass"],
+                   (cx - DOCK_SIDE_X, y0 - 0.078, ft + 1.52), (0.58, 0.03, 0.92),
+                   bev=0.005, lod=1))
+        for i, (dx_, dz, w, h) in enumerate(((-0.11, 0.24, 0.18, 0.13),
+                                             (0.12, 0.20, 0.16, 0.20),
+                                             (-0.06, -0.10, 0.22, 0.15),
+                                             (0.13, -0.20, 0.14, 0.11))):
+            o.append(B(f"interior__dock_assoc_card_{i}", MAT["plaster"],
+                       (cx - DOCK_SIDE_X + dx_, y0 - 0.088, ft + 1.52 + dz),
+                       (w, 0.012, h), bev=0.003, lod=1))
+        o.append(B("interior__dock_assoc_bench", MAT["ceramic"],
+                   (cx + DOCK_SIDE_X, y0 - 0.20, ft + 0.45), (0.54, 0.40, 0.07),
+                   bev=0.010))
+        for s in (-1, 1):
+            o.append(B(f"interior__dock_assoc_bench_leg_{s}", MAT["steel"],
+                       (cx + DOCK_SIDE_X + s * 0.21, y0 - 0.20, ft + 0.21),
+                       (0.06, 0.34, 0.42), bev=0.005, lod=1))
+        # a low registry beacon above the bench: this service is found, not queued
+        o.append(TU("interior__dock_assoc_beacon", MAT["brass"],
+                    (cx + DOCK_SIDE_X, y0 - 0.10, ft + 2.02), 0.13, 0.09, 0.05,
+                    axis=1, n=20, lod=1))
+        o.append(B("interior__dock_assoc_beacon_lamp", MAT["cyan"],
+                   (cx + DOCK_SIDE_X, y0 - 0.105, ft + 2.02), (0.15, 0.02, 0.15)))
+    return o
+
+
+def p_niche_w():
+    return P["niche_w"]
+
 
 def build_interior():
     p, o = P, []
@@ -1092,12 +1621,13 @@ def build_interior():
             o.append(B(f"interior__niche_{k}_cheek_{s}", MAT["ceramic"],
                        (cx + s * (hw + 0.085), (y1 + p["niche_y1"]) / 2, ft + nh / 2),
                        (0.17, p["niche_y1"] - y1, nh), bev=0.008))
+        nbt = p["niche_back_t"]
         o.append(B(f"interior__niche_{k}_back", MAT["ceramic"],
-                   (cx, p["niche_y1"] + 0.085, ft + nh / 2),
-                   (p["niche_w"] + 0.34, 0.17, nh), bev=0.008))
+                   (cx, p["niche_y1"] + nbt / 2, ft + nh / 2),
+                   (p["niche_w"] + 0.34, nbt, nh), bev=0.008))
         o.append(B(f"interior__niche_{k}_head", MAT["ceramic"],
-                   (cx, (y0 + p["niche_y1"] + 0.17) / 2, ft + nh + 0.09),
-                   (p["niche_w"] + 0.34, p["niche_y1"] + 0.17 - y0, 0.18), bev=0.008))
+                   (cx, (y0 + p["niche_y1"] + nbt) / 2, ft + nh + 0.09),
+                   (p["niche_w"] + 0.34, p["niche_y1"] + nbt - y0, 0.18), bev=0.008))
         if not DETAIL:
             continue
         # brass reveal framing the opening
@@ -1108,47 +1638,56 @@ def build_interior():
         o.append(B(f"interior__niche_{k}_lintel", MAT["brass"],
                    (cx, y0 - 0.012, ft + nh + 0.035),
                    (p["niche_w"] + 0.14, 0.06, 0.07), bev=0.006, lod=1))
-        # backing panel: closes the bay, with a transaction slot and a shutter box
+        # backing panel: closes the pocket BEHIND the docked terminal.  It sits
+        # north of TERM_BACK, so it can never intersect the imported prop.
         o.append(B(f"interior__niche_{k}_panel", MAT["steel"],
                    (cx, p["niche_y1"] - 0.02, ft + nh / 2 + 0.10),
-                   (p["niche_w"] - 0.06, 0.05, nh - 0.24), bev=0.006))
-        o.append(B(f"interior__niche_{k}_slot", MAT["brass"],
-                   (cx, p["niche_y1"] - 0.05, ft + 1.06), (0.52, 0.05, 0.11),
-                   bev=0.006))
-        o.append(B(f"interior__niche_{k}_shutterbox", MAT["steel"],
-                   (cx, p["niche_y1"] - 0.10, ft + nh - 0.16),
-                   (p["niche_w"] - 0.02, 0.20, 0.22), bev=0.008, lod=1))
-        # service lighting: a downlight over the customer side of the counter
-        # and a second lamp washing the terminal face, so the fixture the player
-        # interacts with is the brightest thing in the bay.
-        o.append(B(f"interior__niche_{k}_light", MAT["lamp"],
-                   (cx, y0 + 0.20, ft + nh - 0.012), (0.86, 0.13, 0.018)))
-        o.append(B(f"interior__niche_{k}_wash_housing", MAT["steel"],
-                   (cx, y0 + 0.055, ft + nh - 0.10), (0.94, 0.14, 0.13),
+                   (p["niche_w"] - 0.06, 0.04, nh - 0.24), bev=0.006))
+        # ---- per-service dock head: projects SOUTH of the wall face so the
+        # wash lamp is in front of the terminal's interaction face instead of
+        # behind it.  Each service gets a different head, so the three niches
+        # are not distinguished only by imported terminal silhouette.
+        hp = DOCK_HEAD_Y[k]                       # south face of this head
+        hd = y0 - hp                              # projection depth
+        o.append(B(f"interior__dock_{k}_head", MAT["ceramic"],
+                   (cx, (y0 + hp) / 2, ft + nh + 0.20),
+                   (p["niche_w"] + 0.34, hd, 0.22), bev=0.010))
+        o.append(B(f"interior__dock_{k}_head_lip", MAT["brass"],
+                   (cx, hp + 0.02, ft + nh + 0.09),
+                   (p["niche_w"] + 0.36, 0.05, 0.09), bev=0.005, lod=1))
+        o.append(B(f"interior__dock_{k}_wash_housing", MAT["steel"],
+                   (cx, hp + 0.10, ft + nh + 0.02), (p["niche_w"] - 0.10, 0.17, 0.13),
                    bev=0.008, lod=1))
-        o.append(B(f"interior__niche_{k}_wash", MAT["lamp"],
-                   (cx, y0 + 0.105, ft + nh - 0.145), (0.84, 0.05, 0.04)))
-        # geometric identifier plate above the opening -- no lettering
-        pz = ft + nh + 0.52
+        o.append(B(f"interior__dock_{k}_wash", MAT["lamp"],
+                   (cx, hp + 0.10, ft + nh - 0.035), (p["niche_w"] - 0.20, 0.13, 0.02)))
+        # a second lamp in the pocket head, washing the backing panel, so the
+        # terminal is read against a lit surface instead of a black hole
+        o.append(B(f"interior__niche_{k}_backlight", MAT["lamp"],
+                   (cx, p["niche_y1"] - 0.10, ft + nh - 0.03),
+                   (p["niche_w"] - 0.30, 0.12, 0.018)))
+        o += dock_identity(k, cx, y0, hp, ft, nh)
+        # geometric identifier plate above the opening -- no lettering.
+        # sits between the dock head top and the cove, clear of both.
+        pz = ft + nh + 0.54
         o.append(B(f"interior__sign_{k}_plate", MAT["ceramic"], (cx, y0 - 0.03, pz),
-                   (0.96, 0.06, 0.60), bev=0.008, lod=1))
+                   (0.96, 0.06, 0.38), bev=0.008, lod=1))
         o.append(B(f"interior__sign_{k}_frame", MAT["brass"], (cx, y0 - 0.048, pz),
-                   (1.04, 0.03, 0.68), bev=0.005, lod=1))
+                   (1.04, 0.03, 0.46), bev=0.005, lod=1))
         mk = MARKS[k]
         if mk == "bar":
             for i, w in enumerate((0.52, 0.34, 0.16)):
                 o.append(B(f"interior__mark_{k}_{i}", MAT["brass"],
-                           (cx, y0 - 0.068, pz + 0.16 - i * 0.16), (w, 0.02, 0.06),
+                           (cx, y0 - 0.068, pz + 0.10 - i * 0.10), (w, 0.02, 0.045),
                            bev=0.004, lod=1))
         elif mk == "cross":
-            for i, (a, b) in enumerate(((0.50, 0.09), (0.09, 0.40))):
+            for i, (a, b) in enumerate(((0.50, 0.09), (0.09, 0.32))):
                 o.append(B(f"interior__mark_{k}_{i}", MAT["brass"], (cx, y0 - 0.068, pz),
                            (a, 0.02, b), bev=0.004, lod=1))
         else:
             o.append(TU(f"interior__mark_{k}_ring", MAT["brass"], (cx, y0 - 0.062, pz),
-                        0.24, 0.17, 0.02, axis=1, n=28, lod=1))
+                        0.17, 0.12, 0.02, axis=1, n=28, lod=1))
             o.append(B(f"interior__mark_{k}_pip", MAT["brass"], (cx, y0 - 0.068, pz),
-                       (0.09, 0.02, 0.09), bev=0.003, lod=1))
+                       (0.08, 0.02, 0.08), bev=0.003, lod=1))
     # --- the wall BETWEEN the niches is articulated, not a blank slab.
     # Three members only, all already in the building's vocabulary: a brass kick
     # where trolleys hit, a shallow recessed panel, and a datum reveal that
@@ -1184,9 +1723,9 @@ def build_interior():
                (p["pass_x"], y0 - 0.012, ft + p["pass_h"] + 0.035),
                (p["pass_w"] + 0.12, 0.06, 0.07), bev=0.005, lod=1))
     # continuous cove light along the service wall, above the niche heads
-    o.append(B("interior__wall_cove", MAT["steel"], (0, y0 - 0.13, ft + nh + 1.02),
+    o.append(B("interior__wall_cove", MAT["steel"], (0, y0 - 0.13, ft + nh + 0.90),
                (2 * ix - 0.20, 0.20, 0.16), bev=0.010, lod=1))
-    o.append(B("interior__wall_cove_lamp", MAT["lamp"], (0, y0 - 0.13, ft + nh + 0.94),
+    o.append(B("interior__wall_cove_lamp", MAT["lamp"], (0, y0 - 0.13, ft + nh + 0.82),
                (2 * ix - 0.60, 0.13, 0.02)))
     return o
 
@@ -1228,62 +1767,132 @@ def build_fitout():
             o.append(CY(f"interior__vendor_hook_{i}", MAT["brass"], (vx1 - 0.06, yy,
                                                                      ft + 2.05),
                         0.013, 0.22, n=8, lod=1))
-        # produce bins let into the counter top
+        # produce bins let into the counter top, each with authored goods --
+        # the pass-3 review found the vendor shelves "nearly empty".  The
+        # runtime library has no provenance-backed produce props, so the
+        # assortment is authored: heaped roots, stacked discs, sacks, jars.
         for i, yy in enumerate((-1.70, -1.05, -0.40)):
             o.append(B(f"interior__vendor_bin_{i}", MAT["steel"], (vx1 - 0.16, yy,
                                                                    ft + 0.955),
                        (0.34, 0.44, 0.10), bev=0.010, lod=1))
+        # bin 0: heaped roots (three unequal ellipsoidal clusters)
+        for j, (dx_, dy_, rr) in enumerate(((-0.07, -0.11, 0.075),
+                                            (0.05, 0.02, 0.088),
+                                            (-0.02, 0.13, 0.066))):
+            o.append(M.smooth(CY(f"interior__vendor_root_{j}", MAT["sinter"],
+                                 (vx1 - 0.16 + dx_, -1.70 + dy_, ft + 1.02), rr,
+                                 rr * 1.5, n=12, r2=rr * 0.45, lod=1), 40.0))
+        # bin 1: stacked discs, leaning
+        for j in range(4):
+            o.append(M.smooth(CY(f"interior__vendor_disc_{j}", MAT["brass"],
+                                 (vx1 - 0.16 + (j % 2) * 0.09 - 0.045,
+                                  -1.05 - 0.14 + j * 0.09, ft + 1.015 + j * 0.012),
+                                 0.072, 0.022, n=14, lod=1), 40.0))
+        # bin 2: sacks
+        for j, (dx_, dy_, w_) in enumerate(((-0.06, -0.10, 0.15), (0.06, 0.04, 0.17),
+                                            (-0.03, 0.14, 0.13))):
+            o.append(B(f"interior__vendor_sack_{j}", MAT["plaster"],
+                       (vx1 - 0.16 + dx_, -0.40 + dy_, ft + 1.07),
+                       (w_, w_ * 0.8, 0.20), bev=0.045, lod=1))
+        # shelf goods: jars and stacked tins, unequal, on the three shelves
+        for i, (h, d, n_) in enumerate(((1.42, 0.40, 6), (1.86, 0.34, 5),
+                                        (2.26, 0.28, 4))):
+            for j in range(n_):
+                yy = (vy0 + vy1) / 2 + (j - (n_ - 1) / 2) * (2.6 / max(n_, 1))
+                rr = 0.052 + 0.014 * ((i + j) % 3)
+                hh = 0.16 + 0.05 * ((i * 2 + j) % 3)
+                o.append(M.smooth(CY(f"interior__vendor_jar_{i}_{j}", MAT["glass"],
+                                     (vx0 + d - 0.13, yy, ft + h + 0.022 + hh / 2),
+                                     rr, hh, n=12, lod=1), 40.0))
+                o.append(M.smooth(CY(f"interior__vendor_jar_lid_{i}_{j}", MAT["brass"],
+                                     (vx0 + d - 0.13, yy, ft + h + 0.022 + hh),
+                                     rr * 1.06, 0.018, n=12, lod=1), 40.0))
+        # goods hanging from the rack hooks
+        for i, yy in enumerate((-1.86, -1.34, -0.62, 0.06, 0.42)):
+            L = 0.26 + 0.09 * (i % 3)
+            o.append(B(f"interior__vendor_hung_{i}", MAT["sinter"],
+                       (vx1 - 0.06, yy, ft + 1.96 - L / 2), (0.10, 0.11, L),
+                       bev=0.030, lod=1))
         o.append(B("interior__vendor_scale", MAT["brass"], (vx1 - 0.18, 0.36, ft + 1.05),
                    (0.24, 0.24, 0.20), bev=0.010, lod=1))
+        # a stacked crate plinth beside the counter, so goods arrive somewhere
+        o.append(B("interior__vendor_pallet", MAT["steel"], (vx1 - 0.02, -2.62,
+                                                             ft + 0.055),
+                   (0.72, 0.62, 0.11), bev=0.008, lod=1))
         o.append(B("interior__vendor_light", MAT["lamp"], (vx0 + 0.34, (vy0 + vy1) / 2,
                                                            ft + 2.72),
                    (0.16, vy1 - vy0 - 0.40, 0.025)))
-    # ---------------- trainer consultation, inside the south-east bay
-    tx, ty = 4.15, -2.70
-    o.append(B("interior__trainer_desk", MAT["ceramic"], (tx, ty, ft + 0.72),
-               (1.70, 0.42, 0.07), bev=0.010))
-    o.append(B("interior__trainer_apron", MAT["sinter"], (tx, ty + 0.02, ft + 0.35),
-               (1.54, 0.34, 0.68), bev=0.012))
+    # ---------------- trainer consultation booth, in the south-east bay
+    #
+    # PASS-3 REVIEW DEFECT 3.  The old booth was a 1.70 x 0.42 m desk jammed
+    # against a 0.60 m deep bay with a full-height shelf stack and a display
+    # case standing in the sightline, so `22_interior_eye_trainer` was mostly
+    # occluding partition.  Rebuilt: the bay is deepened to 0.94 m clear, the
+    # desk becomes a consultation TABLE at the bay mouth, the trainer sits
+    # behind it in the bay, the visitor sits at its west end, and the tall
+    # built-ins are demoted to a waist-height credenza in the bay's dead
+    # south-west corner so nothing blocks the view in or the approach.
+    tcx = (TRN["tx0"] + TRN["tx1"]) / 2
+    tcy = (TRN["ty0"] + TRN["ty1"]) / 2
+    o.append(B("interior__trainer_table", MAT["ceramic"], (tcx, tcy, ft + 0.72),
+               (TRN["tx1"] - TRN["tx0"], TRN["ty1"] - TRN["ty0"], 0.07), bev=0.010))
+    for s in (-1, 1):
+        o.append(B(f"interior__trainer_leg_{s}", MAT["steel"],
+                   (tcx + s * (TRN["tx1"] - TRN["tx0"] - 0.30) / 2, tcy, ft + 0.35),
+                   (0.07, TRN["ty1"] - TRN["ty0"] - 0.12, 0.68), bev=0.006))
+    o.append(B("interior__trainer_stretcher", MAT["steel"], (tcx, tcy, ft + 0.14),
+               (TRN["tx1"] - TRN["tx0"] - 0.34, 0.06, 0.06), bev=0.005, lod=1))
     if DETAIL:
-        o.append(B("interior__trainer_edge", MAT["brass"], (tx, ty - 0.215, ft + 0.72),
-                   (1.70, 0.05, 0.09), bev=0.006, lod=1))
-        # pin/route board on the bay back wall + a kit shelf
-        o.append(B("interior__trainer_board", MAT["ceramic"],
-                   (tx, p["tr_y"] + p["wt"] + 0.035, 1.72), (1.86, 0.06, 1.00),
-                   bev=0.010))
+        o.append(B("interior__trainer_edge", MAT["brass"],
+                   (tcx, TRN["ty0"] + 0.025, ft + 0.72),
+                   (TRN["tx1"] - TRN["tx0"], 0.05, 0.09), bev=0.006, lod=1))
+        # route/skill board on the bay back wall + a sconce washing it
+        bwy = p["tr_y"] + p["wt"]
+        o.append(B("interior__trainer_board", MAT["ceramic"], (4.30, bwy + 0.035, 1.72),
+                   (1.86, 0.06, 1.00), bev=0.010))
         o.append(B("interior__trainer_board_frame", MAT["brass"],
-                   (tx, p["tr_y"] + p["wt"] + 0.055, 1.72), (1.98, 0.03, 1.12),
-                   bev=0.005, lod=1))
+                   (4.30, bwy + 0.055, 1.72), (1.98, 0.03, 1.12), bev=0.005, lod=1))
         for i, (dx_, dz) in enumerate(((-0.62, 0.22), (-0.18, -0.14), (0.34, 0.26),
                                        (0.70, -0.06))):
             o.append(B(f"interior__trainer_pin_{i}", MAT["cyan"],
-                       (tx + dx_, p["tr_y"] + p["wt"] + 0.062, 1.72 + dz),
-                       (0.055, 0.02, 0.055)))
-        o.append(B("interior__trainer_shelf", MAT["steel"], (ix - 0.22, -2.60, ft + 1.34),
-                   (0.40, 0.90, 0.045), bev=0.005, lod=1))
-        o.append(B("interior__trainer_sconce", MAT["lamp"], (tx, p["tr_y"] + p["wt"] + 0.08,
-                                                             2.44),
-                   (1.30, 0.05, 0.025)))
-        o.append(B("interior__trainer_kit", MAT["steel"], (tx + 0.58, ty + 0.04, ft + 0.82),
-                   (0.30, 0.22, 0.13), bev=0.010, lod=1))
-        # bay built-ins: the bay walls are fitted out, not blank (defect E6)
-        bx = p["tr_x0"] + p["wt"]
-        for i, (h, d) in enumerate(((0.98, 0.32), (1.46, 0.28), (1.94, 0.24))):
-            o.append(B(f"interior__bay_shelf_{i}", MAT["steel"],
-                       (bx + d / 2, -2.86, ft + h), (d, 1.10, 0.04), bev=0.004,
+                       (4.30 + dx_, bwy + 0.062, 1.72 + dz), (0.055, 0.02, 0.055)))
+        o.append(B("interior__trainer_sconce_housing", MAT["steel"],
+                   (4.30, bwy + 0.10, 2.44), (1.40, 0.14, 0.11), bev=0.008, lod=1))
+        o.append(B("interior__trainer_sconce", MAT["lamp"], (4.30, bwy + 0.13, 2.38),
+                   (1.30, 0.09, 0.025)))
+        # waist-height credenza in the bay's south-west corner: storage that
+        # cannot occlude the booth, replacing the old full-height shelf stack
+        ccx, ccy = (TRN["cx0"] + TRN["cx1"]) / 2, (TRN["cy0"] + TRN["cy1"]) / 2
+        o.append(B("interior__trainer_credenza", MAT["sinter"], (ccx, ccy, ft + 0.42),
+                   (TRN["cx1"] - TRN["cx0"], TRN["cy1"] - TRN["cy0"], 0.84),
+                   bev=0.012))
+        o.append(B("interior__trainer_credenza_top", MAT["ceramic"],
+                   (ccx, ccy, ft + 0.875),
+                   (TRN["cx1"] - TRN["cx0"] + 0.05, TRN["cy1"] - TRN["cy0"] + 0.05,
+                    0.07), bev=0.008, lod=1))
+        for i in range(2):
+            o.append(B(f"interior__trainer_credenza_pull_{i}", MAT["brass"],
+                       (ccx + 0.005, TRN["cy0"] - 0.02, ft + 0.30 + i * 0.30),
+                       (TRN["cx1"] - TRN["cx0"] - 0.16, 0.04, 0.04), bev=0.004,
                        lod=1))
-        o.append(B("interior__bay_shelf_back", MAT["ceramic"], (bx + 0.03, -2.86, ft + 1.46),
-                   (0.06, 1.22, 1.36), bev=0.006, lod=1))
-        o.append(B("interior__bay_case", MAT["sinter"], (bx + 0.24, -1.68, ft + 0.40),
-                   (0.48, 0.86, 0.80), bev=0.012))
-        o.append(B("interior__bay_case_top", MAT["ceramic"], (bx + 0.24, -1.68, ft + 0.82),
-                   (0.54, 0.92, 0.05), bev=0.006, lod=1))
-        o.append(CY("interior__bay_rail", MAT["brass"], (bx + 0.16, -2.86, ft + 2.16),
-                    0.022, 1.10, axis=1, n=10, lod=1))
+        o.append(B("interior__trainer_kit", MAT["steel"], (ccx - 0.06, ccy, ft + 0.98),
+                   (0.30, 0.22, 0.13), bev=0.010, lod=1))
+        # a low shelf on the east wall, above seated head height, plus markers
+        o.append(B("interior__bay_shelf_e", MAT["steel"], (ix - 0.17, -3.20, ft + 1.62),
+                   (0.30, 1.00, 0.045), bev=0.004, lod=1))
+        o.append(B("interior__bay_shelf_e_lip", MAT["brass"], (ix - 0.325, -3.20,
+                                                               ft + 1.665),
+                   (0.03, 1.00, 0.05), bev=0.004, lod=1))
         for i in range(3):
             o.append(B(f"interior__bay_marker_{i}", MAT["brass"],
-                       (p["ix"] - 0.035, -3.05 + i * 0.30, 2.28),
+                       (p["ix"] - 0.035, -3.35 + i * 0.30, 2.28),
                        (0.03, 0.10, 0.34), bev=0.004, lod=1))
+        # booth downlight over the table, so the seats read in the proofs
+        o.append(B("interior__trainer_downlight_housing", MAT["steel"],
+                   (tcx, tcy, BAY_CEIL - 0.06), (1.30, 0.30, 0.12), bev=0.008, lod=1))
+        o.append(B("interior__trainer_downlight", MAT["lamp"], (tcx, tcy,
+                                                                BAY_CEIL - 0.125),
+                   (1.20, 0.24, 0.02)))
     # ---------------- circulation: a single brass queue rail, not a cage
     if DETAIL:
         for i, x in enumerate((-1.55, 0.05, 1.65)):
@@ -1294,47 +1903,112 @@ def build_fitout():
         o.append(CY("interior__rail_top", MAT["brass"], (0.05, -1.55, ft + 0.97),
                     0.026, 3.20, axis=0, n=10))
     # ---------------- back of house
+    #
+    # PASS-3 REVIEW DEFECT 2.  The authored cylindrical tank stood at
+    # (2.30, 3.16) r 0.44 -- directly in the rear doorway's approach, leaving
+    # 0.22 m between it and the niche backs.  The bench and shelving each ran
+    # 0.48-0.62 m deep across the full aisle as well, so the "staff aisle" was
+    # not a route at all.  The BOH is rebuilt here as an explicit corridor:
+    #
+    #   * BOH_ROUTE_Y0/Y1 is a reserved corridor band.  NOTHING may stand in it.
+    #   * bulky plant is moved into the PIER ALCOVES -- the four x-bands where
+    #     the service wall has no niche pocket, so its face is at bulk_y1 and
+    #     there is 0.47 m of extra depth to build into.
+    #   * the tank is redesigned as two slim filter columns in an alcove; the
+    #     stored-water role it was doing badly is already carried by the roof
+    #     cistern drum, which is the building's actual water parti.
+    #   * `verify.py` samples a grid and proves a continuous >= 0.90 m route.
     ny_in = p["ny_in"]
-    o.append(B("interior__boh_bench", MAT["steel"], (4.10, ny_in - 0.32, ft + 0.44),
-               (2.10, 0.62, 0.88), bev=0.010))
-    o.append(B("interior__boh_bench_top", MAT["ceramic"], (4.10, ny_in - 0.32, ft + 0.915),
-               (2.18, 0.66, 0.07), bev=0.008, lod=1))
+    nb = p["niche_y1"] + p["niche_back_t"]          # 2.45 -- niche back face
+    # work bench: pier alcove EAST of the association niche
+    bx0, bx1 = 4.21, 5.25
+    byc = (P["bulk_y1"] + BOH_ROUTE_Y0) / 2       # alcove centre, east of assoc
+    bdp = BOH_ROUTE_Y0 - P["bulk_y1"] - 0.02
+    o.append(B("interior__boh_bench", MAT["steel"], ((bx0 + bx1) / 2, byc, ft + 0.44),
+               (bx1 - bx0, bdp, 0.88), bev=0.010))
+    o.append(B("interior__boh_bench_top", MAT["ceramic"], ((bx0 + bx1) / 2, byc,
+                                                           ft + 0.915),
+               (bx1 - bx0 + 0.06, bdp + 0.04, 0.07), bev=0.008, lod=1))
+    # storage stack: pier alcove WEST, between the staff pass and the bank niche
+    sx0, sx1 = -4.14, -3.26
+    syc = (P["bulk_y1"] + BOH_ROUTE_Y0) / 2       # alcove centre, west of bank
+    sdp = BOH_ROUTE_Y0 - P["bulk_y1"] - 0.02
     for i in range(4):
-        o.append(B(f"interior__boh_shelf_{i}", MAT["steel"], (-3.95, ny_in - 0.24,
+        o.append(B(f"interior__boh_shelf_{i}", MAT["steel"], ((sx0 + sx1) / 2, syc,
                                                               ft + 0.40 + i * 0.56),
-                   (2.30, 0.48, 0.045), bev=0.005, lod=1))
+                   (sx1 - sx0, sdp, 0.045), bev=0.005, lod=1))
     if DETAIL:
         for s in (-1, 1):
             o.append(B(f"interior__boh_shelf_post_{s}", MAT["steel"],
-                       (-3.95 + s * 1.10, ny_in - 0.24, ft + 1.10), (0.06, 0.48, 2.20),
-                       bev=0.005))
-        # switchgear + authored water tank (the runtime tank prop lacks provenance)
-        o.append(B("interior__boh_switchgear", MAT["steel"], (ix - 0.26, 2.98, ft + 0.84),
-                   (0.46, 0.80, 1.66), bev=0.010))
+                       ((sx0 + sx1) / 2 + s * (sx1 - sx0) / 2, syc, ft + 1.10),
+                       (0.06, sdp, 2.20), bev=0.005))
+        o.append(B("interior__boh_shelf_back", MAT["ceramic"],
+                   ((sx0 + sx1) / 2, P["bulk_y1"] + 0.02, ft + 1.16),
+                   (sx1 - sx0 + 0.10, 0.04, 2.28), bev=0.006, lod=1))
+        # switchgear: turned onto the EAST WALL so it cannot cross the corridor
+        o.append(B("interior__boh_switchgear", MAT["steel"], (ix - 0.13, 3.15,
+                                                              ft + 0.84),
+                   (0.26, 0.80, 1.66), bev=0.010))
+        o.append(B("interior__boh_switchgear_door", MAT["brass"], (ix - 0.255, 3.15,
+                                                                   ft + 0.92),
+                   (0.03, 0.68, 1.34), bev=0.005, lod=1))
         for k in range(3):
-            o.append(B(f"interior__boh_led_{k}", MAT["cyan"], (ix - 0.50, 2.76 + k * 0.18,
-                                                               ft + 1.42),
+            o.append(B(f"interior__boh_led_{k}", MAT["cyan"], (ix - 0.272, 2.86 + k * 0.18,
+                                                               ft + 1.52),
                        (0.02, 0.06, 0.05)))
-        o.append(CY("interior__boh_tank", MAT["steel"], (2.30, 3.16, ft + 1.06), 0.44,
-                    1.28, n=18))
-        o.append(TU("interior__boh_tank_band", MAT["brass"], (2.30, 3.16, ft + 1.52),
-                    0.455, 0.435, 0.07, n=18, lod=1))
-        o.append(CY("interior__boh_tank_pipe", MAT["steel"], (2.30, 3.16, ft + 2.10),
-                    0.055, 0.90, n=10))
-        for k in range(3):
-            a = math.radians(30 + k * 120)
-            o.append(B(f"interior__boh_tank_foot_{k}", MAT["steel"],
-                       (2.30 + math.cos(a) * 0.34, 3.16 + math.sin(a) * 0.34, ft + 0.20),
-                       (0.09, 0.09, 0.36), bev=0.005, lod=1))
-        # service ladder to the roof hatch
+        # --- water plant, RELOCATED out of the rear doorway (defect 2).
+        # two slim filter columns standing in the pier alcove between the trade
+        # and association niches, with the manifold that feeds them on the wall.
+        fy = P["bulk_y1"] + 0.18                   # column axis, inside the alcove
+        for i, tx in enumerate(BOH_FILTER_X):
+            o.append(CY(f"interior__boh_filter_{i}", MAT["steel"], (tx, fy, ft + 0.92),
+                        0.19, 1.72, n=20))
+            o.append(TU(f"interior__boh_filter_band_{i}", MAT["brass"],
+                        (tx, fy, ft + 1.46), 0.205, 0.185, 0.06, n=20, lod=1))
+            o.append(CY(f"interior__boh_filter_foot_{i}", MAT["steel"],
+                        (tx, fy, ft + 0.035), 0.20, 0.07, n=20, lod=1))
+            o.append(CY(f"interior__boh_filter_riser_{i}", MAT["steel"],
+                        (tx, fy, ft + 2.12), 0.045, 0.68, n=10, lod=1))
+        o.append(B("interior__boh_manifold", MAT["steel"],
+                   (sum(BOH_FILTER_X) / 2, P["bulk_y1"] + 0.06, ft + 1.94),
+                   (BOH_FILTER_X[1] - BOH_FILTER_X[0] + 0.30, 0.10, 0.16), bev=0.008,
+                   lod=1))
+        for i, tx in enumerate(BOH_FILTER_X):
+            o.append(CY(f"interior__boh_manifold_drop_{i}", MAT["brass"],
+                        (tx, P["bulk_y1"] + 0.06, ft + 1.80), 0.026, 0.28, n=8, lod=1))
+        o.append(B("interior__boh_valve_panel", MAT["steel"], (-0.13, nb + 0.06,
+                                                               ft + 1.36),
+                   (0.34, 0.12, 0.52), bev=0.008, lod=1))
+        for i in range(2):
+            o.append(CY(f"interior__boh_valve_{i}", MAT["brass"],
+                        (-0.19 + i * 0.13, nb + 0.085, ft + 1.46 - i * 0.20), 0.055,
+                        0.05, axis=1, n=12, lod=1))
+        # service ladder to the roof hatch: stringers flattened against the
+        # north wall so the corridor keeps its width past it
         for i in range(9):
-            o.append(CY(f"interior__boh_rung_{i}", MAT["steel"], (-2.30, 3.42,
+            o.append(CY(f"interior__boh_rung_{i}", MAT["steel"], (-2.30, ny_in - 0.075,
                                                                   ft + 0.34 + i * 0.45),
                         0.019, 0.44, axis=0, n=8))
         for s in (-1, 1):
-            o.append(B(f"interior__boh_ladder_{s}", MAT["steel"], (-2.30 + s * 0.22, 3.42,
-                                                                    ft + 2.14),
-                       (0.05, 0.05, 4.20), bev=0.005))
+            o.append(B(f"interior__boh_ladder_{s}", MAT["steel"], (-2.30 + s * 0.22,
+                                                                   ny_in - 0.055,
+                                                                   ft + 2.14),
+                       (0.05, 0.11, 4.20), bev=0.005))
+        # --- the corridor is DECLARED in the floor, not just left empty:
+        # a brass route inlay from the rear threshold along the aisle, and
+        # trolley bumpers on the alcove corners it turns past.
+        rxc = (BOH_ROUTE_X0 + BOH_ROUTE_X1) / 2
+        rxw = BOH_ROUTE_X1 - BOH_ROUTE_X0
+        o.append(B("interior__boh_route_inlay", MAT["brass"],
+                   (rxc, BOH_ROUTE_Y0 + 0.02, ft - 0.004), (rxw, 0.05, 0.016),
+                   bev=0.003, lod=1))
+        o.append(B("interior__boh_route_inlay_n", MAT["brass"],
+                   (rxc, BOH_ROUTE_Y1 - 0.02, ft - 0.004), (rxw, 0.05, 0.016),
+                   bev=0.003, lod=1))
+        for i, bxx in enumerate((-3.19, -1.48, 1.42, 2.99, 4.14)):
+            o.append(B(f"interior__boh_bumper_{i}", MAT["brass"], (bxx, nb + 0.04,
+                                                                   ft + 0.13),
+                       (0.07, 0.09, 0.26), bev=0.005, lod=1))
         # rear service threshold + trolley kerb
         o.append(B("interior__svc_threshold", MAT["brass"], (p["svc_x"], p["ny_in"] + 0.10,
                                                              ft - 0.006),
@@ -1344,6 +2018,39 @@ def build_fitout():
             o.append(B(f"interior__boh_light_{nm}", MAT["lamp"], (xx, 3.05,
                                                                   BOH_SOFFIT - 0.03),
                        (2.20, 0.12, 0.025)))
+    # ---------------- east hall wall: it was a dead field between the bay
+    # portal and the service wall (pass-3 review defect 8).  Given a purpose:
+    # a customer-facing information and waiting nook, which is also what the
+    # queue for the association desk needs.
+    if DETAIL:
+        ey = 0.42          # north of the trainer approach cell
+        o.append(B("interior__nook_back", MAT["ceramic"], (ix - 0.05, ey, ft + 1.30),
+                   (0.10, 1.90, 2.30), bev=0.008))
+        o.append(B("interior__nook_frame", MAT["brass"], (ix - 0.11, ey, ft + 1.30),
+                   (0.04, 2.02, 2.42), bev=0.005, lod=1))
+        o.append(B("interior__nook_bench", MAT["ceramic"], (ix - 0.31, ey, ft + 0.44),
+                   (0.44, 1.46, 0.07), bev=0.008))
+        for s_ in (-1, 1):
+            o.append(B(f"interior__nook_bench_leg_{s_}", MAT["steel"],
+                       (ix - 0.31, ey + s_ * 0.62, ft + 0.21), (0.36, 0.06, 0.42),
+                       bev=0.005, lod=1))
+        # a shelf of route/notice cards above the bench, and a lit sign band
+        o.append(B("interior__nook_shelf", MAT["steel"], (ix - 0.26, ey, ft + 1.06),
+                   (0.34, 1.30, 0.045), bev=0.004, lod=1))
+        for j, (dy_, w_, h_) in enumerate(((-0.44, 0.20, 0.26), (-0.16, 0.16, 0.22),
+                                           (0.14, 0.22, 0.30), (0.44, 0.18, 0.24))):
+            o.append(B(f"interior__nook_card_{j}", MAT["plaster"],
+                       (ix - 0.14, ey + dy_, ft + 1.62), (0.02, w_, h_), bev=0.003,
+                       lod=1))
+        o.append(B("interior__nook_signband", MAT["steel"], (ix - 0.17, ey, ft + 2.12),
+                   (0.10, 1.70, 0.14), bev=0.006, lod=1))
+        o.append(B("interior__nook_signlamp", MAT["cyan"], (ix - 0.225, ey, ft + 2.12),
+                   (0.02, 1.54, 0.05)))
+        # brass wayfinding studs let into the screed, leading to the nook
+        for j in range(4):
+            o.append(B(f"interior__nook_stud_{j}", MAT["brass"],
+                       (ix - 0.72 - j * 0.34, ey - 0.30 - j * 0.16, ft - 0.004),
+                       (0.09, 0.09, 0.016), bev=0.003, lod=1))
     # ---------------- hall pendants over the circulation spine
     if DETAIL:
         for i, (x, yy) in enumerate(((-2.90, -1.10), (0.30, -1.10), (3.30, -1.10))):
@@ -1360,29 +2067,77 @@ def build_fitout():
 # ===========================================================================
 # SUBSYSTEM 9 -- allowed loose props (read-only; provenance is mandatory)
 # ===========================================================================
-def _prop_back_y(fn, back_y):
-    """Origin y so the prop's BACK face lands on `back_y` after a 180 deg yaw."""
-    return back_y - PROP_HALF[fn]
+# ---------------------------------------------------------------------------
+# THE INTERACTION-FACE TRANSFORM, MEASURED FROM THE IMPORTED GEOMETRY
+# ---------------------------------------------------------------------------
+# Pass-3 review defect 1: all three terminals faced backward, showing service
+# backs, vents and access panels to the customer.  The manifests say the
+# interaction face is asset-local +Z, and the previous code "reasoned" from
+# that prose to a 180 deg yaw.  That was wrong.  The transform was then
+# measured directly from the imported meshes (build/diag/diag_terminal_face.py
+# and diag_terminal_normal.py, outputs checked into build/diag/):
+#
+#   * `bpy.ops.import_scene.gltf` BAKES the Y-up->Z-up conversion into the mesh
+#     data.  Every imported root comes in with rotation_euler == (0,0,0), so
+#     there is no root rotation left to compose with.
+#   * measured world bbox of bank_terminal_civic after import:
+#         x -0.504..0.504   y -0.3455..0.333   z 0..1.65
+#     the manifest collisionProxy is min (-0.504, 0, -0.333), max (0.504, 1.65,
+#     0.3455) in asset space -- so asset +Z (0.3455, the FRONT half) landed on
+#     blender -Y, and asset -Z (0.333, the BACK half) landed on blender +Y.
+#     => glTF +Z maps to BLENDER -Y.
+#   * confirmed on the lit surfaces themselves: the largest polygon of every
+#     screen/interaction material points along blender -Y
+#         CM_ScreenBank  n = (0.000, -0.978,  0.208)
+#         CM_ScreenTrade n = (0.000, -0.960,  0.280)
+#         CM_ScreenPA    n = (0.000, -1.000,  0.000)
+#
+# Blender -Y is the public front (it is what the exporter turns into glTF +Z).
+# Therefore the correct placement yaw for a customer-facing terminal is 0 deg,
+# and the previous 180 deg turned the serviced backs to the hall.
+# `verify.py::check_terminal_orientation` re-measures this from the shipped
+# furnished GLB, in glTF space, so the defect cannot silently return.
+TERM_FRONT_HALF = {"bank_terminal_civic": 0.3455, "trade_terminal": 0.365,
+                   "pa_terminal": 0.329}      # measured: -min_y after import
+TERM_BACK_HALF = {"bank_terminal_civic": 0.333, "trade_terminal": 0.360,
+                  "pa_terminal": 0.329}       # measured: +max_y after import
+PROP_HALF = TERM_FRONT_HALF                   # kept: front half-depth
+TERM_BACK = 2.26          # authoring y of the docked terminal BACK face
+TERM_YAW = 0.0            # measured, not assumed: interaction face -> -Y
 
 
-PROP_HALF = {"bank_terminal_civic": 0.3455, "trade_terminal": 0.365,
-             "pa_terminal": 0.329}
-NICHE_BACK = 2.455
+def _dock_y(fn):
+    """Origin y that lands the prop's measured BACK face on TERM_BACK at yaw 0."""
+    return TERM_BACK - TERM_BACK_HALF[fn]
+
+
+def term_front_y(fn):
+    """Authoring y of the docked terminal's interaction face."""
+    return _dock_y(fn) - TERM_FRONT_HALF[fn]
+
 
 PROPS = [
-    ("bank_terminal_civic.glb", CELLS["bank"][0],
-     _prop_back_y("bank_terminal_civic", NICHE_BACK), 180.0,
-     "bank / private-value service point, docked in its niche, facing the cell"),
-    ("trade_terminal.glb", CELLS["trade"][0],
-     _prop_back_y("trade_terminal", NICHE_BACK), 180.0,
-     "trade / exchange service point, docked in its niche, facing the cell"),
-    ("pa_terminal.glb", CELLS["assoc"][0],
-     _prop_back_y("pa_terminal", NICHE_BACK), 180.0,
-     "player-association registry point, docked in its niche, facing the cell"),
-    ("chair_frontier_a.glb", 4.15, -2.97, 180.0, "trainer's seat, facing the customer"),
-    ("chair_frontier_b.glb", 3.35, -2.10, 0.0, "visitor seat at the trainer desk"),
-    ("crate_planked.glb", -3.95, -1.55, 12.0, "vendor goods at the display line"),
-    ("footlocker_frontier.glb", -4.60, 2.80, 0.0, "back-of-house storage locker"),
+    ("bank_terminal_civic.glb", CELLS["bank"][0], _dock_y("bank_terminal_civic"),
+     TERM_YAW,
+     "bank / private-value service point, docked in its niche, screens facing "
+     "the customer approach (+Z)"),
+    ("trade_terminal.glb", CELLS["trade"][0], _dock_y("trade_terminal"), TERM_YAW,
+     "trade / exchange service point, docked in its niche, scan bed and readout "
+     "facing the customer approach (+Z)"),
+    ("pa_terminal.glb", CELLS["assoc"][0], _dock_y("pa_terminal"), TERM_YAW,
+     "player-association registry point, docked in its niche, roster screen and "
+     "reader podium facing the customer approach (+Z)"),
+    ("chair_frontier_a.glb", TRN["trainer_seat"][0], TRN["trainer_seat"][1],
+     TRN["trainer_seat"][2],
+     "trainer's seat behind the consultation table, facing the customer approach"),
+    ("chair_frontier_b.glb", TRN["visitor_seat"][0], TRN["visitor_seat"][1],
+     TRN["visitor_seat"][2],
+     "visitor seat drawn up to the north side of the consultation table"),
+    ("crate_planked.glb", -3.82, -1.55, 12.0,
+     "vendor goods delivered at the display line, clear of the counter"),
+    ("footlocker_frontier.glb", -4.70, 3.293, 0.0,
+     "back-of-house storage locker, against the rear wall west of the staff "
+     "route, clear of the proven corridor"),
 ]
 
 
@@ -1553,8 +2308,10 @@ def collision_boxes():
         ft + 3.34, 4.17, "structure")
     add("shell__bay_south", p["tr_x0"], p["mx"], p["tr_y"], p["tr_y"] + p["wt"], ft,
         p["tr_top"], "structure")
-    add("shell__bay_west", p["tr_x0"], p["tr_x0"] + p["wt"], p["tr_y"], p["sy"], ft,
-        p["tr_top"], "structure")
+    # the bay west wall now runs north to the interior face (it forms the
+    # portal's west jamb), so its proxy must follow the geometry
+    add("shell__bay_west", p["tr_x0"], p["tr_x0"] + p["wt"], p["tr_y"], p["sy_in"],
+        ft, p["tr_top"], "structure")
     add("shell__hood_pier_w", p["hood_cx"] - p["hood_ro"], p["hood_op0"], p["hood_y"],
         p["sy"], ft, p["hood_spr"], "structure")
     add("shell__hood_pier_e", p["hood_op1"], p["hood_cx"] + p["hood_ro"], p["hood_y"],
@@ -1584,19 +2341,63 @@ def collision_boxes():
                 cx + s * (hw + 0.17), p["bulk_y1"], p["niche_y1"], ft,
                 ft + p["niche_h"], "structure")
         add(f"shell__niche_{k}_back", cx - hw, cx + hw, p["niche_y1"],
-            p["niche_y1"] + 0.17, ft, ft + p["niche_h"], "structure")
+            p["niche_y1"] + p["niche_back_t"], ft, ft + p["niche_h"], "structure")
+    # ---- per-service dock hardware standing on the piers (never in the
+    # customer approach; verify_clearance re-proves that every build)
+    nb_ = p["niche_y1"] + p["niche_back_t"]
+    for k in NICHE_KEYS:
+        cx = CELLS[k][0]
+        hp = DOCK_HEAD_Y[k]
+        if k == "bank":
+            for s in (-1, 1):
+                add(f"fixture__dock_bank_fin_{'w' if s < 0 else 'e'}",
+                    cx + s * 0.755 - 0.06, cx + s * 0.755 + 0.06, hp, p["bulk_y0"],
+                    ft, ft + 2.33, "furniture")
+            add("fixture__dock_bank_drawer", cx - DOCK_SIDE_X - 0.20,
+                cx - DOCK_SIDE_X + 0.20, p["bulk_y0"] - 0.25, p["bulk_y0"],
+                ft + 0.87, ft + 1.17, "furniture")
+            add("fixture__dock_bank_ledge", cx + DOCK_SIDE_X - 0.23,
+                cx + DOCK_SIDE_X + 0.23, p["bulk_y0"] - 0.34, p["bulk_y0"], ft,
+                ft + 0.99, "furniture")
+        elif k == "trade":
+            for s in (-1, 1):
+                add(f"fixture__dock_trade_leg_{'w' if s < 0 else 'e'}",
+                    cx + s * (p["niche_w"] / 2 + 0.24) - 0.03,
+                    cx + s * (p["niche_w"] / 2 + 0.24) + 0.03, hp + 0.02, hp + 0.08,
+                    ft, ft + p["niche_h"] - 0.05, "furniture")
+            add("fixture__dock_trade_shelf", cx + DOCK_SIDE_X - 0.15,
+                cx + DOCK_SIDE_X + 0.25, p["bulk_y0"] - 0.30, p["bulk_y0"], ft,
+                ft + 0.95, "furniture")
+        else:
+            add("fixture__dock_assoc_notice", cx - DOCK_SIDE_X - 0.29,
+                cx - DOCK_SIDE_X + 0.29, p["bulk_y0"] - 0.09, p["bulk_y0"],
+                ft + 1.09, ft + 1.95, "furniture")
+            add("fixture__dock_assoc_bench", cx + DOCK_SIDE_X - 0.27,
+                cx + DOCK_SIDE_X + 0.27, p["bulk_y0"] - 0.40, p["bulk_y0"], ft,
+                ft + 0.49, "furniture")
     # ---- built-in furniture
     add("fixture__vendor_counter", -p["ix"], -p["ix"] + 0.74, -2.20, 0.60, ft,
         ft + 0.95, "furniture")
-    add("fixture__trainer_desk", 3.30, 5.00, -2.91, -2.49, ft, ft + 0.76, "furniture")
-    add("fixture__boh_bench", 3.05, 5.15, p["ny_in"] - 0.63, p["ny_in"], ft, ft + 0.95,
+    add("fixture__trainer_table", TRN["tx0"], TRN["tx1"], TRN["ty0"], TRN["ty1"], ft,
+        ft + 0.76, "furniture")
+    add("fixture__trainer_credenza", TRN["cx0"], TRN["cx1"], TRN["cy0"], TRN["cy1"],
+        ft, ft + 0.92, "furniture")
+    add("fixture__boh_bench", 4.21, 5.25, p["bulk_y1"] + 0.01, BOH_ROUTE_Y0 - 0.01,
+        ft, ft + 0.95, "furniture")
+    add("fixture__boh_shelving", -4.14, -3.26, p["bulk_y1"] + 0.01,
+        BOH_ROUTE_Y0 - 0.01, ft, ft + 2.20, "furniture")
+    add("fixture__boh_switchgear", p["ix"] - 0.27, p["ix"], 2.75, 3.55, ft, ft + 1.67,
         "furniture")
-    add("fixture__boh_shelving", -5.10, -2.80, p["ny_in"] - 0.48, p["ny_in"], ft,
-        ft + 2.20, "furniture")
-    add("fixture__boh_switchgear", p["ix"] - 0.49, p["ix"], 2.58, 3.38, ft, ft + 1.67,
+    for i, tx in enumerate(BOH_FILTER_X):
+        add(f"fixture__boh_filter_{i}", tx - 0.205, tx + 0.205,
+            p["bulk_y1"] + 0.18 - 0.205, p["bulk_y1"] + 0.18 + 0.205, ft, ft + 2.46,
+            "furniture")
+    add("fixture__boh_valve_panel", -0.30, 0.04, nb_, nb_ + 0.12, ft + 1.10,
+        ft + 1.62, "furniture")
+    add("fixture__boh_ladder", -2.55, -2.05, p["ny_in"] - 0.11, p["ny_in"], ft,
+        ft + 4.24, "furniture")
+    add("fixture__nook_bench", p["ix"] - 0.53, p["ix"], -0.31, 1.15, ft, ft + 0.48,
         "furniture")
-    add("fixture__boh_tank", 1.86, 2.74, 2.72, 3.60, ft, ft + 1.70, "furniture")
-    add("fixture__boh_ladder", -2.55, -2.05, 3.36, 3.50, ft, ft + 4.24, "furniture")
     add("fixture__queue_rail", -1.59, 1.69, -1.59, -1.51, ft, ft + 1.00, "furniture")
     add("fixture__loggia_ledge", -5.25, -2.95, -3.95, -3.33, ft, ft + 0.50, "furniture")
     add("fixture__loggia_bench", -3.75, -2.65, -3.76, -3.32, ft, ft + 0.47, "furniture")
@@ -1640,13 +2441,39 @@ def verify_clearance(boxes):
         checks.append((f"approach_{k}", ax - half, ax + half, ay - half, ay + half,
                        ft, ft + 1.9))
     # terminal front clearance (manifest: 0.8 m in front of +Z) measured from the
-    # docked terminal face southward into the hall
+    # MEASURED docked terminal interaction face, southward into the hall
     for k, fn in (("bank", "bank_terminal_civic"), ("trade", "trade_terminal"),
                   ("assoc", "pa_terminal")):
         cx = CELLS[k][0]
-        front = NICHE_BACK - 2 * PROP_HALF[fn]
+        front = term_front_y(fn)
         checks.append((f"front_clearance_{k}", cx - 0.40, cx + 0.40, front - 0.80,
                        front, ft, ft + 1.9))
+    # ---- pass-3 additions: the failure modes the old check set omitted ----
+    # rear service door approach, inside and out
+    sx0, sx1 = p["svc_x"] - p["svc_w"] / 2, p["svc_x"] + p["svc_w"] / 2
+    checks.append(("rear_door_approach_in", sx0 + 0.05, sx1 - 0.05, p["ny_in"] - 1.10,
+                   p["ny_in"] - 0.02, ft, ft + 2.0))
+    checks.append(("rear_door_walk_through", sx0 + 0.05, sx1 - 0.05, p["ny_in"] - 0.02,
+                   p["ny"] + 0.40, ft, ft + p["svc_h"] - 0.05))
+    # BOH corridor band: the declared staff route, end to end
+    checks.append(("boh_route_band", BOH_ROUTE_X0, BOH_ROUTE_X1, BOH_ROUTE_Y0,
+                   BOH_ROUTE_Y1, ft, ft + 1.95))
+    # staff can reach the SERVICE SIDE of each fixture from that corridor
+    nb2 = p["niche_y1"] + p["niche_back_t"]
+    for k in NICHE_KEYS:
+        cx = CELLS[k][0]
+        checks.append((f"boh_reach_{k}", cx - 0.30, cx + 0.30, nb2 + 0.01,
+                       BOH_ROUTE_Y0, ft, ft + 1.95))
+    # trainer booth: seated volumes, the table approach, and the standing customer
+    for nm, (sx, sy, _yaw) in (("trainer", TRN["trainer_seat"]),
+                               ("visitor", TRN["visitor_seat"])):
+        checks.append((f"trainer_seat_{nm}", sx - 0.32, sx + 0.32, sy - 0.32,
+                       sy + 0.32, ft + 0.50, ft + TRN["seated_clear_h"]))
+    checks.append(("trainer_standing_approach", TRN["tx0"] + 0.10, TRN["tx1"] - 0.10,
+                   TRN["stand_y0"], TRN["stand_y1"], ft, ft + 1.90))
+    # the customer sightline into the booth must not be blocked at eye height
+    checks.append(("trainer_sightline", TRN["tx0"] + 0.10, TRN["tx1"] - 0.10,
+                   TRN["ty1"] + 0.02, TRN["stand_y1"], ft + 1.00, ft + 1.70))
     hw = p["leaf_w"] / 2
     tol = 0.012
     checks.append(("door_swept_volume", p["door_cx"] + p["travel"] - hw,
@@ -1674,7 +2501,9 @@ def verify_clearance(boxes):
 # ===========================================================================
 # LOD policy -- `lod` = highest LOD level at which a part survives
 # ===========================================================================
-L2_KEYS = ("__plinth", "__skin", "deck_south", "deck_north", "deck_bay", "gable_",
+L2_KEYS = ("__plinth", "__skin", "_glass", "_backing", "corner_sw_back", "corner_nw_back",
+           "corner_ne_back", "corner_bay_se_back", "corner_bay_sw_back",
+           "corner_bay_re_back", "deck_south", "deck_north", "deck_bay", "gable_",
            "__rake", "bay_rake", "hood_shell", "hood_pier", "hood_face", "log_pier",
            "log_beam", "log_deck", "log_joist", "service_wall", "niche_bank_cheek",
            "niche_trade_cheek", "niche_assoc_cheek", "niche_bank_back",
@@ -1688,10 +2517,18 @@ L2_KEYS = ("__plinth", "__skin", "deck_south", "deck_north", "deck_bay", "gable_
 L1_KEYS = ("__band", "ceil_boh", "ceil_niche", "seam_", "brise", "verge", "eave_",
            "cler_sill", "cler_head", "cler_post", "walkway", "curb_", "cond_",
            "downpipe", "hatch", "boh_shelf", "switchgear", "boh_tank", "purlin",
-           "vendor_shelf", "trainer_board", "sign_", "niche_", "log_fascia",
-           "log_ledge", "shop_", "track_rail", "track_fascia", "hood_soffit",
+           "vendor_shelf", "vendor_root", "vendor_disc", "vendor_sack",
+           "vendor_jar", "vendor_hung", "vendor_pallet", "nook_", "trainer_board", "sign_", "niche_", "log_fascia",
+           "log_ledge", "log_coffer_housing", "log_coffer_bezel", "shop_", "track_rail", "track_fascia", "hood_soffit",
            "hood_spring", "fan_", "threshold", "grate_frame", "wall_cove",
-           "cricket", "splash", "overflow", "flue_collar", "flue_cowl", "bollard")
+           "cricket", "splash", "overflow", "flue_collar", "flue_cowl", "bollard",
+           "win_", "vent_storage", "vent_tank", "vent_gear",
+           "hood_drip", "hood_hopper", "hood_downpipe", "hood_pipe_clip",
+           "hood_shoe", "hood_spill", "hood_impost", "hood_saddle", "fan_frame",
+           "fan_stop", "hood_lining", "hood_penetration",
+           "corner_", "dock_", "boh_filter", "boh_manifold", "boh_valve",
+           "boh_route", "boh_bumper", "trainer_credenza", "trainer_downlight",
+           "trainer_sconce", "bay_shelf_e")
 
 
 def assign_lods():
@@ -1955,6 +2792,37 @@ def main():
         "sha256": hashlib.sha256(open(out, "rb").read()).hexdigest(),
         "triangles_with_props": M.tri_count(all_mesh)}
     report["props"] = prop_records()
+    # MEASURED loose-prop footprints, written as their own sidecar.  The pass-3
+    # review asked for "imported loose-prop footprints" to be tested; that
+    # cannot be done from placement numbers alone, because the prop's own
+    # bounds and pivot decide where it actually lands.  These are measured from
+    # the imported meshes after placement, in authoring space.
+    pf = []
+    for e in props:
+        if e.type != 'EMPTY' or not e.name.startswith("prop__"):
+            continue
+        mn = Vector((1e9,) * 3)
+        mx = Vector((-1e9,) * 3)
+        for ch in e.children_recursive:
+            if ch.type != 'MESH':
+                continue
+            for c in ch.bound_box:
+                w = ch.matrix_world @ Vector(c)
+                for i in range(3):
+                    mn[i] = min(mn[i], w[i])
+                    mx[i] = max(mx[i], w[i])
+        if mn[0] > 1e8:
+            continue
+        pf.append({"name": e.name[6:],
+                   "x0": round(mn[0], 4), "x1": round(mx[0], 4),
+                   "y0": round(mn[1], 4), "y1": round(mx[1], 4),
+                   "z0": round(mn[2], 4), "z1": round(mx[2], 4),
+                   "size": [round(mx[i] - mn[i], 4) for i in range(3)]})
+    with open(os.path.join(ROOT, "build", "prop_footprints.json"), "w") as fh:
+        json.dump({"space": "authoring metres (+X east, +Y north, +Z up)",
+                   "note": "measured from the imported meshes after placement",
+                   "props": pf}, fh, indent=1)
+    print(f"[props] measured {len(pf)} loose-prop footprints")
     report["props_omitted"] = [
         {"file": f"{REL}/{n}.glb", "reason": "no .provenance.json in the runtime "
          "library; ALLOWED_PROPS.md requires omission rather than silent acceptance"}

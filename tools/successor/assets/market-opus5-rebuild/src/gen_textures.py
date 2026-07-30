@@ -37,6 +37,41 @@ RES_ORM = 256
 LOW_FREQ_CUTOFF = 8          # cycles/tile: below this counts as "macro"
 LOW_FREQ_BUDGET = 0.055      # max rms amplitude allowed below the cutoff
 
+# ---------------------------------------------------------------------------
+# PER-MATERIAL SCALE AND RESPONSE  (pass-3 review defect 7)
+# ---------------------------------------------------------------------------
+# The pass-2 fix (micro-detail only) removed the repeating blobs but replaced
+# them with something equally wrong: EVERY material carried micro detail of
+# roughly the same amplitude on the SAME 2.0 m tile, so screed, sinter and
+# ceramic all read as one sponge-like grain at any distance, and brass -- whose
+# trim members are only 0.05-0.16 m wide -- showed a 5 mm directional streak
+# that read as noisy wood.
+#
+# Two structural corrections:
+#   1. TILE_M is now PER MATERIAL, chosen from the real size of the thing being
+#      described (basalt aggregate, panel module, trowel pass, turning marks),
+#      so the same shader detail projects at different physical scales.
+#   2. high-frequency energy is now bounded ABOVE as well as below, per
+#      material, by assert_micro_band().  A material may no longer be "safe"
+#      by being maximally grainy.
+#
+# metres per tile repeat, and the permitted micro-energy band (sRGB rms)
+# tile_m: metres per repeat.  micro: permitted sRGB high-frequency rms band.
+# The bands are DELIBERATELY different: sinter is the one coarse material in
+# the palette (exposed basalt aggregate) and everything else is quiet, so the
+# plinth reads apart from the screed it meets at every wall base instead of
+# both being the same sponge.  roughness spans 0.23 (brass) to 0.91 (plaster),
+# which is what makes the materials separate under one lamp.
+MATERIAL_SCALE = {
+    "sinter":    {"tile_m": 1.30, "micro": (0.026, 0.044), "rough_mean": 0.82},
+    "ceramic":   {"tile_m": 2.40, "micro": (0.008, 0.014), "rough_mean": 0.55},
+    "plaster":   {"tile_m": 1.70, "micro": (0.007, 0.012), "rough_mean": 0.91},
+    "screed":    {"tile_m": 2.10, "micro": (0.013, 0.022), "rough_mean": 0.32},
+    "roofmetal": {"tile_m": 1.50, "micro": (0.014, 0.025), "rough_mean": 0.69},
+    "steel":     {"tile_m": 0.55, "micro": (0.013, 0.023), "rough_mean": 0.49},
+    "brass":     {"tile_m": 0.30, "micro": (0.007, 0.012), "rough_mean": 0.23},
+}
+
 WRITTEN = {}
 CHECKS = []
 
@@ -192,6 +227,24 @@ def assert_micro_present(name, label, a, floor):
     return r
 
 
+def assert_micro_band(name, label, a, lo, hi):
+    """Micro energy must sit inside this material's own band.
+
+    A floor alone lets every tile sit at maximum grain, which is what made the
+    whole building read as one procedural sponge (pass-3 review defect 7).
+    """
+    r = high_freq_rms(a)
+    ok = lo <= r <= hi
+    CHECKS.append({"map": f"{name}.{label}", "kind": "micro_band",
+                   "high_freq_rms": round(r, 5), "band": [lo, hi], "pass": bool(ok)})
+    if not ok:
+        raise AssertionError(
+            f"{name}.{label}: micro energy {r:.4f} outside band [{lo}, {hi}] -- "
+            f"{'too smooth to be a material' if r < lo else 'too grainy; this is '
+               'what makes every surface read as the same sponge'}")
+    return r
+
+
 def assert_micro_only(name, label, a, budget=LOW_FREQ_BUDGET):
     r = low_freq_rms(a)
     CHECKS.append({"map": f"{name}.{label}", "kind": "low_freq_ceiling",
@@ -224,6 +277,8 @@ def write_set(name, bc_lin, height, rough, metal_const, ao, nstr, micro_floor=0.
     bc_srgb = srgb(bc_lin)                 # perceptual space for both bounds
     assert_micro_only(name, "basecolor", bc_srgb)
     assert_micro_present(name, "basecolor", bc_srgb, micro_floor)
+    band = MATERIAL_SCALE[name]["micro"]
+    assert_micro_band(name, "basecolor", bc_srgb, band[0], band[1])
     assert_micro_only(name, "height", height, budget=LOW_FREQ_BUDGET * 1.6)
     assert_micro_only(name, "roughness", rough, budget=LOW_FREQ_BUDGET * 1.6)
     bc = (np.clip(srgb(resize(bc_lin, RES)), 0, 1) * 255).round().astype(np.uint8)
@@ -252,11 +307,14 @@ def write_set(name, bc_lin, height, rough, metal_const, ao, nstr, micro_floor=0.
 def make_sinter():
     """Solar-sintered basalt: fine packed aggregate + sparse vesicles. No blobs."""
     u, v = grid_uv(RES)
-    base, pale = col(0.030, 0.026, 0.022), col(0.176, 0.158, 0.130)
-    agg = worley(u, v, 190, 11, 0.95)            # ~1 cm aggregate on a 2 m tile
-    agg2 = worley(u, v, 330, 13, 0.95)
-    grain = contrast(np.clip(agg * 0.62 + agg2 * 0.38, 0, 1), 1.55)
-    fine = fbm(u, v, 96, 3, 21)
+    # albedo floor raised to a physically real sintered-basalt value: the old
+    # 0.036 linear was darker than any basalt, so the plinth collapsed to black
+    # in raking light and read as missing geometry (pass-3 review defect 5).
+    base, pale = col(0.074, 0.065, 0.055), col(0.196, 0.177, 0.148)
+    agg = worley(u, v, 130, 11, 0.95)            # ~1 cm aggregate on a 1.3 m tile
+    agg2 = worley(u, v, 230, 13, 0.95)
+    grain = contrast(np.clip(agg * 0.62 + agg2 * 0.38, 0, 1), 1.26)
+    fine = fbm(u, v, 70, 3, 21)
     # vesicles: sparse pinholes, NOT a dot grid -- threshold hard, keep ~2%
     ves_f = worley(u, v, 120, 41, 1.0)
     ves = smooth(1.0 - ves_f, 0.93, 1.0) * smooth(fbm(u, v, 64, 2, 47), 0.60, 0.92)
@@ -265,85 +323,95 @@ def make_sinter():
     h = grain * 0.42 + fine * 0.20 - ves * 0.95
     r = 0.86 - grain * 0.07 + ves * 0.04
     ao = np.clip(1.0 - ves * 0.45 - (1.0 - grain) * 0.10, 0.45, 1.0)
-    write_set("sinter", c, h, r, 0.0, ao, 1.15, micro_floor=0.030)
+    write_set("sinter", c, h, r, 0.0, ao, 1.35, micro_floor=0.018)
 
 
 def make_ceramic():
     """Imported ceramic composite: very fine speckle + micro crazing only."""
     u, v = grid_uv(RES)
     base, dark = col(0.632, 0.612, 0.574), col(0.428, 0.412, 0.382)
-    speck = contrast(worley(u, v, 300, 71, 1.0), 1.45)
-    micro = fbm(u, v, 120, 3, 91)
-    craze = smooth(1.0 - worley(u, v, 46, 101, 1.0, order=1), 0.90, 1.0)
-    craze *= smooth(fbm(u, v, 72, 2, 107), 0.55, 0.90)
-    c = tint(np.clip(micro * 0.50 + speck * 0.46 - 0.06, 0, 1), base, dark)
-    c *= (1.0 - craze * 0.16)[..., None]
-    h = micro * 0.16 + speck * 0.12 - craze * 0.50
-    r = 0.42 + micro * 0.07 + craze * 0.16
-    ao = np.clip(1.0 - craze * 0.22, 0.62, 1.0)
-    write_set("ceramic", c, h, r, 0.0, ao, 0.55, micro_floor=0.014)
+    speck = contrast(worley(u, v, 240, 71, 1.0), 1.10)
+    micro = fbm(u, v, 90, 2, 91)
+    craze = smooth(1.0 - worley(u, v, 38, 101, 1.0, order=1), 0.945, 1.0)
+    craze *= smooth(fbm(u, v, 60, 2, 107), 0.62, 0.92)
+    c = tint(np.clip(micro * 0.30 + speck * 0.26 + 0.16, 0, 1), base, dark)
+    c *= (1.0 - craze * 0.10)[..., None]
+    h = micro * 0.07 + speck * 0.05 - craze * 0.34
+    # semi-matte, and clearly flatter than brass and clearly glossier than
+    # plaster, so the three read apart under the same lamp
+    r = 0.52 + micro * 0.05 + craze * 0.12
+    ao = np.clip(1.0 - craze * 0.16, 0.72, 1.0)
+    write_set("ceramic", c, h, r, 0.0, ao, 0.30, micro_floor=0.004)
 
 
 def make_plaster():
     """Interior lime plaster on the soffits/ceilings: float texture, warm."""
     u, v = grid_uv(RES)
     base, warm = col(0.512, 0.482, 0.432), col(0.706, 0.680, 0.622)
-    fl = fbm(u, v, 80, 3, 311)
-    grit = contrast(worley(u, v, 260, 317, 1.0), 1.45)
-    c = tint(np.clip(fl * 0.58 + grit * 0.40 - 0.07, 0, 1), base, warm)
-    h = fl * 0.22 + grit * 0.10
-    r = 0.72 + fl * 0.08
-    ao = np.clip(1.0 - (1.0 - grit) * 0.07, 0.80, 1.0)
-    write_set("plaster", c, h, r, 0.0, ao, 0.50, micro_floor=0.014)
+    fl = fbm(u, v, 60, 2, 311)
+    grit = contrast(worley(u, v, 200, 317, 1.0), 1.10)
+    c = tint(np.clip(fl * 0.34 + grit * 0.22 + 0.18, 0, 1), base, warm)
+    h = fl * 0.11 + grit * 0.04
+    r = 0.88 + fl * 0.05          # the mattest surface in the building
+    ao = np.clip(1.0 - (1.0 - grit) * 0.04, 0.88, 1.0)
+    write_set("plaster", c, h, r, 0.0, ao, 0.26, micro_floor=0.004)
 
 
 def make_screed():
     """Ground/polished screed floor: fine trowel grain + sparse fine aggregate."""
     u, v = grid_uv(RES)
     base, poli = col(0.055, 0.051, 0.046), col(0.182, 0.172, 0.154)
-    trowel = dblur(fbm(u, v, 110, 3, 141), RES // 90, axis=1)
+    trowel = dblur(fbm(u, v, 90, 2, 141), RES // 90, axis=1)
     trowel = (trowel - trowel.min()) / (np.ptp(trowel) + 1e-9)
-    agg = contrast(worley(u, v, 240, 151, 0.95), 1.5)
-    hair = smooth(1.0 - worley(u, v, 40, 161, 1.0, order=1), 0.94, 1.0)
-    hair *= smooth(fbm(u, v, 56, 2, 167), 0.62, 0.94)
-    c = tint(np.clip(trowel * 0.40 + agg * 0.56 - 0.06, 0, 1), base, poli)
-    c *= (1.0 - hair * 0.42)[..., None]
-    h = agg * 0.18 + trowel * 0.10 - hair * 0.62
-    r = 0.50 + agg * 0.10 - trowel * 0.10 + hair * 0.16
-    ao = np.clip(1.0 - hair * 0.36 - (1.0 - agg) * 0.06, 0.55, 1.0)
-    write_set("screed", c, h, r, 0.0, ao, 0.70, micro_floor=0.026)
+    # ground finish: aggregate is EXPOSED but sparse -- a few cut faces per
+    # tile, not a dense speckle field.  Threshold hard and keep ~8%.
+    agg_f = worley(u, v, 150, 151, 0.95)
+    agg = smooth(1.0 - agg_f, 0.80, 1.0)
+    hair = smooth(1.0 - worley(u, v, 34, 161, 1.0, order=1), 0.955, 1.0)
+    hair *= smooth(fbm(u, v, 48, 2, 167), 0.66, 0.94)
+    c = tint(np.clip(trowel * 0.30 + agg * 0.62 + 0.05, 0, 1), base, poli)
+    c *= (1.0 - hair * 0.30)[..., None]
+    h = agg * 0.13 + trowel * 0.05 - hair * 0.45
+    # polished screed is the SMOOTHEST large surface in the building; that is
+    # how it separates from the sinter plinth it meets at every wall base.
+    r = 0.34 + agg * 0.16 - trowel * 0.05 + hair * 0.12
+    ao = np.clip(1.0 - hair * 0.28 - (1.0 - agg) * 0.03, 0.66, 1.0)
+    write_set("screed", c, h, r, 0.0, ao, 0.44, micro_floor=0.008)
 
 
 def make_roofmetal():
     """Chalky galvanised sheet: fine spangle + faint roll grain. No oxide blobs."""
     u, v = grid_uv(RES)
     base, brt = col(0.222, 0.226, 0.220), col(0.406, 0.412, 0.402)
-    spangle = contrast(worley(u, v, 150, 181, 1.0), 1.45)
-    roll = dblur(fbm(u, v, 128, 2, 191), RES // 64, axis=0)
+    spangle = contrast(worley(u, v, 120, 181, 1.0), 1.22)
+    roll = dblur(fbm(u, v, 100, 1, 191), RES // 64, axis=0)
     roll = (roll - roll.min()) / (np.ptp(roll) + 1e-9)
-    grit = fbm(u, v, 150, 2, 199)
-    c = tint(np.clip(spangle * 0.52 + roll * 0.26 + grit * 0.20 - 0.06, 0, 1), base, brt)
-    h = spangle * 0.20 + roll * 0.14 + grit * 0.10
-    r = 0.56 + spangle * 0.08 + grit * 0.05
-    ao = np.clip(1.0 - (1.0 - spangle) * 0.07, 0.80, 1.0)
-    write_set("roofmetal", c, h, r, 1.0, ao, 0.62, micro_floor=0.022)
+    grit = fbm(u, v, 120, 1, 199)
+    c = tint(np.clip(spangle * 0.40 + roll * 0.16 + grit * 0.12 + 0.08, 0, 1),
+             base, brt)
+    h = spangle * 0.12 + roll * 0.07 + grit * 0.05
+    r = 0.64 + spangle * 0.06 + grit * 0.04       # chalky, not shiny
+    ao = np.clip(1.0 - (1.0 - spangle) * 0.05, 0.88, 1.0)
+    write_set("roofmetal", c, h, r, 1.0, ao, 0.36, micro_floor=0.006)
 
 
 def make_steel():
     """Dark structural steel: fine unidirectional brush grain, no drag streaks."""
     u, v = grid_uv(RES)
     base, brt = col(0.042, 0.044, 0.047), col(0.178, 0.184, 0.193)
-    brush = dblur(fbm(u, v, 220, 2, 211), RES // 64, axis=1)
-    brush = contrast(brush, 1.45)
+    brush = dblur(fbm(u, v, 240, 1, 211), max(2, RES // 150), axis=1)
+    brush = contrast(brush, 1.18)
     brush = (brush - brush.min()) / (np.ptp(brush) + 1e-9)
-    fineb = dblur(fbm(u, v, 340, 1, 213), RES // 96, axis=1)
+    fineb = dblur(fbm(u, v, 320, 1, 213), max(2, RES // 200), axis=1)
     fineb = (fineb - fineb.min()) / (np.ptp(fineb) + 1e-9)
-    micro = fbm(u, v, 170, 2, 229)
-    c = tint(np.clip(brush * 0.66 + fineb * 0.40 + micro * 0.20 - 0.08, 0, 1), base, brt)
-    h = brush * 0.26 + fineb * 0.16 + micro * 0.08
-    r = 0.40 + brush * 0.08 + fineb * 0.05
-    ao = np.clip(1.0 - (1.0 - brush) * 0.05, 0.86, 1.0)
-    write_set("steel", c, h, r, 1.0, ao, 0.55, micro_floor=0.018)
+    micro = fbm(u, v, 150, 1, 229)
+    c = tint(np.clip(brush * 0.44 + fineb * 0.24 + micro * 0.10 + 0.06, 0, 1),
+             base, brt)
+    h = brush * 0.12 + fineb * 0.07 + micro * 0.03
+    # dark, semi-gloss: reads as machinery against the matte ceramic
+    r = 0.44 + brush * 0.06 + fineb * 0.03
+    ao = np.clip(1.0 - (1.0 - brush) * 0.03, 0.90, 1.0)
+    write_set("steel", c, h, r, 1.0, ao, 0.30, micro_floor=0.004)
 
 
 def make_brass():
@@ -352,16 +420,22 @@ def make_brass():
     Patina and handled polish are authored per-vertex where hands actually go.
     """
     u, v = grid_uv(RES)
-    base, pol = col(0.340, 0.242, 0.086), col(0.622, 0.494, 0.238)
-    turn = dblur(fbm(u, v, 200, 2, 241), RES // 72, axis=0)
-    turn = contrast(turn, 1.40)
+    # tight tonal range: satin brass is a NARROW value band with a specular
+    # response, not a two-tone streak.  The old 0.340->0.622 swing is halved.
+    base, pol = col(0.352, 0.258, 0.100), col(0.474, 0.372, 0.176)
+    # turning marks stay directional but become fine and low-amplitude: on a
+    # 0.30 m tile these are ~2 mm, which is what satin brass actually is.
+    turn = dblur(fbm(u, v, 260, 1, 241), max(2, RES // 200), axis=0)
+    turn = contrast(turn, 1.16)
     turn = (turn - turn.min()) / (np.ptp(turn) + 1e-9)
-    fineg = fbm(u, v, 260, 2, 257)
-    c = tint(np.clip(turn * 0.70 + fineg * 0.32 - 0.07, 0, 1), base, pol)
-    h = turn * 0.20 + fineg * 0.09
-    r = 0.32 + turn * 0.09 + fineg * 0.05
-    ao = np.clip(1.0 - (1.0 - turn) * 0.05, 0.88, 1.0)
-    write_set("brass", c, h, r, 1.0, ao, 0.50, micro_floor=0.016)
+    fineg = fbm(u, v, 300, 1, 257)
+    c = tint(np.clip(turn * 0.52 + fineg * 0.20 + 0.10, 0, 1), base, pol)
+    h = turn * 0.07 + fineg * 0.03
+    # the identity is in the RESPONSE, not the colour: brass is the glossiest
+    # thing in the palette, so it catches the lamps and reads as metal.
+    r = 0.19 + turn * 0.05 + fineg * 0.03
+    ao = np.clip(1.0 - (1.0 - turn) * 0.03, 0.92, 1.0)
+    write_set("brass", c, h, r, 1.0, ao, 0.22, micro_floor=0.004)
 
 
 MAKERS = [make_sinter, make_ceramic, make_plaster, make_screed, make_roofmetal,
@@ -376,6 +450,7 @@ if __name__ == "__main__":
     meta = {
         "texel_density_px_per_m": TEXEL_DENSITY,
         "tile_metres": TILE_M,
+        "material_scale": MATERIAL_SCALE,
         "resolution": {"basecolor": RES, "normal": RES, "orm": RES_ORM},
         "orm_packing": "R=micro AO, G=roughness, B=metallic (constant per material)",
         "colour_space": {"basecolor": "sRGB",
