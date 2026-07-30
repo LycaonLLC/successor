@@ -1,0 +1,274 @@
+{
+  "authored_basis": {
+    "export": "glTF Y-up via export_yup, front +Z",
+    "ground_contact_local_y": 0.0,
+    "origin_offset_xz_m": [
+      0.0,
+      -0.0
+    ],
+    "source": "Blender Z-up, front -Y, origin at footprint centre"
+  },
+  "blend": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/units/shelter.blend",
+  "blender": "5.2.0 LTS",
+  "bounds_blender": {
+    "maxX": 3.8,
+    "maxY": 3.325,
+    "maxZ": 3.72,
+    "minX": -3.8,
+    "minY": -3.325,
+    "minZ": 0.0,
+    "spanX": 7.6,
+    "spanY": 6.65,
+    "spanZ": 3.72
+  },
+  "camera": {
+    "camera_pitch_deg": 60.0,
+    "door_head_m": 2.24,
+    "door_head_visible": true,
+    "hood_overhang_south_m": 0.18,
+    "hood_top_m": 2.4718,
+    "margin_m": 0.08,
+    "occlusion_limit_m": 2.5518,
+    "rule": "hood_top < door_head + overhang * tan(60deg)"
+  },
+  "census": {
+    "draw_calls_per_instance": 40,
+    "material_count": 8,
+    "materials": [
+      "KIT_amber_flat",
+      "KIT_canvas",
+      "KIT_oxide",
+      "KIT_panel",
+      "KIT_plinth",
+      "KIT_reveal_flat",
+      "KIT_roof",
+      "KIT_steel"
+    ],
+    "node_families": {
+      "door_slide": 4,
+      "floor__": 4,
+      "interior__": 4,
+      "mass__": 7,
+      "roof__": 4,
+      "wall_back__": 3,
+      "wall_front__": 5,
+      "wall_left__": 4,
+      "wall_right__": 5
+    },
+    "renderer_primitives": 40,
+    "triangles": 15456,
+    "vertices": 7996
+  },
+  "clearance": {
+    "all_anchors_clear": true,
+    "all_routes_walkable": true,
+    "egress_target_gltf": [
+      0.6,
+      4.425
+    ],
+    "equipped_envelope_m": [
+      0.86,
+      0.62
+    ],
+    "interior_clear_height_m": 2.4,
+    "interior_fits_equipped_proxy": true,
+    "player_proxy_height_m": 1.75,
+    "player_radius_m": 0.3,
+    "routes": [
+      {
+        "anchor": "shelter_interior_stand",
+        "anchor_blocked_by": null,
+        "anchor_cell": [
+          4,
+          3
+        ],
+        "anchor_clear_at_player_radius": true,
+        "anchor_clear_with_equipment": true,
+        "anchor_gltf": [
+          0.6,
+          -0.1
+        ],
+        "role": "shelter standing space",
+        "route_length_m": 4.6,
+        "route_walkable": true,
+        "search": "4-connected BFS on a 0.10 m grid at the 0.30 m player radius"
+      }
+    ],
+    "threshold_blocked_when_closed": true,
+    "threshold_clear_when_open": true,
+    "threshold_gltf": [
+      0.6,
+      3.145
+    ],
+    "walkable_region_m2": 30.525
+  },
+  "door": {
+    "blocker_state": {
+      "closed": "door blocker ACTIVE (worldQueries adds prop.door.blocker)",
+      "open": "door blocker DISABLED when serverAuthority.propStates[propId].doorOpen === true"
+    },
+    "clear_opening_m": [
+      1.3,
+      2.08
+    ],
+    "clip_note": "authored for interchange parity; the Three runtime drives the node directly from axisLocal * distance and never evaluates these clips",
+    "clips": [
+      "door_open",
+      "door_close"
+    ],
+    "closed_blocker_box": {
+      "maxX": 1.4,
+      "maxZ": 3.265,
+      "minX": -0.2,
+      "minZ": 2.865
+    },
+    "closed_covers_opening": true,
+    "closed_leaf_blocker_overlap_m": 1.6,
+    "closed_leaf_box": {
+      "maxX": 1.4,
+      "maxZ": 3.265,
+      "minX": -0.2,
+      "minZ": 3.165
+    },
+    "closed_opening_overlap_width_m": 1.3,
+    "closed_pose": "authored default transform of the door_slide node",
+    "leaf_span_m": 1.6,
+    "node": "door_slide",
+    "open_clearance_to_opening_m": 0.51,
+    "open_fully_clears_opening": true,
+    "open_leaf_box": {
+      "maxX": -0.56,
+      "maxZ": 3.265,
+      "minX": -2.16,
+      "minZ": 3.165
+    },
+    "open_leaf_fouls": [],
+    "open_leaf_lap_onto_wall_m": 1.6,
+    "open_leaf_parks_in_front_of": "front_wall_left",
+    "slide_axis_local": [
+      -1.0,
+      0.0,
+      0.0
+    ],
+    "slide_distance_m": 1.96
+  },
+  "export_check": {
+    "animations": [
+      "door_close",
+      "door_open"
+    ],
+    "bbox_matches_footprint": true,
+    "door_leaf_bounds": {
+      "maxX": 1.4,
+      "maxY": -3.165,
+      "maxZ": 2.37,
+      "minX": -0.2,
+      "minY": -3.315,
+      "minZ": 0.16,
+      "spanX": 1.6,
+      "spanY": 0.15,
+      "spanZ": 2.21
+    },
+    "door_leaf_covers_opening": true,
+    "door_node_count": 1,
+    "door_node_translation_gltf": [
+      0.6000000238418579,
+      0.1599999964237213,
+      3.2149999141693115
+    ],
+    "glb": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/glb/shelter_lod0.glb",
+    "ground_contact_y": 0.0,
+    "node_families_present": [
+      "door_slide",
+      "floor__",
+      "interior__",
+      "mass__",
+      "roof__",
+      "wall_back__",
+      "wall_front__",
+      "wall_left__",
+      "wall_right__"
+    ],
+    "reloaded_bbox": {
+      "maxX": 3.8,
+      "maxY": 3.325,
+      "maxZ": 3.72,
+      "minX": -3.8,
+      "minY": -3.325,
+      "minZ": 0.0,
+      "spanX": 7.6,
+      "spanY": 6.65,
+      "spanZ": 3.72
+    },
+    "sha256": "ae4950c009dff34ce1891d4ed4a2f0878655c022902a70ab556e657f8d6cdd71",
+    "stray_door_nodes": [],
+    "uv0_on_every_mesh": true
+  },
+  "footprint_gltf": {
+    "centerX": 0.0,
+    "centerZ": 0.0,
+    "maxX": 3.8,
+    "maxZ": 3.325,
+    "minX": -3.8,
+    "minZ": -3.325,
+    "spanX": 7.6,
+    "spanZ": 6.65
+  },
+  "footprint_matches_mesh": true,
+  "generatedBy": "tools/successor/assets/dustgate-redesign/prodbuild.py",
+  "lods": {
+    "lod0": {
+      "bytes": 5872764,
+      "detail_cap": "FINE",
+      "path": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/glb/shelter_lod0.glb",
+      "renderer_primitives": 40,
+      "sha256": "ae4950c009dff34ce1891d4ed4a2f0878655c022902a70ab556e657f8d6cdd71",
+      "textured": true,
+      "triangles": 15456
+    },
+    "lod1": {
+      "bytes": 544976,
+      "detail_cap": "MID",
+      "keeps_door_floor_opening": true,
+      "path": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/glb/shelter_lod1.glb",
+      "renderer_primitives": 35,
+      "sha256": "62c3973b6e47f2da3fafcf479b11dcdc5c3d9df41d4c3d90f8b723c35d8920b4",
+      "silhouette_span_delta_m": [
+        0.0,
+        -0.19,
+        0.0
+      ],
+      "textured": false,
+      "triangle_fraction_of_lod0": 0.691,
+      "triangles": 10680
+    },
+    "lod2": {
+      "bytes": 195344,
+      "detail_cap": "CORE",
+      "keeps_door_floor_opening": true,
+      "path": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/glb/shelter_lod2.glb",
+      "renderer_primitives": 17,
+      "sha256": "d5a8ddde87cf4a49209b6ea03475831eaf52ebbd9ec53270fb99c706f4d42985",
+      "silhouette_span_delta_m": [
+        0.0,
+        -0.19,
+        0.0
+      ],
+      "textured": false,
+      "triangle_fraction_of_lod0": 0.242,
+      "triangles": 3740
+    }
+  },
+  "unit": "shelter",
+  "uv": {
+    "measured_uv_area_per_mesh_area_max": 0.26296,
+    "measured_uv_area_per_mesh_area_min": 0.23254,
+    "meshes_without_uv0": [],
+    "overlap_intent": "box-projected trim UVs on a shared grid; repeated kit parts share UV space by design and must never be lightmapped",
+    "texels_per_metre": 512.0,
+    "uv0_layer_names": [
+      "UVMap"
+    ],
+    "uv_units_per_metre": 0.5
+  }
+}

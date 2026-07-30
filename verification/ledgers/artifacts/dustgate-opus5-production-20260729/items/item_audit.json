@@ -1,0 +1,3349 @@
+{
+  "blenderVersion": "5.2.0 LTS",
+  "candidateCount": 40,
+  "candidates": [
+    {
+      "bbox": {
+        "max": [
+          1.1330000162124634,
+          0.7200000286102295,
+          2.0310001373291016
+        ],
+        "min": [
+          -1.055999994277954,
+          -0.7949999570846558,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "extraction",
+      "id": "successor_extraction_mineral_power_skid",
+      "images": [
+        "successor_extraction_mineral_power_skid_accent_col",
+        "successor_extraction_mineral_power_skid_accent_nrm",
+        "successor_extraction_mineral_power_skid_accent_rgh",
+        "successor_extraction_mineral_power_skid_dark_col",
+        "successor_extraction_mineral_power_skid_dark_nrm",
+        "successor_extraction_mineral_power_skid_dark_rgh",
+        "successor_extraction_mineral_power_skid_frame_col",
+        "successor_extraction_mineral_power_skid_frame_nrm",
+        "successor_extraction_mineral_power_skid_frame_rgh",
+        "successor_extraction_mineral_power_skid_guard_col",
+        "successor_extraction_mineral_power_skid_guard_nrm",
+        "successor_extraction_mineral_power_skid_guard_rgh",
+        "successor_extraction_mineral_power_skid_hose_col",
+        "successor_extraction_mineral_power_skid_hose_nrm",
+        "successor_extraction_mineral_power_skid_hose_rgh",
+        "successor_extraction_mineral_power_skid_walkway_col",
+        "successor_extraction_mineral_power_skid_walkway_nrm",
+        "successor_extraction_mineral_power_skid_walkway_rgh"
+      ],
+      "materials": [
+        "successor_extraction_mineral_power_skid_accent",
+        "successor_extraction_mineral_power_skid_dark",
+        "successor_extraction_mineral_power_skid_frame",
+        "successor_extraction_mineral_power_skid_guard",
+        "successor_extraction_mineral_power_skid_hose",
+        "successor_extraction_mineral_power_skid_walkway"
+      ],
+      "meshCount": 6,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_power_skid.glb",
+      "pinnedSha256": "b16fbbc4421b953139fef711aa4799b2b9841b2e029618e5afef4346e3177145",
+      "renderPaths": {
+        "close": "renders/successor_extraction_mineral_power_skid_close.png",
+        "normal": "renders/successor_extraction_mineral_power_skid_normal.png"
+      },
+      "sha256": "b16fbbc4421b953139fef711aa4799b2b9841b2e029618e5afef4346e3177145",
+      "sizeBytes": 382688,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.9240000247955322,
+            0.6299999952316284,
+            0.9900000095367432
+          ],
+          "name": "Socket_Socket_maintenance"
+        },
+        {
+          "localTranslation": [
+            1.055999994277954,
+            -0.5099999904632568,
+            0.36000001430511475
+          ],
+          "name": "Socket_Socket_output"
+        },
+        {
+          "localTranslation": [
+            -0.9240000247955322,
+            -0.6299999952316284,
+            0.18000000715255737
+          ],
+          "name": "Socket_Socket_power"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_power_skid.glb",
+      "spans": {
+        "x": 2.1890000104904175,
+        "y": 1.5149999856948853,
+        "z": 2.0310001373291016
+      },
+      "triangles": 3368,
+      "uvLayers": {
+        "successor_extraction_mineral_power_skid_accent_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_power_skid_dark_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_power_skid_frame_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_power_skid_guard_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_power_skid_hose_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_power_skid_walkway_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.03850001096725464,
+        "z": 1.0155000686645508
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.9179999828338623,
+          0.8159999847412109,
+          2.3505001068115234
+        ],
+        "min": [
+          -1.096500039100647,
+          -0.8330000042915344,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "extraction",
+      "id": "successor_extraction_mineral_control_panel",
+      "images": [
+        "successor_extraction_mineral_control_panel_accent_col",
+        "successor_extraction_mineral_control_panel_accent_nrm",
+        "successor_extraction_mineral_control_panel_accent_rgh",
+        "successor_extraction_mineral_control_panel_control_col",
+        "successor_extraction_mineral_control_panel_control_nrm",
+        "successor_extraction_mineral_control_panel_control_rgh",
+        "successor_extraction_mineral_control_panel_dark_col",
+        "successor_extraction_mineral_control_panel_dark_nrm",
+        "successor_extraction_mineral_control_panel_dark_rgh",
+        "successor_extraction_mineral_control_panel_frame_col",
+        "successor_extraction_mineral_control_panel_frame_nrm",
+        "successor_extraction_mineral_control_panel_frame_rgh",
+        "successor_extraction_mineral_control_panel_guard_col",
+        "successor_extraction_mineral_control_panel_guard_nrm",
+        "successor_extraction_mineral_control_panel_guard_rgh",
+        "successor_extraction_mineral_control_panel_hose_col",
+        "successor_extraction_mineral_control_panel_hose_nrm",
+        "successor_extraction_mineral_control_panel_hose_rgh"
+      ],
+      "materials": [
+        "successor_extraction_mineral_control_panel_accent",
+        "successor_extraction_mineral_control_panel_control",
+        "successor_extraction_mineral_control_panel_dark",
+        "successor_extraction_mineral_control_panel_frame",
+        "successor_extraction_mineral_control_panel_guard",
+        "successor_extraction_mineral_control_panel_hose"
+      ],
+      "meshCount": 6,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_control_panel.glb",
+      "pinnedSha256": "67177454c7699be6324f98d9b958586a2651b9aa493dea5865c3164a165ca202",
+      "renderPaths": {
+        "close": "renders/successor_extraction_mineral_control_panel_close.png",
+        "normal": "renders/successor_extraction_mineral_control_panel_normal.png"
+      },
+      "sha256": "67177454c7699be6324f98d9b958586a2651b9aa493dea5865c3164a165ca202",
+      "sizeBytes": 609132,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.5440000295639038,
+            0.47600001096725464,
+            1.781999945640564
+          ],
+          "name": "Socket_Socket_maintenance"
+        },
+        {
+          "localTranslation": [
+            0.7649999856948853,
+            0.3400000035762787,
+            0.7919999957084656
+          ],
+          "name": "Socket_Socket_output"
+        },
+        {
+          "localTranslation": [
+            -0.7649999856948853,
+            -0.5950000286102295,
+            0.1979999989271164
+          ],
+          "name": "Socket_Socket_power"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_control_panel.glb",
+      "spans": {
+        "x": 2.0145000219345093,
+        "y": 1.6489999890327454,
+        "z": 2.3505001068115234
+      },
+      "triangles": 6900,
+      "uvLayers": {
+        "successor_extraction_mineral_control_panel_accent_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_control_panel_control_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_control_panel_dark_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_control_panel_frame_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_control_panel_guard_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_control_panel_hose_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": -0.08925002813339233,
+        "z": 1.1752500534057617
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.7225000262260437,
+          0.637499988079071,
+          2.1923999786376953
+        ],
+        "min": [
+          -0.8032000064849854,
+          -0.637499988079071,
+          8.568167686462402e-08
+        ]
+      },
+      "groundContactY": false,
+      "group": "extraction",
+      "id": "successor_extraction_extraction_maintenance_cart",
+      "images": [
+        "successor_extraction_extraction_maintenance_cart_accent_col",
+        "successor_extraction_extraction_maintenance_cart_accent_nrm",
+        "successor_extraction_extraction_maintenance_cart_accent_rgh",
+        "successor_extraction_extraction_maintenance_cart_dark_col",
+        "successor_extraction_extraction_maintenance_cart_dark_nrm",
+        "successor_extraction_extraction_maintenance_cart_dark_rgh",
+        "successor_extraction_extraction_maintenance_cart_frame_col",
+        "successor_extraction_extraction_maintenance_cart_frame_nrm",
+        "successor_extraction_extraction_maintenance_cart_frame_rgh",
+        "successor_extraction_extraction_maintenance_cart_guard_col",
+        "successor_extraction_extraction_maintenance_cart_guard_nrm",
+        "successor_extraction_extraction_maintenance_cart_guard_rgh",
+        "successor_extraction_extraction_maintenance_cart_hose_col",
+        "successor_extraction_extraction_maintenance_cart_hose_nrm",
+        "successor_extraction_extraction_maintenance_cart_hose_rgh"
+      ],
+      "materials": [
+        "successor_extraction_extraction_maintenance_cart_accent",
+        "successor_extraction_extraction_maintenance_cart_dark",
+        "successor_extraction_extraction_maintenance_cart_frame",
+        "successor_extraction_extraction_maintenance_cart_guard",
+        "successor_extraction_extraction_maintenance_cart_hose"
+      ],
+      "meshCount": 5,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_extraction_extraction_maintenance_cart.glb",
+      "pinnedSha256": "5f1458288d50a73c577ba3e67920cc3428c86dd01f40aa1c9df054a9fdea8e62",
+      "renderPaths": {
+        "close": "renders/successor_extraction_extraction_maintenance_cart_close.png",
+        "normal": "renders/successor_extraction_extraction_maintenance_cart_normal.png"
+      },
+      "sha256": "5f1458288d50a73c577ba3e67920cc3428c86dd01f40aa1c9df054a9fdea8e62",
+      "sizeBytes": 340672,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.0,
+            0.6299999952316284,
+            1.5551999807357788
+          ],
+          "name": "Socket_Socket_maintenance"
+        },
+        {
+          "localTranslation": [
+            0.7139999866485596,
+            -0.6299999952316284,
+            0.3240000009536743
+          ],
+          "name": "Socket_Socket_output"
+        },
+        {
+          "localTranslation": [
+            -0.7139999866485596,
+            -0.6299999952316284,
+            0.3240000009536743
+          ],
+          "name": "Socket_Socket_power"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_extraction_maintenance_cart.glb",
+      "spans": {
+        "x": 1.525700032711029,
+        "y": 1.274999976158142,
+        "z": 2.1923998929560184
+      },
+      "triangles": 4332,
+      "uvLayers": {
+        "successor_extraction_extraction_maintenance_cart_accent_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_extraction_maintenance_cart_dark_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_extraction_maintenance_cart_frame_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_extraction_maintenance_cart_guard_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_extraction_maintenance_cart_hose_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": -0.040349990129470825,
+        "z": 1.096200032159686
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.6802039742469788,
+          0.37418657541275024,
+          3.713599920272827
+        ],
+        "min": [
+          -0.6802039742469788,
+          -0.7044671773910522,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "extraction",
+      "id": "successor_extraction_extraction_survey_tripod",
+      "images": [
+        "successor_extraction_extraction_survey_tripod_accent_col",
+        "successor_extraction_extraction_survey_tripod_accent_nrm",
+        "successor_extraction_extraction_survey_tripod_accent_rgh",
+        "successor_extraction_extraction_survey_tripod_control_col",
+        "successor_extraction_extraction_survey_tripod_control_nrm",
+        "successor_extraction_extraction_survey_tripod_control_rgh",
+        "successor_extraction_extraction_survey_tripod_dark_col",
+        "successor_extraction_extraction_survey_tripod_dark_nrm",
+        "successor_extraction_extraction_survey_tripod_dark_rgh",
+        "successor_extraction_extraction_survey_tripod_frame_col",
+        "successor_extraction_extraction_survey_tripod_frame_nrm",
+        "successor_extraction_extraction_survey_tripod_frame_rgh",
+        "successor_extraction_extraction_survey_tripod_guard_col",
+        "successor_extraction_extraction_survey_tripod_guard_nrm",
+        "successor_extraction_extraction_survey_tripod_guard_rgh",
+        "successor_extraction_extraction_survey_tripod_hose_col",
+        "successor_extraction_extraction_survey_tripod_hose_nrm",
+        "successor_extraction_extraction_survey_tripod_hose_rgh"
+      ],
+      "materials": [
+        "successor_extraction_extraction_survey_tripod_accent",
+        "successor_extraction_extraction_survey_tripod_control",
+        "successor_extraction_extraction_survey_tripod_dark",
+        "successor_extraction_extraction_survey_tripod_frame",
+        "successor_extraction_extraction_survey_tripod_guard",
+        "successor_extraction_extraction_survey_tripod_hose"
+      ],
+      "meshCount": 6,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_extraction_extraction_survey_tripod.glb",
+      "pinnedSha256": "782a271997eaacd532b5ffc41783bbed86c5bb2a50ae5fdbb5456d94d8d6579e",
+      "renderPaths": {
+        "close": "renders/successor_extraction_extraction_survey_tripod_close.png",
+        "normal": "renders/successor_extraction_extraction_survey_tripod_normal.png"
+      },
+      "sha256": "782a271997eaacd532b5ffc41783bbed86c5bb2a50ae5fdbb5456d94d8d6579e",
+      "sizeBytes": 377504,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.38999998569488525,
+            0.2549999952316284,
+            1.2869999408721924
+          ],
+          "name": "Socket_Socket_maintenance"
+        },
+        {
+          "localTranslation": [
+            0.0,
+            -0.2720000147819519,
+            3.2291998863220215
+          ],
+          "name": "Socket_Socket_output"
+        },
+        {
+          "localTranslation": [
+            -0.38999998569488525,
+            -0.3400000035762787,
+            0.18719999492168427
+          ],
+          "name": "Socket_Socket_power"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_extraction_survey_tripod.glb",
+      "spans": {
+        "x": 1.3604079484939575,
+        "y": 1.0786537528038025,
+        "z": 3.713599920272827
+      },
+      "triangles": 2560,
+      "uvLayers": {
+        "successor_extraction_extraction_survey_tripod_accent_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_extraction_survey_tripod_control_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_extraction_survey_tripod_dark_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_extraction_survey_tripod_frame_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_extraction_survey_tripod_guard_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_extraction_survey_tripod_hose_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 1.8567999601364136
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          1.034000039100647,
+          0.8159999847412109,
+          3.7619998455047607
+        ],
+        "min": [
+          -1.034000039100647,
+          -0.8330000042915344,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "extraction",
+      "id": "successor_extraction_mineral_survey_scanner",
+      "images": [
+        "successor_extraction_mineral_survey_scanner_accent_col",
+        "successor_extraction_mineral_survey_scanner_accent_nrm",
+        "successor_extraction_mineral_survey_scanner_accent_rgh",
+        "successor_extraction_mineral_survey_scanner_dark_col",
+        "successor_extraction_mineral_survey_scanner_dark_nrm",
+        "successor_extraction_mineral_survey_scanner_dark_rgh",
+        "successor_extraction_mineral_survey_scanner_frame_col",
+        "successor_extraction_mineral_survey_scanner_frame_nrm",
+        "successor_extraction_mineral_survey_scanner_frame_rgh",
+        "successor_extraction_mineral_survey_scanner_guard_col",
+        "successor_extraction_mineral_survey_scanner_guard_nrm",
+        "successor_extraction_mineral_survey_scanner_guard_rgh",
+        "successor_extraction_mineral_survey_scanner_hose_col",
+        "successor_extraction_mineral_survey_scanner_hose_nrm",
+        "successor_extraction_mineral_survey_scanner_hose_rgh",
+        "successor_extraction_mineral_survey_scanner_walkway_col",
+        "successor_extraction_mineral_survey_scanner_walkway_nrm",
+        "successor_extraction_mineral_survey_scanner_walkway_rgh"
+      ],
+      "materials": [
+        "successor_extraction_mineral_survey_scanner_accent",
+        "successor_extraction_mineral_survey_scanner_dark",
+        "successor_extraction_mineral_survey_scanner_frame",
+        "successor_extraction_mineral_survey_scanner_guard",
+        "successor_extraction_mineral_survey_scanner_hose",
+        "successor_extraction_mineral_survey_scanner_walkway"
+      ],
+      "meshCount": 6,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_survey_scanner.glb",
+      "pinnedSha256": "3d432a549bc8cd55ef7542d447f0243face1e2cd7663fc5f2c61389b219bc841",
+      "renderPaths": {
+        "close": "renders/successor_extraction_mineral_survey_scanner_close.png",
+        "normal": "renders/successor_extraction_mineral_survey_scanner_normal.png"
+      },
+      "sha256": "3d432a549bc8cd55ef7542d447f0243face1e2cd7663fc5f2c61389b219bc841",
+      "sizeBytes": 478200,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.8799999952316284,
+            -0.6119999885559082,
+            1.357200026512146
+          ],
+          "name": "Socket_Socket_maintenance"
+        },
+        {
+          "localTranslation": [
+            0.6600000262260437,
+            -0.6290000081062317,
+            0.4212000072002411
+          ],
+          "name": "Socket_Socket_output"
+        },
+        {
+          "localTranslation": [
+            -0.9240000247955322,
+            -0.7139999866485596,
+            0.23399999737739563
+          ],
+          "name": "Socket_Socket_power"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_survey_scanner.glb",
+      "spans": {
+        "x": 2.068000078201294,
+        "y": 1.6489999890327454,
+        "z": 3.7619998455047607
+      },
+      "triangles": 5584,
+      "uvLayers": {
+        "successor_extraction_mineral_survey_scanner_accent_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_survey_scanner_dark_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_survey_scanner_frame_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_survey_scanner_guard_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_survey_scanner_hose_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_survey_scanner_walkway_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 1.8809999227523804
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          1.1212499141693115,
+          0.8159999847412109,
+          2.375397205352783
+        ],
+        "min": [
+          -0.9945000410079956,
+          -1.0625,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "extraction",
+      "id": "successor_extraction_mineral_dust_filter",
+      "images": [
+        "successor_extraction_mineral_dust_filter_accent_col",
+        "successor_extraction_mineral_dust_filter_accent_nrm",
+        "successor_extraction_mineral_dust_filter_accent_rgh",
+        "successor_extraction_mineral_dust_filter_control_col",
+        "successor_extraction_mineral_dust_filter_control_nrm",
+        "successor_extraction_mineral_dust_filter_control_rgh",
+        "successor_extraction_mineral_dust_filter_dark_col",
+        "successor_extraction_mineral_dust_filter_dark_nrm",
+        "successor_extraction_mineral_dust_filter_dark_rgh",
+        "successor_extraction_mineral_dust_filter_frame_col",
+        "successor_extraction_mineral_dust_filter_frame_nrm",
+        "successor_extraction_mineral_dust_filter_frame_rgh",
+        "successor_extraction_mineral_dust_filter_guard_col",
+        "successor_extraction_mineral_dust_filter_guard_nrm",
+        "successor_extraction_mineral_dust_filter_guard_rgh",
+        "successor_extraction_mineral_dust_filter_hose_col",
+        "successor_extraction_mineral_dust_filter_hose_nrm",
+        "successor_extraction_mineral_dust_filter_hose_rgh"
+      ],
+      "materials": [
+        "successor_extraction_mineral_dust_filter_accent",
+        "successor_extraction_mineral_dust_filter_control",
+        "successor_extraction_mineral_dust_filter_dark",
+        "successor_extraction_mineral_dust_filter_frame",
+        "successor_extraction_mineral_dust_filter_guard",
+        "successor_extraction_mineral_dust_filter_hose"
+      ],
+      "meshCount": 6,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_dust_filter.glb",
+      "pinnedSha256": "cf8d6517cabfa62b10245eb5a0a505f4d6b19adca50da82fb658246167ce2ba5",
+      "renderPaths": {
+        "close": "renders/successor_extraction_mineral_dust_filter_close.png",
+        "normal": "renders/successor_extraction_mineral_dust_filter_normal.png"
+      },
+      "sha256": "cf8d6517cabfa62b10245eb5a0a505f4d6b19adca50da82fb658246167ce2ba5",
+      "sizeBytes": 412152,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.8774999976158142,
+            0.5099999904632568,
+            0.9900000095367432
+          ],
+          "name": "Socket_Socket_maintenance"
+        },
+        {
+          "localTranslation": [
+            0.8190000057220459,
+            -0.13600000739097595,
+            2.336400032043457
+          ],
+          "name": "Socket_Socket_output"
+        },
+        {
+          "localTranslation": [
+            -0.8774999976158142,
+            -0.7139999866485596,
+            0.1979999989271164
+          ],
+          "name": "Socket_Socket_power"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_dust_filter.glb",
+      "spans": {
+        "x": 2.115749955177307,
+        "y": 1.878499984741211,
+        "z": 2.375397205352783
+      },
+      "triangles": 3448,
+      "uvLayers": {
+        "successor_extraction_mineral_dust_filter_accent_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_dust_filter_control_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_dust_filter_dark_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_dust_filter_frame_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_dust_filter_guard_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_dust_filter_hose_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.06337493658065796,
+        "z": 1.1876986026763916
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.8330000638961792,
+          0.7655761241912842,
+          1.4149999618530273
+        ],
+        "min": [
+          -0.8159999847412109,
+          -0.7655761241912842,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "extraction",
+      "id": "successor_extraction_petrochemical_separator_skid",
+      "images": [
+        "successor_extraction_petrochemical_separator_skid_accent_col",
+        "successor_extraction_petrochemical_separator_skid_accent_nrm",
+        "successor_extraction_petrochemical_separator_skid_accent_rgh",
+        "successor_extraction_petrochemical_separator_skid_dark_col",
+        "successor_extraction_petrochemical_separator_skid_dark_nrm",
+        "successor_extraction_petrochemical_separator_skid_dark_rgh",
+        "successor_extraction_petrochemical_separator_skid_frame_col",
+        "successor_extraction_petrochemical_separator_skid_frame_nrm",
+        "successor_extraction_petrochemical_separator_skid_frame_rgh",
+        "successor_extraction_petrochemical_separator_skid_guard_col",
+        "successor_extraction_petrochemical_separator_skid_guard_nrm",
+        "successor_extraction_petrochemical_separator_skid_guard_rgh",
+        "successor_extraction_petrochemical_separator_skid_hose_col",
+        "successor_extraction_petrochemical_separator_skid_hose_nrm",
+        "successor_extraction_petrochemical_separator_skid_hose_rgh",
+        "successor_extraction_petrochemical_separator_skid_walkway_col",
+        "successor_extraction_petrochemical_separator_skid_walkway_nrm",
+        "successor_extraction_petrochemical_separator_skid_walkway_rgh"
+      ],
+      "materials": [
+        "successor_extraction_petrochemical_separator_skid_accent",
+        "successor_extraction_petrochemical_separator_skid_dark",
+        "successor_extraction_petrochemical_separator_skid_frame",
+        "successor_extraction_petrochemical_separator_skid_guard",
+        "successor_extraction_petrochemical_separator_skid_hose",
+        "successor_extraction_petrochemical_separator_skid_walkway"
+      ],
+      "meshCount": 6,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_extraction_petrochemical_separator_skid.glb",
+      "pinnedSha256": "76a07ea99a11d5091fccbe743ca55e8941cde3d256526458efb3df9debe69881",
+      "renderPaths": {
+        "close": "renders/successor_extraction_petrochemical_separator_skid_close.png",
+        "normal": "renders/successor_extraction_petrochemical_separator_skid_normal.png"
+      },
+      "sha256": "76a07ea99a11d5091fccbe743ca55e8941cde3d256526458efb3df9debe69881",
+      "sizeBytes": 375160,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.7139999866485596,
+            -0.5699999928474426,
+            0.36000001430511475
+          ],
+          "name": "Socket_Socket_maintenance"
+        },
+        {
+          "localTranslation": [
+            0.0,
+            0.27000001072883606,
+            1.2569999694824219
+          ],
+          "name": "Socket_Socket_output"
+        },
+        {
+          "localTranslation": [
+            -0.7139999866485596,
+            -0.6299999952316284,
+            0.14399999380111694
+          ],
+          "name": "Socket_Socket_power"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_petrochemical_separator_skid.glb",
+      "spans": {
+        "x": 1.6490000486373901,
+        "y": 1.5311522483825684,
+        "z": 1.4149999618530273
+      },
+      "triangles": 3144,
+      "uvLayers": {
+        "successor_extraction_petrochemical_separator_skid_accent_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_separator_skid_dark_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_separator_skid_frame_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_separator_skid_guard_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_separator_skid_hose_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_separator_skid_walkway_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.00850003957748413,
+        "z": 0.7074999809265137
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          1.097999930381775,
+          0.8669999837875366,
+          1.553399920463562
+        ],
+        "min": [
+          -1.097999930381775,
+          -0.8330000042915344,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "extraction",
+      "id": "successor_extraction_petrochemical_flowline_manifold",
+      "images": [
+        "successor_extraction_petrochemical_flowline_manifold_accent_col",
+        "successor_extraction_petrochemical_flowline_manifold_accent_nrm",
+        "successor_extraction_petrochemical_flowline_manifold_accent_rgh",
+        "successor_extraction_petrochemical_flowline_manifold_dark_col",
+        "successor_extraction_petrochemical_flowline_manifold_dark_nrm",
+        "successor_extraction_petrochemical_flowline_manifold_dark_rgh",
+        "successor_extraction_petrochemical_flowline_manifold_frame_col",
+        "successor_extraction_petrochemical_flowline_manifold_frame_nrm",
+        "successor_extraction_petrochemical_flowline_manifold_frame_rgh",
+        "successor_extraction_petrochemical_flowline_manifold_guard_col",
+        "successor_extraction_petrochemical_flowline_manifold_guard_nrm",
+        "successor_extraction_petrochemical_flowline_manifold_guard_rgh",
+        "successor_extraction_petrochemical_flowline_manifold_hose_col",
+        "successor_extraction_petrochemical_flowline_manifold_hose_nrm",
+        "successor_extraction_petrochemical_flowline_manifold_hose_rgh",
+        "successor_extraction_petrochemical_flowline_manifold_walkway_col",
+        "successor_extraction_petrochemical_flowline_manifold_walkway_nrm",
+        "successor_extraction_petrochemical_flowline_manifold_walkway_rgh"
+      ],
+      "materials": [
+        "successor_extraction_petrochemical_flowline_manifold_accent",
+        "successor_extraction_petrochemical_flowline_manifold_dark",
+        "successor_extraction_petrochemical_flowline_manifold_frame",
+        "successor_extraction_petrochemical_flowline_manifold_guard",
+        "successor_extraction_petrochemical_flowline_manifold_hose",
+        "successor_extraction_petrochemical_flowline_manifold_walkway"
+      ],
+      "meshCount": 6,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_extraction_petrochemical_flowline_manifold.glb",
+      "pinnedSha256": "16d994346f7ba9e57cc878bef421665f1dcd464c5a4a70435e2279aa79afc044",
+      "renderPaths": {
+        "close": "renders/successor_extraction_petrochemical_flowline_manifold_close.png",
+        "normal": "renders/successor_extraction_petrochemical_flowline_manifold_normal.png"
+      },
+      "sha256": "16d994346f7ba9e57cc878bef421665f1dcd464c5a4a70435e2279aa79afc044",
+      "sizeBytes": 462576,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.0,
+            0.7139999866485596,
+            1.0889999866485596
+          ],
+          "name": "Socket_Socket_maintenance"
+        },
+        {
+          "localTranslation": [
+            1.0119999647140503,
+            0.0,
+            0.83160001039505
+          ],
+          "name": "Socket_Socket_output"
+        },
+        {
+          "localTranslation": [
+            -0.9240000247955322,
+            -0.7139999866485596,
+            0.15839999914169312
+          ],
+          "name": "Socket_Socket_power"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_petrochemical_flowline_manifold.glb",
+      "spans": {
+        "x": 2.19599986076355,
+        "y": 1.699999988079071,
+        "z": 1.553399920463562
+      },
+      "triangles": 5016,
+      "uvLayers": {
+        "successor_extraction_petrochemical_flowline_manifold_accent_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_flowline_manifold_dark_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_flowline_manifold_frame_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_flowline_manifold_guard_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_flowline_manifold_hose_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_flowline_manifold_walkway_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.776699960231781
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.7989999651908875,
+          0.7200000286102295,
+          2.9160001277923584
+        ],
+        "min": [
+          -0.8500000238418579,
+          -0.7350000143051147,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "extraction",
+      "id": "successor_extraction_mineral_core_sampler",
+      "images": [
+        "successor_extraction_mineral_core_sampler_accent_col",
+        "successor_extraction_mineral_core_sampler_accent_nrm",
+        "successor_extraction_mineral_core_sampler_accent_rgh",
+        "successor_extraction_mineral_core_sampler_control_col",
+        "successor_extraction_mineral_core_sampler_control_nrm",
+        "successor_extraction_mineral_core_sampler_control_rgh",
+        "successor_extraction_mineral_core_sampler_dark_col",
+        "successor_extraction_mineral_core_sampler_dark_nrm",
+        "successor_extraction_mineral_core_sampler_dark_rgh",
+        "successor_extraction_mineral_core_sampler_frame_col",
+        "successor_extraction_mineral_core_sampler_frame_nrm",
+        "successor_extraction_mineral_core_sampler_frame_rgh",
+        "successor_extraction_mineral_core_sampler_guard_col",
+        "successor_extraction_mineral_core_sampler_guard_nrm",
+        "successor_extraction_mineral_core_sampler_guard_rgh",
+        "successor_extraction_mineral_core_sampler_hose_col",
+        "successor_extraction_mineral_core_sampler_hose_nrm",
+        "successor_extraction_mineral_core_sampler_hose_rgh"
+      ],
+      "materials": [
+        "successor_extraction_mineral_core_sampler_accent",
+        "successor_extraction_mineral_core_sampler_control",
+        "successor_extraction_mineral_core_sampler_dark",
+        "successor_extraction_mineral_core_sampler_frame",
+        "successor_extraction_mineral_core_sampler_guard",
+        "successor_extraction_mineral_core_sampler_hose"
+      ],
+      "meshCount": 6,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_core_sampler.glb",
+      "pinnedSha256": "c6b4ea325163586e7babfdb31621c1383e5e196a570b6591ae67d82d5dd89af2",
+      "renderPaths": {
+        "close": "renders/successor_extraction_mineral_core_sampler_close.png",
+        "normal": "renders/successor_extraction_mineral_core_sampler_normal.png"
+      },
+      "sha256": "c6b4ea325163586e7babfdb31621c1383e5e196a570b6591ae67d82d5dd89af2",
+      "sizeBytes": 386820,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.6800000071525574,
+            0.44999998807907104,
+            0.8640000224113464
+          ],
+          "name": "Socket_Socket_maintenance"
+        },
+        {
+          "localTranslation": [
+            0.0,
+            -0.5249999761581421,
+            0.47519999742507935
+          ],
+          "name": "Socket_Socket_output"
+        },
+        {
+          "localTranslation": [
+            -0.7139999866485596,
+            -0.6000000238418579,
+            0.2160000056028366
+          ],
+          "name": "Socket_Socket_power"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_core_sampler.glb",
+      "spans": {
+        "x": 1.6489999890327454,
+        "y": 1.4550000429153442,
+        "z": 2.9160001277923584
+      },
+      "triangles": 2828,
+      "uvLayers": {
+        "successor_extraction_mineral_core_sampler_accent_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_core_sampler_control_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_core_sampler_dark_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_core_sampler_frame_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_core_sampler_guard_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_mineral_core_sampler_hose_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": -0.02550002932548523,
+        "z": 1.4580000638961792
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.3892681896686554,
+          0.3800000250339508,
+          0.6469999551773071
+        ],
+        "min": [
+          -0.3892681896686554,
+          -0.3881056010723114,
+          -0.02199999988079071
+        ]
+      },
+      "groundContactY": false,
+      "group": "vehicle",
+      "id": "successor_vehicle_component_cargo_crate_small",
+      "images": [],
+      "materials": [
+        "alloy_gunmetal",
+        "alloy_sand",
+        "brass",
+        "emissive_amber",
+        "paint_ochre",
+        "rubber_black"
+      ],
+      "meshCount": 1,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_cargo_crate_small.glb",
+      "pinnedSha256": "d6bba4347b624e6e057e5272a3d81d667aafdaa9370006d2ff93271a45f5bc01",
+      "renderPaths": {
+        "close": "renders/successor_vehicle_component_cargo_crate_small_close.png",
+        "normal": "renders/successor_vehicle_component_cargo_crate_small_normal.png"
+      },
+      "sha256": "d6bba4347b624e6e057e5272a3d81d667aafdaa9370006d2ff93271a45f5bc01",
+      "sizeBytes": 181072,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_cargo_crate_small.glb",
+      "spans": {
+        "x": 0.7785363793373108,
+        "y": 0.7681056261062622,
+        "z": 0.6689999550580978
+      },
+      "triangles": 3680,
+      "uvLayers": {
+        "successor_vehicle_component_cargo_crate_small": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.3124999776482582
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.7823434472084045,
+          0.3199999928474426,
+          0.6140211820602417
+        ],
+        "min": [
+          -0.7823434472084045,
+          -0.344814658164978,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "vehicle",
+      "id": "successor_vehicle_component_cargo_crate_long",
+      "images": [],
+      "materials": [
+        "alloy_brushed",
+        "alloy_gunmetal",
+        "brass",
+        "paint_blue",
+        "paint_yellow",
+        "webbing_gray"
+      ],
+      "meshCount": 1,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_cargo_crate_long.glb",
+      "pinnedSha256": "3a9ad93fb319da0b1bd4e2e54a2c374b0fbaef9c42a6a77b21b21caae5bbc26c",
+      "renderPaths": {
+        "close": "renders/successor_vehicle_component_cargo_crate_long_close.png",
+        "normal": "renders/successor_vehicle_component_cargo_crate_long_normal.png"
+      },
+      "sha256": "3a9ad93fb319da0b1bd4e2e54a2c374b0fbaef9c42a6a77b21b21caae5bbc26c",
+      "sizeBytes": 170944,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_cargo_crate_long.glb",
+      "spans": {
+        "x": 1.564686894416809,
+        "y": 0.6648146510124207,
+        "z": 0.6140211820602417
+      },
+      "triangles": 3056,
+      "uvLayers": {
+        "successor_vehicle_component_cargo_crate_long": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.30701059103012085
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.6549999713897705,
+          0.019999999552965164,
+          0.12000000476837158
+        ],
+        "min": [
+          -0.6549999713897705,
+          -0.47672420740127563,
+          -0.7590000033378601
+        ]
+      },
+      "groundContactY": false,
+      "group": "vehicle",
+      "id": "successor_vehicle_component_workbench_fold",
+      "images": [],
+      "materials": [
+        "alloy_brushed",
+        "alloy_gunmetal",
+        "alloy_sand",
+        "brass",
+        "paint_hazard_orange",
+        "rubber_black"
+      ],
+      "meshCount": 1,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_workbench_fold.glb",
+      "pinnedSha256": "e174c2be8893c13f389d53ce5d5682f639b46780afb3215cdb9d44b6e05aac70",
+      "renderPaths": {
+        "close": "renders/successor_vehicle_component_workbench_fold_close.png",
+        "normal": "renders/successor_vehicle_component_workbench_fold_normal.png"
+      },
+      "sha256": "e174c2be8893c13f389d53ce5d5682f639b46780afb3215cdb9d44b6e05aac70",
+      "sizeBytes": 116768,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_workbench_fold.glb",
+      "spans": {
+        "x": 1.309999942779541,
+        "y": 0.4967242069542408,
+        "z": 0.8790000081062317
+      },
+      "triangles": 2420,
+      "uvLayers": {
+        "successor_vehicle_component_workbench_fold": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": -0.31949999928474426
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.7960000038146973,
+          0.5320000052452087,
+          0.5541924238204956
+        ],
+        "min": [
+          -0.7549999952316284,
+          -0.5320000052452087,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "vehicle",
+      "id": "successor_vehicle_component_battery_bank_quad",
+      "images": [],
+      "materials": [
+        "alloy_dark",
+        "alloy_gunmetal",
+        "copper",
+        "emissive_amber",
+        "emissive_green",
+        "paint_yellow"
+      ],
+      "meshCount": 1,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_battery_bank_quad.glb",
+      "pinnedSha256": "9c5861242be5a602389613f78fbfcf8f92bfd81f4d11764332d65c223756703c",
+      "renderPaths": {
+        "close": "renders/successor_vehicle_component_battery_bank_quad_close.png",
+        "normal": "renders/successor_vehicle_component_battery_bank_quad_normal.png"
+      },
+      "sha256": "9c5861242be5a602389613f78fbfcf8f92bfd81f4d11764332d65c223756703c",
+      "sizeBytes": 226824,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_battery_bank_quad.glb",
+      "spans": {
+        "x": 1.5509999990463257,
+        "y": 1.0640000104904175,
+        "z": 0.5541924238204956
+      },
+      "triangles": 4352,
+      "uvLayers": {
+        "successor_vehicle_component_battery_bank_quad": []
+      },
+      "xzCenterOffset": {
+        "x": 0.020500004291534424,
+        "z": 0.2770962119102478
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.4300000071525574,
+          0.3349999785423279,
+          0.7730000019073486
+        ],
+        "min": [
+          -0.4300000071525574,
+          -0.3349999785423279,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "vehicle",
+      "id": "successor_vehicle_component_utility_water_tank",
+      "images": [],
+      "materials": [
+        "alloy_brushed",
+        "alloy_gunmetal",
+        "ceramic_white",
+        "glass_blue",
+        "paint_blue"
+      ],
+      "meshCount": 1,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_utility_water_tank.glb",
+      "pinnedSha256": "db6d8045cb39eff428a40d0e2c7fabe83241f2010573ba8946c7d44503f05297",
+      "renderPaths": {
+        "close": "renders/successor_vehicle_component_utility_water_tank_close.png",
+        "normal": "renders/successor_vehicle_component_utility_water_tank_normal.png"
+      },
+      "sha256": "db6d8045cb39eff428a40d0e2c7fabe83241f2010573ba8946c7d44503f05297",
+      "sizeBytes": 136948,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_utility_water_tank.glb",
+      "spans": {
+        "x": 0.8600000143051147,
+        "y": 0.6699999570846558,
+        "z": 0.7730000019073486
+      },
+      "triangles": 3432,
+      "uvLayers": {
+        "successor_vehicle_component_utility_water_tank": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.3865000009536743
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.13423335552215576,
+          0.16200000047683716,
+          0.0729999989271164
+        ],
+        "min": [
+          -0.10000000149011612,
+          -0.042447756975889206,
+          -0.14905382692813873
+        ]
+      },
+      "groundContactY": false,
+      "group": "vehicle",
+      "id": "successor_vehicle_component_rear_worklight",
+      "images": [],
+      "materials": [
+        "alloy_brushed",
+        "alloy_chrome",
+        "alloy_gunmetal",
+        "emissive_white",
+        "paint_yellow",
+        "rubber_black"
+      ],
+      "meshCount": 1,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_rear_worklight.glb",
+      "pinnedSha256": "ac89a528082e83551ab3450cf148780d142cec707458d4d23abedcd91e173f9d",
+      "renderPaths": {
+        "close": "renders/successor_vehicle_component_rear_worklight_close.png",
+        "normal": "renders/successor_vehicle_component_rear_worklight_normal.png"
+      },
+      "sha256": "ac89a528082e83551ab3450cf148780d142cec707458d4d23abedcd91e173f9d",
+      "sizeBytes": 69868,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_rear_worklight.glb",
+      "spans": {
+        "x": 0.23423335701227188,
+        "y": 0.20444775745272636,
+        "z": 0.22205382585525513
+      },
+      "triangles": 1472,
+      "uvLayers": {
+        "successor_vehicle_component_rear_worklight": []
+      },
+      "xzCenterOffset": {
+        "x": 0.01711667701601982,
+        "z": -0.03802691400051117
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.4699999988079071,
+          0.07500000298023224,
+          0.598030149936676
+        ],
+        "min": [
+          -0.4699999988079071,
+          -0.24971413612365723,
+          -0.49000000953674316
+        ]
+      },
+      "groundContactY": false,
+      "group": "vehicle",
+      "id": "successor_vehicle_component_service_tool_cabinet",
+      "images": [],
+      "materials": [
+        "alloy_brushed",
+        "alloy_gunmetal",
+        "brass",
+        "ceramic_black",
+        "paint_red_primer",
+        "rubber_black"
+      ],
+      "meshCount": 1,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_service_tool_cabinet.glb",
+      "pinnedSha256": "d4df11094f1c357dea9c593886a26a147c587898c38857b8c158a5994ffd6f86",
+      "renderPaths": {
+        "close": "renders/successor_vehicle_component_service_tool_cabinet_close.png",
+        "normal": "renders/successor_vehicle_component_service_tool_cabinet_normal.png"
+      },
+      "sha256": "d4df11094f1c357dea9c593886a26a147c587898c38857b8c158a5994ffd6f86",
+      "sizeBytes": 288264,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_service_tool_cabinet.glb",
+      "spans": {
+        "x": 0.9399999976158142,
+        "y": 0.32471413910388947,
+        "z": 1.0880301594734192
+      },
+      "triangles": 5948,
+      "uvLayers": {
+        "successor_vehicle_component_service_tool_cabinet": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.05401507019996643
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.7799999713897705,
+          0.7799999713897705,
+          2.440000057220459
+        ],
+        "min": [
+          -0.7799999713897705,
+          -0.7799999713897705,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "clone_pod",
+      "images": [],
+      "materials": [
+        "HK_Brass",
+        "HK_Frame",
+        "HK_Glass",
+        "HK_Glow",
+        "HK_Shell",
+        "HK_Steel"
+      ],
+      "meshCount": 17,
+      "path": "client-3d/public/assets/world-items/clone_pod.glb",
+      "pinnedSha256": "87a99d66eca1c0bf805bdc642d1b154384b360278badbe7e9d931a141a695fc4",
+      "renderPaths": {
+        "close": "renders/clone_pod_close.png",
+        "normal": "renders/clone_pod_normal.png"
+      },
+      "sha256": "87a99d66eca1c0bf805bdc642d1b154384b360278badbe7e9d931a141a695fc4",
+      "sizeBytes": 56532,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/clone_pod.glb",
+      "spans": {
+        "x": 1.559999942779541,
+        "y": 1.559999942779541,
+        "z": 2.440000057220459
+      },
+      "triangles": 888,
+      "uvLayers": {
+        "back__service_pipes": [],
+        "base__feet": [],
+        "base__fluid_ports": [],
+        "base__oct_plinth": [],
+        "core__body_cradle": [],
+        "core__harness_rings": [],
+        "core__suspension_glow": [],
+        "crown__brass_ticks": [],
+        "crown__manifold": [],
+        "crown__ring": [],
+        "crown__status_glow": [],
+        "shell__canopy_glass": [],
+        "shell__canopy_latches": [],
+        "shell__canopy_ribs": [],
+        "shell__enamel_drum": [],
+        "side__conduit_ports": [],
+        "side__fluid_lines": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 1.2200000286102295
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.41999998688697815,
+          0.6200000047683716,
+          1.7400000095367432
+        ],
+        "min": [
+          -0.41999998688697815,
+          -0.4000000059604645,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "clone_terminal",
+      "images": [],
+      "materials": [
+        "HK_Frame",
+        "HK_Glow",
+        "HK_Shell",
+        "HK_Steel",
+        "HK_Trim"
+      ],
+      "meshCount": 19,
+      "path": "client-3d/public/assets/world-items/clone_terminal.glb",
+      "pinnedSha256": "f7d03b0715d08dddfb18b1c37f7235cce1b7bb05aab5043e87f9c5ec3ca4809f",
+      "renderPaths": {
+        "close": "renders/clone_terminal_close.png",
+        "normal": "renders/clone_terminal_normal.png"
+      },
+      "sha256": "f7d03b0715d08dddfb18b1c37f7235cce1b7bb05aab5043e87f9c5ec3ca4809f",
+      "sizeBytes": 49904,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/clone_terminal.glb",
+      "spans": {
+        "x": 0.8399999737739563,
+        "y": 1.020000010728836,
+        "z": 1.7400000095367432
+      },
+      "triangles": 748,
+      "uvLayers": {
+        "base__anchor_bolts": [],
+        "base__cable_foot": [],
+        "base__pads": [],
+        "body__clone_glyph": [],
+        "body__clone_glyph_glow": [],
+        "body__crown_trim": [],
+        "body__enamel_spine": [],
+        "body__gauge_dial": [],
+        "body__palm_pads": [],
+        "body__palm_scan_bed": [],
+        "body__palm_scanner_glow": [],
+        "body__readout_neck": [],
+        "body__status_lights_glow": [],
+        "body__tag_reader_glow": [],
+        "body__tray_post": [],
+        "body__work_tray": [],
+        "head__readout_frame": [],
+        "head__readout_glow": [],
+        "head__readout_ui": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.8700000047683716
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.5040000081062317,
+          0.3330000042915344,
+          1.649999976158142
+        ],
+        "min": [
+          -0.5040000081062317,
+          -0.34549999237060547,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "bank_terminal_civic",
+      "images": [
+        "commerce_basalt_basecolor",
+        "commerce_basalt_mr",
+        "commerce_basalt_normal",
+        "commerce_brass_basecolor",
+        "commerce_brass_mr",
+        "commerce_brass_normal",
+        "commerce_ceramic_basecolor",
+        "commerce_ceramic_mr",
+        "commerce_ceramic_normal",
+        "commerce_ink_basecolor",
+        "commerce_ink_mr",
+        "commerce_ink_normal",
+        "commerce_screen_bank_emissive",
+        "commerce_steel_basecolor",
+        "commerce_steel_mr",
+        "commerce_steel_normal"
+      ],
+      "materials": [
+        "CM_Basalt",
+        "CM_Brass",
+        "CM_Ceramic",
+        "CM_GlowAmber",
+        "CM_Ink",
+        "CM_ScreenBank",
+        "CM_Steel",
+        "CM_TealGlass"
+      ],
+      "meshCount": 65,
+      "path": "client-3d/public/assets/world-items/bank_terminal_civic.glb",
+      "pinnedSha256": "eb825f81370b014660499bcb7fc67480895b3734683ba6647234203b996c2151",
+      "renderPaths": {
+        "close": "renders/bank_terminal_civic_close.png",
+        "normal": "renders/bank_terminal_civic_normal.png"
+      },
+      "sha256": "eb825f81370b014660499bcb7fc67480895b3734683ba6647234203b996c2151",
+      "sizeBytes": 1034480,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/bank_terminal_civic.glb",
+      "spans": {
+        "x": 1.0080000162124634,
+        "y": 0.6784999966621399,
+        "z": 1.649999976158142
+      },
+      "triangles": 6072,
+      "uvLayers": {
+        "back__access_door": [
+          "UVMap"
+        ],
+        "back__cable_junction": [
+          "UVMap"
+        ],
+        "back__cable_riser": [
+          "UVMap"
+        ],
+        "back__door_frame": [
+          "UVMap"
+        ],
+        "back__frame_screws": [
+          "UVMap"
+        ],
+        "back__head_louvers": [
+          "UVMap"
+        ],
+        "back__hinge_barrels": [
+          "UVMap"
+        ],
+        "back__hinge_knuckles": [
+          "UVMap"
+        ],
+        "back__junction_bolts": [
+          "UVMap"
+        ],
+        "back__junction_gland": [
+          "UVMap"
+        ],
+        "back__latch_handle": [
+          "UVMap"
+        ],
+        "back__latch_keeper": [
+          "UVMap"
+        ],
+        "back__port_collars": [
+          "UVMap"
+        ],
+        "back__port_plate": [
+          "UVMap"
+        ],
+        "back__port_plug": [
+          "UVMap"
+        ],
+        "back__riser_clips": [
+          "UVMap"
+        ],
+        "back__service_cable": [
+          "UVMap"
+        ],
+        "back__socket_cavities": [
+          "UVMap"
+        ],
+        "base__anchor_studs": [
+          "UVMap"
+        ],
+        "base__ground_gasket": [
+          "UVMap"
+        ],
+        "base__kick_reveal": [
+          "UVMap"
+        ],
+        "base__plinth": [
+          "UVMap"
+        ],
+        "body__brass_straps": [
+          "UVMap"
+        ],
+        "body__column": [
+          "UVMap"
+        ],
+        "body__front_apron": [
+          "UVMap"
+        ],
+        "body__side_panels": [
+          "UVMap"
+        ],
+        "body__side_reveals": [
+          "UVMap"
+        ],
+        "body__side_screws": [
+          "UVMap"
+        ],
+        "body__strap_bolts": [
+          "UVMap"
+        ],
+        "cred__accept_key": [
+          "UVMap"
+        ],
+        "cred__cancel_key": [
+          "UVMap"
+        ],
+        "cred__card_mouth": [
+          "UVMap"
+        ],
+        "cred__inserted_card": [
+          "UVMap"
+        ],
+        "cred__key_icons": [
+          "UVMap"
+        ],
+        "cred__keypad": [
+          "UVMap"
+        ],
+        "cred__pad": [
+          "UVMap"
+        ],
+        "cred__palm_glass": [
+          "UVMap"
+        ],
+        "cred__palm_pocket": [
+          "UVMap"
+        ],
+        "cred__pedestal": [
+          "UVMap"
+        ],
+        "cred__pictogram_marks": [
+          "UVMap"
+        ],
+        "cred__pictogram_plates": [
+          "UVMap"
+        ],
+        "deposit__bezel": [
+          "UVMap"
+        ],
+        "deposit__feed_lip": [
+          "UVMap"
+        ],
+        "deposit__rollers": [
+          "UVMap"
+        ],
+        "deposit__screws": [
+          "UVMap"
+        ],
+        "deposit__sensor_pips": [
+          "UVMap"
+        ],
+        "deposit__slit_glow": [
+          "UVMap"
+        ],
+        "deposit__throat_hood": [
+          "UVMap"
+        ],
+        "head__brow_cap": [
+          "UVMap"
+        ],
+        "head__cheek_liners": [
+          "UVMap"
+        ],
+        "head__lamp_bezel": [
+          "UVMap"
+        ],
+        "head__ledger_screen": [
+          "UVMap"
+        ],
+        "head__neck_collar": [
+          "UVMap"
+        ],
+        "head__privacy_hood": [
+          "UVMap"
+        ],
+        "head__screen_bezel": [
+          "UVMap"
+        ],
+        "head__screen_glass": [
+          "UVMap"
+        ],
+        "head__side_louvers": [
+          "UVMap"
+        ],
+        "head__status_glow": [
+          "UVMap"
+        ],
+        "vault__chamber": [
+          "UVMap"
+        ],
+        "vault__collar": [
+          "UVMap"
+        ],
+        "vault__collar_engraving": [
+          "UVMap"
+        ],
+        "vault__dog_bolts": [
+          "UVMap"
+        ],
+        "vault__hub_spokes": [
+          "UVMap"
+        ],
+        "vault__iris_blades": [
+          "UVMap"
+        ],
+        "vault__seal_glow": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.824999988079071
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.5789999961853027,
+          0.36000001430511475,
+          1.350000023841858
+        ],
+        "min": [
+          -0.5789999961853027,
+          -0.36500000953674316,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "trade_terminal",
+      "images": [
+        "commerce_basalt_basecolor",
+        "commerce_basalt_mr",
+        "commerce_basalt_normal",
+        "commerce_brass_basecolor",
+        "commerce_brass_mr",
+        "commerce_brass_normal",
+        "commerce_ceramic_basecolor",
+        "commerce_ceramic_mr",
+        "commerce_ceramic_normal",
+        "commerce_ink_basecolor",
+        "commerce_ink_mr",
+        "commerce_ink_normal",
+        "commerce_screen_trade_emissive",
+        "commerce_steel_basecolor",
+        "commerce_steel_mr",
+        "commerce_steel_normal"
+      ],
+      "materials": [
+        "CM_Basalt",
+        "CM_Brass",
+        "CM_Ceramic",
+        "CM_GlowAmber",
+        "CM_GlowCyan",
+        "CM_Ink",
+        "CM_ScreenTrade",
+        "CM_Steel",
+        "CM_TealGlass"
+      ],
+      "meshCount": 59,
+      "path": "client-3d/public/assets/world-items/trade_terminal.glb",
+      "pinnedSha256": "90a2602192261b3e5f14cc738c49d240ae44776166acf1779239527d23179805",
+      "renderPaths": {
+        "close": "renders/trade_terminal_close.png",
+        "normal": "renders/trade_terminal_normal.png"
+      },
+      "sha256": "90a2602192261b3e5f14cc738c49d240ae44776166acf1779239527d23179805",
+      "sizeBytes": 955232,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/trade_terminal.glb",
+      "spans": {
+        "x": 1.1579999923706055,
+        "y": 0.7250000238418579,
+        "z": 1.350000023841858
+      },
+      "triangles": 5176,
+      "uvLayers": {
+        "back__cable_coupling": [
+          "UVMap"
+        ],
+        "back__conduit": [
+          "UVMap"
+        ],
+        "back__conduit_clips": [
+          "UVMap"
+        ],
+        "back__louvers": [
+          "UVMap"
+        ],
+        "back__port_collars": [
+          "UVMap"
+        ],
+        "back__port_plate": [
+          "UVMap"
+        ],
+        "back__port_plug": [
+          "UVMap"
+        ],
+        "back__service_cable": [
+          "UVMap"
+        ],
+        "back__socket_cavities": [
+          "UVMap"
+        ],
+        "base__ground_gasket": [
+          "UVMap"
+        ],
+        "base__kick_reveal": [
+          "UVMap"
+        ],
+        "base__plinth": [
+          "UVMap"
+        ],
+        "body__corner_posts": [
+          "UVMap"
+        ],
+        "body__counter": [
+          "UVMap"
+        ],
+        "body__counter_top": [
+          "UVMap"
+        ],
+        "body__front_panels": [
+          "UVMap"
+        ],
+        "body__panel_screws": [
+          "UVMap"
+        ],
+        "body__top_trim": [
+          "UVMap"
+        ],
+        "hopper__door": [
+          "UVMap"
+        ],
+        "hopper__frame": [
+          "UVMap"
+        ],
+        "hopper__frame_screws": [
+          "UVMap"
+        ],
+        "hopper__hinges": [
+          "UVMap"
+        ],
+        "hopper__latch": [
+          "UVMap"
+        ],
+        "hopper__latch_keeper": [
+          "UVMap"
+        ],
+        "mast__bezel_step": [
+          "UVMap"
+        ],
+        "mast__body": [
+          "UVMap"
+        ],
+        "mast__cable": [
+          "UVMap"
+        ],
+        "mast__screen_bezel": [
+          "UVMap"
+        ],
+        "mast__screen_glass": [
+          "UVMap"
+        ],
+        "mast__status_glow": [
+          "UVMap"
+        ],
+        "mast__trade_screen": [
+          "UVMap"
+        ],
+        "rail__beam": [
+          "UVMap"
+        ],
+        "rail__brackets": [
+          "UVMap"
+        ],
+        "rail__weights": [
+          "UVMap"
+        ],
+        "receipt__module": [
+          "UVMap"
+        ],
+        "receipt__mouth": [
+          "UVMap"
+        ],
+        "receipt__paper_path": [
+          "UVMap"
+        ],
+        "receipt__slit_glow": [
+          "UVMap"
+        ],
+        "receipt__slot_roller_caps": [
+          "UVMap"
+        ],
+        "receipt__top_slot": [
+          "UVMap"
+        ],
+        "scale__buttons": [
+          "UVMap"
+        ],
+        "scale__cage_damper": [
+          "UVMap"
+        ],
+        "scale__collar": [
+          "UVMap"
+        ],
+        "scale__platen": [
+          "UVMap"
+        ],
+        "scale__platen_rim": [
+          "UVMap"
+        ],
+        "scale__readout_glow": [
+          "UVMap"
+        ],
+        "scale__readout_hood": [
+          "UVMap"
+        ],
+        "scale__spring": [
+          "UVMap"
+        ],
+        "scan__aperture_glow": [
+          "UVMap"
+        ],
+        "scan__carriage": [
+          "UVMap"
+        ],
+        "scan__carriage_lens": [
+          "UVMap"
+        ],
+        "scan__corner_brackets": [
+          "UVMap"
+        ],
+        "scan__glass": [
+          "UVMap"
+        ],
+        "scan__rails": [
+          "UVMap"
+        ],
+        "scan__rim_slopes": [
+          "UVMap"
+        ],
+        "scan__tray": [
+          "UVMap"
+        ],
+        "scan__underglow": [
+          "UVMap"
+        ],
+        "tray__body": [
+          "UVMap"
+        ],
+        "tray__coins": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.675000011920929
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.5289999842643738,
+          0.32899999618530273,
+          1.75
+        ],
+        "min": [
+          -0.5289999842643738,
+          -0.32899999618530273,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "pa_terminal",
+      "images": [
+        "commerce_basalt_basecolor",
+        "commerce_basalt_mr",
+        "commerce_basalt_normal",
+        "commerce_brass_basecolor",
+        "commerce_brass_mr",
+        "commerce_brass_normal",
+        "commerce_ceramic_basecolor",
+        "commerce_ceramic_mr",
+        "commerce_ceramic_normal",
+        "commerce_ink_basecolor",
+        "commerce_ink_mr",
+        "commerce_ink_normal",
+        "commerce_screen_pa_emissive",
+        "commerce_steel_basecolor",
+        "commerce_steel_mr",
+        "commerce_steel_normal"
+      ],
+      "materials": [
+        "CM_Basalt",
+        "CM_Brass",
+        "CM_Ceramic",
+        "CM_GlowAmber",
+        "CM_GlowCyan",
+        "CM_Ink",
+        "CM_ScreenPA",
+        "CM_Steel",
+        "CM_TealGlass"
+      ],
+      "meshCount": 48,
+      "path": "client-3d/public/assets/world-items/pa_terminal.glb",
+      "pinnedSha256": "237c21c6284b7f6617ae4bc7fbff3e8230888064a6bf5f240c3389abce15086a",
+      "renderPaths": {
+        "close": "renders/pa_terminal_close.png",
+        "normal": "renders/pa_terminal_normal.png"
+      },
+      "sha256": "237c21c6284b7f6617ae4bc7fbff3e8230888064a6bf5f240c3389abce15086a",
+      "sizeBytes": 939596,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/pa_terminal.glb",
+      "spans": {
+        "x": 1.0579999685287476,
+        "y": 0.6579999923706055,
+        "z": 1.75
+      },
+      "triangles": 4608,
+      "uvLayers": {
+        "back__access_hatch": [
+          "UVMap"
+        ],
+        "back__cable_gland": [
+          "UVMap"
+        ],
+        "back__conduit": [
+          "UVMap"
+        ],
+        "back__conduit_clips": [
+          "UVMap"
+        ],
+        "back__louvers": [
+          "UVMap"
+        ],
+        "back__notice_frame": [
+          "UVMap"
+        ],
+        "back__notice_panel": [
+          "UVMap"
+        ],
+        "back__panel_bolts": [
+          "UVMap"
+        ],
+        "back__panel_latch_tabs": [
+          "UVMap"
+        ],
+        "back__port_collars": [
+          "UVMap"
+        ],
+        "back__port_plate": [
+          "UVMap"
+        ],
+        "back__port_plug": [
+          "UVMap"
+        ],
+        "back__rivets": [
+          "UVMap"
+        ],
+        "back__service_cable": [
+          "UVMap"
+        ],
+        "back__socket_cavities": [
+          "UVMap"
+        ],
+        "base__anchor_studs": [
+          "UVMap"
+        ],
+        "base__feet": [
+          "UVMap"
+        ],
+        "base__ground_gasket": [
+          "UVMap"
+        ],
+        "base__toe_reveals": [
+          "UVMap"
+        ],
+        "body__beacon_cove": [
+          "UVMap"
+        ],
+        "body__cornice": [
+          "UVMap"
+        ],
+        "body__crown_beacon": [
+          "UVMap"
+        ],
+        "body__pilaster_caps": [
+          "UVMap"
+        ],
+        "body__pilaster_reveals": [
+          "UVMap"
+        ],
+        "body__pilasters": [
+          "UVMap"
+        ],
+        "body__pylon_slab": [
+          "UVMap"
+        ],
+        "podium__disc_inlay": [
+          "UVMap"
+        ],
+        "podium__dot_bezels": [
+          "UVMap"
+        ],
+        "podium__side_brackets": [
+          "UVMap"
+        ],
+        "podium__status_dots": [
+          "UVMap"
+        ],
+        "podium__tap_disc": [
+          "UVMap"
+        ],
+        "podium__tap_slit": [
+          "UVMap"
+        ],
+        "podium__top": [
+          "UVMap"
+        ],
+        "podium__tray": [
+          "UVMap"
+        ],
+        "podium__wedge": [
+          "UVMap"
+        ],
+        "screen__bezel": [
+          "UVMap"
+        ],
+        "screen__bezel_screws": [
+          "UVMap"
+        ],
+        "screen__call_key": [
+          "UVMap"
+        ],
+        "screen__directory": [
+          "UVMap"
+        ],
+        "screen__glass": [
+          "UVMap"
+        ],
+        "screen__inner_frame": [
+          "UVMap"
+        ],
+        "screen__side_keys": [
+          "UVMap"
+        ],
+        "screen__speaker_louvers": [
+          "UVMap"
+        ],
+        "seal__backplate": [
+          "UVMap"
+        ],
+        "seal__brass": [
+          "UVMap"
+        ],
+        "seal__halo": [
+          "UVMap"
+        ],
+        "seal__socket": [
+          "UVMap"
+        ],
+        "seal__studs": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.875
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.38999998569488525,
+          0.0,
+          0.23999999463558197
+        ],
+        "min": [
+          -0.4359999895095825,
+          -1.5810000896453857,
+          -0.3649999797344208
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "travel_terminal_grok_wedge",
+      "images": [
+        "terminal_basecolor",
+        "terminal_emissive",
+        "terminal_normal",
+        "terminal_orm"
+      ],
+      "materials": [
+        "Terminal_PBR"
+      ],
+      "meshCount": 6,
+      "path": "client-3d/public/assets/world-items/travel_terminal_grok_wedge.glb",
+      "pinnedSha256": "a26cc0591111b5456c1ac6822d35f9b5895171cf8c036d792b62643788cbad2a",
+      "renderPaths": {
+        "close": "renders/travel_terminal_grok_wedge_close.png",
+        "normal": "renders/travel_terminal_grok_wedge_normal.png"
+      },
+      "sha256": "a26cc0591111b5456c1ac6822d35f9b5895171cf8c036d792b62643788cbad2a",
+      "sizeBytes": 10862804,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.0,
+            -1.2200000286102295,
+            -0.22200000286102295
+          ],
+          "name": "Socket_screen_center"
+        },
+        {
+          "localTranslation": [
+            0.0,
+            0.0,
+            -0.6499999761581421
+          ],
+          "name": "Socket_use"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/travel_terminal_grok_wedge.glb",
+      "spans": {
+        "x": 0.8259999752044678,
+        "y": 1.5810000896453857,
+        "z": 0.6049999743700027
+      },
+      "triangles": 2948,
+      "uvLayers": {
+        "Module_base": [
+          "UVMap"
+        ],
+        "Module_column": [
+          "UVMap"
+        ],
+        "Module_conduit": [
+          "UVMap"
+        ],
+        "Module_controls": [
+          "UVMap"
+        ],
+        "Module_head": [
+          "UVMap"
+        ],
+        "Module_screen": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": -0.023000001907348633,
+        "z": -0.0624999925494194
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.5,
+          0.28700003027915955,
+          0.5220000147819519
+        ],
+        "min": [
+          -0.5,
+          -0.2929999828338623,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "footlocker_frontier",
+      "images": [
+        "footlocker_frontier_basecolor",
+        "footlocker_frontier_emissive",
+        "footlocker_frontier_normal",
+        "footlocker_frontier_orm"
+      ],
+      "materials": [
+        "FootlockerFrontier_PBR"
+      ],
+      "meshCount": 1,
+      "path": "client-3d/public/assets/world-items/footlocker_frontier.glb",
+      "pinnedSha256": "f8bbc53ff96b0020466da861e6cdce2ac43090db6384d14e8656fa83a71e75ad",
+      "renderPaths": {
+        "close": "renders/footlocker_frontier_close.png",
+        "normal": "renders/footlocker_frontier_normal.png"
+      },
+      "sha256": "f8bbc53ff96b0020466da861e6cdce2ac43090db6384d14e8656fa83a71e75ad",
+      "sizeBytes": 3178584,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/footlocker_frontier.glb",
+      "spans": {
+        "x": 1.0,
+        "y": 0.5800000131130219,
+        "z": 0.5220000147819519
+      },
+      "triangles": 436,
+      "uvLayers": {
+        "footlocker_frontier": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.26100000739097595
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.9359999895095825,
+          0.9359999895095825,
+          2.237300157546997
+        ],
+        "min": [
+          -0.9359999895095825,
+          -0.9359999895095825,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "water_tank_frontier",
+      "images": [
+        "successor_extraction_petrochemical_tank_medium_accent_col",
+        "successor_extraction_petrochemical_tank_medium_accent_nrm",
+        "successor_extraction_petrochemical_tank_medium_accent_rgh",
+        "successor_extraction_petrochemical_tank_medium_dark_col",
+        "successor_extraction_petrochemical_tank_medium_dark_nrm",
+        "successor_extraction_petrochemical_tank_medium_dark_rgh",
+        "successor_extraction_petrochemical_tank_medium_frame_col",
+        "successor_extraction_petrochemical_tank_medium_frame_nrm",
+        "successor_extraction_petrochemical_tank_medium_frame_rgh",
+        "successor_extraction_petrochemical_tank_medium_guard_col",
+        "successor_extraction_petrochemical_tank_medium_guard_nrm",
+        "successor_extraction_petrochemical_tank_medium_guard_rgh",
+        "successor_extraction_petrochemical_tank_medium_hose_col",
+        "successor_extraction_petrochemical_tank_medium_hose_nrm",
+        "successor_extraction_petrochemical_tank_medium_hose_rgh",
+        "successor_extraction_petrochemical_tank_medium_walkway_col",
+        "successor_extraction_petrochemical_tank_medium_walkway_nrm",
+        "successor_extraction_petrochemical_tank_medium_walkway_rgh"
+      ],
+      "materials": [
+        "successor_extraction_petrochemical_tank_medium_accent",
+        "successor_extraction_petrochemical_tank_medium_dark",
+        "successor_extraction_petrochemical_tank_medium_frame",
+        "successor_extraction_petrochemical_tank_medium_guard",
+        "successor_extraction_petrochemical_tank_medium_hose",
+        "successor_extraction_petrochemical_tank_medium_walkway"
+      ],
+      "meshCount": 6,
+      "path": "client-3d/public/assets/world-items/tank_water_frontier.glb",
+      "pinnedSha256": "0878cfb8e4786a61abd551ead78aac370aaa3ed3e32fa0273d38269c96912bc7",
+      "renderPaths": {
+        "close": "renders/water_tank_frontier_close.png",
+        "normal": "renders/water_tank_frontier_normal.png"
+      },
+      "sha256": "0878cfb8e4786a61abd551ead78aac370aaa3ed3e32fa0273d38269c96912bc7",
+      "sizeBytes": 368964,
+      "sockets": [
+        {
+          "localTranslation": [
+            0.0,
+            -0.6299999952316284,
+            0.6047999858856201
+          ],
+          "name": "Socket_Socket_maintenance"
+        },
+        {
+          "localTranslation": [
+            0.6299999952316284,
+            -0.15000000596046448,
+            0.3456000089645386
+          ],
+          "name": "Socket_Socket_output"
+        },
+        {
+          "localTranslation": [
+            -0.8190000057220459,
+            -0.6299999952316284,
+            0.12960000336170197
+          ],
+          "name": "Socket_Socket_power"
+        }
+      ],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/tank_water_frontier.glb",
+      "spans": {
+        "x": 1.871999979019165,
+        "y": 1.871999979019165,
+        "z": 2.237300157546997
+      },
+      "triangles": 3016,
+      "uvLayers": {
+        "successor_extraction_petrochemical_tank_medium_accent_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_tank_medium_dark_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_tank_medium_frame_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_tank_medium_guard_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_tank_medium_hose_geo": [
+          "UVMap"
+        ],
+        "successor_extraction_petrochemical_tank_medium_walkway_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 1.1186500787734985
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.3100000023841858,
+          0.07999999821186066,
+          0.8259999752044678
+        ],
+        "min": [
+          -0.3100000023841858,
+          -0.11999999731779099,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "battery_pack_industrial",
+      "images": [
+        "infra_041_blade_metal_basecolor",
+        "infra_041_blade_metal_met-infra_041_blade_metal_rgh",
+        "infra_041_error_led_basecolor",
+        "infra_041_error_led_met-infra_041_error_led_rgh",
+        "infra_041_pdu_plastic_basecolor",
+        "infra_041_pdu_plastic_met-infra_041_pdu_plastic_rgh",
+        "infra_041_rack_metal_basecolor",
+        "infra_041_rack_metal_met-infra_041_rack_metal_rgh",
+        "infra_041_serial_plate_basecolor",
+        "infra_041_serial_plate_met-infra_041_serial_plate_rgh",
+        "infra_041_status_led_basecolor",
+        "infra_041_status_led_met-infra_041_status_led_rgh"
+      ],
+      "materials": [
+        "infra_041_blade_metal",
+        "infra_041_error_led",
+        "infra_041_pdu_plastic",
+        "infra_041_rack_metal",
+        "infra_041_serial_plate",
+        "infra_041_status_led"
+      ],
+      "meshCount": 6,
+      "path": "client-3d/public/assets/world-items/battery_pack_industrial.glb",
+      "pinnedSha256": "8cf786cc80df647fd3617749636d41edf76fc8ca736be6f02f1d54bf13c195f3",
+      "renderPaths": {
+        "close": "renders/battery_pack_industrial_close.png",
+        "normal": "renders/battery_pack_industrial_normal.png"
+      },
+      "sha256": "8cf786cc80df647fd3617749636d41edf76fc8ca736be6f02f1d54bf13c195f3",
+      "sizeBytes": 319252,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/battery_pack_industrial.glb",
+      "spans": {
+        "x": 0.6200000047683716,
+        "y": 0.19999999552965164,
+        "z": 0.8259999752044678
+      },
+      "triangles": 4652,
+      "uvLayers": {
+        "infra_041_blade_metal_geo": [
+          "UVMap"
+        ],
+        "infra_041_error_led_geo": [
+          "UVMap"
+        ],
+        "infra_041_pdu_plastic_geo": [
+          "UVMap"
+        ],
+        "infra_041_rack_metal_geo": [
+          "UVMap"
+        ],
+        "infra_041_serial_plate_geo": [
+          "UVMap"
+        ],
+        "infra_041_status_led_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.4129999876022339
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.33900001645088196,
+          0.2719999849796295,
+          0.9300000071525574
+        ],
+        "min": [
+          -0.33900001645088196,
+          -0.6980000138282776,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "workbench_field",
+      "images": [],
+      "materials": [
+        "prp_rivet_heat_tool_accent",
+        "prp_rivet_heat_tool_body_metal",
+        "prp_rivet_heat_tool_emissive_core",
+        "prp_rivet_heat_tool_panel_alloy",
+        "prp_rivet_heat_tool_recess_dark"
+      ],
+      "meshCount": 5,
+      "path": "client-3d/public/assets/world-items/bench_welder.glb",
+      "pinnedSha256": "1ce0aee01369be20cc83a7975dd9f78e5d537e566b920a6fe0eb51c0ed5d27b8",
+      "renderPaths": {
+        "close": "renders/workbench_field_close.png",
+        "normal": "renders/workbench_field_normal.png"
+      },
+      "sha256": "1ce0aee01369be20cc83a7975dd9f78e5d537e566b920a6fe0eb51c0ed5d27b8",
+      "sizeBytes": 296636,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/bench_welder.glb",
+      "spans": {
+        "x": 0.6780000329017639,
+        "y": 0.9699999988079071,
+        "z": 0.9300000071525574
+      },
+      "triangles": 9152,
+      "uvLayers": {
+        "prp_rivet_heat_tool_accent_geo": [],
+        "prp_rivet_heat_tool_body_metal_geo": [],
+        "prp_rivet_heat_tool_emissive_core_geo": [],
+        "prp_rivet_heat_tool_panel_alloy_geo": [],
+        "prp_rivet_heat_tool_recess_dark_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.4650000035762787
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.1899999976158142,
+          0.14399999380111694,
+          0.25
+        ],
+        "min": [
+          -0.1899999976158142,
+          -0.14000000059604645,
+          3.725290298461914e-09
+        ]
+      },
+      "groundContactY": false,
+      "group": "promoted",
+      "id": "crate_cargo_heavy",
+      "images": [],
+      "materials": [
+        "evd_wooden_crate_open_accent",
+        "evd_wooden_crate_open_metal",
+        "evd_wooden_crate_open_wood"
+      ],
+      "meshCount": 3,
+      "path": "client-3d/public/assets/world-items/crate_cargo_heavy.glb",
+      "pinnedSha256": "90eabc45f3ad80badc987c762c7b63cf180a0b06917bbc64a346ae61441a419e",
+      "renderPaths": {
+        "close": "renders/crate_cargo_heavy_close.png",
+        "normal": "renders/crate_cargo_heavy_normal.png"
+      },
+      "sha256": "90eabc45f3ad80badc987c762c7b63cf180a0b06917bbc64a346ae61441a419e",
+      "sizeBytes": 41672,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/crate_cargo_heavy.glb",
+      "spans": {
+        "x": 0.3799999952316284,
+        "y": 0.2839999943971634,
+        "z": 0.2499999962747097
+      },
+      "triangles": 1416,
+      "uvLayers": {
+        "evd_wooden_crate_open_accent_geo": [],
+        "evd_wooden_crate_open_metal_geo": [],
+        "evd_wooden_crate_open_wood_geo": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.12500000186264515
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.43299999833106995,
+          0.28300002217292786,
+          1.7000000476837158
+        ],
+        "min": [
+          -0.43299999833106995,
+          -0.35187265276908875,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "infrastructure",
+      "id": "infra_001",
+      "images": [
+        "infra_001_blade_metal_basecolor",
+        "infra_001_blade_metal_met-infra_001_blade_metal_rgh",
+        "infra_001_error_led_basecolor",
+        "infra_001_error_led_met-infra_001_error_led_rgh",
+        "infra_001_pdu_plastic_basecolor",
+        "infra_001_pdu_plastic_met-infra_001_pdu_plastic_rgh",
+        "infra_001_rack_metal_basecolor",
+        "infra_001_rack_metal_met-infra_001_rack_metal_rgh",
+        "infra_001_serial_plate_basecolor",
+        "infra_001_serial_plate_met-infra_001_serial_plate_rgh",
+        "infra_001_status_led_basecolor",
+        "infra_001_status_led_met-infra_001_status_led_rgh"
+      ],
+      "materials": [
+        "infra_001_blade_metal",
+        "infra_001_error_led",
+        "infra_001_pdu_plastic",
+        "infra_001_rack_metal",
+        "infra_001_serial_plate",
+        "infra_001_status_led"
+      ],
+      "meshCount": 6,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/infra_001.glb",
+      "pinnedSha256": "27a0072779c7fc7ec20bfdb1f9f292606f8e329e0f63b741b5eda4d28551b931",
+      "renderPaths": {
+        "close": "renders/infra_001_close.png",
+        "normal": "renders/infra_001_normal.png"
+      },
+      "sha256": "27a0072779c7fc7ec20bfdb1f9f292606f8e329e0f63b741b5eda4d28551b931",
+      "sizeBytes": 701020,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/infra_001.glb",
+      "spans": {
+        "x": 0.8659999966621399,
+        "y": 0.6348726749420166,
+        "z": 1.7000000476837158
+      },
+      "triangles": 13920,
+      "uvLayers": {
+        "infra_001_blade_metal_geo": [
+          "UVMap"
+        ],
+        "infra_001_error_led_geo": [
+          "UVMap"
+        ],
+        "infra_001_pdu_plastic_geo": [
+          "UVMap"
+        ],
+        "infra_001_rack_metal_geo": [
+          "UVMap"
+        ],
+        "infra_001_serial_plate_geo": [
+          "UVMap"
+        ],
+        "infra_001_status_led_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.8500000238418579
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.42500001192092896,
+          0.2750000059604645,
+          1.7000000476837158
+        ],
+        "min": [
+          -0.42500001192092896,
+          -0.2837333381175995,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "infrastructure",
+      "id": "infra_021",
+      "images": [
+        "infra_021_blade_metal_basecolor",
+        "infra_021_blade_metal_met-infra_021_blade_metal_rgh",
+        "infra_021_pdu_plastic_basecolor",
+        "infra_021_pdu_plastic_met-infra_021_pdu_plastic_rgh",
+        "infra_021_rack_metal_basecolor",
+        "infra_021_rack_metal_met-infra_021_rack_metal_rgh",
+        "infra_021_serial_plate_basecolor",
+        "infra_021_serial_plate_met-infra_021_serial_plate_rgh",
+        "infra_021_status_led_basecolor",
+        "infra_021_status_led_met-infra_021_status_led_rgh"
+      ],
+      "materials": [
+        "infra_021_blade_metal",
+        "infra_021_pdu_plastic",
+        "infra_021_rack_metal",
+        "infra_021_serial_plate",
+        "infra_021_status_led"
+      ],
+      "meshCount": 5,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/infra_021.glb",
+      "pinnedSha256": "f5be4cdfee0c0daf1b0b64293065fefc796a378a15babd729cfcdd3152d550e1",
+      "renderPaths": {
+        "close": "renders/infra_021_close.png",
+        "normal": "renders/infra_021_normal.png"
+      },
+      "sha256": "f5be4cdfee0c0daf1b0b64293065fefc796a378a15babd729cfcdd3152d550e1",
+      "sizeBytes": 598292,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/infra_021.glb",
+      "spans": {
+        "x": 0.8500000238418579,
+        "y": 0.558733344078064,
+        "z": 1.7000000476837158
+      },
+      "triangles": 10404,
+      "uvLayers": {
+        "infra_021_blade_metal_geo": [
+          "UVMap"
+        ],
+        "infra_021_pdu_plastic_geo": [
+          "UVMap"
+        ],
+        "infra_021_rack_metal_geo": [
+          "UVMap"
+        ],
+        "infra_021_serial_plate_geo": [
+          "UVMap"
+        ],
+        "infra_021_status_led_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.8500000238418579
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.3645000159740448,
+          0.2150000035762787,
+          0.3812825381755829
+        ],
+        "min": [
+          -0.304999977350235,
+          -0.2329999953508377,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "infrastructure",
+      "id": "infra_121",
+      "images": [
+        "infra_121_blade_metal_basecolor",
+        "infra_121_blade_metal_met-infra_121_blade_metal_rgh",
+        "infra_121_pdu_plastic_basecolor",
+        "infra_121_pdu_plastic_met-infra_121_pdu_plastic_rgh",
+        "infra_121_rack_metal_basecolor",
+        "infra_121_rack_metal_met-infra_121_rack_metal_rgh",
+        "infra_121_serial_plate_basecolor",
+        "infra_121_serial_plate_met-infra_121_serial_plate_rgh",
+        "infra_121_status_led_basecolor",
+        "infra_121_status_led_met-infra_121_status_led_rgh"
+      ],
+      "materials": [
+        "infra_121_blade_metal",
+        "infra_121_pdu_plastic",
+        "infra_121_rack_metal",
+        "infra_121_serial_plate",
+        "infra_121_status_led"
+      ],
+      "meshCount": 5,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/infra_121.glb",
+      "pinnedSha256": "b841f47d33d4d37e851f79cc2dc46341c391ad6be826dd839b125be60f6fed06",
+      "renderPaths": {
+        "close": "renders/infra_121_close.png",
+        "normal": "renders/infra_121_normal.png"
+      },
+      "sha256": "b841f47d33d4d37e851f79cc2dc46341c391ad6be826dd839b125be60f6fed06",
+      "sizeBytes": 228380,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/infra_121.glb",
+      "spans": {
+        "x": 0.6694999933242798,
+        "y": 0.4479999989271164,
+        "z": 0.3812825381755829
+      },
+      "triangles": 2600,
+      "uvLayers": {
+        "infra_121_blade_metal_geo": [
+          "UVMap"
+        ],
+        "infra_121_pdu_plastic_geo": [
+          "UVMap"
+        ],
+        "infra_121_rack_metal_geo": [
+          "UVMap"
+        ],
+        "infra_121_serial_plate_geo": [
+          "UVMap"
+        ],
+        "infra_121_status_led_geo": [
+          "UVMap"
+        ]
+      },
+      "xzCenterOffset": {
+        "x": 0.029750019311904907,
+        "z": 0.19064126908779144
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.5749999284744263,
+          0.4150000214576721,
+          0.8700000047683716
+        ],
+        "min": [
+          -0.574999988079071,
+          -0.2750000059604645,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "everyday",
+      "id": "successor_everyday_workbench",
+      "images": [],
+      "materials": [
+        "evd_workbench_metal",
+        "evd_workbench_wood"
+      ],
+      "meshCount": 2,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_everyday_workbench.glb",
+      "pinnedSha256": "94db62185dedae59c4196b07fa9269237e45f811b1a229220537a94d538db89c",
+      "renderPaths": {
+        "close": "renders/successor_everyday_workbench_close.png",
+        "normal": "renders/successor_everyday_workbench_normal.png"
+      },
+      "sha256": "94db62185dedae59c4196b07fa9269237e45f811b1a229220537a94d538db89c",
+      "sizeBytes": 30252,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_everyday_workbench.glb",
+      "spans": {
+        "x": 1.1499999165534973,
+        "y": 0.6900000274181366,
+        "z": 0.8700000047683716
+      },
+      "triangles": 1008,
+      "uvLayers": {
+        "evd_workbench_metal_geo": [],
+        "evd_workbench_wood_geo": []
+      },
+      "xzCenterOffset": {
+        "x": -2.9802322387695312e-08,
+        "z": 0.4350000023841858
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.4049999713897705,
+          0.1599999964237213,
+          1.350000023841858
+        ],
+        "min": [
+          -0.4049999713897705,
+          -0.1599999964237213,
+          1.4901161193847656e-08
+        ]
+      },
+      "groundContactY": false,
+      "group": "everyday",
+      "id": "successor_everyday_shelf_unit",
+      "images": [],
+      "materials": [
+        "evd_shelf_unit_accent",
+        "evd_shelf_unit_wood"
+      ],
+      "meshCount": 2,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_everyday_shelf_unit.glb",
+      "pinnedSha256": "7af8a4cf5322c46818317b6fae6de4a9d56ba333b5575a7a591f10b06c237f6c",
+      "renderPaths": {
+        "close": "renders/successor_everyday_shelf_unit_close.png",
+        "normal": "renders/successor_everyday_shelf_unit_normal.png"
+      },
+      "sha256": "7af8a4cf5322c46818317b6fae6de4a9d56ba333b5575a7a591f10b06c237f6c",
+      "sizeBytes": 34536,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_everyday_shelf_unit.glb",
+      "spans": {
+        "x": 0.809999942779541,
+        "y": 0.3199999928474426,
+        "z": 1.3500000089406967
+      },
+      "triangles": 1188,
+      "uvLayers": {
+        "evd_shelf_unit_accent_geo": [],
+        "evd_shelf_unit_wood_geo": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.6750000193715096
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.30160000920295715,
+          0.19760845601558685,
+          0.31679999828338623
+        ],
+        "min": [
+          -0.30160000920295715,
+          -0.19760845601558685,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "everyday",
+      "id": "successor_everyday_chest_trunk",
+      "images": [],
+      "materials": [
+        "evd_chest_trunk_accent",
+        "evd_chest_trunk_metal",
+        "evd_chest_trunk_wood"
+      ],
+      "meshCount": 3,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_everyday_chest_trunk.glb",
+      "pinnedSha256": "b8a591a39eab9b98ec66e33b15fe7005c555f9e73135b6d9660f6ab5f959d9e5",
+      "renderPaths": {
+        "close": "renders/successor_everyday_chest_trunk_close.png",
+        "normal": "renders/successor_everyday_chest_trunk_normal.png"
+      },
+      "sha256": "b8a591a39eab9b98ec66e33b15fe7005c555f9e73135b6d9660f6ab5f959d9e5",
+      "sizeBytes": 56916,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_everyday_chest_trunk.glb",
+      "spans": {
+        "x": 0.6032000184059143,
+        "y": 0.3952169120311737,
+        "z": 0.31679999828338623
+      },
+      "triangles": 1932,
+      "uvLayers": {
+        "evd_chest_trunk_accent_geo": [],
+        "evd_chest_trunk_metal_geo": [],
+        "evd_chest_trunk_wood_geo": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.15839999914169312
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.12600000202655792,
+          0.30000001192092896,
+          0.26350000500679016
+        ],
+        "min": [
+          -0.12600000202655792,
+          -0.33000001311302185,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "everyday",
+      "id": "successor_everyday_bedroll",
+      "images": [],
+      "materials": [
+        "evd_bedroll_accent",
+        "evd_bedroll_fabric",
+        "evd_bedroll_metal"
+      ],
+      "meshCount": 3,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_everyday_bedroll.glb",
+      "pinnedSha256": "764c4fe2684696792a78eff39f1155b52e809bc4bdcb9ee1b5530700f099768d",
+      "renderPaths": {
+        "close": "renders/successor_everyday_bedroll_close.png",
+        "normal": "renders/successor_everyday_bedroll_normal.png"
+      },
+      "sha256": "764c4fe2684696792a78eff39f1155b52e809bc4bdcb9ee1b5530700f099768d",
+      "sizeBytes": 21856,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_everyday_bedroll.glb",
+      "spans": {
+        "x": 0.25200000405311584,
+        "y": 0.6300000250339508,
+        "z": 0.26350000500679016
+      },
+      "triangles": 656,
+      "uvLayers": {
+        "evd_bedroll_accent_geo": [],
+        "evd_bedroll_fabric_geo": [],
+        "evd_bedroll_metal_geo": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.13175000250339508
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.22439999878406525,
+          0.22439999878406525,
+          0.4763999879360199
+        ],
+        "min": [
+          -0.22439999878406525,
+          -0.2290000021457672,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "everyday",
+      "id": "successor_everyday_barrel_rain",
+      "images": [],
+      "materials": [
+        "evd_barrel_rain_dark",
+        "evd_barrel_rain_metal",
+        "evd_barrel_rain_wood"
+      ],
+      "meshCount": 3,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_everyday_barrel_rain.glb",
+      "pinnedSha256": "90ce36958dc35c3e8688ff7eb378b83ae75f64abf2014cee36fcc4cd4b26b373",
+      "renderPaths": {
+        "close": "renders/successor_everyday_barrel_rain_close.png",
+        "normal": "renders/successor_everyday_barrel_rain_normal.png"
+      },
+      "sha256": "90ce36958dc35c3e8688ff7eb378b83ae75f64abf2014cee36fcc4cd4b26b373",
+      "sizeBytes": 49876,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_everyday_barrel_rain.glb",
+      "spans": {
+        "x": 0.4487999975681305,
+        "y": 0.45340000092983246,
+        "z": 0.4763999879360199
+      },
+      "triangles": 1532,
+      "uvLayers": {
+        "evd_barrel_rain_dark_geo": [],
+        "evd_barrel_rain_metal_geo": [],
+        "evd_barrel_rain_wood_geo": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.23819999396800995
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.1899999976158142,
+          0.14399999380111694,
+          0.25
+        ],
+        "min": [
+          -0.1899999976158142,
+          -0.14000000059604645,
+          3.725290298461914e-09
+        ]
+      },
+      "groundContactY": false,
+      "group": "everyday",
+      "id": "successor_everyday_wooden_crate_open",
+      "images": [],
+      "materials": [
+        "evd_wooden_crate_open_accent",
+        "evd_wooden_crate_open_metal",
+        "evd_wooden_crate_open_wood"
+      ],
+      "meshCount": 3,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_everyday_wooden_crate_open.glb",
+      "pinnedSha256": "90eabc45f3ad80badc987c762c7b63cf180a0b06917bbc64a346ae61441a419e",
+      "renderPaths": {
+        "close": "renders/successor_everyday_wooden_crate_open_close.png",
+        "normal": "renders/successor_everyday_wooden_crate_open_normal.png"
+      },
+      "sha256": "90eabc45f3ad80badc987c762c7b63cf180a0b06917bbc64a346ae61441a419e",
+      "sizeBytes": 41672,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_everyday_wooden_crate_open.glb",
+      "spans": {
+        "x": 0.3799999952316284,
+        "y": 0.2839999943971634,
+        "z": 0.2499999962747097
+      },
+      "triangles": 1416,
+      "uvLayers": {
+        "evd_wooden_crate_open_accent_geo": [],
+        "evd_wooden_crate_open_metal_geo": [],
+        "evd_wooden_crate_open_wood_geo": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.12500000186264515
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.5302500128746033,
+          1.0399999618530273,
+          1.7000000476837158
+        ],
+        "min": [
+          -0.5302500128746033,
+          -1.0570000410079956,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "everyday",
+      "id": "successor_home_bunk_bed_standard",
+      "images": [],
+      "materials": [
+        "hba_bunk_bed_standard_mat_accent",
+        "hba_bunk_bed_standard_mat_metal",
+        "hba_bunk_bed_standard_mat_primary"
+      ],
+      "meshCount": 3,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_home_bunk_bed_standard.glb",
+      "pinnedSha256": "371436dd20e9972d3ebee5f9e44696aa043de4a5d1a74bb49228ed2c0edbdeca",
+      "renderPaths": {
+        "close": "renders/successor_home_bunk_bed_standard_close.png",
+        "normal": "renders/successor_home_bunk_bed_standard_normal.png"
+      },
+      "sha256": "371436dd20e9972d3ebee5f9e44696aa043de4a5d1a74bb49228ed2c0edbdeca",
+      "sizeBytes": 207416,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_home_bunk_bed_standard.glb",
+      "spans": {
+        "x": 1.0605000257492065,
+        "y": 2.097000002861023,
+        "z": 1.7000000476837158
+      },
+      "triangles": 3780,
+      "uvLayers": {
+        "hba_bunk_bed_standard_end_panel_f": [],
+        "hba_bunk_bed_standard_post0": [],
+        "hba_bunk_bed_standard_rung0": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.8500000238418579
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.5,
+          0.14000000059604645,
+          1.7999999523162842
+        ],
+        "min": [
+          -0.5,
+          -0.14000000059604645,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "everyday",
+      "id": "successor_home_open_shelving_standard",
+      "images": [],
+      "materials": [
+        "hba_open_shelving_standard_mat_metal",
+        "hba_open_shelving_standard_mat_primary"
+      ],
+      "meshCount": 2,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_home_open_shelving_standard.glb",
+      "pinnedSha256": "a132742abc08a6d3ab4ff617d560b8e5df9c1361d53c454c1cf26c9f1894dafa",
+      "renderPaths": {
+        "close": "renders/successor_home_open_shelving_standard_close.png",
+        "normal": "renders/successor_home_open_shelving_standard_normal.png"
+      },
+      "sha256": "a132742abc08a6d3ab4ff617d560b8e5df9c1361d53c454c1cf26c9f1894dafa",
+      "sizeBytes": 43168,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_home_open_shelving_standard.glb",
+      "spans": {
+        "x": 1.0,
+        "y": 0.2800000011920929,
+        "z": 1.7999999523162842
+      },
+      "triangles": 756,
+      "uvLayers": {
+        "hba_open_shelving_standard_back_brace": [],
+        "hba_open_shelving_standard_upright_-1": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.8999999761581421
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.30000001192092896,
+          0.3100000023841858,
+          0.8999999761581421
+        ],
+        "min": [
+          -0.30000001192092896,
+          -0.32999998331069946,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "everyday",
+      "id": "successor_home_base_cabinet_standard",
+      "images": [],
+      "materials": [
+        "hba_base_cabinet_standard_mat_accent",
+        "hba_base_cabinet_standard_mat_dark",
+        "hba_base_cabinet_standard_mat_metal",
+        "hba_base_cabinet_standard_mat_primary",
+        "hba_base_cabinet_standard_mat_secondary"
+      ],
+      "meshCount": 5,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_home_base_cabinet_standard.glb",
+      "pinnedSha256": "b261d41c9a9890767a2462b76c6fe2c12580f36492f9cb8cbaddc0dcf092200d",
+      "renderPaths": {
+        "close": "renders/successor_home_base_cabinet_standard_close.png",
+        "normal": "renders/successor_home_base_cabinet_standard_normal.png"
+      },
+      "sha256": "b261d41c9a9890767a2462b76c6fe2c12580f36492f9cb8cbaddc0dcf092200d",
+      "sizeBytes": 70384,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_home_base_cabinet_standard.glb",
+      "spans": {
+        "x": 0.6000000238418579,
+        "y": 0.6399999856948853,
+        "z": 0.8999999761581421
+      },
+      "triangles": 1224,
+      "uvLayers": {
+        "hba_base_cabinet_standard_back": [],
+        "hba_base_cabinet_standard_counter": [],
+        "hba_base_cabinet_standard_door_panel": [],
+        "hba_base_cabinet_standard_door_panel_hinge0": [],
+        "hba_base_cabinet_standard_side_l": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.44999998807907104
+      }
+    },
+    {
+      "bbox": {
+        "max": [
+          0.10373232513666153,
+          0.09799999743700027,
+          0.24150002002716064
+        ],
+        "min": [
+          -0.10373232513666153,
+          -0.12240000069141388,
+          0.0
+        ]
+      },
+      "groundContactY": false,
+      "group": "everyday",
+      "id": "successor_home_wall_sconce_standard",
+      "images": [],
+      "materials": [
+        "hba_wall_sconce_standard_mat_metal",
+        "hba_wall_sconce_standard_mat_secondary"
+      ],
+      "meshCount": 2,
+      "path": "tools/successor/assets/dustgate-redesign/source-items/successor_home_wall_sconce_standard.glb",
+      "pinnedSha256": "18b84cf51855af061e3932856d4ed0c66eab960dd94fd2e8ef8fe3c981820dc5",
+      "renderPaths": {
+        "close": "renders/successor_home_wall_sconce_standard_close.png",
+        "normal": "renders/successor_home_wall_sconce_standard_normal.png"
+      },
+      "sha256": "18b84cf51855af061e3932856d4ed0c66eab960dd94fd2e8ef8fe3c981820dc5",
+      "sizeBytes": 16272,
+      "sockets": [],
+      "sourcePath": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_home_wall_sconce_standard.glb",
+      "spans": {
+        "x": 0.20746465027332306,
+        "y": 0.22039999812841415,
+        "z": 0.24150002002716064
+      },
+      "triangles": 268,
+      "uvLayers": {
+        "hba_wall_sconce_standard_backplate": [],
+        "hba_wall_sconce_standard_lamp_emitter": []
+      },
+      "xzCenterOffset": {
+        "x": 0.0,
+        "z": 0.12075001001358032
+      }
+    }
+  ],
+  "errorCount": 0,
+  "generatedBy": "tools/successor/assets/dustgate-redesign/proditems.py"
+}

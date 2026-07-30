@@ -1,0 +1,673 @@
+{
+  "externals": [
+    {
+      "asset_rotation_x_deg": -90.0,
+      "embedded": false,
+      "label": "travel_terminal",
+      "role": "Dustgate travel terminal; -90 X matches props-mapping assetRotationDegrees",
+      "sha256": "a26cc0591111b5456c1ac6822d35f9b5895171cf8c036d792b62643788cbad2a",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/travel_terminal_grok_wedge.glb",
+      "world_cell": [
+        28.5,
+        22.5
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "label": "player_spawn",
+      "role": "ordinary player spawn, promoted clothed pawn",
+      "sha256": "6eaac9062bcfbc5efdf40c64f9e3236402a0d81832f1e0e8f4ce9a0a4dacac42",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/pawn-pack/pawn_male.glb",
+      "world_cell": [
+        26.0,
+        26.5
+      ],
+      "yaw_deg": 8.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "label": "knox_vale",
+      "role": "Knox Vale, profession trainer, at the commerce trainer station",
+      "sha256": "16d8c879aabc58b5ee176edcfc0b0dc43fc695e7d59f4a2ef6d6a15890e7d000",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/pawn-pack/pawn_female.glb",
+      "world_cell": [
+        32.4,
+        11.0
+      ],
+      "yaw_deg": 195.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "label": "resident_a",
+      "role": "resident",
+      "sha256": "16d8c879aabc58b5ee176edcfc0b0dc43fc695e7d59f4a2ef6d6a15890e7d000",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/pawn-pack/pawn_female.glb",
+      "world_cell": [
+        18.6,
+        18.4
+      ],
+      "yaw_deg": 40.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "label": "resident_b",
+      "role": "resident, bare body variant for clothing-layer compatibility",
+      "sha256": "5c182b3f7dcbb33a61965f633e66e820342f6d0f46746e30bce591a5b3182bca",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/pawn-pack/pawn_male_bare.glb",
+      "world_cell": [
+        13.2,
+        17.6
+      ],
+      "yaw_deg": 250.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "label": "equipment_vibrosword",
+      "role": "promoted equipment beside the spawn, scale compatibility",
+      "sha256": "f81f42214828e71baafac2f0905f3b3b3c1558da329876976f67639721027121",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/pawn-pack/vibrosword.glb",
+      "world_cell": [
+        26.9,
+        26.5
+      ],
+      "yaw_deg": 20.0
+    },
+    {
+      "asset": null,
+      "label": "gr0k",
+      "note": "anchor reserved; no promoted asset exists",
+      "role": "GR0K, neutral social droid: anchor reserved, no promoted asset exists",
+      "world_cell": [
+        24.0,
+        19.5
+      ]
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "label": "mineral_power_skid",
+      "role": "extraction-scale yard equipment, tested outdoors",
+      "sha256": "b16fbbc4421b953139fef711aa4799b2b9841b2e029618e5afef4346e3177145",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_power_skid.glb",
+      "world_cell": [
+        36.8,
+        9.4
+      ],
+      "yaw_deg": 24.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "label": "mineral_dust_filter",
+      "role": "extraction-scale yard equipment, tested outdoors",
+      "sha256": "cf8d6517cabfa62b10245eb5a0a505f4d6b19adca50da82fb658246167ce2ba5",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_mineral_dust_filter.glb",
+      "world_cell": [
+        39.4,
+        12.9
+      ],
+      "yaw_deg": -38.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "label": "petrochemical_separator_skid",
+      "role": "extraction-scale yard equipment, tested outdoors",
+      "sha256": "76a07ea99a11d5091fccbe743ca55e8941cde3d256526458efb3df9debe69881",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_extraction_petrochemical_separator_skid.glb",
+      "world_cell": [
+        36.2,
+        14.8
+      ],
+      "yaw_deg": 112.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "clone",
+      "label": "clone_clone_pod_west",
+      "lane": "promoted-runtime",
+      "promoted": true,
+      "role": "clone pod bay 1",
+      "sha256": "87a99d66eca1c0bf805bdc642d1b154384b360278badbe7e9d931a141a695fc4",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/clone_pod.glb",
+      "world_cell": [
+        6.526315789473685,
+        7.842105263157895
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "clone",
+      "label": "clone_clone_pod_centre",
+      "lane": "promoted-runtime",
+      "promoted": true,
+      "role": "clone pod bay 2",
+      "sha256": "87a99d66eca1c0bf805bdc642d1b154384b360278badbe7e9d931a141a695fc4",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/clone_pod.glb",
+      "world_cell": [
+        10.0,
+        7.842105263157895
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "clone",
+      "label": "clone_clone_pod_east",
+      "lane": "promoted-runtime",
+      "promoted": true,
+      "role": "clone pod bay 3",
+      "sha256": "87a99d66eca1c0bf805bdc642d1b154384b360278badbe7e9d931a141a695fc4",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/clone_pod.glb",
+      "world_cell": [
+        13.473684210526315,
+        7.842105263157895
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "clone",
+      "label": "clone_clone_terminal",
+      "lane": "promoted-runtime",
+      "promoted": true,
+      "role": "clone terminal",
+      "sha256": "f7d03b0715d08dddfb18b1c37f7235cce1b7bb05aab5043e87f9c5ec3ca4809f",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/clone_terminal.glb",
+      "world_cell": [
+        5.473684210526316,
+        10.157894736842106
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "clone",
+      "label": "clone_battery_bank_quad",
+      "lane": "grok45-vehicle",
+      "promoted": false,
+      "role": "facility power plant",
+      "sha256": "9c5861242be5a602389613f78fbfcf8f92bfd81f4d11764332d65c223756703c",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_battery_bank_quad.glb",
+      "world_cell": [
+        5.947368421052632,
+        13.894736842105264
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "clone",
+      "label": "clone_workbench_fold",
+      "lane": "grok45-vehicle",
+      "promoted": false,
+      "role": "maintenance surface",
+      "sha256": "e174c2be8893c13f389d53ce5d5682f639b46780afb3215cdb9d44b6e05aac70",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_workbench_fold.glb",
+      "world_cell": [
+        14.842105263157894,
+        11.631578947368421
+      ],
+      "yaw_deg": 90.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "clone",
+      "label": "clone_service_tool_cabinet",
+      "lane": "grok45-vehicle",
+      "promoted": false,
+      "role": "maintenance wall",
+      "sha256": "d4df11094f1c357dea9c593886a26a147c587898c38857b8c158a5994ffd6f86",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_service_tool_cabinet.glb",
+      "world_cell": [
+        15.03157894736842,
+        13.842105263157894
+      ],
+      "yaw_deg": 90.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "commerce",
+      "label": "commerce_bank_terminal_civic",
+      "lane": "promoted-runtime",
+      "promoted": true,
+      "role": "bank terminal",
+      "sha256": "eb825f81370b014660499bcb7fc67480895b3734683ba6647234203b996c2151",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/bank_terminal_civic.glb",
+      "world_cell": [
+        23.210526315789473,
+        6.436842105263159
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "commerce",
+      "label": "commerce_trade_terminal",
+      "lane": "promoted-runtime",
+      "promoted": true,
+      "role": "trade terminal",
+      "sha256": "90a2602192261b3e5f14cc738c49d240ae44776166acf1779239527d23179805",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/trade_terminal.glb",
+      "world_cell": [
+        27.0,
+        6.457894736842106
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "commerce",
+      "label": "commerce_pa_terminal",
+      "lane": "promoted-runtime",
+      "promoted": true,
+      "role": "player association terminal",
+      "sha256": "237c21c6284b7f6617ae4bc7fbff3e8230888064a6bf5f240c3389abce15086a",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/pa_terminal.glb",
+      "world_cell": [
+        30.36842105263158,
+        6.447368421052632
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "commerce",
+      "label": "commerce_cargo_crate_long_a",
+      "lane": "grok45-vehicle",
+      "promoted": false,
+      "role": "commerce stock",
+      "sha256": "3a9ad93fb319da0b1bd4e2e54a2c374b0fbaef9c42a6a77b21b21caae5bbc26c",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_cargo_crate_long.glb",
+      "world_cell": [
+        21.263157894736842,
+        13.868421052631579
+      ],
+      "yaw_deg": 90.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "commerce",
+      "label": "commerce_cargo_crate_long_b",
+      "lane": "grok45-vehicle",
+      "promoted": false,
+      "role": "commerce stock",
+      "sha256": "3a9ad93fb319da0b1bd4e2e54a2c374b0fbaef9c42a6a77b21b21caae5bbc26c",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_cargo_crate_long.glb",
+      "world_cell": [
+        21.263157894736842,
+        12.078947368421053
+      ],
+      "yaw_deg": 90.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "commerce",
+      "label": "commerce_cargo_crate_small",
+      "lane": "grok45-vehicle",
+      "promoted": false,
+      "role": "commerce stock",
+      "sha256": "d6bba4347b624e6e057e5272a3d81d667aafdaa9370006d2ff93271a45f5bc01",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_cargo_crate_small.glb",
+      "world_cell": [
+        32.578947368421055,
+        14.236842105263158
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "commerce",
+      "label": "commerce_open_shelving",
+      "lane": "homebuilder",
+      "promoted": false,
+      "role": "restrained storage",
+      "sha256": "a132742abc08a6d3ab4ff617d560b8e5df9c1361d53c454c1cf26c9f1894dafa",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_home_open_shelving_standard.glb",
+      "world_cell": [
+        21.526315789473685,
+        5.973684210526316
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "shelter",
+      "label": "shelter_bunk_bed",
+      "lane": "homebuilder",
+      "promoted": false,
+      "role": "sleeping platform",
+      "sha256": "371436dd20e9972d3ebee5f9e44696aa043de4a5d1a74bb49228ed2c0edbdeca",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_home_bunk_bed_standard.glb",
+      "world_cell": [
+        11.157894736842106,
+        23.394736842105264
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "shelter",
+      "label": "shelter_footlocker_frontier",
+      "lane": "promoted-runtime",
+      "promoted": true,
+      "role": "personal storage",
+      "sha256": "f8bbc53ff96b0020466da861e6cdce2ac43090db6384d14e8656fa83a71e75ad",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/footlocker_frontier.glb",
+      "world_cell": [
+        11.578947368421053,
+        26.973684210526315
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "shelter",
+      "label": "shelter_utility_water_tank",
+      "lane": "grok45-vehicle",
+      "promoted": false,
+      "role": "shelter water system",
+      "sha256": "db6d8045cb39eff428a40d0e2c7fabe83241f2010573ba8946c7d44503f05297",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_utility_water_tank.glb",
+      "world_cell": [
+        15.473684210526315,
+        22.289473684210527
+      ],
+      "yaw_deg": 0.0
+    },
+    {
+      "asset_rotation_x_deg": 0.0,
+      "embedded": false,
+      "host_unit": "shelter",
+      "label": "shelter_shelf_unit",
+      "lane": "everyday",
+      "promoted": false,
+      "role": "shelter storage",
+      "sha256": "7af8a4cf5322c46818317b6fae6de4a9d56ba333b5575a7a591f10b06c237f6c",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_everyday_shelf_unit.glb",
+      "world_cell": [
+        15.68421052631579,
+        27.257894736842104
+      ],
+      "yaw_deg": 0.0
+    }
+  ],
+  "frames": [
+    "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/assembly/01_plan.png",
+    "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/assembly/02_gameplay_wide.png",
+    "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/assembly/03_gameplay_frame.png",
+    "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/assembly/04_three_quarter.png",
+    "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/assembly/05_south_elevation.png",
+    "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/assembly/06_spawn_view.png",
+    "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/assembly/07_clone_approach.png",
+    "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/assembly/08_windbreak.png",
+    "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/assembly/09_remnant_shear.png"
+  ],
+  "instances": [
+    {
+      "cell": [
+        4,
+        6
+      ],
+      "glb": "clone_lod0.glb",
+      "instanced_mesh_datablocks": [
+        "door_slideoxide",
+        "door_slidepanel",
+        "door_slidereveal",
+        "door_slidesteel",
+        "floor__canvas",
+        "floor__plinth",
+        "floor__reveal",
+        "floor__steel",
+        "interior__amber",
+        "interior__canvas",
+        "interior__oxide",
+        "interior__panel",
+        "interior__plinth",
+        "interior__reveal",
+        "interior__steel",
+        "mass__amber",
+        "mass__canvas",
+        "mass__oxide",
+        "mass__panel",
+        "mass__plinth.001",
+        "mass__reveal",
+        "mass__roof",
+        "mass__steel",
+        "roof__canvas",
+        "roof__panel",
+        "roof__reveal",
+        "roof__roof",
+        "roof__steel",
+        "wall_back__panel",
+        "wall_back__plinth",
+        "wall_back__steel",
+        "wall_front__canvas",
+        "wall_front__panel",
+        "wall_front__plinth",
+        "wall_front__reveal",
+        "wall_front__steel",
+        "wall_left__panel",
+        "wall_left__plinth",
+        "wall_left__steel",
+        "wall_right__canvas",
+        "wall_right__panel",
+        "wall_right__plinth",
+        "wall_right__reveal",
+        "wall_right__steel"
+      ],
+      "joined_or_baked": false,
+      "sha256": "d1fb1bd195ecb370f1833ab347bcac4a7094d6a110ab1d28d80f88e08a1e116a",
+      "size_cells": [
+        12,
+        10
+      ],
+      "uniform_scale": 1.05263158,
+      "unit": "clone",
+      "world_bounds": {
+        "maxX": 16.0,
+        "maxY": -6.0,
+        "maxZ": 7.53684,
+        "minX": 4.0,
+        "minY": -16.0,
+        "minZ": 0.0,
+        "spanX": 12.0,
+        "spanY": 10.0,
+        "spanZ": 7.53684
+      },
+      "world_centre": [
+        10.0,
+        11.0
+      ]
+    },
+    {
+      "cell": [
+        20,
+        5
+      ],
+      "glb": "commerce_lod0.glb",
+      "instanced_mesh_datablocks": [
+        "door_slideoxide.001",
+        "door_slidepanel.001",
+        "door_slidereveal.001",
+        "door_slidesteel.001",
+        "floor__canvas.001",
+        "floor__plinth.001",
+        "floor__reveal.001",
+        "floor__steel.001",
+        "interior__amber.001",
+        "interior__canvas.001",
+        "interior__oxide.001",
+        "interior__panel.001",
+        "interior__plinth.001",
+        "interior__steel.001",
+        "mass__amber.001",
+        "mass__canvas.001",
+        "mass__plinth.002",
+        "mass__roof.001",
+        "mass__steel.001",
+        "roof__canvas.001",
+        "roof__oxide",
+        "roof__panel.001",
+        "roof__reveal.001",
+        "roof__roof.001",
+        "roof__steel.001",
+        "wall_back__panel.001",
+        "wall_back__plinth.001",
+        "wall_back__steel.001",
+        "wall_front__canvas.001",
+        "wall_front__panel.001",
+        "wall_front__plinth.001",
+        "wall_front__reveal.001",
+        "wall_front__steel.001",
+        "wall_left__panel.001",
+        "wall_left__plinth.001",
+        "wall_left__steel.001",
+        "wall_right__panel.001",
+        "wall_right__plinth.001",
+        "wall_right__steel.001"
+      ],
+      "joined_or_baked": false,
+      "sha256": "48946c7277cb7c2071b5fb48328c9c620b9cedcd388ac1e7ad35b66e28740d39",
+      "size_cells": [
+        14,
+        11
+      ],
+      "uniform_scale": 1.05263158,
+      "unit": "commerce",
+      "world_bounds": {
+        "maxX": 34.0,
+        "maxY": -5.0,
+        "maxZ": 6.0,
+        "minX": 20.0,
+        "minY": -16.0,
+        "minZ": 0.0,
+        "spanX": 14.0,
+        "spanY": 11.0,
+        "spanZ": 6.0
+      },
+      "world_centre": [
+        27.0,
+        10.5
+      ]
+    },
+    {
+      "cell": [
+        9,
+        21
+      ],
+      "glb": "shelter_lod0.glb",
+      "instanced_mesh_datablocks": [
+        "door_slideoxide.002",
+        "door_slidepanel.002",
+        "door_slidereveal.002",
+        "door_slidesteel.002",
+        "floor__canvas.002",
+        "floor__plinth.002",
+        "floor__reveal.002",
+        "floor__steel.002",
+        "interior__amber.002",
+        "interior__canvas.002",
+        "interior__plinth.002",
+        "interior__steel.002",
+        "mass__amber.002",
+        "mass__canvas.002",
+        "mass__oxide.001",
+        "mass__panel.001",
+        "mass__plinth.003",
+        "mass__roof.002",
+        "mass__steel.002",
+        "roof__canvas.002",
+        "roof__reveal.002",
+        "roof__roof.002",
+        "roof__steel.002",
+        "wall_back__panel.002",
+        "wall_back__plinth.002",
+        "wall_back__steel.002",
+        "wall_front__canvas.002",
+        "wall_front__panel.002",
+        "wall_front__plinth.002",
+        "wall_front__reveal.002",
+        "wall_front__steel.002",
+        "wall_left__canvas",
+        "wall_left__panel.002",
+        "wall_left__plinth.002",
+        "wall_left__steel.002",
+        "wall_right__canvas.001",
+        "wall_right__panel.002",
+        "wall_right__plinth.002",
+        "wall_right__reveal.001",
+        "wall_right__steel.002"
+      ],
+      "joined_or_baked": false,
+      "sha256": "ae4950c009dff34ce1891d4ed4a2f0878655c022902a70ab556e657f8d6cdd71",
+      "size_cells": [
+        8,
+        7
+      ],
+      "uniform_scale": 1.05263158,
+      "unit": "shelter",
+      "world_bounds": {
+        "maxX": 17.0,
+        "maxY": -21.0,
+        "maxZ": 3.91579,
+        "minX": 9.0,
+        "minY": -28.0,
+        "minZ": 0.0,
+        "spanX": 8.0,
+        "spanY": 7.0,
+        "spanZ": 3.91579
+      },
+      "world_centre": [
+        13.0,
+        24.5
+      ]
+    }
+  ],
+  "layout": {
+    "block_cells": [
+      42,
+      32
+    ],
+    "compass": "+x east, +y south, origin at the block north-west",
+    "ground_relief": "continuous sand plane plus the ancient remnant landform and its fallen mass",
+    "roads_paths_aprons_or_paving": "none authored"
+  },
+  "scene_bounds": {
+    "maxX": 111.0,
+    "maxY": 74.0,
+    "maxZ": 9.58449,
+    "minX": -69.0,
+    "minY": -106.0,
+    "minZ": -0.4,
+    "spanX": 180.0,
+    "spanY": 180.0,
+    "spanZ": 9.98449
+  },
+  "scene_mesh_objects": 416,
+  "scene_triangles": 162006
+}

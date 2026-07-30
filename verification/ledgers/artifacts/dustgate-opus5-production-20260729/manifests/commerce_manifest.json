@@ -1,0 +1,278 @@
+{
+  "bbox_span_m": [
+    13.3,
+    5.7,
+    10.45
+  ],
+  "building": "settlement_commerce_unit",
+  "clear_opening_m": [
+    3.0,
+    2.44
+  ],
+  "collisionProxy": {
+    "includesFurniture": true,
+    "sidecar": "commerce_collision.json",
+    "source": "P",
+    "structuralOnly": false
+  },
+  "cutaway": {
+    "faces": {
+      "back": "wall_back__",
+      "front": "wall_front__",
+      "left": "wall_left__",
+      "right": "wall_right__"
+    },
+    "hide": [
+      "roof__"
+    ],
+    "keep": [
+      "floor__",
+      "interior__"
+    ],
+    "non_reveal_attached_masses": "mass__",
+    "reveal_prefixes_for_mapping": [
+      "roof__",
+      "wall_front__",
+      "wall_right__"
+    ],
+    "stub_by_face": true
+  },
+  "door": {
+    "clips": [
+      "door_open",
+      "door_close"
+    ],
+    "node": "door_slide",
+    "slide_axis_local": [
+      -1.0,
+      0.0,
+      0.0
+    ],
+    "slide_distance_m": 3.7
+  },
+  "door_cells": [
+    [
+      5,
+      10
+    ],
+    [
+      7,
+      10
+    ],
+    [
+      8,
+      10
+    ]
+  ],
+  "draw_calls_per_instance": 39,
+  "floorHeightM": 0.16,
+  "floorTopY": 0.16,
+  "footprint_cells": [
+    14,
+    11
+  ],
+  "front": "+Z",
+  "instanced_items": [
+    {
+      "embedded": false,
+      "footprint_m": [
+        1.01,
+        0.68
+      ],
+      "height_m": 1.65,
+      "id": "bank_terminal_civic",
+      "lane": "promoted-runtime",
+      "local_center_gltf": [
+        -3.6,
+        -3.86
+      ],
+      "promoted": true,
+      "role": "bank terminal",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/bank_terminal_civic.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        1.16,
+        0.72
+      ],
+      "height_m": 1.35,
+      "id": "trade_terminal",
+      "lane": "promoted-runtime",
+      "local_center_gltf": [
+        0.0,
+        -3.84
+      ],
+      "promoted": true,
+      "role": "trade terminal",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/trade_terminal.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        1.06,
+        0.66
+      ],
+      "height_m": 1.75,
+      "id": "pa_terminal",
+      "lane": "promoted-runtime",
+      "local_center_gltf": [
+        3.2,
+        -3.85
+      ],
+      "promoted": true,
+      "role": "player association terminal",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/pa_terminal.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        0.67,
+        1.56
+      ],
+      "height_m": 0.61,
+      "id": "cargo_crate_long_a",
+      "lane": "grok45-vehicle",
+      "local_center_gltf": [
+        -5.45,
+        3.2
+      ],
+      "promoted": false,
+      "role": "commerce stock",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_cargo_crate_long.glb",
+      "yaw_deg": 90.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        0.67,
+        1.56
+      ],
+      "height_m": 0.61,
+      "id": "cargo_crate_long_b",
+      "lane": "grok45-vehicle",
+      "local_center_gltf": [
+        -5.45,
+        1.5
+      ],
+      "promoted": false,
+      "role": "commerce stock",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_cargo_crate_long.glb",
+      "yaw_deg": 90.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        0.78,
+        0.77
+      ],
+      "height_m": 0.67,
+      "id": "cargo_crate_small",
+      "lane": "grok45-vehicle",
+      "local_center_gltf": [
+        5.3,
+        3.55
+      ],
+      "promoted": false,
+      "role": "commerce stock",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_cargo_crate_small.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        1.0,
+        0.28
+      ],
+      "height_m": 1.8,
+      "id": "open_shelving",
+      "lane": "homebuilder",
+      "local_center_gltf": [
+        -5.2,
+        -4.3
+      ],
+      "promoted": false,
+      "role": "restrained storage",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_home_open_shelving_standard.glb",
+      "yaw_deg": 0.0
+    }
+  ],
+  "interiorRegions": [
+    {
+      "floorTopY": 0.16,
+      "id": "main_walkable_interior",
+      "maxX": 5.91,
+      "maxZ": 4.665,
+      "minX": -5.91,
+      "minZ": -4.485
+    }
+  ],
+  "interior_clear_height_m": 2.94,
+  "lods": {
+    "lod0": {
+      "glb": "commerce_lod0.glb",
+      "renderer_primitives": 39,
+      "textured": true,
+      "triangles": 20268
+    },
+    "lod1": {
+      "glb": "commerce_lod1.glb",
+      "renderer_primitives": 35,
+      "textured": false,
+      "triangles": 13168
+    },
+    "lod2": {
+      "glb": "commerce_lod2.glb",
+      "renderer_primitives": 17,
+      "textured": false,
+      "triangles": 3744
+    }
+  },
+  "materials": [
+    "KIT_amber_flat",
+    "KIT_canvas",
+    "KIT_oxide",
+    "KIT_panel",
+    "KIT_plinth",
+    "KIT_reveal_flat",
+    "KIT_roof",
+    "KIT_steel"
+  ],
+  "node_families": {
+    "door_slide": 4,
+    "floor__": 4,
+    "interior__": 6,
+    "mass__": 5,
+    "roof__": 6,
+    "wall_back__": 3,
+    "wall_front__": 5,
+    "wall_left__": 3,
+    "wall_right__": 3
+  },
+  "origin": "footprint centre in XZ, ground contact at Y=0",
+  "renderer_primitives": 39,
+  "runtime_scale_at_14x11_cells": 1.052632,
+  "service_anchor_cells": {
+    "bank_terminal_civic": [
+      3,
+      3
+    ],
+    "pa_terminal": [
+      10,
+      3
+    ],
+    "trade_terminal": [
+      7,
+      3
+    ],
+    "trainer_npc": [
+      11,
+      4
+    ]
+  },
+  "tri_count": 20268,
+  "units": "m"
+}

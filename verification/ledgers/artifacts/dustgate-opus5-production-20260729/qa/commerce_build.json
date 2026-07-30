@@ -1,0 +1,328 @@
+{
+  "authored_basis": {
+    "export": "glTF Y-up via export_yup, front +Z",
+    "ground_contact_local_y": 0.0,
+    "origin_offset_xz_m": [
+      0.0,
+      -0.0
+    ],
+    "source": "Blender Z-up, front -Y, origin at footprint centre"
+  },
+  "blend": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/units/commerce.blend",
+  "blender": "5.2.0 LTS",
+  "bounds_blender": {
+    "maxX": 6.65,
+    "maxY": 5.225,
+    "maxZ": 5.7,
+    "minX": -6.65,
+    "minY": -5.225,
+    "minZ": 0.0,
+    "spanX": 13.3,
+    "spanY": 10.45,
+    "spanZ": 5.7
+  },
+  "camera": {
+    "camera_pitch_deg": 60.0,
+    "door_head_m": 2.6,
+    "door_head_visible": true,
+    "hood_overhang_south_m": 0.24,
+    "hood_top_m": 2.9,
+    "margin_m": 0.1157,
+    "occlusion_limit_m": 3.0157,
+    "rule": "hood_top < door_head + overhang * tan(60deg)"
+  },
+  "census": {
+    "draw_calls_per_instance": 39,
+    "material_count": 8,
+    "materials": [
+      "KIT_amber_flat",
+      "KIT_canvas",
+      "KIT_oxide",
+      "KIT_panel",
+      "KIT_plinth",
+      "KIT_reveal_flat",
+      "KIT_roof",
+      "KIT_steel"
+    ],
+    "node_families": {
+      "door_slide": 4,
+      "floor__": 4,
+      "interior__": 6,
+      "mass__": 5,
+      "roof__": 6,
+      "wall_back__": 3,
+      "wall_front__": 5,
+      "wall_left__": 3,
+      "wall_right__": 3
+    },
+    "renderer_primitives": 39,
+    "triangles": 20268,
+    "vertices": 10504
+  },
+  "clearance": {
+    "all_anchors_clear": true,
+    "all_routes_walkable": true,
+    "egress_target_gltf": [
+      0.0,
+      6.325
+    ],
+    "equipped_envelope_m": [
+      0.86,
+      0.62
+    ],
+    "interior_clear_height_m": 2.94,
+    "interior_fits_equipped_proxy": true,
+    "player_proxy_height_m": 1.75,
+    "player_radius_m": 0.3,
+    "routes": [
+      {
+        "anchor": "bank_terminal_civic",
+        "anchor_blocked_by": null,
+        "anchor_cell": [
+          3,
+          3
+        ],
+        "anchor_clear_at_player_radius": true,
+        "anchor_clear_with_equipment": true,
+        "anchor_gltf": [
+          -3.6,
+          -1.85
+        ],
+        "role": "bank counter approach",
+        "route_length_m": 11.6,
+        "route_walkable": true,
+        "search": "4-connected BFS on a 0.10 m grid at the 0.30 m player radius"
+      },
+      {
+        "anchor": "trade_terminal",
+        "anchor_blocked_by": null,
+        "anchor_cell": [
+          7,
+          3
+        ],
+        "anchor_clear_at_player_radius": true,
+        "anchor_clear_with_equipment": true,
+        "anchor_gltf": [
+          0.0,
+          -1.85
+        ],
+        "role": "trade counter approach",
+        "route_length_m": 8.1,
+        "route_walkable": true,
+        "search": "4-connected BFS on a 0.10 m grid at the 0.30 m player radius"
+      },
+      {
+        "anchor": "pa_terminal",
+        "anchor_blocked_by": null,
+        "anchor_cell": [
+          10,
+          3
+        ],
+        "anchor_clear_at_player_radius": true,
+        "anchor_clear_with_equipment": true,
+        "anchor_gltf": [
+          3.2,
+          -1.85
+        ],
+        "role": "PA counter approach",
+        "route_length_m": 11.4,
+        "route_walkable": true,
+        "search": "4-connected BFS on a 0.10 m grid at the 0.30 m player radius"
+      },
+      {
+        "anchor": "trainer_npc",
+        "anchor_blocked_by": null,
+        "anchor_cell": [
+          11,
+          4
+        ],
+        "anchor_clear_at_player_radius": true,
+        "anchor_clear_with_equipment": true,
+        "anchor_gltf": [
+          4.2,
+          -0.55
+        ],
+        "role": "Knox Vale station",
+        "route_length_m": 11.1,
+        "route_walkable": true,
+        "search": "4-connected BFS on a 0.10 m grid at the 0.30 m player radius"
+      }
+    ],
+    "threshold_blocked_when_closed": true,
+    "threshold_clear_when_open": true,
+    "threshold_gltf": [
+      0.0,
+      4.985
+    ],
+    "walkable_region_m2": 108.153
+  },
+  "door": {
+    "blocker_state": {
+      "closed": "door blocker ACTIVE (worldQueries adds prop.door.blocker)",
+      "open": "door blocker DISABLED when serverAuthority.propStates[propId].doorOpen === true"
+    },
+    "clear_opening_m": [
+      3.0,
+      2.44
+    ],
+    "clip_note": "authored for interchange parity; the Three runtime drives the node directly from axisLocal * distance and never evaluates these clips",
+    "clips": [
+      "door_open",
+      "door_close"
+    ],
+    "closed_blocker_box": {
+      "maxX": 1.69,
+      "maxZ": 5.105,
+      "minX": -1.69,
+      "minZ": 4.665
+    },
+    "closed_covers_opening": true,
+    "closed_leaf_blocker_overlap_m": 3.38,
+    "closed_leaf_box": {
+      "maxX": 1.69,
+      "maxZ": 5.105,
+      "minX": -1.69,
+      "minZ": 5.005
+    },
+    "closed_opening_overlap_width_m": 3.0,
+    "closed_pose": "authored default transform of the door_slide node",
+    "leaf_span_m": 3.38,
+    "node": "door_slide",
+    "open_clearance_to_opening_m": 0.51,
+    "open_fully_clears_opening": true,
+    "open_leaf_box": {
+      "maxX": -2.01,
+      "maxZ": 5.105,
+      "minX": -5.39,
+      "minZ": 5.005
+    },
+    "open_leaf_fouls": [],
+    "open_leaf_lap_onto_wall_m": 3.38,
+    "open_leaf_parks_in_front_of": "front_wall_left",
+    "slide_axis_local": [
+      -1.0,
+      0.0,
+      0.0
+    ],
+    "slide_distance_m": 3.7
+  },
+  "export_check": {
+    "animations": [
+      "door_close",
+      "door_open"
+    ],
+    "bbox_matches_footprint": true,
+    "door_leaf_bounds": {
+      "maxX": 1.69,
+      "maxY": -5.005,
+      "maxZ": 2.73,
+      "minX": -1.69,
+      "minY": -5.155,
+      "minZ": 0.16,
+      "spanX": 3.38,
+      "spanY": 0.15,
+      "spanZ": 2.57
+    },
+    "door_leaf_covers_opening": true,
+    "door_node_count": 1,
+    "door_node_translation_gltf": [
+      0.0,
+      0.1599999964237213,
+      5.054999828338623
+    ],
+    "glb": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/glb/commerce_lod0.glb",
+    "ground_contact_y": 0.0,
+    "node_families_present": [
+      "door_slide",
+      "floor__",
+      "interior__",
+      "mass__",
+      "roof__",
+      "wall_back__",
+      "wall_front__",
+      "wall_left__",
+      "wall_right__"
+    ],
+    "reloaded_bbox": {
+      "maxX": 6.65,
+      "maxY": 5.225,
+      "maxZ": 5.7,
+      "minX": -6.65,
+      "minY": -5.225,
+      "minZ": 0.0,
+      "spanX": 13.3,
+      "spanY": 10.45,
+      "spanZ": 5.7
+    },
+    "sha256": "48946c7277cb7c2071b5fb48328c9c620b9cedcd388ac1e7ad35b66e28740d39",
+    "stray_door_nodes": [],
+    "uv0_on_every_mesh": true
+  },
+  "footprint_gltf": {
+    "centerX": 0.0,
+    "centerZ": 0.0,
+    "maxX": 6.65,
+    "maxZ": 5.225,
+    "minX": -6.65,
+    "minZ": -5.225,
+    "spanX": 13.3,
+    "spanZ": 10.45
+  },
+  "footprint_matches_mesh": true,
+  "generatedBy": "tools/successor/assets/dustgate-redesign/prodbuild.py",
+  "lods": {
+    "lod0": {
+      "bytes": 6118368,
+      "detail_cap": "FINE",
+      "path": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/glb/commerce_lod0.glb",
+      "renderer_primitives": 39,
+      "sha256": "48946c7277cb7c2071b5fb48328c9c620b9cedcd388ac1e7ad35b66e28740d39",
+      "textured": true,
+      "triangles": 20268
+    },
+    "lod1": {
+      "bytes": 674856,
+      "detail_cap": "MID",
+      "keeps_door_floor_opening": true,
+      "path": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/glb/commerce_lod1.glb",
+      "renderer_primitives": 35,
+      "sha256": "07719641c97920d9c6d83328aab2e5e041846db89c1aae5a387f846d9619cab1",
+      "silhouette_span_delta_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "textured": false,
+      "triangle_fraction_of_lod0": 0.6497,
+      "triangles": 13168
+    },
+    "lod2": {
+      "bytes": 197376,
+      "detail_cap": "CORE",
+      "keeps_door_floor_opening": true,
+      "path": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/glb/commerce_lod2.glb",
+      "renderer_primitives": 17,
+      "sha256": "960c0c67224de4360da7c36a7f1d309678ea9480090cbfb71be04d383fac20af",
+      "silhouette_span_delta_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "textured": false,
+      "triangle_fraction_of_lod0": 0.1847,
+      "triangles": 3744
+    }
+  },
+  "unit": "commerce",
+  "uv": {
+    "measured_uv_area_per_mesh_area_max": 0.26296,
+    "measured_uv_area_per_mesh_area_min": 0.24694,
+    "meshes_without_uv0": [],
+    "overlap_intent": "box-projected trim UVs on a shared grid; repeated kit parts share UV space by design and must never be lightmapped",
+    "texels_per_metre": 512.0,
+    "uv0_layer_names": [
+      "UVMap"
+    ],
+    "uv_units_per_metre": 0.5
+  }
+}

@@ -1,0 +1,516 @@
+{
+  "generatedBy": "tools/successor/assets/dustgate-redesign/prodsidecar.mjs",
+  "units": {
+    "clone": {
+      "sidecar": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/manifests/clone_collision.json",
+      "schema": "successor.structure-collision.v3",
+      "cellSize": {
+        "w": 12,
+        "h": 10
+      },
+      "rotations": {
+        "0": {
+          "walls": 7,
+          "furniture": 11,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 4453,
+            "yMilli": 9411,
+            "wMilli": 3094,
+            "hMilli": 463,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 6000,
+              "yMilli": 5095
+            },
+            "exterior": {
+              "xMilli": 6000,
+              "yMilli": 10450
+            },
+            "doorCenter": {
+              "xMilli": 6000,
+              "yMilli": 9643
+            },
+            "interiorWall": {
+              "xMilli": 442,
+              "yMilli": 442,
+              "wMilli": 11116,
+              "hMilli": 337,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "y",
+            "tangentAxis": "x",
+            "outwardSign": 1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        },
+        "90": {
+          "walls": 7,
+          "furniture": 11,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 126,
+            "yMilli": 4453,
+            "wMilli": 463,
+            "hMilli": 3094,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 4905,
+              "yMilli": 6000
+            },
+            "exterior": {
+              "xMilli": -450,
+              "yMilli": 6000
+            },
+            "doorCenter": {
+              "xMilli": 358,
+              "yMilli": 6000
+            },
+            "interiorWall": {
+              "xMilli": 9221,
+              "yMilli": 442,
+              "wMilli": 337,
+              "hMilli": 11116,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "x",
+            "tangentAxis": "y",
+            "outwardSign": -1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        },
+        "180": {
+          "walls": 7,
+          "furniture": 11,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 4453,
+            "yMilli": 126,
+            "wMilli": 3094,
+            "hMilli": 463,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 6000,
+              "yMilli": 4905
+            },
+            "exterior": {
+              "xMilli": 6000,
+              "yMilli": -450
+            },
+            "doorCenter": {
+              "xMilli": 6000,
+              "yMilli": 358
+            },
+            "interiorWall": {
+              "xMilli": 442,
+              "yMilli": 9221,
+              "wMilli": 11116,
+              "hMilli": 337,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "y",
+            "tangentAxis": "x",
+            "outwardSign": -1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        },
+        "270": {
+          "walls": 7,
+          "furniture": 11,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 9411,
+            "yMilli": 4453,
+            "wMilli": 463,
+            "hMilli": 3094,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 5095,
+              "yMilli": 6000
+            },
+            "exterior": {
+              "xMilli": 10450,
+              "yMilli": 6000
+            },
+            "doorCenter": {
+              "xMilli": 9643,
+              "yMilli": 6000
+            },
+            "interiorWall": {
+              "xMilli": 442,
+              "yMilli": 442,
+              "wMilli": 337,
+              "hMilli": 11116,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "x",
+            "tangentAxis": "y",
+            "outwardSign": 1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        }
+      }
+    },
+    "commerce": {
+      "sidecar": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/manifests/commerce_collision.json",
+      "schema": "successor.structure-collision.v3",
+      "cellSize": {
+        "w": 14,
+        "h": 11
+      },
+      "rotations": {
+        "0": {
+          "walls": 7,
+          "furniture": 12,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 5221,
+            "yMilli": 10411,
+            "wMilli": 3558,
+            "hMilli": 463,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 7000,
+              "yMilli": 5595
+            },
+            "exterior": {
+              "xMilli": 7000,
+              "yMilli": 11450
+            },
+            "doorCenter": {
+              "xMilli": 7000,
+              "yMilli": 10643
+            },
+            "interiorWall": {
+              "xMilli": 442,
+              "yMilli": 442,
+              "wMilli": 13116,
+              "hMilli": 337,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "y",
+            "tangentAxis": "x",
+            "outwardSign": 1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        },
+        "90": {
+          "walls": 7,
+          "furniture": 12,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 126,
+            "yMilli": 5221,
+            "wMilli": 463,
+            "hMilli": 3558,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 5405,
+              "yMilli": 7000
+            },
+            "exterior": {
+              "xMilli": -450,
+              "yMilli": 7000
+            },
+            "doorCenter": {
+              "xMilli": 358,
+              "yMilli": 7000
+            },
+            "interiorWall": {
+              "xMilli": 10221,
+              "yMilli": 442,
+              "wMilli": 337,
+              "hMilli": 13116,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "x",
+            "tangentAxis": "y",
+            "outwardSign": -1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        },
+        "180": {
+          "walls": 7,
+          "furniture": 12,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 5221,
+            "yMilli": 126,
+            "wMilli": 3558,
+            "hMilli": 463,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 7000,
+              "yMilli": 5405
+            },
+            "exterior": {
+              "xMilli": 7000,
+              "yMilli": -450
+            },
+            "doorCenter": {
+              "xMilli": 7000,
+              "yMilli": 358
+            },
+            "interiorWall": {
+              "xMilli": 442,
+              "yMilli": 10221,
+              "wMilli": 13116,
+              "hMilli": 337,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "y",
+            "tangentAxis": "x",
+            "outwardSign": -1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        },
+        "270": {
+          "walls": 7,
+          "furniture": 12,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 10411,
+            "yMilli": 5221,
+            "wMilli": 463,
+            "hMilli": 3558,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 5595,
+              "yMilli": 7000
+            },
+            "exterior": {
+              "xMilli": 11450,
+              "yMilli": 7000
+            },
+            "doorCenter": {
+              "xMilli": 10643,
+              "yMilli": 7000
+            },
+            "interiorWall": {
+              "xMilli": 442,
+              "yMilli": 442,
+              "wMilli": 337,
+              "hMilli": 13116,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "x",
+            "tangentAxis": "y",
+            "outwardSign": 1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        }
+      }
+    },
+    "shelter": {
+      "sidecar": "/home/lycaon/dev/worktrees/successor-opus-public-20260730/verification/ledgers/artifacts/dustgate-opus5-production-20260729/manifests/shelter_collision.json",
+      "schema": "successor.structure-collision.v3",
+      "cellSize": {
+        "w": 8,
+        "h": 7
+      },
+      "rotations": {
+        "0": {
+          "walls": 7,
+          "furniture": 6,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 3789,
+            "yMilli": 6516,
+            "wMilli": 1685,
+            "hMilli": 421,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 4632,
+              "yMilli": 3595
+            },
+            "exterior": {
+              "xMilli": 4632,
+              "yMilli": 7450
+            },
+            "doorCenter": {
+              "xMilli": 4632,
+              "yMilli": 6727
+            },
+            "interiorWall": {
+              "xMilli": 1242,
+              "yMilli": 379,
+              "wMilli": 6379,
+              "hMilli": 295,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "y",
+            "tangentAxis": "x",
+            "outwardSign": 1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        },
+        "90": {
+          "walls": 7,
+          "furniture": 6,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 63,
+            "yMilli": 3789,
+            "wMilli": 421,
+            "hMilli": 1685,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 3405,
+              "yMilli": 4632
+            },
+            "exterior": {
+              "xMilli": -450,
+              "yMilli": 4632
+            },
+            "doorCenter": {
+              "xMilli": 274,
+              "yMilli": 4632
+            },
+            "interiorWall": {
+              "xMilli": 6326,
+              "yMilli": 1242,
+              "wMilli": 295,
+              "hMilli": 6379,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "x",
+            "tangentAxis": "y",
+            "outwardSign": -1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        },
+        "180": {
+          "walls": 7,
+          "furniture": 6,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 2526,
+            "yMilli": 63,
+            "wMilli": 1685,
+            "hMilli": 421,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 3369,
+              "yMilli": 3405
+            },
+            "exterior": {
+              "xMilli": 3369,
+              "yMilli": -450
+            },
+            "doorCenter": {
+              "xMilli": 3369,
+              "yMilli": 274
+            },
+            "interiorWall": {
+              "xMilli": 379,
+              "yMilli": 6326,
+              "wMilli": 6379,
+              "hMilli": 295,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "y",
+            "tangentAxis": "x",
+            "outwardSign": -1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        },
+        "270": {
+          "walls": 7,
+          "furniture": 6,
+          "interiorRegions": 1,
+          "floorTopM": 0.16842105263157894,
+          "door": {
+            "xMilli": 6516,
+            "yMilli": 2526,
+            "wMilli": 421,
+            "hMilli": 1685,
+            "id": "closed_door_panel"
+          },
+          "doorPoints": {
+            "interior": {
+              "xMilli": 3595,
+              "yMilli": 3369
+            },
+            "exterior": {
+              "xMilli": 7450,
+              "yMilli": 3369
+            },
+            "doorCenter": {
+              "xMilli": 6727,
+              "yMilli": 3369
+            },
+            "interiorWall": {
+              "xMilli": 379,
+              "yMilli": 379,
+              "wMilli": 295,
+              "hMilli": 6379,
+              "id": "outer_shell_back"
+            },
+            "normalAxis": "x",
+            "tangentAxis": "y",
+            "outwardSign": 1,
+            "safeClearanceMilli": 450
+          },
+          "interiorClear": true,
+          "exteriorClear": true
+        }
+      }
+    }
+  },
+  "failures": []
+}

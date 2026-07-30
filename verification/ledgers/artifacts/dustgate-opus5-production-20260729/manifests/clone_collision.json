@@ -1,0 +1,206 @@
+{
+  "contract": {
+    "decorativeExcluded": [
+      "pilasters",
+      "vents",
+      "hoods",
+      "battens",
+      "fascia",
+      "louvres",
+      "signals",
+      "sills"
+    ],
+    "furnitureRoles": [
+      "built_in_masses",
+      "instanced_world_items"
+    ],
+    "geometrySource": "P",
+    "structuralRoles": [
+      "outer_shell",
+      "front_walls",
+      "jamb_piers",
+      "closed_door"
+    ],
+    "terminal_cells_kept_clear": {
+      "clone_pod_use_centre": [
+        6,
+        3
+      ],
+      "clone_respawn_point": [
+        6,
+        3
+      ],
+      "clone_terminal_use": [
+        2,
+        4
+      ]
+    }
+  },
+  "door": {
+    "closed": {
+      "id": "closed_door_panel",
+      "maxX": 1.47,
+      "maxZ": 4.63,
+      "minX": -1.47,
+      "minZ": 4.19
+    },
+    "node": "door_slide"
+  },
+  "floor": {
+    "slabThicknessM": 0.16,
+    "topY": 0.16
+  },
+  "footprint": {
+    "centerX": 0.0,
+    "centerZ": 0.0,
+    "maxX": 5.7,
+    "maxZ": 4.75,
+    "minX": -5.7,
+    "minZ": -4.75,
+    "spanX": 11.4,
+    "spanZ": 9.5
+  },
+  "furniture": [
+    {
+      "id": "pod_pedestal_west",
+      "maxX": -2.35,
+      "maxZ": -2.04,
+      "minX": -4.25,
+      "minZ": -3.98
+    },
+    {
+      "id": "pod_pedestal_centre",
+      "maxX": 0.95,
+      "maxZ": -2.04,
+      "minX": -0.95,
+      "minZ": -3.98
+    },
+    {
+      "id": "pod_pedestal_east",
+      "maxX": 4.25,
+      "maxZ": -2.04,
+      "minX": 2.35,
+      "minZ": -3.98
+    },
+    {
+      "id": "west_service_counter",
+      "maxX": -3.56,
+      "maxZ": 2.09,
+      "minX": -4.9,
+      "minZ": 0.31
+    },
+    {
+      "id": "item_clone_pod_west",
+      "maxX": -2.52,
+      "maxZ": -2.22,
+      "minX": -4.08,
+      "minZ": -3.78
+    },
+    {
+      "id": "item_clone_pod_centre",
+      "maxX": 0.78,
+      "maxZ": -2.22,
+      "minX": -0.78,
+      "minZ": -3.78
+    },
+    {
+      "id": "item_clone_pod_east",
+      "maxX": 4.08,
+      "maxZ": -2.22,
+      "minX": 2.52,
+      "minZ": -3.78
+    },
+    {
+      "id": "item_clone_terminal",
+      "maxX": -3.88,
+      "maxZ": -0.29,
+      "minX": -4.72,
+      "minZ": -1.31
+    },
+    {
+      "id": "item_battery_bank_quad",
+      "maxX": -3.075,
+      "maxZ": 3.28,
+      "minX": -4.625,
+      "minZ": 2.22
+    },
+    {
+      "id": "item_workbench_fold",
+      "maxX": 4.85,
+      "maxZ": 1.255,
+      "minX": 4.35,
+      "minZ": -0.055
+    },
+    {
+      "id": "item_service_tool_cabinet",
+      "maxX": 4.945,
+      "maxZ": 3.17,
+      "minX": 4.615,
+      "minZ": 2.23
+    }
+  ],
+  "generatedBy": "tools/successor/assets/dustgate-redesign/prodbuild.py",
+  "interiorRegions": [
+    {
+      "floorTopY": 0.16,
+      "id": "main_walkable_interior",
+      "maxX": 4.96,
+      "maxZ": 4.19,
+      "minX": -4.96,
+      "minZ": -4.01
+    }
+  ],
+  "schema": "successor.structure-collision.v3",
+  "source": "clone_lod0.glb",
+  "walls": [
+    {
+      "id": "outer_shell_left",
+      "maxX": -4.96,
+      "maxZ": 4.51,
+      "minX": -5.28,
+      "minZ": -4.33
+    },
+    {
+      "id": "outer_shell_right",
+      "maxX": 5.28,
+      "maxZ": 4.51,
+      "minX": 4.96,
+      "minZ": -4.33
+    },
+    {
+      "id": "outer_shell_back",
+      "maxX": 5.28,
+      "maxZ": -4.01,
+      "minX": -5.28,
+      "minZ": -4.33
+    },
+    {
+      "id": "front_wall_left",
+      "maxX": -1.72,
+      "maxZ": 4.51,
+      "minX": -5.28,
+      "minZ": 4.19
+    },
+    {
+      "id": "front_wall_right",
+      "maxX": 5.28,
+      "maxZ": 4.51,
+      "minX": 1.72,
+      "minZ": 4.19
+    },
+    {
+      "id": "jamb_pier_left",
+      "maxX": -1.3,
+      "maxZ": 4.65,
+      "minX": -1.72,
+      "minZ": 4.19
+    },
+    {
+      "id": "jamb_pier_right",
+      "maxX": 1.72,
+      "maxZ": 4.65,
+      "minX": 1.3,
+      "minZ": 4.19
+    }
+  ]
+}

@@ -1,0 +1,217 @@
+{
+  "contract": {
+    "decorativeExcluded": [
+      "pilasters",
+      "vents",
+      "hoods",
+      "battens",
+      "fascia",
+      "louvres",
+      "signals",
+      "sills"
+    ],
+    "furnitureRoles": [
+      "built_in_masses",
+      "instanced_world_items"
+    ],
+    "geometrySource": "P",
+    "structuralRoles": [
+      "outer_shell",
+      "front_walls",
+      "jamb_piers",
+      "closed_door"
+    ],
+    "terminal_cells_kept_clear": {
+      "bank_terminal_civic": [
+        3,
+        3
+      ],
+      "pa_terminal": [
+        10,
+        3
+      ],
+      "trade_terminal": [
+        7,
+        3
+      ],
+      "trainer_npc": [
+        11,
+        4
+      ]
+    }
+  },
+  "door": {
+    "closed": {
+      "id": "closed_door_panel",
+      "maxX": 1.69,
+      "maxZ": 5.105,
+      "minX": -1.69,
+      "minZ": 4.665
+    },
+    "node": "door_slide"
+  },
+  "floor": {
+    "slabThicknessM": 0.16,
+    "topY": 0.16
+  },
+  "footprint": {
+    "centerX": 0.0,
+    "centerZ": 0.0,
+    "maxX": 6.65,
+    "maxZ": 5.225,
+    "minX": -6.65,
+    "minZ": -5.225,
+    "spanX": 13.3,
+    "spanZ": 10.45
+  },
+  "furniture": [
+    {
+      "id": "counter_bank",
+      "maxX": -2.34,
+      "maxZ": -2.49,
+      "minX": -4.86,
+      "minZ": -3.36
+    },
+    {
+      "id": "counter_trade",
+      "maxX": 1.26,
+      "maxZ": -2.49,
+      "minX": -1.26,
+      "minZ": -3.36
+    },
+    {
+      "id": "counter_pa",
+      "maxX": 4.46,
+      "maxZ": -2.49,
+      "minX": 1.94,
+      "minZ": -3.36
+    },
+    {
+      "id": "waiting_bench_west",
+      "maxX": -5.43,
+      "maxZ": 1.2,
+      "minX": -5.91,
+      "minZ": -1.8
+    },
+    {
+      "id": "strongroom_face",
+      "maxX": 5.05,
+      "maxZ": -1.35,
+      "minX": 4.89,
+      "minZ": -4.485
+    },
+    {
+      "id": "item_bank_terminal_civic",
+      "maxX": -3.095,
+      "maxZ": -3.52,
+      "minX": -4.105,
+      "minZ": -4.2
+    },
+    {
+      "id": "item_trade_terminal",
+      "maxX": 0.58,
+      "maxZ": -3.48,
+      "minX": -0.58,
+      "minZ": -4.2
+    },
+    {
+      "id": "item_pa_terminal",
+      "maxX": 3.73,
+      "maxZ": -3.52,
+      "minX": 2.67,
+      "minZ": -4.18
+    },
+    {
+      "id": "item_cargo_crate_long_a",
+      "maxX": -5.115,
+      "maxZ": 3.98,
+      "minX": -5.785,
+      "minZ": 2.42
+    },
+    {
+      "id": "item_cargo_crate_long_b",
+      "maxX": -5.115,
+      "maxZ": 2.28,
+      "minX": -5.785,
+      "minZ": 0.72
+    },
+    {
+      "id": "item_cargo_crate_small",
+      "maxX": 5.69,
+      "maxZ": 3.935,
+      "minX": 4.91,
+      "minZ": 3.165
+    },
+    {
+      "id": "item_open_shelving",
+      "maxX": -4.7,
+      "maxZ": -4.16,
+      "minX": -5.7,
+      "minZ": -4.44
+    }
+  ],
+  "generatedBy": "tools/successor/assets/dustgate-redesign/prodbuild.py",
+  "interiorRegions": [
+    {
+      "floorTopY": 0.16,
+      "id": "main_walkable_interior",
+      "maxX": 5.91,
+      "maxZ": 4.665,
+      "minX": -5.91,
+      "minZ": -4.485
+    }
+  ],
+  "schema": "successor.structure-collision.v3",
+  "source": "commerce_lod0.glb",
+  "walls": [
+    {
+      "id": "outer_shell_left",
+      "maxX": -5.91,
+      "maxZ": 4.985,
+      "minX": -6.23,
+      "minZ": -4.805
+    },
+    {
+      "id": "outer_shell_right",
+      "maxX": 6.23,
+      "maxZ": 4.985,
+      "minX": 5.91,
+      "minZ": -4.805
+    },
+    {
+      "id": "outer_shell_back",
+      "maxX": 6.23,
+      "maxZ": -4.485,
+      "minX": -6.23,
+      "minZ": -4.805
+    },
+    {
+      "id": "front_wall_left",
+      "maxX": -1.92,
+      "maxZ": 4.985,
+      "minX": -6.23,
+      "minZ": 4.665
+    },
+    {
+      "id": "front_wall_right",
+      "maxX": 6.23,
+      "maxZ": 4.985,
+      "minX": 1.92,
+      "minZ": 4.665
+    },
+    {
+      "id": "jamb_pier_left",
+      "maxX": -1.5,
+      "maxZ": 5.125,
+      "minX": -1.92,
+      "minZ": 4.665
+    },
+    {
+      "id": "jamb_pier_right",
+      "maxX": 1.92,
+      "maxZ": 5.125,
+      "minX": 1.5,
+      "minZ": 4.665
+    }
+  ]
+}

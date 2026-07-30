@@ -1,0 +1,208 @@
+{
+  "bbox_span_m": [
+    7.6,
+    3.72,
+    6.65
+  ],
+  "building": "settlement_shelter_unit",
+  "clear_opening_m": [
+    1.3,
+    2.08
+  ],
+  "collisionProxy": {
+    "includesFurniture": true,
+    "sidecar": "shelter_collision.json",
+    "source": "P",
+    "structuralOnly": false
+  },
+  "cutaway": {
+    "faces": {
+      "back": "wall_back__",
+      "front": "wall_front__",
+      "left": "wall_left__",
+      "right": "wall_right__"
+    },
+    "hide": [
+      "roof__"
+    ],
+    "keep": [
+      "floor__",
+      "interior__"
+    ],
+    "non_reveal_attached_masses": "mass__",
+    "reveal_prefixes_for_mapping": [
+      "roof__",
+      "wall_front__",
+      "wall_right__"
+    ],
+    "stub_by_face": true
+  },
+  "door": {
+    "clips": [
+      "door_open",
+      "door_close"
+    ],
+    "node": "door_slide",
+    "slide_axis_local": [
+      -1.0,
+      0.0,
+      0.0
+    ],
+    "slide_distance_m": 1.96
+  },
+  "door_cells": [
+    [
+      4,
+      6
+    ],
+    [
+      5,
+      6
+    ]
+  ],
+  "draw_calls_per_instance": 40,
+  "floorHeightM": 0.16,
+  "floorTopY": 0.16,
+  "footprint_cells": [
+    8,
+    7
+  ],
+  "front": "+Z",
+  "instanced_items": [
+    {
+      "embedded": false,
+      "footprint_m": [
+        1.06,
+        2.1
+      ],
+      "height_m": 1.7,
+      "id": "bunk_bed",
+      "lane": "homebuilder",
+      "local_center_gltf": [
+        -1.75,
+        -1.05
+      ],
+      "promoted": false,
+      "role": "sleeping platform",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_home_bunk_bed_standard.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        1.0,
+        0.58
+      ],
+      "height_m": 0.52,
+      "id": "footlocker_frontier",
+      "lane": "promoted-runtime",
+      "local_center_gltf": [
+        -1.35,
+        2.35
+      ],
+      "promoted": true,
+      "role": "personal storage",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/footlocker_frontier.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        0.86,
+        0.67
+      ],
+      "height_m": 0.77,
+      "id": "utility_water_tank",
+      "lane": "grok45-vehicle",
+      "local_center_gltf": [
+        2.35,
+        -2.1
+      ],
+      "promoted": false,
+      "role": "shelter water system",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_utility_water_tank.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        0.81,
+        0.32
+      ],
+      "height_m": 1.35,
+      "id": "shelf_unit",
+      "lane": "everyday",
+      "local_center_gltf": [
+        2.55,
+        2.62
+      ],
+      "promoted": false,
+      "role": "shelter storage",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_everyday_shelf_unit.glb",
+      "yaw_deg": 0.0
+    }
+  ],
+  "interiorRegions": [
+    {
+      "floorTopY": 0.16,
+      "id": "main_walkable_interior",
+      "maxX": 3.16,
+      "maxZ": 2.865,
+      "minX": -2.34,
+      "minZ": -2.685
+    }
+  ],
+  "interior_clear_height_m": 2.4,
+  "lods": {
+    "lod0": {
+      "glb": "shelter_lod0.glb",
+      "renderer_primitives": 40,
+      "textured": true,
+      "triangles": 15456
+    },
+    "lod1": {
+      "glb": "shelter_lod1.glb",
+      "renderer_primitives": 35,
+      "textured": false,
+      "triangles": 10680
+    },
+    "lod2": {
+      "glb": "shelter_lod2.glb",
+      "renderer_primitives": 17,
+      "textured": false,
+      "triangles": 3740
+    }
+  },
+  "materials": [
+    "KIT_amber_flat",
+    "KIT_canvas",
+    "KIT_oxide",
+    "KIT_panel",
+    "KIT_plinth",
+    "KIT_reveal_flat",
+    "KIT_roof",
+    "KIT_steel"
+  ],
+  "node_families": {
+    "door_slide": 4,
+    "floor__": 4,
+    "interior__": 4,
+    "mass__": 7,
+    "roof__": 4,
+    "wall_back__": 3,
+    "wall_front__": 5,
+    "wall_left__": 4,
+    "wall_right__": 5
+  },
+  "origin": "footprint centre in XZ, ground contact at Y=0",
+  "renderer_primitives": 40,
+  "runtime_scale_at_8x7_cells": 1.052632,
+  "service_anchor_cells": {
+    "shelter_interior_stand": [
+      4,
+      3
+    ]
+  },
+  "tri_count": 15456,
+  "units": "m"
+}

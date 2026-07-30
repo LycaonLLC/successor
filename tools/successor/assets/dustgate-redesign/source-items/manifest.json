@@ -1,0 +1,239 @@
+{
+  "candidateCount": 29,
+  "candidates": [
+    {
+      "bytes": 382688,
+      "filename": "successor_extraction_mineral_power_skid.glb",
+      "group": "extraction",
+      "id": "successor_extraction_mineral_power_skid",
+      "sha256": "b16fbbc4421b953139fef711aa4799b2b9841b2e029618e5afef4346e3177145",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_mineral_power_skid.glb"
+    },
+    {
+      "bytes": 609132,
+      "filename": "successor_extraction_mineral_control_panel.glb",
+      "group": "extraction",
+      "id": "successor_extraction_mineral_control_panel",
+      "sha256": "67177454c7699be6324f98d9b958586a2651b9aa493dea5865c3164a165ca202",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_mineral_control_panel.glb"
+    },
+    {
+      "bytes": 340672,
+      "filename": "successor_extraction_extraction_maintenance_cart.glb",
+      "group": "extraction",
+      "id": "successor_extraction_extraction_maintenance_cart",
+      "sha256": "5f1458288d50a73c577ba3e67920cc3428c86dd01f40aa1c9df054a9fdea8e62",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_extraction_maintenance_cart.glb"
+    },
+    {
+      "bytes": 377504,
+      "filename": "successor_extraction_extraction_survey_tripod.glb",
+      "group": "extraction",
+      "id": "successor_extraction_extraction_survey_tripod",
+      "sha256": "782a271997eaacd532b5ffc41783bbed86c5bb2a50ae5fdbb5456d94d8d6579e",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_extraction_survey_tripod.glb"
+    },
+    {
+      "bytes": 478200,
+      "filename": "successor_extraction_mineral_survey_scanner.glb",
+      "group": "extraction",
+      "id": "successor_extraction_mineral_survey_scanner",
+      "sha256": "3d432a549bc8cd55ef7542d447f0243face1e2cd7663fc5f2c61389b219bc841",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_mineral_survey_scanner.glb"
+    },
+    {
+      "bytes": 412152,
+      "filename": "successor_extraction_mineral_dust_filter.glb",
+      "group": "extraction",
+      "id": "successor_extraction_mineral_dust_filter",
+      "sha256": "cf8d6517cabfa62b10245eb5a0a505f4d6b19adca50da82fb658246167ce2ba5",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_mineral_dust_filter.glb"
+    },
+    {
+      "bytes": 375160,
+      "filename": "successor_extraction_petrochemical_separator_skid.glb",
+      "group": "extraction",
+      "id": "successor_extraction_petrochemical_separator_skid",
+      "sha256": "76a07ea99a11d5091fccbe743ca55e8941cde3d256526458efb3df9debe69881",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_petrochemical_separator_skid.glb"
+    },
+    {
+      "bytes": 462576,
+      "filename": "successor_extraction_petrochemical_flowline_manifold.glb",
+      "group": "extraction",
+      "id": "successor_extraction_petrochemical_flowline_manifold",
+      "sha256": "16d994346f7ba9e57cc878bef421665f1dcd464c5a4a70435e2279aa79afc044",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_petrochemical_flowline_manifold.glb"
+    },
+    {
+      "bytes": 386820,
+      "filename": "successor_extraction_mineral_core_sampler.glb",
+      "group": "extraction",
+      "id": "successor_extraction_mineral_core_sampler",
+      "sha256": "c6b4ea325163586e7babfdb31621c1383e5e196a570b6591ae67d82d5dd89af2",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_mineral_core_sampler.glb"
+    },
+    {
+      "bytes": 181072,
+      "filename": "successor_vehicle_component_cargo_crate_small.glb",
+      "group": "vehicle",
+      "id": "successor_vehicle_component_cargo_crate_small",
+      "sha256": "d6bba4347b624e6e057e5272a3d81d667aafdaa9370006d2ff93271a45f5bc01",
+      "upstreamLineage": "vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_cargo_crate_small.glb"
+    },
+    {
+      "bytes": 170944,
+      "filename": "successor_vehicle_component_cargo_crate_long.glb",
+      "group": "vehicle",
+      "id": "successor_vehicle_component_cargo_crate_long",
+      "sha256": "3a9ad93fb319da0b1bd4e2e54a2c374b0fbaef9c42a6a77b21b21caae5bbc26c",
+      "upstreamLineage": "vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_cargo_crate_long.glb"
+    },
+    {
+      "bytes": 116768,
+      "filename": "successor_vehicle_component_workbench_fold.glb",
+      "group": "vehicle",
+      "id": "successor_vehicle_component_workbench_fold",
+      "sha256": "e174c2be8893c13f389d53ce5d5682f639b46780afb3215cdb9d44b6e05aac70",
+      "upstreamLineage": "vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_workbench_fold.glb"
+    },
+    {
+      "bytes": 226824,
+      "filename": "successor_vehicle_component_battery_bank_quad.glb",
+      "group": "vehicle",
+      "id": "successor_vehicle_component_battery_bank_quad",
+      "sha256": "9c5861242be5a602389613f78fbfcf8f92bfd81f4d11764332d65c223756703c",
+      "upstreamLineage": "vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_battery_bank_quad.glb"
+    },
+    {
+      "bytes": 136948,
+      "filename": "successor_vehicle_component_utility_water_tank.glb",
+      "group": "vehicle",
+      "id": "successor_vehicle_component_utility_water_tank",
+      "sha256": "db6d8045cb39eff428a40d0e2c7fabe83241f2010573ba8946c7d44503f05297",
+      "upstreamLineage": "vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_utility_water_tank.glb"
+    },
+    {
+      "bytes": 69868,
+      "filename": "successor_vehicle_component_rear_worklight.glb",
+      "group": "vehicle",
+      "id": "successor_vehicle_component_rear_worklight",
+      "sha256": "ac89a528082e83551ab3450cf148780d142cec707458d4d23abedcd91e173f9d",
+      "upstreamLineage": "vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_rear_worklight.glb"
+    },
+    {
+      "bytes": 288264,
+      "filename": "successor_vehicle_component_service_tool_cabinet.glb",
+      "group": "vehicle",
+      "id": "successor_vehicle_component_service_tool_cabinet",
+      "sha256": "d4df11094f1c357dea9c593886a26a147c587898c38857b8c158a5994ffd6f86",
+      "upstreamLineage": "vehicles/successor/grok45-wave-20260718/components/assets/successor_vehicle_component_service_tool_cabinet.glb"
+    },
+    {
+      "bytes": 701020,
+      "filename": "infra_001.glb",
+      "group": "infrastructure",
+      "id": "infra_001",
+      "sha256": "27a0072779c7fc7ec20bfdb1f9f292606f8e329e0f63b741b5eda4d28551b931",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/assets/infra_001.glb"
+    },
+    {
+      "bytes": 598292,
+      "filename": "infra_021.glb",
+      "group": "infrastructure",
+      "id": "infra_021",
+      "sha256": "f5be4cdfee0c0daf1b0b64293065fefc796a378a15babd729cfcdd3152d550e1",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/assets/infra_021.glb"
+    },
+    {
+      "bytes": 228380,
+      "filename": "infra_121.glb",
+      "group": "infrastructure",
+      "id": "infra_121",
+      "sha256": "b841f47d33d4d37e851f79cc2dc46341c391ad6be826dd839b125be60f6fed06",
+      "upstreamLineage": "successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/assets/infra_121.glb"
+    },
+    {
+      "bytes": 30252,
+      "filename": "successor_everyday_workbench.glb",
+      "group": "everyday",
+      "id": "successor_everyday_workbench",
+      "sha256": "94db62185dedae59c4196b07fa9269237e45f811b1a229220537a94d538db89c",
+      "upstreamLineage": "successor/everyday-wave-20260719/everyday-world-props/assets/successor_everyday_workbench.glb"
+    },
+    {
+      "bytes": 34536,
+      "filename": "successor_everyday_shelf_unit.glb",
+      "group": "everyday",
+      "id": "successor_everyday_shelf_unit",
+      "sha256": "7af8a4cf5322c46818317b6fae6de4a9d56ba333b5575a7a591f10b06c237f6c",
+      "upstreamLineage": "successor/everyday-wave-20260719/everyday-world-props/assets/successor_everyday_shelf_unit.glb"
+    },
+    {
+      "bytes": 56916,
+      "filename": "successor_everyday_chest_trunk.glb",
+      "group": "everyday",
+      "id": "successor_everyday_chest_trunk",
+      "sha256": "b8a591a39eab9b98ec66e33b15fe7005c555f9e73135b6d9660f6ab5f959d9e5",
+      "upstreamLineage": "successor/everyday-wave-20260719/everyday-world-props/assets/successor_everyday_chest_trunk.glb"
+    },
+    {
+      "bytes": 21856,
+      "filename": "successor_everyday_bedroll.glb",
+      "group": "everyday",
+      "id": "successor_everyday_bedroll",
+      "sha256": "764c4fe2684696792a78eff39f1155b52e809bc4bdcb9ee1b5530700f099768d",
+      "upstreamLineage": "successor/everyday-wave-20260719/everyday-world-props/assets/successor_everyday_bedroll.glb"
+    },
+    {
+      "bytes": 49876,
+      "filename": "successor_everyday_barrel_rain.glb",
+      "group": "everyday",
+      "id": "successor_everyday_barrel_rain",
+      "sha256": "90ce36958dc35c3e8688ff7eb378b83ae75f64abf2014cee36fcc4cd4b26b373",
+      "upstreamLineage": "successor/everyday-wave-20260719/everyday-world-props/assets/successor_everyday_barrel_rain.glb"
+    },
+    {
+      "bytes": 41672,
+      "filename": "successor_everyday_wooden_crate_open.glb",
+      "group": "everyday",
+      "id": "successor_everyday_wooden_crate_open",
+      "sha256": "90eabc45f3ad80badc987c762c7b63cf180a0b06917bbc64a346ae61441a419e",
+      "upstreamLineage": "successor/everyday-wave-20260719/everyday-world-props/assets/successor_everyday_wooden_crate_open.glb"
+    },
+    {
+      "bytes": 207416,
+      "filename": "successor_home_bunk_bed_standard.glb",
+      "group": "everyday",
+      "id": "successor_home_bunk_bed_standard",
+      "sha256": "371436dd20e9972d3ebee5f9e44696aa043de4a5d1a74bb49228ed2c0edbdeca",
+      "upstreamLineage": "successor/homebuilder-wave-20260719/furniture/assets/successor_home_bunk_bed_standard.glb"
+    },
+    {
+      "bytes": 43168,
+      "filename": "successor_home_open_shelving_standard.glb",
+      "group": "everyday",
+      "id": "successor_home_open_shelving_standard",
+      "sha256": "a132742abc08a6d3ab4ff617d560b8e5df9c1361d53c454c1cf26c9f1894dafa",
+      "upstreamLineage": "successor/homebuilder-wave-20260719/furniture/assets/successor_home_open_shelving_standard.glb"
+    },
+    {
+      "bytes": 70384,
+      "filename": "successor_home_base_cabinet_standard.glb",
+      "group": "everyday",
+      "id": "successor_home_base_cabinet_standard",
+      "sha256": "b261d41c9a9890767a2462b76c6fe2c12580f36492f9cb8cbaddc0dcf092200d",
+      "upstreamLineage": "successor/homebuilder-wave-20260719/furniture/assets/successor_home_base_cabinet_standard.glb"
+    },
+    {
+      "bytes": 16272,
+      "filename": "successor_home_wall_sconce_standard.glb",
+      "group": "everyday",
+      "id": "successor_home_wall_sconce_standard",
+      "sha256": "18b84cf51855af061e3932856d4ed0c66eab960dd94fd2e8ef8fe3c981820dc5",
+      "upstreamLineage": "successor/homebuilder-wave-20260719/furniture/assets/successor_home_wall_sconce_standard.glb"
+    }
+  ],
+  "generatedBy": "tools/successor/assets/dustgate-redesign/proditems.py --vendor-pinned",
+  "schemaVersion": 1
+}

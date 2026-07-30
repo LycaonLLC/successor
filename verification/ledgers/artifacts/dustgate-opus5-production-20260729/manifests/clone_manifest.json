@@ -1,0 +1,274 @@
+{
+  "bbox_span_m": [
+    11.4,
+    7.16,
+    9.5
+  ],
+  "building": "settlement_clone_unit",
+  "clear_opening_m": [
+    2.6,
+    2.39
+  ],
+  "collisionProxy": {
+    "includesFurniture": true,
+    "sidecar": "clone_collision.json",
+    "source": "P",
+    "structuralOnly": false
+  },
+  "cutaway": {
+    "faces": {
+      "back": "wall_back__",
+      "front": "wall_front__",
+      "left": "wall_left__",
+      "right": "wall_right__"
+    },
+    "hide": [
+      "roof__"
+    ],
+    "keep": [
+      "floor__",
+      "interior__"
+    ],
+    "non_reveal_attached_masses": "mass__",
+    "reveal_prefixes_for_mapping": [
+      "roof__",
+      "wall_front__",
+      "wall_right__"
+    ],
+    "stub_by_face": true
+  },
+  "door": {
+    "clips": [
+      "door_open",
+      "door_close"
+    ],
+    "node": "door_slide",
+    "slide_axis_local": [
+      -1.0,
+      0.0,
+      0.0
+    ],
+    "slide_distance_m": 3.28
+  },
+  "door_cells": [
+    [
+      4,
+      9
+    ],
+    [
+      6,
+      9
+    ],
+    [
+      7,
+      9
+    ]
+  ],
+  "draw_calls_per_instance": 44,
+  "floorHeightM": 0.16,
+  "floorTopY": 0.16,
+  "footprint_cells": [
+    12,
+    10
+  ],
+  "front": "+Z",
+  "instanced_items": [
+    {
+      "embedded": false,
+      "footprint_m": [
+        1.56,
+        1.56
+      ],
+      "height_m": 2.44,
+      "id": "clone_pod_west",
+      "lane": "promoted-runtime",
+      "local_center_gltf": [
+        -3.3,
+        -3.0
+      ],
+      "promoted": true,
+      "role": "clone pod bay 1",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/clone_pod.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        1.56,
+        1.56
+      ],
+      "height_m": 2.44,
+      "id": "clone_pod_centre",
+      "lane": "promoted-runtime",
+      "local_center_gltf": [
+        0.0,
+        -3.0
+      ],
+      "promoted": true,
+      "role": "clone pod bay 2",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/clone_pod.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        1.56,
+        1.56
+      ],
+      "height_m": 2.44,
+      "id": "clone_pod_east",
+      "lane": "promoted-runtime",
+      "local_center_gltf": [
+        3.3,
+        -3.0
+      ],
+      "promoted": true,
+      "role": "clone pod bay 3",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/clone_pod.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        0.84,
+        1.02
+      ],
+      "height_m": 1.74,
+      "id": "clone_terminal",
+      "lane": "promoted-runtime",
+      "local_center_gltf": [
+        -4.3,
+        -0.8
+      ],
+      "promoted": true,
+      "role": "clone terminal",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/client-3d/public/assets/world-items/clone_terminal.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        1.55,
+        1.06
+      ],
+      "height_m": 0.55,
+      "id": "battery_bank_quad",
+      "lane": "grok45-vehicle",
+      "local_center_gltf": [
+        -3.85,
+        2.75
+      ],
+      "promoted": false,
+      "role": "facility power plant",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_battery_bank_quad.glb",
+      "yaw_deg": 0.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        0.5,
+        1.31
+      ],
+      "height_m": 0.88,
+      "id": "workbench_fold",
+      "lane": "grok45-vehicle",
+      "local_center_gltf": [
+        4.6,
+        0.6
+      ],
+      "promoted": false,
+      "role": "maintenance surface",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_workbench_fold.glb",
+      "yaw_deg": 90.0
+    },
+    {
+      "embedded": false,
+      "footprint_m": [
+        0.33,
+        0.94
+      ],
+      "height_m": 1.09,
+      "id": "service_tool_cabinet",
+      "lane": "grok45-vehicle",
+      "local_center_gltf": [
+        4.78,
+        2.7
+      ],
+      "promoted": false,
+      "role": "maintenance wall",
+      "source": "~/dev/worktrees/successor-opus-public-20260730/tools/successor/assets/dustgate-redesign/source-items/successor_vehicle_component_service_tool_cabinet.glb",
+      "yaw_deg": 90.0
+    }
+  ],
+  "interiorRegions": [
+    {
+      "floorTopY": 0.16,
+      "id": "main_walkable_interior",
+      "maxX": 4.96,
+      "maxZ": 4.19,
+      "minX": -4.96,
+      "minZ": -4.01
+    }
+  ],
+  "interior_clear_height_m": 3.46,
+  "lods": {
+    "lod0": {
+      "glb": "clone_lod0.glb",
+      "renderer_primitives": 44,
+      "textured": true,
+      "triangles": 29140
+    },
+    "lod1": {
+      "glb": "clone_lod1.glb",
+      "renderer_primitives": 40,
+      "textured": false,
+      "triangles": 18072
+    },
+    "lod2": {
+      "glb": "clone_lod2.glb",
+      "renderer_primitives": 19,
+      "textured": false,
+      "triangles": 5080
+    }
+  },
+  "materials": [
+    "KIT_amber_flat",
+    "KIT_canvas",
+    "KIT_oxide",
+    "KIT_panel",
+    "KIT_plinth",
+    "KIT_reveal_flat",
+    "KIT_roof",
+    "KIT_steel"
+  ],
+  "node_families": {
+    "door_slide": 4,
+    "floor__": 4,
+    "interior__": 7,
+    "mass__": 8,
+    "roof__": 5,
+    "wall_back__": 3,
+    "wall_front__": 5,
+    "wall_left__": 3,
+    "wall_right__": 5
+  },
+  "origin": "footprint centre in XZ, ground contact at Y=0",
+  "renderer_primitives": 44,
+  "runtime_scale_at_12x10_cells": 1.052632,
+  "service_anchor_cells": {
+    "clone_pod_use_centre": [
+      6,
+      3
+    ],
+    "clone_respawn_point": [
+      6,
+      3
+    ],
+    "clone_terminal_use": [
+      2,
+      4
+    ]
+  },
+  "tri_count": 29140,
+  "units": "m"
+}

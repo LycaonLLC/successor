@@ -1,0 +1,163 @@
+{
+  "contract": {
+    "decorativeExcluded": [
+      "pilasters",
+      "vents",
+      "hoods",
+      "battens",
+      "fascia",
+      "louvres",
+      "signals",
+      "sills"
+    ],
+    "furnitureRoles": [
+      "built_in_masses",
+      "instanced_world_items"
+    ],
+    "geometrySource": "P",
+    "structuralRoles": [
+      "outer_shell",
+      "front_walls",
+      "jamb_piers",
+      "closed_door"
+    ],
+    "terminal_cells_kept_clear": {
+      "shelter_interior_stand": [
+        4,
+        3
+      ]
+    }
+  },
+  "door": {
+    "closed": {
+      "id": "closed_door_panel",
+      "maxX": 1.4,
+      "maxZ": 3.265,
+      "minX": -0.2,
+      "minZ": 2.865
+    },
+    "node": "door_slide"
+  },
+  "floor": {
+    "slabThicknessM": 0.16,
+    "topY": 0.16
+  },
+  "footprint": {
+    "centerX": 0.0,
+    "centerZ": 0.0,
+    "maxX": 3.8,
+    "maxZ": 3.325,
+    "minX": -3.8,
+    "minZ": -3.325,
+    "spanX": 7.6,
+    "spanZ": 6.65
+  },
+  "furniture": [
+    {
+      "id": "sleep_platform",
+      "maxX": -1.04,
+      "maxZ": 0.3,
+      "minX": -2.34,
+      "minZ": -2.45
+    },
+    {
+      "id": "service_pad",
+      "maxX": 3.16,
+      "maxZ": -1.54,
+      "minX": 1.54,
+      "minZ": -2.66
+    },
+    {
+      "id": "item_bunk_bed",
+      "maxX": -1.22,
+      "maxZ": -0.0,
+      "minX": -2.28,
+      "minZ": -2.1
+    },
+    {
+      "id": "item_footlocker_frontier",
+      "maxX": -0.85,
+      "maxZ": 2.64,
+      "minX": -1.85,
+      "minZ": 2.06
+    },
+    {
+      "id": "item_utility_water_tank",
+      "maxX": 2.78,
+      "maxZ": -1.765,
+      "minX": 1.92,
+      "minZ": -2.435
+    },
+    {
+      "id": "item_shelf_unit",
+      "maxX": 2.955,
+      "maxZ": 2.78,
+      "minX": 2.145,
+      "minZ": 2.46
+    }
+  ],
+  "generatedBy": "tools/successor/assets/dustgate-redesign/prodbuild.py",
+  "interiorRegions": [
+    {
+      "floorTopY": 0.16,
+      "id": "main_walkable_interior",
+      "maxX": 3.16,
+      "maxZ": 2.865,
+      "minX": -2.34,
+      "minZ": -2.685
+    }
+  ],
+  "schema": "successor.structure-collision.v3",
+  "source": "shelter_lod0.glb",
+  "walls": [
+    {
+      "id": "outer_shell_left",
+      "maxX": -2.34,
+      "maxZ": 3.145,
+      "minX": -2.62,
+      "minZ": -2.965
+    },
+    {
+      "id": "outer_shell_right",
+      "maxX": 3.44,
+      "maxZ": 3.145,
+      "minX": 3.16,
+      "minZ": -2.965
+    },
+    {
+      "id": "outer_shell_back",
+      "maxX": 3.44,
+      "maxZ": -2.685,
+      "minX": -2.62,
+      "minZ": -2.965
+    },
+    {
+      "id": "front_wall_left",
+      "maxX": -0.47,
+      "maxZ": 3.145,
+      "minX": -2.62,
+      "minZ": 2.865
+    },
+    {
+      "id": "front_wall_right",
+      "maxX": 3.44,
+      "maxZ": 3.145,
+      "minX": 1.67,
+      "minZ": 2.865
+    },
+    {
+      "id": "jamb_pier_left",
+      "maxX": -0.05,
+      "maxZ": 3.285,
+      "minX": -0.47,
+      "minZ": 2.865
+    },
+    {
+      "id": "jamb_pier_right",
+      "maxX": 1.67,
+      "maxZ": 3.285,
+      "minX": 1.25,
+      "minZ": 2.865
+    }
+  ]
+}
