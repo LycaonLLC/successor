@@ -20,7 +20,7 @@
     "@colyseus/core": "^0.17.43",
     "@colyseus/sdk": "^0.17.42",
     "@colyseus/ws-transport": "^0.17.13",
-    "@fastify/websocket": "^11.2.0",
+    "@fastify/websocket": "^11.3.0",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "fastify": "^5.8.5",
