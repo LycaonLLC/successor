@@ -111,4 +111,38 @@ mod tests {
         draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
         assert!(out.contains(&WindowAction::UseItem(1)), "USE emitted for selected item, got {out:?}");
     }
+
+    #[test]
+    fn clicking_slot_selects_that_item() {
+        let icons = Icons::load();
+        let model = WindowModel::sample();
+        let inv = &model.inventory;
+        // Pick a grid item that is NOT the pre-selected one — proving a click can
+        // move the selection off the seeded item (the reported bug).
+        let (idx, item) = inv
+            .items
+            .iter()
+            .enumerate()
+            .find(|(_, it)| Some(it.id) != inv.selected)
+            .expect("sample inventory needs a non-selected item");
+        let want = item.id;
+        // Grid geometry for rect [100,100,600,400]: cell 52, gap 6, cols 6.
+        let cols = 6usize;
+        let (c, r) = (idx % cols, idx / cols);
+        let cx = 100.0 + c as f32 * 58.0 + 26.0;
+        let cy = 100.0 + r as f32 * 58.0 + 26.0;
+        let mut ui = UiBuilder::new(icons.meta);
+        ui.set_input(cx, cy, true);
+        ui.begin(1280, 720);
+        let mut out = Vec::new();
+        draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
+        ui.set_input(cx, cy, false);
+        ui.begin(1280, 720);
+        out.clear();
+        draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
+        assert!(
+            out.contains(&WindowAction::Select(want)),
+            "clicking slot {idx} should Select item {want}, got {out:?}"
+        );
+    }
 }
