@@ -451,7 +451,11 @@ def plain_material(name, color, rough=0.6, metal=0.0, emit=None, emit_str=0.0,
         b.inputs["Emission Strength"].default_value = emit_str
     if alpha < 1.0:
         b.inputs["Alpha"].default_value = alpha
-        m.blend_method = 'BLEND'
+        # Blender 4.2+ replaced Material.blend_method with surface_render_method
+        if hasattr(m, "surface_render_method"):
+            m.surface_render_method = 'BLENDED'
+        elif hasattr(m, "blend_method"):
+            m.blend_method = 'BLEND'
     return m
 
 
