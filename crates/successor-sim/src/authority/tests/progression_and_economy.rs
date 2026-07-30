@@ -198,6 +198,13 @@ fn authority_actor_upsert_honors_explicit_active_title_seed() {
     input.entity = input.id.clone();
     input.profession_ids = vec!["marksman".to_owned()];
     input.skill_box_ids = vec!["craftsman-novice".to_owned()];
+    input.profession_xp =
+        BTreeMap::from([("marksman".to_owned(), 240), ("craftsman".to_owned(), 80)]);
+    input.profession_track_xp = BTreeMap::from([
+        ("marksman:rifle".to_owned(), 200),
+        ("craftsman:assembly".to_owned(), 60),
+    ]);
+    input.skill_point_cap = Some(300);
     input.active_title_id = Some("craftsman-novice".to_owned());
 
     let actor = state
@@ -208,6 +215,21 @@ fn authority_actor_upsert_honors_explicit_active_title_seed() {
     assert_eq!(active_title.id, "craftsman-novice");
     assert_eq!(active_title.label, "Novice Craftsman");
     assert_eq!(active_title.skill_box_id, "craftsman-novice");
+    let marksman = actor
+        .professions
+        .iter()
+        .find(|profession| profession.id == "marksman")
+        .expect("marksman progress should be projected");
+    assert_eq!(marksman.xp, 240);
+    assert_eq!(marksman.track_xp.get("rifle"), Some(&200));
+    let craftsman = actor
+        .professions
+        .iter()
+        .find(|profession| profession.id == "craftsman")
+        .expect("craftsman progress should be projected");
+    assert_eq!(craftsman.xp, 80);
+    assert_eq!(craftsman.track_xp.get("assembly"), Some(&60));
+    assert_eq!(actor.skill_points_cap, 300);
 }
 
 #[test]

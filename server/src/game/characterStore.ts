@@ -136,6 +136,10 @@ export interface CharacterRecord {
   /** The one novice allocation chosen before first world entry. */
   initialProfessionId: InitialProfessionId | null;
   professions: unknown | null;
+  /** Rust-authoritative wallet mirror used only when a retired actor must be rebuilt. */
+  credits?: number | null;
+  /** Rust-authoritative skill budget mirror used only when a retired actor must be rebuilt. */
+  skillPointCap?: number | null;
   activeTitleId: string | null;
   careerGoalId: string | null;
   recordKinds: CharacterRecordKindPayloads;
@@ -532,6 +536,8 @@ export class CharacterStore {
       vitals: null,
       initialProfessionId,
       professions: initialProfessionId ? initialProfessionState(initialProfessionId) : null,
+      credits: initialProfessionId ? 5_000 : null,
+      skillPointCap: initialProfessionId ? 250 : null,
       activeTitleId: null,
       careerGoalId: null,
       recordKinds: emptyRecordKinds(),
@@ -569,6 +575,8 @@ export class CharacterStore {
     }
     record.initialProfessionId = normalized;
     record.professions = initialProfessionState(normalized);
+    record.credits = 5_000;
+    record.skillPointCap = 250;
     this.save(data);
     return { ok: true, record: cloneRecord(record) };
   }
@@ -641,9 +649,16 @@ export class CharacterStore {
     if (snapshot.worn) record.worn = normalizeCharacterWornLenient(snapshot.worn);
     if (snapshot.wornColors) record.wornColors = normalizeCharacterWornColors(snapshot.wornColors, record.worn);
     record.vitals = actorVitalsSnapshot(snapshot);
-    record.professions = cloneUnknown(snapshot.professions ?? null);
-    record.activeTitleId = snapshot.activeTitle?.id ?? null;
-    record.careerGoalId = snapshot.careerGoalId ?? null;
+    // Rust snapshots may omit progression detail on interest-managed and
+    // link-dead replies. Omission means "unchanged"; only a present snapshot
+    // replaces the durable fallback used after actor retirement.
+    if (snapshot.professions !== undefined) record.professions = cloneUnknown(snapshot.professions);
+    if (snapshot.credits !== undefined) record.credits = normalizeStoredCredits(snapshot.credits);
+    if (snapshot.skillPointsCap !== undefined) {
+      record.skillPointCap = normalizeStoredSkillPointCap(snapshot.skillPointsCap);
+    }
+    if (snapshot.activeTitle !== undefined) record.activeTitleId = snapshot.activeTitle?.id ?? null;
+    if (snapshot.careerGoalId !== undefined) record.careerGoalId = snapshot.careerGoalId ?? null;
     record.lastSeenAt = at;
     if (options.logout) record.lastLogoutAt = at;
     const playMs = Math.trunc(options.playMs ?? 0);
@@ -734,6 +749,7 @@ export function normalizeInitialProfessionId(value: unknown): InitialProfessionI
 export function initialProfessionState(professionId: InitialProfessionId): Record<string, unknown> {
   return {
     learned: [],
+    xp: {},
     trackXp: {},
     skillBoxes: [`${professionId}-novice`],
     activeTitleId: null,
@@ -1038,6 +1054,15 @@ function normalizeRecord(value: unknown): CharacterRecord | null {
     : normalizeInitialProfessionId(raw.initialProfessionId);
   const activeTitleId = raw.activeTitleId === null ? null : normalizeStoredOptionalId(raw.activeTitleId);
   const careerGoalId = raw.careerGoalId === null ? null : normalizeStoredOptionalId(raw.careerGoalId);
+  const legacyProgression = raw.professions && typeof raw.professions === "object" && !Array.isArray(raw.professions)
+    ? raw.professions as Record<string, unknown>
+    : null;
+  const credits = raw.credits === undefined
+    ? normalizeStoredCredits(legacyProgression?.credits)
+    : raw.credits === null ? null : normalizeStoredCredits(raw.credits);
+  const skillPointCap = raw.skillPointCap === undefined
+    ? normalizeStoredSkillPointCap(legacyProgression?.skillPointCap)
+    : raw.skillPointCap === null ? null : normalizeStoredSkillPointCap(raw.skillPointCap);
   const recordKinds = normalizeRecordKinds(raw.recordKinds);
   const createdAt = normalizeIso(raw.createdAt);
   const lastSeenAt = normalizeIso(raw.lastSeenAt);
@@ -1060,6 +1085,8 @@ function normalizeRecord(value: unknown): CharacterRecord | null {
     || (raw.initialProfessionId !== null && !initialProfessionId)
     || (raw.activeTitleId !== null && !activeTitleId)
     || (raw.careerGoalId !== null && !careerGoalId)
+    || (raw.credits !== undefined && raw.credits !== null && credits === null)
+    || (raw.skillPointCap !== undefined && raw.skillPointCap !== null && skillPointCap === null)
     || !recordKinds
     || !createdAt
     || !lastSeenAt
@@ -1077,6 +1104,8 @@ function normalizeRecord(value: unknown): CharacterRecord | null {
     vitals,
     initialProfessionId,
     professions: cloneUnknown(raw.professions ?? null),
+    credits,
+    skillPointCap,
     activeTitleId,
     careerGoalId,
     recordKinds,
@@ -1096,6 +1125,23 @@ function normalizeStoredOptionalId(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeStoredCredits(value: unknown): number | null {
+  return typeof value === "number"
+    && Number.isSafeInteger(value)
+    && value >= 0
+    ? value
+    : null;
+}
+
+function normalizeStoredSkillPointCap(value: unknown): number | null {
+  return typeof value === "number"
+    && Number.isSafeInteger(value)
+    && value >= 0
+    && value <= 65_535
+    ? value
+    : null;
 }
 
 function normalizePosition(value: unknown): CharacterPositionSnapshot | null {

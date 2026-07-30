@@ -114,6 +114,18 @@ impl SliceAuthorityState {
                     profession_id,
                 },
             )?;
+        professions
+            .restore_progression_seed(
+                &input.profession_xp,
+                &input.profession_track_xp,
+                input.skill_point_cap,
+            )
+            .map_err(
+                |profession_id| SliceAuthorityActorError::UnknownProfessionId {
+                    actor_id: input.id.clone(),
+                    profession_id,
+                },
+            )?;
         if let Some(active_title_id) = input.active_title_id.as_deref() {
             professions
                 .set_active_title_id(Some(active_title_id))

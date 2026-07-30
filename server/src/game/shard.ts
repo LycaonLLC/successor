@@ -165,6 +165,9 @@ export interface GameSessionIdentity {
   /** Durable gameplay grants used only to seed a character's first world entry. */
   professionIds?: string[];
   skillBoxIds?: string[];
+  /** Exact retired-actor progression mirror, including banked general/track XP. */
+  professions?: GameActorSnapshot["professions"];
+  skillPointsCap?: number;
   credits?: number;
   vitals?: GameActorVitals;
   activeTitleId?: string | null;
@@ -5252,6 +5255,9 @@ export class GameShard {
       role: actor.role,
       professionIds: actor.professionIds?.slice(),
       skillBoxIds: actorSkillBoxIds(actor),
+      professionXp: professionXpSeed(actor.professions),
+      professionTrackXp: professionTrackXpSeed(actor.professions),
+      skillPointCap: actor.skillPointsCap,
       activeTitleId: actor.activeTitleId ?? null,
       capabilities: actor.capabilities?.slice(),
       credits: actor.credits,
@@ -5901,6 +5907,10 @@ export class GameShard {
       if (identity.worn) actor.worn = cloneActorWorn(identity.worn);
       if (identity.professionIds !== undefined) actor.professionIds = normalizeProfessionIds(identity.professionIds);
       if (identity.skillBoxIds !== undefined) actor.skillBoxIds = normalizeSkillBoxIds(identity.skillBoxIds);
+      if (identity.professions !== undefined) actor.professions = cloneProfessionSnapshots(identity.professions);
+      if (identity.skillPointsCap !== undefined) {
+        actor.skillPointsCap = Math.min(65_535, Math.max(0, finiteInteger(identity.skillPointsCap, 250)));
+      }
       if (identity.activeTitleId !== undefined) {
         actor.activeTitleId = normalizeNullableString(identity.activeTitleId);
         actor.activeTitle = titleFromSkillBoxes(actor.activeTitleId, actor.skillBoxIds, actor.professionIds);
@@ -10343,6 +10353,29 @@ function cloneProfessionSnapshots(
     trackXp: profession.trackXp ? { ...profession.trackXp } : undefined,
     skillBoxes: profession.skillBoxes?.slice(),
   }));
+}
+
+function professionXpSeed(
+  professions: GameActorSnapshot["professions"] | undefined,
+): Record<string, number> | undefined {
+  if (!professions) return undefined;
+  const entries = professions
+    .filter((profession) => profession.id.length > 0)
+    .map((profession) => [profession.id, Math.max(0, Math.trunc(profession.xp))] as const);
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+function professionTrackXpSeed(
+  professions: GameActorSnapshot["professions"] | undefined,
+): Record<string, number> | undefined {
+  if (!professions) return undefined;
+  const entries = professions.flatMap((profession) => Object.entries(profession.trackXp ?? {})
+    .filter(([track]) => profession.id.length > 0 && track.trim().length > 0)
+    .map(([track, xp]) => [
+      `${profession.id}:${track.trim()}`,
+      Math.max(0, Math.trunc(xp)),
+    ] as const));
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
 function sameNumberRecords(

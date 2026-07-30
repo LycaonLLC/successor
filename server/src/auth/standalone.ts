@@ -1,6 +1,7 @@
 import type { LaunchProvenance, LaunchPurpose, RedeemedLaunch } from "../alpha/index.js";
 import type { CharacterRecord, CharacterStore } from "../game/characterStore.js";
-import type { GameActorAppearanceSnapshot, GameActorVitals, GameActorWornPiece } from "../game/protocol.js";
+import { characterAuthoritySeed } from "../game/characterAuthoritySeed.js";
+import type { GameActorAppearanceSnapshot, GameActorSnapshot, GameActorVitals, GameActorWornPiece } from "../game/protocol.js";
 import type { ChatSessionIdentity } from "../chat/hub.js";
 import type { RuntimeAuthConfig } from "./runtime.js";
 
@@ -16,6 +17,8 @@ export interface StandaloneLaunchIdentity extends ChatSessionIdentity {
   readonly wornColors: Record<string, string[]>;
   readonly professionIds: string[];
   readonly skillBoxIds: string[];
+  readonly professions?: GameActorSnapshot["professions"];
+  readonly skillPointsCap: number;
   readonly credits: number;
   readonly vitals?: GameActorVitals;
   readonly activeTitleId: string | null;
@@ -70,15 +73,7 @@ export async function redeemStandaloneLaunch(
 }
 
 export function standaloneIdentity(launch: RedeemedLaunch, character: CharacterRecord): StandaloneLaunchIdentity {
-  const professions = character.professions && typeof character.professions === "object"
-    ? character.professions as Record<string, unknown>
-    : null;
-  const skillBoxIds = Array.isArray(professions?.skillBoxes)
-    ? professions.skillBoxes.filter((value): value is string => typeof value === "string")
-    : character.initialProfessionId ? [`${character.initialProfessionId}-novice`] : [];
-  const credits = typeof professions?.credits === "number" && Number.isFinite(professions.credits)
-    ? professions.credits
-    : 0;
+  const authoritySeed = characterAuthoritySeed(character);
   const appearance = {
     skin: character.appearance.skinTone,
     hair: character.appearance.hair,
@@ -108,9 +103,11 @@ export function standaloneIdentity(launch: RedeemedLaunch, character: CharacterR
     appearance,
     worn: character.worn.map((entry) => ({ item: entry.item, colors: [...entry.colors] })),
     wornColors: Object.fromEntries(Object.entries(character.wornColors).map(([item, colors]) => [item, [...colors]])),
-    professionIds: character.initialProfessionId ? [character.initialProfessionId] : [],
-    skillBoxIds,
-    credits,
+    professionIds: authoritySeed.professionIds ?? [],
+    skillBoxIds: authoritySeed.skillBoxIds,
+    ...(authoritySeed.professions === undefined ? {} : { professions: authoritySeed.professions }),
+    skillPointsCap: authoritySeed.skillPointsCap ?? 250,
+    credits: authoritySeed.credits ?? 5_000,
     ...(character.vitals ? { vitals: { ...character.vitals } } : {}),
     activeTitleId: character.activeTitleId,
     careerGoalId: character.careerGoalId,

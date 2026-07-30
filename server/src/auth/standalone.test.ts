@@ -49,6 +49,7 @@ describe("standalone launch identity hydration", () => {
       worn: [{ item: "under_bodysuit", colors: ["#89cff0"] }],
       professionIds: ["scout"],
       skillBoxIds: ["scout-novice"],
+      skillPointsCap: 250,
       credits: 5000,
       vitals: { health: 90, action: 80, spirit: 70 },
       activeTitleId: "scout-novice",
@@ -56,5 +57,32 @@ describe("standalone launch identity hydration", () => {
       spawn: { areaId: "waterworks", x: 4, y: 5, facing: "right" },
     });
     expect(standaloneIdentity(launch, character(true)).returningCharacter).toBe(true);
+  });
+
+  it("hydrates the same exact retired-actor XP seed as hosted joins", () => {
+    const identity = standaloneIdentity(launch, {
+      ...character(true),
+      professions: [{
+        id: "craftsman",
+        label: "Craftsman",
+        xp: 70,
+        trackXp: { assembly: 60, experimentation: 10 },
+        skillPoints: 16,
+        skillBoxes: ["craftsman-novice"],
+      }],
+      credits: 8_765,
+      skillPointCap: 300,
+    });
+    expect(identity).toMatchObject({
+      professionIds: ["craftsman"],
+      skillBoxIds: ["craftsman-novice"],
+      professions: [{
+        id: "craftsman",
+        xp: 70,
+        trackXp: { assembly: 60, experimentation: 10 },
+      }],
+      credits: 8_765,
+      skillPointsCap: 300,
+    });
   });
 });

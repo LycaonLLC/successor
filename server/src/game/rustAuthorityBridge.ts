@@ -288,6 +288,10 @@ export interface RustAuthorityActorUpsertInput {
   role?: string;
   professionIds?: string[];
   skillBoxIds?: string[];
+  /** Exact banked XP restored only when a retired durable actor is rebuilt. */
+  professionXp?: Record<string, number>;
+  professionTrackXp?: Record<string, number>;
+  skillPointCap?: number;
   activeTitleId?: string | null;
   credits?: number;
   capabilities?: string[];

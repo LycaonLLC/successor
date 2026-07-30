@@ -325,6 +325,45 @@ impl ActorProfessionState {
         Ok(())
     }
 
+    pub(super) fn restore_progression_seed(
+        &mut self,
+        profession_xp: &BTreeMap<String, u64>,
+        profession_track_xp: &BTreeMap<String, u64>,
+        skill_point_cap: Option<u16>,
+    ) -> Result<(), String> {
+        let mut next_xp = BTreeMap::new();
+        for (profession_id, xp) in profession_xp {
+            let Some(profession) = AuthorityProfessionKind::from_id(profession_id) else {
+                return Err(profession_id.clone());
+            };
+            next_xp.insert(profession, *xp);
+        }
+
+        let mut next_track_xp = BTreeMap::new();
+        for (key, xp) in profession_track_xp {
+            let Some((profession_id, track)) = key.split_once(':') else {
+                return Err(key.clone());
+            };
+            let Some(profession) = AuthorityProfessionKind::from_id(profession_id) else {
+                return Err(key.clone());
+            };
+            if !authority_skill_box_tracks(profession).contains(&track) {
+                return Err(key.clone());
+            }
+            next_track_xp.insert(authority_profession_track_xp_key(profession, track), *xp);
+        }
+
+        if skill_point_cap.is_some_and(|cap| cap < self.skill_points_used()) {
+            return Err("skillPointCap".to_owned());
+        }
+        self.xp = next_xp;
+        self.track_xp = next_track_xp;
+        if let Some(skill_point_cap) = skill_point_cap {
+            self.skill_point_cap = skill_point_cap;
+        }
+        Ok(())
+    }
+
     pub(super) fn train_skill_box(&mut self, definition: &AuthoritySkillBoxDefinition) -> bool {
         let learned_before = self.learned.contains(&definition.profession);
         self.learned.insert(definition.profession);

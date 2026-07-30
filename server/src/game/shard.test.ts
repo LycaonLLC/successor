@@ -1663,9 +1663,10 @@ describe("GameShard", () => {
     ];
     const profileTitle = { id: "craftsman-novice", label: "Novice Craftsman", skillBoxId: "craftsman-novice" };
     const profileProfessions: RustAuthorityProfessionSnapshot[] = [
-      { id: "marksman", label: "Marksman", xp: 240, skillPoints: 4, skillBoxes: profileSkillBoxIds.slice(0, 4) },
-      { id: "craftsman", label: "Craftsman", xp: 80, skillPoints: 1, skillBoxes: [profileSkillBoxIds[4]!] },
+      { id: "marksman", label: "Marksman", xp: 240, trackXp: { rifle: 200, tactics: 40 }, skillPoints: 4, skillBoxes: profileSkillBoxIds.slice(0, 4) },
+      { id: "craftsman", label: "Craftsman", xp: 80, trackXp: { assembly: 60, experimentation: 20 }, skillPoints: 1, skillBoxes: [profileSkillBoxIds[4]!] },
     ];
+    const profileSkillPointCap = 300;
     const profileVitals = { health: 123, action: 111, spirit: 77 };
     const profileCredits = 9_876;
     const identity = {
@@ -1673,6 +1674,8 @@ describe("GameShard", () => {
       returningCharacter: false,
       professionIds: profileProfessionIds,
       skillBoxIds: profileSkillBoxIds,
+      professions: profileProfessions,
+      skillPointsCap: profileSkillPointCap,
       activeTitleId: profileTitle.id,
       credits: profileCredits,
       vitals: profileVitals,
@@ -1851,6 +1854,14 @@ describe("GameShard", () => {
       expect(submittedActors[0]).toMatchObject({
         professionIds: profileProfessionIds,
         skillBoxIds: profileSkillBoxIds,
+        professionXp: { marksman: 240, craftsman: 80 },
+        professionTrackXp: {
+          "marksman:rifle": 200,
+          "marksman:tactics": 40,
+          "craftsman:assembly": 60,
+          "craftsman:experimentation": 20,
+        },
+        skillPointCap: profileSkillPointCap,
         activeTitleId: profileTitle.id,
         credits: profileCredits,
         vitals: profileVitals,
@@ -1858,6 +1869,14 @@ describe("GameShard", () => {
       expect(submittedActors[1]).toMatchObject({
         professionIds: profileProfessionIds,
         skillBoxIds: profileSkillBoxIds,
+        professionXp: { marksman: 240, craftsman: 80 },
+        professionTrackXp: {
+          "marksman:rifle": 200,
+          "marksman:tactics": 40,
+          "craftsman:assembly": 60,
+          "craftsman:experimentation": 20,
+        },
+        skillPointCap: profileSkillPointCap,
         activeTitleId: profileTitle.id,
         credits: profileCredits,
         vitals: profileVitals,

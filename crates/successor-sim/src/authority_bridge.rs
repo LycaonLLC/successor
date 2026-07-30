@@ -1503,6 +1503,12 @@ pub struct AuthorityBridgeActorInput {
     #[serde(default, alias = "skillBoxes", alias = "learnedSkillBoxes")]
     pub skill_box_ids: Vec<String>,
     #[serde(default)]
+    pub profession_xp: BTreeMap<String, u64>,
+    #[serde(default)]
+    pub profession_track_xp: BTreeMap<String, u64>,
+    #[serde(default)]
+    pub skill_point_cap: Option<u16>,
+    #[serde(default)]
     pub active_title_id: Option<String>,
     #[serde(default)]
     pub credits: Option<u64>,
@@ -1543,6 +1549,9 @@ impl AuthorityBridgeActorInput {
                 role: self.role.unwrap_or_else(|| "player".to_owned()),
                 profession_ids: self.profession_ids,
                 skill_box_ids: self.skill_box_ids,
+                profession_xp: self.profession_xp,
+                profession_track_xp: self.profession_track_xp,
+                skill_point_cap: self.skill_point_cap,
                 active_title_id: self.active_title_id,
                 credits: self.credits,
                 capabilities: self.capabilities,
@@ -4310,6 +4319,46 @@ mod tests {
                 .any(|profession| profession.id == "marksman"),
             "test actor id should not receive readable-id marksman fallback"
         );
+    }
+
+    #[test]
+    fn bridge_dispatch_restores_exact_retired_actor_progression() {
+        let fixture = include_str!("../../../client/public/successor-slice/open-desert-slice.json");
+        let mut bridge = AuthorityBridge::from_snapshot_json(fixture).unwrap();
+        let upsert = r#"{
+          "type": "upsertActor",
+          "requestId": 140,
+          "actor": {
+            "id": "runtime-returning-crafter",
+            "areaId": "open-desert-overworld",
+            "x": 7,
+            "y": 5,
+            "direction": "right",
+            "skillBoxIds": ["craftsman-novice"],
+            "professionXp": { "craftsman": 70 },
+            "professionTrackXp": {
+              "craftsman:assembly": 60,
+              "craftsman:experimentation": 10
+            },
+            "skillPointCap": 300,
+            "credits": 8765,
+            "returning": true
+          }
+        }"#;
+
+        let output: AuthorityBridgeActorOutput =
+            serde_json::from_str(&bridge.dispatch_json(upsert).unwrap()).unwrap();
+        let actor = output.actor.expect("retired actor was rebuilt");
+        let craftsman = actor
+            .professions
+            .iter()
+            .find(|profession| profession.id == "craftsman")
+            .expect("craftsman progress is projected");
+        assert_eq!(craftsman.xp, 70);
+        assert_eq!(craftsman.track_xp.get("assembly"), Some(&60));
+        assert_eq!(craftsman.track_xp.get("experimentation"), Some(&10));
+        assert_eq!(actor.skill_points_cap, 300);
+        assert_eq!(actor.credits, 8_765);
     }
 
     #[test]

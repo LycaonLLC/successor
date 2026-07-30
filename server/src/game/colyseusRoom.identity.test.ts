@@ -214,6 +214,42 @@ describe("colyseusRoom identity resolution (W2 ticket gate)", () => {
     });
   });
 
+  it("projects exact legacy-array XP into the retired-actor rebuild identity", async () => {
+    writeFileSync(path.join(dir, "characters.json"), `${JSON.stringify({
+      schema: "successor.character-store.v2",
+      characters: [currentIdentityRecord({
+        id: "fixture-progressed",
+        name: "Progressed",
+        professions: [{
+          id: "craftsman",
+          label: "Craftsman",
+          xp: 70,
+          trackXp: { assembly: 60, experimentation: 10 },
+          skillPoints: 16,
+          skillBoxes: ["craftsman-novice"],
+        }],
+        credits: 8_765,
+        skillPointCap: 300,
+      })],
+    })}\n`, "utf8");
+
+    await expect(identityFromOptions({ characterId: "fixture-progressed" }, store)).resolves.toMatchObject({
+      actorId: "fixture-progressed",
+      characterId: "fixture-progressed",
+      returningCharacter: true,
+      professionIds: ["craftsman"],
+      skillBoxIds: ["craftsman-novice"],
+      professions: [{
+        id: "craftsman",
+        xp: 70,
+        trackXp: { assembly: 60, experimentation: 10 },
+        skillBoxes: ["craftsman-novice"],
+      }],
+      credits: 8_765,
+      skillPointsCap: 300,
+    });
+  });
+
   it("rejects an unresolved pre-picker character before first entry", async () => {
     writeFileSync(path.join(dir, "characters.json"), `${JSON.stringify({
       schema: "successor.character-store.v2",

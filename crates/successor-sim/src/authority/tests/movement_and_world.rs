@@ -1583,7 +1583,9 @@ fn authority_transition_preserves_character_state_and_checkpoint_roundtrip() {
             .professions
             .track_xp
             .insert("scout:sprinting".to_owned(), 321);
-        actor.known_recipe_ids.insert("travel-proof-recipe".to_owned());
+        actor
+            .known_recipe_ids
+            .insert("travel-proof-recipe".to_owned());
         actor.scanned_genomes.insert(0xfeed_beef);
     }
     let skill = state.apply_envelope(
@@ -1732,6 +1734,9 @@ fn authority_upsert_actor_allows_occupied_cell() {
             role: "player".to_owned(),
             profession_ids: Vec::new(),
             skill_box_ids: Vec::new(),
+            profession_xp: BTreeMap::new(),
+            profession_track_xp: BTreeMap::new(),
+            skill_point_cap: None,
             active_title_id: None,
             credits: None,
             capabilities: Vec::new(),

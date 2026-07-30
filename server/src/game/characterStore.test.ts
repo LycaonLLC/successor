@@ -382,7 +382,16 @@ describe("CharacterStore", () => {
     const created = store.create({ name: "Atlas", appearance });
     if (!created.ok) throw new Error("expected character create to succeed");
     const record = store.saveActorSnapshot(created.record.id, actorSnapshot({
-      professions: [{ id: "marksman", label: "Marksman", xp: 12, skillPoints: 2, skillBoxes: ["marksman-novice"] }],
+      professions: [{
+        id: "marksman",
+        label: "Marksman",
+        xp: 12,
+        trackXp: { rifle: 9, tactics: 3 },
+        skillPoints: 2,
+        skillBoxes: ["marksman-novice"],
+      }],
+      credits: 9_876,
+      skillPointsCap: 300,
       activeTitle: { id: "marksman-novice", label: "Novice Marksman", skillBoxId: "marksman-novice" },
       careerGoalId: "rifle_quartermaster",
     }), { logout: true, playMs: 1234, atMs: Date.parse("2026-07-06T00:01:00.000Z") });
@@ -393,8 +402,50 @@ describe("CharacterStore", () => {
       lastLogoutAt: "2026-07-06T00:01:00.000Z",
       activeTitleId: "marksman-novice",
       careerGoalId: "rifle_quartermaster",
+      credits: 9_876,
+      skillPointCap: 300,
     });
-    expect(record?.professions).toEqual([{ id: "marksman", label: "Marksman", xp: 12, skillPoints: 2, skillBoxes: ["marksman-novice"] }]);
+    expect(record?.professions).toEqual([{
+      id: "marksman",
+      label: "Marksman",
+      xp: 12,
+      trackXp: { rifle: 9, tactics: 3 },
+      skillPoints: 2,
+      skillBoxes: ["marksman-novice"],
+    }]);
+  }));
+
+  it("preserves durable progression when a partial actor snapshot omits it", () => withStore((store) => {
+    const created = store.create({ name: "Atlas", appearance, initialProfessionId: "marksman" });
+    if (!created.ok) throw new Error("expected character create to succeed");
+    store.saveActorSnapshot(created.record.id, actorSnapshot({
+      professions: [{
+        id: "marksman",
+        label: "Marksman",
+        xp: 240,
+        trackXp: { rifle: 200, tactics: 40 },
+        skillPoints: 24,
+        skillBoxes: ["marksman-novice", "marksman-rifle-i"],
+      }],
+      credits: 8_765,
+      skillPointsCap: 300,
+    }));
+
+    const partial = store.saveActorSnapshot(created.record.id, actorSnapshot({
+      professions: undefined,
+      credits: undefined,
+      skillPointsCap: undefined,
+    }));
+    expect(partial).toMatchObject({
+      credits: 8_765,
+      skillPointCap: 300,
+      professions: [{
+        id: "marksman",
+        xp: 240,
+        trackXp: { rifle: 200, tactics: 40 },
+        skillBoxes: ["marksman-novice", "marksman-rifle-i"],
+      }],
+    });
   }));
 
   it("stores generic record-kind items with macro validation and delete semantics", () => withStore((store) => {

@@ -12,6 +12,7 @@ import {
   type CharacterRecord,
   type CharacterStore,
 } from "./characterStore.js";
+import { characterAuthoritySeed } from "./characterAuthoritySeed.js";
 import { GameShard, type GameSessionIdentity, type GameSocket } from "./shard.js";
 import { gameClientViewSchema, type GameClientView } from "./protocol.js";
 import {
@@ -455,48 +456,6 @@ export async function identityFromOptions(
     zoneId: normalizeActorId(query.zoneId ?? query.zone ?? "open-desert") || "open-desert",
     spawn: spawnFromQuery(query),
   };
-}
-
-interface CharacterAuthoritySeed {
-  professionIds?: string[];
-  skillBoxIds: string[];
-  credits?: number;
-}
-
-function characterAuthoritySeed(character: CharacterRecord): CharacterAuthoritySeed {
-  const professions = character.professions;
-  // Returning legacy actors restore durable Rust state and do not consume this
-  // seed. Never turn a missing profile into five free novice allocations.
-  if (professions === null) return { skillBoxIds: [] };
-  const rows = Array.isArray(professions) ? professions : [professions];
-  const professionIds = normalizedStringIds(rows.flatMap((row) => {
-    if (!isRecord(row)) return [];
-    const rowId = typeof row.id === "string" ? [row.id] : [];
-    const learned = Array.isArray(row.learned) ? row.learned : [];
-    return [...rowId, ...learned];
-  }));
-  const skillBoxIds = normalizedStringIds(rows.flatMap((row) => (
-    isRecord(row) && Array.isArray(row.skillBoxes) ? row.skillBoxes : []
-  )));
-  const credits = rows
-    .map((row) => isRecord(row) ? normalizedCharacterCredits(row.credits) : undefined)
-    .find((value): value is number => value !== undefined);
-  return {
-    professionIds,
-    skillBoxIds,
-    ...(credits === undefined ? {} : { credits }),
-  };
-}
-
-function normalizedStringIds(values: unknown[]): string[] {
-  return [...new Set(values
-    .map((value) => typeof value === "string" ? value.trim() : "")
-    .filter((value) => value.length > 0))];
-}
-
-function normalizedCharacterCredits(value: unknown): number | undefined {
-  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
-  return Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.trunc(value)));
 }
 
 function loadTicketCharacter(
