@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@colyseus/core": "^0.17.43",
-    "@colyseus/sdk": "^0.17.42",
+    "@colyseus/sdk": "^0.17.43",
     "@colyseus/ws-transport": "^0.17.13",
     "@fastify/websocket": "^11.2.0",
     "drizzle-orm": "^0.45.2",

@@ -30,6 +30,6 @@
     "vitest": "3.2.6"
   },
   "dependencies": {
-    "@colyseus/sdk": "^0.17.42"
+    "@colyseus/sdk": "^0.17.43"
   }
 }
