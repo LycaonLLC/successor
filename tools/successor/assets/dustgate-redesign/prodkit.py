@@ -384,6 +384,7 @@ class Unit:
                     empties[family] = empty
             merged.parent = empties[family]
             merged.matrix_parent_inverse = empties[family].matrix_world.inverted()
+            _canonicalize_uvs(merged)
             parts.append(merged)
 
         return {"empties": empties, "parts": parts}
@@ -469,6 +470,23 @@ def _shade(obj: bpy.types.Object) -> None:
     for poly in obj.data.polygons:
         poly.use_smooth = True
     obj.data.set_sharp_from_angle(angle=math.radians(38.0))
+
+
+def _canonicalize_uvs(obj: bpy.types.Object, decimals: int = 5) -> None:
+    """Remove sub-texel modifier interpolation noise from exported UVs.
+
+    Blender 5.2 can vary a few post-bevel UV float bits between otherwise
+    identical factory-startup builds. Rounding after all joins/modifiers keeps
+    the source mesh deterministic; five decimal UV precision is still about
+    1/200th of a texel at this kit's 1024 px texture period.
+    """
+    for layer in obj.data.uv_layers:
+        for loop in layer.data:
+            loop.uv = tuple(
+                0.0 if abs(float(value)) < 0.5 * (10 ** -decimals)
+                else round(float(value), decimals)
+                for value in loop.uv
+            )
 
 
 # --------------------------------------------------------------------------
