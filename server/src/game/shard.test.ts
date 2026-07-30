@@ -9221,7 +9221,7 @@ describe("GameShard", () => {
     const alternateKey = createHash("sha256").update("craft-journal-replay-alternate").digest("hex");
     const craftEnvelope = { ...envelope(91, { CraftAssemble: {} }), issued_at_tick: 41 };
     let checkpointStateHash = "";
-    let recordedTargetStateHash = "";
+    let recordedTargetStateHash: string;
     const canonicalEnvelope = (value: ClientCommandEnvelope): string => JSON.stringify({
       session: value.session,
       player: value.player,

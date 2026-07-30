@@ -99,7 +99,7 @@ export async function runLogout(options: AccountCommandOptions, deps: AccountDep
     return 0;
   }
   const api = (deps.makeApi ?? createAlphaApi)(credentialApiUrl(options, stored.apiUrl));
-  let revoked: "revoked" | "unsupported" | "unreached" = "unreached";
+  let revoked: "revoked" | "unsupported" | "unreached";
   try {
     revoked = await api.deviceLogout(stored.credential);
   } catch {

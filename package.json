@@ -72,13 +72,17 @@
     "ci": "pnpm verify:successor-context && pnpm check:commands && pnpm check:coverage && pnpm test:verification && pnpm deploy:contract && bash tools/denylist/check.sh && pnpm security:audit && pnpm -r build && pnpm -r test"
   },
   "engines": {
-    "node": ">=22.0.0",
+    "node": ">=22.13.0",
     "pnpm": ">=10.33.0"
   },
   "pnpm": {
     "overrides": {
+      "body-parser@<2.3.0": "2.3.0",
+      "brace-expansion@>=3.0.0 <5.0.8": "5.0.8",
       "fast-uri": "3.1.4",
-      "find-my-way": "9.7.0"
+      "find-my-way": "9.7.0",
+      "js-yaml@<4.3.0": "4.3.0",
+      "postcss@<8.5.18": "8.5.18"
     }
   }
 }

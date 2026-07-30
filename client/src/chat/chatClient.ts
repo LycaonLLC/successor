@@ -352,7 +352,7 @@ function connectChat(
 
 function terminalCloseReason(event: CloseEvent, wsUrl: string): string | null {
   if (event.code !== 1008) return null;
-  let hasLaunchTicket = false;
+  let hasLaunchTicket: boolean;
   try {
     hasLaunchTicket = new URL(wsUrl).searchParams.has("ticket");
   } catch {

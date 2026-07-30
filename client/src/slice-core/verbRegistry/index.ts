@@ -689,8 +689,8 @@ function parseCuratedTradeArgs(
   if (!rawPartner) return { error: "missing_partner" };
   const partnerActorId = resolveTradePartner(context, rawPartner);
   const hasNamedItems = named.has("offer") || named.has("request");
-  let offerRaw: readonly string[] = [];
-  let requestRaw: readonly string[] = [];
+  let offerRaw: readonly string[];
+  let requestRaw: readonly string[];
   if (hasNamedItems) {
     if (positional.length > 0) return { error: "use_offer_request" };
     const offer = splitRepeatedTokens(named.get("offer") ?? []);

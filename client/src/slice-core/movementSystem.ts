@@ -1056,8 +1056,8 @@ export function clickMoveOctantVector(
   if (Math.hypot(dx, dy) <= CLICK_MOVE_ARRIVAL_RADIUS_CELLS) return null;
   const cellDx = Math.floor(target.x) - Math.floor(player.x);
   const cellDy = Math.floor(target.y) - Math.floor(player.y);
-  let sx = 0;
-  let sy = 0;
+  let sx: number;
+  let sy: number;
   if (cellDx !== 0 || cellDy !== 0) {
     sx = Math.sign(cellDx);
     sy = Math.sign(cellDy);

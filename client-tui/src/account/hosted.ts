@@ -209,8 +209,7 @@ export async function runHostedPlay(options: HostedPlayOptions, deps: HostedDeps
     const launchOptions = buildLaunchOptions(options, envelope, picked, origin, (notice) => {
       legNotice = legNotice ?? notice;
     });
-    // one-use pair handed over; this loop keeps no copy
-    envelope = null as unknown as LaunchEnvelope;
+    // launchOptions owns the one-use pair; this loop never reads it again.
 
     let outcome: SessionOutcome;
     try {

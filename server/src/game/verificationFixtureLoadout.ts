@@ -38,7 +38,10 @@ export function loadVerificationFixtureLoadouts(env: NodeJS.ProcessEnv = process
   try {
     document = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
   } catch (error) {
-    throw new Error(`verification fixture loadouts could not be read: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `verification fixture loadouts could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
   }
   return parseVerificationFixtureLoadouts(document);
 }

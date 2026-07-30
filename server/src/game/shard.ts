@@ -9009,7 +9009,10 @@ export class GameShard {
       try {
         entries.push(JSON.parse(line) as JournalEntry);
       } catch (error) {
-        throw new Error(`journal tail contains invalid JSON while restoring Rust authority: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(
+          `journal tail contains invalid JSON while restoring Rust authority: ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
       }
     }
     let checkpointIndex = -1;
@@ -9064,7 +9067,6 @@ export class GameShard {
           throw new Error(`journal replay tick advance failed before command ${entry.commandId}: expected tick ${receiptTick}, received ${String(tickOutputTick)}`);
         }
         this.applyRustAuthorityTickOutput(tickOutput);
-        replayTick = tickOutputTick;
       }
       const output = await this.rustAuthorityBridge.submitCommand({
         actorId: entry.rust.rustActorId,

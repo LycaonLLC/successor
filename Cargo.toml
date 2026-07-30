@@ -19,7 +19,7 @@ rust-version = "1.83"
 [workspace.dependencies]
 # Determinism (per ADR-0004)
 fixed = "=1.28.0"            # raising to 1.31+ requires rustc 1.93; treat as replay-breaking
-rand = { version = "=0.8.5", default-features = false }
+rand = { version = "=0.8.6", default-features = false }
 rand_chacha = "=0.3.1"
 blake3 = { version = "=1.5.5", default-features = false, features = ["std"] }
 
