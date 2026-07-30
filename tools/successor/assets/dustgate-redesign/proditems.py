@@ -5,11 +5,12 @@ import hashlib
 import json
 import math
 import os
+import shutil
 import sys
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dgpaths import REPO_ROOT, prod
+from dgpaths import REPO_ROOT, STUDY_DIR, prod
 from dgkit import resolve_eevee_engine
 
 SRC = Path(
@@ -20,6 +21,7 @@ SRC = Path(
 ).resolve()
 REPO = Path(REPO_ROOT)
 PROMOTED = REPO / "client-3d/public/assets/world-items"
+VENDORED = Path(STUDY_DIR) / "source-items"
 
 EXTRACTION_IDS = [
     "successor_extraction_mineral_power_skid", "successor_extraction_mineral_control_panel",
@@ -132,26 +134,76 @@ def candidate(group, item_id, path):
     }
 
 
-def build_candidates():
+def upstream_candidates():
     result = []
     extraction = SRC / "successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets"
     vehicles = SRC / "vehicles/successor/grok45-wave-20260718/components/assets"
     for item_id in EXTRACTION_IDS:
-        result.append(candidate("extraction", item_id, extraction / (item_id + ".glb")))
+        result.append(("extraction", item_id, extraction / (item_id + ".glb")))
     for item_id in VEHICLE_IDS:
-        result.append(candidate("vehicle", item_id, vehicles / (item_id + ".glb")))
-    for item_id, filename in PROMOTED_SELECTIONS:
-        result.append(candidate("promoted", item_id, PROMOTED / filename))
+        result.append(("vehicle", item_id, vehicles / (item_id + ".glb")))
     infra = SRC / "successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/assets"
     for token in ("infra_001", "infra_021", "infra_121"):
-        result.append(candidate("infrastructure", token, infra / f"{token}.glb"))
+        result.append(("infrastructure", token, infra / f"{token}.glb"))
     everyday = SRC / "successor/everyday-wave-20260719/everyday-world-props/assets"
     furniture = SRC / "successor/homebuilder-wave-20260719/furniture/assets"
     roots = {"everyday": everyday, "furniture": furniture}
     for lane, filename in EVERYDAY_SELECTIONS:
         path = roots[lane] / filename
-        result.append(candidate("everyday", path.stem, path))
+        result.append(("everyday", path.stem, path))
     return result
+
+
+def preferred_source(item_id, upstream):
+    vendored = VENDORED / f"{item_id}.glb"
+    return vendored if vendored.is_file() else upstream
+
+
+def build_candidates():
+    rows = upstream_candidates()
+    result = [
+        candidate(group, item_id, preferred_source(item_id, path))
+        for group, item_id, path in rows
+        if group in {"extraction", "vehicle"}
+    ]
+    for item_id, filename in PROMOTED_SELECTIONS:
+        result.append(candidate("promoted", item_id, PROMOTED / filename))
+    result.extend(
+        candidate(group, item_id, preferred_source(item_id, path))
+        for group, item_id, path in rows
+        if group not in {"extraction", "vehicle"}
+    )
+    return result
+
+
+def vendor_pinned_candidates():
+    VENDORED.mkdir(parents=True, exist_ok=True)
+    records = []
+    for group, item_id, upstream in upstream_candidates():
+        source = candidate(group, item_id, upstream)
+        destination = VENDORED / f"{item_id}.glb"
+        if destination.exists() and sha256(destination) != EXPECTED_SHA256[item_id]:
+            raise RuntimeError(f"refusing to replace changed vendored candidate: {destination}")
+        if not destination.exists():
+            shutil.copy2(upstream, destination)
+        candidate(group, item_id, destination)
+        records.append({
+            "bytes": destination.stat().st_size,
+            "filename": destination.name,
+            "group": group,
+            "id": item_id,
+            "sha256": EXPECTED_SHA256[item_id],
+            "upstreamLineage": str(upstream.relative_to(SRC)),
+        })
+    manifest = {
+        "schemaVersion": 1,
+        "generatedBy": "tools/successor/assets/dustgate-redesign/proditems.py --vendor-pinned",
+        "candidateCount": len(records),
+        "candidates": records,
+    }
+    manifest_path = VENDORED / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"[proditems] vendored {len(records)} pinned candidates at {VENDORED}")
 
 
 def reset_scene():
@@ -363,4 +415,8 @@ def main():
         raise RuntimeError(f"{len(failures)} item audit(s) failed: {failed_ids}")
 
 if __name__ == '__main__':
-    main()
+    script_args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    if "--vendor-pinned" in script_args:
+        vendor_pinned_candidates()
+    else:
+        main()
