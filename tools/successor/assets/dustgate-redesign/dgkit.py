@@ -570,16 +570,31 @@ def add_ortho_camera_axis(
     return obj
 
 
+def resolve_eevee_engine() -> str:
+    """Return the Eevee render-engine identifier used by this Blender build."""
+    engine_items = bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items
+    supported = {item.identifier for item in engine_items}
+    for candidate in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"):
+        if candidate in supported:
+            return candidate
+    raise RuntimeError(
+        "Eevee is unavailable; supported render engines are "
+        + ", ".join(sorted(supported))
+    )
+
+
 def configure_render(
     res_x: int = 1600,
     res_y: int = 900,
     samples: int = 64,
-    engine: str = "BLENDER_EEVEE_NEXT",
+    engine: str | None = None,
     film_transparent: bool = False,
     view_transform: str = "AgX",
     look: str = "AgX - Base Contrast",
 ) -> None:
     scene = bpy.context.scene
+    if engine is None:
+        engine = resolve_eevee_engine()
     scene.render.engine = engine
     scene.render.resolution_x = res_x
     scene.render.resolution_y = res_y
@@ -594,14 +609,17 @@ def configure_render(
         scene.cycles.device = "CPU"
         scene.cycles.seed = 20260729
     else:
-        scene.eevee.taa_render_samples = samples
-        scene.eevee.use_shadows = True
-        if hasattr(scene.eevee, "use_raytracing"):
-            scene.eevee.use_raytracing = True
-        if hasattr(scene.eevee, "shadow_ray_count"):
-            scene.eevee.shadow_ray_count = 2
-        if hasattr(scene.eevee, "shadow_step_count"):
-            scene.eevee.shadow_step_count = 6
+        eevee = getattr(scene, "eevee", None)
+        if eevee is not None:
+            for attribute, value in (
+                ("taa_render_samples", samples),
+                ("use_shadows", True),
+                ("use_raytracing", True),
+                ("shadow_ray_count", 2),
+                ("shadow_step_count", 6),
+            ):
+                if hasattr(eevee, attribute):
+                    setattr(eevee, attribute, value)
     scene.view_settings.view_transform = view_transform
     try:
         scene.view_settings.look = look

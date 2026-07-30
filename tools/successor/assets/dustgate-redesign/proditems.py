@@ -10,6 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from dgpaths import REPO_ROOT, prod
+from dgkit import resolve_eevee_engine
 
 SRC = Path(
     os.environ.get(
@@ -173,8 +174,10 @@ def material(name, color, roughness=0.65):
 
 def setup_scene(center, scale, mode):
     scene = bpy.context.scene
-    scene.render.engine = "BLENDER_EEVEE_NEXT"
-    scene.eevee.taa_render_samples = 64
+    scene.render.engine = resolve_eevee_engine()
+    eevee = getattr(scene, "eevee", None)
+    if eevee is not None and hasattr(eevee, "taa_render_samples"):
+        eevee.taa_render_samples = 64
     scene.render.resolution_x = 900
     scene.render.resolution_y = 900
     scene.render.resolution_percentage = 100
@@ -185,7 +188,6 @@ def setup_scene(center, scale, mode):
     scene.render.image_settings.color_management = "FOLLOW_SCENE"
     scene.view_settings.view_transform = "AgX"
     scene.view_settings.look = "AgX - Medium High Contrast"
-    scene.render.engine = "BLENDER_EEVEE_NEXT"
     scene.render.resolution_percentage = 100
     # Ground and proxy are deliberately added after candidate measurement.
     bpy.ops.mesh.primitive_plane_add(size=max(30.0, scale * 4.0), location=(center[0], center[1], 0.0))
@@ -344,8 +346,9 @@ def main():
         finally:
             records.append(record)
     contact_sheets(records)
+    failures = [record for record in records if "error" in record]
     report = {"generatedBy": "tools/successor/assets/dustgate-redesign/proditems.py", "blenderVersion": bpy.app.version_string,
-              "candidateCount": len(records), "candidates": records}
+              "candidateCount": len(records), "errorCount": len(failures), "candidates": records}
     with open(prod('items', 'item_audit.json'), 'w', encoding='utf-8') as handle:
         handle.write(json.dumps(report, indent=2, sort_keys=True) + '\n')
     print("id\tspanX x spanY x spanZ\ttriangles\tmaterials\tgroundContact")
@@ -355,6 +358,9 @@ def main():
         else:
             s = record['spans']
             print(f"{record['id']}\t{s['x']:.3f} x {s['y']:.3f} x {s['z']:.3f}\t{record['triangles']}\t{len(record['materials'])}\t{record['groundContactY']}")
+    if failures:
+        failed_ids = ", ".join(record["id"] for record in failures)
+        raise RuntimeError(f"{len(failures)} item audit(s) failed: {failed_ids}")
 
 if __name__ == '__main__':
     main()
