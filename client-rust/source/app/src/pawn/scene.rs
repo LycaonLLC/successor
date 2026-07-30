@@ -1,0 +1,186 @@
+//! `--demo pawns`: load a pawn body pack and render a row of animated pawns at
+//! different gaits (idle/walk/run) and skin/faction tints, exercising the
+//! template + animator + appearance integration end-to-end. Native visual QA.
+
+use successor_engine_core::ecs::{Entity, WorldOps};
+use successor_engine_core::math::{vec3, Quat, Vec3};
+use successor_engine_render::components::{
+    CamTarget, Camera, DirectionalLight, MeshRenderer, Projection, RectNorm, SkinRef, Transform,
+};
+use successor_engine_render::gpu::{ClearSpec, Gpu};
+use successor_engine_render::renderer::{Renderer, RendererLimits};
+
+use super::animator::{PawnAnimator, WeaponLane};
+use super::appearance::{faction_tinted, skin_tint};
+use super::pack::{PawnGpuParts, PawnTemplate};
+use crate::GameWorld;
+
+struct PawnActor {
+    animator: PawnAnimator,
+    entities: Vec<Entity>,
+    speed: f32,
+    lane: WeaponLane,
+    against_facing: bool,
+    alive: bool,
+    pos_x: f32,
+}
+
+/// A weapon mesh socketed to a pawn's hand bone.
+struct WeaponRig {
+    entities: Vec<Entity>,
+    actor_index: usize,
+    hand: usize,
+}
+
+pub struct PawnScene {
+    pub world: GameWorld,
+    pub renderer: Renderer,
+    template: PawnTemplate,
+    actors: Vec<PawnActor>,
+    weapon: Option<WeaponRig>,
+    camera: Entity,
+    center: Vec3,
+    orbit: f32,
+}
+
+impl PawnScene {
+    pub fn build<G: Gpu>(gpu: &mut G, bytes: &[u8]) -> Result<PawnScene, ()> {
+        let template = PawnTemplate::from_bytes(bytes).map_err(|_| ())?;
+        let mut renderer = Renderer::new(gpu, RendererLimits::default());
+        renderer.set_ambient(0.45);
+        renderer.set_fog([0.09, 0.10, 0.12], 40.0, 80.0);
+        let mut world = GameWorld::new();
+        let gpu_parts: PawnGpuParts = template.upload(gpu, &mut renderer);
+
+        // A row of pawns, each with a gait + tint.
+        let specs: [(f32, WeaponLane, bool, Option<[f32; 3]>, Option<&str>); 5] = [
+            (0.0, WeaponLane::Unarmed, false, None, Some("#cc9978")),
+            (1.0, WeaponLane::Unarmed, false, None, Some("#8d5a3c")),
+            (3.0, WeaponLane::Rifle, false, Some([0.8, 0.2, 0.2]), Some("#e0b48a")),
+            (1.0, WeaponLane::Unarmed, true, None, Some("#5b3a29")),
+            (0.0, WeaponLane::Unarmed, false, None, None),
+        ];
+        let mut actors = Vec::new();
+        for (i, (speed, lane, against, faction, skin)) in specs.iter().enumerate() {
+            let base = skin_tint(*skin);
+            let color = faction_tinted(base, *faction);
+            let material = renderer.add_material(color);
+            let x = i as f32 * 1.6 - (specs.len() as f32 - 1.0) * 0.8;
+            let mut entities = Vec::new();
+            for (mesh, _mat) in &gpu_parts.parts {
+                let e = world.spawn();
+                world.set_component(e, Transform { pos: vec3(x, 0.0, 0.0), rot: Quat::IDENTITY, scale: Vec3::ONE });
+                world.set_component(e, MeshRenderer { mesh: *mesh, material, viewport_mask: 0b1, skin: SkinRef::NONE });
+                entities.push(e);
+            }
+            actors.push(PawnActor {
+                animator: PawnAnimator::new(&template),
+                entities,
+                speed: *speed,
+                lane: *lane,
+                against_facing: *against,
+                alive: true,
+                pos_x: x,
+            });
+        }
+
+        let sun = world.spawn();
+        world.set_component(
+            sun,
+            DirectionalLight { dir: vec3(-0.4, -1.0, -0.3).normalize(), color: [1.0, 0.98, 0.92], cast_shadows: false },
+        );
+
+        let center = vec3(0.0, 1.0, 0.0);
+        let orbit = 6.0f32;
+        let camera = world.spawn();
+        world.set_component(
+            camera,
+            Camera {
+                viewport_id: 0,
+                order: 0,
+                projection: Projection::Perspective { fovy: 45.0_f32.to_radians(), near: 0.05, far: 200.0 },
+                target: CamTarget::Screen(RectNorm::FULL),
+                clear: ClearSpec { color: Some([0.09, 0.10, 0.12, 1.0]), depth: Some(1.0) },
+                eye: center.add(vec3(0.0, 1.5, orbit)),
+                look_at: center,
+                up: Vec3::Y,
+            },
+        );
+
+        // Socket a slugthrower to the rifle pawn's hand (best-effort).
+        let weapon = load_weapon(gpu, &mut renderer, &mut world, &template, &actors);
+
+        Ok(PawnScene { world, renderer, template, actors, weapon, camera, center, orbit })
+    }
+
+    pub fn animate(&mut self, frame: u64) {
+        let dt = 1.0 / 60.0;
+        // Slow orbit.
+        let angle = frame as f32 * 0.01;
+        let eye = self.center.add(vec3(angle.sin() * self.orbit, 1.5, angle.cos() * self.orbit));
+        if let Some(cam) = self.world.get_component::<Camera>(self.camera) {
+            cam.eye = eye;
+        }
+        self.renderer.begin_skin_frame();
+        for (idx, actor) in self.actors.iter_mut().enumerate() {
+            let palette = actor.animator.update(
+                &mut self.template,
+                actor.lane,
+                actor.speed,
+                actor.against_facing,
+                actor.alive,
+                dt,
+            );
+            let count = palette.len() as u32;
+            let offset = self.renderer.push_skin_palette(palette);
+            for &e in &actor.entities {
+                if let Some(mr) = self.world.get_component::<MeshRenderer>(e) {
+                    mr.skin = SkinRef { offset, count };
+                }
+            }
+            // Socket the weapon while this actor's bone globals are current.
+            if let Some(rig) = &self.weapon {
+                if rig.actor_index == idx {
+                    let bone = self.template.skeleton.bone_global(rig.hand);
+                    let world_mat = successor_engine_core::math::Mat4::from_translation(vec3(actor.pos_x, 0.0, 0.0)).mul(bone);
+                    let (t, r, s) = world_mat.to_trs();
+                    for &e in &rig.entities {
+                        if let Some(tr) = self.world.get_component::<Transform>(e) {
+                            tr.pos = t;
+                            tr.rot = r;
+                            tr.scale = s;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Load `slugthrower.glb` and spawn its parts for the first Rifle-lane pawn,
+/// resolving the hand socket bone by name. Best-effort: returns `None` if the
+/// asset is missing, no rifle pawn exists, or no hand bone is found.
+fn load_weapon<G: Gpu>(
+    gpu: &mut G,
+    renderer: &mut Renderer,
+    world: &mut GameWorld,
+    template: &PawnTemplate,
+    actors: &[PawnActor],
+) -> Option<WeaponRig> {
+    let actor_index = actors.iter().position(|a| a.lane == WeaponLane::Rifle)?;
+    let hand = template
+        .skeleton
+        .find_bone("RightHand")
+        .or_else(|| template.skeleton.find_bone("Hand"))
+        .or_else(|| template.skeleton.find_bone("hand"))?;
+    let bytes = std::fs::read("../client-3d/public/assets/pawn-pack/slugthrower.glb").ok()?;
+    let parts = super::pack::upload_static_parts(gpu, renderer, &bytes).ok()?;
+    let mut entities = Vec::new();
+    for (mesh, material) in parts {
+        let e = world.spawn();
+        world.set_component(e, Transform::default());
+        world.set_component(e, MeshRenderer { mesh, material, viewport_mask: 0b1, skin: SkinRef::NONE });
+        entities.push(e);
+    }
+    Some(WeaponRig { entities, actor_index, hand })
+}

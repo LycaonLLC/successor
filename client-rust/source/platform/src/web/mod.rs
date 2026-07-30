@@ -71,6 +71,16 @@ pub fn poll_text_input() -> Option<char> {
     }
 }
 
+/// Mouse position (framebuffer px). Web input routing lands in the wasm wave;
+/// until then this reports the origin so the shared UI code compiles/runs.
+pub fn mouse_position() -> (f32, f32) {
+    (0.0, 0.0)
+}
+
+pub fn mouse_button_down(_button: i32) -> bool {
+    false
+}
+
 pub mod http {
     pub use super::net::http_post_json;
 }

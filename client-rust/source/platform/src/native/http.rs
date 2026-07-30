@@ -77,3 +77,58 @@ pub fn http_post_json(url_str: &str, body: &[u8]) -> Result<Vec<u8>, String> {
 
     Ok(body_part.to_vec())
 }
+
+/// HTTP GET returning the raw response body (any size; used for asset blobs).
+pub fn http_get(url_str: &str) -> Result<Vec<u8>, String> {
+    let parsed_url = Url::parse(url_str).map_err(|e| e.to_string())?;
+    let host = parsed_url.host_str().ok_or_else(|| "Missing host in URL".to_string())?;
+    let port = parsed_url
+        .port_or_known_default()
+        .ok_or_else(|| "Could not determine port".to_string())?;
+    let path = parsed_url.path();
+    let full_path = match parsed_url.query() {
+        Some(q) => format!("{}?{}", path, q),
+        None => path.to_string(),
+    };
+    let stream = TcpStream::connect(format!("{}:{}", host, port)).map_err(|e| e.to_string())?;
+    let request = format!(
+        "GET {} HTTP/1.1\r\n\
+         Host: {}\r\n\
+         Accept: */*\r\n\
+         Connection: close\r\n\r\n",
+        full_path, host
+    );
+    let mut response = Vec::new();
+    if parsed_url.scheme() == "https" {
+        let connector = TlsConnector::new().map_err(|e| e.to_string())?;
+        let mut tls = connector.connect(host, stream).map_err(|e| e.to_string())?;
+        tls.write_all(request.as_bytes()).map_err(|e| e.to_string())?;
+        tls.flush().map_err(|e| e.to_string())?;
+        tls.read_to_end(&mut response).map_err(|e| e.to_string())?;
+    } else {
+        let mut raw = stream;
+        raw.write_all(request.as_bytes()).map_err(|e| e.to_string())?;
+        raw.flush().map_err(|e| e.to_string())?;
+        raw.read_to_end(&mut response).map_err(|e| e.to_string())?;
+    }
+    let mut header_end = None;
+    for i in 0..response.len().saturating_sub(3) {
+        if &response[i..i + 4] == b"\r\n\r\n" {
+            header_end = Some(i);
+            break;
+        }
+    }
+    let header_end = header_end.ok_or_else(|| "Invalid HTTP response (no header separator)".to_string())?;
+    let headers_str = std::str::from_utf8(&response[..header_end])
+        .map_err(|_| "Invalid UTF-8 in HTTP headers".to_string())?;
+    let status_line = headers_str.lines().next().ok_or_else(|| "Empty HTTP response".to_string())?;
+    let parts: Vec<&str> = status_line.split_whitespace().collect();
+    if parts.len() < 2 {
+        return Err("Invalid HTTP status line".to_string());
+    }
+    let status_code = parts[1].parse::<u32>().map_err(|_| "Invalid HTTP status code".to_string())?;
+    if status_code != 200 {
+        return Err(format!("HTTP GET failed with status code: {}", status_code));
+    }
+    Ok(response[header_end + 4..].to_vec())
+}

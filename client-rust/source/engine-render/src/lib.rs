@@ -11,10 +11,16 @@
 extern crate alloc;
 
 pub mod components;
+pub mod environment;
+pub mod font;
+pub mod fx;
 pub mod gpu;
 pub mod primitives;
 pub mod renderer;
 pub mod text;
+pub mod ui;
+pub mod weather;
+pub mod window;
 
 #[cfg(all(test, feature = "std"))]
 mod tests {
@@ -83,10 +89,10 @@ mod tests {
         // Two meshes: one visible in both viewports, one only in main.
         let e_both = w.spawn();
         w.set_component(e_both, Transform::default());
-        w.set_component(e_both, MeshRenderer { mesh, material: mat, viewport_mask: 0b11 });
+        w.set_component(e_both, MeshRenderer { mesh, material: mat, viewport_mask: 0b11, ..Default::default() });
         let e_main = w.spawn();
         w.set_component(e_main, Transform { pos: vec3(3.0, 0.0, 0.0), ..Transform::default() });
-        w.set_component(e_main, MeshRenderer { mesh, material: mat, viewport_mask: 0b01 });
+        w.set_component(e_main, MeshRenderer { mesh, material: mat, viewport_mask: 0b01, ..Default::default() });
 
         // Composite the minimap RT + one HUD text line.
         let q = w.spawn();

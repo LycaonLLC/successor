@@ -3,6 +3,8 @@
 // independent.
 in vec3 v_normal;
 in vec4 v_lightPos;
+in vec2 v_uv;
+in vec3 v_worldPos;
 
 uniform vec3 u_lightDir;
 uniform vec3 u_lightColor;
@@ -10,6 +12,12 @@ uniform vec4 u_color;      // rgb + alpha (alpha < 1 => dithered)
 uniform float u_ambient;
 uniform sampler2D u_shadowMap;
 uniform int u_useShadow;
+uniform sampler2D u_albedo;
+uniform int u_hasTex;
+uniform vec3 u_camEye;
+uniform vec3 u_fogColor;
+uniform float u_fogNear;
+uniform float u_fogFar;
 
 out vec4 frag;
 
@@ -46,10 +54,13 @@ void main() {
     vec3 n = normalize(v_normal);
     float ndl = max(dot(n, normalize(-u_lightDir)), 0.0);
     float sh = (u_useShadow == 1) ? shadowFactor(v_lightPos) : 1.0;
-    vec3 lit = u_color.rgb * (u_ambient + ndl * sh) * u_lightColor;
+    vec4 base = (u_hasTex == 1) ? texture(u_albedo, v_uv) : u_color;
+    vec3 lit = base.rgb * (u_ambient + ndl * sh) * u_lightColor;
 
-    if (u_color.a < 0.999) {
-        if (u_color.a < bayer4(gl_FragCoord.xy)) discard;
+    if (base.a < 0.999) {
+        if (base.a < bayer4(gl_FragCoord.xy)) discard;
     }
-    frag = vec4(lit, 1.0);
+    float fogD = distance(v_worldPos, u_camEye);
+    float fogF = clamp((fogD - u_fogNear) / max(1.0, u_fogFar - u_fogNear), 0.0, 1.0);
+    frag = vec4(mix(lit, u_fogColor, fogF), 1.0);
 }

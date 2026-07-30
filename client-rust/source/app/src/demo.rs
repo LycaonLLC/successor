@@ -72,7 +72,7 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
     // Ground plane (visible in main + minimap).
     let g = world.spawn();
     world.set_component(g, Transform { pos: vec3(31.5, 0.0, 31.5), rot: Quat::IDENTITY, scale: Vec3::ONE });
-    world.set_component(g, MeshRenderer { mesh: plane, material: ground, viewport_mask: 0b011 });
+    world.set_component(g, MeshRenderer { mesh: plane, material: ground, viewport_mask: 0b011, ..Default::default() });
 
     // 64x64 opaque cubes (main + minimap).
     for x in 0..OPAQUE_SIDE {
@@ -86,7 +86,7 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
                     scale: vec3(0.9, 0.9, 0.9),
                 },
             );
-            world.set_component(e, MeshRenderer { mesh: cube, material: opaque, viewport_mask: 0b011 });
+            world.set_component(e, MeshRenderer { mesh: cube, material: opaque, viewport_mask: 0b011, ..Default::default() });
         }
     }
 
@@ -100,14 +100,14 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
             e,
             Transform { pos: vec3(fx, 3.0, fz), rot: Quat::IDENTITY, scale: Vec3::ONE },
         );
-        world.set_component(e, MeshRenderer { mesh: cube, material: glass, viewport_mask: 0b001 });
+        world.set_component(e, MeshRenderer { mesh: cube, material: glass, viewport_mask: 0b001, ..Default::default() });
         transparent.push(e);
     }
 
     // Hero capsule visible in ALL viewports (main + minimap + portrait).
     let hero_e = world.spawn();
     world.set_component(hero_e, Transform { pos: vec3(31.5, 0.9, 31.5), rot: Quat::IDENTITY, scale: Vec3::ONE });
-    world.set_component(hero_e, MeshRenderer { mesh: capsule, material: hero, viewport_mask: 0b111 });
+    world.set_component(hero_e, MeshRenderer { mesh: capsule, material: hero, viewport_mask: 0b111, ..Default::default() });
 
     // Shadow-casting sun.
     let sun = world.spawn();

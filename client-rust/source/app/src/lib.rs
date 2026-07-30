@@ -7,6 +7,22 @@
 pub mod demo;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod game;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod glb_scene;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod world;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod pawn;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod hud;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod windows;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod audio;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod net;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod screens;
 pub mod rss;
 
 use successor_engine_core::world;
@@ -79,5 +95,88 @@ mod web_runtime {
         if let (Some(gpu), Some(scene)) = (GPU.get_mut(), SCENE.get_mut()) {
             scene.renderer.render(gpu, &mut scene.world, w, h);
         }
+    }
+
+    // --- wasm networking runtime --------------------------------------------
+    // The sans-IO `Session` FSM + Colyseus matchmake/framing (client-proto) are
+    // target-agnostic; here they run on the browser WebSocket/fetch shim
+    // (`platform::web::net`). JS drives `net_connect` once, then `net_poll` each
+    // frame; `net_state` exposes the handshake state for the page.
+    use serde_json::json;
+    use successor_client_proto::colyseus;
+    use successor_client_proto::session::{Session, SessionOut, WsInput};
+
+    static SESSION: GlobalCell<Session> = GlobalCell::new();
+    static WS: GlobalCell<successor_platform::WsHandle> = GlobalCell::new();
+
+    #[no_mangle]
+    pub extern "C" fn net_connect() {
+        // Dev endpoint; the server gates on GAME_ALLOW_DEV_IDENTITY. A
+        // configurable endpoint from the page lands with the connect-URL wiring.
+        let endpoint = "ws://127.0.0.1:28093";
+        let http = endpoint.replacen("wss://", "https://", 1).replacen("ws://", "http://", 1);
+        let opts = json!({ "playerId": "dev-1", "actorId": "dev-1" });
+        let (url, body) = match colyseus::build_matchmake_request(&http, &opts) {
+            Ok(v) => v,
+            Err(_) => return,
+        };
+        let resp = match successor_platform::http_post_json(&url, &body) {
+            Ok(r) => r,
+            Err(_) => return,
+        };
+        let seat = match colyseus::parse_seat_reservation(&resp) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        let ws_url = colyseus::build_ws_url(endpoint, &seat);
+        if let Ok(ws) = successor_platform::ws_connect(&ws_url) {
+            let mut s = Session::new();
+            s.start_connecting();
+            SESSION.set(s);
+            WS.set(ws);
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn net_poll() {
+        let (sess, ws) = match (SESSION.get_mut(), WS.get_mut()) {
+            (Some(s), Some(w)) => (s, w),
+            _ => return,
+        };
+        let mut buf: Vec<u8> = Vec::new();
+        loop {
+            buf.clear();
+            let ev = successor_platform::ws_poll(ws, &mut buf);
+            let outs = match ev {
+                successor_platform::WsEvent::Open => sess.on_ws_event(WsInput::Open),
+                successor_platform::WsEvent::Frame(n) => sess.on_ws_event(WsInput::Frame(&buf[..n])),
+                successor_platform::WsEvent::Closed => {
+                    let o = sess.on_ws_event(WsInput::Closed);
+                    send_frames(ws, o);
+                    break;
+                }
+                successor_platform::WsEvent::Error => {
+                    let o = sess.on_ws_event(WsInput::Error("ws error"));
+                    send_frames(ws, o);
+                    break;
+                }
+                successor_platform::WsEvent::None => break,
+            };
+            send_frames(ws, outs);
+        }
+    }
+
+    fn send_frames(ws: &mut successor_platform::WsHandle, outs: Vec<SessionOut>) {
+        for o in outs {
+            if let SessionOut::SendFrame(f) = o {
+                successor_platform::ws_send(ws, &f);
+            }
+        }
+    }
+
+    /// Session handshake state as a small code for the page (0 = not started).
+    #[no_mangle]
+    pub extern "C" fn net_state() -> u32 {
+        SESSION.get_mut().map(|s| s.state() as u32).unwrap_or(0)
     }
 }

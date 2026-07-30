@@ -111,7 +111,7 @@ fn bench_render(c: &mut Criterion) {
         for z in 0..side {
             let e = w.spawn();
             w.set_component(e, Transform { pos: vec3(x as f32, 0.0, z as f32), rot: Quat::IDENTITY, scale: Vec3::ONE });
-            w.set_component(e, MeshRenderer { mesh, material: mat, viewport_mask: 0b1 });
+            w.set_component(e, MeshRenderer { mesh, material: mat, viewport_mask: 0b1, ..Default::default() });
         }
     }
     let t = w.spawn();

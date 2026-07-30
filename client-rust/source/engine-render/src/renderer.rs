@@ -16,8 +16,8 @@ use crate::components::{
 };
 use crate::gpu::{
     BufferId, BufferUsage, ClearSpec, Cull, Filter, Gpu, PassTarget, PipelineState, ProgramId,
-    RectPx, RenderTargetDesc, RenderTargetId, Uniform, UniformValue, MESH_LAYOUT,
-    QUAD_LAYOUT,
+    RectPx, RenderTargetDesc, RenderTargetId, TextureDesc, TextureFormat, Uniform,
+    UniformValue, MESH_LAYOUT, PARTICLE_LAYOUT, QUAD_LAYOUT, SKINNED_MESH_LAYOUT, UI_LAYOUT,
 };
 use crate::text;
 
@@ -50,12 +50,15 @@ struct MeshGpu {
     vbo: BufferId,
     ebo: BufferId,
     index_count: u32,
+    skinned: bool,
 }
 
 #[derive(Clone, Copy)]
 struct Material {
     /// rgb + alpha; alpha < 1 triggers dithered transparency in the shader.
     color: [f32; 4],
+    /// Optional albedo texture (terrain/props). Replaces `color` when present.
+    tex: Option<crate::gpu::TextureId>,
 }
 
 #[derive(Clone, Copy)]
@@ -64,6 +67,8 @@ pub struct RendererLimits {
     pub max_draws: usize,
     /// Max floats in the dynamic quad scratch (composite + text per frame).
     pub max_quad_floats: usize,
+    /// Max floats in the immediate-mode UI vertex buffer (UI_LAYOUT).
+    pub max_ui_floats: usize,
     pub shadow_size: u32,
     pub shadow_world_radius: f32,
 }
@@ -74,6 +79,7 @@ impl Default for RendererLimits {
             max_cameras: 16,
             max_draws: 8192,
             max_quad_floats: 64 * 1024,
+            max_ui_floats: 256 * 1024,
             shadow_size: 2048,
             shadow_world_radius: 48.0,
         }
@@ -82,10 +88,18 @@ impl Default for RendererLimits {
 
 pub struct Renderer {
     mesh_prog: ProgramId,
+    mesh_skinned_prog: ProgramId,
     depth_prog: ProgramId,
     composite_prog: ProgramId,
     text_prog: ProgramId,
     shadow_rt: RenderTargetId,
+    ui_prog: ProgramId,
+    ui_buf: BufferId,
+    ui_atlas: Option<crate::gpu::TextureId>,
+    particle_prog: ProgramId,
+    particle_buf: BufferId,
+    particle_tex: Option<crate::gpu::TextureId>,
+    post_prog: ProgramId,
     shadow_size: u32,
     shadow_world_radius: f32,
     dyn_buf: BufferId,
@@ -99,12 +113,20 @@ pub struct Renderer {
     quad: Vec<f32>,
     uniforms: Vec<Uniform>,
     shadow_view_proj: [f32; 16],
+    skin_arena: Vec<[f32; 16]>,
+    fog_color: [f32; 3],
+    fog_near: f32,
+    fog_far: f32,
 }
 
 impl Renderer {
     pub fn new<G: Gpu>(gpu: &mut G, limits: RendererLimits) -> Self {
         let mesh_prog = gpu.create_program(
             include_str!("../../../assets/shaders/mesh.vert"),
+            include_str!("../../../assets/shaders/mesh.frag"),
+        );
+        let mesh_skinned_prog = gpu.create_program(
+            include_str!("../../../assets/shaders/mesh_skinned.vert"),
             include_str!("../../../assets/shaders/mesh.frag"),
         );
         let depth_prog = gpu.create_program(
@@ -119,6 +141,18 @@ impl Renderer {
             include_str!("../../../assets/shaders/text.vert"),
             include_str!("../../../assets/shaders/text.frag"),
         );
+        let ui_prog = gpu.create_program(
+            include_str!("../../../assets/shaders/ui.vert"),
+            include_str!("../../../assets/shaders/ui.frag"),
+        );
+        let particle_prog = gpu.create_program(
+            include_str!("../../../assets/shaders/particles.vert"),
+            include_str!("../../../assets/shaders/particles.frag"),
+        );
+        let post_prog = gpu.create_program(
+            include_str!("../../../assets/shaders/post.vert"),
+            include_str!("../../../assets/shaders/post.frag"),
+        );
         let shadow_rt = gpu.create_render_target(&RenderTargetDesc {
             width: limits.shadow_size,
             height: limits.shadow_size,
@@ -130,12 +164,23 @@ impl Renderer {
         // never grow it (allocation stability).
         let seed = alloc::vec![0u8; limits.max_quad_floats * 4];
         let dyn_buf = gpu.create_buffer(&seed, BufferUsage::Dynamic);
+        let ui_seed = alloc::vec![0u8; limits.max_ui_floats * 4];
+        let ui_buf = gpu.create_buffer(&ui_seed, BufferUsage::Dynamic);
+        let particle_buf = gpu.create_buffer(&ui_seed, BufferUsage::Dynamic);
         Self {
             mesh_prog,
+            mesh_skinned_prog,
             depth_prog,
             composite_prog,
             text_prog,
             shadow_rt,
+            ui_prog,
+            ui_buf,
+        ui_atlas: None,
+        particle_prog,
+        particle_buf,
+        particle_tex: None,
+        post_prog,
             shadow_size: limits.shadow_size,
             shadow_world_radius: limits.shadow_world_radius,
             dyn_buf,
@@ -148,7 +193,158 @@ impl Renderer {
             quad: Vec::with_capacity(limits.max_quad_floats),
             uniforms: Vec::with_capacity(8),
             shadow_view_proj: Mat4::IDENTITY.to_cols_array(),
+            skin_arena: Vec::with_capacity(64 * 16),
+            fog_color: [0.788, 0.678, 0.510],
+            fog_near: 180.0,
+            fog_far: 320.0,
         }
+    }
+
+    /// Upload the baked icon atlas (RGBA8; coverage in the alpha channel) that
+    /// the UI pass samples. Call once at load.
+    pub fn set_ui_atlas<G: Gpu>(&mut self, gpu: &mut G, width: u32, height: u32, rgba: &[u8]) {
+        let tex = gpu.create_texture(
+            &TextureDesc { width, height, format: TextureFormat::Rgba8, filter: Filter::Linear },
+            Some(rgba),
+        );
+        self.ui_atlas = Some(tex);
+    }
+
+    /// Draw an immediate-mode UI vertex buffer (`UI_LAYOUT`, NDC) over the
+    /// current framebuffer with alpha blending. `quads` is the quad count
+    /// (`buf` holds `quads * 6 * 8` floats). No-op until an atlas is uploaded.
+    pub fn render_ui<G: Gpu>(&mut self, gpu: &mut G, buf: &[f32], quads: u32, screen_w: u32, screen_h: u32) {
+        if quads == 0 {
+            return;
+        }
+        let atlas = match self.ui_atlas {
+            Some(a) => a,
+            None => return,
+        };
+        gpu.begin_pass(
+            PassTarget::Screen,
+            RectPx { x: 0, y: 0, w: screen_w as i32, h: screen_h as i32 },
+            ClearSpec::default(),
+        );
+        gpu.set_pipeline(
+            self.ui_prog,
+            &PipelineState {
+                depth_test: false,
+                depth_write: false,
+                cull: Cull::None,
+                color_write: true,
+                blend: true,
+                additive: false,
+            },
+        );
+        gpu.bind_texture(0, atlas);
+        self.uniforms.clear();
+        self.uniforms.push(Uniform { name: "u_atlas", value: UniformValue::Sampler(0) });
+        gpu.set_uniforms(&self.uniforms);
+        gpu.update_buffer(self.ui_buf, f32_bytes(buf));
+        gpu.draw(self.ui_buf, None, &UI_LAYOUT, quads * 6);
+        gpu.end_pass();
+    }
+
+    /// Upload the shared glow sprite (RGBA8) the particle pass samples.
+    pub fn set_particle_atlas<G: Gpu>(&mut self, gpu: &mut G, width: u32, height: u32, rgba: &[u8]) {
+        let tex = gpu.create_texture(
+            &TextureDesc { width, height, format: TextureFormat::Rgba8, filter: Filter::Linear },
+            Some(rgba),
+        );
+        self.particle_tex = Some(tex);
+    }
+
+    /// Draw a world-space particle billboard buffer (`PARTICLE_LAYOUT`) over the
+    /// current screen framebuffer, depth-testing against the scene but not
+    /// writing depth. `additive` selects the blend mode. No-op until a sprite is
+    /// uploaded. `buf` holds `quads * 6 * 9` floats.
+    pub fn render_particles<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        buf: &[f32],
+        quads: u32,
+        view_proj: &[f32; 16],
+        additive: bool,
+        screen_w: u32,
+        screen_h: u32,
+    ) {
+        if quads == 0 {
+            return;
+        }
+        let tex = match self.particle_tex {
+            Some(t) => t,
+            None => return,
+        };
+        gpu.begin_pass(
+            PassTarget::Screen,
+            RectPx { x: 0, y: 0, w: screen_w as i32, h: screen_h as i32 },
+            ClearSpec::default(),
+        );
+        gpu.set_pipeline(
+            self.particle_prog,
+            &PipelineState {
+                depth_test: true,
+                depth_write: false,
+                cull: Cull::None,
+                color_write: true,
+                blend: true,
+                additive,
+            },
+        );
+        gpu.bind_texture(0, tex);
+        self.uniforms.clear();
+        self.uniforms.push(Uniform { name: "u_tex", value: UniformValue::Sampler(0) });
+        self.uniforms.push(Uniform { name: "u_viewProj", value: UniformValue::Mat4(*view_proj) });
+        gpu.set_uniforms(&self.uniforms);
+        gpu.update_buffer(self.particle_buf, f32_bytes(buf));
+        gpu.draw(self.particle_buf, None, &PARTICLE_LAYOUT, quads * 6);
+        gpu.end_pass();
+    }
+
+    /// Full-screen PS2 color-grade pass: sample `src_tex` (the scene render
+    /// target's color) and apply the environment grade to the screen. Draw the
+    /// scene into an RTT first, then call this. `bone_tint` is linear rgb.
+    #[allow(clippy::too_many_arguments)]
+    pub fn render_post<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        src_tex: crate::gpu::TextureId,
+        bone_tint: [f32; 3],
+        desaturate: f32,
+        scene_darken: f32,
+        black_lift: f32,
+        bloom: f32,
+        screen_w: u32,
+        screen_h: u32,
+    ) {
+        // Fullscreen NDC quad (pos2, uv2).
+        self.quad.clear();
+        self.quad.extend_from_slice(&[
+            -1.0, -1.0, 0.0, 0.0, 1.0, -1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0,
+            -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 0.0, 1.0,
+        ]);
+        gpu.begin_pass(
+            PassTarget::Screen,
+            RectPx { x: 0, y: 0, w: screen_w as i32, h: screen_h as i32 },
+            ClearSpec::default(),
+        );
+        gpu.set_pipeline(
+            self.post_prog,
+            &PipelineState { depth_test: false, depth_write: false, cull: Cull::None, color_write: true, blend: false, additive: false },
+        );
+        gpu.bind_texture(0, src_tex);
+        self.uniforms.clear();
+        self.uniforms.push(Uniform { name: "u_scene", value: UniformValue::Sampler(0) });
+        self.uniforms.push(Uniform { name: "u_boneTint", value: UniformValue::Vec3(bone_tint) });
+        self.uniforms.push(Uniform { name: "u_desaturate", value: UniformValue::Float(desaturate) });
+        self.uniforms.push(Uniform { name: "u_sceneDarken", value: UniformValue::Float(scene_darken) });
+        self.uniforms.push(Uniform { name: "u_blackLift", value: UniformValue::Float(black_lift) });
+        self.uniforms.push(Uniform { name: "u_bloom", value: UniformValue::Float(bloom) });
+        gpu.set_uniforms(&self.uniforms);
+        gpu.update_buffer(self.dyn_buf, f32_bytes(&self.quad));
+        gpu.draw(self.dyn_buf, None, &QUAD_LAYOUT, 6);
+        gpu.end_pass();
     }
 
     /// Upload an indexed mesh (vertex format `MESH_LAYOUT`). Returns a handle
@@ -165,17 +361,75 @@ impl Renderer {
             vbo,
             ebo,
             index_count: indices.len() as u32,
+            skinned: false,
         });
         crate::components::MeshId((self.meshes.len() - 1) as u32)
     }
 
+    /// Upload a skinned mesh (vertex format `SKINNED_MESH_LAYOUT`: 16 f32/vert).
+    pub fn upload_skinned_mesh<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        vertices: &[f32],
+        indices: &[u32],
+    ) -> crate::components::MeshId {
+        let vbo = gpu.create_buffer(f32_bytes(vertices), BufferUsage::Static);
+        let ebo = gpu.create_buffer(u32_bytes(indices), BufferUsage::Static);
+        self.meshes.push(MeshGpu {
+            vbo,
+            ebo,
+            index_count: indices.len() as u32,
+            skinned: true,
+        });
+        crate::components::MeshId((self.meshes.len() - 1) as u32)
+    }
+
+    /// Clear the per-frame joint palette arena. Call once before pushing this
+    /// frame's skinned poses.
+    pub fn begin_skin_frame(&mut self) {
+        self.skin_arena.clear();
+    }
+
+    /// Append a joint palette; returns the offset for a `SkinRef`.
+    pub fn push_skin_palette(&mut self, mats: &[[f32; 16]]) -> u32 {
+        let offset = self.skin_arena.len() as u32;
+        self.skin_arena.extend_from_slice(mats);
+        offset
+    }
+
     pub fn add_material(&mut self, rgba: [f32; 4]) -> crate::components::MaterialId {
-        self.materials.push(Material { color: rgba });
+        self.materials.push(Material { color: rgba, tex: None });
+        crate::components::MaterialId((self.materials.len() - 1) as u32)
+    }
+
+    /// Register an RGBA8 texture and a material sampling it (terrain/props).
+    pub fn add_textured_material<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        width: u32,
+        height: u32,
+        rgba: &[u8],
+        filter: crate::gpu::Filter,
+    ) -> crate::components::MaterialId {
+        let tex = gpu.create_texture(
+            &crate::gpu::TextureDesc { width, height, format: crate::gpu::TextureFormat::Rgba8, filter },
+            Some(rgba),
+        );
+        self.materials.push(Material { color: [1.0, 1.0, 1.0, 1.0], tex: Some(tex) });
         crate::components::MaterialId((self.materials.len() - 1) as u32)
     }
 
     pub fn set_ambient(&mut self, a: f32) {
         self.ambient = a;
+    }
+
+    /// Per-biome distance fog: RGB color the far apron melts into, plus the
+    /// world-distance near/far band. Chosen so the in-frame iso view stays
+    /// clear and only the streamed apron dissolves (uniform-air doctrine).
+    pub fn set_fog(&mut self, color: [f32; 3], near: f32, far: f32) {
+        self.fog_color = color;
+        self.fog_near = near;
+        self.fog_far = far;
     }
 
     /// Render one frame of `world` into a `screen_w x screen_h` framebuffer.
@@ -241,6 +495,8 @@ impl Renderer {
                     depth_write: true,
                     cull: Cull::Front, // front-face cull reduces shadow acne
                     color_write: false,
+                    blend: false,
+                    additive: false,
                 },
             );
             self.uniforms.clear();
@@ -249,7 +505,7 @@ impl Renderer {
                 value: UniformValue::Mat4(self.shadow_view_proj),
             });
             gpu.set_uniforms(&self.uniforms);
-            self.draw_all_meshes(gpu, world, ShadowMode::Depth, 0);
+            self.draw_all_meshes(gpu, world, ShadowMode::Depth, 0, false);
             gpu.end_pass();
         }
 
@@ -287,12 +543,38 @@ impl Renderer {
             self.uniforms.push(Uniform { name: "u_ambient", value: UniformValue::Float(self.ambient) });
             self.uniforms.push(Uniform { name: "u_shadowMap", value: UniformValue::Sampler(0) });
             self.uniforms.push(Uniform { name: "u_useShadow", value: UniformValue::Int(if use_shadow { 1 } else { 0 }) });
+            self.uniforms.push(Uniform { name: "u_albedo", value: UniformValue::Sampler(1) });
+            self.uniforms.push(Uniform { name: "u_camEye", value: UniformValue::Vec3([cam.eye.x, cam.eye.y, cam.eye.z]) });
+            self.uniforms.push(Uniform { name: "u_fogColor", value: UniformValue::Vec3(self.fog_color) });
+            self.uniforms.push(Uniform { name: "u_fogNear", value: UniformValue::Float(self.fog_near) });
+            self.uniforms.push(Uniform { name: "u_fogFar", value: UniformValue::Float(self.fog_far) });
             gpu.set_uniforms(&self.uniforms);
             if let Some(depth_tex) = gpu.render_target_depth(self.shadow_rt) {
                 gpu.bind_texture(0, depth_tex);
             }
 
-            self.draw_all_meshes(gpu, world, ShadowMode::Lit, cam.viewport_id);
+            self.draw_all_meshes(gpu, world, ShadowMode::Lit, cam.viewport_id, false);
+
+            // Skinned sub-pass: same globals, skinning program, joint palettes.
+            gpu.set_pipeline(self.mesh_skinned_prog, &PipelineState::default());
+            self.uniforms.clear();
+            self.uniforms.push(Uniform { name: "u_viewProj", value: UniformValue::Mat4(view_proj) });
+            self.uniforms.push(Uniform { name: "u_lightViewProj", value: UniformValue::Mat4(self.shadow_view_proj) });
+            self.uniforms.push(Uniform { name: "u_lightDir", value: UniformValue::Vec3([ld.x, ld.y, ld.z]) });
+            self.uniforms.push(Uniform { name: "u_lightColor", value: UniformValue::Vec3(lc) });
+            self.uniforms.push(Uniform { name: "u_ambient", value: UniformValue::Float(self.ambient) });
+            self.uniforms.push(Uniform { name: "u_shadowMap", value: UniformValue::Sampler(0) });
+            self.uniforms.push(Uniform { name: "u_useShadow", value: UniformValue::Int(if use_shadow { 1 } else { 0 }) });
+            self.uniforms.push(Uniform { name: "u_albedo", value: UniformValue::Sampler(1) });
+            self.uniforms.push(Uniform { name: "u_camEye", value: UniformValue::Vec3([cam.eye.x, cam.eye.y, cam.eye.z]) });
+            self.uniforms.push(Uniform { name: "u_fogColor", value: UniformValue::Vec3(self.fog_color) });
+            self.uniforms.push(Uniform { name: "u_fogNear", value: UniformValue::Float(self.fog_near) });
+            self.uniforms.push(Uniform { name: "u_fogFar", value: UniformValue::Float(self.fog_far) });
+            gpu.set_uniforms(&self.uniforms);
+            if let Some(depth_tex) = gpu.render_target_depth(self.shadow_rt) {
+                gpu.bind_texture(0, depth_tex);
+            }
+            self.draw_all_meshes(gpu, world, ShadowMode::Lit, cam.viewport_id, true);
             gpu.end_pass();
         }
 
@@ -307,29 +589,48 @@ impl Renderer {
         world: &mut W,
         mode: ShadowMode,
         viewport_id: u8,
+        want_skinned: bool,
     ) {
         let mut q = world.query2::<MeshRenderer, Transform>();
         while let Some((_, mr, tr)) = q.next() {
-            if matches!(mode, ShadowMode::Lit) && (mr.viewport_mask & (1u32 << viewport_id)) == 0 {
-                continue;
-            }
             let mesh = match self.meshes.get(mr.mesh.0 as usize) {
                 Some(m) => *m,
                 None => continue,
             };
+            if mesh.skinned != want_skinned {
+                continue;
+            }
+            if matches!(mode, ShadowMode::Lit) && (mr.viewport_mask & (1u32 << viewport_id)) == 0 {
+                continue;
+            }
             let model = Mat4::from_trs(tr.pos, tr.rot, tr.scale).to_cols_array();
             self.uniforms.clear();
             self.uniforms.push(Uniform { name: "u_model", value: UniformValue::Mat4(model) });
+            let mut albedo_tex = None;
             if matches!(mode, ShadowMode::Lit) {
-                let color = self
-                    .materials
-                    .get(mr.material.0 as usize)
-                    .map(|m| m.color)
-                    .unwrap_or([0.8, 0.8, 0.8, 1.0]);
+                let mat = self.materials.get(mr.material.0 as usize).copied();
+                let color = mat.map(|m| m.color).unwrap_or([0.8, 0.8, 0.8, 1.0]);
+                albedo_tex = mat.and_then(|m| m.tex);
                 self.uniforms.push(Uniform { name: "u_color", value: UniformValue::Vec4(color) });
+                self.uniforms.push(Uniform {
+                    name: "u_hasTex",
+                    value: UniformValue::Int(if albedo_tex.is_some() { 1 } else { 0 }),
+                });
             }
             gpu.set_uniforms(&self.uniforms);
-            gpu.draw(mesh.vbo, Some(mesh.ebo), &MESH_LAYOUT, mesh.index_count);
+            if let Some(tex) = albedo_tex {
+                gpu.bind_texture(1, tex);
+            }
+            if want_skinned {
+                let o = mr.skin.offset as usize;
+                let c = mr.skin.count as usize;
+                if c > 0 && o + c <= self.skin_arena.len() {
+                    gpu.set_joints(&self.skin_arena[o..o + c]);
+                }
+                gpu.draw(mesh.vbo, Some(mesh.ebo), &SKINNED_MESH_LAYOUT, mesh.index_count);
+            } else {
+                gpu.draw(mesh.vbo, Some(mesh.ebo), &MESH_LAYOUT, mesh.index_count);
+            }
         }
     }
 
@@ -358,7 +659,7 @@ impl Renderer {
         );
         gpu.set_pipeline(
             self.composite_prog,
-            &PipelineState { depth_test: false, depth_write: false, cull: Cull::None, color_write: true },
+            &PipelineState { depth_test: false, depth_write: false, cull: Cull::None, color_write: true, blend: false, additive: false },
         );
         for i in 0..self.comp_quads.len() {
             let cq = self.comp_quads[i];
@@ -414,7 +715,7 @@ impl Renderer {
                 );
                 gpu.set_pipeline(
                     self.text_prog,
-                    &PipelineState { depth_test: false, depth_write: false, cull: Cull::None, color_write: true },
+                    &PipelineState { depth_test: false, depth_write: false, cull: Cull::None, color_write: true, blend: false, additive: false },
                 );
                 any = true;
             }

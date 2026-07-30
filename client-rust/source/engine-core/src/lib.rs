@@ -14,7 +14,11 @@
 extern crate alloc;
 
 pub mod assets;
+pub mod audio;
+pub mod anim;
 pub mod ecs;
+pub mod glb;
+pub mod image;
 pub mod input;
 pub mod json;
 pub mod math;

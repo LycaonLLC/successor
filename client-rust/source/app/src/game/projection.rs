@@ -116,11 +116,7 @@ impl WorldActors {
         world.set_component(e, Transform { pos, rot, scale: Vec3::ONE });
         world.set_component(
             e,
-            MeshRenderer {
-                mesh: self.capsule,
-                material: if is_player { self.mat_player } else { self.mat_other },
-                viewport_mask: ACTOR_MASK,
-            },
+            MeshRenderer { mesh: self.capsule, material: if is_player { self.mat_player } else { self.mat_other }, viewport_mask: ACTOR_MASK, ..Default::default() },
         );
         self.entities.insert(id.to_string(), e);
     }
@@ -161,6 +157,7 @@ mod tests {
             direction: "north".into(),
             vitals: GameActorVitals { health: 100.0, action: 100.0, spirit: 100.0 },
             life_state: "alive".into(),
+            ..Default::default()
         }
     }
 

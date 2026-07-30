@@ -22,6 +22,15 @@ successor-platform.workspace = true
 successor-client-proto.workspace = true
 serde_json.workspace = true
 successor-net = { path = "../../../crates/successor-net" }
+# Native-only pure-Rust MP3 decode (web decodes via Web Audio); keeps the wasm
+# module free of the decoder.
+rmp3 = { version = "0.3", default-features = false, features = ["std", "float"] }
+
+# Wasm networking runtime: the sans-IO session/protocol + matchmake JSON run on
+# web too (transport is the WebSocket/fetch shim in `platform::web`).
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+successor-client-proto.workspace = true
+serde_json.workspace = true
 
 [features]
 default = []

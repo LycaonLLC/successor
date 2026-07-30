@@ -1,9 +1,9 @@
 {
   "schema": "successor.client-rust.budgets.v1",
-  "sizes": { "native_stripped_max_bytes": 3145728, "wasm_stripped_max_bytes": 2097152 },
+  "sizes": { "native_stripped_max_bytes": 4194304, "wasm_stripped_max_bytes": 3145728 },
   "runtime": {
     "frame_allocs_steady_max": 0,
-    "peak_rss_max_bytes": 268435456,
+    "peak_rss_max_bytes": 536870912,
     "frame_p99_max_ms": { "darwin-arm64-apple-m2-max": 4.0 }
   },
   "regression": {

@@ -88,6 +88,7 @@ const importObject = {
         glCullFace: (mode) => gl.cullFace(mode),
         glDepthMask: (flag) => gl.depthMask(flag !== 0),
         glColorMask: (r, g, b, a) => gl.colorMask(r !== 0, g !== 0, b !== 0, a !== 0),
+        glBlendFunc: (s, d) => gl.blendFunc(s, d),
 
         glCreateShader: (type) => glAlloc(gl.createShader(type)),
         glShaderSource: (shader, ptr, len) => {
@@ -195,6 +196,9 @@ const importObject = {
 
         glDrawArrays: (mode, first, count) => gl.drawArrays(mode, first, count),
         glDrawElements: (mode, count, type, offset) => gl.drawElements(mode, count, type, offset),
+        glVertexAttribDivisor: (index, divisor) => gl.vertexAttribDivisor(index, divisor),
+        glDrawElementsInstanced: (mode, count, type, offset, primcount) => gl.drawElementsInstanced(mode, count, type, offset, primcount),
+        glDrawArraysInstanced: (mode, first, count, primcount) => gl.drawArraysInstanced(mode, first, count, primcount),
 
         glGenFramebuffer: () => glAlloc(gl.createFramebuffer()),
         glDeleteFramebuffer: (fbo) => {
@@ -334,6 +338,40 @@ const importObject = {
                 console.error("fetch_post_json network error:", e);
                 return -1;
             }
+        },
+        // Two-phase binary GET. First call (outMaxLen 0) fetches synchronously,
+        // caches by url, and returns the total byte length. Second call copies
+        // up to outMaxLen bytes from the cached blob. Returns -1 on error.
+        js_fetch_get: (urlPtr, urlLen, outPtr, outMaxLen) => {
+            const url = getString(urlPtr, urlLen);
+            try {
+                if (!globalThis.__successorFetchCache) globalThis.__successorFetchCache = new Map();
+                const cache = globalThis.__successorFetchCache;
+                let bytes = cache.get(url);
+                if (!bytes) {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open("GET", url, false); // synchronous
+                    xhr.responseType = "arraybuffer";
+                    xhr.send(null);
+                    if (xhr.status !== 200) {
+                        console.error("fetch_get error status:", xhr.status, url);
+                        return -1;
+                    }
+                    bytes = new Uint8Array(xhr.response);
+                    cache.set(url, bytes);
+                }
+                if (outMaxLen > 0 && outPtr !== 0) {
+                    const len = Math.min(bytes.length, outMaxLen);
+                    const dest = new Uint8Array(wasmMemory.buffer, outPtr, len);
+                    dest.set(bytes.subarray(0, len));
+                    if (len >= bytes.length) cache.delete(url);
+                    return len;
+                }
+                return bytes.length;
+            } catch (e) {
+                console.error("fetch_get network error:", e, url);
+                return -1;
+            }
         }
     }
 };
@@ -353,6 +391,11 @@ fetch("successor_client.wasm")
         if (typeof wasmExports.init === "function") {
             wasmExports.init();
         }
+        // Kick the wasm networking runtime (optional export): connect once,
+        // then poll each frame.
+        if (typeof wasmExports.net_connect === "function") {
+            try { wasmExports.net_connect(); } catch (e) { console.warn("net_connect:", e); }
+        }
 
         // Call resize on resize
         function resizeCanvas() {
@@ -370,6 +413,9 @@ fetch("successor_client.wasm")
             const dt = (time - lastTime) / 1000.0;
             lastTime = time;
 
+            if (typeof wasmExports.net_poll === "function") {
+                wasmExports.net_poll();
+            }
             if (typeof wasmExports.update === "function") {
                 wasmExports.update(dt);
             }

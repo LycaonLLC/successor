@@ -98,6 +98,10 @@ pub struct PipelineState {
     /// Draw only back faces of the depth pass to reduce shadow acne (front-face
     /// culling in the shadow pass). Ordinary passes use `cull` directly.
     pub color_write: bool,
+    /// Enable alpha blending. Straight (src_alpha, 1-src_alpha) unless
+    /// `additive`, which uses (src_alpha, one) for glow/spark accumulation.
+    pub blend: bool,
+    pub additive: bool,
 }
 
 impl Default for PipelineState {
@@ -107,6 +111,8 @@ impl Default for PipelineState {
             depth_write: true,
             cull: Cull::Back,
             color_write: true,
+            blend: false,
+            additive: false,
         }
     }
 }
@@ -162,6 +168,52 @@ pub const QUAD_LAYOUT: VertexLayout = VertexLayout {
     ],
 };
 
+/// Interleaved `pos:2, uv:2, color:4` — immediate-mode UI quads in NDC. A
+/// negative `uv.x` marks a solid-color quad (icon atlas ignored).
+pub const UI_LAYOUT: VertexLayout = VertexLayout {
+    stride: 32,
+    attrs: &[
+        VertexAttr { location: 0, components: 2, offset: 0 },
+        VertexAttr { location: 1, components: 2, offset: 8 },
+        VertexAttr { location: 2, components: 4, offset: 16 },
+    ],
+};
+
+/// Interleaved `pos:3, uv:2, color:4` — world-space particle billboards.
+pub const PARTICLE_LAYOUT: VertexLayout = VertexLayout {
+    stride: 36,
+    attrs: &[
+        VertexAttr { location: 0, components: 3, offset: 0 },
+        VertexAttr { location: 1, components: 2, offset: 12 },
+        VertexAttr { location: 2, components: 4, offset: 20 },
+    ],
+};
+
+/// Interleaved `pos:3, normal:3, uv:2, joints:4, weights:4` — skinned meshes.
+/// Joints are stored as f32 (read back with `int()` in the shader).
+pub const SKINNED_MESH_LAYOUT: VertexLayout = VertexLayout {
+    stride: 64,
+    attrs: &[
+        VertexAttr { location: 0, components: 3, offset: 0 },
+        VertexAttr { location: 1, components: 3, offset: 12 },
+        VertexAttr { location: 2, components: 2, offset: 24 },
+        VertexAttr { location: 3, components: 4, offset: 32 },
+        VertexAttr { location: 4, components: 4, offset: 48 },
+    ],
+};
+
+/// Per-instance model matrix, four `vec4` columns at locations 5..=8, one per
+/// instance (attribute divisor 1). Consumed by the instanced mesh program.
+pub const INSTANCE_MAT4_LAYOUT: VertexLayout = VertexLayout {
+    stride: 64,
+    attrs: &[
+        VertexAttr { location: 5, components: 4, offset: 0 },
+        VertexAttr { location: 6, components: 4, offset: 16 },
+        VertexAttr { location: 7, components: 4, offset: 32 },
+        VertexAttr { location: 8, components: 4, offset: 48 },
+    ],
+};
+
 /// The backend contract. All resource creation happens at load; the per-frame
 /// path is `begin_pass`/`set_pipeline`/`set_uniforms`/`bind_texture`/`draw`/
 /// `end_pass` and allocates nothing on the Rust heap.
@@ -187,6 +239,22 @@ pub trait Gpu {
         layout: &VertexLayout,
         count: u32,
     );
+    /// Upload the joint palette (`u_joints` mat4 array) for the next skinned
+    /// draw. Default no-op for backends that don't skin (tests/headless).
+    fn set_joints(&mut self, _mats: &[[f32; 16]]) {}
+    /// Instanced indexed draw: `instance_buf` holds one `mat4` per instance
+    /// (see `INSTANCE_MAT4_LAYOUT`), applied via attribute divisor 1. Default
+    /// no-op; only the GL backend implements it.
+    fn draw_instanced(
+        &mut self,
+        _vertices: BufferId,
+        _indices: Option<BufferId>,
+        _layout: &VertexLayout,
+        _index_count: u32,
+        _instance_buf: BufferId,
+        _instances: u32,
+    ) {
+    }
     fn end_pass(&mut self);
 }
 

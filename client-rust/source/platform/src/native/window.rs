@@ -38,6 +38,7 @@ extern "C" {
     fn glfwPollEvents();
     fn glfwSwapBuffers(window: *mut GLFWwindow);
     fn glfwGetFramebufferSize(window: *mut GLFWwindow, width: *mut i32, height: *mut i32);
+    fn glfwGetWindowSize(window: *mut GLFWwindow, width: *mut i32, height: *mut i32);
     fn glfwGetTime() -> f64;
     fn glfwGetKey(window: *mut GLFWwindow, key: i32) -> i32;
     fn glfwGetMouseButton(window: *mut GLFWwindow, button: i32) -> i32;
@@ -220,6 +221,36 @@ pub fn set_cursor_visible(visible: bool) {
             );
         }
     }
+}
+
+/// Cursor position in framebuffer pixels (top-left origin). GLFW reports window
+/// coordinates; on HiDPI the framebuffer is scaled, so we rescale to match
+/// `framebuffer_size()`.
+pub fn mouse_position() -> (f32, f32) {
+    let state = STATE.lock();
+    if state.window.is_null() {
+        return (0.0, 0.0);
+    }
+    let (mut x, mut y) = (0.0f64, 0.0f64);
+    let (mut ww, mut wh) = (0i32, 0i32);
+    let (mut fw, mut fh) = (0i32, 0i32);
+    unsafe {
+        glfwGetCursorPos(state.window, &mut x, &mut y);
+        glfwGetWindowSize(state.window, &mut ww, &mut wh);
+        glfwGetFramebufferSize(state.window, &mut fw, &mut fh);
+    }
+    let sx = if ww > 0 { fw as f64 / ww as f64 } else { 1.0 };
+    let sy = if wh > 0 { fh as f64 / wh as f64 } else { 1.0 };
+    ((x * sx) as f32, (y * sy) as f32)
+}
+
+/// Whether the given mouse button (0 = left, 1 = right, 2 = middle) is pressed.
+pub fn mouse_button_down(button: i32) -> bool {
+    let state = STATE.lock();
+    if state.window.is_null() {
+        return false;
+    }
+    unsafe { glfwGetMouseButton(state.window, button) == 1 }
 }
 
 pub fn poll_text_input() -> Option<char> {
