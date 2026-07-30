@@ -282,6 +282,95 @@ impl Mat4 {
             ],
         }
     }
+
+    /// Full 4x4 inverse (column-major). Returns identity if singular. Used for
+    /// unprojecting screen rays (`inverse(viewProj)`).
+    pub fn inverse(&self) -> Mat4 {
+        let m = &self.m;
+        let mut inv = [0.0f32; 16];
+        inv[0] = m[5] * m[10] * m[15] - m[5] * m[11] * m[14] - m[9] * m[6] * m[15]
+            + m[9] * m[7] * m[14] + m[13] * m[6] * m[11] - m[13] * m[7] * m[10];
+        inv[4] = -m[4] * m[10] * m[15] + m[4] * m[11] * m[14] + m[8] * m[6] * m[15]
+            - m[8] * m[7] * m[14] - m[12] * m[6] * m[11] + m[12] * m[7] * m[10];
+        inv[8] = m[4] * m[9] * m[15] - m[4] * m[11] * m[13] - m[8] * m[5] * m[15]
+            + m[8] * m[7] * m[13] + m[12] * m[5] * m[11] - m[12] * m[7] * m[9];
+        inv[12] = -m[4] * m[9] * m[14] + m[4] * m[10] * m[13] + m[8] * m[5] * m[14]
+            - m[8] * m[6] * m[13] - m[12] * m[5] * m[10] + m[12] * m[6] * m[9];
+        inv[1] = -m[1] * m[10] * m[15] + m[1] * m[11] * m[14] + m[9] * m[2] * m[15]
+            - m[9] * m[3] * m[14] - m[13] * m[2] * m[11] + m[13] * m[3] * m[10];
+        inv[5] = m[0] * m[10] * m[15] - m[0] * m[11] * m[14] - m[8] * m[2] * m[15]
+            + m[8] * m[3] * m[14] + m[12] * m[2] * m[11] - m[12] * m[3] * m[10];
+        inv[9] = -m[0] * m[9] * m[15] + m[0] * m[11] * m[13] + m[8] * m[1] * m[15]
+            - m[8] * m[3] * m[13] - m[12] * m[1] * m[11] + m[12] * m[3] * m[9];
+        inv[13] = m[0] * m[9] * m[14] - m[0] * m[10] * m[13] - m[8] * m[1] * m[14]
+            + m[8] * m[2] * m[13] + m[12] * m[1] * m[10] - m[12] * m[2] * m[9];
+        inv[2] = m[1] * m[6] * m[15] - m[1] * m[7] * m[14] - m[5] * m[2] * m[15]
+            + m[5] * m[3] * m[14] + m[13] * m[2] * m[7] - m[13] * m[3] * m[6];
+        inv[6] = -m[0] * m[6] * m[15] + m[0] * m[7] * m[14] + m[4] * m[2] * m[15]
+            - m[4] * m[3] * m[14] - m[12] * m[2] * m[7] + m[12] * m[3] * m[6];
+        inv[10] = m[0] * m[5] * m[15] - m[0] * m[7] * m[13] - m[4] * m[1] * m[15]
+            + m[4] * m[3] * m[13] + m[12] * m[1] * m[7] - m[12] * m[3] * m[5];
+        inv[14] = -m[0] * m[5] * m[14] + m[0] * m[6] * m[13] + m[4] * m[1] * m[14]
+            - m[4] * m[2] * m[13] - m[12] * m[1] * m[6] + m[12] * m[2] * m[5];
+        inv[3] = -m[1] * m[6] * m[11] + m[1] * m[7] * m[10] + m[5] * m[2] * m[11]
+            - m[5] * m[3] * m[10] - m[9] * m[2] * m[7] + m[9] * m[3] * m[6];
+        inv[7] = m[0] * m[6] * m[11] - m[0] * m[7] * m[10] - m[4] * m[2] * m[11]
+            + m[4] * m[3] * m[10] + m[8] * m[2] * m[7] - m[8] * m[3] * m[6];
+        inv[11] = -m[0] * m[5] * m[11] + m[0] * m[7] * m[9] + m[4] * m[1] * m[11]
+            - m[4] * m[3] * m[9] - m[8] * m[1] * m[7] + m[8] * m[3] * m[5];
+        inv[15] = m[0] * m[5] * m[10] - m[0] * m[6] * m[9] - m[4] * m[1] * m[10]
+            + m[4] * m[2] * m[9] + m[8] * m[1] * m[6] - m[8] * m[2] * m[5];
+        let det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+        if det.abs() < 1e-12 {
+            return Mat4::IDENTITY;
+        }
+        let inv_det = 1.0 / det;
+        for v in inv.iter_mut() {
+            *v *= inv_det;
+        }
+        Mat4 { m: inv }
+    }
+
+    /// Transform a point through the full matrix, dividing by w (for unproject).
+    pub fn project_point(&self, p: Vec3) -> Vec3 {
+        let m = &self.m;
+        let x = m[0] * p.x + m[4] * p.y + m[8] * p.z + m[12];
+        let y = m[1] * p.x + m[5] * p.y + m[9] * p.z + m[13];
+        let z = m[2] * p.x + m[6] * p.y + m[10] * p.z + m[14];
+        let w = m[3] * p.x + m[7] * p.y + m[11] * p.z + m[15];
+        let inv_w = if w.abs() > 1e-12 { 1.0 / w } else { 1.0 };
+        vec3(x * inv_w, y * inv_w, z * inv_w)
+    }
+
+    /// Decompose a TRS matrix into translation / rotation / scale (assumes no
+    /// shear; scale is per-axis basis length). Used to place a socketed mesh at
+    /// a posed bone via the engine's TRS `Transform`.
+    pub fn to_trs(&self) -> (Vec3, Quat, Vec3) {
+        let m = &self.m;
+        let t = vec3(m[12], m[13], m[14]);
+        let c0 = vec3(m[0], m[1], m[2]);
+        let c1 = vec3(m[4], m[5], m[6]);
+        let c2 = vec3(m[8], m[9], m[10]);
+        let s = vec3(c0.length(), c1.length(), c2.length());
+        let r0 = if s.x > 1e-8 { c0.scale(1.0 / s.x) } else { c0 };
+        let r1 = if s.y > 1e-8 { c1.scale(1.0 / s.y) } else { c1 };
+        let r2 = if s.z > 1e-8 { c2.scale(1.0 / s.z) } else { c2 };
+        let trace = r0.x + r1.y + r2.z;
+        let q = if trace > 0.0 {
+            let w4 = sqrtf(trace + 1.0) * 2.0;
+            Quat { w: 0.25 * w4, x: (r1.z - r2.y) / w4, y: (r2.x - r0.z) / w4, z: (r0.y - r1.x) / w4 }
+        } else if r0.x > r1.y && r0.x > r2.z {
+            let s4 = sqrtf(1.0 + r0.x - r1.y - r2.z) * 2.0;
+            Quat { w: (r1.z - r2.y) / s4, x: 0.25 * s4, y: (r1.x + r0.y) / s4, z: (r2.x + r0.z) / s4 }
+        } else if r1.y > r2.z {
+            let s4 = sqrtf(1.0 + r1.y - r0.x - r2.z) * 2.0;
+            Quat { w: (r2.x - r0.z) / s4, x: (r1.x + r0.y) / s4, y: 0.25 * s4, z: (r2.y + r1.z) / s4 }
+        } else {
+            let s4 = sqrtf(1.0 + r2.z - r0.x - r1.y) * 2.0;
+            Quat { w: (r0.y - r1.x) / s4, x: (r2.x + r0.z) / s4, y: (r2.y + r1.z) / s4, z: 0.25 * s4 }
+        };
+        (t, q.normalize(), s)
+    }
 }
 
 #[cfg(all(test, feature = "std"))]

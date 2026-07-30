@@ -324,6 +324,17 @@ impl Gpu for GlGpu {
             state.color_write,
             state.color_write,
         );
+
+        if state.blend {
+            gl::enable(gl::BLEND);
+            if state.additive {
+                gl::blend_func(gl::SRC_ALPHA, gl::ONE);
+            } else {
+                gl::blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+            }
+        } else {
+            gl::disable(gl::BLEND);
+        }
     }
 
     fn set_uniforms(&mut self, uniforms: &[Uniform]) {
@@ -413,6 +424,74 @@ impl Gpu for GlGpu {
             gl::disable_vertex_attrib_array(attr.location);
         }
 
+        gl::bind_buffer(gl::ARRAY_BUFFER, 0);
+    }
+
+    fn set_joints(&mut self, mats: &[[f32; 16]]) {
+        let program = self.active_program;
+        if program == 0 || mats.is_empty() {
+            return;
+        }
+        let name = "u_joints";
+        let loc = match self.uniform_cache.get(&program).and_then(|c| c.get(name).copied()) {
+            Some(l) => l,
+            None => {
+                let l = gl::get_uniform_location(program, name);
+                self.uniform_cache.entry(program).or_default().insert(name, l);
+                l
+            }
+        };
+        if loc == -1 {
+            return;
+        }
+        let flat = unsafe { std::slice::from_raw_parts(mats.as_ptr() as *const f32, mats.len() * 16) };
+        gl::uniform_matrix4fv_array(loc, flat);
+    }
+
+    fn draw_instanced(
+        &mut self,
+        vertices: BufferId,
+        indices: Option<BufferId>,
+        layout: &VertexLayout,
+        index_count: u32,
+        instance_buf: BufferId,
+        instances: u32,
+    ) {
+        gl::bind_buffer(gl::ARRAY_BUFFER, vertices.0);
+        for attr in layout.attrs {
+            gl::enable_vertex_attrib_array(attr.location);
+            gl::vertex_attrib_pointer(
+                attr.location,
+                attr.components as i32,
+                gl::FLOAT,
+                false,
+                layout.stride as i32,
+                attr.offset,
+            );
+        }
+        // Per-instance mat4 as four vec4 columns at locations 5..=8, divisor 1.
+        gl::bind_buffer(gl::ARRAY_BUFFER, instance_buf.0);
+        for col in 0..4u32 {
+            let loc = 5 + col;
+            gl::enable_vertex_attrib_array(loc);
+            gl::vertex_attrib_pointer(loc, 4, gl::FLOAT, false, 64, col * 16);
+            gl::vertex_attrib_divisor(loc, 1);
+        }
+        if let Some(ebo) = indices {
+            gl::bind_buffer(gl::ELEMENT_ARRAY_BUFFER, ebo.0);
+            gl::draw_elements_instanced(gl::TRIANGLES, index_count as i32, gl::UNSIGNED_INT, 0, instances as i32);
+            gl::bind_buffer(gl::ELEMENT_ARRAY_BUFFER, 0);
+        } else {
+            gl::draw_arrays_instanced(gl::TRIANGLES, 0, index_count as i32, instances as i32);
+        }
+        for col in 0..4u32 {
+            let loc = 5 + col;
+            gl::vertex_attrib_divisor(loc, 0);
+            gl::disable_vertex_attrib_array(loc);
+        }
+        for attr in layout.attrs {
+            gl::disable_vertex_attrib_array(attr.location);
+        }
         gl::bind_buffer(gl::ARRAY_BUFFER, 0);
     }
 

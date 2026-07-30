@@ -7,6 +7,7 @@ description = "no_std ECS, math, and runtime for the Successor Rust client."
 
 [dependencies]
 libm.workspace = true
+miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 
 [features]
 default = []

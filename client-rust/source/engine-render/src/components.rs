@@ -53,13 +53,30 @@ pub struct ModelRef {
     pub viewport_mask: u32,
 }
 
+/// GPU-skinning binding: `count` joint matrices starting at `offset` in the
+/// renderer's per-frame skin palette arena. `count == 0` means a static mesh.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct SkinRef {
+    pub offset: u32,
+    pub count: u32,
+}
+
+impl SkinRef {
+    pub const NONE: SkinRef = SkinRef { offset: 0, count: 0 };
+    pub fn is_skinned(&self) -> bool {
+        self.count > 0
+    }
+}
+
 /// Resolved drawable (runtime; not prefab-serialized).
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct MeshRenderer {
     pub mesh: MeshId,
     pub material: MaterialId,
     /// Bit *i* set => visible in the camera whose `viewport_id == i`.
     pub viewport_mask: u32,
+    /// Skinning palette binding; `SkinRef::NONE` for static meshes.
+    pub skin: SkinRef,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]

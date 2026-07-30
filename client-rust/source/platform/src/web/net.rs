@@ -28,6 +28,17 @@ extern "C" {
         out_buf_ptr: *mut u8,
         out_buf_max_len: u32,
     ) -> i32;
+
+    // Two-phase blob fetch: call with a null/zero buffer to learn the total
+    // length, then call again with an allocated buffer to copy. Returns the
+    // resource's total byte length on success (>=0), or -1 on error. The shim
+    // caches the last fetched url so the network hit happens once.
+    fn js_fetch_get(
+        url_ptr: *const u8,
+        url_len: u32,
+        out_buf_ptr: *mut u8,
+        out_buf_max_len: u32,
+    ) -> i32;
 }
 
 pub fn ws_connect(url_str: &str) -> Result<WsHandle, String> {
@@ -87,4 +98,28 @@ pub fn http_post_json(url_str: &str, body: &[u8]) -> Result<Vec<u8>, String> {
         out_buf.truncate(res as usize);
         Ok(out_buf)
     }
+}
+
+/// HTTP GET returning the raw response body via the two-phase shim protocol.
+pub fn http_get(url_str: &str) -> Result<Vec<u8>, String> {
+    let total = unsafe {
+        js_fetch_get(url_str.as_ptr(), url_str.len() as u32, core::ptr::null_mut(), 0)
+    };
+    if total < 0 {
+        return Err(format!("fetch_get failed for {url_str}"));
+    }
+    let mut buf = vec![0u8; total as usize];
+    let written = unsafe {
+        js_fetch_get(
+            url_str.as_ptr(),
+            url_str.len() as u32,
+            buf.as_mut_ptr(),
+            buf.len() as u32,
+        )
+    };
+    if written < 0 {
+        return Err(format!("fetch_get copy failed for {url_str}"));
+    }
+    buf.truncate(written as usize);
+    Ok(buf)
 }

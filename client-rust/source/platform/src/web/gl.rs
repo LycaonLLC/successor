@@ -8,6 +8,10 @@ pub const DEPTH_TEST: u32 = 0x0B71;
 pub const CULL_FACE: u32 = 0x0B44;
 pub const BACK: u32 = 0x0405;
 pub const FRONT: u32 = 0x0404;
+pub const BLEND: u32 = 0x0BE2;
+pub const SRC_ALPHA: u32 = 0x0302;
+pub const ONE_MINUS_SRC_ALPHA: u32 = 0x0303;
+pub const ONE: u32 = 1;
 
 pub const VERTEX_SHADER: u32 = 0x8B31;
 pub const FRAGMENT_SHADER: u32 = 0x8B30;
@@ -57,6 +61,7 @@ extern "C" {
     fn glCullFace(mode: u32);
     fn glDepthMask(flag: u32);
     fn glColorMask(red: u32, green: u32, blue: u32, alpha: u32);
+    fn glBlendFunc(sfactor: u32, dfactor: u32);
 
     fn glCreateShader(type_: u32) -> u32;
     fn glShaderSource(shader: u32, ptr: *const u8, len: u32);
@@ -122,6 +127,9 @@ extern "C" {
 
     fn glDrawArrays(mode: u32, first: i32, count: i32);
     fn glDrawElements(mode: u32, count: i32, type_: u32, offset: u32);
+    fn glVertexAttribDivisor(index: u32, divisor: u32);
+    fn glDrawElementsInstanced(mode: u32, count: i32, type_: u32, offset: u32, primcount: i32);
+    fn glDrawArraysInstanced(mode: u32, first: i32, count: i32, primcount: i32);
 
     fn glGenFramebuffer() -> u32;
     fn glDeleteFramebuffer(fbo: u32);
@@ -161,6 +169,10 @@ pub fn disable(cap: u32) {
 
 pub fn cull_face(mode: u32) {
     unsafe { glCullFace(mode); }
+}
+
+pub fn blend_func(sfactor: u32, dfactor: u32) {
+    unsafe { glBlendFunc(sfactor, dfactor); }
 }
 
 pub fn depth_mask(flag: bool) {
@@ -268,6 +280,22 @@ pub fn uniform3fv(location: i32, values: &[f32]) {
 
 pub fn uniform_matrix4fv(location: i32, transpose: bool, values: &[f32; 16]) {
     unsafe { glUniformMatrix4fv(location, 1, if transpose { 1 } else { 0 }, values.as_ptr()); }
+}
+
+pub fn uniform_matrix4fv_array(location: i32, values: &[f32]) {
+    unsafe { glUniformMatrix4fv(location, (values.len() / 16) as i32, 0, values.as_ptr()); }
+}
+
+pub fn vertex_attrib_divisor(index: u32, divisor: u32) {
+    unsafe { glVertexAttribDivisor(index, divisor); }
+}
+
+pub fn draw_elements_instanced(mode: u32, count: i32, type_: u32, offset: u32, primcount: i32) {
+    unsafe { glDrawElementsInstanced(mode, count, type_, offset, primcount); }
+}
+
+pub fn draw_arrays_instanced(mode: u32, first: i32, count: i32, primcount: i32) {
+    unsafe { glDrawArraysInstanced(mode, first, count, primcount); }
 }
 
 pub fn gen_texture() -> u32 {
