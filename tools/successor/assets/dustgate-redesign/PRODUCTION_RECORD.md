@@ -437,6 +437,13 @@ fallback. The two filename mismatches are explicit aliases:
 `water_tank_frontier` → `tank_water_frontier.glb` and `workbench_field` →
 `bench_welder.glb`.
 
+The published experimental branch also vendors the 29 audited inputs that are
+not already canonical runtime assets under `source-items/`. Every consumer
+resolves through the same hash-checking candidate table, and required proof or
+assembly inputs now fail closed instead of being skipped. The publication build
+was exercised with `SUCCESSOR_PROP_SOURCE_ROOT=/nonexistent` to prove that the
+branch is self-contained.
+
 There are no roads, paths, lanes, aprons, kerbs, paving, traffic furniture,
 rectangular ground patches or route-shaped ground marks anywhere in the layout.
 The desert is one continuous plane. The only authored relief is the ancient
@@ -596,6 +603,7 @@ section is a runtime asset, is exported, or is proposed for promotion.
 
 ```
 cd tools/successor/assets/dustgate-redesign
+export SUCCESSOR_PROP_SOURCE_ROOT=/nonexistent                    # use vendored pins
 blender -b --factory-startup -P textures.py                       # 8 PBR sets
 blender -b --factory-startup -P proditems.py -- all               # item audit
 blender -b --factory-startup -P prodbuild.py -- all               # units + LODs
