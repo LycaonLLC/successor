@@ -265,6 +265,40 @@
         "inventory": []
       }
     },
+    "open-desert-progression-retirement": {
+      "description": "Durable Craftsman progression fixture for exact link-dead retirement and CharacterStore rebuild proof.",
+      "characters": {
+        "progression": {
+          "id": "progression-retirement",
+          "name": "ProgressionRetirement",
+          "initialProfessionId": "craftsman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 545,
+            "y": 545,
+            "facing": "left"
+          },
+          "professions": {
+            "learned": [
+              "craftsman"
+            ],
+            "xp": {
+              "craftsman": 137
+            },
+            "trackXp": {
+              "craftsman:assembly": 93,
+              "craftsman:experimentation": 44
+            },
+            "skillBoxes": [
+              "craftsman-novice"
+            ],
+            "activeTitleId": "craftsman-novice",
+            "credits": 7654,
+            "skillPointCap": 275
+          }
+        }
+      }
+    },
     "open-desert-cohesive-long-haul": {
       "description": "First-entry Brawler progression, deterministic combat, player death, cloning, and restart proof.",
       "characters": {

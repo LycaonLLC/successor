@@ -1,0 +1,177 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "progression-linkdead-retirement-persistence",
+  "fixture": "open-desert-progression-retirement",
+  "lanes": [
+    "accel"
+  ],
+  "matrixLanes": [
+    "accel"
+  ],
+  "linkDeadHoldSeconds": 1,
+  "actors": {
+    "alpha": {
+      "character": "fixture:progression"
+    }
+  },
+  "steps": [
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "xp": 137,
+                "trackXp.assembly": 93,
+                "trackXp.experimentation": 44,
+                "skillBoxes": {
+                  "op": "includes",
+                  "value": "craftsman-novice"
+                }
+              }
+            },
+            "activeTitle.id": "craftsman-novice",
+            "skillPointsCap": 275,
+            "credits": 7654
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "progressionBeforeRetirement"
+      }
+    },
+    {
+      "disconnect": {
+        "actor": "alpha",
+        "as": "alphaDisconnected"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "link_dead": true
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "alphaLinkDead"
+      }
+    },
+    {
+      "pauseMs": 1100
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "actors.progression-retirement": {
+            "exists": false
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "alphaRetired"
+      }
+    },
+    {
+      "reconnect": {
+        "actor": "alpha",
+        "timeoutMs": 15000,
+        "as": "alphaReconnected"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "link_dead": false,
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "xp": "$captures.progressionBeforeRetirement.professions[0].xp",
+                "trackXp.assembly": "$captures.progressionBeforeRetirement.professions[0].trackXp.assembly",
+                "trackXp.experimentation": "$captures.progressionBeforeRetirement.professions[0].trackXp.experimentation",
+                "skillBoxes": {
+                  "op": "includes",
+                  "value": "craftsman-novice"
+                }
+              }
+            },
+            "activeTitle.id": "$captures.progressionBeforeRetirement.activeTitle.id",
+            "skillPointsCap": "$captures.progressionBeforeRetirement.skillPointsCap",
+            "credits": "$captures.progressionBeforeRetirement.credits"
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "progressionAfterRetirement"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "progressionAfterRetirement",
+        "path": "professions[0].xp",
+        "op": "eq",
+        "value": "$captures.progressionBeforeRetirement.professions[0].xp",
+        "as": "generalXpExact"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "progressionAfterRetirement",
+        "path": "professions[0].trackXp.assembly",
+        "op": "eq",
+        "value": "$captures.progressionBeforeRetirement.professions[0].trackXp.assembly",
+        "as": "assemblyXpExact"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "progressionAfterRetirement",
+        "path": "professions[0].trackXp.experimentation",
+        "op": "eq",
+        "value": "$captures.progressionBeforeRetirement.professions[0].trackXp.experimentation",
+        "as": "experimentationXpExact"
+      }
+    },
+    {
+      "query": {
+        "actor": "alpha",
+        "line": "/where",
+        "as": "postRetirementCommand"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "postRetirementCommand",
+        "path": "data.source",
+        "op": "eq",
+        "value": "server",
+        "as": "reconnectedCommandAccepted"
+      }
+    },
+    {
+      "expect": {
+        "kind": "commandStreamNoMatch",
+        "match": {
+          "commandKind": {
+            "regex": "^Debug"
+          }
+        },
+        "as": "noDebugCommands"
+      }
+    }
+  ],
+  "notes": "The host-only one-second link-dead window accelerates the production five-minute retirement boundary without changing authority semantics. The actor must first expose exact CharacterStore-seeded general XP, two track balances, novice box, title, cap, and credits; then become link-dead, disappear from the live oracle after Rust retirement, reconnect from the durable character record, retain every value exactly, and accept a normal post-rebuild command."
+}

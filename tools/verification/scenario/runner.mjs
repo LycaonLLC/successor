@@ -71,6 +71,14 @@ export function validateScenario(scenario, label = "scenario") {
   if (restartSteps.length > 0 && scenario.persistence !== true) {
     throw new Error(`${label}: restart steps require persistence:true`);
   }
+  if (
+    scenario.linkDeadHoldSeconds !== undefined
+    && (!Number.isInteger(scenario.linkDeadHoldSeconds)
+      || scenario.linkDeadHoldSeconds < 1
+      || scenario.linkDeadHoldSeconds > 86_400)
+  ) {
+    throw new Error(`${label}: linkDeadHoldSeconds must be an integer from 1 to 86400`);
+  }
   for (const step of restartSteps) {
     const restart = step.restart;
     if (!restart || typeof restart !== "object" || Array.isArray(restart)) {
@@ -1416,6 +1424,9 @@ export async function startFixtureServer({ repoRoot, fixture, scenario, runId, r
     GAME_CHARACTER_STORE_PATH: characterStorePath,
     GAME_SLICE_PATH: fixture.slicePath,
     GAME_RUST_AUTHORITY_BRIDGE_BIN: resolvedRustBridgeBin,
+    ...(scenario.linkDeadHoldSeconds === undefined ? {} : {
+      GAME_LD_SECONDS: String(scenario.linkDeadHoldSeconds),
+    }),
     GAME_MOVE_TRACE: process.env.GAME_MOVE_TRACE ?? "0",
     ...(slowConsumerBufferCapBytes === undefined ? {} : {
       GAME_SLOW_CONSUMER_BUFFER_CAP_BYTES: String(slowConsumerBufferCapBytes),
