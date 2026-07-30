@@ -338,7 +338,7 @@ function main() {
 
   // Write qa/gltf_validation.md
   const mdPath = path.join(QA_DIR, "gltf_validation.md");
-  fs.writeFileSync(mdPath, mdContent, "utf8");
+  fs.writeFileSync(mdPath, `${mdContent.trimEnd()}\n`, "utf8");
 
   // Print table to stdout
   console.log(markdownTable);
