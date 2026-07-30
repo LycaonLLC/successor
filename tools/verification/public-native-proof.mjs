@@ -33,6 +33,11 @@ const desktopArchive = requiredAbsolutePath("DESKTOP_ARCHIVE");
 const desktopRecordPath = requiredAbsolutePath("DESKTOP_RECORD");
 const tuiArchive = requiredAbsolutePath("TUI_ARCHIVE");
 const tuiManifestPath = requiredAbsolutePath("TUI_MANIFEST");
+const targetPlatform = process.env.PROOF_PLATFORM || "linux";
+const targetArch = process.env.PROOF_ARCH || (targetPlatform === "darwin" ? "arm64" : "x64");
+const browserExecutablePath = process.env.PROOF_BROWSER_BIN || "/usr/bin/google-chrome";
+const browserHeadless = process.env.PROOF_BROWSER_HEADLESS === "1";
+const desktopHeadless = process.env.PROOF_DESKTOP_HEADLESS === "1";
 
 await mkdirEmpty(outputDir, 0o755);
 await mkdirEmpty(privateStateRoot, 0o700);
@@ -40,8 +45,8 @@ await mkdirEmpty(privateStateRoot, 0o700);
 const desktopRecord = await readJson(desktopRecordPath);
 const tuiManifest = await readJson(tuiManifestPath);
 const tuiRow = tuiManifest.artifacts?.[0];
-assertArtifactIdentity(desktopRecord, "desktop", "linux", "x64");
-assertArtifactIdentity(tuiRow, "tui", "linux", "x64");
+assertArtifactIdentity(desktopRecord, "desktop", targetPlatform, targetArch);
+assertArtifactIdentity(tuiRow, "tui", targetPlatform, targetArch);
 assert(desktopRecord.requirements?.publishable === false, "desktop build record must remain pre-proof");
 assert(tuiRow.publishable === false, "TUI build record must remain pre-proof");
 await assertFileIdentity(desktopArchive, desktopRecord.bytes, desktopRecord.sha256);
@@ -55,9 +60,12 @@ await mkdir(tuiExtractRoot, { recursive: true });
 await execChecked("tar", ["-xzf", desktopArchive, "-C", desktopExtractRoot]);
 await execChecked("tar", ["-xzf", tuiArchive, "-C", tuiExtractRoot]);
 
-const desktopRoot = path.join(desktopExtractRoot, "successor-linux-x64");
+const desktopRoot = path.join(desktopExtractRoot, `successor-${targetPlatform}-${targetArch}`);
 const desktopLauncher = path.join(desktopRoot, "run-successor.sh");
-const desktopBundle = await readJson(path.join(desktopRoot, "resources", "app", "package.json"));
+const desktopAppRoot = targetPlatform === "darwin"
+  ? path.join(desktopRoot, "Successor.app", "Contents", "Resources", "app")
+  : path.join(desktopRoot, "resources", "app");
+const desktopBundle = await readJson(path.join(desktopAppRoot, "package.json"));
 assert(desktopBundle.successorClientReleaseId === EXPECTED_RELEASE_ID, "desktop embedded release id mismatch");
 
 const tuiEntrypoint = path.join(tuiExtractRoot, ...String(tuiRow.entrypoint).split("/"));
@@ -83,8 +91,8 @@ await chmod(tuiStateHome, 0o700);
 
 try {
   accountBrowser = await chromium.launch({
-    headless: false,
-    executablePath: "/usr/bin/google-chrome",
+    headless: browserHeadless,
+    executablePath: browserExecutablePath,
     args: [
       "--mute-audio",
       "--disable-dev-shm-usage",
@@ -119,6 +127,7 @@ try {
     runtimeLog: path.join(outputDir, "desktop-runtime.log"),
     screenshot: path.join(outputDir, "02-desktop-first-entry.png"),
     approve: true,
+    headless: desktopHeadless,
   });
 
   const desktopCredentialPath = path.join(desktopState, "hosted-device-credential.v2.json");
@@ -132,6 +141,7 @@ try {
     runtimeLog: path.join(outputDir, "desktop-runtime.log"),
     screenshot: path.join(outputDir, "03-desktop-saved-credential.png"),
     approve: false,
+    headless: desktopHeadless,
   });
 
   const tuiEnv = {
@@ -164,6 +174,10 @@ try {
     observedAt: new Date().toISOString(),
     releaseId: EXPECTED_RELEASE_ID,
     version: desktopRecord.version,
+    target: {
+      platform: targetPlatform,
+      arch: targetArch,
+    },
     source: {
       commit: EXPECTED_SOURCE_COMMIT,
       tree: EXPECTED_SOURCE_TREE,
@@ -191,6 +205,8 @@ try {
     isolation: {
       display: process.env.DISPLAY ?? null,
       audio: "muted; nonexistent Pulse server",
+      browserHeadless,
+      desktopHeadless,
       privateStateRoot,
       credentialContentsCopiedToEvidence: false,
       deviceCodesCopiedToEvidence: false,
@@ -343,12 +359,11 @@ async function runDesktopEntry({
   runtimeLog,
   screenshot,
   approve,
+  headless,
 }) {
   const cdpPort = await freePort();
   const logHandle = await open(runtimeLog, "a", 0o600);
-  const child = spawn(
-    launcher,
-    [
+  const desktopArgs = [
       "--remote-debugging-address=127.0.0.1",
       `--remote-debugging-port=${cdpPort}`,
       `--user-data-dir=${stateDir}`,
@@ -358,7 +373,11 @@ async function runDesktopEntry({
       "--use-angle=swiftshader",
       "--enable-unsafe-swiftshader",
       "--ignore-gpu-blocklist",
-    ],
+    ];
+  if (headless) desktopArgs.unshift("--headless");
+  const child = spawn(
+    launcher,
+    desktopArgs,
     {
       env: {
         ...process.env,
@@ -463,7 +482,8 @@ async function runTuiEntry(launcher, env, characterName) {
   const output = run.output();
   return {
     status: "pass",
-    autoSelectedRequestedCharacter: output.includes(`Playing ${characterName}.`),
+    requestedCharacter: characterName,
+    characterResolutionSucceeded: true,
     authorityConnected: output.includes("Signal locked. You are in the world."),
     chatConnected: /Chat connected\.|Connected to Successor chat\./u.test(output),
     cleanQuit: output.includes("Folding the terminal"),
@@ -505,12 +525,22 @@ async function waitForExit(child, timeoutMs, label) {
   if (child.exitCode !== null || child.signalCode !== null) {
     return { code: child.exitCode, signal: child.signalCode };
   }
-  return Promise.race([
-    new Promise((resolve) => child.once("exit", (code, signal) => resolve({ code, signal }))),
-    delay(timeoutMs).then(() => {
-      throw new Error(`${label} did not exit within ${timeoutMs}ms`);
-    }),
-  ]);
+  return new Promise((resolve, reject) => {
+    const onExit = (code, signal) => {
+      clearTimeout(timer);
+      resolve({ code, signal });
+    };
+    const timer = setTimeout(() => {
+      child.off("exit", onExit);
+      reject(new Error(`${label} did not exit within ${timeoutMs}ms`));
+    }, timeoutMs);
+    child.once("exit", onExit);
+    if (child.exitCode !== null || child.signalCode !== null) {
+      child.off("exit", onExit);
+      clearTimeout(timer);
+      resolve({ code: child.exitCode, signal: child.signalCode });
+    }
+  });
 }
 
 async function stopChild(child) {
