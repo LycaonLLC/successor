@@ -248,3 +248,33 @@ All 54 parity tasks are complete. Live browser/authority behavior (wasm net,
 CoreAudio playback, live combat FX/audio) is confirmed interactively; every
 deterministic core is unit/fixture-tested and every render surface has a
 verified screenshot. The engine builds and all gates pass at each landed step.
+
+## Connected-scene integration (live client renders like client-3d)
+
+The parity waves built each capability as demo scenes + tested modules; this
+wave wires them into the live `connected::run` so the client renders the real
+world (not placeholder capsules) when joined to the authority.
+
+- **`game::connected_scene::ConnectedScene`** composes one `GameWorld`/`Renderer`
+  driven by the authoritative `AuthorityStore`: streamed terrain
+  (`TerrainStreamer`) + the 139 GLB slice props (`PropsLoader`, same
+  `open-desert-slice.json` + `props-mapping.json` `client-3d` uses), a GLB pawn
+  per live actor (skin/faction-tinted, gait from velocity, facing from move
+  direction) replacing capsules, environment lighting/fog/clear from
+  `environment::sample`, a follow camera + minimap composite, combat-event FX
+  billboards, ambient dust `weather`, and the HUD + mouse-routed interactive
+  windows (action bar toggles them, as in `--demo ui`).
+- **`AuthorityStore::apply_player_position`** applies the `game.acks`
+  authoritative player position (own moves arrive as acks, not AOI deltas).
+- **Verified live** against the dockerized authority (`ws://127.0.0.1:28093`,
+  `GAME_ALLOW_DEV_IDENTITY=1`): `terrain streamed, 139 props placed`, `actors=3`,
+  `session_state=Ready`; GLB pawns render at actor positions (screenshot);
+  `--auto-walk` moves the player `(512.5,513.5)→(512.5,511.86)` (full
+  command→acks→store→render loop). Gates green (176 tests, 0 frame allocs,
+  `VERIFY: PASS`, native 1.19 MB / wasm 479 KB).
+- **Deferred (enhancements, not asset/game-load blockers):** the fullscreen
+  post-grade pass (conflicts with the multi-camera + minimap composite ordering;
+  day-night look is instead driven via sun/fog/ambient/clear), the live chat-room
+  socket + pane, and projecting live inventory JSON into the window models
+  (windows currently show representative content). Each underlying module is
+  built + tested; wiring these into the live loop is follow-on polish.

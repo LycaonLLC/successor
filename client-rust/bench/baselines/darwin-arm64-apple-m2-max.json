@@ -4,29 +4,29 @@
   "date": "2026-07-30",
   "benches": {
     "ecs/query1/4096": {
-      "median_ns": 26536.32
+      "median_ns": 27072.3
     },
     "ecs/query2/4096": {
-      "median_ns": 137609.82
+      "median_ns": 135905.95
     },
     "ecs/spawn-set/4096": {
-      "median_ns": 417098.42
+      "median_ns": 401763.55
     },
     "math/mat4-mul/1024": {
-      "median_ns": 52504.94
+      "median_ns": 54026.67
     },
     "render/build-drawlist/4096": {
-      "median_ns": 1759935.78
+      "median_ns": 1800294.99
     }
   },
   "sizes": {
-    "native_stripped": 1175320,
+    "native_stripped": 1191992,
     "wasm_stripped": 478908
   },
   "runtime": {
-    "frame_p50_ms": 3.3684,
-    "frame_p99_ms": 3.7705,
-    "peak_rss_bytes": 8568832,
+    "frame_p50_ms": 3.3805,
+    "frame_p99_ms": 3.7544,
+    "peak_rss_bytes": 8585216,
     "frame_allocs_steady": 0
   }
 }

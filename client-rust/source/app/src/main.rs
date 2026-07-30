@@ -647,271 +647,119 @@ fn arg_value(args: &[String], key: &str) -> Option<String> {
 #[cfg(not(target_arch = "wasm32"))]
 mod connected {
     use serde_json::json;
-    use successor_client::game::combat_fx::{CombatEvent, CombatFx};
-    use successor_client::game::{chat::ChatState, movement, projection::WorldActors};
-    use successor_client::GameWorld;
+    use successor_client::game::combat_fx::CombatEvent;
+    use successor_client::game::connected_scene::ConnectedScene;
+    use successor_client::game::movement;
+    use successor_client_proto::colyseus;
     use successor_client_proto::packets::GameServerPacket;
     use successor_client_proto::session::{Session, SessionEvent, SessionOut, SessionState, WsInput};
-    use successor_client_proto::colyseus;
-    use successor_engine_core::ecs::{Entity, WorldOps};
     use successor_engine_core::input::Key;
-    use successor_engine_core::math::{vec3, Mat4, Quat, Vec2, Vec3};
-    use successor_engine_render::components::{
-        CamTarget, Camera, CompositeQuad, DirectionalLight, MeshRenderer, Projection, RectNorm,
-        TextOverlay, Transform,
-    };
-    use successor_engine_render::gpu::{ClearSpec, Filter, Gpu, RenderTargetDesc};
-    use successor_engine_render::fx::glow_sprite;
-    use successor_engine_render::primitives;
-    use successor_engine_render::renderer::{Renderer, RendererLimits};
+    use successor_engine_render::gpu::Gpu;
     use successor_platform as plat;
-
-    const CHAT_SLOTS: usize = 9;
 
     pub fn run(endpoint: &str, player_id: &str, actor_id: &str, max_frames: Option<u64>, screenshot: Option<&str>, auto_walk: bool) -> i32 {
         // 1) Colyseus matchmake over HTTP (dev identity; server gates on
         //    GAME_ALLOW_DEV_IDENTITY=1).
-        let http_endpoint = endpoint
-            .replacen("wss://", "https://", 1)
-            .replacen("ws://", "http://", 1);
+        let http_endpoint = endpoint.replacen("wss://", "https://", 1).replacen("ws://", "http://", 1);
         let opts = json!({ "playerId": player_id, "actorId": actor_id });
         let (url, body) = match colyseus::build_matchmake_request(&http_endpoint, &opts) {
             Ok(v) => v,
-            Err(e) => {
-                eprintln!("matchmake request build failed: {e}");
-                return 1;
-            }
+            Err(e) => { eprintln!("matchmake request build failed: {e}"); return 1; }
         };
         let resp = match plat::http_post_json(&url, &body) {
             Ok(r) => r,
-            Err(e) => {
-                eprintln!("matchmake POST failed: {e}");
-                return 1;
-            }
+            Err(e) => { eprintln!("matchmake POST failed: {e}"); return 1; }
         };
         let seat = match colyseus::parse_seat_reservation(&resp) {
             Ok(s) => s,
-            Err(e) => {
-                eprintln!("seat reservation parse failed: {e}");
-                return 1;
-            }
+            Err(e) => { eprintln!("seat reservation parse failed: {e}"); return 1; }
         };
         let ws_url = colyseus::build_ws_url(endpoint, &seat);
 
-        // 2) Window + GL.
+        // 2) Window + GL + the composed connected scene (terrain + props + pawns
+        //    + HUD), driven by the authority store.
         if !plat::init("Successor (Rust client)", 1280, 720) {
             eprintln!("platform init failed (no display?)");
             return 1;
         }
         let mut gpu = plat::create_gpu();
-        let mut renderer = Renderer::new(&mut gpu, RendererLimits::default());
-        let glow = glow_sprite(64);
-        renderer.set_particle_atlas(&mut gpu, 64, 64, &glow);
-        let mut combat_fx = CombatFx::new(0x51ce_57ed);
-        let mut fx_buf: Vec<f32> = Vec::with_capacity(64 * 1024);
-        let mut world = GameWorld::new();
-
-        // Ground, capsule, materials, light, cameras, minimap composite.
-        let (gv, gi) = primitives::plane(2048.0);
-        let ground = renderer.upload_mesh(&mut gpu, &gv, &gi);
-        let ground_mat = renderer.add_material([0.30, 0.26, 0.18, 1.0]);
-        let g = world.spawn();
-        world.set_component(g, Transform { pos: Vec3::ZERO, rot: Quat::IDENTITY, scale: Vec3::ONE });
-        world.set_component(g, MeshRenderer { mesh: ground, material: ground_mat, viewport_mask: 0b011, ..Default::default() });
-
-        let (kv, ki) = primitives::capsule(0.4, 1.8, 12, 6);
-        let capsule = renderer.upload_mesh(&mut gpu, &kv, &ki);
-        let mat_player = renderer.add_material([0.95, 0.85, 0.25, 1.0]);
-        let mat_other = renderer.add_material([0.55, 0.65, 0.75, 1.0]);
-        let mut actors = WorldActors::new(capsule, mat_player, mat_other);
-
-        let sun = world.spawn();
-        world.set_component(sun, DirectionalLight { dir: vec3(-0.5, -1.0, -0.35), color: [1.0, 0.97, 0.9], cast_shadows: true });
-
-        let rt = gpu.create_render_target(&RenderTargetDesc { width: 256, height: 256, color: true, depth: true, filter: Filter::Linear });
-        let follow = world.spawn();
-        world.set_component(follow, Camera {
-            viewport_id: 0, order: 0,
-            projection: Projection::Perspective { fovy: 1.05, near: 0.1, far: 800.0 },
-            target: CamTarget::Screen(RectNorm::FULL),
-            clear: ClearSpec { color: Some([0.05, 0.06, 0.08, 1.0]), depth: Some(1.0) },
-            eye: vec3(0.0, 8.0, 12.0), look_at: Vec3::ZERO, up: Vec3::Y,
-        });
-        let minimap = world.spawn();
-        world.set_component(minimap, Camera {
-            viewport_id: 1, order: -1,
-            projection: Projection::Ortho { half_height: 30.0, near: 0.1, far: 400.0 },
-            target: CamTarget::Texture(rt),
-            clear: ClearSpec { color: Some([0.02, 0.03, 0.04, 1.0]), depth: Some(1.0) },
-            eye: vec3(0.0, 120.0, 0.0), look_at: Vec3::ZERO, up: vec3(0.0, 0.0, -1.0),
-        });
-        let cq = world.spawn();
-        world.set_component(cq, CompositeQuad { source: rt, rect: RectNorm { x: 0.75, y: 0.74, w: 0.24, h: 0.24 }, order: 0 });
-
-        // Chat overlay slot pool (updated in place — no per-frame spawn).
-        let mut chat_slots: Vec<Entity> = Vec::with_capacity(CHAT_SLOTS);
-        for _ in 0..CHAT_SLOTS {
-            let e = world.spawn();
-            world.set_component(e, TextOverlay::new("", Vec2 { x: 0.02, y: 0.80 }, [0, 0, 0, 0]));
-            chat_slots.push(e);
-        }
+        let _ = &mut gpu as &mut dyn Gpu;
+        let mut scene = match ConnectedScene::build(&mut gpu, player_id) {
+            Ok(s) => s,
+            Err(e) => { eprintln!("connected scene build failed: {e}"); plat::deinit(); return 1; }
+        };
 
         // 3) Connect + drive.
         let mut ws = match plat::ws_connect(&ws_url) {
             Ok(w) => w,
-            Err(e) => {
-                eprintln!("ws connect failed: {e}");
-                plat::deinit();
-                return 1;
-            }
+            Err(e) => { eprintln!("ws connect failed: {e}"); plat::deinit(); return 1; }
         };
         let mut sess = Session::new();
         sess.start_connecting();
-        let mut chat = ChatState::new(8);
         let mut buf: Vec<u8> = Vec::with_capacity(64 * 1024);
         let mut last_intent = (0i32, 0i32, false);
         let mut cmd_id = 0u64;
-        let mut tick = 0u64;
-        let mut last_enter = false;
         let mut view_sent = false;
-
         let mut frame: u64 = 0;
+
         while !plat::should_quit() && max_frames.map_or(true, |m| frame < m) {
             plat::begin_frame();
 
-            // Drain socket.
+            // Drain socket → session; feed packets into the scene + combat FX.
             loop {
                 buf.clear();
-                match plat::ws_poll(&mut ws, &mut buf) {
-                    plat::WsEvent::Open => drive(sess.on_ws_event(WsInput::Open), &mut ws, &mut world, &mut actors, &mut tick),
-                    plat::WsEvent::Frame(n) => {
-                        let outs = sess.on_ws_event(WsInput::Frame(&buf[..n]));
-                        // Tap authoritative combat events → drive the VFX pool.
-                        for o in &outs {
-                            if let SessionOut::Emit(SessionEvent::Packet(pkt)) = o {
-                                let evs = match pkt {
-                                    GameServerPacket::Snapshot { events, .. }
-                                    | GameServerPacket::Delta { events, .. }
-                                    | GameServerPacket::Receipts { events, .. } => Some(events.as_slice()),
-                                    _ => None,
-                                };
-                                if let Some(evs) = evs {
-                                    for jv in evs {
-                                        if let Some(ce) = CombatEvent::from_json(jv) {
-                                            combat_fx.trigger(&ce);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        drive(outs, &mut ws, &mut world, &mut actors, &mut tick);
-                    }
-                    plat::WsEvent::Closed => {
-                        drive(sess.on_ws_event(WsInput::Closed), &mut ws, &mut world, &mut actors, &mut tick);
-                        break;
-                    }
-                    plat::WsEvent::Error => {
-                        drive(sess.on_ws_event(WsInput::Error("ws error")), &mut ws, &mut world, &mut actors, &mut tick);
-                        break;
-                    }
+                let ev = plat::ws_poll(&mut ws, &mut buf);
+                let (outs, brk) = match ev {
+                    plat::WsEvent::Open => (sess.on_ws_event(WsInput::Open), false),
+                    plat::WsEvent::Frame(n) => (sess.on_ws_event(WsInput::Frame(&buf[..n])), false),
+                    plat::WsEvent::Closed => (sess.on_ws_event(WsInput::Closed), true),
+                    plat::WsEvent::Error => (sess.on_ws_event(WsInput::Error("ws error")), true),
                     plat::WsEvent::None => break,
+                };
+                for out in outs {
+                    match out {
+                        SessionOut::SendFrame(f) => plat::ws_send(&mut ws, &f),
+                        SessionOut::Emit(SessionEvent::Hello(hello)) => scene.on_snapshot(&hello.snapshot),
+                        SessionOut::Emit(SessionEvent::Packet(pkt)) => apply_packet(pkt, &mut scene),
+                        SessionOut::Emit(SessionEvent::Error(m)) => eprintln!("session error: {m}"),
+                        SessionOut::Emit(SessionEvent::Closed) => eprintln!("session closed"),
+                        SessionOut::Emit(SessionEvent::ReconnectAttempt { attempt, max_attempts }) => {
+                            eprintln!("reconnect {attempt}/{max_attempts}");
+                        }
+                    }
+                }
+                if brk {
+                    break;
                 }
             }
 
-            // Once joined, declare AOI view interest so the shard streams
-            // deltas/acks (without this the stream stops after the hello).
+            // Declare AOI view interest once ready so deltas stream.
             if !view_sent && sess.state() == SessionState::Ready {
-                let view = json!({
-                    "viewport_width_cells": 96,
-                    "viewport_height_cells": 96,
-                    "margin_cells": 32
-                });
+                let view = json!({ "viewport_width_cells": 96, "viewport_height_cells": 96, "margin_cells": 32 });
                 if let Ok(SessionOut::SendFrame(f)) = sess.send_view(&view) {
                     plat::ws_send(&mut ws, &f);
                 }
                 view_sent = true;
             }
 
-            // Chat input (text queue + Enter edge).
-            while let Some(c) = plat::poll_text_input() {
-                if c != '\r' && c != '\n' {
-                    chat.on_char(c);
-                }
-            }
-            let enter = plat::is_key_down(Key::Enter);
-            if enter && !last_enter {
-                let _submitted = chat.on_enter(); // LOCAL chat-room send is a PARITY follow-up.
-            }
-            last_enter = enter;
-            if plat::is_key_down(Key::Escape) {
-                chat.escape();
-            }
-
-            // Movement (only when chat closed). `--auto-walk` forces a constant
-            // north intent. `SetMoveIntent` is a per-tick input, so resend it
-            // periodically while the intent is nonzero (not only on change).
-            if !chat.open && sess.state() == SessionState::Ready {
-                let intent = if auto_walk {
-                    (0, -1, false)
-                } else {
-                    movement::intent_from_keys(|k| plat::is_key_down(k))
-                };
+            // Movement (WASD or --auto-walk); resend a live intent periodically.
+            if sess.state() == SessionState::Ready {
+                let intent = if auto_walk { (0, -1, false) } else { movement::intent_from_keys(|k| plat::is_key_down(k)) };
                 let moving = intent != (0, 0, false);
                 if intent != last_intent || (moving && frame % 6 == 0) {
                     last_intent = intent;
                     cmd_id += 1;
-                    let env = movement::move_envelope(0, 0, cmd_id, tick, intent.0, intent.1, intent.2);
+                    let env = movement::move_envelope(0, 0, cmd_id, scene.store.tick, intent.0, intent.1, intent.2);
                     if let Ok(SessionOut::SendFrame(f)) = sess.send_command(&env) {
                         plat::ws_send(&mut ws, &f);
                     }
                 }
             }
-
-            // Follow + minimap cameras track the player.
-            let p = actors.player_pos();
-            if let Some(cam) = world.get_component::<Camera>(follow) {
-                cam.look_at = p;
-                cam.eye = vec3(p.x, p.y + 8.0, p.z + 12.0);
-            }
-            if let Some(cam) = world.get_component::<Camera>(minimap) {
-                cam.eye = vec3(p.x, 120.0, p.z);
-                cam.look_at = p;
-            }
-
-            // Refresh chat overlay slots in place.
-            let lines = chat.lines();
-            for (i, &slot) in chat_slots.iter().enumerate() {
-                let text = lines.get(i).map(String::as_str).unwrap_or("");
-                let rgba = if text.is_empty() { [0, 0, 0, 0] } else { [200, 210, 220, 255] };
-                if let Some(ov) = world.get_component::<TextOverlay>(slot) {
-                    *ov = TextOverlay::new(text, Vec2 { x: 0.02, y: 0.80 + i as f32 * 0.03 }, rgba);
-                }
-            }
+            let _ = plat::is_key_down(Key::Escape);
 
             let (w, h) = plat::framebuffer_size();
             if w > 0 && h > 0 {
-                renderer.render(&mut gpu, &mut world, w as u32, h as u32);
-                // Combat FX: integrate the pool and draw billboards over the scene
-                // using the follow camera's frame.
-                combat_fx.update(1.0 / 60.0);
-                let center = actors.player_pos();
-                let eye = vec3(center.x, center.y + 8.0, center.z + 12.0);
-                let aspect = w as f32 / h as f32;
-                let vp = Mat4::perspective(1.05, aspect, 0.1, 800.0)
-                    .mul(Mat4::look_at(eye, center, Vec3::Y))
-                    .to_cols_array();
-                let fwd = center.sub(eye).normalize();
-                let right = fwd.cross(Vec3::Y).normalize();
-                let up = right.cross(fwd);
-                let r = [right.x, right.y, right.z];
-                let u = [up.x, up.y, up.z];
-                fx_buf.clear();
-                let qa = combat_fx.pool().additive.fill_billboards(r, u, &mut fx_buf);
-                renderer.render_particles(&mut gpu, &fx_buf, qa, &vp, true, w as u32, h as u32);
-                fx_buf.clear();
-                let mut qn = combat_fx.pool().normal.fill_billboards(r, u, &mut fx_buf);
-                qn += combat_fx.pool().residue.fill_billboards(r, u, &mut fx_buf);
-                renderer.render_particles(&mut gpu, &fx_buf, qn, &vp, false, w as u32, h as u32);
+                scene.frame(&mut gpu, w as u32, h as u32, 1.0 / 60.0);
             }
             if let (Some(path), true) = (screenshot, max_frames.map_or(false, |m| frame + 1 == m)) {
                 if w > 0 && h > 0 {
@@ -923,17 +771,14 @@ mod connected {
                 }
             }
             plat::end_frame();
-            tick += 1;
             frame += 1;
         }
 
-        let p = actors.player_pos();
+        let p = scene.player_pos();
         println!(
-            "connected summary: actors_projected={} player_actor={:?} player_pos=({:.2},{:.2},{:.2}) session_state={:?}",
-            actors.actor_count(), actors.player_actor_id(), p.x, p.y, p.z, sess.state()
+            "connected summary: actors={} player_pos=({:.2},{:.2},{:.2}) session_state={:?}",
+            scene.actor_count(), p.x, p.y, p.z, sess.state()
         );
-
-        // Clean exit: ask the authority to remove us, then tear down.
         if let Ok(SessionOut::SendFrame(f)) = sess.exit_world() {
             plat::ws_send(&mut ws, &f);
         }
@@ -941,53 +786,38 @@ mod connected {
         0
     }
 
-    fn drive(
-        outs: Vec<SessionOut>,
-        ws: &mut plat::WsHandle,
-        world: &mut GameWorld,
-        actors: &mut WorldActors,
-        tick: &mut u64,
-    ) {
-        for out in outs {
-            match out {
-                SessionOut::SendFrame(f) => {
-                    plat::ws_send(ws, &f);
-                }
-                SessionOut::Emit(ev) => match ev {
-                    SessionEvent::Hello(hello) => {
-                        *tick = hello.snapshot.tick;
-                        actors.apply_hello(world, &hello);
-                    }
-                    SessionEvent::Packet(pkt) => apply_packet(pkt, world, actors, tick),
-                    SessionEvent::Error(msg) => eprintln!("session error: {msg}"),
-                    SessionEvent::Closed => eprintln!("session closed"),
-                    SessionEvent::ReconnectAttempt { attempt, max_attempts } => {
-                        eprintln!("reconnect {attempt}/{max_attempts}");
-                    }
-                },
-            }
-        }
-    }
-
-    fn apply_packet(pkt: GameServerPacket, world: &mut GameWorld, actors: &mut WorldActors, tick: &mut u64) {
+    /// Route a decoded packet into the scene's authority store + combat FX.
+    fn apply_packet(pkt: GameServerPacket, scene: &mut ConnectedScene) {
         match pkt {
-            GameServerPacket::Snapshot { snapshot, .. } => {
-                *tick = snapshot.tick;
-                actors.apply_snapshot(world, &snapshot);
+            GameServerPacket::Snapshot { snapshot, events, .. } => {
+                scene.on_snapshot(&snapshot);
+                fire_events(scene, &events);
             }
-            GameServerPacket::Delta { delta, .. } => {
-                *tick = delta.tick;
-                actors.apply_delta(world, &delta);
+            GameServerPacket::Delta { delta, events, .. } => {
+                scene.on_delta(&delta);
+                fire_events(scene, &events);
             }
-            GameServerPacket::Acks { player_actor, player_position, .. } => {
+            GameServerPacket::Receipts { events, .. } => fire_events(scene, &events),
+            GameServerPacket::Acks { player_actor, player_position, events, .. } => {
                 if let Some(pa) = player_actor {
-                    actors.apply_player_position(world, pa.x, pa.y);
+                    scene.on_player_pos(pa.x, pa.y);
                 } else if let Some(pos) = player_position {
-                    actors.apply_player_position(world, pos.0, pos.1);
+                    scene.on_player_pos(pos.0, pos.1);
+                }
+                if let Some(evs) = events {
+                    fire_events(scene, &evs);
                 }
             }
             GameServerPacket::Error { code, message } => eprintln!("game.error {code}: {message}"),
             _ => {}
+        }
+    }
+
+    fn fire_events(scene: &mut ConnectedScene, events: &[serde_json::Value]) {
+        for jv in events {
+            if let Some(ce) = CombatEvent::from_json(jv) {
+                scene.combat_fx_mut().trigger(&ce);
+            }
         }
     }
 }

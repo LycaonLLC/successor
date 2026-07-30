@@ -207,6 +207,16 @@ impl AuthorityStore {
         true
     }
 
+    /// Apply the authoritative player position from a `game.acks` packet (the
+    /// server acks your move command with your reconciled position — this does
+    /// not arrive as an AOI delta since you are the AOI centre).
+    pub fn apply_player_position(&mut self, x: f32, y: f32) {
+        if let Some(a) = self.actors.get_mut(&self.player_actor_id) {
+            a.x = x;
+            a.y = y;
+        }
+    }
+
     /// Actors that should be rendered: alive/downed, excluding `respawning`.
     pub fn render_actors(&self) -> impl Iterator<Item = (&String, &GameActorSnapshot)> {
         self.actors.iter().filter(|(_, a)| a.life_state != "respawning")
