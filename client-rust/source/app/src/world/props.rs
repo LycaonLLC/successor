@@ -14,6 +14,7 @@ use successor_engine_core::math::{vec3, Mat4, Quat, Vec3};
 use successor_engine_render::components::{MaterialId, MeshId, MeshRenderer, SkinRef, Transform};
 use successor_engine_render::gpu::Gpu;
 use successor_engine_render::renderer::Renderer;
+use successor_engine_render::gi::GiOccluder;
 
 use crate::GameWorld;
 
@@ -23,6 +24,10 @@ struct PropModel {
     parts: Vec<(MeshId, MaterialId)>,
     footprint_x: f32,
     footprint_z: f32,
+    /// Post-recenter AABB height (min-Y..max-Y), for the GI occluder proxy.
+    height_y: f32,
+    /// Index-weighted mean base color, for the GI occluder proxy.
+    mean_albedo: [f32; 3],
 }
 
 pub struct PropsLoader<'a> {
@@ -58,6 +63,7 @@ impl<'a> PropsLoader<'a> {
             return 0;
         };
         let mut placed = 0;
+        let mut occ: Vec<GiOccluder> = Vec::new();
         for prop in props {
             if prop.get("visible").and_then(Json::as_bool) == Some(false) {
                 continue;
@@ -96,6 +102,7 @@ impl<'a> PropsLoader<'a> {
                     continue;
                 }
                 let model = self.cache.get(glb_ref).unwrap();
+                let (fx, fz, hy, alb) = (model.footprint_x, model.footprint_z, model.height_y, model.mean_albedo);
                 let (yaw, scale) = placement(rotation, random_yaw, id, sw, sh, model.footprint_x, model.footprint_z);
                 let pos = vec3(cx + sw / 2.0, 0.0, cy + sh / 2.0);
                 let parts = model.parts.clone();
@@ -104,6 +111,12 @@ impl<'a> PropsLoader<'a> {
                     world.set_component(e, Transform { pos, rot: Quat::from_yaw(yaw), scale: vec3(scale, scale, scale) });
                     world.set_component(e, MeshRenderer { mesh, material, viewport_mask: mask, skin: SkinRef::NONE });
                 }
+                occ.push(GiOccluder {
+                    center: [pos.x, hy * scale * 0.5, pos.z],
+                    half_extents: [fx * scale * 0.5, hy * scale * 0.5, fz * scale * 0.5],
+                    yaw,
+                    albedo: alb,
+                });
                 placed += 1;
             } else if let Some(ph) = entry.get("placeholder") {
                 let height = ph.get("height").and_then(Json::as_f32).unwrap_or(0.8);
@@ -121,9 +134,16 @@ impl<'a> PropsLoader<'a> {
                     },
                 );
                 world.set_component(e, MeshRenderer { mesh, material, viewport_mask: mask, skin: SkinRef::NONE });
+                occ.push(GiOccluder {
+                    center: [cx + sw / 2.0, height * 0.5, cy + sh / 2.0],
+                    half_extents: [sw.max(0.5) * 0.5, height * 0.5, sh.max(0.5) * 0.5],
+                    yaw,
+                    albedo: [tint[0], tint[1], tint[2]],
+                });
                 placed += 1;
             }
         }
+        renderer.gi_set_occluders(&occ);
         placed
     }
 
@@ -205,9 +225,13 @@ fn upload_model<G: Gpu>(renderer: &mut Renderer, gpu: &mut G, doc: &GlbDocument)
     for m in &doc.materials {
         let c = m.base_color;
         let color = if c[0].max(c[1]).max(c[2]) < 0.12 { [0.6, 0.58, 0.55, c[3]] } else { c };
-        material_ids.push(renderer.add_material(color));
+        material_ids.push(renderer.add_material_pbr(color, m.metallic, m.roughness));
     }
     let default_mat = renderer.add_material([0.7, 0.68, 0.64, 1.0]);
+
+    // Accumulate a mean albedo (weighted by index count) for the GI occluder proxy.
+    let mut albedo_sum = [0.0f32; 3];
+    let mut albedo_weight = 0.0f32;
 
     let mut parts = Vec::new();
     for (ni, node) in doc.nodes.iter().enumerate() {
@@ -229,13 +253,30 @@ fn upload_model<G: Gpu>(renderer: &mut Renderer, gpu: &mut G, doc: &GlbDocument)
             }
             let mesh_id = renderer.upload_mesh(gpu, &verts, &prim.indices);
             let material = prim.material.and_then(|mi| material_ids.get(mi).copied()).unwrap_or(default_mat);
+            let base = prim
+                .material
+                .and_then(|mi| doc.materials.get(mi))
+                .map(|m| m.base_color)
+                .unwrap_or([0.7, 0.68, 0.64, 1.0]);
+            let w = prim.indices.len() as f32;
+            albedo_sum[0] += base[0] * w;
+            albedo_sum[1] += base[1] * w;
+            albedo_sum[2] += base[2] * w;
+            albedo_weight += w;
             parts.push((mesh_id, material));
         }
     }
+    let mean_albedo = if albedo_weight > 0.0 {
+        [albedo_sum[0] / albedo_weight, albedo_sum[1] / albedo_weight, albedo_sum[2] / albedo_weight]
+    } else {
+        [0.7, 0.68, 0.64]
+    };
     Some(PropModel {
         parts,
         footprint_x: (max.x - min.x).max(0.01),
         footprint_z: (max.z - min.z).max(0.01),
+        height_y: (max.y - min.y).max(0.01),
+        mean_albedo,
     })
 }
 
@@ -355,10 +396,9 @@ impl WorldScene {
     ) -> Result<WorldScene, ()> {
         use successor_engine_render::components::{CamTarget, Camera, DirectionalLight, Projection, RectNorm};
         use successor_engine_render::gpu::ClearSpec;
-        use successor_engine_render::renderer::RendererLimits;
 
         let slice = Json::parse(slice_json).map_err(|_| ())?;
-        let mut renderer = Renderer::new(gpu, RendererLimits::default());
+        let mut renderer = Renderer::new(gpu, crate::quality_limits());
         renderer.set_ambient(0.5);
         renderer.set_fog([0.788, 0.678, 0.510], 140.0, 320.0);
         let mut world = GameWorld::new();

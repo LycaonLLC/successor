@@ -14,6 +14,7 @@ pub mod components;
 pub mod environment;
 pub mod font;
 pub mod fx;
+pub mod gi;
 pub mod gpu;
 pub mod primitives;
 pub mod renderer;
@@ -25,7 +26,7 @@ pub mod window;
 #[cfg(all(test, feature = "std"))]
 mod tests {
     use super::components::*;
-    use super::gpu::{ClearSpec, Gpu, MockGpu, PassTarget};
+    use super::gpu::{ClearSpec, Gpu, MockCall, MockGpu, PassTarget};
     use super::renderer::{Renderer, RendererLimits};
     use successor_engine_core::ecs::WorldOps;
     use successor_engine_core::math::{vec3, Vec2, Vec3};
@@ -36,6 +37,7 @@ mod tests {
         mesh: MeshRenderer,
         camera: Camera,
         light: DirectionalLight,
+        point_light: PointLight,
         composite: CompositeQuad,
         text: TextOverlay,
     } }
@@ -103,17 +105,100 @@ mod tests {
         r.render(&mut gpu, &mut w, 1280, 720);
 
         let targets = gpu.pass_targets();
-        // First pass is the shadow depth target.
+        // Deferred sequence: shadow → RTT minimap (forward) → G-buffer → scene
+        // light → tonemap(screen) → composite(screen) → text(screen).
         assert!(matches!(targets[0], PassTarget::RenderTarget(_)), "shadow pass first");
-        // The two camera passes follow, ordered by camera.order: map(-1) then main(0).
         assert!(matches!(targets[1], PassTarget::RenderTarget(_)), "RTT minimap camera second");
-        assert_eq!(targets[2], PassTarget::Screen, "main screen camera third");
-        // Composite + text are screen passes at the end.
-        assert!(targets[3..].iter().all(|t| *t == PassTarget::Screen));
-        assert!(targets.len() >= 5, "shadow + 2 cameras + composite + text");
+        assert!(matches!(targets[2], PassTarget::RenderTarget(_)), "G-buffer pass");
+        assert!(matches!(targets[3], PassTarget::RenderTarget(_)), "deferred light → scene RT");
+        assert_eq!(targets[4], PassTarget::Screen, "tonemap to screen");
+        // Remaining passes (composite + text) are screen passes.
+        assert!(targets[4..].iter().all(|t| *t == PassTarget::Screen));
+        assert!(targets.len() >= 7, "shadow + RTT + gbuffer + light + tonemap + composite + text");
 
-        // Draw-call sanity: shadow draws 2 casters; main viewport draws 2;
-        // minimap viewport draws 1 (mask 0b01 excluded); composite 1; text 1.
-        assert!(gpu.draw_calls() >= 2 + 2 + 1 + 1 + 1);
+        // Two G-buffer MRTs (gbuffer + scene) were created for the screen.
+        let mrt = gpu.log.iter().filter(|c| matches!(c, MockCall::CreateMrt)).count();
+        assert_eq!(mrt, 2, "G-buffer + HDR scene targets");
+
+        // Draw-call sanity: shadow (2 casters) + gbuffer main (2) + minimap (1)
+        // + light fullscreen (1) + tonemap (1) + composite (1) + text (1).
+        assert!(gpu.draw_calls() >= 2 + 2 + 1 + 1 + 1 + 1 + 1);
+    }
+
+    #[test]
+    fn resize_recreates_deferred_targets() {
+        let (mut gpu, mut r, mut w, mesh, mat) = setup();
+        let l = w.spawn();
+        w.set_component(l, DirectionalLight { dir: vec3(-0.4, -1.0, -0.3), color: [1.0; 3], cast_shadows: true });
+        let cam = w.spawn();
+        w.set_component(cam, Camera {
+            viewport_id: 0, order: 0,
+            projection: Projection::Perspective { fovy: 1.1, near: 0.1, far: 200.0 },
+            target: CamTarget::Screen(RectNorm::FULL),
+            clear: ClearSpec { color: Some([0.0, 0.0, 0.0, 1.0]), depth: Some(1.0) },
+            eye: vec3(0.0, 5.0, 10.0), look_at: Vec3::ZERO, up: Vec3::Y,
+        });
+        let e = w.spawn();
+        w.set_component(e, Transform::default());
+        w.set_component(e, MeshRenderer { mesh, material: mat, viewport_mask: 0b01, ..Default::default() });
+
+        r.render(&mut gpu, &mut w, 800, 600);
+        gpu.log.clear();
+        // Same size → no target churn.
+        r.render(&mut gpu, &mut w, 800, 600);
+        assert_eq!(gpu.log.iter().filter(|c| matches!(c, MockCall::DeleteRenderTarget)).count(), 0);
+        assert_eq!(gpu.log.iter().filter(|c| matches!(c, MockCall::CreateMrt)).count(), 0);
+        gpu.log.clear();
+        // Different size → old targets deleted, new ones created.
+        r.render(&mut gpu, &mut w, 1024, 768);
+        assert_eq!(gpu.log.iter().filter(|c| matches!(c, MockCall::DeleteRenderTarget)).count(), 2);
+        assert_eq!(gpu.log.iter().filter(|c| matches!(c, MockCall::CreateMrt)).count(), 2);
+    }
+
+    fn deferred_scene() -> (MockGpu, Renderer, RWorld, MeshId, MaterialId) {
+        let (mut gpu, r, mut w, mesh, mat) = setup();
+        let l = w.spawn();
+        w.set_component(l, DirectionalLight { dir: vec3(-0.4, -1.0, -0.3), color: [1.0; 3], cast_shadows: true });
+        let cam = w.spawn();
+        w.set_component(cam, Camera {
+            viewport_id: 0, order: 0,
+            projection: Projection::Perspective { fovy: 1.1, near: 0.1, far: 200.0 },
+            target: CamTarget::Screen(RectNorm::FULL),
+            clear: ClearSpec { color: Some([0.0, 0.0, 0.0, 1.0]), depth: Some(1.0) },
+            eye: vec3(0.0, 5.0, 10.0), look_at: Vec3::ZERO, up: Vec3::Y,
+        });
+        let e = w.spawn();
+        w.set_component(e, Transform::default());
+        w.set_component(e, MeshRenderer { mesh, material: mat, viewport_mask: 0b01, ..Default::default() });
+        let _ = &mut gpu;
+        (gpu, r, w, mesh, mat)
+    }
+
+    #[test]
+    fn point_light_pass_only_when_lights_present() {
+        // No point lights → no instanced draw.
+        let (mut gpu, mut r, mut w, _, _) = deferred_scene();
+        r.render(&mut gpu, &mut w, 640, 480);
+        assert_eq!(
+            gpu.log.iter().filter(|c| matches!(c, MockCall::DrawInstanced { .. })).count(),
+            0,
+            "no point-light volumes without lights"
+        );
+
+        // One point light → exactly one instanced draw of one instance.
+        let (mut gpu, mut r, mut w, _, _) = deferred_scene();
+        let pl = w.spawn();
+        w.set_component(pl, Transform { pos: vec3(1.0, 1.0, 1.0), ..Transform::default() });
+        w.set_component(pl, PointLight { color: [1.0, 0.8, 0.5], intensity: 5.0, radius: 4.0 });
+        r.render(&mut gpu, &mut w, 640, 480);
+        let inst: Vec<u32> = gpu
+            .log
+            .iter()
+            .filter_map(|c| match c {
+                MockCall::DrawInstanced { instances } => Some(*instances),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(inst, vec![1], "one instanced point-light draw of 1 instance");
     }
 }

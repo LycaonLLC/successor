@@ -19,7 +19,7 @@ use successor_engine_render::gpu::{
     ClearSpec, Filter, Gpu, RenderTargetDesc, RenderTargetId,
 };
 use successor_engine_render::primitives;
-use successor_engine_render::renderer::{Renderer, RendererLimits};
+use successor_engine_render::renderer::Renderer;
 
 use crate::GameWorld;
 
@@ -54,7 +54,7 @@ impl Stats {
 
 /// Build the standard scene, creating GPU resources through `gpu`.
 pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
-    let mut renderer = Renderer::new(gpu, RendererLimits::default());
+    let mut renderer = Renderer::new(gpu, crate::quality_limits());
     let mut world = GameWorld::new();
 
     // Meshes + materials.

@@ -16,6 +16,15 @@ use successor_engine_render::renderer::Renderer;
 use super::terrain::{paint_terrain_pixel, Biome};
 use crate::GameWorld;
 
+/// Flat mean ground albedo per biome, fed to the GI volume as the bounce color
+/// of the y=0 plane.
+fn biome_ground_albedo(biome: Biome) -> [f32; 3] {
+    match biome {
+        Biome::Forest => [0.30, 0.34, 0.20],
+        _ => [0.79, 0.68, 0.51],
+    }
+}
+
 pub struct TerrainStreamer {
     seed: i32,
     biome: Biome,
@@ -59,6 +68,8 @@ impl TerrainStreamer {
         center_x: f64,
         center_z: f64,
     ) {
+        // Feed the GI volume the flat per-biome ground albedo (idempotent).
+        renderer.gi_set_ground_albedo(biome_ground_albedo(self.biome));
         let (ccx, ccz) = self.chunk_of(center_x, center_z);
         for dz in -self.radius..=self.radius {
             for dx in -self.radius..=self.radius {
@@ -96,7 +107,7 @@ impl TerrainStreamer {
         let origin_x = cx as f64 * self.chunk_cells;
         let origin_z = cz as f64 * self.chunk_cells;
         let rgba = self.bake(origin_x, origin_z);
-        let material = renderer.add_textured_material(gpu, self.tex_px, self.tex_px, &rgba, Filter::Linear);
+        let material = renderer.add_textured_material_pbr(gpu, self.tex_px, self.tex_px, &rgba, Filter::Linear, 0.0, 1.0);
         let size = self.chunk_cells as f32;
         let (verts, indices) = chunk_quad(size);
         let mesh = renderer.upload_mesh(gpu, &verts, &indices);
@@ -170,9 +181,8 @@ impl TerrainScene {
     pub fn build<G: Gpu>(gpu: &mut G, biome: Biome) -> TerrainScene {
         use successor_engine_render::components::{CamTarget, Camera, DirectionalLight, Projection, RectNorm};
         use successor_engine_render::gpu::ClearSpec;
-        use successor_engine_render::renderer::RendererLimits;
 
-        let mut renderer = Renderer::new(gpu, RendererLimits::default());
+        let mut renderer = Renderer::new(gpu, crate::quality_limits());
         renderer.set_ambient(0.55);
         let fog = match biome {
             Biome::Forest => [0.615, 0.658, 0.408],

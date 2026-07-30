@@ -16,7 +16,7 @@ use successor_engine_render::components::{
     CamTarget, Camera, CompositeQuad, DirectionalLight, MeshRenderer, Projection, RectNorm, SkinRef, Transform,
 };
 use successor_engine_render::gpu::{ClearSpec, Filter, Gpu, RenderTargetDesc};
-use successor_engine_render::renderer::{Renderer, RendererLimits};
+use successor_engine_render::renderer::Renderer;
 use successor_engine_render::{environment, fx::glow_sprite};
 
 use crate::game::authority::AuthorityStore;
@@ -65,6 +65,8 @@ pub struct ConnectedScene {
     weather: successor_engine_render::weather::Weather,
     player_id: String,
     center: Vec3,
+    /// Transient muzzle-flash point lights: (entity, remaining seconds).
+    muzzle_lights: Vec<(Entity, f32)>,
 }
 
 impl ConnectedScene {
@@ -79,11 +81,13 @@ impl ConnectedScene {
         let pawn_bytes = std::fs::read("../client-3d/public/assets/pawn-pack/pawn_male.glb")
             .map_err(|e| format!("read pawn pack: {e}"))?;
 
-        let mut renderer = Renderer::new(gpu, RendererLimits::default());
-        // Environment: noon desert grade → ambient/fog/clear + sun.
+        let mut renderer = Renderer::new(gpu, crate::quality_limits());
+        // Environment: noon desert grade → ambient/fog/clear + sun. The grade now
+        // runs inside the deferred tonemap pass.
         let env = environment::sample(720.0);
         renderer.set_ambient(0.5);
         renderer.set_fog(env.fog, 160.0, 340.0);
+        renderer.set_grade(env.bone_tint, env.desaturate, env.scene_darken, env.black_lift, env.bloom);
         let mut world = GameWorld::new();
 
         let center = vec3(512.0, 0.0, 513.0);
@@ -184,6 +188,7 @@ impl ConnectedScene {
             weather,
             player_id: player_id.to_string(),
             center,
+            muzzle_lights: Vec::with_capacity(32),
         })
     }
 
@@ -198,6 +203,48 @@ impl ConnectedScene {
     }
     pub fn combat_fx_mut(&mut self) -> &mut CombatFx {
         &mut self.combat_fx
+    }
+
+    /// Ingest a combat event: fire its VFX and, if new, spawn a short-lived
+    /// muzzle-flash point light at the shot origin (decays over 0.12 s).
+    pub fn ingest_combat(&mut self, ev: &crate::game::combat_fx::CombatEvent) {
+        if self.combat_fx.trigger(ev) {
+            let e = self.world.spawn();
+            self.world.set_component(e, Transform {
+                pos: vec3(ev.origin[0], ev.origin[1], ev.origin[2]),
+                rot: successor_engine_core::math::Quat::IDENTITY,
+                scale: Vec3::ONE,
+            });
+            self.world.set_component(e, successor_engine_render::components::PointLight {
+                color: ev.color,
+                intensity: 6.0,
+                radius: 5.0,
+            });
+            self.muzzle_lights.push((e, 0.12));
+            self.world.flush();
+        }
+    }
+
+    /// Decay transient muzzle lights; despawn expired ones.
+    fn decay_muzzle_lights(&mut self, dt: f32) {
+        let mut i = 0;
+        while i < self.muzzle_lights.len() {
+            let (e, ttl) = self.muzzle_lights[i];
+            let ttl = ttl - dt;
+            if ttl <= 0.0 {
+                self.world.destroy(e);
+                self.muzzle_lights.swap_remove(i);
+            } else {
+                self.muzzle_lights[i].1 = ttl;
+                if let Some(pl) = self.world.get_component::<successor_engine_render::components::PointLight>(e) {
+                    let mut pl = *pl;
+                    pl.intensity = 6.0 * (ttl / 0.12);
+                    self.world.set_component(e, pl);
+                }
+                i += 1;
+            }
+        }
+        self.world.flush();
     }
 
     /// The player's current world position (falls back to the slice centre).
@@ -359,6 +406,7 @@ impl ConnectedScene {
         //    billboards over the scene in the follow-camera frame.
         self.weather.emit_into(self.combat_fx.pool_mut(), [p.x, 0.0, p.z], 40.0);
         self.combat_fx.update(dt);
+        self.decay_muzzle_lights(dt);
         let eye = p.add(vec3(0.0, 9.0, 13.0));
         let fwd = p.sub(eye).normalize();
         let right = fwd.cross(Vec3::Y).normalize();
