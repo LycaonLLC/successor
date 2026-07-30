@@ -270,7 +270,7 @@
       "characters": {
         "progression": {
           "id": "progression-retirement",
-          "name": "ProgressionRetirement",
+          "name": "ProgRetire",
           "initialProfessionId": "craftsman",
           "position": {
             "areaId": "open-desert-overworld",
