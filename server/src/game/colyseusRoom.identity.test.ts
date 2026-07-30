@@ -206,7 +206,7 @@ describe("colyseusRoom identity resolution (W2 ticket gate)", () => {
       actorId: "fixture-slugger",
       characterId: "fixture-slugger",
       returningCharacter: true,
-      professionIds: [],
+      professionIds: ["marksman"],
       skillBoxIds: ["marksman-novice", "marksman-rifle-i", "marksman-rifle-ii", "marksman-rifle-iii"],
       credits: 5000,
       activeTitleId: "marksman-rifle-iii",
