@@ -8,7 +8,7 @@ use successor_engine_render::components::{
     CamTarget, Camera, DirectionalLight, MeshRenderer, Projection, RectNorm, SkinRef, Transform,
 };
 use successor_engine_render::gpu::{ClearSpec, Gpu};
-use successor_engine_render::renderer::{Renderer, RendererLimits};
+use successor_engine_render::renderer::Renderer;
 
 use super::animator::{PawnAnimator, WeaponLane};
 use super::appearance::{faction_tinted, skin_tint};
@@ -46,7 +46,7 @@ pub struct PawnScene {
 impl PawnScene {
     pub fn build<G: Gpu>(gpu: &mut G, bytes: &[u8]) -> Result<PawnScene, ()> {
         let template = PawnTemplate::from_bytes(bytes).map_err(|_| ())?;
-        let mut renderer = Renderer::new(gpu, RendererLimits::default());
+        let mut renderer = Renderer::new(gpu, crate::quality_limits());
         renderer.set_ambient(0.45);
         renderer.set_fog([0.09, 0.10, 0.12], 40.0, 80.0);
         let mut world = GameWorld::new();

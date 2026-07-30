@@ -130,6 +130,16 @@ pub struct DirectionalLight {
     pub cast_shadows: bool,
 }
 
+/// A local point light (sparse). Position comes from the entity's `Transform`.
+/// Consumed by the deferred point-light volume pass (additive into the scene
+/// HDR target). No shadows.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct PointLight {
+    pub color: [f32; 3],
+    pub intensity: f32,
+    pub radius: f32,
+}
+
 /// Draws a render target's color texture onto the screen (RTT compositing).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct CompositeQuad {
@@ -172,6 +182,7 @@ impl_component!(ModelRef: sparse);
 impl_component!(MeshRenderer: dense);
 impl_component!(Camera: sparse);
 impl_component!(DirectionalLight: sparse);
+impl_component!(PointLight: sparse);
 impl_component!(CompositeQuad: sparse);
 impl_component!(TextOverlay: sparse);
 

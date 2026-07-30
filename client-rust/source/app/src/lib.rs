@@ -27,7 +27,8 @@ pub mod rss;
 
 use successor_engine_core::world;
 use successor_engine_render::components::{
-    Camera, CompositeQuad, DirectionalLight, MeshRenderer, ModelRef, TextOverlay, Transform,
+    Camera, CompositeQuad, DirectionalLight, MeshRenderer, ModelRef, PointLight, TextOverlay,
+    Transform,
 };
 
 // The concrete ECS world: the render component set (Transform/Mesh/Camera/…)
@@ -38,9 +39,50 @@ world! { pub struct GameWorld {
     mesh: MeshRenderer,
     camera: Camera,
     light: DirectionalLight,
+    point_light: PointLight,
     composite: CompositeQuad,
     text: TextOverlay,
 } }
+
+// --- render quality selection (process-global; set from `--quality`/`?quality=`) ---
+use core::sync::atomic::{AtomicU8, Ordering};
+use successor_engine_render::renderer::{RenderQuality, RendererLimits};
+
+static RENDER_QUALITY: AtomicU8 = AtomicU8::new(1); // 0=Low, 1=Medium, 2=High
+
+/// Set the process-wide render quality tier (call before building any scene).
+pub fn set_render_quality(q: RenderQuality) {
+    let v = match q {
+        RenderQuality::Low => 0,
+        RenderQuality::Medium => 1,
+        RenderQuality::High => 2,
+    };
+    RENDER_QUALITY.store(v, Ordering::Relaxed);
+}
+
+/// Parse a quality string (`low`/`medium`/`high`); unknown → Medium.
+pub fn parse_quality(s: &str) -> RenderQuality {
+    match s {
+        "low" => RenderQuality::Low,
+        "high" => RenderQuality::High,
+        _ => RenderQuality::Medium,
+    }
+}
+
+/// Current render quality tier.
+pub fn render_quality() -> RenderQuality {
+    match RENDER_QUALITY.load(Ordering::Relaxed) {
+        0 => RenderQuality::Low,
+        2 => RenderQuality::High,
+        _ => RenderQuality::Medium,
+    }
+}
+
+/// Renderer limits at the current quality tier (tier-derived shadow size).
+pub fn quality_limits() -> RendererLimits {
+    let quality = render_quality();
+    RendererLimits { quality, ..RendererLimits::default() }
+}
 
 // Allocation-counting global allocator: installed only under `alloc-count`, so
 // the `make check-allocs` build proves zero steady-state per-frame allocations

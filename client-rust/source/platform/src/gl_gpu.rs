@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use successor_engine_render::gpu::{
     Gpu, BufferId, ProgramId, TextureId, RenderTargetId, BufferUsage, TextureDesc,
     RenderTargetDesc, PassTarget, RectPx, ClearSpec, PipelineState, Cull, Uniform,
-    UniformValue, VertexLayout, TextureFormat, Filter,
+    UniformValue, VertexLayout, TextureFormat, Filter, GpuCaps, Texture3dDesc, MrtDesc,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -15,7 +15,7 @@ use crate::web::gl;
 
 struct RenderTarget {
     fbo: u32,
-    color_tex: Option<TextureId>,
+    colors: Vec<TextureId>,
     depth_tex: Option<TextureId>,
 }
 
@@ -25,6 +25,9 @@ pub struct GlGpu {
     uniform_cache: HashMap<u32, HashMap<&'static str, i32>>,
     render_targets: Vec<RenderTarget>,
     active_program: u32,
+    /// Scratch FBO reused for `begin_layer_pass` (3D-texture layer rendering).
+    layer_fbo: u32,
+    caps: successor_engine_render::gpu::GpuCaps,
 }
 
 impl GlGpu {
@@ -37,6 +40,10 @@ impl GlGpu {
             uniform_cache: HashMap::new(),
             render_targets: Vec::new(),
             active_program: 0,
+            layer_fbo: 0,
+            caps: successor_engine_render::gpu::GpuCaps {
+                half_float_target: gl::cap_half_float_target(),
+            },
         }
     }
 }
@@ -54,6 +61,20 @@ impl Gpu for GlGpu {
         BufferId(handle)
     }
 
+    fn create_index_buffer(&mut self, data: &[u8], usage: BufferUsage) -> BufferId {
+        let handle = gl::gen_buffer();
+        let gl_usage = match usage {
+            BufferUsage::Static => gl::STATIC_DRAW,
+            BufferUsage::Dynamic => gl::DYNAMIC_DRAW,
+        };
+        // Bind as ELEMENT_ARRAY_BUFFER on creation so WebGL2 fixes its type as an
+        // index buffer (a buffer first bound to ARRAY_BUFFER can't be rebound).
+        gl::bind_buffer(gl::ELEMENT_ARRAY_BUFFER, handle);
+        gl::buffer_data(gl::ELEMENT_ARRAY_BUFFER, data, gl_usage);
+        gl::bind_buffer(gl::ELEMENT_ARRAY_BUFFER, 0);
+        BufferId(handle)
+    }
+
     fn update_buffer(&mut self, id: BufferId, data: &[u8]) {
         gl::bind_buffer(gl::ARRAY_BUFFER, id.0);
         gl::buffer_data(gl::ARRAY_BUFFER, data, gl::DYNAMIC_DRAW);
@@ -62,7 +83,7 @@ impl Gpu for GlGpu {
 
     fn create_program(&mut self, vert_src: &str, frag_src: &str) -> ProgramId {
         let header = if cfg!(target_arch = "wasm32") {
-            "#version 300 es\nprecision highp float;\nprecision highp sampler2D;\n"
+            "#version 300 es\nprecision highp float;\nprecision highp sampler2D;\nprecision highp sampler3D;\n"
         } else {
             "#version 330 core\n"
         };
@@ -136,6 +157,7 @@ impl Gpu for GlGpu {
 
         let (internal_format, format, ty) = match desc.format {
             TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
+            TextureFormat::Rgba16F => (gl::RGBA16F as i32, gl::RGBA, gl::HALF_FLOAT),
             TextureFormat::Depth => (gl::DEPTH_COMPONENT24 as i32, gl::DEPTH_COMPONENT, gl::UNSIGNED_INT),
         };
 
@@ -239,7 +261,7 @@ impl Gpu for GlGpu {
         let rt_idx = self.render_targets.len() as u32 + 1;
         self.render_targets.push(RenderTarget {
             fbo,
-            color_tex,
+            colors: color_tex.into_iter().collect(),
             depth_tex,
         });
 
@@ -249,7 +271,7 @@ impl Gpu for GlGpu {
     fn render_target_color(&self, rt: RenderTargetId) -> Option<TextureId> {
         let idx = rt.0 as usize - 1;
         if idx < self.render_targets.len() {
-            self.render_targets[idx].color_tex
+            self.render_targets[idx].colors.first().copied()
         } else {
             None
         }
@@ -448,6 +470,7 @@ impl Gpu for GlGpu {
         gl::uniform_matrix4fv_array(loc, flat);
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_instanced(
         &mut self,
         vertices: BufferId,
@@ -455,6 +478,7 @@ impl Gpu for GlGpu {
         layout: &VertexLayout,
         index_count: u32,
         instance_buf: BufferId,
+        instance_layout: &VertexLayout,
         instances: u32,
     ) {
         gl::bind_buffer(gl::ARRAY_BUFFER, vertices.0);
@@ -469,13 +493,19 @@ impl Gpu for GlGpu {
                 attr.offset,
             );
         }
-        // Per-instance mat4 as four vec4 columns at locations 5..=8, divisor 1.
+        // Per-instance attributes (divisor 1), described by `instance_layout`.
         gl::bind_buffer(gl::ARRAY_BUFFER, instance_buf.0);
-        for col in 0..4u32 {
-            let loc = 5 + col;
-            gl::enable_vertex_attrib_array(loc);
-            gl::vertex_attrib_pointer(loc, 4, gl::FLOAT, false, 64, col * 16);
-            gl::vertex_attrib_divisor(loc, 1);
+        for attr in instance_layout.attrs {
+            gl::enable_vertex_attrib_array(attr.location);
+            gl::vertex_attrib_pointer(
+                attr.location,
+                attr.components as i32,
+                gl::FLOAT,
+                false,
+                instance_layout.stride as i32,
+                attr.offset,
+            );
+            gl::vertex_attrib_divisor(attr.location, 1);
         }
         if let Some(ebo) = indices {
             gl::bind_buffer(gl::ELEMENT_ARRAY_BUFFER, ebo.0);
@@ -484,15 +514,158 @@ impl Gpu for GlGpu {
         } else {
             gl::draw_arrays_instanced(gl::TRIANGLES, 0, index_count as i32, instances as i32);
         }
-        for col in 0..4u32 {
-            let loc = 5 + col;
-            gl::vertex_attrib_divisor(loc, 0);
-            gl::disable_vertex_attrib_array(loc);
+        for attr in instance_layout.attrs {
+            gl::vertex_attrib_divisor(attr.location, 0);
+            gl::disable_vertex_attrib_array(attr.location);
         }
         for attr in layout.attrs {
             gl::disable_vertex_attrib_array(attr.location);
         }
         gl::bind_buffer(gl::ARRAY_BUFFER, 0);
+    }
+
+    fn caps(&self) -> GpuCaps {
+        self.caps
+    }
+
+    fn create_texture_3d(&mut self, desc: &Texture3dDesc, data: Option<&[u8]>) -> TextureId {
+        let handle = gl::gen_texture();
+        gl::bind_texture(gl::TEXTURE_3D, handle);
+        gl::pixel_storei(gl::UNPACK_ALIGNMENT, 1);
+        let min_filter = if desc.mips { gl::LINEAR_MIPMAP_LINEAR } else { gl::LINEAR };
+        gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_MIN_FILTER, min_filter);
+        gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_MAG_FILTER, gl::LINEAR);
+        gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE);
+        gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE);
+        gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE);
+        let (internal_format, format, ty) = match desc.format {
+            TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
+            TextureFormat::Rgba16F => (gl::RGBA16F as i32, gl::RGBA, gl::HALF_FLOAT),
+            TextureFormat::Depth => (gl::DEPTH_COMPONENT24 as i32, gl::DEPTH_COMPONENT, gl::UNSIGNED_INT),
+        };
+        let s = desc.size as i32;
+        gl::tex_image_3d(gl::TEXTURE_3D, 0, internal_format, s, s, s, 0, format, ty, data);
+        if desc.mips {
+            gl::generate_mipmap(gl::TEXTURE_3D);
+        }
+        gl::bind_texture(gl::TEXTURE_3D, 0);
+        TextureId(handle)
+    }
+
+    fn update_texture_3d(&mut self, id: TextureId, size: u32, z: u32, data: &[u8]) {
+        gl::bind_texture(gl::TEXTURE_3D, id.0);
+        gl::pixel_storei(gl::UNPACK_ALIGNMENT, 1);
+        gl::tex_sub_image_3d(
+            gl::TEXTURE_3D, 0, 0, 0, z as i32, size as i32, size as i32, 1,
+            gl::RGBA, gl::UNSIGNED_BYTE, data,
+        );
+        gl::bind_texture(gl::TEXTURE_3D, 0);
+    }
+
+    fn generate_mipmaps_3d(&mut self, id: TextureId) {
+        gl::bind_texture(gl::TEXTURE_3D, id.0);
+        gl::generate_mipmap(gl::TEXTURE_3D);
+        gl::bind_texture(gl::TEXTURE_3D, 0);
+    }
+
+    fn bind_texture_3d(&mut self, slot: u32, tex: TextureId) {
+        gl::active_texture(gl::TEXTURE0 + slot);
+        gl::bind_texture(gl::TEXTURE_3D, tex.0);
+    }
+
+    fn create_render_target_mrt(&mut self, desc: &MrtDesc) -> RenderTargetId {
+        let fbo = gl::gen_framebuffer();
+        gl::bind_framebuffer(gl::FRAMEBUFFER, fbo);
+        let mut colors: Vec<TextureId> = Vec::with_capacity(desc.colors.len());
+        let mut attachments: Vec<u32> = Vec::with_capacity(desc.colors.len());
+        for (i, fmt) in desc.colors.iter().enumerate() {
+            let handle = gl::gen_texture();
+            gl::bind_texture(gl::TEXTURE_2D, handle);
+            gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR);
+            gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR);
+            gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE);
+            gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE);
+            let (internal_format, format, ty) = match fmt {
+                TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
+                TextureFormat::Rgba16F => (gl::RGBA16F as i32, gl::RGBA, gl::HALF_FLOAT),
+                TextureFormat::Depth => (gl::DEPTH_COMPONENT24 as i32, gl::DEPTH_COMPONENT, gl::UNSIGNED_INT),
+            };
+            gl::tex_image_2d(
+                gl::TEXTURE_2D, 0, internal_format, desc.width as i32, desc.height as i32, 0,
+                format, ty, None,
+            );
+            let attach = gl::COLOR_ATTACHMENT0 + i as u32;
+            gl::framebuffer_texture_2d(gl::FRAMEBUFFER, attach, gl::TEXTURE_2D, handle, 0);
+            colors.push(TextureId(handle));
+            attachments.push(attach);
+        }
+        let depth_tex = if desc.depth {
+            let handle = gl::gen_texture();
+            gl::bind_texture(gl::TEXTURE_2D, handle);
+            gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST);
+            gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST);
+            gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE);
+            gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE);
+            gl::tex_image_2d(
+                gl::TEXTURE_2D, 0, gl::DEPTH_COMPONENT24 as i32, desc.width as i32, desc.height as i32, 0,
+                gl::DEPTH_COMPONENT, gl::UNSIGNED_INT, None,
+            );
+            gl::framebuffer_texture_2d(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::TEXTURE_2D, handle, 0);
+            Some(TextureId(handle))
+        } else {
+            None
+        };
+        if attachments.is_empty() {
+            gl::disable_draw_buffer();
+        } else {
+            gl::draw_buffers(&attachments);
+        }
+        let status = gl::check_framebuffer_status(gl::FRAMEBUFFER);
+        if status != gl::FRAMEBUFFER_COMPLETE {
+            successor_engine_core::rt::log::log1u("MRT framebuffer incomplete status: ", status as u64);
+            successor_engine_core::rt::log::log_str("\n");
+        }
+        gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
+        let rt_idx = self.render_targets.len() as u32 + 1;
+        self.render_targets.push(RenderTarget { fbo, colors, depth_tex });
+        RenderTargetId(rt_idx)
+    }
+
+    fn render_target_color_n(&self, rt: RenderTargetId, index: usize) -> Option<TextureId> {
+        let idx = rt.0 as usize - 1;
+        self.render_targets.get(idx).and_then(|t| t.colors.get(index).copied())
+    }
+
+    fn begin_layer_pass(&mut self, tex: TextureId, layer: u32, viewport: RectPx, clear: ClearSpec) {
+        if self.layer_fbo == 0 {
+            self.layer_fbo = gl::gen_framebuffer();
+        }
+        gl::bind_framebuffer(gl::FRAMEBUFFER, self.layer_fbo);
+        gl::framebuffer_texture_layer(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, tex.0, 0, layer as i32);
+        gl::draw_buffers(&[gl::COLOR_ATTACHMENT0]);
+        gl::viewport(viewport.x, viewport.y, viewport.w, viewport.h);
+        let mut mask = 0;
+        if let Some(color) = clear.color {
+            gl::clear_color(color[0], color[1], color[2], color[3]);
+            mask |= gl::COLOR_BUFFER_BIT;
+        }
+        if mask != 0 {
+            gl::clear(mask);
+        }
+    }
+
+    fn delete_render_target(&mut self, rt: RenderTargetId) {
+        let idx = rt.0 as usize - 1;
+        if let Some(t) = self.render_targets.get_mut(idx) {
+            gl::delete_framebuffer(t.fbo);
+            for c in t.colors.drain(..) {
+                gl::delete_texture(c.0);
+            }
+            if let Some(d) = t.depth_tex.take() {
+                gl::delete_texture(d.0);
+            }
+            t.fbo = 0;
+        }
     }
 
     fn end_pass(&mut self) {

@@ -40,7 +40,7 @@ pub const UNSIGNED_INT: u32 = 0x1405;
 pub const FLOAT: u32 = 0x1406;
 
 pub const ARRAY_BUFFER: u32 = 0x8892;
-pub const ELEMENT_ARRAY_BUFFER: u32 = 0x88E8;
+pub const ELEMENT_ARRAY_BUFFER: u32 = 0x8893;
 pub const STATIC_DRAW: u32 = 0x88E4;
 pub const DYNAMIC_DRAW: u32 = 0x88E8;
 
@@ -51,6 +51,14 @@ pub const COLOR_ATTACHMENT0: u32 = 0x8CE0;
 pub const DEPTH_ATTACHMENT: u32 = 0x8D00;
 pub const FRAMEBUFFER_COMPLETE: u32 = 0x8CD5;
 pub const UNPACK_ALIGNMENT: u32 = 0x0CF5;
+pub const TEXTURE_3D: u32 = 0x806F;
+pub const TEXTURE_WRAP_R: u32 = 0x8072;
+pub const RGBA16F: u32 = 0x881A;
+pub const HALF_FLOAT: u32 = 0x140B;
+pub const COLOR_ATTACHMENT1: u32 = 0x8CE1;
+pub const COLOR_ATTACHMENT2: u32 = 0x8CE2;
+pub const COLOR_ATTACHMENT3: u32 = 0x8CE3;
+pub const LINEAR_MIPMAP_LINEAR: i32 = 0x2703;
 
 extern "C" {
     fn glClearColor(r: f32, g: f32, b: f32, a: f32);
@@ -144,6 +152,36 @@ extern "C" {
     fn glCheckFramebufferStatus(target: u32) -> u32;
     fn glDrawBuffers(ptr: *const u32, len: u32);
     fn glPixelStorei(pname: u32, param: i32);
+    fn glTexImage3D(
+        target: u32,
+        level: i32,
+        internalFormat: i32,
+        width: i32,
+        height: i32,
+        depth: i32,
+        border: i32,
+        format: u32,
+        type_: u32,
+        ptr: *const u8,
+        len: u32,
+    );
+    fn glTexSubImage3D(
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        zoffset: i32,
+        width: i32,
+        height: i32,
+        depth: i32,
+        format: u32,
+        type_: u32,
+        ptr: *const u8,
+        len: u32,
+    );
+    fn glGenerateMipmap(target: u32);
+    fn glFramebufferTextureLayer(target: u32, attachment: u32, texture: u32, level: i32, layer: i32);
+    fn glCapHalfFloatTarget() -> i32;
 }
 
 // Wrappers
@@ -438,4 +476,61 @@ pub fn disable_draw_buffer() {
     unsafe {
         glDrawBuffers([0].as_ptr(), 1); // gl.NONE
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn tex_image_3d(
+    target: u32,
+    level: i32,
+    internal_format: i32,
+    width: i32,
+    height: i32,
+    depth: i32,
+    border: i32,
+    format: u32,
+    type_: u32,
+    data: Option<&[u8]>,
+) {
+    let (ptr, len) = match data {
+        Some(d) => (d.as_ptr(), d.len() as u32),
+        None => (core::ptr::null(), 0),
+    };
+    unsafe {
+        glTexImage3D(target, level, internal_format, width, height, depth, border, format, type_, ptr, len);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn tex_sub_image_3d(
+    target: u32,
+    level: i32,
+    xoffset: i32,
+    yoffset: i32,
+    zoffset: i32,
+    width: i32,
+    height: i32,
+    depth: i32,
+    format: u32,
+    type_: u32,
+    data: &[u8],
+) {
+    unsafe {
+        glTexSubImage3D(
+            target, level, xoffset, yoffset, zoffset, width, height, depth, format, type_,
+            data.as_ptr(), data.len() as u32,
+        );
+    }
+}
+
+pub fn generate_mipmap(target: u32) {
+    unsafe { glGenerateMipmap(target); }
+}
+
+pub fn framebuffer_texture_layer(target: u32, attachment: u32, texture: u32, level: i32, layer: i32) {
+    unsafe { glFramebufferTextureLayer(target, attachment, texture, level, layer); }
+}
+
+/// WebGL2 half-float color-attachment support, probed via extension at init.
+pub fn cap_half_float_target() -> bool {
+    unsafe { glCapHalfFloatTarget() != 0 }
 }

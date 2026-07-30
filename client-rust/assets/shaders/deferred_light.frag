@@ -1,0 +1,237 @@
+// Deferred sun lighting: reconstruct world position from depth, decode the
+// G-buffer, evaluate a Cook-Torrance PBR sun term with soft shadows, add
+// ambient (VXGI cone trace when GI_CONES>0, else a hemisphere floor), then fog.
+// Tier behavior is compile-time via SHADOW_TAPS / PCSS / GI_CONES / GI_SPECULAR
+// (#define lines prepended by the renderer). Pairs with post.vert.
+#ifndef SHADOW_TAPS
+#define SHADOW_TAPS 12
+#endif
+#ifndef PCSS
+#define PCSS 0
+#endif
+#ifndef GI_CONES
+#define GI_CONES 0
+#endif
+#ifndef GI_SPECULAR
+#define GI_SPECULAR 0
+#endif
+
+in vec2 v_uv;
+
+uniform sampler2D u_gb0;
+uniform sampler2D u_gb1;
+uniform sampler2D u_depth;
+uniform sampler2D u_shadowMap;
+#if GI_CONES > 0
+uniform sampler3D u_gi;
+uniform vec3 u_giOrigin;
+uniform float u_giCell;
+uniform float u_giStrength;
+#endif
+
+uniform mat4 u_invViewProj;
+uniform mat4 u_lightViewProj;
+uniform vec3 u_lightDir;
+uniform vec3 u_lightColor;
+uniform vec3 u_camEye;
+uniform float u_ambient;
+uniform vec3 u_fogColor;
+uniform float u_fogNear;
+uniform float u_fogFar;
+uniform float u_shadowTexelUV;    // 1.0 / shadow map size
+uniform float u_shadowWorldTexel; // world units per shadow texel (normal offset)
+uniform float u_sunPenumbraScale; // PCSS penumbra gain
+uniform float u_exposure;
+
+out vec4 frag;
+
+const float PI = 3.14159265359;
+const float GI_SIZE = 64.0;
+
+// 16-entry Poisson disk (unit radius).
+const vec2 POISSON[16] = vec2[16](
+    vec2(-0.94201624, -0.39906216), vec2(0.94558609, -0.76890725),
+    vec2(-0.094184101, -0.92938870), vec2(0.34495938, 0.29387760),
+    vec2(-0.91588581, 0.45771432), vec2(-0.81544232, -0.87912464),
+    vec2(-0.38277543, 0.27676845), vec2(0.97484398, 0.75648379),
+    vec2(0.44323325, -0.97511554), vec2(0.53742981, -0.47373420),
+    vec2(-0.26496911, -0.41893023), vec2(0.79197514, 0.19090188),
+    vec2(-0.24188840, 0.99706507), vec2(-0.81409955, 0.91437590),
+    vec2(0.19984126, 0.78641367), vec2(0.14383161, -0.14100790)
+);
+
+float ign(vec2 p) {
+    // Interleaved gradient noise -> [0, 2pi) rotation.
+    return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))) * 6.2831853;
+}
+
+float distGGX(float NdotH, float rough) {
+    float a = rough * rough;
+    float a2 = a * a;
+    float d = NdotH * NdotH * (a2 - 1.0) + 1.0;
+    return a2 / max(PI * d * d, 1e-5);
+}
+
+float geomSchlick(float NdotV, float rough) {
+    float k = (rough + 1.0);
+    k = k * k / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+vec3 fresnel(float ct, vec3 f0) {
+    return f0 + (1.0 - f0) * pow(clamp(1.0 - ct, 0.0, 1.0), 5.0);
+}
+
+float sampleShadow(vec2 uv, float compare) {
+    float d = texture(u_shadowMap, uv).r;
+    return compare > d ? 0.0 : 1.0;
+}
+
+float softShadow(vec3 P, vec3 N, float NdotL) {
+    vec4 lp = u_lightViewProj * vec4(P + N * u_shadowWorldTexel * 1.5, 1.0);
+    vec3 proj = lp.xyz / lp.w;
+    proj = proj * 0.5 + 0.5;
+    if (proj.z > 1.0) return 1.0;
+    float bias = clamp(0.0015 * tan(acos(clamp(NdotL, 0.0, 1.0))), 0.0, 0.01);
+    float zR = proj.z - bias;
+    float ang = ign(gl_FragCoord.xy);
+    float ca = cos(ang), sa = sin(ang);
+    mat2 rot = mat2(ca, -sa, sa, ca);
+
+    float radius = 2.0 * u_shadowTexelUV;
+#if PCSS
+    // Blocker search (8 taps) -> average blocker depth -> penumbra.
+    float bsum = 0.0; float bcount = 0.0;
+    for (int i = 0; i < 8; i++) {
+        vec2 o = rot * POISSON[i] * (4.0 * u_shadowTexelUV);
+        float d = texture(u_shadowMap, proj.xy + o).r;
+        if (d < zR) { bsum += d; bcount += 1.0; }
+    }
+    if (bcount < 0.5) return 1.0;
+    float zB = bsum / bcount;
+    float pen = (zR - zB) / max(zB, 1e-4) * u_sunPenumbraScale;
+    radius = clamp(pen, 0.5, 6.0) * u_shadowTexelUV;
+#endif
+
+    float sum = 0.0;
+    for (int i = 0; i < SHADOW_TAPS; i++) {
+        vec2 o = rot * POISSON[i] * radius;
+        sum += sampleShadow(proj.xy + o, zR);
+    }
+    return sum / float(SHADOW_TAPS);
+}
+
+#if GI_CONES > 0
+vec4 coneTrace(vec3 origin, vec3 dir, float aperture) {
+    vec4 acc = vec4(0.0);
+    float t = 2.0 * u_giCell;
+    for (int i = 0; i < 5; i++) {
+        float d = max(aperture * t, u_giCell);
+        float mip = max(log2(d / u_giCell), 0.0);
+        vec3 pos = origin + dir * t;
+        vec3 uvw = (pos - u_giOrigin) / (GI_SIZE * u_giCell);
+        if (any(lessThan(uvw, vec3(0.0))) || any(greaterThan(uvw, vec3(1.0)))) break;
+        vec4 s = textureLod(u_gi, uvw, mip);
+        acc.rgb += (1.0 - acc.a) * s.a * s.rgb;
+        acc.a += (1.0 - acc.a) * s.a;
+        if (acc.a > 0.95) break;
+        t *= 1.7;
+    }
+    return acc;
+}
+
+// Distance (world units) from P to the nearest volume face.
+float volumeBorderDist(vec3 P) {
+    vec3 lo = P - u_giOrigin;
+    vec3 hi = (u_giOrigin + vec3(GI_SIZE * u_giCell)) - P;
+    return min(min(min(lo.x, lo.y), lo.z), min(min(hi.x, hi.y), hi.z));
+}
+
+vec3 diffuseGI(vec3 P, vec3 N, out float ao) {
+    vec3 up = abs(N.y) < 0.95 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    vec3 T = normalize(cross(up, N));
+    vec3 B = cross(N, T);
+    vec3 origin = P + N * (2.0 * u_giCell);
+    vec3 irr = vec3(0.0);
+    float occ = 0.0;
+    // Central cone along the normal.
+    vec4 c0 = coneTrace(origin, N, 0.577);
+    irr += c0.rgb; occ += c0.a;
+    // Side cones tilted ~55deg, uniformly around the normal.
+    float tilt = 0.9599; // ~55deg
+    for (int i = 1; i < GI_CONES; i++) {
+        float az = 6.2831853 * float(i - 1) / float(GI_CONES - 1);
+        vec3 dir = normalize(N * cos(tilt) + (T * cos(az) + B * sin(az)) * sin(tilt));
+        vec4 c = coneTrace(origin, dir, 0.577);
+        irr += c.rgb * 0.7; occ += c.a * 0.7;
+    }
+    float norm = 1.0 + 0.7 * float(GI_CONES - 1);
+    ao = clamp(1.0 - occ / norm, 0.0, 1.0);
+    return irr / norm;
+}
+#endif
+
+void main() {
+    float depth = texture(u_depth, v_uv).r;
+    if (depth >= 1.0) {
+        frag = vec4(u_fogColor * u_exposure, 1.0);
+        return;
+    }
+    vec4 clip = vec4(v_uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+    vec4 wp = u_invViewProj * clip;
+    vec3 P = wp.xyz / wp.w;
+
+    vec4 g0 = texture(u_gb0, v_uv);
+    vec4 g1 = texture(u_gb1, v_uv);
+    vec3 albedo = g0.rgb;
+    float metallic = g0.a;
+    vec3 N = normalize(g1.xyz * 2.0 - 1.0);
+    float roughness = clamp(g1.a, 0.045, 1.0);
+
+    vec3 V = normalize(u_camEye - P);
+    vec3 L = normalize(-u_lightDir);
+    vec3 H = normalize(V + L);
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 1e-4);
+    float NdotH = max(dot(N, H), 0.0);
+    float VdotH = max(dot(V, H), 0.0);
+
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    float D = distGGX(NdotH, roughness);
+    float G = geomSchlick(NdotV, roughness) * geomSchlick(NdotL, roughness);
+    vec3 F = fresnel(VdotH, F0);
+    vec3 spec = (D * G) * F / max(4.0 * NdotV * NdotL, 1e-4);
+    vec3 kd = (vec3(1.0) - F) * (1.0 - metallic);
+    vec3 diff = kd * albedo / PI;
+
+    float shadow = (NdotL > 0.0) ? softShadow(P, N, NdotL) : 1.0;
+    vec3 direct = (diff + spec) * u_lightColor * NdotL * shadow;
+
+    // Ambient / GI.
+    float ao = 1.0;
+    vec3 ambient;
+#if GI_CONES > 0
+    float gao;
+    vec3 irr = diffuseGI(P, N, gao);
+    ao = gao;
+    vec3 giAmbient = irr * albedo * u_giStrength + u_ambient * albedo * ao * 0.3;
+    float border = clamp(volumeBorderDist(P) / (4.0 * u_giCell), 0.0, 1.0);
+    vec3 hemi = u_ambient * albedo;
+    ambient = mix(hemi, giAmbient, border);
+#if GI_SPECULAR
+    vec3 R = reflect(-V, N);
+    vec4 sgi = coneTrace(P + N * (2.0 * u_giCell), R, mix(0.05, 0.6, roughness));
+    ambient += sgi.rgb * F * u_giStrength * border;
+#endif
+#else
+    ambient = u_ambient * albedo;
+#endif
+
+    vec3 color = direct + ambient;
+
+    float fogD = distance(P, u_camEye);
+    float fogF = clamp((fogD - u_fogNear) / max(1.0, u_fogFar - u_fogNear), 0.0, 1.0);
+    color = mix(color, u_fogColor, fogF);
+
+    frag = vec4(color * u_exposure, 1.0);
+}

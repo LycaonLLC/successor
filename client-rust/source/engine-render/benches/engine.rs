@@ -84,6 +84,7 @@ world! { pub struct RWorld {
     mesh: MeshRenderer,
     camera: Camera,
     light: DirectionalLight,
+    point_light: PointLight,
     composite: CompositeQuad,
     text: TextOverlay,
 } }

@@ -100,6 +100,8 @@ pub struct GlbMesh {
 pub struct GlbMaterial {
     pub name: Option<String>,
     pub base_color: [f32; 4],
+    pub metallic: f32,
+    pub roughness: f32,
     pub double_sided: bool,
     pub alpha_mode: AlphaMode,
     pub alpha_cutoff: f32,
@@ -110,6 +112,12 @@ impl Default for GlbMaterial {
         GlbMaterial {
             name: None,
             base_color: [1.0, 1.0, 1.0, 1.0],
+            // Deliberate deviation from the glTF spec default (metallic=1,
+            // roughness=1): shipped assets author only baseColorFactor, and a
+            // metallic default of 1 would render them near-black. Non-metal,
+            // fairly rough stylized surfaces are the correct fallback here.
+            metallic: 0.0,
+            roughness: 0.85,
             double_sided: false,
             alpha_mode: AlphaMode::Opaque,
             alpha_cutoff: 0.5,
@@ -588,6 +596,12 @@ fn parse_materials(gltf: &Json) -> Vec<GlbMaterial> {
                         *slot = v;
                     }
                 }
+            }
+            if let Some(v) = pbr.get("metallicFactor").and_then(Json::as_f32) {
+                mat.metallic = v;
+            }
+            if let Some(v) = pbr.get("roughnessFactor").and_then(Json::as_f32) {
+                mat.roughness = v;
             }
         }
         mat.alpha_mode = match m.get("alphaMode").and_then(Json::as_str) {

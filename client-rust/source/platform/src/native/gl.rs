@@ -53,6 +53,14 @@ pub const COLOR_ATTACHMENT0: u32 = 0x8CE0;
 pub const DEPTH_ATTACHMENT: u32 = 0x8D00;
 pub const FRAMEBUFFER_COMPLETE: u32 = 0x8CD5;
 pub const UNPACK_ALIGNMENT: u32 = 0x0CF5;
+pub const TEXTURE_3D: u32 = 0x806F;
+pub const TEXTURE_WRAP_R: u32 = 0x8072;
+pub const RGBA16F: u32 = 0x881A;
+pub const HALF_FLOAT: u32 = 0x140B;
+pub const COLOR_ATTACHMENT1: u32 = 0x8CE1;
+pub const COLOR_ATTACHMENT2: u32 = 0x8CE2;
+pub const COLOR_ATTACHMENT3: u32 = 0x8CE3;
+pub const LINEAR_MIPMAP_LINEAR: i32 = 0x2703;
 
 extern "C" {
     fn glClearColor(red: f32, green: f32, blue: f32, alpha: f32);
@@ -153,6 +161,33 @@ extern "C" {
     fn glVertexAttribDivisor(index: u32, divisor: u32);
     fn glDrawElementsInstanced(mode: u32, count: i32, type_: u32, indices: *const c_void, primcount: i32);
     fn glDrawArraysInstanced(mode: u32, first: i32, count: i32, primcount: i32);
+    fn glTexImage3D(
+        target: u32,
+        level: i32,
+        internalformat: i32,
+        width: i32,
+        height: i32,
+        depth: i32,
+        border: i32,
+        format: u32,
+        type_: u32,
+        pixels: *const c_void,
+    );
+    fn glTexSubImage3D(
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        zoffset: i32,
+        width: i32,
+        height: i32,
+        depth: i32,
+        format: u32,
+        type_: u32,
+        pixels: *const c_void,
+    );
+    fn glGenerateMipmap(target: u32);
+    fn glFramebufferTextureLayer(target: u32, attachment: u32, texture: u32, level: i32, layer: i32);
 }
 
 // Wrappers
@@ -475,4 +510,61 @@ pub fn disable_draw_buffer() {
     unsafe {
         glDrawBuffer(0); // GL_NONE
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn tex_image_3d(
+    target: u32,
+    level: i32,
+    internal_format: i32,
+    width: i32,
+    height: i32,
+    depth: i32,
+    border: i32,
+    format: u32,
+    type_: u32,
+    data: Option<&[u8]>,
+) {
+    let ptr = match data {
+        Some(d) => d.as_ptr() as *const c_void,
+        None => core::ptr::null(),
+    };
+    unsafe {
+        glTexImage3D(target, level, internal_format, width, height, depth, border, format, type_, ptr);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn tex_sub_image_3d(
+    target: u32,
+    level: i32,
+    xoffset: i32,
+    yoffset: i32,
+    zoffset: i32,
+    width: i32,
+    height: i32,
+    depth: i32,
+    format: u32,
+    type_: u32,
+    data: &[u8],
+) {
+    unsafe {
+        glTexSubImage3D(
+            target, level, xoffset, yoffset, zoffset, width, height, depth, format, type_,
+            data.as_ptr() as *const c_void,
+        );
+    }
+}
+
+pub fn generate_mipmap(target: u32) {
+    unsafe { glGenerateMipmap(target); }
+}
+
+pub fn framebuffer_texture_layer(target: u32, attachment: u32, texture: u32, level: i32, layer: i32) {
+    unsafe { glFramebufferTextureLayer(target, attachment, texture, level, layer); }
+}
+
+/// Native always supports RGBA16F color attachments (GL 3.3 core).
+pub fn cap_half_float_target() -> bool {
+    true
 }

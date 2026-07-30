@@ -215,6 +215,19 @@ const importObject = {
             gl.drawBuffers(Array.from(attachments));
         },
         glPixelStorei: (pname, param) => gl.pixelStorei(pname, param),
+        glTexImage3D: (target, level, internalFormat, width, height, depth, border, format, type, ptr, len) => {
+            const pixels = len > 0 ? new Uint8Array(wasmMemory.buffer, ptr, len) : null;
+            gl.texImage3D(target, level, internalFormat, width, height, depth, border, format, type, pixels);
+        },
+        glTexSubImage3D: (target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, ptr, len) => {
+            const pixels = new Uint8Array(wasmMemory.buffer, ptr, len);
+            gl.texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+        },
+        glGenerateMipmap: (target) => gl.generateMipmap(target),
+        glFramebufferTextureLayer: (target, attachment, tex, level, layer) => {
+            gl.framebufferTextureLayer(target, attachment, glGet(tex), level, layer);
+        },
+        glCapHalfFloatTarget: () => (gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float')) ? 1 : 0,
 
         // --- Window/Input/Time Functions ---
         js_init: (titlePtr, titleLen, w, h) => {
@@ -379,7 +392,7 @@ const importObject = {
 let lastTime = performance.now();
 
 // Load the WASM module
-fetch("successor_client.wasm")
+fetch("successor.wasm")
     .then(response => response.arrayBuffer())
     .then(bytes => WebAssembly.instantiate(bytes, importObject))
     .then(results => {

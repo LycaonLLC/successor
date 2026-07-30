@@ -22,8 +22,12 @@ not complete), **backlog** (not started — ordered wave).
 | GPU instancing | instanced props/flora | `Gpu::draw_instanced` + `INSTANCE_MAT4_LAYOUT` | done (Wave 1; consumed in Wave 2) |
 | PNG image decode | texture loads | `engine-core::image` (miniz_oxide inflate + unfilter) | done (Wave 1) |
 | Asset IO (fs + http) | Vite fetch | `platform::{fs_read, http_get}` + web `js_fetch_get` shim | done (Wave 1) |
-| Directional lighting | `client-3d/src/render/environment` | mesh shader lambert + ambient | partial (single dir light) |
-| Shadows | sun shadow | 2048² depth RT + 3×3 PCF | partial (one cascade) |
+| Directional lighting | `client-3d/src/render/environment` | Cook-Torrance PBR (GGX + Smith + Schlick), metallic-roughness from GLB, deferred sun pass | done (PBR upgrade) |
+| Shadows | sun shadow | texel-snapped ortho map (1024/2048² by tier) + rotated-Poisson PCF (4/12 tap) + PCSS (High), evaluated in the deferred light pass | done (soft shadows) |
+| Deferred rendering | n/a (new) | G-buffer (2×RGBA8 + D24) → deferred sun + point-light volumes → HDR scene RT (RGBA16F/RGBA8) → ACES tonemap + grade; forward path kept for RTT cameras | done (PBR upgrade) |
+| Global illumination (VXGI) | n/a (new) | `engine-render::gi` CPU-voxelized albedo volume (64³) + GPU sun-radiance injection (layered `framebufferTextureLayer`) + 3D mipmaps + diffuse/specular cone tracing; amortized, `RenderQuality`-gated | done (PBR upgrade) |
+| Local/point lights | n/a (new) | `PointLight` component + instanced deferred light volumes (additive HDR); muzzle-flash flashes from `CombatFx` | done (PBR upgrade) |
+| Render quality tiers | n/a (new) | `RenderQuality {Low,Medium,High}` over one deferred path (shadow filter, GI cones, HDR target); `--quality` / `?quality=` | done (PBR upgrade) |
 | Transparency via dithering | dithered fades | 4×4 Bayer screen-door `discard` | done |
 | HUD / text overlay | `client-3d/src/overlay`, `ui/` | baked 5×7 font (`engine-render::font`) → per-pixel quads; immediate-mode `engine-render::ui::UiBuilder` (panels/borders/text/icons, alpha-blended) | done (Wave 5; readable text + panels) |
 | UI icon vocabulary | `client-3d/src/ui/icons.ts` (39 SVGs) | `tools/bake-assets` distance-field SVG stroker → committed A8 atlas (`app/assets/ui/icons.*`), sampled via `Renderer::render_ui` | done (Wave 5) |

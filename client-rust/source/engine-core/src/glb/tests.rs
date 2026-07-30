@@ -51,7 +51,7 @@ fn parses_static_triangle_with_material() {
       "scenes":[{"nodes":[0]}],
       "nodes":[{"mesh":0,"name":"tri","translation":[1,2,3]}],
       "meshes":[{"primitives":[{"attributes":{"POSITION":0},"indices":1,"material":0}]}],
-      "materials":[{"name":"red","pbrMetallicRoughness":{"baseColorFactor":[1,0,0,1]},"doubleSided":true,"alphaMode":"MASK","alphaCutoff":0.25}],
+      "materials":[{"name":"red","pbrMetallicRoughness":{"baseColorFactor":[1,0,0,1],"metallicFactor":0.25,"roughnessFactor":0.4},"doubleSided":true,"alphaMode":"MASK","alphaCutoff":0.25}],
       "accessors":[
         {"bufferView":0,"componentType":5126,"count":3,"type":"VEC3"},
         {"bufferView":1,"componentType":5123,"count":3,"type":"SCALAR"}
@@ -79,6 +79,8 @@ fn parses_static_triangle_with_material() {
     assert!(mat.double_sided);
     assert_eq!(mat.alpha_mode, AlphaMode::Mask);
     assert_eq!(mat.alpha_cutoff, 0.25);
+    assert_eq!(mat.metallic, 0.25);
+    assert_eq!(mat.roughness, 0.4);
 }
 
 #[test]

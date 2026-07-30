@@ -20,6 +20,9 @@ fn main() {
     let assert_zero = args.iter().any(|a| a == "--assert-zero-allocs");
     let gl = args.iter().any(|a| a == "--gl");
     let endpoint = arg_value(&args, "--endpoint");
+    if let Some(q) = arg_value(&args, "--quality") {
+        successor_client::set_render_quality(successor_client::parse_quality(&q));
+    }
 
     #[cfg(not(target_arch = "wasm32"))]
     if mode.is_none() {
@@ -54,6 +57,12 @@ fn main() {
     if mode.as_deref() == Some("props") {
         let screenshot = arg_value(&args, "--screenshot");
         run_props(frames, screenshot.as_deref());
+        return;
+    }
+
+    if mode.as_deref() == Some("gi") {
+        let screenshot = arg_value(&args, "--screenshot");
+        run_gi(frames, screenshot.as_deref());
         return;
     }
 
@@ -266,13 +275,13 @@ fn run_fx(frames: u64, screenshot: Option<&str>) {
     use successor_engine_core::math::{Mat4, Vec3};
     use successor_engine_render::fx::{glow_sprite, ParticlePool};
     use successor_engine_render::gpu::{ClearSpec, Gpu, PassTarget, RectPx};
-    use successor_engine_render::renderer::{Renderer, RendererLimits};
+    use successor_engine_render::renderer::Renderer;
     if !successor_platform::init("Successor FX", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
         eprintln!("platform init failed (no display?)");
         std::process::exit(1);
     }
     let mut gpu = successor_platform::create_gpu();
-    let mut renderer = Renderer::new(&mut gpu, RendererLimits::default());
+    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits());
     let sprite = glow_sprite(64);
     renderer.set_particle_atlas(&mut gpu, 64, 64, &sprite);
     let mut pool = ParticlePool::new(0x51ce_57ed);
@@ -333,30 +342,25 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
     use successor_engine_core::ecs::WorldOps;
     use successor_engine_core::math::{vec3, Quat, Vec3};
     use successor_engine_render::components::{
-        CamTarget, Camera, DirectionalLight, MeshRenderer, Projection, Transform,
+        CamTarget, Camera, DirectionalLight, MeshRenderer, Projection, RectNorm, Transform,
     };
     use successor_engine_render::environment;
-    use successor_engine_render::gpu::{ClearSpec, Filter, Gpu, RenderTargetDesc};
+    use successor_engine_render::gpu::ClearSpec;
     use successor_engine_render::primitives;
-    use successor_engine_render::renderer::{Renderer, RendererLimits};
+    use successor_engine_render::renderer::Renderer;
     use successor_client::GameWorld;
     if !successor_platform::init("Successor env", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
         eprintln!("platform init failed (no display?)");
         std::process::exit(1);
     }
     let mut gpu = successor_platform::create_gpu();
-    let mut renderer = Renderer::new(&mut gpu, RendererLimits::default());
+    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits());
     let mut world = GameWorld::new();
 
-    // Scene target: render into an RTT so the post pass can grade the whole frame.
-    let rt = gpu.create_render_target(&RenderTargetDesc {
-        width: demo::SCREEN_W,
-        height: demo::SCREEN_H,
-        color: true,
-        depth: true,
-        filter: Filter::Linear,
-    });
     let env = environment::sample(minute);
+    // Grade + fog now run inside the deferred tonemap pass.
+    renderer.set_grade(env.bone_tint, env.desaturate, env.scene_darken, env.black_lift, env.bloom);
+    renderer.set_fog(env.fog, 180.0, 340.0);
 
     let (gv, gi) = primitives::plane(200.0);
     let ground = renderer.upload_mesh(&mut gpu, &gv, &gi);
@@ -388,7 +392,7 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
     world.set_component(cam, Camera {
         viewport_id: 0, order: 0,
         projection: Projection::Perspective { fovy: 0.9, near: 0.1, far: 400.0 },
-        target: CamTarget::Texture(rt),
+        target: CamTarget::Screen(RectNorm::FULL),
         clear: ClearSpec { color: Some([env.fog[0], env.fog[1], env.fog[2], 1.0]), depth: Some(1.0) },
         eye: vec3(24.0, 20.0, 28.0), look_at: Vec3::ZERO, up: Vec3::Y,
     });
@@ -399,16 +403,177 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
         successor_platform::begin_frame();
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
-            renderer.render(&mut gpu, &mut world, demo::SCREEN_W, demo::SCREEN_H);
-            if let Some(src) = gpu.render_target_color(rt) {
-                renderer.render_post(&mut gpu, src, env.bone_tint, env.desaturate, env.scene_darken, env.black_lift, env.bloom, w as u32, h as u32);
-            }
+            renderer.render(&mut gpu, &mut world, w as u32, h as u32);
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
             match write_bmp(screenshot.unwrap(), &rgba, w as u32, h as u32) {
                 Ok(()) => println!("screenshot written: {} ({}x{}) minute={}", screenshot.unwrap(), w, h, minute),
                 Err(e) => eprintln!("screenshot failed: {e}"),
+            }
+        }
+        successor_platform::end_frame();
+        frame += 1;
+    }
+    successor_platform::deinit();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn run_gi(frames: u64, screenshot: Option<&str>) {
+    use successor_engine_core::ecs::WorldOps;
+    use successor_engine_core::math::{vec3, Mat4, Quat, Vec3};
+    use successor_engine_render::components::{
+        CamTarget, Camera, DirectionalLight, MeshRenderer, Projection, RectNorm, Transform,
+    };
+    use successor_engine_render::gi::GiOccluder;
+    use successor_engine_render::gpu::ClearSpec;
+    use successor_engine_render::primitives;
+    use successor_engine_render::renderer::Renderer;
+    use successor_client::GameWorld;
+
+    if !successor_platform::init("Successor GI", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
+        eprintln!("platform init failed (no display?)");
+        std::process::exit(1);
+    }
+    let mut gpu = successor_platform::create_gpu();
+    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits());
+    renderer.set_ambient(0.12);
+    renderer.set_fog([0.02, 0.02, 0.03], 400.0, 800.0); // effectively off at this scale
+    let mut world = GameWorld::new();
+
+    let (cv, ci) = primitives::cube();
+    let unit = renderer.upload_mesh(&mut gpu, &cv, &ci);
+
+    // White ground: a thin scaled cube (outward-wound top face, unlike plane()).
+    let ground_mat = renderer.add_material_pbr([1.0, 1.0, 1.0, 1.0], 0.0, 0.9);
+    let g = world.spawn();
+    world.set_component(g, Transform { pos: vec3(0.0, -0.1, 6.0), rot: Quat::IDENTITY, scale: vec3(120.0, 0.2, 120.0) });
+    world.set_component(g, MeshRenderer { mesh: unit, material: ground_mat, viewport_mask: 0b1, ..Default::default() });
+
+    // Tall red wall at z=0 spanning x, front face (+z) toward the camera/floor.
+    let wall_mat = renderer.add_material_pbr([0.85, 0.05, 0.05, 1.0], 0.0, 0.9);
+    let wall_c = vec3(0.0, 3.0, 0.0);
+    let wall_h = vec3(8.0, 3.0, 0.4);
+    let wall = world.spawn();
+    world.set_component(wall, Transform { pos: wall_c, rot: Quat::IDENTITY, scale: vec3(wall_h.x * 2.0, wall_h.y * 2.0, wall_h.z * 2.0) });
+    world.set_component(wall, MeshRenderer { mesh: unit, material: wall_mat, viewport_mask: 0b1, ..Default::default() });
+
+    // White cube on the visible floor (casts a soft shadow toward the camera).
+    let cube_mat = renderer.add_material_pbr([0.95, 0.95, 0.95, 1.0], 0.0, 0.9);
+    let cube_c = vec3(3.0, 1.0, 8.0);
+    let cube = world.spawn();
+    world.set_component(cube, Transform { pos: cube_c, rot: Quat::IDENTITY, scale: vec3(2.0, 2.0, 2.0) });
+    world.set_component(cube, MeshRenderer { mesh: unit, material: cube_mat, viewport_mask: 0b1, ..Default::default() });
+
+    // Static GI occluder proxies.
+    renderer.gi_set_ground_albedo([1.0, 1.0, 1.0]);
+    renderer.gi_set_occluders(&[
+        GiOccluder { center: [wall_c.x, wall_c.y, wall_c.z], half_extents: [wall_h.x, wall_h.y, wall_h.z], yaw: 0.0, albedo: [0.85, 0.05, 0.05] },
+        GiOccluder { center: [cube_c.x, cube_c.y, cube_c.z], half_extents: [1.0, 1.0, 1.0], yaw: 0.0, albedo: [0.95, 0.95, 0.95] },
+    ]);
+
+    // Sun raking from +z and above onto the wall's front face.
+    let sun = world.spawn();
+    let sd = Vec3 { x: 0.0, y: -1.0, z: -1.0 }.normalize();
+    world.set_component(sun, DirectionalLight { dir: sd, color: [1.0, 1.0, 1.0], cast_shadows: true });
+
+    let eye = vec3(0.0, 12.0, 24.0);
+    let look = vec3(0.0, 1.0, 6.0);
+    let cam = world.spawn();
+    world.set_component(cam, Camera {
+        viewport_id: 0, order: 0,
+        projection: Projection::Perspective { fovy: 0.7, near: 0.1, far: 400.0 },
+        target: CamTarget::Screen(RectNorm::FULL),
+        clear: ClearSpec { color: Some([0.02, 0.02, 0.03, 1.0]), depth: Some(1.0) },
+        eye, look_at: look, up: Vec3::Y,
+    });
+
+    let total = frames.max(1);
+    let mut frame = 0u64;
+    while !successor_platform::should_quit() && frame < total {
+        successor_platform::begin_frame();
+        let (w, h) = successor_platform::framebuffer_size();
+        if w > 0 && h > 0 {
+            renderer.render(&mut gpu, &mut world, w as u32, h as u32);
+        }
+        if frame + 1 == total && w > 0 && h > 0 {
+            let rgba = successor_platform::read_pixels_rgba(w, h);
+            let aspect = w as f32 / h as f32;
+            let view = Mat4::look_at(eye, look, Vec3::Y);
+            let proj = Mat4::perspective(0.7, aspect, 0.1, 400.0);
+            let vp = proj.mul(view).to_cols_array();
+            let wf = w as f32;
+            let hf = h as f32;
+            // Project a world floor point to a pixel (GL bottom-up).
+            let project = |p: [f32; 3]| -> (i32, i32) {
+                let cx = vp[0] * p[0] + vp[4] * p[1] + vp[8] * p[2] + vp[12];
+                let cy = vp[1] * p[0] + vp[5] * p[1] + vp[9] * p[2] + vp[13];
+                let cw = vp[3] * p[0] + vp[7] * p[1] + vp[11] * p[2] + vp[15];
+                let ndx = cx / cw;
+                let ndy = cy / cw;
+                (((ndx * 0.5 + 0.5) * wf) as i32, ((ndy * 0.5 + 0.5) * hf) as i32)
+            };
+            let win = 10i32;
+            let sample = |px: i32, py: i32| -> (f32, f32, f32) {
+                let (mut r, mut gg, mut b, mut n) = (0.0f32, 0.0f32, 0.0f32, 0.0f32);
+                for dy in -win..=win {
+                    for dx in -win..=win {
+                        let x = px + dx;
+                        let y = py + dy;
+                        if x < 0 || y < 0 || x >= w || y >= h {
+                            continue;
+                        }
+                        let i = ((y as u32 * w as u32 + x as u32) * 4) as usize;
+                        r += rgba[i] as f32;
+                        gg += rgba[i + 1] as f32;
+                        b += rgba[i + 2] as f32;
+                        n += 1.0;
+                    }
+                }
+                if n > 0.0 { (r / n, gg / n, b / n) } else { (0.0, 0.0, 0.0) }
+            };
+            // Floor probes: near the red wall vs far from it.
+            let (nx, ny) = project([0.0, 0.02, 1.0]);
+            let (fx, fy) = project([0.0, 0.02, 14.0]);
+            let (nr, _ng, nb) = sample(nx, ny);
+            let (fr, _fg, fb) = sample(fx, fy);
+            let near_rb = nr / nb.max(1.0);
+            let far_rb = fr / fb.max(1.0);
+            println!(
+                "gi-check quality={:?} near_r/b={:.3} far_r/b={:.3} ratio={:.3} (expect >=1.15 with GI)",
+                successor_client::render_quality(), near_rb, far_rb, near_rb / far_rb.max(1e-3)
+            );
+            // Shadow probes: behind the cube (shadowed) vs open floor.
+            let (sx, sy) = project([3.0, 0.02, 6.0]);
+            let (lx, ly) = project([-4.0, 0.02, 6.0]);
+            let lum = |c: (f32, f32, f32)| 0.299 * c.0 + 0.587 * c.1 + 0.114 * c.2;
+            let shadow_lum = lum(sample(sx, sy));
+            let lit_lum = lum(sample(lx, ly));
+            // Penumbra width: scan the row between shadow and lit probes, count
+            // pixels in the mid-luminance transition band.
+            let row = (sy + ly) / 2;
+            let (x0, x1) = (sx.min(lx), sx.max(lx));
+            let mut penumbra = 0i32;
+            for x in x0..=x1 {
+                if x < 0 || x >= w || row < 0 || row >= h {
+                    continue;
+                }
+                let i = ((row as u32 * w as u32 + x as u32) * 4) as usize;
+                let l = 0.299 * rgba[i] as f32 + 0.587 * rgba[i + 1] as f32 + 0.114 * rgba[i + 2] as f32;
+                let t = (l - shadow_lum) / (lit_lum - shadow_lum).max(1.0);
+                if t > 0.2 && t < 0.8 {
+                    penumbra += 1;
+                }
+            }
+            println!(
+                "shadow-check quality={:?} lit_lum={:.1} shadow_lum={:.1} penumbra_px={}",
+                successor_client::render_quality(), lit_lum, shadow_lum, penumbra
+            );
+            if let Some(path) = screenshot {
+                match write_bmp(path, &rgba, w as u32, h as u32) {
+                    Ok(()) => println!("screenshot written: {} ({}x{})", path, w, h),
+                    Err(e) => eprintln!("screenshot failed: {e}"),
+                }
             }
         }
         successor_platform::end_frame();
@@ -818,7 +983,7 @@ mod connected {
     fn fire_events(scene: &mut ConnectedScene, events: &[serde_json::Value]) {
         for jv in events {
             if let Some(ce) = CombatEvent::from_json(jv) {
-                scene.combat_fx_mut().trigger(&ce);
+                scene.ingest_combat(&ce);
             }
         }
     }

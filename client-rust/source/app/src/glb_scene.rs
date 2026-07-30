@@ -11,7 +11,7 @@ use successor_engine_render::components::{
     CamTarget, Camera, DirectionalLight, MeshRenderer, Projection, SkinRef, Transform,
 };
 use successor_engine_render::gpu::Gpu;
-use successor_engine_render::renderer::{Renderer, RendererLimits};
+use successor_engine_render::renderer::Renderer;
 
 use crate::GameWorld;
 
@@ -33,7 +33,7 @@ impl GlbScene {
     /// (falls back to the first animation, or none for static meshes).
     pub fn build<G: Gpu>(gpu: &mut G, bytes: &[u8], clip: Option<&str>) -> Result<GlbScene, glb::GlbError> {
         let doc = glb::parse(bytes)?;
-        let mut renderer = Renderer::new(gpu, RendererLimits::default());
+        let mut renderer = Renderer::new(gpu, crate::quality_limits());
         renderer.set_ambient(0.35);
         let mut world = GameWorld::new();
 

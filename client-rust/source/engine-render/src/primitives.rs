@@ -53,7 +53,9 @@ pub fn plane(size: f32) -> Mesh {
     push_v(&mut v, [h, 0.0, -h], n, [1.0, 0.0]);
     push_v(&mut v, [h, 0.0, h], n, [1.0, 1.0]);
     push_v(&mut v, [-h, 0.0, h], n, [0.0, 1.0]);
-    (v, alloc::vec![0, 1, 2, 0, 2, 3])
+    // Wind CCW as seen from +Y so the front face (and its +Y normal) is up,
+    // which survives back-face culling for a camera looking down at the ground.
+    (v, alloc::vec![0, 2, 1, 0, 3, 2])
 }
 
 /// Capsule along +Y: two hemispheres of `radius` joined by a cylinder so the

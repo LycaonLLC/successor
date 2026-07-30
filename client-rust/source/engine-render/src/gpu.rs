@@ -32,8 +32,39 @@ pub enum BufferUsage {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TextureFormat {
     Rgba8,
+    /// 16-bit half-float RGBA (HDR scene accumulation target). Render-target
+    /// only; `create_texture_3d`/`create_render_target_mrt` allocate it.
+    Rgba16F,
     /// 32-bit depth (shadow map / RTT depth).
     Depth,
+}
+
+/// Backend capability probe (queried once at load).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct GpuCaps {
+    /// A half-float (RGBA16F) color attachment can be rendered to. Always true
+    /// on desktop GL 3.3; on WebGL2 gated by `EXT_color_buffer_float` /
+    /// `EXT_color_buffer_half_float`.
+    pub half_float_target: bool,
+}
+
+/// A cubic 3D texture (`size` per axis). Used by the VXGI volumes.
+#[derive(Clone, Copy, Debug)]
+pub struct Texture3dDesc {
+    pub size: u32,
+    pub format: TextureFormat,
+    /// Allocate a mip chain (radiance volume) with trilinear min filtering.
+    pub mips: bool,
+}
+
+/// Multi-render-target descriptor: `colors` lists the attachment formats
+/// (`COLOR_ATTACHMENT0..`), `depth` allocates a sampleable D24.
+#[derive(Clone, Copy, Debug)]
+pub struct MrtDesc {
+    pub width: u32,
+    pub height: u32,
+    pub colors: &'static [TextureFormat],
+    pub depth: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -214,11 +245,29 @@ pub const INSTANCE_MAT4_LAYOUT: VertexLayout = VertexLayout {
     ],
 };
 
+/// Per-instance point-light data (divisor 1): `pos_radius` = world xyz + radius,
+/// `color_intensity` = linear rgb + intensity. Consumed by the deferred
+/// point-light volume program.
+pub const POINT_LIGHT_INSTANCE_LAYOUT: VertexLayout = VertexLayout {
+    stride: 32,
+    attrs: &[
+        VertexAttr { location: 5, components: 4, offset: 0 },
+        VertexAttr { location: 6, components: 4, offset: 16 },
+    ],
+};
+
 /// The backend contract. All resource creation happens at load; the per-frame
 /// path is `begin_pass`/`set_pipeline`/`set_uniforms`/`bind_texture`/`draw`/
 /// `end_pass` and allocates nothing on the Rust heap.
 pub trait Gpu {
     fn create_buffer(&mut self, data: &[u8], usage: BufferUsage) -> BufferId;
+    /// Create an index (element-array) buffer. WebGL2 fixes a buffer's target on
+    /// first bind, so index buffers must be created bound to ELEMENT_ARRAY_BUFFER
+    /// (a vertex buffer can't later be rebound as an index buffer). Backends that
+    /// don't distinguish targets fall back to `create_buffer`.
+    fn create_index_buffer(&mut self, data: &[u8], usage: BufferUsage) -> BufferId {
+        self.create_buffer(data, usage)
+    }
     fn update_buffer(&mut self, id: BufferId, data: &[u8]);
     fn create_program(&mut self, vert_src: &str, frag_src: &str) -> ProgramId;
     fn create_texture(&mut self, desc: &TextureDesc, data: Option<&[u8]>) -> TextureId;
@@ -242,9 +291,10 @@ pub trait Gpu {
     /// Upload the joint palette (`u_joints` mat4 array) for the next skinned
     /// draw. Default no-op for backends that don't skin (tests/headless).
     fn set_joints(&mut self, _mats: &[[f32; 16]]) {}
-    /// Instanced indexed draw: `instance_buf` holds one `mat4` per instance
-    /// (see `INSTANCE_MAT4_LAYOUT`), applied via attribute divisor 1. Default
-    /// no-op; only the GL backend implements it.
+    /// Instanced indexed draw: `instance_buf` holds one record per instance in
+    /// `instance_layout` (attribute divisor 1); `layout` describes the shared
+    /// vertex buffer. Default no-op; only the GL backend implements it.
+    #[allow(clippy::too_many_arguments)]
     fn draw_instanced(
         &mut self,
         _vertices: BufferId,
@@ -252,9 +302,37 @@ pub trait Gpu {
         _layout: &VertexLayout,
         _index_count: u32,
         _instance_buf: BufferId,
+        _instance_layout: &VertexLayout,
         _instances: u32,
     ) {
     }
+    /// Backend capabilities (half-float target support). Queried once at load.
+    fn caps(&self) -> GpuCaps {
+        GpuCaps::default()
+    }
+    /// Create a cubic 3D texture (VXGI volume). `data`, if present, is the full
+    /// `size^3 * 4` byte payload (RGBA8) uploaded at level 0.
+    fn create_texture_3d(&mut self, _desc: &Texture3dDesc, _data: Option<&[u8]>) -> TextureId {
+        TextureId(0)
+    }
+    /// Upload one full XY slice (`size*size*4` bytes) at depth `z`.
+    fn update_texture_3d(&mut self, _id: TextureId, _size: u32, _z: u32, _data: &[u8]) {}
+    /// Regenerate the mip chain of a 3D texture.
+    fn generate_mipmaps_3d(&mut self, _id: TextureId) {}
+    /// Bind a 3D texture to a sampler slot.
+    fn bind_texture_3d(&mut self, _slot: u32, _tex: TextureId) {}
+    /// Create a multi-render-target (deferred G-buffer / HDR scene target).
+    fn create_render_target_mrt(&mut self, _desc: &MrtDesc) -> RenderTargetId {
+        RenderTargetId(0)
+    }
+    /// The `index`-th sampleable color attachment of an MRT render target.
+    fn render_target_color_n(&self, _rt: RenderTargetId, _index: usize) -> Option<TextureId> {
+        None
+    }
+    /// Begin a pass rendering into one Z layer of a 3D texture (radiance inject).
+    fn begin_layer_pass(&mut self, _tex: TextureId, _layer: u32, _viewport: RectPx, _clear: ClearSpec) {}
+    /// Free an FBO and its attachments (G-buffer / scene RT recreation on resize).
+    fn delete_render_target(&mut self, _rt: RenderTargetId) {}
     fn end_pass(&mut self);
 }
 
@@ -273,7 +351,14 @@ pub struct MockGpu {
 pub enum MockCall {
     BeginPass { target: PassTarget, viewport: RectPx },
     Draw { count: u32 },
+    DrawInstanced { instances: u32 },
     EndPass,
+    CreateTexture3d,
+    UpdateTexture3d { z: u32 },
+    GenMips3d,
+    BeginLayerPass { layer: u32 },
+    CreateMrt,
+    DeleteRenderTarget,
 }
 
 #[cfg(feature = "std")]
@@ -328,6 +413,42 @@ impl Gpu for MockGpu {
     fn draw(&mut self, _v: BufferId, _i: Option<BufferId>, _l: &VertexLayout, count: u32) {
         self.log.push(MockCall::Draw { count });
     }
+    fn draw_instanced(
+        &mut self,
+        _v: BufferId,
+        _i: Option<BufferId>,
+        _l: &VertexLayout,
+        _index_count: u32,
+        _instance_buf: BufferId,
+        _instance_layout: &VertexLayout,
+        instances: u32,
+    ) {
+        self.log.push(MockCall::DrawInstanced { instances });
+    }
+    fn create_texture_3d(&mut self, _d: &Texture3dDesc, _data: Option<&[u8]>) -> TextureId {
+        self.log.push(MockCall::CreateTexture3d);
+        TextureId(self.mint())
+    }
+    fn update_texture_3d(&mut self, _id: TextureId, _size: u32, z: u32, _data: &[u8]) {
+        self.log.push(MockCall::UpdateTexture3d { z });
+    }
+    fn generate_mipmaps_3d(&mut self, _id: TextureId) {
+        self.log.push(MockCall::GenMips3d);
+    }
+    fn bind_texture_3d(&mut self, _slot: u32, _tex: TextureId) {}
+    fn create_render_target_mrt(&mut self, _d: &MrtDesc) -> RenderTargetId {
+        self.log.push(MockCall::CreateMrt);
+        RenderTargetId(self.mint())
+    }
+    fn render_target_color_n(&self, rt: RenderTargetId, index: usize) -> Option<TextureId> {
+        Some(TextureId(rt.0 + 100_000 + index as u32))
+    }
+    fn begin_layer_pass(&mut self, _tex: TextureId, layer: u32, _viewport: RectPx, _clear: ClearSpec) {
+        self.log.push(MockCall::BeginLayerPass { layer });
+    }
+    fn delete_render_target(&mut self, _rt: RenderTargetId) {
+        self.log.push(MockCall::DeleteRenderTarget);
+    }
     fn end_pass(&mut self) {
         self.log.push(MockCall::EndPass);
     }
@@ -374,5 +495,14 @@ impl Gpu for NullGpu {
     fn set_uniforms(&mut self, _u: &[Uniform]) {}
     fn bind_texture(&mut self, _slot: u32, _tex: TextureId) {}
     fn draw(&mut self, _v: BufferId, _i: Option<BufferId>, _l: &VertexLayout, _count: u32) {}
+    fn create_texture_3d(&mut self, _d: &Texture3dDesc, _data: Option<&[u8]>) -> TextureId {
+        TextureId(self.mint())
+    }
+    fn create_render_target_mrt(&mut self, _d: &MrtDesc) -> RenderTargetId {
+        RenderTargetId(self.mint())
+    }
+    fn render_target_color_n(&self, rt: RenderTargetId, _index: usize) -> Option<TextureId> {
+        Some(TextureId(rt.0))
+    }
     fn end_pass(&mut self) {}
 }
