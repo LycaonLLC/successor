@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "crate_cargo_heavy",
+  "label": "Heavy Cargo Crate",
+  "kind": "world_prop",
+  "glb": "crate_cargo_heavy.glb",
+  "source_pack": "successor-everyday-wave-grok45-20260719",
+  "source_fbx": "props/successor/everyday-wave-20260719/everyday-world-props/source/successor_everyday_wooden_crate_open.blend",
+  "source_path": "props/successor/everyday-wave-20260719/everyday-world-props/assets/successor_everyday_wooden_crate_open.glb",
+  "content_hash_sha256": "90eabc45f3ad80badc987c762c7b63cf180a0b06917bbc64a346ae61441a419e",
+  "triangles": 1416,
+  "vertices": 736,
+  "mesh_nodes": 3,
+  "materials": 3,
+  "bbox_gltf_m": { "min": [-0.19, 0, -0.144], "max": [0.19, 0.25, 0.14], "size": [0.38, 0.25, 0.284] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/reference/successor/combined-catalog-1000-20260719/catalog.csv",
+  "source_report": "props/successor/everyday-wave-20260719/everyday-world-props/reports/successor_everyday_wooden_crate_open.json",
+  "validation_pass": true
+}

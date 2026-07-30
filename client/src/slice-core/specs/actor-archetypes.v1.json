@@ -1,0 +1,159 @@
+{
+  "schema": "successor.actor-archetypes.v1",
+  "bodyZones": {
+    "head": {
+      "hp": 28
+    },
+    "torso": {
+      "hp": 54
+    },
+    "left_arm": {
+      "hp": 32,
+      "armorKey": "arms"
+    },
+    "right_arm": {
+      "hp": 32,
+      "armorKey": "arms"
+    },
+    "legs": {
+      "hp": 40
+    }
+  },
+  "defaults": {
+    "traits": {
+      "body": 75,
+      "spirit": 75
+    },
+    "armor": {
+      "head": 0,
+      "torso": 0,
+      "arms": 0,
+      "legs": 0
+    }
+  },
+  "roles": {
+    "player": {
+      "traits": {
+        "body": 100,
+        "spirit": 100
+      },
+      "armor": {
+        "head": 0,
+        "torso": 2,
+        "arms": 1,
+        "legs": 1
+      }
+    },
+    "agent_player": {
+      "traits": {
+        "body": 145,
+        "spirit": 130
+      },
+      "armor": {
+        "head": 0,
+        "torso": 2,
+        "arms": 1,
+        "legs": 1
+      }
+    },
+    "public_shopkeeper": {
+      "traits": {
+        "body": 92,
+        "spirit": 86
+      },
+      "armor": {
+        "head": 0,
+        "torso": 2,
+        "arms": 1,
+        "legs": 1
+      }
+    },
+    "scripted_player": {
+      "traits": {
+        "body": 88,
+        "spirit": 82
+      }
+    },
+    "creature": {},
+    "skirmisher": {
+      "traits": {
+        "body": 74,
+        "spirit": 68
+      },
+      "armor": {
+        "head": 1,
+        "torso": 3,
+        "arms": 1,
+        "legs": 1
+      }
+    },
+    "skirmisher_assault": {
+      "traits": {
+        "body": 80,
+        "spirit": 58
+      },
+      "armor": {
+        "head": 1,
+        "torso": 3,
+        "arms": 1,
+        "legs": 1
+      }
+    },
+    "skirmisher_anchor": {
+      "traits": {
+        "body": 86,
+        "spirit": 82
+      },
+      "armor": {
+        "head": 2,
+        "torso": 4,
+        "arms": 2,
+        "legs": 2
+      }
+    },
+    "skirmisher_flanker": {
+      "traits": {
+        "body": 72,
+        "spirit": 76
+      },
+      "armor": {
+        "head": 1,
+        "torso": 2,
+        "arms": 1,
+        "legs": 1
+      }
+    },
+    "skirmisher_deadeye": {
+      "traits": {
+        "body": 68,
+        "spirit": 92
+      },
+      "armor": {
+        "head": 1,
+        "torso": 2,
+        "arms": 1,
+        "legs": 1
+      }
+    },
+    "skirmisher_brawler": {
+      "traits": {
+        "body": 124,
+        "spirit": 62
+      },
+      "armor": {
+        "head": 1,
+        "torso": 3,
+        "arms": 2,
+        "legs": 1
+      }
+    },
+    "range_guard": {
+      "armor": {
+        "head": 1,
+        "torso": 4,
+        "arms": 2,
+        "legs": 2
+      }
+    }
+  }
+}

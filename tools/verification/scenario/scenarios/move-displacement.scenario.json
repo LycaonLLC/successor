@@ -1,0 +1,35 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "move-displacement",
+  "fixture": "open-desert-movement-blocked",
+  "actors": {
+    "open": { "character": "fixture:ranger-open" },
+    "blocked": { "character": "fixture:ranger-blocked" }
+  },
+  "steps": [
+    { "query": { "actor": "open", "line": "/where", "as": "openStart" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.open.id", "match": { "lifeState": "alive" } }, "timeoutMs": 8000, "as": "openOracleStart" } },
+    { "send": { "actor": "open", "line": "/move 1 0 30 Right false", "as": "moveOpenGround" } },
+    { "await": { "kind": "receipt", "actor": "open", "match": { "commandId": "$captures.moveOpenGround.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 8000, "as": "moveOpenGroundReceipt" } },
+    "/pause 1.2s",
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.open.id", "match": { "x": { "op": "gt", "value": 521 } } }, "timeoutMs": 8000, "as": "openOracleMoved" } },
+    { "query": { "actor": "open", "line": "/where", "as": "openAfter" } },
+    { "expect": { "kind": "queryDelta", "from": "openStart", "to": "openAfter", "xPath": "data.x", "yPath": "data.y", "minDistanceCells": 1 } },
+    { "expect": { "kind": "captureCompare", "capture": "openAfter", "path": "data.source", "op": "eq", "value": "server" } },
+    { "expect": { "kind": "oraclePredictionError", "actor": "open", "query": "openAfter", "maxCells": 4.25 } },
+    { "query": { "actor": "blocked", "line": "/where", "as": "blockedStart" } },
+    { "send": { "actor": "blocked", "line": "/move 1 0 30 Right false", "as": "moveIntoBlockedEdge" } },
+    { "await": { "kind": "receipt", "actor": "blocked", "match": { "commandId": "$captures.moveIntoBlockedEdge.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 8000, "as": "moveIntoBlockedEdgeReceipt" } },
+    "/pause 1.1s",
+    { "query": { "actor": "blocked", "line": "/where", "as": "blockedAtEdge" } },
+    { "send": { "actor": "blocked", "line": "/move 1 0 30 Right false", "as": "moveBlockedCell" } },
+    { "await": { "kind": "receipt", "actor": "blocked", "match": { "commandId": "$captures.moveBlockedCell.data.commandId", "commandKind": "Move", "accepted": false, "reasonCode": "blocked_cell" }, "timeoutMs": 8000, "as": "moveBlockedCellReceipt" } },
+    { "query": { "actor": "blocked", "line": "/where", "as": "blockedAfter" } },
+    { "expect": { "kind": "queryDelta", "from": "blockedAtEdge", "to": "blockedAfter", "path": "data.x", "value": 0 } },
+    { "expect": { "kind": "queryDelta", "from": "blockedAtEdge", "to": "blockedAfter", "path": "data.y", "value": 0 } },
+    { "expect": { "kind": "envelopeCount", "actor": "open", "envelopeType": "receipt", "match": { "commandKind": "Move", "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "envelopeCount", "actor": "blocked", "envelopeType": "receipt", "match": { "commandKind": "Move", "accepted": false, "reasonCode": "blocked_cell" }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "moveDisplacementStableHash" } }
+  ],
+  "notes": "Authority movement displaces on open ground, /where reads the authoritative server position, and blocked-cell movement rejects without changing position."
+}

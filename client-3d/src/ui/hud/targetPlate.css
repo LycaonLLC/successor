@@ -1,0 +1,181 @@
+/*
+ * Target status plate — component stylesheet (imported by targetPlate.ts).
+ *
+ * Owns every .sc3d-target-* rule. The legacy copy of the base rules in
+ * hud.css is deleted in the interact-banner removal batch; values here are
+ * byte-identical for the overlap window so the cascade stays inert.
+ *
+ * Chrome from --sc3d-* tokens; the health FILL stays on the fixed --sc-fixed-*
+ * gameplay palette (constitution: semantic bar fills never re-theme).
+ * Relation tint (hostile/neutral/friendly) arrives as an inline
+ * border-left-color + name color from the shared nameplate palette.
+ */
+
+.sc3d-target-plate {
+  position: absolute;
+  /* Adjacent right of the 256px player plate at left:14 (+8px gutter). */
+  left: 286px;
+  top: 14px;
+  z-index: var(--sc3d-z-hud);
+  box-sizing: border-box;
+  width: 208px;
+  max-width: calc(100vw - 300px);
+  padding: 7px 10px 8px;
+  pointer-events: none;
+  user-select: none;
+  color: var(--sc3d-ink);
+  background: var(--sc3d-glass);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  /* Relation rail — inline border-left-color carries the hostility tint. */
+  border-left-width: 2px;
+  border-radius: 2px;
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Target switch: assert the new frame — no cross-target bar tween ghosts. */
+.sc3d-target-plate[data-switch] .sc3d-target-fill,
+.sc3d-target-plate[data-switch] .sc3d-target-ghost {
+  transition: none;
+}
+
+.sc3d-target-plate[data-switch] {
+  animation: sc3d-target-assert 180ms ease-out;
+}
+
+@keyframes sc3d-target-assert {
+  0% {
+    border-color: var(--sc3d-accent);
+    box-shadow: 0 0 8px var(--sc3d-accent-glow);
+  }
+  100% {
+    border-color: color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+    box-shadow: none;
+  }
+}
+
+/* Damage tick: one short value flash per observed health drop. */
+.sc3d-target-plate[data-hit] .sc3d-target-value {
+  color: var(--sc3d-ink);
+}
+
+.sc3d-target-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.sc3d-target-name {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.sc3d-target-stamp {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  border: 1px solid var(--sc3d-danger);
+  background: color-mix(in srgb, var(--sc3d-danger) 14%, transparent);
+  color: var(--sc3d-danger);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.sc3d-target-gauge {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.sc3d-target-track {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  background: var(--sc3d-bg-cell);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 75%, transparent);
+}
+
+.sc3d-target-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: var(--sc-fixed-oxide);
+  transition: width 160ms steps(5, jump-end);
+}
+
+/*
+ * Recent-damage ghost — bone trail from pre-hit width down to the live fill,
+ * held briefly then drained by the frame loop (width driven inline; no
+ * transition — the drain IS the animation).
+ */
+.sc3d-target-ghost {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: color-mix(in srgb, var(--sc-fixed-bone) 55%, transparent);
+}
+
+.sc3d-target-track[data-low] .sc3d-target-fill {
+  animation: successor3d-low-blink 1.1s steps(2, jump-none) infinite;
+}
+
+.sc3d-target-value {
+  font-size: 10px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-ink-dim);
+}
+
+.sc3d-target-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.sc3d-target-chips:empty {
+  display: none;
+}
+
+.sc3d-target-chip {
+  padding: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 60%, transparent);
+  color: var(--sc3d-ink-dim);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+/* Attitude chips: HOSTILE stamps danger; ALERTED leans accent. */
+.sc3d-target-chip[data-kind="hostile"] {
+  border-color: color-mix(in srgb, var(--sc3d-danger) 65%, transparent);
+  background: color-mix(in srgb, var(--sc3d-danger) 12%, transparent);
+  color: var(--sc3d-danger);
+}
+
+.sc3d-target-chip[data-kind="alerted"] {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 45%, transparent);
+  color: var(--sc3d-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc3d-target-fill {
+    transition: none;
+  }
+  .sc3d-target-plate[data-switch] {
+    animation: none;
+  }
+  .sc3d-target-track[data-low] .sc3d-target-fill {
+    animation: none;
+    filter: brightness(1.28);
+  }
+}

@@ -1,0 +1,138 @@
+<!doctype html>
+<!-- boot-fit-lab.html — runtime-truth probe for the fixed-issue outfit feet.
+     Loads the REAL pawn pack, attaches under_bodysuit + boots_canvas_ankle
+     through the SAME attachPawnEquipmentSet path the world/creator use, then
+     frames the FEET and dumps a JSON scene report on window.__bootFitReport. -->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Boot fit lab</title>
+  <style>
+    html, body { margin: 0; background: #4a5560; color: #e8eef2; font: 12px/1.35 ui-monospace, monospace; }
+    #hud { position: fixed; left: 10px; top: 10px; z-index: 2; opacity: 0.95; white-space: pre; pointer-events: none; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="hud">loading…</div>
+  <script type="module">
+import { Color, PerspectiveCamera, Scene, SkinnedMesh, SRGBColorSpace, Vector3, WebGLRenderer, MeshMatcapMaterial, Mesh, AnimationMixer } from "three";
+import { loadPawnPack, clonePawnBody } from "/src/assets/pawnPack";
+import { attachPawnEquipmentSet, createPawnMatcapTexture } from "/src/render/pawns";
+import { equipmentSourceMaterialFromUserData, getEquipmentMaterialSets, resolveEquipmentSlotMaterial } from "/src/assets/equipmentMaterials";
+
+const params = new URLSearchParams(location.search);
+const az = Number(params.get("az") ?? "0");          // degrees around the doll
+const el = Number(params.get("el") ?? "10");
+const dist = Number(params.get("dist") ?? "0.9");
+const targetY = Number(params.get("ty") ?? "0.14");
+const pose = params.get("pose") ?? "idle";            // idle | walk_f | none
+
+const hud = document.getElementById("hud");
+const renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new Scene();
+scene.background = new Color("#5a6470");
+const camera = new PerspectiveCamera(30, innerWidth / innerHeight, 0.02, 50);
+
+const matcap = createPawnMatcapTexture();
+const pack = await loadPawnPack();
+const body = clonePawnBody(pack, "male");
+const skin = new MeshMatcapMaterial({ matcap, color: new Color("#ff2fa0") }); // magenta probe skin
+body.traverse((o) => { if (o instanceof SkinnedMesh) o.material = skin; });
+scene.add(body);
+
+const WORN = new Map([
+  ["under_bodysuit", ["#89cff0"]],
+  ["boots_canvas_ankle", ["#303030", "#808080"]],
+]);
+const attachments = [];
+const material = (item, source) =>
+  resolveEquipmentSlotMaterial(source, item, item.mat, { kind: "world", matcap }, WORN.get(item.id) ?? null);
+attachPawnEquipmentSet(pack, body, ["under_bodysuit", "boots_canvas_ankle"], material, attachments);
+await getEquipmentMaterialSets();
+for (const attachment of attachments) {
+  if (!(attachment instanceof Mesh)) continue;
+  const pieceId = attachment.userData.successorEquipmentItemId;
+  const item = pack.equipment.items.find((candidate) => candidate.id === pieceId);
+  if (!item) continue;
+  attachment.material = material(item, equipmentSourceMaterialFromUserData(attachment));
+}
+
+let mixer = null;
+if (pose !== "none") {
+  const clip = pack.clips.get(pose) ?? pack.clips.get("idle");
+  if (clip) {
+    mixer = new AnimationMixer(body);
+    mixer.clipAction(clip).play();
+    mixer.update(Number(params.get("t") ?? "0"));
+  }
+}
+body.updateMatrixWorld(true);
+
+// ---- runtime truth report -------------------------------------------------
+const report = { attachments: [], bodyScale: body.scale.x };
+for (const attachment of attachments) {
+  const entry = { name: attachment.name, type: attachment.type, visible: attachment.visible };
+  if (attachment instanceof Mesh) {
+    const geom = attachment.geometry;
+    entry.triangles = geom.index ? geom.index.count / 3 : geom.attributes.position.count / 3;
+    const mat = Array.isArray(attachment.material) ? attachment.material[0] : attachment.material;
+    entry.material = { name: mat?.name ?? "", color: mat && "color" in mat ? `#${mat.color.getHexString()}` : null, type: mat?.type ?? "" };
+    if (attachment instanceof SkinnedMesh) {
+      attachment.computeBoundingBox?.();
+      geom.computeBoundingBox();
+      entry.bindBounds = { min: geom.boundingBox.min.toArray(), max: geom.boundingBox.max.toArray() };
+    }
+  }
+  report.attachments.push(entry);
+}
+// posed-space truth: skin every vertex on CPU (three r150+ getVertexPosition)
+const posed = {};
+const v = new Vector3();
+for (const attachment of attachments) {
+  if (!(attachment instanceof SkinnedMesh)) continue;
+  const key = attachment.name;
+  const pos = attachment.geometry.attributes.position;
+  const bb = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
+  for (let i = 0; i < pos.count; i += 1) {
+    const by = pos.getY(i);
+    if (key.includes("bodysuit") && by > 0.30) continue; // feet region only
+    attachment.getVertexPosition(i, v);
+    attachment.localToWorld(v);
+    bb.min[0] = Math.min(bb.min[0], v.x); bb.min[1] = Math.min(bb.min[1], v.y); bb.min[2] = Math.min(bb.min[2], v.z);
+    bb.max[0] = Math.max(bb.max[0], v.x); bb.max[1] = Math.max(bb.max[1], v.y); bb.max[2] = Math.max(bb.max[2], v.z);
+  }
+  posed[key] = bb;
+}
+report.posedFeetBounds = posed;
+const hide = params.get("hide");
+if (hide) {
+  for (const attachment of attachments) {
+    if (attachment.name.includes(`boots_canvas_ankle_${hide}`)) attachment.visible = false;
+  }
+}
+window.__bootFitReport = report;
+hud.textContent = report.attachments.map((a) => `${a.name} tris=${a.triangles ?? "-"} mat=${a.material?.name ?? "-"} ${a.material?.color ?? ""}`).join("\n");
+
+function frame() {
+  requestAnimationFrame(frame);
+  const azr = az * Math.PI / 180, elr = el * Math.PI / 180;
+  const target = new Vector3(0, targetY, 0);
+  camera.position.set(
+    target.x + dist * Math.cos(elr) * Math.sin(azr),
+    target.y + dist * Math.sin(elr),
+    target.z + dist * Math.cos(elr) * Math.cos(azr),
+  );
+  camera.lookAt(target);
+  renderer.render(scene, camera);
+}
+frame();
+window.__bootFitReady = true;
+  </script>
+</body>
+</html>

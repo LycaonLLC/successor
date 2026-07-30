@@ -1,0 +1,55 @@
+{
+  "agent_provenance": {
+    "human_approvals": [],
+    "produced_by": [
+      {
+        "agent_instance_id": "CloneFacilityAsset",
+        "model": "Fable 5",
+        "provider": "anthropic",
+        "role": "content-author",
+        "run_id": "cloning-facility-20260716"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "CloneFacilityAsset",
+        "notes": "numeric parsed-GLB gates + multi-angle render review in .game-lab/cloning-facility-20260716/renders/",
+        "role": "judge"
+      }
+    ]
+  },
+  "asset_hash": "sha256:f7d03b0715d08dddfb18b1c37f7235cce1b7bb05aab5043e87f9c5ec3ca4809f",
+  "asset_id": "clone_terminal",
+  "asset_kind": "model_glb",
+  "asset_path": "client-3d/public/assets/world-items/clone_terminal.glb",
+  "gate_report": ".game-lab/cloning-facility-20260716/gate.json",
+  "human_edits": [],
+  "input_assets": [
+    {
+      "path": "client-3d/public/assets/world-items/house_h1_manifest.json",
+      "purpose": "structural_reference (shoulder-house language + door contract)"
+    },
+    {
+      "path": "tools/successor/extract-structure-collision.mjs",
+      "purpose": "collision_sidecar_contract"
+    }
+  ],
+  "prompt": {
+    "denylist_audit": "passed: no franchise/IP terms in names, materials, node names, or artifacts",
+    "text": "Hand-authored parametric part program (no generative model): Dustgate indoor clone terminal \u2014 clinical enamel spine with a steel crown band, neck-mounted angled cyan readout, palm-rest tray with a tag-reader ring, status lights, anchored base pads, floor cable foot with a collar. Grounded at y=0, ~1.74 m tall at pawn scale."
+  },
+  "regeneration_command": "/snap/bin/blender -b --factory-startup --python-exit-code 1 -P tools/successor/assets/build_cloning_facility.py",
+  "rights": {
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "source_license": "Successor proprietary project asset; all rights reserved"
+  },
+  "schema": "successor-asset-provenance/1",
+  "seed": null,
+  "source_blend_or_script": "tools/successor/assets/build_cloning_facility.py (deterministic parametric part program; no .blend needed)",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "tool_snapshot_id": "blender-5.2.0",
+    "version": "5.2.0"
+  },
+  "tri_count": 748
+}

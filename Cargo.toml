@@ -1,0 +1,62 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/successor-core",
+    "crates/successor-inventory",
+    "crates/successor-sim",
+    "crates/successor-net",
+    "crates/successor-wasm",
+]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+# Per ADR-0004 + research consolidation. Pinned `=` versions on the deterministic-substrate
+# dependencies; raising MSRV is a replay-breaking change that must regenerate golden vectors.
+rust-version = "1.83"
+
+[workspace.dependencies]
+# Determinism (per ADR-0004)
+fixed = "=1.28.0"            # raising to 1.31+ requires rustc 1.93; treat as replay-breaking
+rand = { version = "=0.8.5", default-features = false }
+rand_chacha = "=0.3.1"
+blake3 = { version = "=1.5.5", default-features = false, features = ["std"] }
+
+# Canonical serialization (ADR-0004): postcard for snapshots; serde for non-deterministic edges
+postcard = { version = "=1.1.3", default-features = false, features = ["alloc"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# Property + stateful testing (per ADR-0009)
+proptest = "=1.5.0"
+proptest-derive = "0.5"
+proptest-stateful = "0.1"
+# Evaluate `proptest-state-machine` for newer subsystems
+
+# WASM determinism audit (per ADR-0004)
+wasmparser = "0.219"
+wasm-bindgen = "0.2"
+wasm-bindgen-test = "=0.3.45"
+
+# Errors
+thiserror = "1"
+anyhow = "1"
+
+# Tracing
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+
+[profile.test]
+opt-level = 1
+
+# Determinism: no float ops in deterministic paths. Enforced by:
+#   - per-crate `#![deny(clippy::float_arithmetic)]`
+#   - workspace `clippy.toml` disallowed-types/methods
+#   - `tools/wasm-determinism-audit/` scanner over wasm32 outputs

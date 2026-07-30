@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "bench_welder",
+  "label": "Bench Welder",
+  "kind": "world_prop",
+  "glb": "bench_welder.glb",
+  "source_pack": "successor-content-wave-grok45-20260718",
+  "source_fbx": "props/successor/grok45-wave-20260718/profession-world-weapons/source/successor_profprop_rivet_heat_tool.blend",
+  "source_path": "props/successor/grok45-wave-20260718/profession-world-weapons/assets/successor_profprop_rivet_heat_tool.glb",
+  "content_hash_sha256": "1ce0aee01369be20cc83a7975dd9f78e5d537e566b920a6fe0eb51c0ed5d27b8",
+  "triangles": 9152,
+  "vertices": 4824,
+  "mesh_nodes": 5,
+  "materials": 5,
+  "bbox_gltf_m": { "min": [-0.339, 0, -0.272], "max": [0.339, 0.93, 0.698], "size": [0.678, 0.93, 0.97] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/reference/successor/combined-catalog-1000-20260719/catalog.csv",
+  "source_report": "props/successor/grok45-wave-20260718/profession-world-weapons/reports/successor_profprop_rivet_heat_tool.json",
+  "validation_pass": true
+}

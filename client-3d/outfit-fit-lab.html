@@ -1,0 +1,240 @@
+<!doctype html>
+<!-- outfit-fit-lab.html — keeper chef A classic only + toque SNAP. -->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Outfit fit lab</title>
+  <style>
+    html, body { margin: 0; background: #4a5560; color: #e8eef2; font: 12px/1.35 ui-monospace, monospace; }
+    #hud { position: fixed; left: 10px; top: 10px; z-index: 2; opacity: 0.9; white-space: pre; pointer-events: none; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="hud">loading…</div>
+  <script type="module">
+import {
+  Bone,
+  Color,
+  Group,
+  Mesh,
+  MeshBasicMaterial,
+  MeshMatcapMaterial,
+  PerspectiveCamera,
+  Scene,
+  Skeleton,
+  SkinnedMesh,
+  SRGBColorSpace,
+  Texture,
+  Vector3,
+  WebGLRenderer,
+  CanvasTexture,
+} from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { loadPawnPack, clonePawnBody } from "/src/assets/pawnPack";
+
+const OUTFITS = [
+  {
+    id: "chef_A_classic",
+    label: "A CLASSIC CHEF (keeper)",
+    pieces: [
+      "/outfit-lab-assets/chef_A_jacket.glb",
+      "/outfit-lab-assets/chef_A_apron.glb",
+      "/outfit-lab-assets/chef_A_pants.glb",
+      "/outfit-lab-assets/chef_A_necker.glb",
+    ],
+    hat: "/hat-lab-assets/chef_toque.glb",
+  },
+];
+
+const params = new URLSearchParams(location.search);
+const index = 0;
+const entry = OUTFITS[index];
+
+const hud = document.getElementById("hud");
+const renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new Scene();
+scene.background = new Color("#5a6470");
+const camera = new PerspectiveCamera(35, innerWidth / innerHeight, 0.05, 50);
+
+function makeMatcap() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const g = ctx.createRadialGradient(size * 0.36, size * 0.32, size * 0.06, size * 0.5, size * 0.5, size * 0.62);
+  g.addColorStop(0, "#ffffff");
+  g.addColorStop(0.35, "#cfd2d6");
+  g.addColorStop(0.75, "#7c7f85");
+  g.addColorStop(1, "#3c3e44");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+const matcap = makeMatcap();
+const bodyMaterial = new MeshMatcapMaterial({ matcap, color: new Color("#c99578") });
+
+const pack = await loadPawnPack();
+const root = clonePawnBody(pack, "male");
+root.traverse((o) => {
+  if (o instanceof Mesh) {
+    o.material = bodyMaterial.clone();
+    o.frustumCulled = false;
+  }
+});
+const group = new Group();
+group.add(root);
+scene.add(group);
+group.updateMatrixWorld(true);
+
+function boneMap(bodyRoot) {
+  const liveBones = new Map();
+  bodyRoot.traverse((object) => {
+    if (object instanceof Bone) {
+      liveBones.set(object.name.toLowerCase(), object);
+      liveBones.set(object.name.replace(/[.:]/g, "_").toLowerCase(), object);
+    }
+  });
+  return liveBones;
+}
+
+function unlitFrom(source) {
+  const material = new MeshBasicMaterial({ fog: false });
+  if (source && "map" in source && source.map instanceof Texture) {
+    source.map.colorSpace = SRGBColorSpace;
+    material.map = source.map;
+  }
+  if (source && "color" in source && source.color) {
+    material.color.copy(source.color);
+  } else if (!material.map) {
+    material.color.set("#e8e0d4");
+  }
+  return material;
+}
+
+function sane(name) {
+  return name.replace(/[.:]/g, "_");
+}
+
+function attachSkinnedGlb(gltfScene, liveBones, id) {
+  const meshes = [];
+  gltfScene.traverse((object) => {
+    if (object instanceof SkinnedMesh) meshes.push(object);
+  });
+  let attached = 0;
+  for (const mesh of meshes) {
+    const bones = [];
+    let missing = false;
+    for (const sourceBone of mesh.skeleton.bones) {
+      const liveBone =
+        liveBones.get(sourceBone.name.toLowerCase()) ||
+        liveBones.get(sane(sourceBone.name).toLowerCase());
+      if (!liveBone) {
+        missing = true;
+        break;
+      }
+      bones.push(liveBone);
+    }
+    if (missing || bones.length === 0) continue;
+    const skeleton = new Skeleton(
+      bones,
+      mesh.skeleton.boneInverses.map((inv) => inv.clone()),
+    );
+    mesh.material = Array.isArray(mesh.material)
+      ? mesh.material.map(unlitFrom)
+      : unlitFrom(mesh.material);
+    mesh.frustumCulled = false;
+    mesh.name = `equipment:${id}:${mesh.name || "mesh"}`;
+    root.add(mesh);
+    mesh.bind(skeleton, mesh.bindMatrix.clone());
+    attached += 1;
+  }
+  return attached;
+}
+
+function snapHat(gltfScene, liveBones, id) {
+  const bone = liveBones.get("head");
+  if (!bone) throw new Error("head bone missing");
+  const hatRoot = new Group();
+  hatRoot.name = `equipment:${id}`;
+  hatRoot.add(gltfScene);
+  hatRoot.traverse((object) => {
+    if (!(object instanceof Mesh)) return;
+    object.material = Array.isArray(object.material)
+      ? object.material.map(unlitFrom)
+      : unlitFrom(object.material);
+    object.frustumCulled = false;
+  });
+  bone.add(hatRoot);
+  hatRoot.position.set(0, 0, 0);
+  hatRoot.rotation.set(0, 0, 0);
+  bone.updateWorldMatrix(true, false);
+  const worldScale = new Vector3();
+  bone.getWorldScale(worldScale);
+  hatRoot.scale.setScalar(1 / (worldScale.x || 1));
+  hatRoot.updateMatrixWorld(true);
+}
+
+const loader = new GLTFLoader();
+const liveBones = boneMap(root);
+const attachLog = [];
+
+for (const url of entry.pieces) {
+  try {
+    const gltf = await loader.loadAsync(url + "?t=" + Date.now());
+    const n = attachSkinnedGlb(gltf.scene, liveBones, url.split("/").pop());
+    attachLog.push(`${url.split("/").pop()}: ${n} skinned`);
+  } catch (err) {
+    attachLog.push(`${url}: FAIL ${err.message || err}`);
+  }
+}
+try {
+  const gltf = await loader.loadAsync(entry.hat + "?t=" + Date.now());
+  snapHat(gltf.scene, liveBones, "chef_toque");
+  attachLog.push("chef_toque: SNAP head");
+} catch (err) {
+  attachLog.push(`hat FAIL ${err.message || err}`);
+}
+
+group.updateMatrixWorld(true);
+
+function frameBody(mode = "threeq") {
+  const pelvis = liveBones.get("pelvis");
+  const head = liveBones.get("head");
+  const p = new Vector3(0, 1.0 * pack.scale, 0);
+  const h = new Vector3(0, 1.6 * pack.scale, 0);
+  if (pelvis) pelvis.getWorldPosition(p);
+  if (head) head.getWorldPosition(h);
+  const mid = p.clone().lerp(h, 0.45);
+  const height = Math.max(0.9, h.y - p.y + 0.35);
+  if (mode === "front") camera.position.set(mid.x, mid.y, mid.z + height * 2.1);
+  else if (mode === "side") camera.position.set(mid.x + height * 2.1, mid.y, mid.z);
+  else camera.position.set(mid.x + height * 1.35, mid.y + 0.1, mid.z + height * 1.55);
+  camera.lookAt(mid);
+}
+
+const view = params.get("view") || "threeq";
+frameBody(view);
+hud.textContent = `${entry.label}\nskinned + textured details · pack.scale=${pack.scale.toFixed(4)}\n${attachLog.join("\n")}\n?view=front|side|threeq`;
+window.__outfitFit = { ready: true, entry: entry.id, attachLog, packScale: pack.scale, view };
+
+function tick() {
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+tick();
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+  </script>
+</body>
+</html>

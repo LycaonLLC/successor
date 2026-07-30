@@ -1,0 +1,7 @@
+# Copy to backend.hcl after the first local-state apply.
+# Do not commit backend.hcl or credentials.
+bucket       = "REPLACE_WITH_STATE_BUCKET_NAME"
+key          = "successor/bootstrap/terraform.tfstate"
+region       = "REPLACE_WITH_EXPLICIT_AWS_REGION"
+encrypt      = true
+use_lockfile = true

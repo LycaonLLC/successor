@@ -1,0 +1,612 @@
+{
+  "version": "lycaon-character-animation/1",
+  "skeleton": {
+    "profile": "ue5_mannequin_50",
+    "split_root": "spine_03",
+    "finger_bones": 30,
+    "has_spine_02": false,
+    "has_toe": false,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine_01",
+      "spine_03",
+      "neck_01",
+      "head",
+      "clavicle_l",
+      "upperarm_l",
+      "lowerarm_l",
+      "hand_l",
+      "index_01_l",
+      "index_02_l",
+      "index_03_l",
+      "middle_01_l",
+      "middle_02_l",
+      "middle_03_l",
+      "ring_01_l",
+      "ring_02_l",
+      "ring_03_l",
+      "pinky_01_l",
+      "pinky_02_l",
+      "pinky_03_l",
+      "thumb_01_l",
+      "thumb_02_l",
+      "thumb_03_l",
+      "clavicle_r",
+      "upperarm_r",
+      "lowerarm_r",
+      "hand_r",
+      "index_01_r",
+      "index_02_r",
+      "index_03_r",
+      "middle_01_r",
+      "middle_02_r",
+      "middle_03_r",
+      "ring_01_r",
+      "ring_02_r",
+      "ring_03_r",
+      "pinky_01_r",
+      "pinky_02_r",
+      "pinky_03_r",
+      "thumb_01_r",
+      "thumb_02_r",
+      "thumb_03_r",
+      "thigh_l",
+      "calf_l",
+      "foot_l",
+      "thigh_r",
+      "calf_r",
+      "foot_r"
+    ]
+  },
+  "masks": {
+    "upper": [
+      "spine_03",
+      "neck_01",
+      "head",
+      "clavicle_l",
+      "upperarm_l",
+      "lowerarm_l",
+      "hand_l",
+      "index_01_l",
+      "index_02_l",
+      "index_03_l",
+      "middle_01_l",
+      "middle_02_l",
+      "middle_03_l",
+      "ring_01_l",
+      "ring_02_l",
+      "ring_03_l",
+      "pinky_01_l",
+      "pinky_02_l",
+      "pinky_03_l",
+      "thumb_01_l",
+      "thumb_02_l",
+      "thumb_03_l",
+      "clavicle_r",
+      "upperarm_r",
+      "lowerarm_r",
+      "hand_r",
+      "index_01_r",
+      "index_02_r",
+      "index_03_r",
+      "middle_01_r",
+      "middle_02_r",
+      "middle_03_r",
+      "ring_01_r",
+      "ring_02_r",
+      "ring_03_r",
+      "pinky_01_r",
+      "pinky_02_r",
+      "pinky_03_r",
+      "thumb_01_r",
+      "thumb_02_r",
+      "thumb_03_r"
+    ],
+    "lower": [
+      "root",
+      "pelvis",
+      "spine_01",
+      "thigh_l",
+      "calf_l",
+      "foot_l",
+      "thigh_r",
+      "calf_r",
+      "foot_r"
+    ],
+    "arm": [
+      "clavicle_l",
+      "upperarm_l",
+      "lowerarm_l",
+      "hand_l",
+      "index_01_l",
+      "index_02_l",
+      "index_03_l",
+      "middle_01_l",
+      "middle_02_l",
+      "middle_03_l",
+      "ring_01_l",
+      "ring_02_l",
+      "ring_03_l",
+      "pinky_01_l",
+      "pinky_02_l",
+      "pinky_03_l",
+      "thumb_01_l",
+      "thumb_02_l",
+      "thumb_03_l",
+      "clavicle_r",
+      "upperarm_r",
+      "lowerarm_r",
+      "hand_r",
+      "index_01_r",
+      "index_02_r",
+      "index_03_r",
+      "middle_01_r",
+      "middle_02_r",
+      "middle_03_r",
+      "ring_01_r",
+      "ring_02_r",
+      "ring_03_r",
+      "pinky_01_r",
+      "pinky_02_r",
+      "pinky_03_r",
+      "thumb_01_r",
+      "thumb_02_r",
+      "thumb_03_r"
+    ],
+    "hand": [
+      "hand_l",
+      "hand_r",
+      "index_01_l",
+      "index_02_l",
+      "index_03_l",
+      "middle_01_l",
+      "middle_02_l",
+      "middle_03_l",
+      "ring_01_l",
+      "ring_02_l",
+      "ring_03_l",
+      "pinky_01_l",
+      "pinky_02_l",
+      "pinky_03_l",
+      "thumb_01_l",
+      "thumb_02_l",
+      "thumb_03_l",
+      "index_01_r",
+      "index_02_r",
+      "index_03_r",
+      "middle_01_r",
+      "middle_02_r",
+      "middle_03_r",
+      "ring_01_r",
+      "ring_02_r",
+      "ring_03_r",
+      "pinky_01_r",
+      "pinky_02_r",
+      "pinky_03_r",
+      "thumb_01_r",
+      "thumb_02_r",
+      "thumb_03_r"
+    ],
+    "hand_no_trigger": [
+      "hand_l",
+      "hand_r",
+      "middle_01_l",
+      "middle_02_l",
+      "middle_03_l",
+      "ring_01_l",
+      "ring_02_l",
+      "ring_03_l",
+      "pinky_01_l",
+      "pinky_02_l",
+      "pinky_03_l",
+      "thumb_01_l",
+      "thumb_02_l",
+      "thumb_03_l",
+      "middle_01_r",
+      "middle_02_r",
+      "middle_03_r",
+      "ring_01_r",
+      "ring_02_r",
+      "ring_03_r",
+      "pinky_01_r",
+      "pinky_02_r",
+      "pinky_03_r",
+      "thumb_01_r",
+      "thumb_02_r",
+      "thumb_03_r"
+    ],
+    "arm_l": [
+      "clavicle_l",
+      "upperarm_l",
+      "lowerarm_l",
+      "hand_l",
+      "index_01_l",
+      "index_02_l",
+      "index_03_l",
+      "middle_01_l",
+      "middle_02_l",
+      "middle_03_l",
+      "ring_01_l",
+      "ring_02_l",
+      "ring_03_l",
+      "pinky_01_l",
+      "pinky_02_l",
+      "pinky_03_l",
+      "thumb_01_l",
+      "thumb_02_l",
+      "thumb_03_l"
+    ]
+  },
+  "layers": [
+    {
+      "name": "base",
+      "priority": 0,
+      "blend": "override"
+    },
+    {
+      "name": "upper",
+      "priority": 1,
+      "blend": "override",
+      "mask": "upper"
+    },
+    {
+      "name": "additive",
+      "priority": 2,
+      "blend": "additive"
+    },
+    {
+      "name": "hand",
+      "priority": 3,
+      "blend": "override",
+      "mask": "hand"
+    },
+    {
+      "name": "montage",
+      "priority": 4,
+      "blend": "override",
+      "mask": "upper"
+    },
+    {
+      "name": "arm",
+      "priority": 5,
+      "blend": "override",
+      "mask": "arm_l"
+    }
+  ],
+  "procedural": {
+    "torso_yaw": {
+      "spine_01": 0.25,
+      "spine_03": 0.6,
+      "neck_01": 0.15,
+      "max_deg": 45
+    }
+  },
+  "clips": {
+    "idle": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "walk_f": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "run_f": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "walk_b": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "rifle_idle": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "rifle_walk_f": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "rifle_run_f": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "strafe_l": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "strafe_r": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "crouch_idle": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "crouch_walk": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "rifle_aim": {
+      "layer": "upper",
+      "mask": "upper",
+      "loop": false,
+      "mode": "hold",
+      "hold_frac": 0.85,
+      "weapon": "slugthrower"
+    },
+    "rifle_fire": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "oneshot": true,
+      "weapon": "slugthrower",
+      "events": {
+        "shot_s": 0.3
+      }
+    },
+    "reload": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "oneshot": true,
+      "weapon": "slugthrower",
+      "events": {
+        "mag_eject_s": 1.6,
+        "mag_insert_s": 2.067
+      }
+    },
+    "gun_grip_trigger_discipline": {
+      "layer": "hand",
+      "mask": "hand",
+      "loop": false,
+      "mode": "hold",
+      "grip": "rifle"
+    },
+    "melee_idle": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true,
+      "weapon": "vibrosword"
+    },
+    "melee_walk_f": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true,
+      "weapon": "vibrosword"
+    },
+    "melee_run_f": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true,
+      "weapon": "vibrosword"
+    },
+    "melee_ready": {
+      "layer": "upper",
+      "mask": "upper",
+      "loop": false,
+      "mode": "hold",
+      "hold_frac": 0.5,
+      "weapon": "vibrosword"
+    },
+    "melee_grip": {
+      "layer": "hand",
+      "mask": "hand",
+      "loop": false,
+      "mode": "hold",
+      "grip": "melee",
+      "weapon": "vibrosword"
+    },
+    "melee_draw": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "oneshot": true,
+      "weapon": "vibrosword",
+      "events": {
+        "draw_s": 0.42
+      }
+    },
+    "melee_sheath": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "oneshot": true,
+      "weapon": "vibrosword",
+      "events": {
+        "sheath_s": 0.42
+      }
+    },
+    "melee_draw_alt": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "oneshot": true,
+      "weapon": "vibrosword",
+      "reserved": true
+    },
+    "swing_h1": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "oneshot": true,
+      "weapon": "vibrosword"
+    },
+    "swing_h2": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "oneshot": true,
+      "weapon": "vibrosword"
+    },
+    "swing_h3": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "oneshot": true,
+      "weapon": "vibrosword"
+    },
+    "swing_thrust": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "oneshot": true,
+      "weapon": "vibrosword"
+    },
+    "melee_flinch": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "oneshot": true
+    },
+    "block_hold": {
+      "layer": "upper",
+      "mask": "upper",
+      "loop": false,
+      "mode": "hold",
+      "hold_frac": 0.95,
+      "weapon": "vibrosword",
+      "reserved": true
+    },
+    "swing_spin_aoe": {
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "oneshot": true,
+      "weapon": "vibrosword",
+      "reserved": true
+    },
+    "melee_strafe_l": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true,
+      "weapon": "vibrosword"
+    },
+    "melee_strafe_r": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true,
+      "weapon": "vibrosword"
+    },
+    "melee_walk_v2": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true,
+      "weapon": "vibrosword"
+    },
+    "melee_run_v2": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true,
+      "weapon": "vibrosword"
+    },
+    "melee_turn_180": {
+      "layer": "base",
+      "mask": null,
+      "loop": false,
+      "in_place": true,
+      "weapon": "vibrosword"
+    },
+    "melee_turn_90": {
+      "layer": "base",
+      "mask": null,
+      "loop": false,
+      "in_place": true,
+      "weapon": "vibrosword"
+    },
+    "death_f": {
+      "layer": "base",
+      "mask": "full",
+      "loop": false,
+      "clamp_when_finished": true,
+      "in_place": true
+    },
+    "death_b": {
+      "layer": "base",
+      "mask": "full",
+      "loop": false,
+      "clamp_when_finished": true,
+      "in_place": true
+    },
+    "meditate_loop": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "kneel_loop": {
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "in_place": true
+    },
+    "cast_aoe": {
+      "layer": "montage",
+      "mask": "full",
+      "loop": false,
+      "oneshot": true,
+      "clamp_when_finished": true
+    },
+    "cast_directed_windup": {
+      "layer": "montage",
+      "mask": "full",
+      "loop": false,
+      "oneshot": true,
+      "clamp_when_finished": true,
+      "chains_to": "cast_directed_loop"
+    },
+    "cast_directed_loop": {
+      "layer": "montage",
+      "mask": "full",
+      "loop": true,
+      "mode": "hold"
+    },
+    "stim_inject": {
+      "layer": "arm",
+      "mask": "arm_l",
+      "loop": false,
+      "oneshot": true
+    }
+  },
+  "weapons": {
+    "slugthrower": {
+      "spec": "slugthrower_attach.json",
+      "attach": "two_hand",
+      "hands": {
+        "grip": "hand_r",
+        "foregrip": "hand_l"
+      },
+      "_note": "Canonical attach data is the referenced spec (weapon-GLB-local glTF space): sockets grip/foregrip/muzzle + orientation.forward(barrel)/up + aim_defaults. tmp_solve_aim.py consumes it; its spec-vs-measured delta (<1mm) only confirms glTF<->Blender conversion and no drift from the seeding heuristic -- it does NOT prove the points are semantically the visible grip/foregrip (same heuristic on both sides). Socket identity needs per-weapon VISUAL confirmation. NOT yet consumed by the three.js viewer -- viewer/anim_preview/app.js currently HARDCODES its own weapon socket pos/quat constants (~line 473, eye-tuned). Wiring the viewer to read this spec is pending (the 'wire solved aim into viewer' task)."
+    }
+  }
+}

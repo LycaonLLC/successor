@@ -1,0 +1,26 @@
+# Keep the build context reproducible and exclude local state/credentials.
+.git
+.game-lab
+node_modules
+**/node_modules
+**/dist
+**/target
+server/.local-state
+server/data
+verification/ledgers
+.env
+.env.*
+*.log
+.DS_Store
+
+# The authority image builds only server, shared headless client, Rust crates,
+# the checked-in slice, and the denylist. Keep graphical/download authoring
+# trees out of the Docker context; they are packaged by the client release lane.
+client-3d
+client-tui
+desktop
+site
+content-pipeline
+docs
+spec
+verification

@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "bench_flame_unit",
+  "label": "Bench Flame Unit",
+  "kind": "world_prop",
+  "glb": "bench_flame_unit.glb",
+  "source_pack": "successor-content-wave-grok45-20260718",
+  "source_fbx": "props/successor/grok45-wave-20260718/profession-world-weapons/source/successor_profprop_heat_exchange_stove.blend",
+  "source_path": "props/successor/grok45-wave-20260718/profession-world-weapons/assets/successor_profprop_heat_exchange_stove.glb",
+  "content_hash_sha256": "16fb8749994735fa5afe835a65e44268586a51f13ef5496bb366ebdcde5d96fe",
+  "triangles": 8144,
+  "vertices": 4232,
+  "mesh_nodes": 5,
+  "materials": 5,
+  "bbox_gltf_m": { "min": [-0.34, -0.001533, -0.418], "max": [0.321159, 1.785, 0.259591], "size": [0.661159, 1.786533, 0.677591] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/reference/successor/combined-catalog-1000-20260719/catalog.csv",
+  "source_report": "props/successor/grok45-wave-20260718/profession-world-weapons/reports/successor_profprop_heat_exchange_stove.json",
+  "validation_pass": true
+}

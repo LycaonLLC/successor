@@ -1,0 +1,51 @@
+{
+  "agent_provenance": {
+    "human_approvals": [],
+    "produced_by": [
+      {
+        "agent_instance_id": "CommerceTerminalBuilder",
+        "model": "Fable 5",
+        "provider": "anthropic",
+        "role": "content-author",
+        "run_id": "commerce-terminals-20260718"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "CommerceTerminalBuilder",
+        "notes": "numeric parsed-GLB gates + multi-pass studio render/crop review in .game-lab/commerce-terminals-20260718/renders/",
+        "role": "judge"
+      }
+    ]
+  },
+  "asset_hash": "sha256:237c21c6284b7f6617ae4bc7fbff3e8230888064a6bf5f240c3389abce15086a",
+  "asset_id": "pa_terminal",
+  "asset_kind": "model_glb",
+  "asset_path": "client-3d/public/assets/world-items/pa_terminal.glb",
+  "gate_report": ".game-lab/commerce-terminals-20260718/gate.json",
+  "human_edits": [],
+  "input_assets": [
+    {
+      "path": "tools/successor/assets/build_cloning_facility.py",
+      "purpose": "design-language + gate/manifest contract reference (shoulder-house civic props)"
+    }
+  ],
+  "prompt": {
+    "denylist_audit": "passed: no franchise/IP terms and no baked words in names, materials, node names, textures, or artifacts",
+    "text": "Hand-authored parametric part program (no generative model): Dustgate association registry terminal \u2014 civic roster pylon: chamfered basalt feet with anchor studs, a ceramic slab in profiled basalt pilasters under a stepped cornice with a recessed cyan beacon cove, a layered brass identity seal on an ink backplate with a cyan halo ring (geometric, no words), a stepped-bezel portrait roster screen with side control keys and speaker louvers, and a reader podium with a two-step brass tap disc and amber slit. Fully serviced back: deep recessed notice panel with riveted frame, hinged access hatch, louvered vents, clipped conduit with junction box. UV-backed procedural PBR maps (baseColor + metallicRoughness + normal, deterministic seeds), non-text emissive screen UI, shared Dustgate civic commerce palette."
+  },
+  "regeneration_command": "/snap/bin/blender -b --factory-startup --python-exit-code 1 -P tools/successor/assets/build_commerce_terminals.py",
+  "rights": {
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "source_license": "Successor proprietary project asset; all rights reserved"
+  },
+  "schema": "successor-asset-provenance/1",
+  "seed": "deterministic numpy seeds 2026071801..05 + per-screen layout constants",
+  "source_blend_or_script": "tools/successor/assets/build_commerce_terminals.py (deterministic parametric part program; no .blend needed)",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "tool_snapshot_id": "blender-5.2.0",
+    "version": "5.2.0"
+  },
+  "tri_count": 4608
+}

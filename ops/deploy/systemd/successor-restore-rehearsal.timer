@@ -1,0 +1,11 @@
+[Unit]
+Description=Monthly isolated Successor restore rehearsal
+
+[Timer]
+OnCalendar=*-*-01 03:30:00 UTC
+Persistent=true
+RandomizedDelaySec=30m
+Unit=successor-restore-rehearsal.service
+
+[Install]
+WantedBy=timers.target

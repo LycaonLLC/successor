@@ -1,0 +1,76 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "resource-land-restart-persistence",
+  "fixture": "open-desert-core-world-restart",
+  "persistence": true,
+  "lanes": ["accel"],
+  "tags": ["restart", "extraction", "farming_land", "resource-land", "bounded"],
+  "actors": {
+    "core": { "character": "fixture:core", "spawn": { "areaId": "open-desert-overworld", "x": 804, "y": 808, "facing": "left" } }
+  },
+  "bootstrap": {
+    "debugAuthority": true,
+    "note": "Declared setup only: provision the extractor, encoded battery, irrigation structure, and gene sampler; then establish a real registered ashgrain genome via GeneSample before any measured assertion. No debug authority command occurs after restart.",
+    "commands": ["DebugGiveItem:3006", "DebugGiveItem:3201@32008640", "DebugGiveItem:6301", "DebugGiveItem:6201", "GeneSample:ashgrain"]
+  },
+  "steps": [
+    { "command": { "actor": "core", "body": { "DebugGiveItem": { "item_id": 3006, "variant_id": 500, "quantity": 1, "equip": false } }, "as": "bootstrapExtractor" } },
+    { "command": { "actor": "core", "body": { "DebugGiveItem": { "item_id": 3201, "variant_id": 32008640, "quantity": 1, "equip": false } }, "as": "bootstrapBattery" } },
+    { "command": { "actor": "core", "body": { "DebugGiveItem": { "item_id": 6301, "variant_id": 0, "quantity": 1, "equip": false } }, "as": "bootstrapSprinkler" } },
+    { "command": { "actor": "core", "body": { "DebugGiveItem": { "item_id": 6201, "variant_id": 0, "quantity": 1, "equip": false } }, "as": "bootstrapGeneSampler" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "core-restart:field-pack", "itemId": 6201, "match": { "available": 1 } }, "timeoutMs": 10000, "as": "geneSamplerBeforeSample" } },
+    { "command": { "actor": "core", "body": { "GeneSample": { "species": "ashgrain" } }, "as": "bootstrapAshgrainGenome" } },
+    { "expect": { "kind": "captureCompare", "capture": "bootstrapAshgrainGenome", "path": "commandKind", "op": "eq", "value": "GeneSample" } },
+    { "expect": { "kind": "captureCompare", "capture": "bootstrapAshgrainGenome", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "core-restart:field-pack", "itemId": 6001, "variantId": 1, "minAvailable": 1, "match": { "available": { "op": "gte", "value": 1 }, "variantId": 1 } }, "timeoutMs": 10000, "as": "registeredAshgrainSeed" } },
+
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "core-restart:field-pack", "itemId": 3006, "match": { "available": 1 } }, "timeoutMs": 10000, "as": "extractorToolBefore" } },
+    { "send": { "actor": "core", "line": "/place-extractor metal", "as": "placeExtractor" } },
+    { "await": { "kind": "receipt", "actor": "core", "match": { "commandId": "$captures.placeExtractor.data.commandId", "commandKind": "PlaceExtractor", "accepted": true }, "timeoutMs": 10000, "as": "placeExtractorReceipt" } },
+    { "await": { "kind": "oracle", "condition": { "placedExtractors[0].extractorId": "extractor:core-restart:1", "placedExtractors[0].mode": "idle", "placedExtractors[0].collectableUnits": 0 }, "timeoutMs": 10000, "as": "extractorPlacedBeforeBattery" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "core-restart:field-pack", "itemId": 3201, "match": { "available": 1 } }, "timeoutMs": 10000, "as": "batteryBeforeInsert" } },
+    { "send": { "actor": "core", "line": "/insert-battery extractor:core-restart:1 $captures.batteryBeforeInsert.container $captures.batteryBeforeInsert.stackId $captures.batteryBeforeInsert.variantId", "as": "insertBattery" } },
+    { "await": { "kind": "receipt", "actor": "core", "match": { "commandId": "$captures.insertBattery.data.commandId", "commandKind": "InsertBattery", "accepted": true }, "timeoutMs": 10000, "as": "insertBatteryReceipt" } },
+    { "await": { "kind": "oracle", "condition": { "placedExtractors[0].extractorId": "extractor:core-restart:1", "placedExtractors[0].mode": "battery", "placedExtractors[0].batteryPct": { "op": "gt", "value": 0 } }, "timeoutMs": 10000, "as": "batteryStateBefore" } },
+    { "await": { "kind": "oracle", "condition": { "type": "extractorCollectableUnits", "extractorId": "extractor:core-restart:1", "min": 1 }, "timeoutMs": 40000, "as": "extractorHopperBefore" } },
+
+    { "action": { "name": "moveTo", "actor": "core", "args": { "cell": { "x": 804, "y": 808 }, "toleranceCells": 0.9, "maxPulses": 420 } }, "as": "moveToParcel" },
+    { "action": { "name": "claimParcel", "actor": "core", "args": { "planetId": "ashvat", "areaId": "open-desert-overworld", "x": 803, "y": 802, "tier": "homestead" } }, "as": "parcelBeforeRestart" },
+    { "action": { "name": "placeFarmStructure", "actor": "core", "args": { "parcelId": "$captures.parcelBeforeRestart.result.parcel.parcelId", "structureItemId": 6301, "cell": { "x": 804, "y": 808 } } }, "as": "farmStructureBeforeRestart" },
+    { "action": { "name": "tillTile", "actor": "core", "args": { "parcelId": "$captures.parcelBeforeRestart.result.parcel.parcelId", "cell": { "x": 804, "y": 808 } } }, "as": "tileTilledBeforeRestart" },
+    { "action": { "name": "plantSeed", "actor": "core", "args": { "parcelId": "$captures.parcelBeforeRestart.result.parcel.parcelId", "cell": { "x": 804, "y": 808 }, "seed": { "itemId": 6001, "minAvailable": 1, "species": "ashgrain", "container": "$captures.registeredAshgrainSeed.container", "stackId": "$captures.registeredAshgrainSeed.stackId", "variantId": "$captures.registeredAshgrainSeed.variantId" } } }, "as": "cropPlantedBeforeRestart" },
+    { "send": { "actor": "core", "line": "/tend-plot parcel_id=$captures.parcelBeforeRestart.result.parcel.parcelId", "as": "tendPlot" } },
+    { "await": { "kind": "receipt", "actor": "core", "match": { "commandId": "$captures.tendPlot.data.commandId", "commandKind": "TendPlot", "accepted": true }, "timeoutMs": 10000, "as": "tendingBeforeRestart" } },
+    { "await": { "kind": "oracle", "condition": { "type": "farmTile", "parcelId": "$captures.parcelBeforeRestart.result.parcel.parcelId", "cellX": 804, "cellY": 808, "match": { "tilled": true, "crop.species": "ashgrain", "moisturePct": { "op": "gt", "value": 0 } } }, "timeoutMs": 10000, "as": "farmTileBeforeRestart" } },
+    { "await": { "kind": "oracle", "condition": { "type": "extractorCollectableUnits", "extractorId": "extractor:core-restart:1", "min": 1 }, "timeoutMs": 10000, "as": "extractorBeforeRestart" } },
+
+    { "restart": { "as": "restartEvidence", "timeoutMs": 30000 } },
+    { "expect": { "kind": "captureCompare", "capture": "restartEvidence", "path": "oldProcess.mainPid", "op": "exists", "value": true } },
+    { "expect": { "kind": "captureCompare", "capture": "restartEvidence", "path": "newProcess.mainPid", "op": "ne", "value": "$captures.restartEvidence.oldProcess.mainPid" } },
+    { "expect": { "kind": "captureCompare", "capture": "restartEvidence", "path": "checkpoint.checkpoint.tick", "op": "exists", "value": true } },
+
+    { "await": { "kind": "oracle", "condition": { "placedExtractors[0].extractorId": "$captures.extractorBeforeRestart.extractorId", "placedExtractors[0].mode": "$captures.extractorBeforeRestart.mode", "placedExtractors[0].batteryPct": { "op": "lte", "value": "$captures.extractorBeforeRestart.batteryPct" }, "placedExtractors[0].hopperPct": "$captures.extractorBeforeRestart.hopperPct", "placedExtractors[0].collectableUnits": { "op": "gte", "value": "$captures.extractorBeforeRestart.collectableUnits" } }, "timeoutMs": 10000, "as": "extractorAfterRestart" } },
+    { "send": { "actor": "core", "line": "/tend-plot parcel_id=$captures.parcelBeforeRestart.result.parcel.parcelId", "as": "tendAfterRestart" } },
+    { "await": { "kind": "receipt", "actor": "core", "match": { "commandId": "$captures.tendAfterRestart.data.commandId", "commandKind": "TendPlot", "accepted": true }, "timeoutMs": 10000, "as": "parcelOwnershipAfterRestart" } },
+    { "await": { "kind": "oracle", "condition": { "type": "farmTile", "parcelId": "$captures.parcelBeforeRestart.result.parcel.parcelId", "cellX": 804, "cellY": 808, "match": { "tilled": "$captures.farmTileBeforeRestart.tilled", "crop.species": "$captures.farmTileBeforeRestart.crop.species", "crop.seedItemId": "$captures.farmTileBeforeRestart.crop.seedItemId", "crop.seedVariantId": "$captures.farmTileBeforeRestart.crop.seedVariantId", "moisturePct": "$captures.farmTileBeforeRestart.moisturePct" } }, "timeoutMs": 10000, "as": "farmTileAfterRestartExact" } },
+    { "await": { "kind": "oracle", "condition": { "placedParcels[0].parcelId": "$captures.parcelBeforeRestart.result.parcel.parcelId", "placedParcels[0].areaId": "open-desert-overworld", "placedParcels[0].tier": "homestead" }, "timeoutMs": 10000, "as": "parcelAfterRestart" } },
+    { "send": { "actor": "core", "line": "/tend-plot parcel_id=$captures.parcelBeforeRestart.result.parcel.parcelId stop=true", "as": "stopTendAfterRestart" } },
+    { "await": { "kind": "receipt", "actor": "core", "match": { "commandId": "$captures.stopTendAfterRestart.data.commandId", "commandKind": "TendPlot", "accepted": true }, "timeoutMs": 10000, "as": "stopTendAfterRestartReceipt" } },
+    { "send": { "actor": "core", "line": "/stand", "as": "standAfterRestart" } },
+    { "await": { "kind": "receipt", "actor": "core", "match": { "commandId": "$captures.standAfterRestart.data.commandId", "commandKind": "SetPosture", "accepted": true }, "timeoutMs": 10000, "as": "standAfterRestartReceipt" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "core-restart", "match": { "posture": "standing" } }, "timeoutMs": 10000, "as": "standingAfterRestart" } },
+
+    { "action": { "name": "moveTo", "actor": "core", "args": { "cell": { "x": "$captures.extractorBeforeRestart.cellX", "y": "$captures.extractorBeforeRestart.cellY" }, "toleranceCells": 0.5, "maxPulses": 420 } }, "as": "moveToExtractorApproachAfterRestart" },
+    { "action": { "name": "moveTo", "actor": "core", "args": { "cell": { "x": "$captures.extractorBeforeRestart.cellX", "y": "$captures.extractorBeforeRestart.cellY" }, "toleranceCells": 0.35, "maxPulses": 24, "sprint": false } }, "as": "moveToExtractorAfterRestart" },
+    { "query": { "actor": "core", "line": "/inv core-restart:resource-crate", "as": "resourcesBeforeCollectAfterRestart" } },
+    { "send": { "actor": "core", "line": "/collect-extractor extractor:core-restart:1", "as": "collectExtractorAfterRestart" } },
+    { "await": { "kind": "receipt", "actor": "core", "match": { "commandId": "$captures.collectExtractorAfterRestart.data.commandId", "commandKind": "CollectExtractor", "accepted": true }, "timeoutMs": 10000, "as": "extractorOwnershipAfterRestart" } },
+    { "query": { "actor": "core", "line": "/inv core-restart:resource-crate", "as": "resourcesAfterCollectAfterRestart" } },
+    { "expect": { "kind": "queryDelta", "from": "resourcesBeforeCollectAfterRestart", "to": "resourcesAfterCollectAfterRestart", "path": "data.totalAvailable", "op": "gte", "value": "$captures.extractorBeforeRestart.collectableUnits" } },
+
+    { "action": { "name": "removeFarmStructure", "actor": "core", "args": { "parcelId": "$captures.parcelBeforeRestart.result.parcel.parcelId", "structureId": "$captures.parcelBeforeRestart.result.parcel.parcelId:struct:1", "itemId": 6301 }, "as": "farmStructureAfterRestart" } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "resourceLandRestartStableHash" } }
+  ],
+  "notes": "Bounded restart proof for exactly extraction and farming_land. Declared bootstrap grants the extractor, encoded battery, irrigation sprinkler, and gene sampler; GeneSample then interns a real ashgrain genome through ordinary authority before PlantSeed. All measured mutations use ordinary authority actions and no debug command occurs after restart. Named captures cover extractor placement/ownership-by-owner operations, battery mode and percentage, nonzero hopper units, parcel identity, tending acceptance, tilled Ashgrain tile state, and post-restart exact land state. Because the extractor continues running during reconnect, post-restart battery is required positive and no greater than the captured value while collectable units are required to be no lower; owner-only collection proves ownership. Farm structure persistence is proved through the accepted owner-only RemoveFarmStructure after restart plus the helper's duplicate no_farm_structure rejection, rather than an unavailable public structures projection. Public oracle strips ownerActorId/isOwner for parcels; accepted owner-only TendPlot/CollectExtractor/RemoveFarmStructure receipts are the available ownership proofs."
+}
+

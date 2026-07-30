@@ -1,0 +1,53 @@
+{
+  "asset": "chair_frontier_b",
+  "atlas_px": 1024,
+  "bbox_max_m": [
+    0.3179999887943268,
+    0.7878643870353699,
+    0.328000009059906
+  ],
+  "bbox_min_m": [
+    -0.3179999887943268,
+    -0.0027546286582946777,
+    -0.32998913526535034
+  ],
+  "collision": {
+    "boxes": [
+      {
+        "id": "seat",
+        "max": [
+          0.318,
+          0.7879,
+          0.328
+        ],
+        "min": [
+          -0.318,
+          0.0,
+          -0.33
+        ]
+      }
+    ],
+    "note": "decorative trim never collides",
+    "space": "gltf-meters prop-local yaw-0"
+  },
+  "dims_m": {
+    "x": 0.636,
+    "y": 0.7906,
+    "z": 0.658
+  },
+  "front_axis": "+Z",
+  "gate": "gate_result.json",
+  "glb_sha256": "ba6d6901bfde01a5c858fb80db89b29f5e18dd5cb42bb59946fe5d55893c15f2",
+  "maps": [
+    "basecolor",
+    "normal(tangent)",
+    "orm(R=AO,G=rough,B=metal)",
+    "emissive"
+  ],
+  "material": "ChairFrontierB_PBR",
+  "object": "chair_frontier_b",
+  "set": "camp_frontier_v1",
+  "tri_count": 444,
+  "units": "m",
+  "unlit_note": "runtime world grade is unlit; BaseColor has AO folded in and ember emissive screened on top"
+}

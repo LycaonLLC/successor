@@ -1,0 +1,13 @@
+[package]
+name = "successor-inventory"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+successor-core = { path = "../successor-core" }
+thiserror.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true

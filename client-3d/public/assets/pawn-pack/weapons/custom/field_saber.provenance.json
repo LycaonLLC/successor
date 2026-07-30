@@ -1,0 +1,142 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "field_saber",
+  "asset_path": "client-3d/public/assets/pawn-pack/weapons/custom/field_saber.glb",
+  "asset_hash": "sha256:fbbb2d51e0fe55de028951ebd4ea3593f088922fae840eff28529f85a6c7e95f",
+  "asset_kind": "weapon_melee_glb",
+  "source": {
+    "glb": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/assets/field_saber.glb",
+      "sha256": "fbbb2d51e0fe55de028951ebd4ea3593f088922fae840eff28529f85a6c7e95f"
+    },
+    "review_bundle_glb": {
+      "path": "review-bundle:successor-cozy-asset-wave-20260712/assets/melee/field_saber.glb",
+      "sha256": "fbbb2d51e0fe55de028951ebd4ea3593f088922fae840eff28529f85a6c7e95f"
+    },
+    "builder": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/build.py",
+      "sha256": "fa6d78d5490ec60b03c92f9a9038659e1931582d7b3535d59a6ca48bbb7fd99d"
+    },
+    "textures": {
+      "basecolor": {
+        "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/textures/field_saber_basecolor.png",
+        "sha256": "ea50d23e5c7ff996d3e26398d84ab3567b11fddff94534bfe39482bc07a3daf2"
+      },
+      "normal": {
+        "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/textures/field_saber_normal.png",
+        "sha256": "b65b6412cf7f24bd08b4fe78a14bb22a73800bbb6d13ec1bfb1ce9dc2276ee5f"
+      },
+      "orm": {
+        "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/textures/field_saber_orm.png",
+        "sha256": "e71e80d8c357bb612cff3224f34125848542d7767ea03c55a2c0332d79010918"
+      }
+    },
+    "family_blend_snapshot": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/melee_early.blend",
+      "sha256": "35632b4850d8f86f44b4cf7dc87da439fc93acf98000b2362182c6de8120cccd",
+      "contains_promoted_asset": true,
+      "note": "field_saber was the final pass-8 --only rebuild, so this proof snapshot currently holds the promoted saber. It is a proof snapshot, not the editable source: build.py and the authored texture inputs are the deterministic source of truth."
+    },
+    "family_manifest": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/manifest.json",
+    "family_metrics": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/metrics.json",
+    "family_gate_report": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/gate-report.json",
+    "review_bundle_catalog": "review-bundle:successor-cozy-asset-wave-20260712/catalog.json"
+  },
+  "rights": {
+    "authoring_context": "Locally authored in the project-owner workspace under project-owner direction.",
+    "source_license": "Successor proprietary project asset; all rights reserved",
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "note": "Project-owner-directed original work. This is not an open-content or third-party reuse license."
+  },
+  "authoring": {
+    "profile_label_from_builder": "Fable-5",
+    "exporter": "Khronos glTF Blender I/O v5.1.20",
+    "source_axis_contract": "Blender Z-up with blade +Z; exported glTF Y-up with blade +Y, cutting edge +X, and grip midpoint at the origin.",
+    "session_note": "The packet does not record a provider, model id, or authoring-session id; none is inferred here."
+  },
+  "promotion": {
+    "method": "byte-identical copy of the reviewed melee_early export",
+    "promoted_at": "2026-07-14",
+    "human_edits_after_export": [],
+    "runtime_item_id": 3106,
+    "runtime_weapon_id": "field-saber"
+  },
+  "metrics": {
+    "bytes": 7433164,
+    "mesh_count": 1,
+    "vertices": 2658,
+    "triangles": 2416,
+    "material_count": 1,
+    "uv_sets": [
+      "TEXCOORD_0"
+    ],
+    "animations": 0,
+    "bounds_m": {
+      "min": [-0.042500000447034836, -0.08799999952316284, -0.029999999329447746],
+      "max": [0.0373489148914814, 0.8299999833106995, 0.029999999329447746],
+      "dimensions": [0.07984891533851624, 0.9179999828338623, 0.05999999865889549]
+    },
+    "overall_length_m": 0.918,
+    "origin": "grip midpoint"
+  },
+  "materials": {
+    "material_names": [
+      "field_saber_mat"
+    ],
+    "embedded_texture_resolution": 2048,
+    "embedded_source_maps": {
+      "basecolor_sha256": "ea50d23e5c7ff996d3e26398d84ab3567b11fddff94534bfe39482bc07a3daf2",
+      "normal_sha256": "b65b6412cf7f24bd08b4fe78a14bb22a73800bbb6d13ec1bfb1ce9dc2276ee5f",
+      "orm_sha256": "e71e80d8c357bb612cff3224f34125848542d7767ea03c55a2c0332d79010918"
+    },
+    "content_gates": {
+      "basecolor_unique_colors": true,
+      "basecolor_luma_variance": true,
+      "normal_variance": true,
+      "normal_blue_mean": true,
+      "orm_roughness_variance": true
+    },
+    "uv_validation": {
+      "set": "TEXCOORD_0",
+      "values": 2658,
+      "min": [0.00390625, 0.00390625],
+      "max": [0.99609375, 0.9862499833106995],
+      "non_finite_values": 0,
+      "values_outside_unit_range": 0
+    }
+  },
+  "attachment": {
+    "path": "client-3d/public/assets/pawn-pack/weapons/custom/field_saber_attach.json",
+    "schema": "successor-weapon-attach/1",
+    "frame_node": "field_saber",
+    "handedness": "right",
+    "scale_to_pawn": 1,
+    "grip_socket": [0, 0, 0],
+    "forward_axis": [0, 1, 0],
+    "up_axis": [0, 0, 1]
+  },
+  "runtime": {
+    "weapons_manifest": "client-3d/public/assets/pawn-pack/weapons/weapons_manifest.json",
+    "model_registry": "client-3d/src/assets/weaponModelRegistry.ts",
+    "inventory_registry": "client-3d/src/ui/inventory/itemModels.json",
+    "renderer": "client-3d/src/render/weapons/swordRig.ts",
+    "integration_note": "Central manifest and TypeScript/Rust registration are Main-owned and intentionally untouched by this asset-only promotion."
+  },
+  "validation": {
+    "runtime_hash_matches_source": true,
+    "source_hash_matches_review_bundle": true,
+    "source_gltf_errors": 0,
+    "source_gltf_warnings": 0,
+    "runtime_gltf_errors": 0,
+    "runtime_gltf_warnings": 0,
+    "family_gate_report_pass": true,
+    "validator": "@gltf-transform/cli validate (Khronos strict), run 2026-07-14 on both the PawnForge source and the promoted runtime copy",
+    "embedded_maps_match_authored_pngs": true,
+    "successor_in_camera_review": "pending Main-owned runtime integration; asset-only promotion in this lane"
+  },
+  "review": {
+    "status": "approved",
+    "reviewed_at": "2026-07-12",
+    "notes": "Accepted in the melee_early family gate (gate-report.json pass=true; pass-8 final field_saber rebuild with the common-axis hilt stack). Byte identity to the reviewed source and review bundle, strict validation, measured geometry, embedded PBR maps, and UV attribute verified at promotion on 2026-07-14. Successor in-camera QA follows Main-owned registration."
+  }
+}

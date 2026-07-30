@@ -1,0 +1,58 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "travel_terminal_grok_wedge_screen",
+  "asset_path": "client-3d/public/assets/world-items/travel_terminal_grok_wedge_screen.png",
+  "asset_hash": "sha256:ecb01863d8a3add0bc485286c11bec8c7bf0fa7f9b01e9406836aa1e26d92b36",
+  "asset_kind": "texture_png",
+  "source": {
+    "path": "pawn-forge:pawnforgev2/_bakeoff/successor_terminal_brutalist_20260713_run01/textures/screen_strip_green.png",
+    "sha256": "ecb01863d8a3add0bc485286c11bec8c7bf0fa7f9b01e9406836aa1e26d92b36",
+    "deterministic_generator": null,
+    "note": "The retained source packet contains the reviewed PNG but no standalone deterministic strip-generation script."
+  },
+  "rights": {
+    "authoring_context": "Locally authored in the project-owner workspace under project-owner direction.",
+    "source_license": "Successor proprietary project asset; all rights reserved",
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "note": "Project-owner-directed original work. This is not an open-content or third-party reuse license."
+  },
+  "authoring": {
+    "generator_attribution": {
+      "provider": "xai-oauth",
+      "model": "grok-4.5"
+    },
+    "prompt_record": "Retained with the non-public authoring source; intentionally omitted from shipped web metadata."
+  },
+  "promotion": {
+    "method": "byte-identical copy of the reviewed green screen strip",
+    "promoted_at": "2026-07-14",
+    "human_edits_after_source": []
+  },
+  "metrics": {
+    "bytes": 23571,
+    "width_px": 64,
+    "height_px": 1024,
+    "color_mode": "RGB"
+  },
+  "runtime": {
+    "model_asset_id": "travel_terminal_grok_wedge",
+    "registry": "client-3d/src/render/props-mapping.json",
+    "consumer": "client-3d/src/render/props.ts",
+    "screen_node": "Module_screen",
+    "wrap": "repeat",
+    "repeat_y": 0.28,
+    "scroll_speed": 0.16,
+    "pulse_hz": 0.62,
+    "material": "unlit MeshBasicMaterial; tone mapping disabled"
+  },
+  "validation": {
+    "runtime_hash_matches_source": true,
+    "focused_runtime_tests": "passed 2026-07-14",
+    "successor_in_camera_animation_review": "passed 2026-07-14 (verification/ledgers/artifacts/client3d/client3d-gate-20260714211601-5c84fefd/client3d-gate-report.json; h3d-start-zone-02-wedge-terminal-a.png and h3d-start-zone-03-wedge-terminal-b.png)"
+  },
+  "review": {
+    "status": "approved",
+    "reviewed_at": "2026-07-14",
+    "notes": "Source-family and isolated Successor camera/post-stack animation proof were reviewed. The green screen is readable at gameplay zoom and visibly advances between the retained A/B frames. Proprietary Successor runtime-distribution rights are recorded; no standalone reuse grant is implied."
+  }
+}

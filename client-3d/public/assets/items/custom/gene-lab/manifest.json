@@ -1,0 +1,309 @@
+{
+  "schema": "successor.custom-inventory.v1",
+  "lane": "gene-lab",
+  "source_model": "Fable-5 (frontend-designer fallback lane)",
+  "bakeoff": "successor_inventory_gene_lab_luna56_20260712_run01",
+  "atlas": {
+    "source_basecolor": "gene_lab_atlas_basecolor.png",
+    "source_normal": "gene_lab_atlas_normal.png",
+    "source_orm": "gene_lab_atlas_orm.png",
+    "source_emissive": "gene_lab_atlas_emissive.png",
+    "runtime_basecolor": "gene_lab_atlas_runtime512.png",
+    "source_resolution": 2048,
+    "runtime_resolution": 512,
+    "tiles": [
+      "bone",
+      "charcoal",
+      "worn_alloy",
+      "grip_rubber",
+      "olive_alloy",
+      "bright_alloy",
+      "seam_soot",
+      "label_print",
+      "glass_teal",
+      "glass_amber",
+      "glass_violet",
+      "glass_palegreen",
+      "accent_amber",
+      "accent_red",
+      "accent_teal",
+      "trace_palegreen"
+    ]
+  },
+  "assets": [
+    {
+      "item_id": "6201",
+      "name": "gene_sampler",
+      "title": "Gene Sampler",
+      "glb": "6201_gene_sampler.glb",
+      "atlas": "gene_lab_atlas_runtime512.png",
+      "root": "GeneLab_6201_gene_sampler",
+      "triangles": 1412,
+      "material_recipes": [
+        "worn_alloy",
+        "molded_polymer"
+      ],
+      "accent": "accent_amber",
+      "dimensions_m": [
+        0.3656173199415207,
+        0.11629999801516533,
+        0.13776014745235443
+      ],
+      "parts": [
+        "Socket_hand_mount",
+        "Socket_probe_tip",
+        "body",
+        "chassis_seam",
+        "chuck",
+        "chuck_retainer",
+        "connector",
+        "fastener",
+        "grip",
+        "guard",
+        "label",
+        "needle",
+        "rear_connector",
+        "sample_catch"
+      ]
+    },
+    {
+      "item_id": "6202",
+      "name": "splice_bench",
+      "title": "Splice Bench",
+      "glb": "6202_splice_bench.glb",
+      "atlas": "gene_lab_atlas_runtime512.png",
+      "root": "GeneLab_6202_splice_bench",
+      "triangles": 1560,
+      "material_recipes": [
+        "worn_alloy",
+        "molded_polymer"
+      ],
+      "accent": "accent_amber",
+      "dimensions_m": [
+        0.28999999165534973,
+        0.24436363577842712,
+        0.2749421000480652
+      ],
+      "parts": [
+        "Socket_bench_open",
+        "Socket_hinge_axis",
+        "base",
+        "bed",
+        "clamp",
+        "clamp_collar",
+        "clamp_socket",
+        "fastener",
+        "hinge",
+        "label",
+        "latch",
+        "lid",
+        "pin_anchor",
+        "tray"
+      ]
+    },
+    {
+      "item_id": "6203",
+      "name": "genome_scanner",
+      "title": "Genome Scanner",
+      "glb": "6203_genome_scanner.glb",
+      "atlas": "gene_lab_atlas_runtime512.png",
+      "root": "GeneLab_6203_genome_scanner",
+      "triangles": 1204,
+      "material_recipes": [
+        "molded_polymer",
+        "worn_alloy",
+        "bio_glass"
+      ],
+      "accent": "trace_palegreen",
+      "dimensions_m": [
+        0.24399998784065247,
+        0.16049998998641968,
+        0.07699999958276749
+      ],
+      "parts": [
+        "Socket_grip",
+        "Socket_sample_tray",
+        "base_deck",
+        "fastener",
+        "label",
+        "port",
+        "readout",
+        "sample_chip",
+        "sample_tray",
+        "shell",
+        "trace",
+        "tray_lip"
+      ]
+    },
+    {
+      "item_id": "6204",
+      "name": "culture_medium",
+      "title": "Culture Medium",
+      "glb": "6204_culture_medium.glb",
+      "atlas": "gene_lab_atlas_runtime512.png",
+      "root": "GeneLab_6204_culture_medium",
+      "triangles": 552,
+      "material_recipes": [
+        "molded_polymer",
+        "bio_glass"
+      ],
+      "accent": "accent_teal",
+      "dimensions_m": [
+        0.15302816033363342,
+        0.15400001406669617,
+        0.15299999713897705
+      ],
+      "parts": [
+        "Socket_lid",
+        "Socket_tub_base",
+        "foot",
+        "knob",
+        "label",
+        "lid",
+        "lug",
+        "rim",
+        "seal_tab",
+        "tub",
+        "window"
+      ]
+    },
+    {
+      "item_id": "6205",
+      "name": "mutagen",
+      "title": "Mutagen",
+      "glb": "6205_mutagen.glb",
+      "atlas": "gene_lab_atlas_runtime512.png",
+      "root": "GeneLab_6205_mutagen",
+      "triangles": 916,
+      "material_recipes": [
+        "molded_polymer",
+        "bio_glass"
+      ],
+      "accent": "accent_red",
+      "dimensions_m": [
+        0.13199999928474426,
+        0.07840000092983246,
+        0.19499999284744263
+      ],
+      "parts": [
+        "Socket_ampoule_caps",
+        "Socket_rack_base",
+        "ampoule",
+        "cap",
+        "clamp_bar",
+        "hazard_plate",
+        "label",
+        "neck",
+        "rack_base",
+        "rack_post",
+        "shoulder"
+      ]
+    },
+    {
+      "item_id": "6206",
+      "name": "stabilizer",
+      "title": "Stabilizer",
+      "glb": "6206_stabilizer.glb",
+      "atlas": "gene_lab_atlas_runtime512.png",
+      "root": "GeneLab_6206_stabilizer",
+      "triangles": 408,
+      "material_recipes": [
+        "molded_polymer",
+        "bio_glass"
+      ],
+      "accent": "accent_amber",
+      "dimensions_m": [
+        0.08299999684095383,
+        0.0552000030875206,
+        0.1679999977350235
+      ],
+      "parts": [
+        "Socket_cart_key",
+        "Socket_cart_shoe",
+        "body",
+        "cap",
+        "index_pip",
+        "key_notch",
+        "key_ridge",
+        "label",
+        "rail",
+        "shoe",
+        "window"
+      ]
+    },
+    {
+      "item_id": "6207",
+      "name": "serum",
+      "title": "Serum",
+      "glb": "6207_serum.glb",
+      "atlas": "gene_lab_atlas_runtime512.png",
+      "root": "GeneLab_6207_serum",
+      "triangles": 1104,
+      "material_recipes": [
+        "molded_polymer",
+        "bio_glass"
+      ],
+      "accent": "accent_teal",
+      "dimensions_m": [
+        0.09891003370285034,
+        0.10399999469518661,
+        0.1510000079870224
+      ],
+      "parts": [
+        "Socket_bulb_cap",
+        "Socket_cradle_base",
+        "bulb",
+        "cap",
+        "collar",
+        "cradle_base",
+        "cradle_leg",
+        "cradle_ring",
+        "label",
+        "neck",
+        "neck_guard",
+        "seal"
+      ]
+    },
+    {
+      "item_id": "6208",
+      "name": "gene_lock_kit",
+      "title": "Gene-Lock Kit",
+      "glb": "6208_gene_lock_kit.glb",
+      "atlas": "gene_lab_atlas_runtime512.png",
+      "root": "GeneLab_6208_gene_lock_kit",
+      "triangles": 1480,
+      "material_recipes": [
+        "molded_polymer",
+        "worn_alloy",
+        "bio_glass"
+      ],
+      "accent": "accent_amber",
+      "dimensions_m": [
+        0.29600000381469727,
+        0.24971096217632294,
+        0.27470189332962036
+      ],
+      "parts": [
+        "Socket_cartridge_array",
+        "Socket_case_latch",
+        "cartridge",
+        "cartridge_band",
+        "cartridge_cap",
+        "case_base",
+        "case_seam",
+        "contact",
+        "foam",
+        "hinge_base_knuckle",
+        "hinge_lid_knuckle",
+        "hinge_pin",
+        "hinge_pin_cap",
+        "label",
+        "latch",
+        "latch_keeper",
+        "lid",
+        "retainer_pad",
+        "retainer_saddle"
+      ]
+    }
+  ]
+}

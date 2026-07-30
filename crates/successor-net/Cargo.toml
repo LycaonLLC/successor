@@ -1,0 +1,10 @@
+[package]
+name = "successor-net"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Snapshot delta encoding, hash chains, replay, transport-frame artifact wrapping."
+
+[dependencies]
+successor-core = { path = "../successor-core" }
+serde.workspace = true

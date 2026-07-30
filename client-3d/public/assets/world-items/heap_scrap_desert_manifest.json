@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "heap_scrap_desert",
+  "label": "Desert Scrap Heap",
+  "kind": "world_prop",
+  "glb": "heap_scrap_desert.glb",
+  "source_pack": "successor-everyday-wave-grok45-20260719",
+  "source_fbx": "props/successor/everyday-wave-20260719/everyday-world-props/source/successor_everyday_sand_pile.blend",
+  "source_path": "props/successor/everyday-wave-20260719/everyday-world-props/assets/successor_everyday_sand_pile.glb",
+  "content_hash_sha256": "c5f6d978ee3ea526e9e147053be5562f5a61accb67243c50a0abfdf1f6549463",
+  "triangles": 908,
+  "vertices": 472,
+  "mesh_nodes": 2,
+  "materials": 2,
+  "bbox_gltf_m": { "min": [-0.246202, 0, -0.25], "max": [0.287623, 0.214, 0.26], "size": [0.533825, 0.214, 0.51] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/reference/successor/combined-catalog-1000-20260719/catalog.csv (pile-form replacement)",
+  "source_report": "props/successor/everyday-wave-20260719/everyday-world-props/reports/successor_everyday_sand_pile.json",
+  "validation_pass": true
+}

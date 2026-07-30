@@ -1,0 +1,41 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "movement-collision-realtime-race",
+  "fixture": "open-desert-movement-blocked",
+  "lanes": ["realtime"],
+  "matrixLanes": ["realtime"],
+  "realtimeReason": "Two live sessions issue movement intents at the same live system-clock boundary; the authority must order the contended blocked-cell transitions without displacement.",
+  "tags": ["race", "system_clock", "contention"],
+  "actors": {
+    "open": { "character": "fixture:ranger-open" },
+    "blocked": { "character": "fixture:ranger-blocked" }
+  },
+  "steps": [
+    { "query": { "actor": "open", "line": "/where", "as": "openStart" } },
+    { "send": { "actor": "open", "line": "/move 1 0 30 Right false", "as": "openIntent" } },
+    { "await": { "kind": "receipt", "actor": "open", "match": { "commandId": "$captures.openIntent.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 10000, "as": "openIntentReceipt" } },
+    { "pauseMs": 1200 },
+    { "query": { "actor": "open", "line": "/where", "as": "openAfter" } },
+    { "expect": { "kind": "queryDelta", "from": "openStart", "to": "openAfter", "xPath": "data.x", "yPath": "data.y", "minDistanceCells": 1 } },
+    { "expect": { "kind": "queryDelta", "from": "openStart", "to": "openAfter", "path": "data.x", "op": "lte", "value": 2 } },
+    { "expect": { "kind": "captureCompare", "capture": "openAfter", "path": "data.source", "op": "eq", "value": "server" } },
+
+    { "send": { "actor": "blocked", "line": "/move 1 0 30 Right false", "as": "approachCollision" } },
+    { "await": { "kind": "receipt", "actor": "blocked", "match": { "commandId": "$captures.approachCollision.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 10000, "as": "approachReceipt" } },
+    { "pauseMs": 1100 },
+    { "query": { "actor": "blocked", "line": "/where", "as": "blockedAtBoundary" } },
+    { "send": { "actor": "blocked", "line": "/move 1 0 30 Right false", "as": "crossBlockedBoundary", "alignTick": false } },
+    { "send": { "actor": "blocked", "line": "/move 1 0 30 Right false", "as": "duplicateCrossBlockedBoundary", "alignTick": false } },
+    { "await": { "kind": "receipt", "actor": "blocked", "match": { "commandId": "$captures.crossBlockedBoundary.data.commandId", "commandKind": "Move", "accepted": false, "reasonCode": "blocked_cell" }, "timeoutMs": 10000, "as": "collisionReceipt" } },
+    { "await": { "kind": "receipt", "actor": "blocked", "match": { "commandId": "$captures.duplicateCrossBlockedBoundary.data.commandId", "commandKind": "Move", "accepted": false, "reasonCode": "blocked_cell" }, "timeoutMs": 10000, "as": "duplicateCollisionReceipt" } },
+    { "expect": { "kind": "captureCompare", "capture": "collisionReceipt", "path": "tick", "op": "lte", "value": "$captures.duplicateCollisionReceipt.tick" } },
+    { "query": { "actor": "blocked", "line": "/where", "as": "blockedAfterCollision" } },
+    { "expect": { "kind": "queryDelta", "from": "blockedAtBoundary", "to": "blockedAfterCollision", "path": "data.x", "value": 0 } },
+    { "expect": { "kind": "queryDelta", "from": "blockedAtBoundary", "to": "blockedAfterCollision", "path": "data.y", "value": 0 } },
+    { "expect": { "kind": "envelopeCount", "actor": "blocked", "envelopeType": "receipt", "match": { "commandKind": "Move", "accepted": false, "reasonCode": "blocked_cell" }, "op": "eq", "value": 2 } },
+    { "expect": { "kind": "envelopeCount", "actor": "open", "envelopeType": "receipt", "match": { "commandKind": "Move", "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "envelopeCount", "actor": "open", "envelopeType": "receipt", "match": { "commandKind": "Move", "accepted": true }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "movementCollisionRaceHash" } }
+  ],
+  "notes": "Under the real system clock, one session issues two unaligned movement intents at the same blocked-cell boundary before either receipt is awaited. The authority must order both contended transitions as blocked_cell rejections, emit one terminal receipt per command, and keep the authoritative position unchanged with no impossible displacement."
+}

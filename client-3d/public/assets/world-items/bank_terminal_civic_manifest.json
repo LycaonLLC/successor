@@ -1,0 +1,67 @@
+{
+  "asset": "bank_terminal_civic",
+  "collisionProxy": {
+    "id": "bank_terminal_civic__kiosk",
+    "max": [
+      0.504,
+      1.65,
+      0.3455
+    ],
+    "min": [
+      -0.504,
+      0.0,
+      -0.333
+    ],
+    "shape": "box",
+    "source": "authored",
+    "space": "asset-local meters, +Z front; placement yaw is applied by the world lane after this box (one stable post-rotation footprint proxy per terminal)"
+  },
+  "dims_m": {
+    "x": 1.008,
+    "y": 1.65,
+    "z": 0.6785
+  },
+  "front_clearance_m": 0.8,
+  "front_clearance_note": "keep the cell in front of +Z free; every interactable surface faces +Z",
+  "gates": {
+    "detail": ".game-lab/commerce-terminals-20260718/gate.json",
+    "result": "see gate.json"
+  },
+  "glb": "bank_terminal_civic.glb",
+  "gltf_conventions": {
+    "front": "+Z (interaction face: screens, controls)",
+    "pivot": "base center, min_y=0",
+    "up": "+Y"
+  },
+  "identity": "Dustgate civic bank terminal \u2014 secure/private vault kiosk: chamfered basalt plinth with anchor studs, layered ceramic armor column with recessed side panels and brass strap bands, a bladed brass vault iris with spoked hub, dog bolts and an energized seal ring, a recessed amber deposit throat with roller, an angled credential console with beveled keypad, recessed teal palm window and half-inserted card, and a hooded privacy head with a stepped-bezel amber ledger screen. Fully serviced back: recessed access door on hinge barrels, latch, louvered vents, clipped cable riser with junction box.",
+  "materials": [
+    "CM_Basalt",
+    "CM_Brass",
+    "CM_Ceramic",
+    "CM_GlowAmber",
+    "CM_Ink",
+    "CM_ScreenBank",
+    "CM_Steel",
+    "CM_TealGlass"
+  ],
+  "textures": [
+    "commerce_basalt_basecolor.png",
+    "commerce_basalt_mr.png",
+    "commerce_basalt_normal.png",
+    "commerce_brass_basecolor.png",
+    "commerce_brass_mr.png",
+    "commerce_brass_normal.png",
+    "commerce_ceramic_basecolor.png",
+    "commerce_ceramic_mr.png",
+    "commerce_ceramic_normal.png",
+    "commerce_ink_basecolor.png",
+    "commerce_ink_mr.png",
+    "commerce_ink_normal.png",
+    "commerce_screen_bank_emissive.png",
+    "commerce_steel_basecolor.png",
+    "commerce_steel_mr.png",
+    "commerce_steel_normal.png"
+  ],
+  "tri_count": 6072,
+  "units": "m"
+}

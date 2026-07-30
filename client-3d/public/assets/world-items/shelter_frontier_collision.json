@@ -1,0 +1,65 @@
+{
+  "contract": {
+    "decorativeExcluded": [
+      "roof",
+      "gable",
+      "ridge",
+      "sandbags",
+      "anchor_plates",
+      "guy_rods",
+      "trim"
+    ],
+    "geometrySource": "camp_frontier_v1 params",
+    "structuralRoles": [
+      "wall_left",
+      "wall_right",
+      "wall_back"
+    ]
+  },
+  "footprint": {
+    "centerX": 0.0,
+    "centerZ": -0.0128,
+    "maxX": 1.643,
+    "maxZ": 1.3343,
+    "minX": -1.643,
+    "minZ": -1.36,
+    "spanX": 3.286,
+    "spanZ": 2.6943
+  },
+  "generatedBy": "pawn-forge/pawnforgev2/recipes/camp_frontier_v1/verify.py (authored structural proxy)",
+  "interiorRegions": [
+    {
+      "floorTopY": 0.0,
+      "id": "sheltered_interior",
+      "maxX": 1.48,
+      "maxZ": 1.3343,
+      "minX": -1.48,
+      "minZ": -1.18
+    }
+  ],
+  "schema": "successor.structure-collision.v3",
+  "source": "shelter_frontier.glb",
+  "walls": [
+    {
+      "id": "wall_left",
+      "maxX": -1.48,
+      "maxZ": 1.33,
+      "minX": -1.643,
+      "minZ": -1.33
+    },
+    {
+      "id": "wall_right",
+      "maxX": 1.643,
+      "maxZ": 1.33,
+      "minX": 1.48,
+      "minZ": -1.33
+    },
+    {
+      "id": "wall_back",
+      "maxX": 1.64,
+      "maxZ": -1.18,
+      "minX": -1.64,
+      "minZ": -1.34
+    }
+  ]
+}

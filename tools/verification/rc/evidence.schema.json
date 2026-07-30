@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "successor.rc-proof.v1",
+  "title": "Successor exact SHA local RC proof evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "runId",
+    "worktree",
+    "steps",
+    "verdict",
+    "sealed"
+  ],
+  "properties": {
+    "schema": {
+      "const": "successor.rc-proof.v1"
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^rc-[A-Za-z0-9._-]+$"
+    },
+    "worktree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha",
+        "clean"
+      ],
+      "properties": {
+        "sha": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{40}$"
+        },
+        "clean": {
+          "type": "boolean"
+        }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "siteUrl": {
+          "type": "string",
+          "pattern": "^https://127\\.0\\.0\\.1:[0-9]+$",
+          "maxLength": 300
+        },
+        "clientUrl": {
+          "type": "string",
+          "pattern": "^https://127\\.0\\.0\\.1:[0-9]+$",
+          "maxLength": 300
+        },
+        "controlUrl": {
+          "type": "string",
+          "pattern": "^http://127\\.0\\.0\\.1:[0-9]+$",
+          "maxLength": 300
+        },
+        "releaseId": {
+          "type": "string",
+          "pattern": "^successor-rc@[0-9a-f]{16}$",
+          "maxLength": 80
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "blocked",
+            "incomplete",
+            "fail"
+          ]
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "blocked",
+              "incomplete"
+            ]
+          },
+          "ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "maxItems": 100
+          },
+          "gate": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "boolean",
+          "object"
+        ]
+      }
+    },
+    "aliases": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 120
+      }
+    },
+    "screenshots": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 300
+      },
+      "maxItems": 200
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail",
+        "incomplete"
+      ]
+    },
+    "sealed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "secretScan",
+        "denylist",
+        "cleanup"
+      ],
+      "properties": {
+        "secretScan": {
+          "enum": [
+            "clean",
+            "hit",
+            "error"
+          ]
+        },
+        "denylist": {
+          "enum": [
+            "clean",
+            "hit",
+            "error"
+          ]
+        },
+        "cleanup": {
+          "type": "boolean"
+        },
+        "manifestSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step",
+        "reason",
+        "code"
+      ],
+      "properties": {
+        "step": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      }
+    }
+  }
+}

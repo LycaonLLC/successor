@@ -1,0 +1,140 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "scrapline_machete",
+  "asset_path": "client-3d/public/assets/pawn-pack/weapons/custom/scrapline_machete.glb",
+  "asset_hash": "sha256:129ca1b4d07dfa3df23639110bf61fecefc56ff93146551f1ae90c69fc693b10",
+  "asset_kind": "weapon_melee_glb",
+  "source": {
+    "glb": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/assets/scrapline_machete.glb",
+      "sha256": "129ca1b4d07dfa3df23639110bf61fecefc56ff93146551f1ae90c69fc693b10"
+    },
+    "review_bundle_glb": {
+      "path": "review-bundle:successor-cozy-asset-wave-20260712/assets/melee/scrapline_machete.glb",
+      "sha256": "129ca1b4d07dfa3df23639110bf61fecefc56ff93146551f1ae90c69fc693b10"
+    },
+    "builder": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/build.py",
+      "sha256": "fa6d78d5490ec60b03c92f9a9038659e1931582d7b3535d59a6ca48bbb7fd99d"
+    },
+    "textures": {
+      "basecolor": {
+        "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/textures/scrapline_machete_basecolor.png",
+        "sha256": "0b857984a659fc27f352fe1751ef190dd6c9e2275bcd153ed3f86965693d9710"
+      },
+      "normal": {
+        "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/textures/scrapline_machete_normal.png",
+        "sha256": "456835961cc87b829d37178a4ff394107da342241d3a19acc8ec79722f3a4b2b"
+      },
+      "orm": {
+        "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/textures/scrapline_machete_orm.png",
+        "sha256": "5997b1a5822837e7c273bda7680cde88768c0dd15d82f56dcb31ccd0e968bf42"
+      }
+    },
+    "family_blend_snapshot": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/melee_early.blend",
+      "sha256": "35632b4850d8f86f44b4cf7dc87da439fc93acf98000b2362182c6de8120cccd",
+      "contains_promoted_asset": false,
+      "note": "The latest --only family pass overwrote this proof snapshot with field_saber. It is retained as packet history, but build.py and the authored texture inputs are the editable Scrapline source of truth."
+    },
+    "family_manifest": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/manifest.json",
+    "family_metrics": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/metrics.json",
+    "family_gate_report": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/gate-report.json",
+    "review_bundle_catalog": "review-bundle:successor-cozy-asset-wave-20260712/catalog.json"
+  },
+  "rights": {
+    "authoring_context": "Locally authored in the project-owner workspace under project-owner direction.",
+    "source_license": "Successor proprietary project asset; all rights reserved",
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "note": "Project-owner-directed original work. This is not an open-content or third-party reuse license."
+  },
+  "authoring": {
+    "profile_label_from_builder": "Fable-5",
+    "exporter": "Khronos glTF Blender I/O v5.1.20",
+    "source_axis_contract": "Blender Z-up with blade +Z; exported glTF Y-up with blade +Y, cutting edge +X, and grip midpoint at the origin.",
+    "session_note": "The packet does not record a provider, model id, or authoring-session id; none is inferred here."
+  },
+  "promotion": {
+    "method": "byte-identical copy of the reviewed melee_early export",
+    "promoted_at": "2026-07-14",
+    "human_edits_after_export": [],
+    "runtime_item_id": 3105,
+    "runtime_weapon_id": "scrapline-machete"
+  },
+  "metrics": {
+    "bytes": 7340724,
+    "mesh_count": 1,
+    "vertices": 1199,
+    "triangles": 1020,
+    "material_count": 1,
+    "uv_sets": [
+      "TEXCOORD_0"
+    ],
+    "animations": 0,
+    "bounds_m": {
+      "min": [-0.02865000069141388, -0.07649999856948853, -0.02669999934732914],
+      "max": [0.027499999850988388, 0.5435000061988831, 0.02669999934732914],
+      "dimensions": [0.05615000054240227, 0.6200000047683716, 0.05339999869465828]
+    },
+    "overall_length_m": 0.62,
+    "origin": "grip midpoint"
+  },
+  "materials": {
+    "material_names": [
+      "scrapline_machete_mat"
+    ],
+    "embedded_texture_resolution": 2048,
+    "embedded_source_maps": {
+      "basecolor_sha256": "0b857984a659fc27f352fe1751ef190dd6c9e2275bcd153ed3f86965693d9710",
+      "normal_sha256": "456835961cc87b829d37178a4ff394107da342241d3a19acc8ec79722f3a4b2b",
+      "orm_sha256": "5997b1a5822837e7c273bda7680cde88768c0dd15d82f56dcb31ccd0e968bf42"
+    },
+    "content_gates": {
+      "basecolor_variance": true,
+      "normal_variance": true,
+      "normal_blue_mean": true,
+      "orm_roughness_variance": true
+    },
+    "uv_validation": {
+      "set": "TEXCOORD_0",
+      "values": 1199,
+      "min": [0.00390625, 0.00390625],
+      "max": [0.99609375, 0.9862499833106995],
+      "non_finite_values": 0,
+      "values_outside_unit_range": 0
+    }
+  },
+  "attachment": {
+    "path": "client-3d/public/assets/pawn-pack/weapons/custom/scrapline_machete_attach.json",
+    "schema": "successor-weapon-attach/1",
+    "frame_node": "scrapline_machete",
+    "handedness": "right",
+    "scale_to_pawn": 1,
+    "grip_socket": [0, 0, 0],
+    "forward_axis": [0, 1, 0],
+    "up_axis": [0, 0, 1]
+  },
+  "runtime": {
+    "weapons_manifest": "client-3d/public/assets/pawn-pack/weapons/weapons_manifest.json",
+    "model_registry": "client-3d/src/assets/weaponModelRegistry.ts",
+    "inventory_registry": "client-3d/src/ui/inventory/itemModels.json",
+    "renderer": "client-3d/src/render/weapons/swordRig.ts",
+    "focused_test": "client-3d/src/assets/scraplineMachetePromotion.test.ts"
+  },
+  "validation": {
+    "runtime_hash_matches_source": true,
+    "source_hash_matches_review_bundle": true,
+    "source_gltf_errors": 0,
+    "source_gltf_warnings": 0,
+    "runtime_gltf_errors": 0,
+    "runtime_gltf_warnings": 0,
+    "family_gate_report_pass": true,
+    "focused_runtime_tests": "passed 2026-07-14 (5 promotion-contract tests; 17 focused tests across promotion, melee rig, and actor preview)",
+    "successor_in_camera_review": "passed 2026-07-14 (verification/ledgers/artifacts/client3d/client3d-gate-20260714204314-6f9b6f2d/client3d-gate-report.json; stowed, drawn/in-range, first-swing, and kill frames)"
+  },
+  "review": {
+    "status": "approved",
+    "reviewed_at": "2026-07-14",
+    "notes": "The reviewed source packet, byte identity, geometry, embedded PBR maps, UV attribute, runtime registries, attach metadata, and isolated Successor held/stowed/draw/swing camera proof are verified. Proprietary Successor runtime-distribution rights are recorded; no standalone reuse grant is implied. The non-asset-specific family .blend snapshot remains explicit."
+  }
+}

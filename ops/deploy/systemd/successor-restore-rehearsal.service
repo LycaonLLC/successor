@@ -1,0 +1,9 @@
+[Unit]
+Description=Isolated Successor backup restore rehearsal
+After=successor-backup.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/successor/restore-rehearsal.env
+Environment=SUCCESSOR_REHEARSAL_WRITER_ACCESS=0
+ExecStart=/usr/local/libexec/successor-restore-rehearsal.sh

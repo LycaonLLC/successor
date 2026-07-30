@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "bench_mining_laser",
+  "label": "Bench Mining Laser",
+  "kind": "world_prop",
+  "glb": "bench_mining_laser.glb",
+  "source_pack": "successor-content-wave-grok45-20260718",
+  "source_fbx": "props/successor/grok45-wave-20260718/profession-world-weapons/source/successor_profprop_core_drill.blend",
+  "source_path": "props/successor/grok45-wave-20260718/profession-world-weapons/assets/successor_profprop_core_drill.glb",
+  "content_hash_sha256": "22b0c0d6e2e4cf19a528708954ffb21373f0d8d45e2b3f7703d130d440252e23",
+  "triangles": 4964,
+  "vertices": 2596,
+  "mesh_nodes": 5,
+  "materials": 5,
+  "bbox_gltf_m": { "min": [-0.6, -0.01, -0.45], "max": [0.456729, 1.82, 0.45], "size": [1.056729, 1.82993, 0.9] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/reference/successor/combined-catalog-1000-20260719/catalog.csv",
+  "source_report": "props/successor/grok45-wave-20260718/profession-world-weapons/reports/successor_profprop_core_drill.json",
+  "validation_pass": true
+}

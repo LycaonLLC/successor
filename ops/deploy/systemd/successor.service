@@ -1,0 +1,32 @@
+[Unit]
+Description=Successor single-writer staging shard
+After=docker.service local-fs.target
+Requires=docker.service
+ConditionPathIsMountPoint=/var/lib/successor
+
+[Service]
+Type=simple
+User=root
+Group=root
+EnvironmentFile=-/etc/successor/runtime.env
+Environment=SUCCESSOR_STATE_DIR=/var/lib/successor
+Environment=SUCCESSOR_STATE_ROOT=/var/lib/successor/live
+Environment=SUCCESSOR_RUN_DIR=/run/successor
+Environment=SUCCESSOR_STATE_DEVICE=/dev/xvdf
+Environment=GAME_SHARD_PERSISTENCE=1
+ExecStartPre=/usr/local/libexec/successor-preflight.sh
+ExecStart=/usr/local/libexec/successor-run.sh
+ExecStop=/usr/bin/docker stop --time=120 successor-authority
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=150
+KillMode=control-group
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/successor /run/successor /run/docker.sock /var/run/docker.sock
+
+[Install]
+WantedBy=multi-user.target

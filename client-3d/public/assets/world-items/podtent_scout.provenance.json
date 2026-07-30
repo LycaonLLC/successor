@@ -1,0 +1,58 @@
+{
+  "asset_id": "podtent_scout",
+  "asset_path": "client-3d/public/assets/world-items/podtent_scout.glb",
+  "asset_hash": "sha256:4b4d133a105912f574f55055a86e46e956e0e4002709f065350a72a3246c5c0d",
+  "asset_kind": "model_glb",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "version": "5.1.2",
+    "tool_snapshot_id": "blender-5.1.2-ec6e62d40fa9"
+  },
+  "prompt": {
+    "text": "Hand-authored parametric part program (no generative model): scout pod-tent, deployable pressed-panel weather shelter. Owner brief: 'geometric portable shelter... high tech pod-tent, mostly for protection from extreme weather events'. Door frame built to the house_h1 standard-door contract (clear opening 1.06x2.04 m, door_slide node, door_open/door_close clips, slide_axis_local [-1,0,0], slide 1.22 m into a pocket); panel geometry lifted verbatim from build_house_H1.py make_door(). HK_* seven desert palette with HK_Trim retuned to signal amber (extractor palette discipline).",
+    "denylist_audit": "passed:no franchise/IP terms in names, materials, node names, or artifacts (AI_PROMPT_DENYLIST.md reviewed 2026-07-08)"
+  },
+  "seed": null,
+  "request_id": null,
+  "input_assets": [
+    {
+      "path": "client-3d/public/assets/world-items/house_h1_manifest.json",
+      "purpose": "structural_reference"
+    },
+    {
+      "path": "pawn-forge/pawnforgev2/_bakeoff/house_20260704/forks/H1/build_house_H1.py",
+      "purpose": "structural_reference"
+    }
+  ],
+  "human_edits": [],
+  "review": {
+    "art_director": "Main (Fable owner lane; two DESIGN-CHECK vision passes)",
+    "approved_at": "2026-07-08T12:48:17Z",
+    "notes": "DESIGN-CHECK verdict MINOR-FIX then ship (2 passes): reference-marker composition + interior kick-plane flushness fixed; three residuals closed with vert-level GLB evidence (ring/sill verts shared exactly; dark cutaway block = interior__gear_crate furniture; bunk seated on deck at y=0.14 exactly)."
+  },
+  "regeneration_command": "blender -b --factory-startup --python-exit-code 1 -P pawn-forge/pawnforgev2/_bakeoff/podtent_20260708/build_podtent.py",
+  "tri_count": 996,
+  "gate_report": "pawn-forge/pawnforgev2/_bakeoff/podtent_20260708/gate.json (all_green=true; door contract asserted against the shipped house_h1_manifest.json; gltf-transform validate numErrors=0)",
+  "source_blend_or_script": "pawn-forge/pawnforgev2/_bakeoff/podtent_20260708/build_podtent.py (deterministic parametric part program; podtent_scout.blend saved beside it as a convenience artifact)",
+  "agent_provenance": {
+    "produced_by": [
+      {
+        "agent_instance_id": "PodTent",
+        "run_id": "podtent_20260708",
+        "role": "content-author",
+        "provider": "anthropic",
+        "model": "claude-fable-5",
+        "started_at": "2026-07-08T11:55:00Z",
+        "completed_at": "2026-07-08T12:48:17Z"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "Main",
+        "role": "judge",
+        "notes": "vision passes at DESIGN-CHECK; ship call after numeric residual closure"
+      }
+    ],
+    "human_approvals": []
+  }
+}

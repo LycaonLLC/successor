@@ -1,0 +1,27 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "scout-sprint-delta",
+  "fixture": "open-desert-movement",
+  "actors": {
+    "ranger": { "character": "fixture:ranger-01" }
+  },
+  "steps": [
+    { "expect": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.ranger.id", "match": {} }, "as": "pos0" } },
+    { "command": { "actor": "ranger", "body": { "Move": { "dx": 1, "dy": 0, "duration_ticks": 20, "sprint": true } }, "as": "baselineSprint" } },
+    { "expect": { "kind": "captureCompare", "capture": "baselineSprint", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "pauseMs": 1000 },
+    { "expect": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.ranger.id", "match": {} }, "as": "pos1" } },
+    { "expect": { "kind": "queryDelta", "from": "pos0", "to": "pos1", "path": "x", "minDelta": 0.5 } },
+
+    { "command": { "actor": "ranger", "body": { "DebugGrantSkillBoxes": { "skill_box_ids": ["scout-novice", "scout-sprinting-i", "scout-sprinting-ii", "scout-sprinting-iii", "scout-sprinting-iv", "scout-master"] } }, "as": "grantScout" } },
+    { "expect": { "kind": "captureCompare", "capture": "grantScout", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "pauseMs": 1000 },
+    { "expect": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.ranger.id", "match": {} }, "as": "pos2" } },
+    { "command": { "actor": "ranger", "body": { "Move": { "dx": 1, "dy": 0, "duration_ticks": 20, "sprint": true } }, "as": "scoutSprint" } },
+    { "expect": { "kind": "captureCompare", "capture": "scoutSprint", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "pauseMs": 1000 },
+    { "expect": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.ranger.id", "match": {} }, "as": "pos3" } },
+    { "expect": { "kind": "queryDelta", "from": "pos2", "to": "pos3", "path": "x", "minDelta": 0.5 } }
+  ],
+  "notes": "A joined novice Scout sprints a 20-tick baseline burst, gains the full scout sprinting track and master box, then repeats the identical burst. The driver asserts the master scout's displacement exceeds the novice baseline through the real server and Rust bridge."
+}

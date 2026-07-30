@@ -1,0 +1,55 @@
+{
+  "agent_provenance": {
+    "human_approvals": [],
+    "produced_by": [
+      {
+        "agent_instance_id": "CloneFacilityAsset",
+        "model": "Fable 5",
+        "provider": "anthropic",
+        "role": "content-author",
+        "run_id": "cloning-facility-20260716"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "CloneFacilityAsset",
+        "notes": "numeric parsed-GLB gates + multi-angle render review in .game-lab/cloning-facility-20260716/renders/",
+        "role": "judge"
+      }
+    ]
+  },
+  "asset_hash": "sha256:26f3fa6ed6ee1c01280537a4d4d56f9fce9b4092df0f281a7f704a7d209eb556",
+  "asset_id": "cloning_facility",
+  "asset_kind": "model_glb",
+  "asset_path": "client-3d/public/assets/world-items/cloning_facility.glb",
+  "gate_report": ".game-lab/cloning-facility-20260716/gate.json",
+  "human_edits": [],
+  "input_assets": [
+    {
+      "path": "client-3d/public/assets/world-items/house_h1_manifest.json",
+      "purpose": "structural_reference (shoulder-house language + door contract)"
+    },
+    {
+      "path": "tools/successor/extract-structure-collision.mjs",
+      "purpose": "collision_sidecar_contract"
+    }
+  ],
+  "prompt": {
+    "denylist_audit": "passed: no franchise/IP terms in names, materials, node names, or artifacts",
+    "text": "Hand-authored parametric part program (no generative model): Dustgate cloning facility, 10x8-cell enterable civic landmark in the shipped shoulder-house language \u2014 chamfered cast shoulders over a grounded foundation curb, stepped parapets, offset protruding entry bay with a broad 2.30 m pressure-vessel pocket door (door_slide + door_open/door_close, house door contract widened) traced by an energized bioseal gasket, twin-figure resurrection crest, rooftop process hall ducted into the filtration tower, bio-reservoir with feed manifold, and a raised pod dais with three deep alcove bays. Floor top authored at y=0.02 m per the bank/clone contract; mesh 9.5x7.6 m so runtime scale at 10x8 cells is 1.052632 (house/podtent pawn parity)."
+  },
+  "regeneration_command": "/snap/bin/blender -b --factory-startup --python-exit-code 1 -P tools/successor/assets/build_cloning_facility.py",
+  "rights": {
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "source_license": "Successor proprietary project asset; all rights reserved"
+  },
+  "schema": "successor-asset-provenance/1",
+  "seed": null,
+  "source_blend_or_script": "tools/successor/assets/build_cloning_facility.py (deterministic parametric part program; no .blend needed)",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "tool_snapshot_id": "blender-5.2.0",
+    "version": "5.2.0"
+  },
+  "tri_count": 5170
+}

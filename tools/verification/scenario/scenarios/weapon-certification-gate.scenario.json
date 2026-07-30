@@ -1,0 +1,29 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "weapon-certification-gate",
+  "fixture": "open-desert-combat-active",
+  "actors": {
+    "alpha": { "character": "fixture:combat-ranger" }
+  },
+  "steps": [
+    { "command": { "actor": "alpha", "body": { "DebugGiveItem": { "item_id": 3101, "variant_id": 101080090, "quantity": 1, "equip": false } }, "as": "giveSlugthrower" } },
+    { "expect": { "kind": "captureCompare", "capture": "giveSlugthrower", "path": "receipt.accepted", "op": "eq", "value": true } },
+
+    { "command": { "actor": "alpha", "body": { "SetEquippedWeapon": { "weapon_id": "slugthrower", "weapon_item_id": 3101, "weapon_variant_id": 101080090 } }, "as": "equipUncertified" } },
+    { "expect": { "kind": "captureCompare", "capture": "equipUncertified", "path": "receipt.accepted", "op": "eq", "value": false } },
+    { "expect": { "kind": "captureCompare", "capture": "equipUncertified", "path": "receipt.reasonCode", "op": "eq", "value": "weapon_not_certified" } },
+
+    { "command": { "actor": "alpha", "body": { "DebugGrantSkillBoxes": { "skill_box_ids": ["marksman-rifle-ii", "marksman-rifle-iii"] } }, "as": "grantRifleIII" } },
+    { "expect": { "kind": "captureCompare", "capture": "grantRifleIII", "path": "receipt.accepted", "op": "eq", "value": true } },
+
+    { "command": { "actor": "alpha", "body": { "SetEquippedWeapon": { "weapon_id": "slugthrower", "weapon_item_id": 3101, "weapon_variant_id": 101080090 } }, "as": "equipCertified" } },
+    { "expect": { "kind": "captureCompare", "capture": "equipCertified", "path": "receipt.accepted", "op": "eq", "value": true } },
+
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "verification-rogue-01", "lifeState": "alive" } } }, "timeoutMs": 15000, "intervalMs": 500, "as": "nearbyRogue" } },
+    { "send": { "actor": "alpha", "line": "/target verification-rogue-01", "as": "targetEvent" } },
+    { "send": { "actor": "alpha", "line": "/attack", "as": "attackQueued" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.attackQueued.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 10000, "as": "attackReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "combat", "match": { "data.event.targetActorId": "verification-rogue-01" }, "timeoutMs": 25000, "as": "combatEvent" } }
+  ],
+  "notes": "Equipping crafted Slugthrower 3101@101080090 with only marksman-novice and rifle-i must reject with weapon_not_certified; granting Rifle III lets the exact variant equip and fire at the adjacent rogue through the real server and Rust bridge."
+}

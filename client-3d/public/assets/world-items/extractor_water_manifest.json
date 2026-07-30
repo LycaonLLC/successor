@@ -1,0 +1,65 @@
+{
+  "asset": "extractor_water",
+  "glb": "extractor_water.glb",
+  "identity": "deployable water sampler/extractor field unit",
+  "gltf_conventions": {
+    "up": "+Y",
+    "front": "+Z (battery slot face)",
+    "crank_side": "+X",
+    "pivot": "base center, min_y=0"
+  },
+  "nodes": {
+    "root": "extractor_water_export",
+    "static_base": "base",
+    "chassis": "chassis  (run_loop vibration target; parent of crank)",
+    "crank": "crank_pivot  (rotation target, spins about +X)"
+  },
+  "dims_m": {
+    "x": 0.571,
+    "y": 1.37,
+    "z": 0.54
+  },
+  "tri_count": 628,
+  "material": {
+    "name": "extractor_water_mat",
+    "type": "palette_uv_4x4_64px",
+    "textures": "single embedded palette PNG, baseColor only"
+  },
+  "clips": {
+    "crank_loop": {
+      "duration_s": 1.2,
+      "channels": [
+        "chassis.translation",
+        "chassis.rotation",
+        "chassis.scale",
+        "crank_pivot.translation",
+        "crank_pivot.rotation",
+        "crank_pivot.scale"
+      ],
+      "loop": true,
+      "loop_closure": "first==last key bitwise (all channels)"
+    },
+    "run_loop": {
+      "duration_s": 0.6,
+      "channels": [
+        "chassis.translation",
+        "chassis.rotation",
+        "chassis.scale",
+        "crank_pivot.translation",
+        "crank_pivot.rotation",
+        "crank_pivot.scale"
+      ],
+      "loop": true,
+      "loop_closure": "first==last key bitwise (all channels)"
+    }
+  },
+  "clip_notes": {
+    "crank_loop": "manual crank, 1.2s/rev, subtle ease at top of stroke; player kneels - ONLY the device animates",
+    "run_loop": "battery/autonomous, 0.6s/rev steady + <=1.5mm chassis vibration"
+  },
+  "crank_axis_world_y_m": 0.4,
+  "gates": {
+    "result": "PASS",
+    "detail": "gate_result_water.json"
+  }
+}

@@ -1,0 +1,15 @@
+[package]
+name = "successor-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Deterministic ECS + fixed-step tick + canonical state hashing."
+
+[dependencies]
+fixed.workspace = true
+rand_chacha.workspace = true
+rand.workspace = true
+blake3.workspace = true
+
+[features]
+default = []

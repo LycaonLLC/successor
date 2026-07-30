@@ -1,0 +1,86 @@
+{
+  "bbox_span_m": [
+    9.5,
+    5.26,
+    7.6
+  ],
+  "building": "cloning_facility",
+  "clear_opening_m": [
+    2.3,
+    2.42
+  ],
+  "collisionProxy": {
+    "sidecar": "cloning_facility_collision.json",
+    "source": "P",
+    "structuralOnly": true
+  },
+  "cutaway": {
+    "faces": {
+      "back": "wall_back__",
+      "front": "wall_front__",
+      "left": "wall_left__",
+      "right": "wall_right__"
+    },
+    "hide": [
+      "roof__"
+    ],
+    "keep": [
+      "floor__",
+      "interior__"
+    ],
+    "stub_by_face": true
+  },
+  "door": {
+    "clips": [
+      "door_open",
+      "door_close"
+    ],
+    "node": "door_slide",
+    "slide_axis_local": [
+      -1,
+      0,
+      0
+    ],
+    "slide_distance_m": 2.4
+  },
+  "door_cells": [
+    [
+      5,
+      7
+    ],
+    [
+      6,
+      7
+    ]
+  ],
+  "floorHeightM": 0.02,
+  "floorTopY": 0.02,
+  "front": "+Z",
+  "interiorRegions": [
+    {
+      "floorTopY": 0.02,
+      "id": "main_walkable_interior",
+      "maxX": 4.2,
+      "maxZ": 3.4,
+      "minX": -4.2,
+      "minZ": -3.25
+    }
+  ],
+  "interior_clear_height_m": 3.05,
+  "materials": [
+    "HK_Brass",
+    "HK_Clad",
+    "HK_Clad2",
+    "HK_Door",
+    "HK_Floor",
+    "HK_Frame",
+    "HK_Glow",
+    "HK_Roof",
+    "HK_Shell",
+    "HK_Steel",
+    "HK_Trim"
+  ],
+  "runtime_scale_at_10x8_cells": 1.052632,
+  "tri_count": 5170,
+  "units": "m"
+}

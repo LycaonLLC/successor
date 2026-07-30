@@ -1,0 +1,112 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "travel_terminal_grok_wedge",
+  "asset_path": "client-3d/public/assets/world-items/travel_terminal_grok_wedge.glb",
+  "asset_hash": "sha256:a26cc0591111b5456c1ac6822d35f9b5895171cf8c036d792b62643788cbad2a",
+  "asset_kind": "model_glb",
+  "source": {
+    "glb": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_terminal_family_20260714_run01/wedge/assets/terminal_wedge_full.glb",
+      "sha256": "a26cc0591111b5456c1ac6822d35f9b5895171cf8c036d792b62643788cbad2a"
+    },
+    "blend": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_terminal_family_20260714_run01/wedge/proof/terminal_wedge_source.blend",
+      "sha256": "a80567a021bf3803ba1ed97aaf766134b3e14405a80d1019ff1381fce71bfdd1"
+    },
+    "builder": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_terminal_family_20260714_run01/wedge/build_wedge.py",
+      "sha256": "07f9bd0fcb1703b03b5ce110521f30b698e91cf9143e14cbc4525cd6445b7b9d"
+    },
+    "build_report": "pawn-forge:pawnforgev2/_bakeoff/successor_terminal_family_20260714_run01/wedge/build-report.json",
+    "export_report": "pawn-forge:pawnforgev2/_bakeoff/successor_terminal_family_20260714_run01/wedge/export-report.json",
+    "texture_report": "pawn-forge:pawnforgev2/_bakeoff/successor_terminal_family_20260714_run01/wedge/textures/terminal-texture-report.json"
+  },
+  "rights": {
+    "authoring_context": "Locally authored in the project-owner workspace under project-owner direction.",
+    "source_license": "Successor proprietary project asset; all rights reserved",
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "note": "Project-owner-directed original work. This is not an open-content or third-party reuse license."
+  },
+  "authoring": {
+    "tool": {
+      "name": "Blender",
+      "version": "5.1.2",
+      "tool_snapshot_id": "blender-5.1.2-ec6e62d40fa9"
+    },
+    "generator_attribution": {
+      "provider": "xai-oauth",
+      "model": "grok-4.5"
+    },
+    "prompt_record": "Retained with the non-public authoring source; intentionally omitted from shipped web metadata."
+  },
+  "promotion": {
+    "method": "byte-identical copy of the reviewed wedge-family GLB",
+    "promoted_at": "2026-07-14",
+    "human_edits_after_export": [],
+    "runtime_companion_asset": "travel_terminal_grok_wedge_screen"
+  },
+  "metrics": {
+    "bytes": 10862804,
+    "triangles": 2948,
+    "module_count": 6,
+    "module_nodes": [
+      "Module_base",
+      "Module_column",
+      "Module_head",
+      "Module_screen",
+      "Module_controls",
+      "Module_conduit"
+    ],
+    "sockets": [
+      "Socket_use",
+      "Socket_screen_center"
+    ],
+    "dimensions_m": {
+      "height": 1.4,
+      "width": 0.78,
+      "depth": 0.48
+    }
+  },
+  "materials": {
+    "uv_mapped_modules": [
+      "base",
+      "column",
+      "head",
+      "screen",
+      "controls",
+      "conduit"
+    ],
+    "embedded_texture_resolution": 2048,
+    "embedded_source_maps": {
+      "basecolor_sha256": "bd7e280961c8443fd5aac1af871aa9f310b7fbb31ae34aacd944aaeeeb298878",
+      "normal_sha256": "1f2bbb7f71cc54105460827b570893cef5a3563948d0c45aefb433f45bd58251",
+      "orm_sha256": "80e5a482dcda79f26fac46701b7788e2582d572f9816123fb52a05344490916c",
+      "emissive_sha256": "8b26d8be28fe925979594b5c0444000ff5df8efcb4f215907eeb75927f68cd4c"
+    }
+  },
+  "runtime": {
+    "logical_prop_id": "travel_terminal",
+    "registry": "client-3d/src/render/props-mapping.json",
+    "consumer": "client-3d/src/render/props.ts",
+    "focused_test": "client-3d/src/render/props.travelTerminal.test.ts",
+    "animated_screen": {
+      "node": "Module_screen",
+      "texture": "travel_terminal_grok_wedge_screen.png",
+      "scroll_speed": 0.16,
+      "pulse_hz": 0.62,
+      "repeat_y": 0.28
+    }
+  },
+  "validation": {
+    "source_gltf_errors": 0,
+    "source_gltf_warnings": "tangent-related warnings only",
+    "focused_runtime_tests": "passed 2026-07-14",
+    "runtime_load_contract": "passed 2026-07-14",
+    "successor_in_camera_review": "passed 2026-07-14 (verification/ledgers/artifacts/client3d/client3d-gate-20260714211601-5c84fefd/client3d-gate-report.json; h3d-start-zone-02-wedge-terminal-a.png and h3d-start-zone-03-wedge-terminal-b.png)"
+  },
+  "review": {
+    "status": "approved",
+    "reviewed_at": "2026-07-14",
+    "notes": "Source-family proof and isolated Successor start-zone camera/post-stack proof were reviewed. The corrected terminal is north-facing, its animated green screen is readable at gameplay zoom, and the interaction chip clears the screen. Proprietary Successor runtime-distribution rights are recorded; no standalone reuse grant is implied."
+  }
+}

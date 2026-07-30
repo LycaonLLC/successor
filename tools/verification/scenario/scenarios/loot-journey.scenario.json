@@ -1,0 +1,30 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "loot-journey",
+  "fixture": "open-desert-combat-active",
+  "actors": {
+    "alpha": { "character": "fixture:loot-ranger" }
+  },
+  "steps": [
+    { "command": { "actor": "alpha", "body": { "DebugGrantSkillBoxes": { "skill_box_ids": ["marksman-novice"] } }, "as": "alphaGrantMarksman" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGrantMarksman", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "alpha", "body": { "DebugGiveItem": { "item_id": 3101, "variant_id": 0, "quantity": 1, "equip": true } }, "as": "alphaGiveSlugthrower" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGiveSlugthrower", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "alpha", "body": { "DebugGiveItem": { "item_id": 1101, "variant_id": 0, "quantity": 240, "equip": false } }, "as": "alphaGiveAmmo" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGiveAmmo", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "send": { "actor": "alpha", "line": "/target verification-rogue-01", "as": "targetEvent" } },
+    { "send": { "actor": "alpha", "line": "/attack", "as": "attackQueued" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.attackQueued.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 10000, "as": "attackReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "ability_queue", "match": { "data.event.lifecycle": "fired", "data.event.abilityId": "basic_shot" }, "timeoutMs": 25000, "as": "firedEvent" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$captures.targetEvent.data.result.data.target.id", "setLastKill": true, "match": { "lifeState": "downed" } }, "timeoutMs": 70000, "as": "corpse" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "corpse:$last_kill", "minAvailable": 1 }, "timeoutMs": 8000, "as": "corpseLoot" } },
+    { "query": { "actor": "alpha", "line": "/inv player:field-pack", "as": "invBefore" } },
+    { "send": { "actor": "alpha", "line": "/loot corpse:$last_kill $captures.corpseLoot.itemId $captures.corpseLoot.variantId $captures.corpseLoot.available", "as": "lootQueued" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.lootQueued.data.commandId", "commandKind": "TakeLootItem", "accepted": true }, "timeoutMs": 10000, "as": "lootReceipt" } },
+    { "query": { "actor": "alpha", "line": "/inv player:field-pack", "as": "invAfter" } },
+    { "expect": { "kind": "queryDelta", "from": "invBefore", "to": "invAfter", "path": "data.totalAvailable", "minDelta": "$captures.corpseLoot.available" } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "receipt", "match": { "commandKind": "TakeLootItem", "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "lootStableHash" } }
+  ],
+  "notes": "Current authority loot proof: equip a Slugthrower, kill the deterministic hostile, observe its corpse inventory, and move the available stack into the player's field pack."
+}

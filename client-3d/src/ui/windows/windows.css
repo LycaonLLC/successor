@@ -1,0 +1,5773 @@
+/*
+ * Window system chrome — hairline HUD-glass (DESIGN.md constitution).
+ *
+ * One UI root (.sc3d-ui) holds the windows layer, the dock rail and the
+ * context radial. UI is always visible in the free-cursor grammar; empty
+ * root space remains pointer-transparent so world clicks still reach canvas.
+ * Every colour flows from the --sc3d-* theme tokens; z order from semantics.
+ */
+
+.sc3d-ui {
+  position: absolute;
+  inset: 0;
+  z-index: var(--sc3d-z-window);
+  pointer-events: none;
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+
+/* Windows band — own stacking context so per-window z counters can grow
+ * without ever escaping above the dock/radial. */
+.sc3d-windows {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── Glass window ───────────────────────────────────────────────────────── */
+
+.sc3d-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  pointer-events: auto;
+  background: var(--sc3d-glass);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  border-radius: 2px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  color: var(--sc3d-ink);
+}
+
+.sc3d-window[hidden] {
+  display: none;
+}
+
+.sc3d-window[data-focused] {
+  border-color: var(--sc3d-hairline);
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px color-mix(in srgb, var(--sc3d-accent) 10%, transparent);
+}
+
+/* ── Title strip (22px drag handle) ─────────────────────────────────────── */
+
+.sc3d-window-title {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  flex: 0 0 auto;
+  padding: 0 4px 0 7px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 55%, transparent);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.sc3d-window.dragging .sc3d-window-title {
+  cursor: grabbing;
+}
+
+/* Focus signifier: accent underline on the title strip. */
+.sc3d-window-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--sc3d-accent);
+  opacity: 0;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sc3d-window[data-focused] .sc3d-window-title::after {
+  opacity: 1;
+}
+
+.sc3d-window-icon {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: var(--sc3d-ink-dim);
+}
+
+.sc3d-window[data-focused] .sc3d-window-icon {
+  color: var(--sc3d-accent);
+}
+
+.sc3d-window-icon svg,
+.sc3d-window-close svg,
+.sc3d-dock-btn svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sc3d-window-label {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink);
+}
+
+.sc3d-window-close {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  padding: 2px;
+  margin: 0;
+  border: 0;
+  border-radius: 1px;
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: color 150ms ease-out, background 150ms ease-out;
+}
+
+.sc3d-window-close:hover,
+.sc3d-window-close:focus-visible {
+  color: var(--sc3d-danger);
+  background: color-mix(in srgb, var(--sc3d-danger) 14%, transparent);
+  outline: none;
+}
+
+/* ── Content + resize grip ──────────────────────────────────────────────── */
+
+.sc3d-window-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.sc3d-window-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  height: 24px;
+  z-index: 3;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.sc3d-window-resize::before,
+.sc3d-window-resize::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  height: 1px;
+  background: var(--sc3d-ink-dim);
+  transform-origin: right bottom;
+  transform: rotate(-45deg);
+  transition: background 150ms ease-out;
+}
+
+.sc3d-window-resize::before {
+  bottom: 3px;
+  width: 16px;
+}
+
+.sc3d-window-resize::after {
+  bottom: 8px;
+  width: 9px;
+}
+
+.sc3d-window-resize:hover::before,
+.sc3d-window-resize:hover::after,
+.sc3d-window.resizing .sc3d-window-resize::before,
+.sc3d-window.resizing .sc3d-window-resize::after {
+  background: var(--sc3d-accent);
+}
+
+/* ── Bottom scroll cue — "more below the fold" (manager-owned) ──────────── */
+
+/* Quiet fade over the last rows + a chevron tick; both vanish at scroll end.
+ * Pointer-transparent: the cue never eats wheel/drag events. */
+.sc3d-window-scrollcue {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  height: 22px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--sc3d-bg-panel) 78%, transparent)
+  );
+}
+
+.sc3d-window-scrollcue::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 7px;
+  height: 7px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 1.5px solid var(--sc3d-accent);
+  border-bottom: 1.5px solid var(--sc3d-accent);
+  opacity: 0.75;
+}
+
+.sc3d-window[data-scroll-below] .sc3d-window-scrollcue {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc3d-window-scrollcue {
+    transition: none;
+  }
+}
+
+/* ── Dock — right-edge vertical rail ────────────────────────────────────── */
+
+.sc3d-dock {
+  position: absolute;
+  right: 10px;
+  /* Nudged below true center: the rail's top used to intersect the radar box
+   * at 900px-tall viewports (fe-polish §1.2 — zero slack). */
+  top: calc(50% + 20px);
+  transform: translateY(-50%);
+  z-index: var(--sc3d-z-dock);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 5px;
+  pointer-events: auto;
+  background: var(--sc3d-glass);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  border-radius: 2px;
+}
+
+.sc3d-dock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.sc3d-dock-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  padding: 7px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: color 150ms ease-out, border-color 150ms ease-out, background 150ms ease-out;
+}
+
+.sc3d-dock-btn:hover,
+.sc3d-dock-btn:focus-visible {
+  color: var(--sc3d-ink);
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 55%, transparent);
+  outline: none;
+}
+
+/* Open signifier: persistent 2px accent underline bar… */
+.sc3d-dock-btn::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 2px;
+  height: 2px;
+  background: var(--sc3d-accent);
+  opacity: 0;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sc3d-dock-btn[data-open] {
+  color: var(--sc3d-accent);
+}
+
+.sc3d-dock-btn[data-open]::after {
+  opacity: 1;
+}
+
+/* …plus ONE 200ms glow pulse at the moment of opening. */
+@keyframes sc3d-dock-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--sc3d-accent-glow);
+  }
+  100% {
+    box-shadow: 0 0 12px 4px transparent;
+  }
+}
+
+.sc3d-dock-btn.sc3d-pulse {
+  animation: sc3d-dock-pulse 200ms ease-out 1;
+}
+
+.sc3d-dock-key {
+  min-height: 11px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Quick palette cycle; the full named picker remains in OPTIONS. */
+.sc3d-dock-swatch {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: 2px;
+  padding: 0;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 1px;
+  background: var(--sc3d-accent);
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: box-shadow 150ms ease-out;
+}
+
+.sc3d-dock-swatch:hover,
+.sc3d-dock-swatch:focus-visible {
+  box-shadow: 0 0 8px var(--sc3d-accent-glow);
+  outline: none;
+}
+
+/* ── Context radial (single reusable instance) ──────────────────────────── */
+
+.sc3d-radial {
+  position: absolute;
+  z-index: var(--sc3d-z-radial);
+  min-width: 148px;
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 92%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border: 1px solid var(--sc3d-accent-soft);
+  border-radius: 2px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.55), 0 0 8px var(--sc3d-accent-glow);
+}
+
+.sc3d-radial[hidden] {
+  display: none;
+}
+
+.sc3d-radial-item {
+  appearance: none;
+  -webkit-appearance: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 1px;
+  background: transparent;
+  color: var(--sc3d-ink);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-align: left;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.sc3d-radial-item:hover,
+.sc3d-radial-item:focus-visible {
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 55%, transparent);
+  color: var(--sc3d-accent);
+  outline: none;
+}
+
+.sc3d-radial-item[aria-disabled="true"] {
+  color: var(--sc3d-ink-dim);
+  cursor: not-allowed;
+}
+
+.sc3d-radial-item[aria-disabled="true"]:hover {
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+}
+
+/* Disabled-state glyph — the reason is hover-only (title tooltip). */
+.sc3d-radial-lock {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--sc3d-ink-dim);
+}
+
+/* ── Parity window content (options / character / skills / datapad) ─────── */
+
+.scp-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--sc3d-accent) 50%, transparent) transparent;
+  font-size: 11px;
+  color: var(--sc3d-ink);
+}
+
+.scp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scp-section:last-child {
+  border-bottom: 0;
+}
+
+.scp-section-title {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 22px;
+}
+
+.scp-label {
+  flex: 0 0 76px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-ink);
+}
+
+.scp-swatches {
+  display: flex;
+  gap: 6px;
+}
+
+.scp-swatch {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 1px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: box-shadow 150ms ease-out, transform 150ms ease-out;
+}
+
+.scp-swatch:hover,
+.scp-swatch:focus-visible {
+  box-shadow: 0 0 8px var(--sc3d-accent-glow);
+  outline: none;
+}
+
+.scp-swatch[data-active] {
+  box-shadow: 0 0 0 2px var(--sc3d-bg-panel), 0 0 0 3px var(--sc3d-ink);
+}
+
+.scp-range {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--sc3d-accent);
+}
+
+.scp-bindings {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scp-binding-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.scp-binding-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink);
+}
+
+/* Dotted leader between label and keys — carries the eye across the gulf on
+ * wide binding rows (options INPUT/TOOLBAR scanning, fe-polish P0). */
+.scp-binding-leader {
+  flex: 1;
+  min-width: 12px;
+  align-self: center;
+  border-bottom: 1px dotted color-mix(in srgb, var(--sc3d-ink-dim) 55%, transparent);
+  transform: translateY(2px);
+}
+
+.scp-binding-keys {
+  display: flex;
+  gap: 4px;
+}
+
+.scp-kbd {
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 90%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 70%, transparent);
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-rebind-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font: inherit;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-rebind-btn:hover {
+  color: var(--sc3d-ink);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+}
+
+.scp-rebind-btn[data-pending] {
+  color: var(--sc3d-accent);
+  border-color: var(--sc3d-accent);
+}
+
+/* ── FX LAB ─────────────────────────────────────────────────────────── */
+
+/* Uniform button wells — the ragged variable-width wrap read as clutter. */
+.scp-fx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 4px;
+}
+
+.scp-fx-btn {
+  margin-left: 0;
+  padding: 3px 4px;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.scp-fx-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.scp-fx-note {
+  margin: 2px 0 0;
+  font-size: 9px;
+  opacity: 0.55;
+}
+
+/* ── Character sheet ────────────────────────────────────────────────────── */
+
+.scp-identity {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scp-identity-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.scp-identity-tag {
+  font-size: 11px;
+  color: var(--sc3d-accent);
+}
+
+.scp-identity-title {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-gauges {
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-ledger-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  align-items: baseline;
+}
+
+.scp-ledger-label {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-ledger-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-professions {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.scp-profession-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.scp-profession-name {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.scp-profession-xp {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-empty-line {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 90%, transparent);
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 70%, transparent);
+  color: var(--sc3d-ink);
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.scp-select:disabled {
+  opacity: 0.45;
+}
+
+.scp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.scp-chip {
+  padding: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 60%, transparent);
+  color: var(--sc3d-ink-dim);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+/* ── Skills ─────────────────────────────────────────────────────────────── */
+
+.scp-skills {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.scp-skills-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 8px;
+  padding: 8px;
+}
+
+.scp-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-right: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  padding-right: 8px;
+}
+
+.scp-track {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+  font-family: inherit;
+  text-align: left;
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: border-color 150ms ease-out, background 150ms ease-out, color 150ms ease-out;
+}
+
+.scp-track strong {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.scp-track span {
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-track[data-learned] {
+  color: var(--sc3d-ink);
+}
+
+.scp-track:hover,
+.scp-track:focus-visible {
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 55%, transparent);
+  outline: none;
+}
+
+.scp-track[data-selected] {
+  border-color: var(--sc3d-accent);
+  color: var(--sc3d-ink);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 40%, transparent);
+}
+
+.scp-tree-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.scp-tree-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.scp-tree-head strong {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+
+.scp-tree-head span {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-tree {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 4px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.scp-skill-box {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2px;
+  min-height: 46px;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 40%, transparent);
+  color: var(--sc3d-ink-dim);
+  font-family: inherit;
+  text-align: left;
+  cursor: not-allowed;
+  transition: border-color 150ms ease-out, background 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+/* OWNED: accent border. */
+.scp-skill-box[data-state="owned"] {
+  border-color: var(--sc3d-accent);
+  color: var(--sc3d-ink);
+  cursor: var(--sc3d-cursor-default, default);
+}
+
+.scp-skill-box[data-state="owned"][data-action="unlearn"]:not(:disabled) {
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-skill-box[data-state="owned"][data-action="unlearn"]:not(:disabled):hover,
+.scp-skill-box[data-state="owned"][data-action="unlearn"]:not(:disabled):focus-visible {
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 28%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--sc3d-accent) 65%, transparent);
+  outline-offset: -2px;
+}
+
+/* OPEN (purchasable): filled accent. */
+.scp-skill-box[data-state="open"] {
+  border-color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 65%, transparent);
+  color: var(--sc3d-ink);
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-skill-box[data-state="open"]:hover,
+.scp-skill-box[data-state="open"]:focus-visible {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--sc3d-accent-glow) 55%, transparent);
+  outline: none;
+}
+
+.scp-skill-box[data-state="pending"] {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+  color: var(--sc3d-ink);
+}
+
+.scp-skill-box-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.scp-skill-box-top strong {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.scp-skill-glyph {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-skill-glyph svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scp-skill-pending {
+  color: var(--sc3d-accent);
+  font-weight: 700;
+}
+
+.scp-skill-xp {
+  display: block;
+  height: 3px;
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 50%, transparent);
+  position: relative;
+  overflow: hidden;
+}
+
+.scp-skill-xp::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--fill, 0) * 1%);
+  background: var(--sc3d-accent);
+  opacity: 0.75;
+}
+
+.scp-skill-cost {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-status-foot {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-status-line[data-flash] {
+  color: var(--sc3d-accent);
+}
+
+/* LOOT footer TAKE ALL — compact to sit in the 9px status foot. */
+.dwl-foot {
+  align-items: center;
+}
+
+.dwl-take-all {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  font-size: 9px;
+}
+
+/* LOOT footer TAKE CREDITS — quiet sibling verb (brass), player corpses only. */
+.dwl-take-credits {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  font-size: 9px;
+  color: var(--sc-fixed-ochre);
+  border-color: color-mix(in srgb, var(--sc-fixed-ochre) 55%, transparent);
+  margin-left: auto;
+}
+.dwl-take-credits:disabled {
+  color: var(--sc3d-ink-dim);
+  border-color: var(--sc3d-hairline);
+}
+.dwl-take-credits + .dwl-take-all {
+  margin-left: 8px;
+}
+
+.scp-trainer-line[data-missing] {
+  color: var(--sc3d-danger);
+}
+
+/* ── Datapad ────────────────────────────────────────────────────────────── */
+
+.scp-datapad {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.scp-datapad-chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-datapad-grid {
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+}
+
+.scp-empty[hidden] {
+  display: none;
+}
+
+.scp-empty {
+  position: absolute;
+  inset: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+  /* Hoverable: the empty-state tooltip carries the vehicles/waypoints note. */
+  pointer-events: auto;
+}
+
+.scp-empty-glyph {
+  width: 34px;
+  height: 34px;
+  opacity: 0.6;
+}
+
+.scp-empty-glyph svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* ── Datapad tabs + MAP (planetary orbital survey) ──────────────────────── */
+
+.scp-tabs {
+  display: flex;
+  /* MEDIC WAVE: the CRAFT nav now carries five populated tabs (SUPPLIES gained the
+     medical consumable line). Wrap instead of clipping the last tab off-nav so
+     every category stays reachable at any window width. */
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  flex: 0 0 auto;
+}
+
+.scp-tab {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 4px 10px 5px;
+  font: 600 9px/1 ui-monospace, monospace;
+  letter-spacing: 0.24em;
+  color: var(--sc3d-ink-dim);
+  cursor: pointer;
+}
+
+.scp-tab:hover {
+  color: var(--sc3d-ink);
+}
+
+.scp-tab[aria-selected="true"] {
+  color: var(--sc3d-ink);
+  border-bottom-color: var(--sc3d-accent);
+}
+
+.scp-datapad-surface {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-datapad-surface[hidden] {
+  display: none;
+}
+
+.scp-map {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+.scp-map-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.scp-map-title {
+  font: 600 10px/1 ui-monospace, monospace;
+  letter-spacing: 0.2em;
+  color: var(--sc3d-ink);
+}
+
+.scp-map-sub {
+  font: 500 9px/1 ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+}
+
+/* TACTICAL / ORBITAL framing toggle — subordinate to the map, one slim row. */
+.scp-map-modes {
+  display: flex;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.scp-map-mode {
+  appearance: none;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  padding: 3px 8px;
+  font: 600 8px/1 ui-monospace, monospace;
+  letter-spacing: 0.22em;
+  color: var(--sc3d-ink-dim);
+  cursor: pointer;
+}
+
+.scp-map-mode:hover {
+  color: var(--sc3d-ink);
+}
+
+.scp-map-mode[aria-pressed="true"] {
+  color: var(--sc3d-accent);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent) 10%, transparent);
+}
+
+.scp-map-viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scp-map-canvas {
+  /* 1 px = 1 cell satellite upscaled — chunky texels are the period voice. */
+  image-rendering: pixelated;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  cursor: crosshair;
+}
+
+.scp-map-foot {
+  flex: 0 0 auto;
+  min-height: 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.scp-map-storm {
+  font: 600 9px/1.3 ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-map-storm[data-tone="warning"] {
+  color: #e0ac42;
+}
+
+.scp-map-storm[data-tone="active"] {
+  color: #e67834;
+}
+
+.scp-map-storm[data-tone="decay"] {
+  color: #c89a5a;
+}
+
+/* Pointer receipts (waypoint create/toggle/delete, movement refusals). */
+.scp-map-status {
+  font: 600 9px/1.3 ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  color: var(--sc3d-accent);
+}
+
+.scp-map-status[hidden] {
+  display: none;
+}
+
+/* ── Datapad WAYPOINTS ─────────────────────────────────────────────────── */
+
+.scp-waypoints {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-waypoints-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scp-waypoints-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scp-waypoints-title strong {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+.scp-waypoints-title span {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-waypoint-new,
+.scp-waypoint-action,
+.scp-waypoint-name {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  font-family: inherit;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-waypoint-new {
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-accent) 65%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 50%, transparent);
+  color: var(--sc3d-ink);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.scp-waypoint-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 7px 8px 8px;
+}
+
+.scp-waypoint-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 9px;
+}
+
+.scp-waypoint-planet {
+  margin: 0;
+  padding: 0 0 3px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  color: var(--sc3d-accent);
+}
+
+.scp-waypoint-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 74px auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 4px 5px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-waypoint-row:hover,
+.scp-waypoint-row:focus-within {
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+}
+
+.scp-waypoint-row[data-active] {
+  color: var(--sc3d-ink);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 22%, transparent);
+}
+
+.scp-waypoint-marker {
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+  border: 1px solid var(--sc3d-accent);
+  transform: rotate(45deg);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--sc3d-accent-glow) 45%, transparent);
+}
+
+.scp-waypoint-row[data-active] .scp-waypoint-marker {
+  background: var(--sc3d-accent);
+}
+
+.scp-waypoint-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scp-waypoint-name {
+  width: fit-content;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scp-waypoint-name:hover,
+.scp-waypoint-name:focus-visible {
+  color: var(--sc3d-accent);
+  outline: none;
+}
+
+.scp-waypoint-name-input {
+  box-sizing: border-box;
+  width: min(100%, 220px);
+  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-accent) 70%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 88%, transparent);
+  color: var(--sc3d-ink);
+  font: 700 11px/1.2 ui-monospace, monospace;
+  letter-spacing: 0.06em;
+}
+
+.scp-waypoint-name-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc3d-accent) 35%, transparent);
+}
+
+.scp-waypoint-area,
+.scp-waypoint-distance {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-waypoint-distance {
+  text-align: right;
+}
+
+.scp-waypoint-distance[data-local="true"] {
+  color: var(--sc3d-accent);
+}
+
+.scp-waypoint-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.scp-waypoint-action {
+  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 65%, transparent);
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.scp-waypoint-action:hover,
+.scp-waypoint-action:focus-visible,
+.scp-waypoint-new:hover,
+.scp-waypoint-new:focus-visible {
+  color: var(--sc3d-ink);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 70%, transparent);
+  outline: none;
+}
+
+.scp-waypoint-empty {
+  inset: 42px 0 24px;
+}
+
+/* ── MACROS (scripting bench: run deck · directory · editor) ───────────── */
+
+.scp-macros {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.scp-macros-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scp-macros-title strong {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+.scp-macros-title span {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-macro-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 65%, transparent);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-macro-btn:hover,
+.scp-macro-btn:focus-visible {
+  color: var(--sc3d-ink);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 70%, transparent);
+  outline: none;
+}
+
+.scp-macro-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-macro-btn--accent {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 65%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 50%, transparent);
+  color: var(--sc3d-ink);
+  padding: 4px 8px;
+  font-size: 9px;
+}
+
+.scp-macro-btn--danger:hover,
+.scp-macro-btn--danger:focus-visible {
+  color: var(--sc3d-danger);
+  border-color: color-mix(in srgb, var(--sc3d-danger) 70%, transparent);
+}
+
+/* Run deck — one socket per engine run slot. */
+
+.scp-macro-deck {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scp-macro-deck-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 8px 5px;
+}
+
+.scp-macro-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+.scp-macro-slot {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "lamp main state"
+    "lamp main stop";
+  align-items: center;
+  column-gap: 6px;
+  min-height: 40px;
+  padding: 5px 6px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 55%, transparent);
+}
+
+.scp-macro-slot[data-vacant] {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+  background: transparent;
+}
+
+.scp-macro-slot-lamp {
+  grid-area: lamp;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 50%;
+}
+
+.scp-macro-slot[data-status="running"] {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 22%, transparent);
+}
+
+.scp-macro-slot[data-status="running"] .scp-macro-slot-lamp {
+  border-color: var(--sc3d-accent);
+  background: var(--sc3d-accent);
+  box-shadow: 0 0 8px var(--sc3d-accent-glow);
+  animation: scp-macro-lamp 1.1s ease-in-out infinite;
+}
+
+.scp-macro-slot[data-status="paused"] .scp-macro-slot-lamp,
+.scp-macro-slot[data-status="yielded"] .scp-macro-slot-lamp,
+.scp-macro-slot[data-status="waiting_receipt"] .scp-macro-slot-lamp,
+.scp-macro-slot[data-status="waiting_until"] .scp-macro-slot-lamp {
+  border-color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-accent) 40%, transparent);
+}
+
+@keyframes scp-macro-lamp {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.scp-macro-slot-main {
+  grid-area: main;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scp-macro-slot-main strong {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scp-macro-slot[data-vacant] .scp-macro-slot-main strong {
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-macro-slot-main span {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scp-macro-slot-state {
+  grid-area: state;
+  font-size: 7.5px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-accent);
+  text-align: right;
+}
+
+.scp-macro-slot > .scp-macro-btn {
+  grid-area: stop;
+  justify-self: end;
+}
+
+/* Split: directory list | editor bench. */
+
+.scp-macro-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(200px, 5fr) minmax(220px, 6fr);
+}
+
+.scp-macro-library {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scp-macro-lib-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+}
+
+.scp-macro-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 6px;
+}
+
+.scp-macro-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 58px auto auto minmax(44px, auto);
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 5px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--sc3d-ink-dim);
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-macro-row:hover,
+.scp-macro-row:focus-within {
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+}
+
+.scp-macro-row[data-selected] {
+  color: var(--sc3d-ink);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 45%, transparent);
+}
+
+.scp-macro-row[data-running] {
+  color: var(--sc3d-ink);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 22%, transparent);
+}
+
+/* Shadowed lower-tier rows: a higher provider owns the name — visible for
+   CLONE recovery but visually parked. */
+.scp-macro-row[data-shadowed] {
+  opacity: 0.55;
+}
+
+/* Local file load/parse failures: the row IS the error surface. */
+.scp-macro-row[data-error] {
+  border-color: color-mix(in srgb, var(--sc3d-danger) 35%, transparent);
+}
+
+.scp-macro-marker {
+  width: 7px;
+  height: 7px;
+  margin-left: 3px;
+  border: 1px solid var(--sc3d-ink-dim);
+  transform: rotate(45deg);
+}
+
+.scp-macro-row[data-selected] .scp-macro-marker {
+  border-color: var(--sc3d-accent);
+}
+
+.scp-macro-row[data-running] .scp-macro-marker {
+  border-color: var(--sc3d-accent);
+  background: var(--sc3d-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--sc3d-accent-glow) 45%, transparent);
+}
+
+.scp-macro-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scp-macro-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scp-macro-preview {
+  font: 500 9px/1.2 ui-monospace, monospace;
+  color: var(--sc3d-ink-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scp-macro-preview[data-bad] {
+  color: var(--sc3d-danger);
+}
+
+/* Provider chip: RECORD (character) / LOCAL (disk) / STARTER (pack). Fixed
+   column width keeps rows aligned whatever the label. */
+.scp-macro-source {
+  justify-self: start;
+  font-size: 7.5px;
+  letter-spacing: 0.12em;
+  padding: 1px 4px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+}
+
+.scp-macro-source[data-source="character"] {
+  color: var(--sc3d-accent);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 40%, transparent);
+}
+
+.scp-macro-badge {
+  font-size: 7.5px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-accent);
+}
+
+.scp-macro-weight {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-macro-row-actions {
+  display: flex;
+  gap: 4px;
+  min-width: 44px;
+  justify-content: flex-end;
+}
+
+.scp-macro-empty {
+  inset: 42px 0 24px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scp-macro-empty small {
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: none;
+  color: color-mix(in srgb, var(--sc3d-ink-dim) 80%, transparent);
+}
+
+/* Editor bench. */
+
+.scp-macro-editor {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 8px 8px;
+}
+
+.scp-macro-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.scp-macro-field > span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-macro-field input,
+.scp-macro-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 88%, transparent);
+  color: var(--sc3d-ink);
+  font: 700 11px/1.2 ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  caret-color: var(--sc3d-accent);
+}
+
+.scp-macro-field textarea {
+  font-weight: 500;
+  line-height: 1.5;
+  resize: none;
+  scrollbar-width: thin;
+}
+
+.scp-macro-field--body {
+  flex: 1;
+  min-height: 0;
+}
+
+.scp-macro-field--body textarea {
+  flex: 1;
+  min-height: 0;
+}
+
+.scp-macro-field input:focus,
+.scp-macro-field textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--sc3d-accent) 70%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc3d-accent) 35%, transparent);
+}
+
+.scp-macro-meter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-macro-meter [data-over] {
+  color: var(--sc3d-danger);
+  font-weight: 700;
+}
+
+.scp-macro-editor-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.scp-macro-sync {
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-macro-sync[data-bad] {
+  color: var(--sc3d-danger);
+}
+
+.scp-status-line[data-bad][data-flash] {
+  color: var(--sc3d-danger);
+}
+
+/* ── Loot (corpse + cache salvage) ──────────────────────────────────────── */
+
+.dwl-root {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dwl-chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.dwl-head {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.dwl-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dwl-name {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dwl-decay {
+  flex: 0 0 auto;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+}
+
+.dwl-head-meta {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+.dwl-rights[data-denied],
+.dwl-range[data-denied] {
+  color: var(--sc3d-danger);
+}
+
+.dwl-grid {
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+}
+
+.dwl-grid .inv-slot[data-locked] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dwl-grid .inv-slot[data-locked]:hover {
+  border-color: color-mix(in srgb, var(--sc3d-danger) 55%, transparent);
+}
+
+/* ── Action Browser ─────────────────────────────────────────────────────── */
+
+.scp-actions {
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.scp-actions-hint {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 6px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 55%, transparent);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-actions-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.scp-action-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: grab;
+  transition: border-color 120ms ease-out, background 120ms ease-out;
+}
+
+.scp-action-row:hover {
+  background: color-mix(in srgb, var(--sc3d-accent) 12%, transparent);
+}
+
+.scp-action-row[data-dragging] {
+  opacity: 0.5;
+}
+
+.scp-action-icon {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  color: var(--sc3d-ink);
+}
+
+.scp-action-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scp-action-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.scp-action-text strong {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink);
+}
+
+.scp-action-text small {
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  color: var(--sc3d-ink-dim);
+}
+
+/* Slot badge: shows which toolbar slot(s) currently hold this action. */
+.scp-action-badge {
+  flex: 0 0 auto;
+  min-width: 16px;
+  padding: 1px 4px;
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--sc3d-accent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-accent) 45%, transparent);
+  border-radius: 2px;
+}
+
+.scp-action-badge:not([data-assigned]) {
+  visibility: hidden;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .sc3d-window-title::after,
+  .sc3d-window-close,
+  .sc3d-window-resize::before,
+  .sc3d-window-resize::after,
+  .sc3d-dock-btn,
+  .sc3d-dock-btn::after,
+  .sc3d-dock-swatch {
+    transition: none;
+  }
+
+  .sc3d-dock-btn.sc3d-pulse,
+  .scp-macro-slot[data-status="running"] .scp-macro-slot-lamp {
+    animation: none;
+  }
+}
+
+/* ── Survey tool ────────────────────────────────────────────────────────── */
+
+.dws-root {
+  gap: 8px;
+  padding: 8px;
+}
+
+.dws-readout {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dws-readout-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dws-spawn {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink);
+}
+
+.dws-age {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.dws-readout-figures {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dws-figure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--sc3d-ink);
+}
+
+.dws-figure-label {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.dws-figure-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Heatmap viewport: the canvas paints its own face; the frame is the
+   hairline instrument bezel. Rectangular — a survey plot, not a scope. */
+.dws-map-frame {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 40%, transparent);
+  overflow: hidden;
+}
+
+.dws-map {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Legend: live-range gradient bar + endpoint figures. The bar is canvas —
+   band colours are fixed data-encoding (like the storm amber), not chrome. */
+.dws-legend {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dws-legend-bar {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.dws-legend-scale {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-ink);
+}
+
+.dws-legend-note {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+.dws-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+}
+
+.dws-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  border-radius: 3px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.dws-btn:hover:not(:disabled),
+.dws-btn:focus-visible:not(:disabled) {
+  color: var(--sc3d-ink);
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 85%, transparent);
+}
+
+.dws-btn:disabled {
+  opacity: 0.45;
+  cursor: var(--sc3d-cursor-default, default);
+}
+
+/* Tab panes (MAP | CATALOG) — datapad tab mechanism, survey-local layout. */
+.dws-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dws-pane[hidden] {
+  display: none;
+}
+
+/* Target family radiogroup — live spawn families for the tool's category.
+   min-height pins the row so chip swaps during snapshot refreshes never
+   shift the readout/map below. */
+.dws-target {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+
+.dws-target-label {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.dws-target-opts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.dws-target-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink-dim);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  border-radius: 3px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.dws-target-btn:hover:not(:disabled),
+.dws-target-btn:focus-visible:not(:disabled) {
+  color: var(--sc3d-ink);
+}
+
+.dws-target-btn[aria-checked="true"] {
+  color: var(--sc3d-accent);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+}
+
+.dws-target-btn:disabled {
+  opacity: 0.55;
+  cursor: var(--sc3d-cursor-default, default);
+}
+
+.dws-target-note {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+/* Catalog — read-only spawn reference (name · material / family / category /
+   top rolled stats). Quiet rows, hairline separated, no interaction chrome. */
+.dws-catalog-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--sc3d-accent) 50%, transparent) transparent;
+}
+
+.dws-cat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 40%, transparent);
+}
+
+.dws-cat-row:last-child {
+  border-bottom: 0;
+}
+
+.dws-cat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dws-cat-name {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dws-cat-tag {
+  flex: 0 0 auto;
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+}
+
+.dws-cat-stats {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.dws-cat-fam[data-target] {
+  color: var(--sc3d-accent);
+}
+
+.dws-catalog-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+  text-align: center;
+}
+
+.dws-catalog-empty[hidden] {
+  display: none;
+}
+
+/* Options: stack-split default-snap segmented control */
+
+.scp-snapseg {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.scp-snapseg-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink-dim);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  border-radius: 3px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-snapseg-btn:hover,
+.scp-snapseg-btn:focus-visible {
+  color: var(--sc3d-ink);
+}
+
+.scp-snapseg-btn[data-active] {
+  color: var(--sc3d-accent);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+}
+
+/* Inventory: stack split dialog + drag-to-merge */
+
+.inv-splitdlg {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 40%, transparent);
+}
+
+.inv-splitdlg-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 240px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  border-radius: 4px;
+}
+
+.inv-splitdlg-title {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink);
+}
+
+.inv-splitdlg-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 16px;
+  color: var(--sc3d-accent);
+}
+
+.inv-splitdlg-total {
+  font-size: 10px;
+  color: var(--sc3d-ink-dim);
+}
+
+.inv-splitdlg-snaps {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.inv-splitdlg-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.inv-drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  padding: 3px 8px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+  border-radius: 3px;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.inv-slot[data-drop] {
+  outline: 1px solid var(--sc3d-accent);
+  outline-offset: -1px;
+}
+
+/* Inventory ledger: resource spawn stat rows */
+
+.inv-ledger-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+}
+
+.inv-stat-row {
+  display: grid;
+  grid-template-columns: 84px 1fr 34px;
+  align-items: center;
+  gap: 6px;
+}
+
+.inv-stat-label {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  /* Wire stat/line labels arrive verbatim (e.g. "runtime") — the caps voice
+     is presentation, so it lives here, not in the data. */
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+.inv-stat-meter {
+  height: 3px;
+  background: color-mix(in srgb, var(--sc3d-hairline) 35%, transparent);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.inv-stat-fill {
+  display: block;
+  height: 100%;
+  background: var(--sc3d-accent);
+  opacity: 0.75;
+}
+
+.inv-stat-value {
+  font-size: 9px;
+  text-align: right;
+  color: var(--sc3d-ink);
+}
+
+/* `hidden` must beat the display rules above (UA display:none loses to them). */
+.inv-splitdlg[hidden] {
+  display: none;
+}
+
+/* ── TRAVEL window (Planetfall) ────────────────────────────────────────── */
+
+.scp-travel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 8px;
+}
+
+.scp-travel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 0;
+}
+
+.scp-travel-origin {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink);
+}
+
+.scp-travel-headnote {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+}
+
+.scp-travel-body {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.scp-travel-map {
+  flex: 0 0 auto;
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  max-height: 100%;
+  min-width: 180px;
+  background: var(--sc3d-bg-cell);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+}
+
+.scp-travel-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.scp-travel-chart-title {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 6.5px;
+  letter-spacing: 0.12em;
+  fill: var(--sc3d-ink);
+  opacity: 0.9;
+}
+
+.scp-travel-chart-note {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 3.6px;
+  letter-spacing: 0.2em;
+  fill: var(--sc3d-ink-dim);
+}
+
+.scp-travel-city { cursor: pointer; }
+.scp-travel-city-label {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 4.2px;
+  letter-spacing: 0.12em;
+  fill: var(--sc3d-ink);
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 0.8px;
+}
+.scp-travel-city:hover circle { filter: brightness(1.25); }
+
+.scp-travel-map-offline {
+  margin: auto;
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-align: center;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-travel-controls {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scp-travel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-travel-summary {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink);
+  padding: 6px 8px;
+  background: var(--sc3d-bg-cell);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 3px;
+  min-height: 16px;
+}
+
+.scp-travel-print {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-bg-panel);
+  background: var(--sc3d-accent);
+  border: 1px solid var(--sc3d-accent);
+  border-radius: 3px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.scp-travel-print:hover:not(:disabled) { filter: brightness(1.12); }
+.scp-travel-print:disabled {
+  background: var(--sc3d-bg-cell);
+  color: var(--sc3d-ink-dim);
+  border-color: var(--sc3d-hairline);
+  cursor: default;
+}
+
+.scp-travel-tickets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.scp-travel-tickets-head {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-travel-ticket {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--sc3d-bg-cell);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 3px;
+}
+
+.scp-travel-ticket-dest {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Empty ticket rail: dashed placeholder well (fe-polish §1.21 — the bare
+ * line was near-invisible and the rail read as a void). */
+.scp-travel-ticket-empty {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink);
+  opacity: 0.75;
+  padding: 7px 8px;
+  text-align: center;
+  border: 1px dashed color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 30%, transparent);
+}
+
+.scp-travel-go {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink);
+  background: transparent;
+  border: 1px solid var(--sc3d-accent);
+  border-radius: 3px;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.scp-travel-go:hover:not(:disabled) { background: var(--sc3d-glass); }
+.scp-travel-go:disabled { border-color: var(--sc3d-hairline); color: var(--sc3d-ink-dim); cursor: default; }
+
+/* ── CRAFT — four-phase bench (browser / loadout / moment / finish) ──────── */
+
+.scp-craft {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.scp-craft-chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Phase rail — honest wayfinding across the four steps. */
+.scp-craft-rail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  flex: 0 0 auto;
+}
+
+.scp-craft-rail-step {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-rail-step[data-active] {
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-rail-step[data-done] {
+  color: var(--sc3d-ink);
+  opacity: 0.75;
+}
+
+.scp-craft-rail-tick {
+  flex: 0 0 14px;
+  height: 1px;
+  background: color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+}
+
+.scp-craft-surface {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-craft-surface[hidden] {
+  display: none;
+}
+
+/* Shared button voice (macro-bench weight). */
+.scp-craft-btn {
+  appearance: none;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 80%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  padding: 5px 10px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: border-color 150ms ease-out, background 150ms ease-out;
+}
+
+.scp-craft-btn:hover:not(:disabled),
+.scp-craft-btn:focus-visible {
+  border-color: var(--sc3d-accent);
+  outline: none;
+}
+
+.scp-craft-btn:disabled {
+  color: var(--sc3d-ink-dim);
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  cursor: not-allowed;
+}
+
+.scp-craft-btn--accent:not(:disabled) {
+  border-color: var(--sc3d-accent);
+  background: var(--sc3d-accent-soft);
+}
+
+.scp-craft-btn--danger:not(:disabled) {
+  border-color: color-mix(in srgb, var(--sc3d-danger) 70%, transparent);
+  color: var(--sc3d-danger);
+}
+
+.scp-craft-btn--danger[data-armed] {
+  background: color-mix(in srgb, var(--sc3d-danger) 22%, transparent);
+}
+
+.scp-craft-note {
+  flex: 1;
+  min-width: 0;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--sc3d-ink) 66%, var(--sc3d-ink-dim));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scp-craft-note[data-warn] {
+  color: color-mix(in srgb, var(--sc3d-ink) 82%, var(--sc3d-accent));
+}
+
+.scp-craft-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  flex: 0 0 auto;
+}
+
+/* UA [hidden] loses to `display: flex` above — restate it scoped so the
+   TUNE/FINISH footers actually leave the layout when hidden. */
+.scp-craft-cta[hidden] {
+  display: none;
+}
+
+/* ── Phase 1 — browser ─────────────────────────────────────────────────── */
+
+.scp-craft-browse {
+  flex-direction: row;
+}
+
+.scp-craft-browse-list {
+  flex: 1 1 46%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scp-craft-recipes {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+}
+
+/* Search + explicit discovery toggle sit between the tabs and recipe list. */
+.scp-craft-filter-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin: 6px 6px 0;
+}
+
+.scp-craft-search {
+  appearance: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--sc3d-panel, #101418) 60%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.scp-craft-search::placeholder {
+  color: var(--sc3d-ink-dim);
+  letter-spacing: 0.12em;
+}
+
+.scp-craft-search:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+}
+
+.scp-craft-eligibility-toggle {
+  appearance: none;
+  flex: 0 0 auto;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+  font: inherit;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-craft-eligibility-toggle:hover,
+.scp-craft-eligibility-toggle:focus-visible,
+.scp-craft-eligibility-toggle[aria-pressed="true"] {
+  outline: none;
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+  color: var(--sc3d-ink);
+}
+
+/* Progression group header: profession · skill box, counts right. Sticky so
+ * long lists keep their place in the progression while scrolling. */
+.scp-craft-group {
+  position: sticky;
+  top: -6px;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 2px;
+  padding: 4px 8px 3px;
+  background: color-mix(in srgb, var(--sc3d-panel, #101418) 92%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+}
+
+.scp-craft-group:first-child {
+  margin-top: 0;
+}
+
+.scp-craft-group b {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.scp-craft-group span {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+}
+
+.scp-craft-group[data-locked] b {
+  color: var(--sc3d-ink-dim);
+}
+
+/* The profession's next training target reads as a quiet accent, not a
+ * banner — the locked rows under it stay dim. */
+.scp-craft-group[data-next] {
+  border-bottom-color: color-mix(in srgb, var(--sc3d-accent) 45%, transparent);
+}
+
+.scp-craft-group[data-next] span {
+  color: color-mix(in srgb, var(--sc3d-accent) 80%, var(--sc3d-ink));
+}
+
+.scp-craft-recipe {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--sc3d-ink);
+  font: inherit;
+  text-align: left;
+  padding: 6px 8px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-craft-recipe strong {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scp-craft-recipe-meta {
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+}
+
+.scp-craft-recipe:hover,
+.scp-craft-recipe:focus-visible {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+  outline: none;
+}
+
+.scp-craft-recipe[data-selected] {
+  border-color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 70%, transparent);
+}
+
+.scp-craft-recipe[data-locked] {
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-lock {
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-lock svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scp-craft-ledger {
+  flex: 1 1 54%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.scp-craft-ledger[hidden] {
+  display: none;
+}
+
+.scp-craft-ledger--idle {
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+/* Turntable window — a transparent hole over the shared canvas layer. */
+.scp-craft-well {
+  position: relative;
+  flex: 0 0 auto;
+  height: 132px;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 40%, transparent);
+}
+
+.scp-craft-well--mini {
+  width: 72px;
+  height: 64px;
+}
+
+.scp-craft-name {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.scp-craft-meta {
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  color: color-mix(in srgb, var(--sc3d-ink) 68%, var(--sc3d-ink-dim));
+}
+
+.scp-craft-desc {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--sc3d-ink) 92%, transparent);
+}
+
+.scp-craft-sect {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+}
+
+.scp-craft-sect[hidden] {
+  display: none;
+}
+
+.scp-craft-req {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+
+.scp-craft-req-symbol {
+  flex: 0 0 18px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--sc3d-accent);
+}
+
+/* Purpose-glyph (iconRegistry) in the requirement symbol slot. */
+.scp-craft-req-symbol svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 0 auto;
+}
+
+.scp-craft-req-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.scp-craft-req-kind {
+  min-width: 0;
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scp-craft-req-material {
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--sc3d-ink) 65%, var(--sc3d-ink-dim));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scp-craft-req-material[hidden] {
+  display: none;
+}
+
+.scp-craft-req-stat {
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  color: color-mix(in srgb, var(--sc3d-ink) 65%, var(--sc3d-ink-dim));
+}
+
+.scp-craft-req-qty {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-ink);
+}
+
+/* Ownership column — READY/MISSING chip + "N carried" from local inventory. */
+.scp-craft-req-have {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.scp-craft-req-have[hidden] {
+  display: none;
+}
+
+.scp-craft-req-state {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-req[data-ready] .scp-craft-req-state {
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-req[data-missing] .scp-craft-req-state {
+  color: var(--sc3d-danger);
+}
+
+.scp-craft-req-owned {
+  font-size: 8.5px;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--sc3d-ink) 65%, var(--sc3d-ink-dim));
+  white-space: nowrap;
+}
+
+/* ── Phase 2 — loadout ─────────────────────────────────────────────────── */
+
+.scp-craft-phase-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  flex: 0 0 auto;
+}
+
+.scp-craft-phase-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scp-craft-phase-title strong {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.scp-craft-phase-title span {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-active-slot,
+.scp-craft-phase-title span.scp-craft-active-slot {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-active-slot:empty {
+  display: none;
+}
+
+.scp-craft-slots-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.scp-craft-slotcards {
+  flex: 1 1 44%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  border-right: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+/* Material WELLS — tactile seats: dashed while open, inset-shadow seat
+   once stock lands. Geometry, not skeuomorph clutter. */
+.scp-craft-slotcard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px dashed color-mix(in srgb, var(--sc3d-hairline) 92%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 55%, transparent);
+  box-shadow: inset 0 1px 4px rgb(0 0 0 / 45%);
+  padding: 8px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-craft-slotcard[data-filled] {
+  border-style: solid;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 88%, transparent);
+  box-shadow:
+    inset 0 1px 3px rgb(0 0 0 / 55%),
+    inset 0 0 0 1px color-mix(in srgb, var(--sc3d-accent) 20%, transparent);
+}
+
+.scp-craft-slotcard[data-selected] {
+  border-color: var(--sc3d-accent);
+  box-shadow: inset 0 1px 4px rgb(0 0 0 / 45%), 0 0 8px var(--sc3d-accent-glow);
+}
+
+/* Focus lives on the seat <button>; the card frames it. */
+.scp-craft-slotcard:focus-within {
+  border-color: var(--sc3d-accent);
+  box-shadow: inset 0 0 0 1px var(--sc3d-accent-soft), 0 0 8px var(--sc3d-accent-glow);
+}
+
+/* Seat radio — the card's selection control, chrome-free so the well
+   keeps its look; CLEAR stays a SIBLING (no nested interactives). */
+.scp-craft-slot-seat {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-craft-slot-seat:focus-visible {
+  outline: none;
+}
+
+/* Recessed symbol seat — the purpose vector sits IN the well. */
+.scp-craft-slot-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 85%, transparent);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 50%);
+  color: var(--sc3d-ink-dim);
+}
+
+/* Seat beat on load — reduced motion turns it off (see media block). */
+.scp-craft-slotcard[data-filled] .scp-craft-slot-symbol {
+  color: var(--sc3d-accent);
+  animation: scp-craft-seat 240ms ease-out;
+}
+
+@keyframes scp-craft-seat {
+  from {
+    transform: scale(1.14);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+/* Purpose-glyph (iconRegistry) in the fill-slot symbol well. */
+.scp-craft-slot-symbol svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
+.scp-craft-slot-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scp-craft-slot-main strong {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scp-craft-slot-main small {
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scp-craft-slot-main small[hidden] {
+  display: none;
+}
+
+.scp-craft-slot-main span {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink);
+}
+
+.scp-craft-slot-main span[data-empty] {
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-slot-qty {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-slot-clear {
+  padding: 3px 7px;
+  font-size: 8.5px;
+}
+
+.scp-craft-options {
+  position: relative;
+  flex: 1 1 56%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-craft-options-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--sc3d-ink-dim);
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+  flex: 0 0 auto;
+}
+
+.scp-craft-options-stat {
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-optlist {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+}
+
+.scp-craft-opt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px 34px 32px auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  padding: 5px 8px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-craft-opt:hover {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+}
+
+.scp-craft-opt[data-recommended] {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 80%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 55%, transparent);
+}
+
+.scp-craft-opt[data-assigned] {
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 85%, transparent);
+}
+
+/* Short stacks stay visible-but-honest: dimmed row, LOAD disabled, the
+   OWN X · NEED Y note names the missing quantity. */
+.scp-craft-opt[data-short] {
+  opacity: 0.65;
+}
+
+.scp-craft-opt-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scp-craft-opt-main strong {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scp-craft-opt-tags {
+  display: flex;
+  gap: 6px;
+}
+
+.scp-craft-best,
+.scp-craft-loadedtag {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-loadedtag {
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-opt-note {
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-danger);
+  white-space: nowrap;
+}
+
+.scp-craft-opt-note[hidden] {
+  display: none;
+}
+
+.scp-craft-opt-value {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.scp-craft-opt-qty {
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-opt-load {
+  padding: 3px 10px;
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+}
+
+.scp-craft-opt-load:disabled {
+  opacity: 0.45;
+  cursor: var(--sc3d-cursor-default, default);
+}
+
+.scp-craft-optempty {
+  inset: 24px 0;
+}
+
+/* 12-stat readout for the hovered stack — the ⓘ block, always in view. */
+.scp-craft-statbox {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+  padding: 6px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 55%, transparent);
+}
+
+.scp-craft-statbox[hidden] {
+  display: none;
+}
+
+.scp-craft-statrow[data-relevant] .inv-stat-label,
+.scp-craft-statrow[data-relevant] .inv-stat-value {
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-cta--split {
+  justify-content: flex-start;
+}
+
+.scp-craft-cta--split .scp-craft-btn:last-child {
+  margin-left: auto;
+}
+
+/* ── Field Bench chrome — ⓘ explainers, settle line, pips, toast ───────── */
+
+/* Small hover/focus info button; activation echoes the tip to the status
+   line. Real vector, never a glyph character. */
+.scp-craft-info {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin-left: 4px;
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--sc3d-ink) 65%, var(--sc3d-ink-dim));
+  cursor: var(--sc3d-cursor-pointer, pointer);
+  vertical-align: middle;
+}
+
+.scp-craft-info svg {
+  width: 13px;
+  height: 13px;
+}
+
+.scp-craft-info:hover,
+.scp-craft-info:focus-visible {
+  color: var(--sc3d-accent);
+  outline: none;
+}
+
+/* Assembly settle — one calm line; the rails already tell the truth. */
+.scp-craft-settle {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-accent);
+  white-space: nowrap;
+  animation: scp-craft-settle-in 420ms ease-out;
+}
+
+.scp-craft-settle[hidden] {
+  display: none;
+}
+
+@keyframes scp-craft-settle-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Tune-point pips — the 7-point pool at a glance (numbers stay exact). */
+.scp-craft-pips {
+  display: flex;
+  gap: 3px;
+}
+
+.scp-craft-pip {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--sc3d-hairline);
+}
+
+.scp-craft-pip[data-lit] {
+  border-color: var(--sc3d-accent);
+  background: var(--sc3d-accent);
+}
+
+/* Staged-but-unspent marks read as half-charged pips. */
+.scp-craft-pip[data-staged] {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 60%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent) 30%, transparent);
+}
+
+.scp-craft-points-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Completion toast — the calm exit beat that replaced the grade stamp. */
+.scp-craft-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 44px;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 16px;
+  /* Shrink-to-fit against left:50% halves the available width and forced
+     the Practice subcopy into an orphan third line — size to content, cap
+     just inside the window. */
+  width: max-content;
+  max-width: calc(100% - 24px);
+  border: 1px solid color-mix(in srgb, var(--sc3d-accent) 60%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 94%, transparent);
+  pointer-events: none;
+}
+
+.scp-craft-toast[hidden] {
+  display: none;
+}
+
+.scp-craft-toast[data-show] {
+  animation: scp-craft-toast-in 260ms ease-out;
+}
+
+.scp-craft-toast-main {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-toast-sub {
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink);
+  text-align: center;
+  /* If it must wrap, wrap balanced — never an orphan word. */
+  text-wrap: balance;
+}
+
+.scp-craft-toast-sub:empty {
+  display: none;
+}
+
+@keyframes scp-craft-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+}
+
+/* Reduced motion bypasses the settle/seat/toast beats entirely. */
+@media (prefers-reduced-motion: reduce) {
+  .scp-craft-settle,
+  .scp-craft-toast[data-show],
+  .scp-craft-slotcard[data-filled] .scp-craft-slot-symbol {
+    animation: none;
+  }
+}
+
+/* ── Phases 4/5 — TUNE + FINISH (assembled surface, two sub-views) ─────── */
+
+.scp-craft-quality {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scp-craft-assembly-readout {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-ink);
+}
+
+.scp-craft-points {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: color-mix(in srgb, var(--sc3d-ink) 65%, var(--sc3d-ink-dim));
+}
+
+.scp-craft-points strong {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-accent);
+}
+
+/* Rails header — names the pins and carries the cap/risk explainers. */
+.scp-craft-lines-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px 0;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-lines-title {
+  display: inline-flex;
+  align-items: center;
+}
+
+.scp-craft-lines-hint {
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--sc3d-ink) 72%, var(--sc3d-ink-dim));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scp-craft-lines {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+/* One property rail: label + direction badge + exact values on top, the
+   pin/caret track, then chance + allocator. */
+.scp-craft-line {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 9px 6px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 55%, transparent);
+}
+
+.scp-craft-line[data-capped] {
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-line-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scp-craft-line-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Neutral toward-cap badge — line milli is normalized goodness, so the
+   one truthful direction on this rail is "toward the pin". */
+.scp-craft-line-dir {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: color-mix(in srgb, var(--sc3d-ink) 65%, var(--sc3d-ink-dim));
+}
+
+.scp-craft-line-dir svg {
+  width: 9px;
+  height: 9px;
+}
+
+.scp-craft-line-dir i {
+  font-style: normal;
+}
+
+.scp-craft-line-vals {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-ink);
+}
+
+.scp-craft-line-bar {
+  position: relative;
+  height: 8px;
+  margin: 2px 4px 3px;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 80%, transparent);
+}
+
+.scp-craft-line-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--sc3d-accent) 72%, transparent);
+}
+
+/* Cap PIN — the physical stop set by material quality × slot weight. */
+.scp-craft-line-cap {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--sc3d-ink);
+}
+
+.scp-craft-line-cap::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 8px;
+  height: 4px;
+  transform: translateX(-50%);
+  background: var(--sc3d-ink);
+}
+
+/* Value CARET — the current authority value riding the rail. */
+.scp-craft-line-caret {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--sc3d-ink);
+  box-shadow: 0 0 4px rgb(0 0 0 / 60%);
+}
+
+.scp-craft-line-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 20px;
+}
+
+/* Exact authority odds for the staged attempt — no invented rolls. */
+.scp-craft-line-chance {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--sc3d-ink) 76%, var(--sc3d-ink-dim));
+}
+
+.scp-craft-line-chance[data-staged] {
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-line-note {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: color-mix(in srgb, var(--sc3d-ink) 72%, var(--sc3d-ink-dim));
+}
+
+.scp-craft-line-note[data-marked] {
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-line-spend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.scp-craft-line-spend[data-inert] {
+  visibility: hidden;
+}
+
+.scp-craft-line-spend b {
+  min-width: 14px;
+  text-align: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-craft-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 7px;
+  line-height: 1;
+}
+
+.scp-craft-step svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* FINISH sub-view: rails become a read-only summary, the form owns the
+   room, and the allocator/odds chrome steps back. */
+.scp-craft-finish[data-view="finish"] .scp-craft-line-spend,
+.scp-craft-finish[data-view="finish"] .scp-craft-line-chance {
+  display: none;
+}
+
+.scp-craft-finish[data-view="finish"] .scp-craft-lines-hint {
+  visibility: hidden;
+}
+
+.scp-craft-finish[data-view="finish"] .scp-craft-lines {
+  flex: 0 1 auto;
+  max-height: 32%;
+}
+
+.scp-craft-finish[data-view="finish"] .scp-craft-line-foot {
+  display: none;
+}
+
+/* FINISH form — name, mode latches, draft uses. */
+.scp-craft-finishform {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scp-craft-finishform[hidden] {
+  display: none;
+}
+
+.scp-craft-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scp-craft-field-label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-name-input {
+  max-width: 280px;
+  padding: 6px 9px;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 85%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+}
+
+.scp-craft-name-input:focus {
+  outline: none;
+  border-color: var(--sc3d-accent);
+}
+
+.scp-craft-field-hint {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--sc3d-ink) 70%, var(--sc3d-ink-dim));
+}
+
+/* Three mode latches, equal weight (owner canon: the exits stay peers). */
+.scp-craft-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.scp-craft-mode {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+.scp-craft-mode-latch {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px 8px 9px;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 80%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  text-align: left;
+  cursor: var(--sc3d-cursor-pointer, pointer);
+}
+
+.scp-craft-mode-latch:hover,
+.scp-craft-mode-latch:focus-visible {
+  border-color: var(--sc3d-accent);
+  outline: none;
+}
+
+.scp-craft-mode-latch[aria-checked="true"] {
+  border-color: var(--sc3d-accent);
+  background: var(--sc3d-accent-soft);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 40%);
+}
+
+.scp-craft-mode-ic {
+  flex: 0 0 20px;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-craft-mode-latch[aria-checked="true"] .scp-craft-mode-ic {
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-mode-ic svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.scp-craft-mode-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scp-craft-mode-text strong {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.scp-craft-mode-text small {
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--sc3d-ink) 72%, var(--sc3d-ink-dim));
+}
+
+.scp-craft-mode-dot {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  transform: translateY(-50%);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 50%;
+}
+
+.scp-craft-mode-latch[aria-checked="true"] .scp-craft-mode-dot {
+  border-color: var(--sc3d-accent);
+  background: var(--sc3d-accent);
+}
+
+/* ⓘ beside a latch (never nested inside the radio). */
+.scp-craft-mode > .scp-craft-info {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  margin: 0;
+}
+
+.scp-craft-draftrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scp-craft-draftrow[hidden] {
+  display: none;
+}
+
+.scp-craft-draftrow-label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-ink-dim);
+}
+
+
+.scp-craft-uses {
+  width: 52px;
+  padding: 4px 6px;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 85%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  font-size: 11px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-craft-uses:focus {
+  outline: none;
+  border-color: var(--sc3d-accent);
+}
+
+.scp-craft-abandon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 8px;
+}
+
+.scp-craft-session-tag {
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: color-mix(in srgb, var(--sc3d-ink) 65%, var(--sc3d-ink-dim));
+  white-space: nowrap;
+}
+
+/* Field Bench status foot — a touch larger/brighter than the shared
+   default; scoped so other windows keep their voice. */
+.scp-craft .scp-status-foot {
+  font-size: 9.5px;
+  color: color-mix(in srgb, var(--sc3d-ink) 65%, var(--sc3d-ink-dim));
+}
+
+/* ── Datapad · SCHEMATICS (factory drafts) ─────────────────────────────── */
+
+.scp-craft-drafts {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-craft-drafts-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--sc3d-ink-dim);
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+  flex: 0 0 auto;
+}
+
+.scp-craft-draftlist {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+.scp-craft-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 70%, transparent);
+  padding: 8px;
+}
+
+.scp-craft-draft[data-spent] {
+  opacity: 0.55;
+}
+
+.scp-craft-draft-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.scp-craft-draft-head strong {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scp-craft-draft-uses {
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-accent);
+}
+
+.scp-craft-draft[data-spent] .scp-craft-draft-uses {
+  color: var(--sc3d-danger);
+}
+
+.scp-craft-draft-line {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GENE BENCH (splice) — the bio-engineer's window, craft-bench sibling.
+   Three phases (LAB · BENCH · SPLICE); the loci table + allele chips are the
+   distinctive surface (segregation made readable at a glance).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.scp-splice-chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-splice-rail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  flex: 0 0 auto;
+}
+
+.scp-splice-rail-step {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-splice-rail-step[data-active] { color: var(--sc3d-accent); }
+.scp-splice-rail-step[data-done] { color: var(--sc3d-ink); opacity: 0.75; }
+
+.scp-splice-rail-tick {
+  flex: 0 0 14px;
+  height: 1px;
+  background: color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+}
+
+.scp-splice-surface {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-splice-surface[hidden] { display: none; }
+
+/* Shared button voice (craft-bench weight). */
+.scp-splice-btn {
+  appearance: none;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 80%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  padding: 5px 10px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: border-color 150ms ease-out, background 150ms ease-out;
+}
+
+.scp-splice-btn:hover:not(:disabled),
+.scp-splice-btn:focus-visible { border-color: var(--sc3d-accent); outline: none; }
+
+.scp-splice-btn:disabled {
+  color: var(--sc3d-ink-dim);
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  cursor: not-allowed;
+}
+
+.scp-splice-btn--accent:not(:disabled) {
+  border-color: var(--sc3d-accent);
+  background: var(--sc3d-accent-soft);
+}
+
+.scp-splice-btn--danger:not(:disabled) {
+  border-color: color-mix(in srgb, var(--sc3d-danger) 70%, transparent);
+  color: var(--sc3d-danger);
+}
+
+.scp-splice-btn--danger[data-armed] {
+  background: color-mix(in srgb, var(--sc3d-danger) 22%, transparent);
+}
+
+.scp-splice-note {
+  flex: 1;
+  min-width: 0;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scp-splice-note[data-warn] { color: color-mix(in srgb, var(--sc3d-ink) 82%, var(--sc3d-accent)); }
+
+.scp-splice-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  flex: 0 0 auto;
+}
+
+.scp-splice-phase-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  flex: 0 0 auto;
+}
+
+.scp-splice-phase-head strong {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.scp-splice-phase-head span {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+}
+
+/* ── LAB ─────────────────────────────────────────────────────────────────── */
+.scp-splice-lab { flex-direction: row; }
+
+.scp-splice-locker {
+  position: relative;
+  flex: 1 1 42%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scp-splice-locker-head { padding: 8px 8px 4px; }
+
+.scp-splice-seedlist {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+}
+
+.scp-splice-seedrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  padding: 6px 8px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-splice-seedrow:hover { border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent); }
+.scp-splice-seedrow[data-selected] {
+  border-color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 70%, transparent);
+}
+
+.scp-splice-seed-glyph { flex: 0 0 16px; color: var(--sc3d-accent); }
+.scp-splice-seed-glyph svg { display: block; width: 16px; height: 16px; }
+
+.scp-splice-seed-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.scp-splice-seed-main strong {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.scp-splice-seed-main span { font-size: 8.5px; letter-spacing: 0.14em; color: var(--sc3d-ink-dim); }
+.scp-splice-seed-qty { font-size: 10px; font-variant-numeric: tabular-nums; color: var(--sc3d-ink-dim); }
+.scp-splice-seed-scan { padding: 3px 7px; font-size: 8.5px; }
+
+.scp-splice-labside {
+  flex: 1 1 58%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-splice-card {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.scp-splice-card[hidden] { display: none; }
+
+.scp-splice-card--idle {
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-splice-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+}
+.scp-splice-card-head strong { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; }
+.scp-splice-card-species { font-size: 10px; letter-spacing: 0.14em; color: var(--sc3d-ink-dim); }
+.scp-splice-card-tags { display: flex; flex-basis: 100%; gap: 8px; align-items: center; }
+.scp-splice-card-tags b { font-size: 8.5px; font-weight: 700; letter-spacing: 0.16em; }
+.scp-splice-fertile { color: var(--sc3d-accent); }
+.scp-splice-sterile { color: var(--sc3d-danger); }
+.scp-splice-tier { font-size: 8.5px; letter-spacing: 0.12em; color: var(--sc3d-ink-dim); }
+
+.scp-splice-card-locus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px minmax(0, auto);
+  align-items: baseline;
+  gap: 8px;
+  min-height: 18px;
+}
+.scp-splice-card-locus > span:first-child { font-size: 9.5px; letter-spacing: 0.1em; color: var(--sc3d-ink-dim); }
+.scp-splice-card-locus b { font-size: 11px; font-variant-numeric: tabular-nums; text-align: right; }
+.scp-splice-alleles { font-size: 9.5px; font-variant-numeric: tabular-nums; color: var(--sc3d-ink); }
+.scp-splice-alleles i { color: var(--sc3d-ink-dim); font-style: normal; padding: 0 2px; }
+.scp-splice-alleles em { font-style: normal; font-size: 8px; letter-spacing: 0.14em; color: var(--sc3d-accent); }
+.scp-splice-alleles--hint { color: var(--sc3d-ink-dim); font-style: italic; }
+.scp-splice-card-meta { font-size: 9px; letter-spacing: 0.1em; color: var(--sc3d-ink-dim); padding-top: 2px; }
+.scp-splice-card-meta b { color: var(--sc3d-ink); font-variant-numeric: tabular-nums; }
+
+.scp-splice-acquire {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+.scp-splice-species { gap: 4px; }
+.scp-splice-acquire-actions { display: flex; gap: 8px; }
+.scp-splice-acquire-actions .scp-splice-btn { flex: 1; }
+
+/* ── BENCH ───────────────────────────────────────────────────────────────── */
+.scp-splice-bench-body { flex: 1; min-height: 0; display: flex; }
+
+.scp-splice-slotcol {
+  flex: 1 1 46%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-right: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scp-splice-slotcards { display: flex; flex-direction: column; gap: 4px; }
+
+.scp-splice-slotcard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 70%, transparent);
+  padding: 6px 8px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+.scp-splice-slotcard[data-selected] {
+  border-color: var(--sc3d-accent);
+  box-shadow: 0 0 8px var(--sc3d-accent-glow);
+}
+.scp-splice-slotcard[data-filled] .scp-splice-slot-glyph { color: var(--sc3d-accent); }
+.scp-splice-slot-glyph { flex: 0 0 18px; color: var(--sc3d-ink-dim); }
+.scp-splice-slot-glyph svg { display: block; width: 16px; height: 16px; margin: 0 auto; }
+.scp-splice-slot-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.scp-splice-slot-main strong { font-size: 9.5px; font-weight: 600; letter-spacing: 0.1em; }
+.scp-splice-slot-main span { font-size: 9px; letter-spacing: 0.06em; color: var(--sc3d-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scp-splice-slot-main span[data-empty="true"] { color: var(--sc3d-ink-dim); }
+.scp-splice-slot-clear { padding: 3px 6px; font-size: 8px; }
+
+.scp-splice-options {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+}
+.scp-splice-options-head {
+  padding: 5px 8px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+}
+.scp-splice-optlist {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+}
+.scp-splice-opt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  padding: 5px 8px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+.scp-splice-opt:hover { border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent); }
+.scp-splice-opt[data-short] { opacity: 0.5; cursor: not-allowed; }
+.scp-splice-opt-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.scp-splice-opt-main strong { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scp-splice-opt-hint { font-size: 8px; letter-spacing: 0.12em; color: var(--sc3d-ink-dim); }
+.scp-splice-opt-qty { font-size: 9px; font-variant-numeric: tabular-nums; text-align: right; color: var(--sc3d-ink-dim); }
+.scp-splice-optempty { inset: 24px 0; }
+
+.scp-splice-locicol {
+  flex: 1 1 54%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.scp-splice-loci-head {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 8px 4px;
+}
+.scp-splice-loci-head small { font-size: 9.5px; letter-spacing: 0.04em; color: color-mix(in srgb, var(--sc3d-ink) 78%, transparent); }
+.scp-splice-loci {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px 8px;
+}
+
+.scp-splice-locus {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 55%, transparent);
+}
+.scp-splice-locus-label { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; color: var(--sc3d-ink-dim); }
+.scp-splice-locus-side { display: flex; gap: 3px; align-items: center; }
+.scp-splice-locus-side[data-side="b"] { justify-content: flex-end; }
+.scp-splice-locus-base {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: center;
+  color: var(--sc3d-accent);
+}
+
+/* The allele chips — the segregation picker (the window's reason to exist).
+   Selection must read at a glance: picked = solid bright fill on near-black
+   ink; unpicked = visibly dimmed. */
+.scp-splice-allele {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 40%, transparent);
+  color: var(--sc3d-ink-dim);
+  font: inherit;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 7px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+  white-space: nowrap;
+  transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+}
+.scp-splice-allele:hover:not([data-chosen]) {
+  border-color: var(--sc3d-accent);
+  color: var(--sc3d-ink);
+}
+.scp-splice-allele[data-chosen] {
+  border-color: var(--sc3d-accent);
+  background: var(--sc3d-accent);
+  color: var(--sc3d-bg-panel);
+  font-weight: 700;
+  box-shadow: 0 0 6px var(--sc3d-accent-glow);
+}
+/* Compact elite star badge beside the value (was a crowding word). */
+.scp-splice-allele em {
+  font-style: normal;
+  font-size: 8px;
+  color: var(--sc3d-accent);
+  padding-left: 2px;
+  vertical-align: super;
+}
+.scp-splice-allele[data-chosen] em { color: var(--sc3d-bg-panel); }
+
+/* ── Item 1: PARENT A / CHILD / PARENT B column headers over the loci table ─ */
+.scp-splice-loci-colhead {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 4px;
+  margin: 0 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 75%, transparent);
+}
+.scp-splice-loci-colhead span {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+.scp-splice-colhead-locus { color: var(--sc3d-ink-dim); }
+.scp-splice-colhead-mid { color: var(--sc3d-ink-dim); text-align: center; }
+.scp-splice-colhead-a { color: var(--sc3d-accent); }
+.scp-splice-colhead-b { color: var(--sc3d-accent); text-align: right; }
+.scp-splice-allele--empty,
+.scp-splice-allele--unknown {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  cursor: default;
+}
+
+/* ── SPLICE (finish) ─────────────────────────────────────────────────────── */
+.scp-splice-finish-head { justify-content: space-between; }
+.scp-splice-quality { display: flex; align-items: baseline; gap: 8px; }
+.scp-splice-stamp {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-accent);
+}
+.scp-splice-quality-line { font-size: 9px; letter-spacing: 0.14em; color: var(--sc3d-ink-dim); }
+.scp-splice-points { display: flex; align-items: baseline; gap: 6px; }
+.scp-splice-points span { font-size: 8.5px; letter-spacing: 0.16em; color: var(--sc3d-ink-dim); }
+.scp-splice-points strong { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--sc3d-accent); }
+
+.scp-splice-lines {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px;
+}
+
+.scp-splice-line {
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr) 78px 42px 78px;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+}
+.scp-splice-line[data-capped] { opacity: 0.72; }
+.scp-splice-line-label { font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em; }
+.scp-splice-line-bar {
+  position: relative;
+  height: 6px;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 80%, transparent);
+}
+.scp-splice-line-fill { position: absolute; inset: 0 auto 0 0; background: var(--sc3d-accent); }
+.scp-splice-line-cap { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--sc3d-ink); }
+.scp-splice-line-vals { font-size: 9px; font-variant-numeric: tabular-nums; text-align: right; color: var(--sc3d-ink); }
+.scp-splice-line-mark { font-size: 8px; letter-spacing: 0.12em; color: var(--sc3d-ink-dim); text-align: right; }
+.scp-splice-line-mark[data-marked] { color: var(--sc3d-accent); }
+.scp-splice-line-spend { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.scp-splice-line-spend b { font-size: 10px; font-variant-numeric: tabular-nums; min-width: 12px; text-align: center; }
+.scp-splice-step {
+  appearance: none;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 80%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  width: 20px;
+  height: 20px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+.scp-splice-step:hover:not(:disabled) { border-color: var(--sc3d-accent); }
+.scp-splice-step:disabled { color: var(--sc3d-ink-dim); cursor: not-allowed; }
+
+.scp-splice-mintrow {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+.scp-splice-mintname {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 60%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 5px 8px;
+}
+.scp-splice-mintname:focus-visible { border-color: var(--sc3d-accent); outline: none; }
+
+.scp-splice-discard {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+}
+
+.scp-splice-session-tag {
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+}
+
+/* ── BANK — vault container grid (loot grammar) + compact credits rail ──── */
+
+.scp-cloneterm-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--sc3d-hairline);
+  padding-bottom: 6px;
+}
+
+.scp-bank-link,
+.scp-cloneterm-link {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink);
+}
+.scp-bank-link[data-denied],
+.scp-cloneterm-link[data-denied] {
+  color: var(--sc3d-danger);
+}
+
+.scp-cloneterm-headnote {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+}
+
+/* Vault body owns the grid + empty overlay. The empty state is absolute
+   within this relative well only — never over the credits rail, amount
+   field, or deposit/withdraw actions (those wrap responsively). */
+.scp-bank-vault-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Bank empty fills the vault body, not the whole chrome (generic .scp-empty
+   still uses inset:0 0 24px for loot/datapad foot clearance). */
+.scp-bank .scp-bank-empty {
+  inset: 0;
+}
+
+/* Credits ride a hairline rail under the head — secondary to the grid.
+   The strip WRAPS instead of clipping: at the 420px min window width the
+   plates+amount+actions row overflowed and truncated WITHDRAW (headed QA
+   2026-07-18, "WITHDF"). */
+.scp-bank-credits {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 6px 7px;
+  padding: 6px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scp-bank-plate {
+  display: grid;
+  grid-template-columns: 14px auto;
+  grid-template-rows: auto auto;
+  column-gap: 5px;
+  align-items: center;
+  padding: 5px 8px;
+  background: var(--sc3d-bg-cell);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 3px;
+  min-width: 86px;
+}
+.scp-bank-plate-glyph {
+  grid-row: 1 / span 2;
+  width: 14px;
+  height: 14px;
+  color: var(--sc3d-ink-dim);
+}
+.scp-bank-plate-glyph svg { width: 100%; height: 100%; display: block; }
+.scp-bank-plate-label {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 8.5px;
+  letter-spacing: 0.2em;
+  color: var(--sc3d-ink-dim);
+}
+.scp-bank-plate-value {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--sc3d-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-bank-amount-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-ink-dim);
+  margin-left: auto;
+}
+
+.scp-bank-input {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--sc3d-ink);
+  background: var(--sc3d-bg-cell);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 3px;
+  padding: 4px 6px;
+  width: 72px;
+  font-variant-numeric: tabular-nums;
+}
+.scp-bank-input:focus-visible {
+  outline: none;
+  border-color: var(--sc3d-accent);
+}
+.scp-bank-input:disabled {
+  color: var(--sc3d-ink-dim);
+  cursor: default;
+}
+
+.scp-bank-credit-btn {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink);
+  background: transparent;
+  border: 1px solid var(--sc3d-accent);
+  border-radius: 3px;
+  padding: 5px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.scp-bank-credit-btn:hover:not(:disabled) { background: var(--sc3d-glass); }
+.scp-bank-credit-btn:disabled {
+  border-color: var(--sc3d-hairline);
+  color: var(--sc3d-ink-dim);
+  cursor: default;
+}
+
+
+/* Narrow windows (portrait phone, 360w): the credit strip regrids so both
+   DEPOSIT and WITHDRAW stay fully on-screen — plates pair up, AMOUNT spans,
+   actions take a half-width cell each. Desktop single-row layout unchanged. */
+@media (max-width: 480px) {
+  .scp-bank-credits {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+  }
+  .scp-bank-plate {
+    min-width: 0;
+  }
+  .scp-bank-amount-field {
+    grid-column: 1 / -1;
+    margin-left: 0;
+  }
+  .scp-bank-amount-field .scp-bank-input {
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .scp-bank-credit-btn {
+    min-height: 30px;
+  }
+}
+
+/* ── CLONING — clone terminal screen ─────────────────────────────────────── */
+
+.scp-cloneterm {
+  gap: 10px;
+}
+
+.scp-cloneterm-backup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: var(--sc3d-bg-cell);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 3px;
+}
+
+.scp-cloneterm-glyph {
+  width: 26px;
+  height: 26px;
+  color: var(--sc3d-accent);
+  flex: 0 0 auto;
+}
+.scp-cloneterm-glyph svg { width: 100%; height: 100%; display: block; }
+
+.scp-cloneterm-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.scp-cloneterm-status {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink);
+}
+.scp-cloneterm-status[data-empty] {
+  color: var(--sc-fixed-ochre);
+}
+
+.scp-cloneterm-detail {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-cloneterm-terms {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scp-cloneterm-term {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink-dim);
+  padding: 4px 7px;
+  border-left: 1px solid var(--sc3d-hairline);
+}
+
+.scp-cloneterm-costline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-ink-dim);
+  border-top: 1px solid var(--sc3d-hairline);
+  padding-top: 8px;
+  margin-top: auto;
+}
+
+.scp-cloneterm-cost {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-cloneterm-balances {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-cloneterm-save {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-bg-panel);
+  background: var(--sc3d-accent);
+  border: 1px solid var(--sc3d-accent);
+  border-radius: 3px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.scp-cloneterm-save:hover:not(:disabled) { filter: brightness(1.12); }
+.scp-cloneterm-save:disabled {
+  background: var(--sc3d-bg-cell);
+  color: var(--sc3d-ink-dim);
+  border-color: var(--sc3d-hairline);
+  cursor: default;
+}
+
+/* ── ASSOCIATION — Player Association registry (charter / roster / wars) ── */
+
+.scp-pa {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+}
+
+.scp-pa-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--sc3d-hairline);
+  padding-bottom: 6px;
+}
+
+.scp-pa-link {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink);
+}
+.scp-pa-link[data-denied] { color: var(--sc3d-danger); }
+
+.scp-pa-headnote {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+}
+
+.scp-pa-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scrollbar-width: thin;
+}
+
+.scp-pa-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scp-pa-title {
+  margin: 0;
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 8.5px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  color: var(--sc3d-ink-dim);
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  padding-bottom: 2px;
+}
+
+.scp-pa-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--sc3d-ink-dim);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+/* Summary strip — tag + name read first, member count trails. */
+.scp-pa-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--sc3d-bg-cell);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 3px;
+}
+
+.scp-pa-tag {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-accent);
+  white-space: nowrap;
+}
+
+.scp-pa-guildname {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scp-pa-summary .scp-pa-count { margin-left: auto; }
+
+/* Compact rows — fixed 22px line so hover/action swaps never shift layout. */
+.scp-pa-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-pa-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 1px 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 35%, transparent);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+.scp-pa-row:hover { background: color-mix(in srgb, var(--sc3d-bg-cell) 70%, transparent); }
+.scp-pa-row[data-own] { border-left: 2px solid var(--sc3d-accent-soft); }
+
+.scp-pa-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sc3d-ink-dim);
+  opacity: 0.45;
+}
+.scp-pa-row[data-online] .scp-pa-dot {
+  background: var(--sc3d-accent);
+  opacity: 1;
+}
+
+.scp-pa-name {
+  color: var(--sc3d-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.scp-pa-you { color: var(--sc3d-ink-dim); font-size: 8.5px; letter-spacing: 0.14em; }
+
+.scp-pa-role {
+  flex: 0 0 auto;
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  padding: 0 4px;
+  line-height: 12px;
+}
+.scp-pa-role[data-role="leader"] {
+  color: var(--sc3d-accent);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+}
+.scp-pa-role[data-role="officer"] { color: var(--sc3d-ink); }
+
+.scp-pa-area,
+.scp-pa-lastseen,
+.scp-pa-from {
+  flex: 0 0 auto;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.scp-pa-area { color: color-mix(in srgb, var(--sc3d-accent) 65%, var(--sc3d-ink-dim)); }
+
+.scp-pa-war {
+  flex: 0 0 auto;
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  border: 1px solid var(--sc3d-danger);
+  color: var(--sc3d-danger);
+  border-radius: 2px;
+  padding: 0 4px;
+  line-height: 12px;
+}
+.scp-pa-war[data-stance="incoming"] { background: color-mix(in srgb, var(--sc3d-danger) 18%, transparent); }
+.scp-pa-war[data-stance="outgoing"] { opacity: 0.8; }
+
+/* Fixed-width action cluster: rows keep their measure as buttons appear. */
+.scp-pa-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  min-width: 60px;
+}
+
+.scp-pa-btn,
+.scp-pa-mini {
+  font-family: var(--sc-fixed-font-fine);
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink);
+  background: transparent;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 160ms ease-out, background-color 160ms ease-out;
+}
+.scp-pa-btn { font-size: 9.5px; padding: 4px 9px; }
+.scp-pa-mini { font-size: 8px; padding: 1px 5px; line-height: 13px; }
+.scp-pa-btn:hover:not(:disabled),
+.scp-pa-mini:hover:not(:disabled) {
+  border-color: var(--sc3d-accent);
+  background: var(--sc3d-glass);
+}
+.scp-pa-btn:focus-visible,
+.scp-pa-mini:focus-visible,
+.scp-pa-chip:focus-visible,
+.scp-pa-primary:focus-visible,
+.scp-pa-input:focus-visible {
+  outline: 1px solid var(--sc3d-accent);
+  outline-offset: 1px;
+}
+.scp-pa-btn:disabled,
+.scp-pa-mini:disabled {
+  color: var(--sc3d-ink-dim);
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 55%, transparent);
+  cursor: default;
+}
+.scp-pa-danger { border-color: color-mix(in srgb, var(--sc3d-danger) 60%, transparent); color: var(--sc3d-danger); }
+.scp-pa-danger:hover:not(:disabled) { border-color: var(--sc3d-danger); background: color-mix(in srgb, var(--sc3d-danger) 12%, transparent); }
+
+/* Permission editor rail — chips toggle, APPLY commits the wire mask. */
+.scp-pa-permrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 4px 6px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 35%, transparent);
+}
+
+.scp-pa-chip {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  padding: 1px 6px;
+  line-height: 13px;
+  color: var(--sc3d-ink-dim);
+  background: transparent;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.scp-pa-chip[data-on] {
+  color: var(--sc3d-accent);
+  border-color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-accent) 12%, transparent);
+}
+
+/* Charter desk */
+.scp-pa-charter-grid {
+  display: grid;
+  grid-template-columns: 1fr 88px;
+  gap: 6px;
+}
+
+.scp-pa-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 8.5px;
+  letter-spacing: 0.2em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-pa-input {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--sc3d-ink);
+  background: var(--sc3d-bg-cell);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 3px;
+  padding: 4px 6px;
+  min-width: 0;
+}
+.scp-pa-field-tag .scp-pa-input { text-transform: uppercase; letter-spacing: 0.14em; }
+
+.scp-pa-feerow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink);
+  padding: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+.scp-pa-feerow-dim { color: var(--sc3d-ink-dim); font-size: 9px; }
+.scp-pa-fee { font-family: var(--sc-fixed-font-stencil); letter-spacing: 0.1em; }
+.scp-pa-feerow [data-denied] { color: var(--sc3d-danger); }
+
+.scp-pa-termrow {
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+  padding: 2px 0 4px;
+}
+.scp-pa-termrow[data-denied] { color: var(--sc3d-danger); }
+
+.scp-pa-primary {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-ink);
+  background: color-mix(in srgb, var(--sc3d-accent) 14%, transparent);
+  border: 1px solid var(--sc3d-accent);
+  border-radius: 3px;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background-color 180ms ease-out;
+}
+.scp-pa-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--sc3d-accent) 24%, transparent); }
+.scp-pa-primary:disabled {
+  color: var(--sc3d-ink-dim);
+  border-color: var(--sc3d-hairline);
+  background: transparent;
+  cursor: default;
+}
+
+/* Guild chat entry — one row, sends on Enter, CHANNEL flips the HUD pane. */
+.scp-pa-chatrow {
+  display: flex;
+  gap: 4px;
+  align-items: stretch;
+}
+.scp-pa-chatinput { flex: 1 1 auto; }
+
+.scp-pa-footactions {
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.scp-pa-empty {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+  padding: 4px;
+}
+
+/* Confirm bar — irreversible verbs restate themselves before firing. */
+.scp-pa-confirm {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-danger) 60%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--sc3d-danger) 10%, transparent);
+}
+
+.scp-pa-confirmlabel {
+  flex: 1 1 auto;
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-danger);
+}
+
+.scp-pa .scp-status-line[data-denied] { color: var(--sc3d-danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  .scp-pa-btn,
+  .scp-pa-mini,
+  .scp-pa-primary {
+    transition: none;
+  }
+}
+
+/* ── Player bug report ─────────────────────────────────────────────────── */
+
+.scp-bugreport {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  font-family: var(--sc-fixed-font-fine);
+}
+
+.scp-bugreport-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* `display: flex` beats the user-agent [hidden] rule unless we restate it. */
+.scp-bugreport-form[hidden] {
+  display: none;
+}
+
+.scp-bugreport-intro {
+  max-width: 66ch;
+  margin: 0;
+  color: var(--sc3d-ink);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.scp-bugreport-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--sc3d-ink-dim);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+.scp-bugreport-category {
+  max-width: 220px;
+}
+
+.scp-bugreport-field select,
+.scp-bugreport-field textarea {
+  appearance: auto;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 3px;
+  outline: none;
+  background: var(--sc3d-bg-cell);
+  color: var(--sc3d-ink);
+  font: 11px/1.5 var(--sc-fixed-font-fine);
+  letter-spacing: 0.02em;
+  color-scheme: dark;
+  transition: border-color 160ms ease-out, background-color 160ms ease-out;
+}
+
+.scp-bugreport-field select {
+  min-height: 32px;
+  padding: 5px 8px;
+}
+
+.scp-bugreport-field textarea {
+  min-height: 168px;
+  resize: vertical;
+  padding: 9px 10px;
+}
+
+.scp-bugreport-field textarea::placeholder {
+  color: color-mix(in srgb, var(--sc3d-ink) 72%, transparent);
+}
+
+.scp-bugreport-field select:hover,
+.scp-bugreport-field textarea:hover {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 72%, var(--sc3d-hairline));
+}
+
+.scp-bugreport-field select:focus-visible,
+.scp-bugreport-field textarea:focus-visible {
+  border-color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 88%, var(--sc3d-accent));
+}
+
+.scp-bugreport-help {
+  margin-top: -7px;
+  color: var(--sc3d-ink-dim);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.scp-bugreport-diagnostics {
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 65%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 65%, transparent);
+  padding: 7px 0;
+  color: var(--sc3d-ink-dim);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.scp-bugreport-diagnostics summary {
+  width: max-content;
+  color: var(--sc3d-accent);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+
+.scp-bugreport-diagnostics p {
+  max-width: 70ch;
+  margin: 7px 0 1px;
+}
+
+.scp-bugreport-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: auto;
+}
+
+.scp-bugreport-count {
+  color: var(--sc3d-ink-dim);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-bugreport-status {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--sc3d-accent);
+  font-size: 9px;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.scp-bugreport-status[data-denied] {
+  color: var(--sc3d-danger);
+}
+
+.scp-bugreport-submit,
+.scp-bugreport-again {
+  appearance: none;
+  flex: 0 0 auto;
+  border: 1px solid var(--sc3d-accent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--sc3d-accent) 16%, transparent);
+  color: var(--sc3d-ink);
+  padding: 7px 11px;
+  font: 600 10px/1 var(--sc-fixed-font-fine);
+  letter-spacing: 0.12em;
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: background-color 180ms ease-out, color 180ms ease-out;
+}
+
+.scp-bugreport-submit:hover:not(:disabled),
+.scp-bugreport-again:hover {
+  background: color-mix(in srgb, var(--sc3d-accent) 28%, transparent);
+}
+
+.scp-bugreport-submit:focus-visible,
+.scp-bugreport-again:focus-visible {
+  outline: 1px solid var(--sc3d-ink);
+  outline-offset: 2px;
+}
+
+.scp-bugreport-submit:disabled {
+  border-color: var(--sc3d-hairline);
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+  cursor: default;
+}
+
+.scp-bugreport-received {
+  display: flex;
+  min-height: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 18px;
+  text-align: center;
+}
+
+.scp-bugreport-received[hidden] {
+  display: none;
+}
+
+.scp-bugreport-received-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--sc3d-accent);
+  border-radius: 50%;
+  color: var(--sc3d-accent);
+  font-size: 18px;
+}
+
+.scp-bugreport-received h2 {
+  margin: 2px 0 0;
+  color: var(--sc3d-ink);
+  font: 600 13px/1.2 var(--sc-fixed-font-fine);
+  letter-spacing: 0.14em;
+}
+
+.scp-bugreport-received p {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--sc3d-ink-dim);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.scp-bugreport-received code {
+  color: var(--sc3d-accent);
+  font-size: 9px;
+  user-select: all;
+}
+
+@media (max-width: 560px) {
+  .scp-bugreport-actions {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .scp-bugreport-status {
+    order: 3;
+    flex-basis: 100%;
+    text-align: left;
+  }
+  .scp-bugreport-submit {
+    margin-left: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scp-bugreport-field select,
+  .scp-bugreport-field textarea,
+  .scp-bugreport-submit,
+  .scp-bugreport-again {
+    transition: none;
+  }
+}
+
+/* ── Deferred feature mount shell (loading / error / retry) ─────────────── */
+/* Temporary first child of the window content root only while loading/error.
+ * On ready the real feature .scp-root replaces it so scroll-cue keeps working. */
+.scp-deferred {
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  min-height: 120px;
+  padding: 24px 12px;
+  text-align: center;
+  overflow: hidden;
+}
+.scp-deferred-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--sc3d-ink-dim);
+}
+.scp-deferred[data-deferred-state="error"] .scp-deferred-label {
+  color: var(--sc3d-danger);
+}
+.scp-deferred-retry {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 40%, transparent);
+  color: var(--sc3d-accent);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  padding: 6px 14px;
+  border-radius: 2px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+}
+.scp-deferred-retry:hover,
+.scp-deferred-retry:focus-visible {
+  border-color: var(--sc3d-accent);
+  outline: none;
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "multiplayer-loot-contention",
+  "fixture": "open-desert-multiplayer-loot-contention",
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "steps": [
+    { "command": { "actor": "alpha", "body": { "DebugGrantSkillBoxes": { "skill_box_ids": ["marksman-novice"] } }, "as": "alphaGrantMarksman" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGrantMarksman", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "alpha", "body": { "DebugGiveItem": { "item_id": 3101, "variant_id": 0, "quantity": 1, "equip": true } }, "as": "alphaGiveSlugthrower" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGiveSlugthrower", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "alpha", "body": { "DebugGiveItem": { "item_id": 1101, "variant_id": 0, "quantity": 240, "equip": false } }, "as": "alphaGiveAmmo" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGiveAmmo", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "beta", "body": { "DebugGrantSkillBoxes": { "skill_box_ids": ["marksman-novice"] } }, "as": "betaGrantMarksman" } },
+    { "expect": { "kind": "captureCompare", "capture": "betaGrantMarksman", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "beta", "body": { "DebugGiveItem": { "item_id": 3101, "variant_id": 0, "quantity": 1, "equip": true } }, "as": "betaGiveSlugthrower" } },
+    { "expect": { "kind": "captureCompare", "capture": "betaGiveSlugthrower", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "beta", "body": { "DebugGiveItem": { "item_id": 1101, "variant_id": 0, "quantity": 240, "equip": false } }, "as": "betaGiveAmmo" } },
+    { "expect": { "kind": "captureCompare", "capture": "betaGiveAmmo", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors[0].id": "mp-loot-rogue", "data.actors[0].lifeState": "alive" }, "timeoutMs": 12000, "intervalMs": 250, "as": "alphaSeesRogue" } },
+    { "send": { "actor": "alpha", "line": "/target mp-loot-rogue", "as": "alphaTarget" } },
+    { "send": { "actor": "alpha", "line": "/attack", "as": "alphaAttack" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaAttack.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 12000, "as": "alphaAttackReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "combat", "match": { "data.event.shooterActorId": "mp-loot-alpha", "data.event.targetActorId": "mp-loot-rogue" }, "timeoutMs": 30000, "as": "alphaFirstHit" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-loot-rogue", "match": { "vitals.health": { "op": "lt", "value": 70 } } }, "timeoutMs": 60000, "as": "rogueAfterAlphaLead" } },
+    { "send": { "actor": "beta", "line": "/target mp-loot-rogue", "as": "betaTarget" } },
+    { "send": { "actor": "beta", "line": "/attack", "as": "betaAttack" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaAttack.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 12000, "as": "betaAttackReceipt" } },
+    { "await": { "kind": "event", "actor": "beta", "event": "combat", "match": { "data.event.shooterActorId": "mp-loot-beta", "data.event.targetActorId": "mp-loot-rogue" }, "timeoutMs": 40000, "as": "betaAssistHit" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-loot-rogue", "setLastKill": true, "match": { "lifeState": "downed", "lootable": true, "hasLoot": true, "lootRightsActorId": "mp-loot-alpha" } }, "timeoutMs": 90000, "as": "lootCorpse" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "corpse:$last_kill", "minAvailable": 1 }, "timeoutMs": 8000, "as": "corpseLoot" } },
+    { "send": { "actor": "beta", "line": "/loot corpse:$last_kill $captures.corpseLoot.itemId $captures.corpseLoot.variantId 1", "as": "betaLootAttempt" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaLootAttempt.data.commandId", "commandKind": "TakeLootItem", "accepted": false, "reasonCode": "loot_no_rights" }, "timeoutMs": 12000, "as": "betaLootReject" } },
+    { "send": { "actor": "alpha", "line": "/loot corpse:$last_kill $captures.corpseLoot.itemId $captures.corpseLoot.variantId $captures.corpseLoot.available", "as": "alphaLootAttempt" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaLootAttempt.data.commandId", "commandKind": "TakeLootItem", "accepted": true }, "timeoutMs": 12000, "as": "alphaLootReceipt" } },
+    { "expect": { "kind": "envelopeCount", "actor": "beta", "envelopeType": "receipt", "match": { "commandKind": "TakeLootItem", "accepted": true }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "lootContentionStableHash" } }
+  ],
+  "notes": "Loot-rights contention in an isolated spot (800,800) away from the rogue-zone so only mp-loot-rogue is hostile (no ambient-rogue interference). Alpha waits until the rogue is its nearest visible actor, solos it to health<70 of 160 (dealt >=90 > 70 remaining => deterministic ledger winner), beta lands >=1 assist hit; corpse assigns lootRightsActorId=mp-loot-alpha; beta gets loot_no_rights; alpha loots. Combat hit events are pinned to shooter+target so ambient noise can't satisfy them."
+}

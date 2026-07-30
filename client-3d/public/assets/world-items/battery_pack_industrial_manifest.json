@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "battery_pack_industrial",
+  "label": "Industrial Battery Pack",
+  "kind": "world_prop",
+  "glb": "battery_pack_industrial.glb",
+  "source_pack": "full-spectrum-wave-20260720",
+  "source_fbx": "props/successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/source/infra_041.blend",
+  "source_path": "props/successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/assets/infra_041.glb",
+  "content_hash_sha256": "8cf786cc80df647fd3617749636d41edf76fc8ca736be6f02f1d54bf13c195f3",
+  "triangles": 4652,
+  "vertices": 2424,
+  "mesh_nodes": 6,
+  "materials": 6,
+  "bbox_gltf_m": { "min": [-0.31, 0, -0.08], "max": [0.31, 0.826, 0.12], "size": [0.62, 0.826, 0.2] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/props/successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/reports/infra_041.json (validation_pass true)",
+  "source_report": "props/successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/reports/infra_041.json",
+  "validation_pass": true
+}

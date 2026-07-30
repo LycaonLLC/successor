@@ -1,0 +1,4854 @@
+{
+  "schema": "successor.commands.manifest.v1",
+  "source": "crates/successor-sim command_manifest over successor_net::ClientCommand plus current TypeScript authority wire commands",
+  "regenerationCommand": "cargo run -p successor-sim --bin emit_command_manifest -- tools/codegen/generated/successor.commands.manifest.v1.json && node tools/codegen/commands.mjs",
+  "commandCount": 117,
+  "rustCommandCount": 114,
+  "debugGatedCount": 2,
+  "commands": [
+    {
+      "kind": "Move",
+      "source": "rust-client-command",
+      "verb": "move",
+      "doc": "Move the controlled actor by one bounded grid vector for a short duration.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "dx",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "dy",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "duration_ticks",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "facing",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "Front",
+            "Right",
+            "Back",
+            "Left"
+          ]
+        },
+        {
+          "name": "sprint",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "false",
+            "true"
+          ],
+          "default": "false"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "move_rejected",
+        "invalid_move_vector",
+        "invalid_move_duration",
+        "out_of_bounds",
+        "blocked_cell",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked",
+        "move_cooldown"
+      ]
+    },
+    {
+      "kind": "SetMoveIntent",
+      "source": "rust-client-command",
+      "verb": "move-intent",
+      "aliases": [
+        "set-move-intent"
+      ],
+      "doc": "Set the held movement vector used by continuous player locomotion.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "dx",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "dy",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "facing",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "Front",
+            "Right",
+            "Back",
+            "Left"
+          ]
+        },
+        {
+          "name": "sprint",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "false",
+            "true"
+          ],
+          "default": "false"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "move_intent_rejected",
+        "invalid_move_vector",
+        "out_of_bounds",
+        "blocked_cell",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked"
+      ]
+    },
+    {
+      "kind": "QueueCombatAction",
+      "source": "rust-client-command",
+      "verb": "attack",
+      "aliases": [
+        "queue-combat-action"
+      ],
+      "doc": "Queue a roll-combat action against a target; basic_shot arms the server repeat intent.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "durableIntent": {
+        "kind": "repeat_intent",
+        "when": "action_id=basic_shot",
+        "notes": "One accepted basic_shot arms owner repeat fire until cancelled, peace, invalid target, or dismissal."
+      },
+      "args": [
+        {
+          "name": "action_id",
+          "type": "enum",
+          "required": true,
+          "enumValues": [
+            "basic_shot",
+            "aimed_shot"
+          ]
+        },
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "fire_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "queue_full",
+        "no_weapon_equipped",
+        "ammo_unavailable",
+        "insufficient_action",
+        "target_unavailable",
+        "target_protected",
+        "out_of_range",
+        "los_blocked",
+        "melee_while_kneeling"
+      ]
+    },
+    {
+      "kind": "Peace",
+      "source": "rust-client-command",
+      "verb": "peace",
+      "doc": "Request peace and dismiss queued combat repeat/entries for the controlled player-like actor.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "peace_rejected",
+        "actor_not_alive",
+        "target_unavailable"
+      ]
+    },
+    {
+      "kind": "CancelAbilityQueue",
+      "source": "rust-client-command",
+      "verb": "cancel-queue",
+      "aliases": [
+        "cancel-ability-queue"
+      ],
+      "doc": "Cancel one ability queue entry or a queue scope such as owner_repeat, combat, posture, or all.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "queue_entry_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "ability_queue_entry_id"
+        },
+        {
+          "name": "scope",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "owner_repeat",
+            "combat",
+            "posture",
+            "all"
+          ]
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "fire_rejected",
+        "actor_not_alive",
+        "queue_entry_unknown",
+        "target_unavailable"
+      ]
+    },
+    {
+      "kind": "ReloadWeapon",
+      "source": "rust-client-command",
+      "verb": "reload-weapon",
+      "aliases": [
+        "reload"
+      ],
+      "doc": "Reload a weapon from available ammunition or a stockpile.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "weapon_id",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "Slugthrower",
+            "Vibrosword",
+            "WpnPistol",
+            "WpnSmg",
+            "WpnCarbine",
+            "WpnAssault",
+            "WpnShotgun",
+            "WpnSniper",
+            "WpnHeavy",
+            "WpnLauncher"
+          ]
+        },
+        {
+          "name": "ammo_type",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "SlugIron",
+            "SlugShard",
+            "SlugSpike",
+            "Melee"
+          ]
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "fire_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "ammo_unavailable",
+        "no_weapon_equipped",
+        "not_at_stockpile"
+      ]
+    },
+    {
+      "kind": "SetEquippedWeapon",
+      "source": "rust-client-command",
+      "verb": "set-equipped-weapon",
+      "aliases": [
+        "equip-weapon"
+      ],
+      "doc": "Equip or clear a weapon by weapon enum and optional inventory item id.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "weapon_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "weapon_id",
+          "nullable": true
+        },
+        {
+          "name": "weapon_item_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "inventory_item_numeric_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "fire_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "ammo_unavailable",
+        "no_weapon_equipped",
+        "weapon_not_certified",
+        "not_at_stockpile"
+      ]
+    },
+    {
+      "kind": "SetEquippedClothing",
+      "source": "rust-client-command",
+      "verb": "set-equipped-clothing",
+      "aliases": [
+        "equip-clothing"
+      ],
+      "doc": "Equip or unequip one owned clothing inventory instance; loot clothing requires exact stack and variant.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "item_id",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "equipped",
+          "type": "bool",
+          "required": true
+        },
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": false,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "int",
+          "required": false
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "fire_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "ammo_unavailable",
+        "no_weapon_equipped",
+        "not_at_stockpile"
+      ]
+    },
+    {
+      "kind": "DebugGiveItem",
+      "source": "rust-client-command",
+      "verb": "debug-give-item",
+      "doc": "Debug-only item grant command gated by GAME_DEBUG_AUTHORITY_COMMANDS.",
+      "budgetClass": "authority-debug",
+      "debugGated": true,
+      "args": [
+        {
+          "name": "item_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_numeric_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "int",
+          "required": false,
+          "default": "0"
+        },
+        {
+          "name": "quantity",
+          "type": "int",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "equip",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "false",
+            "true"
+          ],
+          "default": "false"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "debug_authority_command_disabled",
+        "ingress_budget_exhausted",
+        "unknown_item",
+        "item_unavailable",
+        "container_full",
+        "unknown_skill_box",
+        "skill_already_learned",
+        "skill_prerequisite_missing"
+      ]
+    },
+    {
+      "kind": "DebugGrantSkillBoxes",
+      "source": "rust-client-command",
+      "verb": "debug-grant-skill-boxes",
+      "doc": "Debug-only skill-box grant command gated by GAME_DEBUG_AUTHORITY_COMMANDS.",
+      "budgetClass": "authority-debug",
+      "debugGated": true,
+      "args": [
+        {
+          "name": "skill_box_ids",
+          "type": "id-domain",
+          "required": true,
+          "domain": "skill_box_id",
+          "repeated": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "debug_authority_command_disabled",
+        "ingress_budget_exhausted",
+        "unknown_item",
+        "item_unavailable",
+        "container_full",
+        "unknown_skill_box",
+        "skill_already_learned",
+        "skill_prerequisite_missing"
+      ]
+    },
+    {
+      "kind": "EnterTransition",
+      "source": "rust-client-command",
+      "verb": "enter-transition",
+      "aliases": [
+        "transition"
+      ],
+      "doc": "Use an area transition trigger by id.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "transition_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "transition_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "transition_rejected",
+        "unknown_transition",
+        "wrong_transition_area",
+        "not_at_transition_trigger",
+        "actor_not_alive",
+        "actor_asleep"
+      ]
+    },
+    {
+      "kind": "UseConsumable",
+      "source": "rust-client-command",
+      "verb": "use-consumable",
+      "aliases": [
+        "use"
+      ],
+      "doc": "Use a consumable by string item id and optional numeric item/variant ids.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "item_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_id"
+        },
+        {
+          "name": "item_numeric_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "item_numeric_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "item_variant_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "consumable_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_effect"
+      ]
+    },
+    {
+      "kind": "RefillAmmo",
+      "source": "rust-client-command",
+      "verb": "refill-ammo",
+      "doc": "Refill an ammo item stack from authority inventory/stockpile state.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "item_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "fire_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "ammo_unavailable",
+        "no_weapon_equipped",
+        "not_at_stockpile"
+      ]
+    },
+    {
+      "kind": "ApplyServiceBuff",
+      "source": "rust-client-command",
+      "verb": "apply-service-buff",
+      "aliases": [
+        "service-buff"
+      ],
+      "doc": "Apply a service buff effect to the controlled actor.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "effect_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "service_buff_effect_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "service_buff_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_effect",
+        "insufficient_credits"
+      ]
+    },
+    {
+      "kind": "CloneRespawn",
+      "source": "rust-client-command",
+      "verb": "clone-respawn",
+      "aliases": [
+        "clone"
+      ],
+      "doc": "Respawn through a clone facility, optionally naming the facility id.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "facility_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "clone_facility_id",
+          "nullable": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "clone_respawn_rejected",
+        "no_clone_facility",
+        "unknown_clone_facility",
+        "invalid_clone_respawn"
+      ]
+    },
+    {
+      "kind": "ReviveActor",
+      "source": "rust-client-command",
+      "verb": "revive-actor",
+      "aliases": [
+        "revive"
+      ],
+      "doc": "Revive a target actor using available authority medical state.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "revive_actor_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "target_unavailable",
+        "unknown_item",
+        "item_unavailable"
+      ]
+    },
+    {
+      "kind": "SetPosture",
+      "source": "rust-client-command",
+      "verb": "posture",
+      "aliases": [
+        "set-posture",
+        "kneel",
+        "stand"
+      ],
+      "doc": "Queue or apply a kneel/stand posture change.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "posture",
+          "type": "enum",
+          "required": true,
+          "enumValues": [
+            "kneel",
+            "stand"
+          ]
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "posture_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked",
+        "queue_full",
+        "target_unavailable"
+      ]
+    },
+    {
+      "kind": "SampleResource",
+      "source": "rust-client-command",
+      "verb": "sample",
+      "aliases": [
+        "sample-resource",
+        "stop-sample"
+      ],
+      "doc": "Sample a resource family into the player's inventory and arm a durable auto-repeat loop; stop=true cancels the loop.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "durableIntent": {
+        "kind": "resource_sample_loop",
+        "when": "accepted stop=false",
+        "notes": "Accepted sampling repeats server-side every RESOURCE_SAMPLE_AUTO_REPEAT_CADENCE_TICKS until movement, posture break, area change, death, or stop=true."
+      },
+      "args": [
+        {
+          "name": "family",
+          "type": "id-domain",
+          "required": true,
+          "domain": "resource_family"
+        },
+        {
+          "name": "stop",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "false",
+            "true"
+          ],
+          "default": "false"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "sample_resource_rejected",
+        "survey_resource_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "invalid_resource_family",
+        "missing_survey_tool",
+        "economy_cooldown",
+        "sample_cooldown",
+        "container_full",
+        "no_survey_context",
+        "no_sample_context"
+      ]
+    },
+    {
+      "kind": "BankStoreItem",
+      "source": "rust-client-command",
+      "verb": "bank-store-item",
+      "aliases": [
+        "bank-store"
+      ],
+      "doc": "Move an exact carried stack quantity into the owning character bank.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "source_stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "quantity",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "not_at_bank_terminal",
+        "invalid_bank_quantity",
+        "bank_stack_missing",
+        "bank_capacity",
+        "bank_overflow",
+        "insufficient_credits",
+        "unknown_item"
+      ]
+    },
+    {
+      "kind": "BankRetrieveItem",
+      "source": "rust-client-command",
+      "verb": "bank-retrieve-item",
+      "aliases": [
+        "bank-retrieve"
+      ],
+      "doc": "Move an exact bank stack quantity into carried inventory.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "bank_stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "quantity",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "not_at_bank_terminal",
+        "invalid_bank_quantity",
+        "bank_stack_missing",
+        "bank_capacity",
+        "bank_overflow",
+        "insufficient_credits",
+        "unknown_item"
+      ]
+    },
+    {
+      "kind": "BankDepositCredits",
+      "source": "rust-client-command",
+      "verb": "bank-deposit-credits",
+      "aliases": [
+        "bank-deposit"
+      ],
+      "doc": "Deposit positive wallet credits into the owning character bank.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "amount",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "not_at_bank_terminal",
+        "invalid_bank_quantity",
+        "bank_stack_missing",
+        "bank_capacity",
+        "bank_overflow",
+        "insufficient_credits",
+        "unknown_item"
+      ]
+    },
+    {
+      "kind": "BankWithdrawCredits",
+      "source": "rust-client-command",
+      "verb": "bank-withdraw-credits",
+      "aliases": [
+        "bank-withdraw"
+      ],
+      "doc": "Withdraw positive bank credits into the wallet.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "amount",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "not_at_bank_terminal",
+        "invalid_bank_quantity",
+        "bank_stack_missing",
+        "bank_capacity",
+        "bank_overflow",
+        "insufficient_credits",
+        "unknown_item"
+      ]
+    },
+    {
+      "kind": "CloneSaveSkillBackup",
+      "source": "rust-client-command",
+      "verb": "clone-save-skill-backup",
+      "aliases": [
+        "save-skill-backup"
+      ],
+      "doc": "Save or update the profession backup for clone restoration, costing 1000 credits after the implicit initial backup.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "not_at_bank_terminal",
+        "invalid_bank_quantity",
+        "bank_stack_missing",
+        "bank_capacity",
+        "bank_overflow",
+        "insufficient_credits",
+        "unknown_item"
+      ]
+    },
+    {
+      "kind": "CorpseTakeCredits",
+      "source": "rust-client-command",
+      "verb": "corpse-take-credits",
+      "aliases": [
+        "take-corpse-credits"
+      ],
+      "doc": "Take all remaining credits from a public player corpse.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "corpse_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "player_corpse_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "loot_target_unknown",
+        "loot_not_lootable",
+        "loot_out_of_range",
+        "loot_invalid_quantity"
+      ]
+    },
+    {
+      "kind": "SurveyResource",
+      "source": "rust-client-command",
+      "verb": "survey",
+      "aliases": [
+        "survey-resource"
+      ],
+      "doc": "Survey nearby spawns for a resource family and emit a survey result.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "family",
+          "type": "id-domain",
+          "required": true,
+          "domain": "resource_family"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "sample_resource_rejected",
+        "survey_resource_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "invalid_resource_family",
+        "missing_survey_tool",
+        "economy_cooldown",
+        "sample_cooldown",
+        "container_full",
+        "no_survey_context",
+        "no_sample_context"
+      ]
+    },
+    {
+      "kind": "PlaceExtractor",
+      "source": "rust-client-command",
+      "verb": "place-extractor",
+      "aliases": [
+        "place-extract"
+      ],
+      "doc": "Place one carried extractor for a surveyed resource family at the actor's current position.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "durableIntent": {
+        "kind": "placed_extractor",
+        "when": "accepted",
+        "notes": "One accepted placement persists a server-owned extractor until collected or destroyed."
+      },
+      "args": [
+        {
+          "name": "family",
+          "type": "id-domain",
+          "required": true,
+          "domain": "resource_family"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "unknown_area",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked",
+        "out_of_bounds",
+        "blocked_cell",
+        "invalid_resource_family",
+        "unknown_item",
+        "item_unavailable",
+        "container_full",
+        "extractor_already_placed",
+        "no_placed_extractor",
+        "not_extractor_owner",
+        "not_at_extractor",
+        "extractor_hopper_empty",
+        "extractor_hopper_full",
+        "extractor_busy",
+        "extractor_battery_present",
+        "missing_battery"
+      ]
+    },
+    {
+      "kind": "CrankExtractor",
+      "source": "rust-client-command",
+      "verb": "crank-extractor",
+      "aliases": [
+        "crank"
+      ],
+      "doc": "Start manual extraction on an owned nearby extractor; standing actors enter the kneel-down lock first.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "durableIntent": {
+        "kind": "manual_extraction",
+        "when": "accepted",
+        "notes": "The actor keeps cranking until StopCrank, stand/move/death, range failure, or hopper full."
+      },
+      "args": [
+        {
+          "name": "extractor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "placed_extractor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "unknown_area",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked",
+        "out_of_bounds",
+        "blocked_cell",
+        "invalid_resource_family",
+        "unknown_item",
+        "item_unavailable",
+        "container_full",
+        "extractor_already_placed",
+        "no_placed_extractor",
+        "not_extractor_owner",
+        "not_at_extractor",
+        "extractor_hopper_empty",
+        "extractor_hopper_full",
+        "extractor_busy",
+        "extractor_battery_present",
+        "missing_battery"
+      ]
+    },
+    {
+      "kind": "StopCrank",
+      "source": "rust-client-command",
+      "verb": "stop-crank",
+      "doc": "Stop the actor's current manual extractor crank, if any.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "unknown_area",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked",
+        "out_of_bounds",
+        "blocked_cell",
+        "invalid_resource_family",
+        "unknown_item",
+        "item_unavailable",
+        "container_full",
+        "extractor_already_placed",
+        "no_placed_extractor",
+        "not_extractor_owner",
+        "not_at_extractor",
+        "extractor_hopper_empty",
+        "extractor_hopper_full",
+        "extractor_busy",
+        "extractor_battery_present",
+        "missing_battery"
+      ]
+    },
+    {
+      "kind": "InsertBattery",
+      "source": "rust-client-command",
+      "verb": "insert-battery",
+      "aliases": [
+        "battery-extractor"
+      ],
+      "doc": "Consume one owned extractor battery stack and start autonomous extraction on a nearby owned extractor.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "durableIntent": {
+        "kind": "battery_extraction",
+        "when": "accepted",
+        "notes": "A battery keeps extracting until power depletes, the hopper fills, or the extractor is destroyed."
+      },
+      "args": [
+        {
+          "name": "extractor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "placed_extractor_id"
+        },
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_container"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "unknown_area",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked",
+        "out_of_bounds",
+        "blocked_cell",
+        "invalid_resource_family",
+        "unknown_item",
+        "item_unavailable",
+        "container_full",
+        "extractor_already_placed",
+        "no_placed_extractor",
+        "not_extractor_owner",
+        "not_at_extractor",
+        "extractor_hopper_empty",
+        "extractor_hopper_full",
+        "extractor_busy",
+        "extractor_battery_present",
+        "missing_battery"
+      ]
+    },
+    {
+      "kind": "CollectExtractor",
+      "source": "rust-client-command",
+      "verb": "collect-extractor",
+      "aliases": [
+        "collect-extract"
+      ],
+      "doc": "Collect whole resource units from an owned nearby extractor hopper into inventory.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "extractor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "placed_extractor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "unknown_area",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked",
+        "out_of_bounds",
+        "blocked_cell",
+        "invalid_resource_family",
+        "unknown_item",
+        "item_unavailable",
+        "container_full",
+        "extractor_already_placed",
+        "no_placed_extractor",
+        "not_extractor_owner",
+        "not_at_extractor",
+        "extractor_hopper_empty",
+        "extractor_hopper_full",
+        "extractor_busy",
+        "extractor_battery_present",
+        "missing_battery"
+      ]
+    },
+    {
+      "kind": "DestroyExtractor",
+      "source": "rust-client-command",
+      "verb": "destroy-extractor",
+      "aliases": [
+        "pickup-extractor"
+      ],
+      "doc": "Remove an owned nearby extractor, discarding hopper contents and returning the device item.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "extractor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "placed_extractor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "unknown_area",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked",
+        "out_of_bounds",
+        "blocked_cell",
+        "invalid_resource_family",
+        "unknown_item",
+        "item_unavailable",
+        "container_full",
+        "extractor_already_placed",
+        "no_placed_extractor",
+        "not_extractor_owner",
+        "not_at_extractor",
+        "extractor_hopper_empty",
+        "extractor_hopper_full",
+        "extractor_busy",
+        "extractor_battery_present",
+        "missing_battery"
+      ]
+    },
+    {
+      "kind": "PlaceCamp",
+      "source": "rust-client-command",
+      "verb": "place-camp",
+      "aliases": [
+        "pitch-camp"
+      ],
+      "doc": "Pitch the carried camp kit at the actor's position, spawning a one-per-player scout camp (weather-shelter zone). Consumes the kit.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "durableIntent": {
+        "kind": "placed_camp",
+        "when": "accepted",
+        "notes": "One accepted placement persists a server-owned scout camp until packed up or auto-torn-down after the abandonment grace."
+      },
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "unknown_area",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked",
+        "out_of_bounds",
+        "blocked_cell",
+        "structure_footprint_blocked",
+        "unknown_item",
+        "item_unavailable",
+        "camp_already_placed",
+        "no_placed_camp",
+        "not_camp_owner",
+        "not_at_camp"
+      ]
+    },
+    {
+      "kind": "PackUpCamp",
+      "source": "rust-client-command",
+      "verb": "pack-up-camp",
+      "aliases": [
+        "strike-camp"
+      ],
+      "doc": "Strike the actor's own nearby scout camp, freeing the one-per-player slot. The kit was consumed on placement (single-use rule), so nothing is returned.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "unknown_area",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "posture_locked",
+        "out_of_bounds",
+        "blocked_cell",
+        "structure_footprint_blocked",
+        "unknown_item",
+        "item_unavailable",
+        "camp_already_placed",
+        "no_placed_camp",
+        "not_camp_owner",
+        "not_at_camp"
+      ]
+    },
+    {
+      "kind": "SplitStack",
+      "source": "rust-client-command",
+      "verb": "split-stack",
+      "doc": "Split quantity out of an inventory stack.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "item_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_numeric_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_variant_id"
+        },
+        {
+          "name": "quantity",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "split_stack_rejected",
+        "merge_stacks_rejected",
+        "unknown_item",
+        "item_unavailable",
+        "loot_missing_stack",
+        "loot_invalid_quantity",
+        "container_full"
+      ]
+    },
+    {
+      "kind": "DiscardStack",
+      "source": "rust-client-command",
+      "verb": "discard-stack",
+      "doc": "Discard an entire exact carried inventory stack owned by the acting player.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "item_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_numeric_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_variant_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "discard_stack_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "item_unavailable"
+      ]
+    },
+    {
+      "kind": "MergeStacks",
+      "source": "rust-client-command",
+      "verb": "merge-stacks",
+      "doc": "Merge one inventory stack into another stack in the same container.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "source_stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "target_stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "split_stack_rejected",
+        "merge_stacks_rejected",
+        "unknown_item",
+        "item_unavailable",
+        "loot_missing_stack",
+        "loot_invalid_quantity",
+        "container_full"
+      ]
+    },
+    {
+      "kind": "RedeemCreditChip",
+      "source": "rust-client-command",
+      "verb": "redeem-chip",
+      "aliases": [
+        "redeem"
+      ],
+      "doc": "Redeem a Credit Chip stack from a player-owned container into the credit balance; the chip's quantity is its face value and the stack is consumed.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "redeem_credit_chip_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable"
+      ]
+    },
+    {
+      "kind": "HarvestCorpse",
+      "source": "rust-client-command",
+      "verb": "harvest-corpse",
+      "aliases": [
+        "harvest"
+      ],
+      "doc": "Harvest all creature resources from a corpse: Hide, Meat, and Bone.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "harvest_corpse_rejected",
+        "loot_target_unknown",
+        "target_unavailable",
+        "target_not_harvestable",
+        "loot_out_of_range",
+        "loot_no_rights",
+        "loot_not_lootable",
+        "loot_missing_stack",
+        "loot_invalid_quantity",
+        "container_full"
+      ]
+    },
+    {
+      "kind": "TakeLootItem",
+      "source": "rust-client-command",
+      "verb": "loot",
+      "aliases": [
+        "take-loot",
+        "take-loot-item"
+      ],
+      "doc": "Take a loot stack from a corpse/cache container.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "loot_container_id"
+        },
+        {
+          "name": "itemId",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_numeric_id"
+        },
+        {
+          "name": "variantId",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_variant_id"
+        },
+        {
+          "name": "quantity",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "harvest_corpse_rejected",
+        "loot_target_unknown",
+        "target_unavailable",
+        "target_not_harvestable",
+        "loot_out_of_range",
+        "loot_no_rights",
+        "loot_not_lootable",
+        "loot_missing_stack",
+        "loot_invalid_quantity",
+        "container_full"
+      ]
+    },
+    {
+      "kind": "PurchaseTravelTicket",
+      "source": "typescript-authority-wire",
+      "verb": "purchase-travel-ticket",
+      "aliases": [
+        "buy-ticket"
+      ],
+      "doc": "Purchase a travel ticket from a terminal to a destination planet/city.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "terminal_prop_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "prop_id"
+        },
+        {
+          "name": "to_planet_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "planet_id"
+        },
+        {
+          "name": "to_city_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "city_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "travel_purchase_rejected",
+        "travel_actor_not_alive",
+        "travel_terminal_unknown",
+        "travel_terminal_unavailable",
+        "travel_out_of_range",
+        "travel_destination_unknown",
+        "travel_same_destination"
+      ]
+    },
+    {
+      "kind": "UseTravelTicket",
+      "source": "typescript-authority-wire",
+      "verb": "use-travel-ticket",
+      "aliases": [
+        "travel"
+      ],
+      "doc": "Consume a travel ticket and move to its recorded destination.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": false,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "ticket_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "travel_ticket_id"
+        },
+        {
+          "name": "item_id",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "travel_ticket"
+          ]
+        },
+        {
+          "name": "item_numeric_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "item_numeric_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "item_variant_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "travel_use_rejected",
+        "travel_actor_not_alive",
+        "travel_ticket_not_found",
+        "travel_ticket_malformed",
+        "travel_origin_terminal_unknown",
+        "travel_origin_wrong_terminal",
+        "travel_origin_wrong_area",
+        "travel_out_of_range",
+        "travel_destination_unknown",
+        "travel_destination_blocked"
+      ]
+    },
+    {
+      "kind": "ToggleDoor",
+      "source": "typescript-authority-wire",
+      "verb": "toggle-door",
+      "aliases": [
+        "door"
+      ],
+      "doc": "Toggle an interactive door prop near the actor.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "prop_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "prop_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "door_toggle_rejected",
+        "door_actor_unavailable",
+        "door_unknown",
+        "door_out_of_range"
+      ]
+    },
+    {
+      "kind": "CraftItem",
+      "source": "rust-client-command",
+      "verb": "craft-item",
+      "aliases": [
+        "craft"
+      ],
+      "doc": "Craft a schematic with allocated experimentation points.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "schematic_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "schematic_id"
+        },
+        {
+          "name": "experiment_power",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "experiment_handling",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "experiment_reliability",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "CraftBegin",
+      "source": "rust-client-command",
+      "verb": "craft-begin",
+      "doc": "Begin a multi-step crafting session for an unlocked recipe.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "recipe_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "craft_recipe_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "CraftAssignSlot",
+      "source": "rust-client-command",
+      "verb": "craft-assign-slot",
+      "doc": "Assign an exact inventory resource stack to a crafting session slot.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "slot_index",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "CraftClearSlot",
+      "source": "rust-client-command",
+      "verb": "craft-clear-slot",
+      "doc": "Clear a slot assignment before assembly.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "slot_index",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "CraftAssemble",
+      "source": "rust-client-command",
+      "verb": "craft-assemble",
+      "doc": "Consume assigned resources and assemble the prototype shell.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "durableIntent": {
+        "kind": "point_of_no_return",
+        "when": "accepted",
+        "notes": "Accepted assembly consumes the exact assigned resource stacks; later cancel is lossy."
+      },
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "CraftExperiment",
+      "source": "rust-client-command",
+      "verb": "craft-experiment",
+      "doc": "Spend experimentation points on one assembled prototype stat line.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "line_id",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "points",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "CraftFinalizePrototype",
+      "source": "rust-client-command",
+      "verb": "craft-finalize-prototype",
+      "doc": "Finalize an assembled prototype into the crafted inventory item.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "custom_name",
+          "type": "text",
+          "required": false,
+          "default": ""
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "CraftFinalizePractice",
+      "source": "rust-client-command",
+      "verb": "craft-finalize-practice",
+      "doc": "Complete assembled practice without creating an item.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "CraftDraftSchematic",
+      "source": "rust-client-command",
+      "verb": "craft-draft-schematic",
+      "doc": "Mint a drafted factory schematic handle from an assembled prototype.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "max_uses",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "FactoryManufacture",
+      "source": "rust-client-command",
+      "verb": "factory-manufacture",
+      "doc": "Spend one physical drafted schematic run at a factory workbench.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "factory_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "factory_id"
+        },
+        {
+          "name": "schematic_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "schematic_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "CraftCancel",
+      "source": "rust-client-command",
+      "verb": "craft-cancel",
+      "doc": "Cancel the active crafting session; after assembly this is lossy.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "RequestStarterTool",
+      "source": "rust-client-command",
+      "verb": "request-starter-tool",
+      "aliases": [
+        "starter-tool"
+      ],
+      "doc": "Ask a craftsman trainer to issue any missing Field Multitool and Mineral Survey Tool from the starter bundle.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "trainer_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "craft_item_rejected",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_schematic",
+        "ingredient_unavailable",
+        "invalid_experimentation",
+        "container_full",
+        "missing_survey_tool",
+        "item_unavailable",
+        "craft_session_active",
+        "no_craft_session",
+        "craft_slot_unfilled",
+        "craft_slot_mismatch",
+        "craft_already_assembled",
+        "craft_not_assembled",
+        "invalid_experiment_line",
+        "invalid_craft_name",
+        "schematic_uses_exceeded",
+        "unknown_factory",
+        "not_at_factory",
+        "factory_draft_missing",
+        "factory_draft_mismatch",
+        "tool_already_held",
+        "starter_tool_cooldown",
+        "trainer_unavailable"
+      ]
+    },
+    {
+      "kind": "PurchaseSkillBox",
+      "source": "rust-client-command",
+      "verb": "purchase-skill-box",
+      "aliases": [
+        "train-skill"
+      ],
+      "doc": "Purchase/train a skill box from a trainer actor.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "skill_box_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "skill_box_id"
+        },
+        {
+          "name": "trainer_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "purchase_skill_box_rejected",
+        "profession_title_rejected",
+        "career_goal_rejected",
+        "unknown_skill_box",
+        "skill_already_learned",
+        "skill_not_learned",
+        "skill_required_by_learned_box",
+        "skill_prerequisite_missing",
+        "insufficient_profession_xp",
+        "insufficient_credits",
+        "insufficient_skill_points",
+        "trainer_unavailable",
+        "unknown_profession_title",
+        "unknown_career_goal"
+      ]
+    },
+    {
+      "kind": "UnlearnSkillBox",
+      "source": "rust-client-command",
+      "verb": "unlearn-skill-box",
+      "aliases": [
+        "untrain-skill"
+      ],
+      "doc": "Unlearn one skill box through a trainer, refunding its skill-point cost.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "skill_box_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "skill_box_id"
+        },
+        {
+          "name": "trainer_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "purchase_skill_box_rejected",
+        "profession_title_rejected",
+        "career_goal_rejected",
+        "unknown_skill_box",
+        "skill_already_learned",
+        "skill_not_learned",
+        "skill_required_by_learned_box",
+        "skill_prerequisite_missing",
+        "insufficient_profession_xp",
+        "insufficient_credits",
+        "insufficient_skill_points",
+        "trainer_unavailable",
+        "unknown_profession_title",
+        "unknown_career_goal"
+      ]
+    },
+    {
+      "kind": "SetProfessionTitle",
+      "source": "rust-client-command",
+      "verb": "set-profession-title",
+      "aliases": [
+        "title"
+      ],
+      "doc": "Set or clear the active profession title.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "title_id",
+          "type": "id-domain",
+          "required": false,
+          "domain": "profession_title_id",
+          "nullable": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "purchase_skill_box_rejected",
+        "profession_title_rejected",
+        "career_goal_rejected",
+        "unknown_skill_box",
+        "skill_already_learned",
+        "skill_not_learned",
+        "skill_required_by_learned_box",
+        "skill_prerequisite_missing",
+        "insufficient_profession_xp",
+        "insufficient_credits",
+        "insufficient_skill_points",
+        "trainer_unavailable",
+        "unknown_profession_title",
+        "unknown_career_goal"
+      ]
+    },
+    {
+      "kind": "SetCareerGoal",
+      "source": "rust-client-command",
+      "verb": "set-career-goal",
+      "aliases": [
+        "career-goal"
+      ],
+      "doc": "Set the actor career goal through a trainer actor.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "goal_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "career_goal_id"
+        },
+        {
+          "name": "trainer_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "purchase_skill_box_rejected",
+        "profession_title_rejected",
+        "career_goal_rejected",
+        "unknown_skill_box",
+        "skill_already_learned",
+        "skill_not_learned",
+        "skill_required_by_learned_box",
+        "skill_prerequisite_missing",
+        "insufficient_profession_xp",
+        "insufficient_credits",
+        "insufficient_skill_points",
+        "trainer_unavailable",
+        "unknown_profession_title",
+        "unknown_career_goal"
+      ]
+    },
+    {
+      "kind": "StoreToExchange",
+      "source": "rust-client-command",
+      "verb": "store-to-exchange",
+      "doc": "Move a quantity from actor inventory into exchange storage.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "item_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_numeric_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_variant_id"
+        },
+        {
+          "name": "quantity",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "unknown_item",
+        "item_unavailable",
+        "loot_invalid_quantity",
+        "container_full",
+        "insufficient_credits"
+      ]
+    },
+    {
+      "kind": "RetrieveFromExchange",
+      "source": "rust-client-command",
+      "verb": "retrieve-from-exchange",
+      "doc": "Retrieve a quantity from exchange storage into actor inventory.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "item_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_numeric_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_variant_id"
+        },
+        {
+          "name": "quantity",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "unknown_item",
+        "item_unavailable",
+        "loot_invalid_quantity",
+        "container_full",
+        "insufficient_credits"
+      ]
+    },
+    {
+      "kind": "ProposeTrade",
+      "source": "rust-client-command",
+      "verb": "trade",
+      "aliases": [
+        "propose-trade"
+      ],
+      "doc": "Propose a bilateral trade offer/request with another actor.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "partner_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        },
+        {
+          "name": "offer",
+          "type": "id-domain",
+          "required": true,
+          "domain": "trade_item_spec",
+          "repeated": true
+        },
+        {
+          "name": "request",
+          "type": "id-domain",
+          "required": true,
+          "domain": "trade_item_spec",
+          "repeated": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "target_unavailable",
+        "unknown_item",
+        "item_unavailable",
+        "loot_invalid_quantity",
+        "container_full",
+        "insufficient_credits",
+        "trade_session_active",
+        "no_trade_session",
+        "trade_not_locked"
+      ]
+    },
+    {
+      "kind": "AcceptTrade",
+      "source": "rust-client-command",
+      "verb": "accept-trade",
+      "doc": "Accept a pending trade proposal.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "proposal_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "trade_proposal_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "target_unavailable",
+        "unknown_item",
+        "item_unavailable",
+        "loot_invalid_quantity",
+        "container_full",
+        "insufficient_credits",
+        "trade_session_active",
+        "no_trade_session",
+        "trade_not_locked"
+      ]
+    },
+    {
+      "kind": "DeclineTrade",
+      "source": "rust-client-command",
+      "verb": "decline-trade",
+      "doc": "Decline or cancel a pending trade proposal.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "proposal_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "trade_proposal_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "target_unavailable",
+        "unknown_item",
+        "item_unavailable",
+        "loot_invalid_quantity",
+        "container_full",
+        "insufficient_credits",
+        "trade_session_active",
+        "no_trade_session",
+        "trade_not_locked"
+      ]
+    },
+    {
+      "kind": "AddTradeItem",
+      "source": "rust-client-command",
+      "verb": "add-trade-item",
+      "doc": "Add an item line to the sender's own side of an open trade session (clears both accept-locks).",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "proposal_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "trade_proposal_id"
+        },
+        {
+          "name": "item",
+          "type": "id-domain",
+          "required": true,
+          "domain": "trade_item_spec"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "target_unavailable",
+        "unknown_item",
+        "item_unavailable",
+        "loot_invalid_quantity",
+        "container_full",
+        "insufficient_credits",
+        "trade_session_active",
+        "no_trade_session",
+        "trade_not_locked"
+      ]
+    },
+    {
+      "kind": "RemoveTradeItem",
+      "source": "rust-client-command",
+      "verb": "remove-trade-item",
+      "doc": "Remove an item line from the sender's own side of an open trade session (clears both accept-locks).",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "proposal_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "trade_proposal_id"
+        },
+        {
+          "name": "item",
+          "type": "id-domain",
+          "required": true,
+          "domain": "trade_item_spec"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "target_unavailable",
+        "unknown_item",
+        "item_unavailable",
+        "loot_invalid_quantity",
+        "container_full",
+        "insufficient_credits",
+        "trade_session_active",
+        "no_trade_session",
+        "trade_not_locked"
+      ]
+    },
+    {
+      "kind": "SetTradeCoin",
+      "source": "rust-client-command",
+      "verb": "set-trade-coin",
+      "doc": "Set the sender's own wallet-credit offer on an open trade session (clears both accept-locks).",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "proposal_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "trade_proposal_id"
+        },
+        {
+          "name": "amount",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "target_unavailable",
+        "unknown_item",
+        "item_unavailable",
+        "loot_invalid_quantity",
+        "container_full",
+        "insufficient_credits",
+        "trade_session_active",
+        "no_trade_session",
+        "trade_not_locked"
+      ]
+    },
+    {
+      "kind": "ConfirmTrade",
+      "source": "rust-client-command",
+      "verb": "confirm-trade",
+      "doc": "Final OK on a fully-locked trade session; both confirms execute the atomic swap.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "proposal_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "trade_proposal_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "target_unavailable",
+        "unknown_item",
+        "item_unavailable",
+        "loot_invalid_quantity",
+        "container_full",
+        "insufficient_credits",
+        "trade_session_active",
+        "no_trade_session",
+        "trade_not_locked"
+      ]
+    },
+    {
+      "kind": "GroupInvite",
+      "source": "rust-client-command",
+      "verb": "group-invite",
+      "aliases": [
+        "invite"
+      ],
+      "doc": "Invite a player into your group; a solo inviter forms a new group on accept.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "target_unavailable",
+        "actor_not_alive",
+        "cannot_group_self",
+        "already_in_group",
+        "group_full"
+      ]
+    },
+    {
+      "kind": "GroupAccept",
+      "source": "rust-client-command",
+      "verb": "group-accept",
+      "aliases": [
+        "accept-invite"
+      ],
+      "doc": "Accept your pending group invite, joining the inviter's group.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "target_unavailable",
+        "actor_not_alive",
+        "no_pending_invite",
+        "already_in_group",
+        "group_full"
+      ]
+    },
+    {
+      "kind": "GroupDecline",
+      "source": "rust-client-command",
+      "verb": "group-decline",
+      "aliases": [
+        "decline-invite"
+      ],
+      "doc": "Decline your pending group invite.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "no_pending_invite"
+      ]
+    },
+    {
+      "kind": "GroupLeave",
+      "source": "rust-client-command",
+      "verb": "group-leave",
+      "aliases": [
+        "leave-group"
+      ],
+      "doc": "Leave your current group; deterministic leader succession applies.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "not_in_group"
+      ]
+    },
+    {
+      "kind": "GroupDisband",
+      "source": "rust-client-command",
+      "verb": "group-disband",
+      "aliases": [
+        "disband-group"
+      ],
+      "doc": "Disband your group entirely; leader only.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "not_in_group",
+        "not_group_leader"
+      ]
+    },
+    {
+      "kind": "GroupKick",
+      "source": "rust-client-command",
+      "verb": "group-kick",
+      "aliases": [
+        "kick-member"
+      ],
+      "doc": "Remove a member from your group; leader only, cannot target self.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "not_in_group",
+        "not_group_leader",
+        "not_group_member",
+        "cannot_group_self"
+      ]
+    },
+    {
+      "kind": "DuelChallenge",
+      "source": "rust-client-command",
+      "verb": "duel-challenge",
+      "aliases": [
+        "duel"
+      ],
+      "doc": "Challenge a specific player to a consensual 1v1 duel; expires like a group invite.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "target_unavailable",
+        "actor_not_alive",
+        "cannot_duel_self",
+        "already_dueling"
+      ]
+    },
+    {
+      "kind": "DuelAccept",
+      "source": "rust-client-command",
+      "verb": "duel-accept",
+      "aliases": [
+        "accept-duel"
+      ],
+      "doc": "Accept your pending duel challenge, forming the duel and opening damage within the pair.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "target_unavailable",
+        "actor_not_alive",
+        "no_pending_duel_challenge",
+        "already_dueling"
+      ]
+    },
+    {
+      "kind": "DuelDecline",
+      "source": "rust-client-command",
+      "verb": "duel-decline",
+      "aliases": [
+        "decline-duel"
+      ],
+      "doc": "Decline your pending duel challenge.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "no_pending_duel_challenge"
+      ]
+    },
+    {
+      "kind": "DuelYield",
+      "source": "rust-client-command",
+      "verb": "duel-yield",
+      "aliases": [
+        "yield-duel",
+        "forfeit"
+      ],
+      "doc": "Yield your active duel; the yielder concedes and lives, the opponent wins.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "not_in_duel"
+      ]
+    },
+    {
+      "kind": "Deathblow",
+      "source": "rust-client-command",
+      "verb": "deathblow",
+      "doc": "Explicitly finish a downed opponent in your active duel at close range.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "cannot_duel_self",
+        "not_in_duel",
+        "target_unavailable",
+        "out_of_range"
+      ]
+    },
+    {
+      "kind": "GeneSample",
+      "source": "rust-client-command",
+      "verb": "gene-sample",
+      "aliases": [
+        "sample-flora"
+      ],
+      "doc": "Sample a deterministic wild-flora landrace seed of a crop species with the Gene Sampler.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "species",
+          "type": "id-domain",
+          "required": true,
+          "domain": "crop_species_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_crop_species",
+        "missing_gene_sampler",
+        "missing_genome_scanner",
+        "missing_splice_bench",
+        "genome_unavailable",
+        "target_unavailable",
+        "economy_cooldown",
+        "ingredient_unavailable",
+        "splice_session_active",
+        "no_splice_session",
+        "splice_slot_mismatch",
+        "splice_already_assembled",
+        "splice_not_assembled",
+        "invalid_splice_locus",
+        "invalid_splice_experiment"
+      ]
+    },
+    {
+      "kind": "ScanGenome",
+      "source": "rust-client-command",
+      "verb": "scan-genome",
+      "aliases": [
+        "scan-seed"
+      ],
+      "doc": "Reveal a seed's genome with the Genome Scanner; depth is gated by the Sequencing track.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_crop_species",
+        "missing_gene_sampler",
+        "missing_genome_scanner",
+        "missing_splice_bench",
+        "genome_unavailable",
+        "target_unavailable",
+        "economy_cooldown",
+        "ingredient_unavailable",
+        "splice_session_active",
+        "no_splice_session",
+        "splice_slot_mismatch",
+        "splice_already_assembled",
+        "splice_not_assembled",
+        "invalid_splice_locus",
+        "invalid_splice_experiment"
+      ]
+    },
+    {
+      "kind": "SpliceBegin",
+      "source": "rust-client-command",
+      "verb": "splice-begin",
+      "doc": "Open a splice session for a crop species at a Splice Bench (Bio-Engineer).",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "species",
+          "type": "id-domain",
+          "required": true,
+          "domain": "crop_species_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_crop_species",
+        "missing_gene_sampler",
+        "missing_genome_scanner",
+        "missing_splice_bench",
+        "genome_unavailable",
+        "target_unavailable",
+        "economy_cooldown",
+        "ingredient_unavailable",
+        "splice_session_active",
+        "no_splice_session",
+        "splice_slot_mismatch",
+        "splice_already_assembled",
+        "splice_not_assembled",
+        "invalid_splice_locus",
+        "invalid_splice_experiment"
+      ]
+    },
+    {
+      "kind": "SpliceAssignSlot",
+      "source": "rust-client-command",
+      "verb": "splice-assign-slot",
+      "doc": "Assign a parent seed (slots 0-1) or a reagent (slots 2-5) to the splice session.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "slot_index",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_crop_species",
+        "missing_gene_sampler",
+        "missing_genome_scanner",
+        "missing_splice_bench",
+        "genome_unavailable",
+        "target_unavailable",
+        "economy_cooldown",
+        "ingredient_unavailable",
+        "splice_session_active",
+        "no_splice_session",
+        "splice_slot_mismatch",
+        "splice_already_assembled",
+        "splice_not_assembled",
+        "invalid_splice_locus",
+        "invalid_splice_experiment"
+      ]
+    },
+    {
+      "kind": "SpliceClearSlot",
+      "source": "rust-client-command",
+      "verb": "splice-clear-slot",
+      "doc": "Clear a splice session slot before assembly.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "slot_index",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_crop_species",
+        "missing_gene_sampler",
+        "missing_genome_scanner",
+        "missing_splice_bench",
+        "genome_unavailable",
+        "target_unavailable",
+        "economy_cooldown",
+        "ingredient_unavailable",
+        "splice_session_active",
+        "no_splice_session",
+        "splice_slot_mismatch",
+        "splice_already_assembled",
+        "splice_not_assembled",
+        "invalid_splice_locus",
+        "invalid_splice_experiment"
+      ]
+    },
+    {
+      "kind": "SpliceChooseAllele",
+      "source": "rust-client-command",
+      "verb": "splice-choose-allele",
+      "doc": "Directed segregation choice: pick which allele (0/1) to take from a parent (0/1) at a locus.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "locus",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "from_parent",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "allele",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_crop_species",
+        "missing_gene_sampler",
+        "missing_genome_scanner",
+        "missing_splice_bench",
+        "genome_unavailable",
+        "target_unavailable",
+        "economy_cooldown",
+        "ingredient_unavailable",
+        "splice_session_active",
+        "no_splice_session",
+        "splice_slot_mismatch",
+        "splice_already_assembled",
+        "splice_not_assembled",
+        "invalid_splice_locus",
+        "invalid_splice_experiment"
+      ]
+    },
+    {
+      "kind": "SpliceAssemble",
+      "source": "rust-client-command",
+      "verb": "splice-assemble",
+      "doc": "Consume parents + reagents and compute deterministic per-locus base/cap lines (point of no return).",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "durableIntent": {
+        "kind": "point_of_no_return",
+        "when": "accepted",
+        "notes": "Accepted assembly consumes the assigned parent seeds and reagents; later cancel is lossy."
+      },
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_crop_species",
+        "missing_gene_sampler",
+        "missing_genome_scanner",
+        "missing_splice_bench",
+        "genome_unavailable",
+        "target_unavailable",
+        "economy_cooldown",
+        "ingredient_unavailable",
+        "splice_session_active",
+        "no_splice_session",
+        "splice_slot_mismatch",
+        "splice_already_assembled",
+        "splice_not_assembled",
+        "invalid_splice_locus",
+        "invalid_splice_experiment"
+      ]
+    },
+    {
+      "kind": "SpliceExperimentLocus",
+      "source": "rust-client-command",
+      "verb": "splice-experiment-locus",
+      "doc": "Spend experimentation points to lift one assembled locus deterministically toward its cap.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "locus",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "points",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_crop_species",
+        "missing_gene_sampler",
+        "missing_genome_scanner",
+        "missing_splice_bench",
+        "genome_unavailable",
+        "target_unavailable",
+        "economy_cooldown",
+        "ingredient_unavailable",
+        "splice_session_active",
+        "no_splice_session",
+        "splice_slot_mismatch",
+        "splice_already_assembled",
+        "splice_not_assembled",
+        "invalid_splice_locus",
+        "invalid_splice_experiment"
+      ]
+    },
+    {
+      "kind": "SpliceMint",
+      "source": "rust-client-command",
+      "verb": "splice-mint",
+      "doc": "Intern the child genome into the registry and hand the breeder the new seed handle.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "cultivar_name",
+          "type": "id-domain",
+          "required": false,
+          "domain": "cultivar_name",
+          "nullable": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_crop_species",
+        "missing_gene_sampler",
+        "missing_genome_scanner",
+        "missing_splice_bench",
+        "genome_unavailable",
+        "target_unavailable",
+        "economy_cooldown",
+        "ingredient_unavailable",
+        "splice_session_active",
+        "no_splice_session",
+        "splice_slot_mismatch",
+        "splice_already_assembled",
+        "splice_not_assembled",
+        "invalid_splice_locus",
+        "invalid_splice_experiment"
+      ]
+    },
+    {
+      "kind": "SpliceCancel",
+      "source": "rust-client-command",
+      "verb": "splice-cancel",
+      "doc": "Cancel the active splice session; after assembly the consumed inputs are not returned.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "actor_asleep",
+        "unknown_item",
+        "item_unavailable",
+        "unknown_crop_species",
+        "missing_gene_sampler",
+        "missing_genome_scanner",
+        "missing_splice_bench",
+        "genome_unavailable",
+        "target_unavailable",
+        "economy_cooldown",
+        "ingredient_unavailable",
+        "splice_session_active",
+        "no_splice_session",
+        "splice_slot_mismatch",
+        "splice_already_assembled",
+        "splice_not_assembled",
+        "invalid_splice_locus",
+        "invalid_splice_experiment"
+      ]
+    },
+    {
+      "kind": "ClaimParcel",
+      "source": "rust-client-command",
+      "verb": "claim-parcel",
+      "aliases": [
+        "claim"
+      ],
+      "doc": "Stake a mini-mayor land claim (max 2 globally per character); spends wallet credits at a Land Registry terminal.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "durableIntent": {
+        "kind": "placed_parcel",
+        "when": "accepted",
+        "notes": "Each accepted claim persists a server-owned parcel until abandoned; a character may hold at most two globally."
+      },
+      "args": [
+        {
+          "name": "planet_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "planet_id"
+        },
+        {
+          "name": "area_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "area_id"
+        },
+        {
+          "name": "x",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "y",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "tier",
+          "type": "enum",
+          "required": true,
+          "enumValues": [
+            "homestead",
+            "farmstead",
+            "plantation"
+          ]
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "unknown_area",
+        "not_in_housing_region",
+        "out_of_bounds",
+        "parcel_limit_reached",
+        "parcel_overlap",
+        "too_close_to_poi",
+        "too_close_to_road",
+        "no_claim_zone",
+        "insufficient_credits",
+        "target_unavailable"
+      ]
+    },
+    {
+      "kind": "AbandonParcel",
+      "source": "rust-client-command",
+      "verb": "abandon-parcel",
+      "aliases": [
+        "abandon"
+      ],
+      "doc": "Release an owned parcel; returns placed structure items, crops are lost. Frees one global claim slot.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "unknown_parcel",
+        "not_parcel_owner"
+      ]
+    },
+    {
+      "kind": "RenameParcel",
+      "source": "rust-client-command",
+      "verb": "rename-parcel",
+      "doc": "Rename an owned parcel (owner-only cosmetic).",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "name",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_label"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "unknown_parcel",
+        "not_parcel_owner"
+      ]
+    },
+    {
+      "kind": "PayUpkeep",
+      "source": "rust-client-command",
+      "verb": "pay-upkeep",
+      "aliases": [
+        "upkeep"
+      ],
+      "doc": "Pay light periodic credit upkeep on an owned parcel; lapse pauses the farm, never confiscates.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "upkeep_not_due",
+        "insufficient_credits"
+      ]
+    },
+    {
+      "kind": "TillTile",
+      "source": "rust-client-command",
+      "verb": "till",
+      "aliases": [
+        "till-tile"
+      ],
+      "doc": "Hoe a farm-yard cell into tillable soil.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "cell_x",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "cell_y",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "outside_farm_yard",
+        "tile_already_tilled"
+      ]
+    },
+    {
+      "kind": "PlantSeed",
+      "source": "rust-client-command",
+      "verb": "plant",
+      "aliases": [
+        "plant-seed"
+      ],
+      "doc": "Plant one seed on a tilled tile; caches the projected AgronomicProfile (seed->soil boundary).",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "cell_x",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "cell_y",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "outside_farm_yard",
+        "tile_not_tilled",
+        "tile_occupied",
+        "seed_not_owned"
+      ]
+    },
+    {
+      "kind": "ClearTile",
+      "source": "rust-client-command",
+      "verb": "clear-tile",
+      "aliases": [
+        "clear"
+      ],
+      "doc": "Scythe a tile: remove its crop, keep the soil tilled (dry).",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "cell_x",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "cell_y",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "outside_farm_yard",
+        "tile_not_tilled"
+      ]
+    },
+    {
+      "kind": "WaterTile",
+      "source": "rust-client-command",
+      "verb": "water",
+      "aliases": [
+        "water-tile"
+      ],
+      "doc": "Water a tile: settle growth to now, then refill moisture and revive a dormant crop from saved progress.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "cell_x",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "cell_y",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "outside_farm_yard",
+        "tile_not_tilled"
+      ]
+    },
+    {
+      "kind": "TendPlot",
+      "source": "rust-client-command",
+      "verb": "tend",
+      "aliases": [
+        "tend-plot",
+        "stop-tend"
+      ],
+      "doc": "Kneel and auto-tend the plot on a cadence (waters dry tiles, settles growth) until you move/stand/leave; stop=true cancels.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "durableIntent": {
+        "kind": "plot_tending",
+        "when": "accepted stop=false",
+        "notes": "Accepted tending repeats server-side every cadence until movement, stand, area change, death, loss of ownership, or stop=true."
+      },
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "stop",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "false",
+            "true"
+          ],
+          "default": "false"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "outside_farm_yard"
+      ]
+    },
+    {
+      "kind": "PlaceFarmStructure",
+      "source": "rust-client-command",
+      "verb": "place-farm-structure",
+      "aliases": [
+        "place-structure"
+      ],
+      "doc": "Place a farm structure (W3: irrigation sprinkler) inside a parcel; consumes the 6_3xx item.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "structure_item_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "item_numeric_id"
+        },
+        {
+          "name": "cell_x",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "cell_y",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "outside_farm_yard",
+        "structure_footprint_blocked",
+        "unknown_item",
+        "item_unavailable"
+      ]
+    },
+    {
+      "kind": "RemoveFarmStructure",
+      "source": "rust-client-command",
+      "verb": "remove-farm-structure",
+      "aliases": [
+        "remove-structure"
+      ],
+      "doc": "Remove an owned parcel's farm structure; returns the item.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "structure_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "farm_structure_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "no_farm_structure"
+      ]
+    },
+    {
+      "kind": "BuildPlace",
+      "source": "rust-client-command",
+      "verb": "build-place",
+      "doc": "Place a catalogued one-level building component inside an owned parcel build zone.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "catalog_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "build_catalog_id"
+        },
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "cell_x",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "cell_y",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "rotation_quarters",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "unknown_schematic",
+        "out_of_bounds",
+        "structure_footprint_blocked",
+        "ingredient_unavailable"
+      ]
+    },
+    {
+      "kind": "BuildRemove",
+      "source": "rust-client-command",
+      "verb": "build-remove",
+      "doc": "Remove an owned building component and return its deterministic salvage.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "component_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "build_component_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "unknown_schematic"
+      ]
+    },
+    {
+      "kind": "BuildToggleDoor",
+      "source": "rust-client-command",
+      "verb": "build-toggle-door",
+      "doc": "Toggle an owned sliding building door between open and closed states.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "component_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "build_component_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "target_unavailable"
+      ]
+    },
+    {
+      "kind": "Fertilize",
+      "source": "rust-client-command",
+      "verb": "fertilize",
+      "aliases": [
+        "fertilise"
+      ],
+      "doc": "Apply one soil amendment (speed/quality/yield) to a tilled tile; one kind per tile, consumes the fertilizer item.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "cell_x",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "cell_y",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "container",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_container_id"
+        },
+        {
+          "name": "stack_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "inventory_stack_id"
+        },
+        {
+          "name": "variant_id",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "outside_farm_yard",
+        "tile_not_tilled",
+        "tile_already_fertilized",
+        "unknown_item",
+        "item_unavailable"
+      ]
+    },
+    {
+      "kind": "HarvestCrop",
+      "source": "rust-client-command",
+      "verb": "reap",
+      "aliases": [
+        "harvest-crop"
+      ],
+      "doc": "Harvest a mature crop: mint produce + offspring seeds (mint_harvest_seed; sterile => none) + regrowth reset or clear to tilled.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "parcel_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "parcel_id"
+        },
+        {
+          "name": "cell_x",
+          "type": "int",
+          "required": true
+        },
+        {
+          "name": "cell_y",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "unknown_parcel",
+        "not_parcel_owner",
+        "outside_farm_yard",
+        "tile_not_tilled",
+        "tile_empty",
+        "crop_not_mature"
+      ]
+    },
+    {
+      "kind": "GuildCreate",
+      "source": "rust-client-command",
+      "verb": "guild-create",
+      "aliases": [
+        "create-guild"
+      ],
+      "doc": "Create a guild at the player's authorized public-affairs terminal.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "tag",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "terminal_prop_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "prop_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildInvite",
+      "source": "rust-client-command",
+      "verb": "guild-invite",
+      "aliases": [
+        "invite-guild"
+      ],
+      "doc": "Invite another actor to join the player's guild.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildAcceptInvite",
+      "source": "rust-client-command",
+      "verb": "guild-accept-invite",
+      "aliases": [
+        "accept-guild-invite"
+      ],
+      "doc": "Accept a pending guild invitation.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "invite_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "guild_invite_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildDeclineInvite",
+      "source": "rust-client-command",
+      "verb": "guild-decline-invite",
+      "aliases": [
+        "decline-guild-invite"
+      ],
+      "doc": "Decline a pending guild invitation.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "invite_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "guild_invite_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildLeave",
+      "source": "rust-client-command",
+      "verb": "guild-leave",
+      "aliases": [
+        "leave-guild"
+      ],
+      "doc": "Leave the player's current guild.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildKick",
+      "source": "rust-client-command",
+      "verb": "guild-kick",
+      "aliases": [
+        "kick-guild-member"
+      ],
+      "doc": "Remove a target member from the player's guild.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildSetRole",
+      "source": "rust-client-command",
+      "verb": "guild-set-role",
+      "aliases": [
+        "set-guild-role"
+      ],
+      "doc": "Set a guild member's role.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        },
+        {
+          "name": "role",
+          "type": "enum",
+          "required": true,
+          "enumValues": [
+            "leader",
+            "officer",
+            "member"
+          ]
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildSetPermissions",
+      "source": "rust-client-command",
+      "verb": "guild-set-permissions",
+      "aliases": [
+        "set-guild-permissions"
+      ],
+      "doc": "Set a guild member's permission bit mask.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        },
+        {
+          "name": "permissions",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildTransferLeadership",
+      "source": "rust-client-command",
+      "verb": "guild-transfer-leadership",
+      "aliases": [
+        "transfer-guild-leadership"
+      ],
+      "doc": "Transfer guild leadership to another member.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "target_actor_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "actor_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildDeclareWar",
+      "source": "rust-client-command",
+      "verb": "guild-declare-war",
+      "aliases": [
+        "declare-guild-war"
+      ],
+      "doc": "Declare war on another guild.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "opposing_guild_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "guild_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildAcceptWar",
+      "source": "rust-client-command",
+      "verb": "guild-accept-war",
+      "aliases": [
+        "accept-guild-war"
+      ],
+      "doc": "Accept an incoming guild war request.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "opposing_guild_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "guild_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildRescindWar",
+      "source": "rust-client-command",
+      "verb": "guild-rescind-war",
+      "aliases": [
+        "rescind-guild-war"
+      ],
+      "doc": "Rescind an outgoing guild war request.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [
+        {
+          "name": "opposing_guild_id",
+          "type": "id-domain",
+          "required": true,
+          "domain": "guild_id"
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    },
+    {
+      "kind": "GuildDisband",
+      "source": "rust-client-command",
+      "verb": "guild-disband",
+      "aliases": [
+        "disband-guild"
+      ],
+      "doc": "Disband the player's guild.",
+      "budgetClass": "authority",
+      "debugGated": false,
+      "args": [],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "ingress_budget_exhausted",
+        "actor_not_alive",
+        "not_at_pa_terminal",
+        "guild_name_too_long",
+        "guild_tag_too_long",
+        "guild_name_exists",
+        "guild_tag_exists",
+        "already_in_guild",
+        "not_in_guild",
+        "no_guild_permission",
+        "guild_not_found",
+        "invite_expired",
+        "invite_not_found",
+        "invite_already_pending",
+        "already_waring",
+        "not_waring"
+      ]
+    }
+  ]
+}

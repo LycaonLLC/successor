@@ -1,0 +1,11 @@
+/* UIPort overlay: transparent canvas for nameplates, target brackets and bubbles. */
+
+.successor3d-overlay-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "multiplayer-aoi-exit-hygiene",
+  "fixture": "open-desert-multiplayer-aoi",
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "steps": [
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-aoi-beta", "lifeState": "alive" } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "alphaSeesBetaInAoi" } },
+    { "send": { "actor": "beta", "line": "/move 1 0 30 Right true", "as": "betaMove1" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaMove1.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 8000, "as": "betaMove1Receipt" } },
+    "/pause 1.5s",
+    { "send": { "actor": "beta", "line": "/move 1 0 30 Right true", "as": "betaMove2" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaMove2.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 8000, "as": "betaMove2Receipt" } },
+    "/pause 1.5s",
+    { "send": { "actor": "beta", "line": "/move 1 0 30 Right true", "as": "betaMove3" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaMove3.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 8000, "as": "betaMove3Receipt" } },
+    "/pause 1.5s",
+    { "send": { "actor": "beta", "line": "/move 1 0 30 Right true", "as": "betaMove4" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaMove4.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 8000, "as": "betaMove4Receipt" } },
+    "/pause 1.5s",
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-aoi-beta", "match": { "x": { "op": "gt", "value": 188 }, "lifeState": "alive" } }, "timeoutMs": 20000, "as": "betaExitedOracle" } },
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "excludesObject": { "id": "mp-aoi-beta" } } }, "timeoutMs": 15000, "intervalMs": 400, "as": "alphaRadarExcludesBeta" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-aoi-beta", "match": { "x": { "op": "gt", "value": 188 }, "lifeState": "alive" } }, "timeoutMs": 8000, "as": "betaStillInWorldTruth" } },
+    { "expect": { "kind": "envelopeCount", "actor": "beta", "envelopeType": "receipt", "match": { "commandKind": "Move", "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "aoiExitStableHash" } }
+  ],
+  "notes": "AOI exit hygiene, robust under concurrency. Alpha (30,990, isolated corner). Beta (role player => sprint) starts dx=142 (visible <=144) and takes 4 discrete 30-tick sprint /move commands. Each 30-tick sprint move covers ~6.5 cells (walk 1.357 c/s x sprint 4.809, MAX_MOVE_DURATION_TICKS=30) — tick-based distance is DETERMINISTIC + load-independent (SetMoveIntent is wall-clock-rate-limited and slows under gate concurrency). Beta crosses x=172 -> ~198 (dx>168, past warm 154). Alpha's session HONESTLY removes beta: data.actors excludesObject{id:mp-aoi-beta} (robust to ambient NPCs). Oracle keeps global truth (beta alive far away) — per-session AOI drop, never a ghost."
+}

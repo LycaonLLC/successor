@@ -1,0 +1,103 @@
+<!doctype html>
+<!-- pawn-debug.html — minimal isolated harness for the PawnForgeV2 pawn system.
+     No post pass, no fog, no game state: loads the pack, spawns male+female,
+     plays clips, welds the Slugthrower. Dev-only; not part of the app build. -->
+<html>
+<head><meta charset="utf-8"><style>html,body{margin:0;background:#666}</style></head>
+<body>
+<script type="module">
+import { CanvasTexture, Color, Group, Mesh, MeshMatcapMaterial, PerspectiveCamera, Scene, SkinnedMesh, SphereGeometry, SRGBColorSpace, WebGLRenderer } from "three";
+import { loadPawnPack, clonePawnBody } from "/src/assets/pawnPack";
+import { MaskedClipCache } from "/src/render/anim/maskedClips";
+import { PawnAnimator } from "/src/render/anim/PawnAnimator";
+import { SlugthrowerRig } from "/src/render/weapons/slugthrowerRig";
+
+const renderer = new WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+const scene = new Scene();
+scene.background = new Color("#5a6470");
+const camera = new PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(1.8, 1.6, 3.2);
+camera.lookAt(0, 0.9, 0);
+
+const pack = await loadPawnPack();
+const cache = new MaskedClipCache();
+const pawns = [];
+
+// Same matcap construction as PawnRenderer (canvas radial gradient).
+function makeMatcap() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const g = ctx.createRadialGradient(size * 0.36, size * 0.32, size * 0.06, size * 0.5, size * 0.5, size * 0.62);
+  g.addColorStop(0, "#ffffff"); g.addColorStop(0.35, "#cfd2d6"); g.addColorStop(0.75, "#7c7f85"); g.addColorStop(1, "#3c3e44");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+const matcap = makeMatcap();
+const bodyMaterial = new MeshMatcapMaterial({ matcap, color: new Color("#cc9978") });
+// control: a plain (non-skinned) matcap sphere — if THIS is black, the matcap
+// texture upload is broken; if shaded while pawns are black, blame skinning.
+const controlSphere = new Mesh(new SphereGeometry(0.25, 24, 16), new MeshMatcapMaterial({ matcap, color: new Color("#4d8edb") }));
+controlSphere.position.set(0, 1.9, 0);
+scene.add(controlSphere);
+
+function spawn(body, x, setup) {
+  const group = new Group();
+  const root = clonePawnBody(pack, body);
+  root.scale.setScalar(pack.scale);
+  root.traverse((o) => { if (o instanceof SkinnedMesh) { o.material = bodyMaterial; o.frustumCulled = false; } });
+  group.add(root);
+  group.position.x = x;
+  scene.add(group);
+  const animator = new PawnAnimator(root, pack, cache);
+  const pawn = { group, root, animator, slugthrower: null };
+  setup(pawn);
+  pawns.push(pawn);
+  return pawn;
+}
+
+// male: armed aim+grip over walk (the full compositor stack)
+spawn("male", -0.8, (p) => {
+  p.animator.setBase("walk_f", 1);
+  p.animator.setUpper("rifle_aim");
+  p.animator.setHand("gun_grip_trigger_discipline");
+  p.slugthrower = new SlugthrowerRig(pack, p.animator.bone("hand_r"), p.animator.bone("upperarm_l"), p.animator.bone("lowerarm_l"), p.animator.bone("hand_l"));
+});
+// female: idle unarmed (rebinds male clips)
+spawn("female", 0.8, (p) => { p.animator.setBase("idle", 1); });
+
+// simple debug material so this page has zero dependence on the game's materials
+window.__pawnDebug = { ready: true, clips: pack.clips.size };
+
+let last = performance.now();
+let reloadAt = null;
+window.__startReload = () => {
+  const p = pawns[0];
+  p.animator.playMontage("reload", { timeScale: 1 });
+  reloadAt = performance.now();
+};
+window.__startDeath = () => { pawns[1].animator.playMontage("death_b", { holdEnd: true }); };
+
+function tick(now) {
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  for (const p of pawns) {
+    p.animator.update(dt);
+    if (p.slugthrower) {
+      p.group.updateMatrixWorld(true);
+      const montage = p.animator.montageClip();
+      p.slugthrower.update(dt, montage === "reload" ? p.animator.montageTime() : null, true);
+    }
+  }
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

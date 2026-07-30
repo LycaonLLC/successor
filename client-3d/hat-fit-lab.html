@@ -1,0 +1,240 @@
+<!doctype html>
+<!-- hat-fit-lab.html — use the REAL runtime attach path (attachPawnEquipmentSet /
+     attachRigidEquipmentItem SNAP) to show helmet_s2 + functional hats on the
+     live pawn. Dev-only. -->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Hat fit lab</title>
+  <style>
+    html, body { margin: 0; background: #4a5560; color: #e8eef2; font: 12px/1.35 ui-monospace, monospace; }
+    #hud { position: fixed; left: 10px; top: 10px; z-index: 2; opacity: 0.9; white-space: pre; pointer-events: none; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="hud">loading…</div>
+  <script type="module">
+import {
+  Bone,
+  Color,
+  Group,
+  Mesh,
+  MeshBasicMaterial,
+  MeshMatcapMaterial,
+  PerspectiveCamera,
+  Scene,
+  Skeleton,
+  SkinnedMesh,
+  SRGBColorSpace,
+  Texture,
+  Vector3,
+  WebGLRenderer,
+  CanvasTexture,
+} from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { loadPawnPack, clonePawnBody } from "/src/assets/pawnPack";
+import {
+  attachPawnEquipmentSet,
+} from "/src/render/pawns";
+
+const HAT_GLBS = [
+  { id: "helmet_s2", label: "HELMET_S2 (runtime)", kind: "skinned", equipmentId: "helmet_s2" },
+  { id: "chef_toque", label: "CHEF TOQUE", kind: "rigid", url: "/hat-lab-assets/chef_toque.glb" },
+  { id: "officer_peak", label: "OFFICER PEAK", kind: "rigid", url: "/hat-lab-assets/officer_peak.glb" },
+  { id: "desert_wrap", label: "DESERT WRAP", kind: "rigid", url: "/hat-lab-assets/desert_wrap.glb" },
+  { id: "sun_cone", label: "SUN CONE", kind: "rigid", url: "/hat-lab-assets/sun_cone.glb" },
+  { id: "miner_lamp", label: "MINER LAMP", kind: "rigid", url: "/hat-lab-assets/miner_lamp.glb" },
+  { id: "deck_beret", label: "DECK BERET", kind: "rigid", url: "/hat-lab-assets/deck_beret.glb" },
+];
+
+const params = new URLSearchParams(location.search);
+const index = Math.max(0, Math.min(HAT_GLBS.length - 1, Number(params.get("i") || 0)));
+const entry = HAT_GLBS[index];
+
+const hud = document.getElementById("hud");
+const renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new Scene();
+scene.background = new Color("#5a6470");
+const camera = new PerspectiveCamera(35, innerWidth / innerHeight, 0.05, 50);
+
+function makeMatcap() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const g = ctx.createRadialGradient(size * 0.36, size * 0.32, size * 0.06, size * 0.5, size * 0.5, size * 0.62);
+  g.addColorStop(0, "#ffffff");
+  g.addColorStop(0.35, "#cfd2d6");
+  g.addColorStop(0.75, "#7c7f85");
+  g.addColorStop(1, "#3c3e44");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+const matcap = makeMatcap();
+const bodyMaterial = new MeshMatcapMaterial({ matcap, color: new Color("#c99578") });
+
+const pack = await loadPawnPack();
+const loader = new GLTFLoader();
+
+// Spawn male pawn using the same scale as runtime
+const group = new Group();
+const root = clonePawnBody(pack, "male");
+root.scale.setScalar(pack.scale);
+root.traverse((o) => {
+  if (o instanceof SkinnedMesh) {
+    o.material = bodyMaterial;
+    o.frustumCulled = false;
+  }
+});
+group.add(root);
+scene.add(group);
+
+// Force rest/bind: no animator — bind pose is the cleanest helmet truth.
+// Update matrices once so bones have world transforms.
+group.updateMatrixWorld(true);
+
+// Build live bone map exactly like attachPawnEquipmentSet
+function boneMap(bodyRoot) {
+  const liveBones = new Map();
+  bodyRoot.traverse((object) => {
+    if (object instanceof Bone) {
+      liveBones.set(object.name.toLowerCase(), object);
+      liveBones.set(object.name.replace(/[.:]/g, "_").toLowerCase(), object);
+    }
+  });
+  return liveBones;
+}
+
+function unlitFrom(source) {
+  const material = new MeshBasicMaterial({ fog: false });
+  if (source && "map" in source && source.map instanceof Texture) {
+    source.map.colorSpace = SRGBColorSpace;
+    material.map = source.map;
+  }
+  if (source && "color" in source && source.color) {
+    material.color.copy(source.color);
+  }
+  // slight lift so unlit pieces read on gray bg
+  if (!material.map) material.color.set("#d8b08a");
+  return material;
+}
+
+async function attachSkinnedHelmet() {
+  // Use the pack's already-loaded equipment scene if present
+  const item = pack.equipment.items.find((it) => it.id === "helmet_s2");
+  if (!item) throw new Error("helmet_s2 missing from pack");
+  const source = pack.equipment.scenes.get("helmet_s2");
+  if (!source) throw new Error("helmet_s2 scene not loaded");
+  // Use real runtime attach path
+  attachPawnEquipmentSet(
+    pack,
+    root,
+    ["helmet_s2"],
+    (equipmentItem, sourceMaterial) => {
+      // matcap-ish unlit: keep source color/map
+      return unlitFrom(sourceMaterial);
+    },
+  );
+}
+
+async function attachRigidHat(url, id) {
+  const gltf = await loader.loadAsync(url);
+  // Build a fake pack item + scene and call attachRigid via attachPawnEquipmentSet
+  // by injecting into a temporary pack-like structure.
+  // Simpler: duplicate the runtime SNAP code path inline (same as pawns.ts).
+  const liveBones = boneMap(root);
+  const bone = liveBones.get("head");
+  if (!bone) throw new Error("head bone missing");
+  const hatRoot = new Group();
+  hatRoot.name = `equipment:${id}`;
+  hatRoot.add(gltf.scene);
+  hatRoot.traverse((object) => {
+    if (!(object instanceof Mesh)) return;
+    object.material = Array.isArray(object.material)
+      ? object.material.map(unlitFrom)
+      : unlitFrom(object.material);
+    object.frustumCulled = false;
+  });
+  bone.add(hatRoot);
+  hatRoot.position.set(0, 0, 0);
+  hatRoot.rotation.set(0, 0, 0);
+  bone.updateWorldMatrix(true, false);
+  const worldScale = new Vector3();
+  bone.getWorldScale(worldScale);
+  hatRoot.scale.setScalar(1 / (worldScale.x || 1));
+  hatRoot.updateMatrixWorld(true);
+  return hatRoot;
+}
+
+if (entry.kind === "skinned") {
+  await attachSkinnedHelmet();
+} else {
+  await attachRigidHat(entry.url, entry.id);
+}
+
+group.updateMatrixWorld(true);
+
+// Frame head
+const headBone = (() => {
+  let found = null;
+  root.traverse((o) => {
+    if (o instanceof Bone && o.name.toLowerCase() === "head") found = o;
+  });
+  return found;
+})();
+
+function frameHead(mode = "threeq") {
+  const headPos = new Vector3();
+  if (headBone) {
+    headBone.getWorldPosition(headPos);
+  } else {
+    headPos.set(0, 1.55 * pack.scale, 0);
+  }
+  // look slightly above head bone toward crown
+  const target = headPos.clone().add(new Vector3(0, 0.08, 0));
+  if (mode === "front") {
+    camera.position.set(target.x + 0.05, target.y + 0.05, target.z + 1.35);
+  } else if (mode === "side") {
+    camera.position.set(target.x + 1.35, target.y + 0.05, target.z + 0.05);
+  } else {
+    camera.position.set(target.x + 0.85, target.y + 0.12, target.z + 1.15);
+  }
+  camera.lookAt(target);
+}
+
+frameHead("threeq");
+hud.textContent = `${index + 1}/${HAT_GLBS.length}  ${entry.label}\nruntime SNAP attach · pack.scale=${pack.scale.toFixed(4)}\n?i=N  ?view=front|side|threeq`;
+
+const view = params.get("view") || "threeq";
+frameHead(view);
+
+function tick() {
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+window.__hatFit = {
+  ready: true,
+  entry,
+  index,
+  total: HAT_GLBS.length,
+  packScale: pack.scale,
+  setView: (v) => { frameHead(v); renderer.render(scene, camera); },
+  capture: () => {
+    renderer.render(scene, camera);
+    return renderer.domElement.toDataURL("image/png");
+  },
+};
+  </script>
+</body>
+</html>

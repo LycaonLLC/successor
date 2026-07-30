@@ -1,0 +1,39 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreBinaries": ["python3", "pgrep", "systemctl", "journalctl", "vite"],
+  "workspaces": {
+    ".": {
+      "entry": ["tools/**/*.mjs"],
+      "project": ["scripts/**/*.mjs", "tools/**/*.{mjs,ts}"]
+    },
+    "client-3d": {
+      "entry": [
+        "viewer.html",
+        "src/viewer/main.ts",
+        "scripts/sync-pawn-pack.mjs",
+        "src/debug/**/*.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,js}"]
+    },
+    "client": {
+      "entry": ["scripts/**/*.mjs"],
+      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,js}"]
+    },
+    "server": {
+      "entry": ["scripts/**/*.ts"],
+      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts"],
+      "ignoreDependencies": [
+        "drizzle-orm",
+        "ioredis",
+        "pino",
+        "postgres",
+        "drizzle-kit"
+      ]
+    },
+    "desktop": {
+      "entry": ["src/preload.cjs", "src/server-runtime.mjs", "src/log-sink.mjs", "scripts/**/*.mjs"],
+      "project": ["src/**/*.{mjs,cjs,js}", "scripts/**/*.{mjs,js}"],
+      "ignoreDependencies": ["@successor/client"]
+    }
+  }
+}

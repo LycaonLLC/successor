@@ -1,0 +1,8 @@
+/* Successor public site — neutral monochrome frame.
+   Dark default, system light/dark, hard cuts, calm chrome. */
+@import "./tokens.css";
+@import "./base.css";
+@import "./components.css";
+@import "./home.css";
+@import "./pages.css";
+@import "./finish.css";

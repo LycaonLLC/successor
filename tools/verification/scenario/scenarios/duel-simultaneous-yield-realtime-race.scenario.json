@@ -1,0 +1,41 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "duel-simultaneous-yield-realtime-race",
+  "fixture": "open-desert-multiplayer-duel",
+  "lanes": ["realtime"],
+  "matrixLanes": ["realtime"],
+  "realtimeReason": "Two live sessions submit terminal duel yields without tick alignment; the authority must serialize one winner and exactly one terminal outcome per perspective.",
+  "tags": ["race"],
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "steps": [
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-duel-beta", "lifeState": "alive" } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "alphaSeesBeta" } },
+    { "await": { "kind": "query", "actor": "beta", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-duel-alpha", "lifeState": "alive" } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "betaSeesAlpha" } },
+    { "send": { "actor": "alpha", "line": "/duel-challenge mp-duel-beta", "as": "challenge" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.challenge.data.commandId", "commandKind": "DuelChallenge", "accepted": true }, "timeoutMs": 10000, "as": "challengeReceipt" } },
+    { "send": { "actor": "beta", "line": "/duel-accept", "as": "accept" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.accept.data.commandId", "commandKind": "DuelAccept", "accepted": true }, "timeoutMs": 10000, "as": "acceptReceipt" } },
+
+    { "send": { "actor": "beta", "line": "/duel-yield", "as": "betaYield", "alignTick": false } },
+    { "send": { "actor": "alpha", "line": "/duel-yield", "as": "alphaYield", "alignTick": false } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaYield.data.commandId", "commandKind": "DuelYield", "accepted": true }, "timeoutMs": 10000, "as": "betaYieldWonRace" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaYield.data.commandId", "commandKind": "DuelYield", "accepted": false, "reasonCode": "not_in_duel" }, "timeoutMs": 10000, "as": "alphaYieldLostRace" } },
+    { "expect": { "kind": "captureCompare", "capture": "betaYieldWonRace", "path": "tick", "op": "lte", "value": "$captures.alphaYieldLostRace.tick" } },
+    { "expect": { "kind": "captureCompare", "capture": "betaYieldWonRace", "path": "commandId", "op": "eq", "value": "$captures.betaYield.data.commandId" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaYieldLostRace", "path": "commandId", "op": "eq", "value": "$captures.alphaYield.data.commandId" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "duel_outcome", "match": { "data.payload.actorId": "mp-duel-alpha", "data.payload.opponentActorId": "mp-duel-beta", "data.payload.result": "won", "data.payload.reason": "yield" }, "timeoutMs": 10000, "as": "alphaWonOutcome" } },
+    { "await": { "kind": "event", "actor": "beta", "event": "duel_outcome", "match": { "data.payload.actorId": "mp-duel-beta", "data.payload.opponentActorId": "mp-duel-alpha", "data.payload.result": "lost", "data.payload.reason": "yield" }, "timeoutMs": 10000, "as": "betaLostOutcome" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaWonOutcome", "path": "data.payload.duelId", "op": "eq", "value": "$captures.betaLostOutcome.data.payload.duelId" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaWonOutcome", "path": "data.payload.tick", "op": "eq", "value": "$captures.betaLostOutcome.data.payload.tick" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-duel-alpha", "match": { "lifeState": "alive", "pvpStatus": "none" } }, "timeoutMs": 8000, "as": "alphaAliveAfterTerminal" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-duel-beta", "match": { "lifeState": "alive", "pvpStatus": "none" } }, "timeoutMs": 8000, "as": "betaAliveAfterTerminal" } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "event", "match": { "event": "duel_outcome", "data.payload.actorId": "mp-duel-alpha", "data.payload.result": "won", "data.payload.reason": "yield" }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "envelopeCount", "actor": "beta", "envelopeType": "event", "match": { "event": "duel_outcome", "data.payload.actorId": "mp-duel-beta", "data.payload.result": "lost", "data.payload.reason": "yield" }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "receipt", "match": { "commandId": "$captures.alphaYield.data.commandId", "commandKind": "DuelYield", "accepted": false, "reasonCode": "not_in_duel" }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "envelopeCount", "actor": "beta", "envelopeType": "receipt", "match": { "commandId": "$captures.betaYield.data.commandId", "commandKind": "DuelYield", "accepted": true }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "duelYieldRaceHash" } }
+  ],
+  "notes": "After consent, Beta and Alpha issue unaligned DuelYield commands from separate real sessions before either receipt is awaited. Beta's issued-first command ends the duel; Alpha receives not_in_duel. Both perspectives emit one and only one terminal yield outcome while both actors remain alive."
+}

@@ -1,0 +1,148 @@
+{
+  "$schema": "successor-weapon-attach/1",
+  "weapon": "lightning_carbine",
+  "item_id": 3121,
+  "variant": "storm",
+  "source_glb": "lightning_carbine_refined.glb",
+  "coordinate_space": "weapon_glb_local_gltf",
+  "units": "m",
+  "scale_to_pawn": 1,
+  "silhouette_class": "rifle",
+  "space_notes": "Sockets and orientation are in GLB-local glTF space. The refined asset retains the promoted STEN/Kiln shouldered orientation.",
+  "nodes": {
+    "root": "sten_cell_storm_reference",
+    "frame": "Module_receiver",
+    "barrel": "Module_barrel",
+    "shroud": "Module_shroud",
+    "grip": "Module_grip",
+    "mag": "Module_power_cell",
+    "stock": "Module_stock",
+    "sight": "Module_rear_sight"
+  },
+  "sockets": {
+    "grip": [
+      0,
+      -0.041,
+      -0.218
+    ],
+    "foregrip": [
+      0,
+      0.001,
+      0.07
+    ],
+    "muzzle": [
+      0,
+      0,
+      0.142
+    ],
+    "stock": [
+      0,
+      0,
+      -0.315
+    ],
+    "magazine": [
+      -0.0218,
+      0,
+      -0.0785
+    ]
+  },
+  "landmarks": {
+    "grip_contact": [
+      0,
+      -0.041,
+      -0.218
+    ],
+    "muzzle_origin": [
+      0,
+      0,
+      0.142
+    ],
+    "magazine_plug": [
+      -0.0218,
+      0,
+      -0.0785
+    ],
+    "magazine_center": [
+      -0.08325431690674741,
+      0.01175581756979227,
+      -0.07854497356712818
+    ],
+    "stock_contact": [
+      0,
+      0,
+      -0.315
+    ]
+  },
+  "orientation": {
+    "forward": [
+      0,
+      0,
+      1
+    ],
+    "up": [
+      0,
+      1,
+      0
+    ]
+  },
+  "mount_hand_r_local": {
+    "pos": [
+      -0.07973668,
+      0.29009154,
+      -0.0348619
+    ],
+    "quat": [
+      -0.09279,
+      0.83834,
+      0.53009,
+      -0.08703
+    ],
+    "source": "STEN mount verbatim (2026-07-21): Module_grip mesh center [0,-0.091,-0.218] is byte-identical to STEN's grip contact, so the hand weld is shared exactly; earlier socket-pivot transfer overshot 5cm."
+  },
+  "attach": "two_hand",
+  "handedness": "right",
+  "hands": {
+    "grip": "hand_r",
+    "foregrip": "hand_l"
+  },
+  "aim_defaults": {
+    "world_forward": [
+      0,
+      -1,
+      0
+    ],
+    "world_up": [
+      0,
+      0,
+      1
+    ]
+  },
+  "provenance": {
+    "generator": "author_attach_candidate.py",
+    "derived_from": "pawn-forge:pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/sten_cell_storm/optimized_storm_20260714",
+    "source_blend": "sten_cell_storm_source.blend",
+    "source_blend_sha256": "ddfe83dae9241792d941cdfa82eda15a83302a1b410697e67de106f378c89ebb",
+    "refined_blend": "lightning_carbine_refined.blend",
+    "refined_glb_sha256": "2a56f85c31a5ada64e23b9a15adcbc444d853e6f43a74cffa6acaf48100f306d",
+    "refine_report": "lightning-refine-report.json",
+    "triangles": 3446,
+    "bounds_runtime_m": {
+      "min": [
+        -0.14443939924240112,
+        -0.14100000262260437,
+        -0.6010679006576538
+      ],
+      "max": [
+        0.06633022427558899,
+        0.07458333671092987,
+        0.19310002028942108
+      ],
+      "dimensions": [
+        0.2107696235179901,
+        0.21558333933353424,
+        0.7941679209470749
+      ]
+    },
+    "deterministic": true
+  }
+}

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Converse Window Smoke</title>
+    <style>
+      html, body, #app { width: 100%; height: 100%; margin: 0; }
+      body { overflow: hidden; background: #05070a; }
+      #diag { position: fixed; left: 8px; bottom: 8px; z-index: 99; color: #e4d7b4;
+              background: #0b0d10; border: 1px solid #2a2f36; padding: 6px; font: 11px monospace;
+              max-width: 55vw; white-space: pre-wrap; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <pre id="diag">…</pre>
+    <script type="module">
+      // Converse window smoke — window content only, fixture PlayState, no
+      // live authority (command leaves enqueue into the offline queue; the
+      // real round-trip proof runs on the scratch stack post-registration).
+      // Scenario params: ?far=1 (out of range) ?holdTool=1 ?learned=marksman
+      // Slice params respected: ?slicePath=…&mapBundlePath=…
+      import "/src/styles.css";
+      import { applyThemeVariables } from "/src/ui/theme.ts";
+      import { initUiTheme, getUiTheme } from "/src/ui/uiTheme.ts";
+      import { loadRuntimeAssetBundle } from "/src/assets/runtimeAssets.ts";
+      import { createPlayState } from "@successor/client/src/slice-core/gameState";
+      import { createWindowManager } from "/src/ui/windows/windowManager.ts";
+      import { createConverseWindowDefinition, setConverseTarget, CONVERSE_WINDOW_ID } from "/src/ui/dialogue/converseWindow.ts";
+
+      const diag = (msg) => { const el = document.getElementById('diag'); if (el) el.textContent = msg; };
+      try {
+        applyThemeVariables();
+        initUiTheme();
+        const params = new URLSearchParams(location.search);
+        const app = document.getElementById("app");
+        const assets = await loadRuntimeAssetBundle();
+        const state = createPlayState(assets.slice, assets.rifleMuzzlePoints, "player");
+        const trainer = assets.slice.actors.find((actor) => actor.role === "profession_trainer");
+        if (!trainer) throw new Error("slice has no profession_trainer actor — pass ?slicePath=/successor-slice/open-desert-slice.json");
+
+        // Authority player actor parked next to (or far from) the trainer.
+        const far = params.get("far") === "1";
+        const professions = [];
+        if (params.get("learned")) {
+          professions.push({ id: params.get("learned"), label: params.get("learned"), xp: 320, skillPoints: 0, trackXp: { rifle: 300 }, skillBoxes: ["marksman-rifle-i"] });
+        }
+        state.serverAuthority.playerActorId = "player";
+        state.serverAuthority.actors["player"] = {
+          id: "player", label: "Field Observer", areaId: trainer.areaId,
+          x: trainer.cell.x + (far ? 12 : 0.5) + 0.5, y: trainer.cell.y + 1.5,
+          direction: "front", lifeState: "alive", lifecycleSeq: 1,
+          vitals: { health: 100, action: 100, spirit: 100 },
+          maxVitals: { health: 100, action: 100, spirit: 100 },
+          bleed: { active: false, stackCount: 0, severity: 0, remainingMs: 0, ratesPerSecond: { health: 0, action: 0, spirit: 0 } },
+          statuses: [], professions, skillPointsUsed: 0, skillPointsCap: 250, credits: 40,
+        };
+        if (params.get("holdTool") === "1") {
+          state.inventory.push({ container: "player", item: "crafting_tool", itemId: 3001, variantId: 0, quantity: 1, reserved: 0, available: 1 });
+        }
+
+        const sfx = { play: () => {}, setListener: () => {}, dispose: () => {} };
+        const windowManager = createWindowManager({ mount: app, state, slice: assets.slice });
+        windowManager.register(createConverseWindowDefinition({
+          sfx,
+          openWindow: (id) => windowManager.open(id),
+          closeWindow: (id) => windowManager.close(id),
+        }));
+        setConverseTarget(trainer.id);
+        windowManager.open(CONVERSE_WINDOW_ID);
+
+        let last = performance.now();
+        let frameErr = null;
+        const frame = (time) => {
+          if (frameErr) return;
+          try {
+            const dt = (time - last) / 1000; last = time;
+            windowManager.update(dt, time);
+          } catch (e) { frameErr = e; diag('FRAME ERROR: ' + (e && e.stack || e)); }
+          requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+        diag(`CONVERSE SMOKE · trainer=${trainer.id} far=${far} theme=${getUiTheme()}`);
+        window.__smoke = { state, windowManager, setConverseTarget };
+      } catch (err) {
+        diag('SMOKE ERROR: ' + (err && err.stack || err));
+      }
+    </script>
+  </body>
+</html>

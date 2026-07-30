@@ -1,0 +1,119 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`browser groups > snapshots the grouped browser composition for the fixture set 1`] = `
+[
+  {
+    "categoryLabel": "COMPONENTS",
+    "key": "component:craftsman-novice",
+    "nextUp": false,
+    "professionLabel": "CRAFTSMAN",
+    "progressionLabel": "NOVICE",
+    "rows": [
+      {
+        "categoryLabel": "COMPONENT",
+        "lockedNote": null,
+        "name": "Extractor Battery",
+        "recipeId": "extractor_battery",
+        "remainingLine": null,
+        "sourceLabel": "TRAINED",
+        "unlocked": true,
+      },
+    ],
+    "unlockedCount": 1,
+  },
+  {
+    "categoryLabel": "TOOLS",
+    "key": "tool:craftsman-novice",
+    "nextUp": false,
+    "professionLabel": "CRAFTSMAN",
+    "progressionLabel": "NOVICE",
+    "rows": [
+      {
+        "categoryLabel": "TOOL",
+        "lockedNote": null,
+        "name": "Field Multitool",
+        "recipeId": "field_multitool",
+        "remainingLine": null,
+        "sourceLabel": "TRAINED",
+        "unlocked": true,
+      },
+      {
+        "categoryLabel": "TOOL",
+        "lockedNote": null,
+        "name": "Personal Mineral Sampler",
+        "recipeId": "metal_extractor",
+        "remainingLine": null,
+        "sourceLabel": "TRAINED",
+        "unlocked": true,
+      },
+    ],
+    "unlockedCount": 2,
+  },
+  {
+    "categoryLabel": "WEAPONS",
+    "key": "weapon:craftsman-novice",
+    "nextUp": false,
+    "professionLabel": "CRAFTSMAN",
+    "progressionLabel": "NOVICE",
+    "rows": [
+      {
+        "categoryLabel": "WEAPON",
+        "lockedNote": null,
+        "name": "Scattergun",
+        "recipeId": "scattergun_pattern",
+        "remainingLine": "3 uses left",
+        "sourceLabel": "LEARNED",
+        "unlocked": true,
+      },
+    ],
+    "unlockedCount": 1,
+  },
+  {
+    "categoryLabel": "WEAPONS",
+    "key": "weapon:craftsman-assembly-i",
+    "nextUp": true,
+    "professionLabel": "CRAFTSMAN",
+    "progressionLabel": "ASSEMBLY I",
+    "rows": [
+      {
+        "categoryLabel": "WEAPON",
+        "lockedNote": "Not trained yet — Craftsman · Assembly I",
+        "name": "Crafted Slugthrower Mk I",
+        "recipeId": "slugthrower",
+        "remainingLine": null,
+        "sourceLabel": "TRAINED",
+        "unlocked": false,
+      },
+    ],
+    "unlockedCount": 0,
+  },
+]
+`;
+
+exports[`experiment allocator > snapshots the finish composition 1`] = `
+{
+  "canExperiment": false,
+  "canFinalize": true,
+  "lines": [
+    {
+      "canRaise": true,
+      "capPct": 86.6,
+      "capText": "866",
+      "dirLabel": "TOWARD CAP · BETTER",
+      "holdChanceText": "70.5%",
+      "label": "runtime",
+      "lineId": 0,
+      "noteLine": null,
+      "pendingPoints": 0,
+      "slipChanceText": "29.5%",
+      "valuePct": 66.8,
+      "valueText": "668",
+    },
+  ],
+  "pointsAfterPending": 4,
+  "pointsLeft": 4,
+  "poolMax": 7,
+  "poolText": "4 / 7",
+  "qualityText": "74.2%",
+}
+`;

@@ -1,0 +1,240 @@
+{
+ "schemaVersion": 1,
+ "palettes": {
+  "workcloth": {
+   "label": "WORKCLOTH \u2014 cotton / canvas / denim / knit dye range",
+   "swatches": [
+    {
+     "id": "workcloth_rust",
+     "name": "rust",
+     "hex": "#804040"
+    },
+    {
+     "id": "workcloth_clay",
+     "name": "clay",
+     "hex": "#7a5038"
+    },
+    {
+     "id": "workcloth_sand",
+     "name": "sand",
+     "hex": "#a08858"
+    },
+    {
+     "id": "workcloth_bone",
+     "name": "bone",
+     "hex": "#b0a890"
+    },
+    {
+     "id": "workcloth_olive",
+     "name": "olive",
+     "hex": "#687048"
+    },
+    {
+     "id": "workcloth_sage",
+     "name": "sage",
+     "hex": "#5f7358"
+    },
+    {
+     "id": "workcloth_slate",
+     "name": "slate",
+     "hex": "#506078"
+    },
+    {
+     "id": "workcloth_denim",
+     "name": "denim",
+     "hex": "#406090"
+    },
+    {
+     "id": "workcloth_graphite",
+     "name": "graphite",
+     "hex": "#3a3a3e"
+    },
+    {
+     "id": "workcloth_oxblood",
+     "name": "oxblood",
+     "hex": "#6e3a34"
+    },
+    {
+     "id": "workcloth_mustard",
+     "name": "mustard",
+     "hex": "#a08030"
+    },
+    {
+     "id": "workcloth_teal",
+     "name": "teal",
+     "hex": "#3f7472"
+    }
+   ]
+  },
+  "leather": {
+   "label": "LEATHER \u2014 hide dye range",
+   "swatches": [
+    {
+     "id": "leather_tan",
+     "name": "tan",
+     "hex": "#b08040"
+    },
+    {
+     "id": "leather_saddle",
+     "name": "saddle",
+     "hex": "#806040"
+    },
+    {
+     "id": "leather_umber",
+     "name": "umber",
+     "hex": "#5f4630"
+    },
+    {
+     "id": "leather_oxblood",
+     "name": "oxblood",
+     "hex": "#6b3b30"
+    },
+    {
+     "id": "leather_char",
+     "name": "char",
+     "hex": "#34302c"
+    },
+    {
+     "id": "leather_ash",
+     "name": "ash",
+     "hex": "#7a7468"
+    },
+    {
+     "id": "leather_olive_tan",
+     "name": "olive_tan",
+     "hex": "#6f6844"
+    },
+    {
+     "id": "leather_mahogany",
+     "name": "mahogany",
+     "hex": "#7e4a38"
+    },
+    {
+     "id": "leather_forest",
+     "name": "forest",
+     "hex": "#4c5f46"
+    },
+    {
+     "id": "leather_indigo",
+     "name": "indigo",
+     "hex": "#46506e"
+    }
+   ]
+  },
+  "rubber": {
+   "label": "RUBBER \u2014 molded guard / pad range",
+   "swatches": [
+    {
+     "id": "rubber_black",
+     "name": "black",
+     "hex": "#303030"
+    },
+    {
+     "id": "rubber_gunmetal",
+     "name": "gunmetal",
+     "hex": "#4a4a4e"
+    },
+    {
+     "id": "rubber_olive",
+     "name": "olive",
+     "hex": "#4f5244"
+    },
+    {
+     "id": "rubber_brick",
+     "name": "brick",
+     "hex": "#71453c"
+    },
+    {
+     "id": "rubber_sand",
+     "name": "sand",
+     "hex": "#8a7f66"
+    },
+    {
+     "id": "rubber_navy",
+     "name": "navy",
+     "hex": "#3c4456"
+    }
+   ]
+  },
+  "hair": {
+   "label": "HAIR \u2014 naturals first, bolds last",
+   "swatches": [
+    {
+     "id": "hair_raven",
+     "name": "raven",
+     "hex": "#1d1b22"
+    },
+    {
+     "id": "hair_ink",
+     "name": "ink",
+     "hex": "#232134"
+    },
+    {
+     "id": "hair_umber",
+     "name": "umber",
+     "hex": "#3a2a1a"
+    },
+    {
+     "id": "hair_chestnut",
+     "name": "chestnut",
+     "hex": "#5a3a22"
+    },
+    {
+     "id": "hair_auburn",
+     "name": "auburn",
+     "hex": "#6e3a24"
+    },
+    {
+     "id": "hair_honey",
+     "name": "honey",
+     "hex": "#9a7440"
+    },
+    {
+     "id": "hair_ash_blonde",
+     "name": "ash_blonde",
+     "hex": "#b3a077"
+    },
+    {
+     "id": "hair_steel",
+     "name": "steel",
+     "hex": "#7c8088"
+    },
+    {
+     "id": "hair_silver",
+     "name": "silver",
+     "hex": "#b9bcc4"
+    },
+    {
+     "id": "hair_crimson",
+     "name": "crimson",
+     "hex": "#7a2330"
+    },
+    {
+     "id": "hair_moss",
+     "name": "moss",
+     "hex": "#4f6842"
+    },
+    {
+     "id": "hair_teal",
+     "name": "teal",
+     "hex": "#2f5f5c"
+    },
+    {
+     "id": "hair_violet",
+     "name": "violet",
+     "hex": "#544060"
+    },
+    {
+     "id": "hair_rose",
+     "name": "rose",
+     "hex": "#9c6670"
+    },
+    {
+     "id": "hair_bleach",
+     "name": "bleach",
+     "hex": "#d8d2c0"
+    }
+   ]
+  }
+ }
+}

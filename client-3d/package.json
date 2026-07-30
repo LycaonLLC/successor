@@ -1,0 +1,24 @@
+{
+  "name": "@successor/client-3d",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5179",
+    "build": "node tools/generate-production-assets.mjs && tsc && vite build && node tools/generate-production-pointer.mjs",
+    "preview": "vite preview --host 127.0.0.1 --port 5179",
+    "test": "NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--no-experimental-webstorage\" vitest run --passWithNoTests || VITEST_STATUS=$?; node --test tools/generate-production-assets.test.mjs tools/generate-production-pointer.test.mjs; exit ${VITEST_STATUS:-$?}"
+  },
+  "dependencies": {
+    "@successor/client": "workspace:*",
+    "three": "^0.185.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.18",
+    "@types/three": "^0.185.0",
+    "happy-dom": "^20.10.6",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.2",
+    "vitest": "^2.1.9"
+  }
+}

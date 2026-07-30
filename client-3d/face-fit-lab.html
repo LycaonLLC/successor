@@ -1,0 +1,319 @@
+<!doctype html>
+<!-- face-fit-lab.html — polygon-forge-face-kit playground on the real pawn head.
+     NOTE: this lab keeps the original floating-card rig for kit exploration
+     (style/color/transform sweeps). The GAME paints faces onto the head
+     geometry itself via src/render/faceDecal.ts (projected overlay sub-mesh);
+     the creator doll is production truth for the painted-on look. -->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Face fit lab</title>
+  <style>
+    html, body { margin: 0; background: #4a5560; color: #e8eef2; font: 12px/1.35 ui-monospace, monospace; }
+    #hud { position: fixed; left: 10px; top: 10px; z-index: 2; opacity: 0.9; white-space: pre; pointer-events: none; }
+    #panel { position: fixed; right: 10px; top: 10px; z-index: 2; width: 240px; background: #2c333bd9; padding: 8px; border: 1px solid #5a6470; }
+    #panel h4 { margin: 6px 0 3px; font-size: 11px; color: #9fb3c4; }
+    #panel button { font: inherit; background: #3b444e; color: #e8eef2; border: 1px solid #5a6470; margin: 1px; padding: 2px 6px; cursor: pointer; }
+    #panel button.on { background: #6d8a5a; }
+    #panel input[type=range] { width: 130px; vertical-align: middle; }
+    #panel label { display: block; font-size: 10px; }
+    .sw { display: inline-block; width: 16px; height: 16px; border: 1px solid #0006; cursor: pointer; vertical-align: middle; margin: 1px; }
+    .sw.on { outline: 2px solid #fff; }
+    canvas.gl { display: block; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="hud">loading…</div>
+  <div id="panel"></div>
+  <script type="module">
+import {
+  Color,
+  Mesh,
+  MeshBasicMaterial,
+  MeshMatcapMaterial,
+  PerspectiveCamera,
+  PlaneGeometry,
+  Scene,
+  SRGBColorSpace,
+  CanvasTexture,
+  Vector3,
+  WebGLRenderer,
+  Bone,
+} from "three";
+import { loadPawnPack, clonePawnBody } from "/src/assets/pawnPack";
+import {
+  loadFaceAssets,
+  renderFaceTexture,
+  randomFaceConfig,
+  normalizeFaceConfig,
+  FACE_STYLE_ORDER,
+  EYE_COLORS,
+  BROW_COLORS,
+  LIP_COLORS,
+} from "/src/assets/faceKit/face-kit.js";
+
+// Creator skin tones (characterSelect.ts SKIN_TONES) — decal must read on all six.
+const SKIN_TONES = ["#e8c39a", "#d1a679", "#b98a5e", "#96684a", "#6f4a33", "#4a3223"];
+
+// Raw-GLB head measurements (pawn_male/female, bind pose, world units):
+// head bone y=1.55; head verts y 1.554–1.763, x ±0.084, front z +0.0905(m)/+0.0936(f).
+const CARD = { size: 0.165, offsetY: 0.108, offsetZ: 0.099 };
+
+const hud = document.getElementById("hud");
+const panel = document.getElementById("panel");
+const renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = SRGBColorSpace;
+renderer.domElement.className = "gl";
+document.body.appendChild(renderer.domElement);
+
+const scene = new Scene();
+scene.background = new Color("#5a6470");
+const camera = new PerspectiveCamera(35, innerWidth / innerHeight, 0.05, 50);
+
+function makeMatcap() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const g = ctx.createRadialGradient(size * 0.36, size * 0.32, size * 0.06, size * 0.5, size * 0.5, size * 0.62);
+  g.addColorStop(0, "#ffffff");
+  g.addColorStop(0.35, "#cfd2d6");
+  g.addColorStop(0.75, "#7c7f85");
+  g.addColorStop(1, "#3c3e44");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+const matcap = makeMatcap();
+
+const state = {
+  body: "male",
+  mode: "decal",            // decal | fullskin
+  skin: SKIN_TONES[1],
+  face: normalizeFaceConfig({
+    eyeColor: EYE_COLORS[0],
+    browColor: BROW_COLORS[0],
+    lipColor: LIP_COLORS[0],
+  }),
+  card: { ...CARD },
+};
+
+const pack = await loadPawnPack();
+const faceAssets = await loadFaceAssets(new URL("/assets/face-kit/assets/", location.origin));
+
+// One reusable canvas + texture; re-render in place on every config change.
+const faceCanvas = document.createElement("canvas");
+const faceTexture = new CanvasTexture(faceCanvas);
+faceTexture.colorSpace = SRGBColorSpace;
+
+const decalMaterial = new MeshBasicMaterial({ map: faceTexture, transparent: true, depthWrite: false });
+const fullskinMaterial = new MeshMatcapMaterial({ matcap, map: faceTexture });
+const cardGeometry = new PlaneGeometry(1, 1);
+let bodyRoot = null;
+let bodyMaterial = null;
+let faceCard = null;
+let headBone = null;
+
+function renderFace() {
+  renderFaceTexture(faceAssets, { ...state.face, skinColor: state.skin }, {
+    size: 256,
+    transparent: state.mode === "decal",
+    canvas: faceCanvas,
+  });
+  faceTexture.needsUpdate = true;
+}
+
+function rebuildBody() {
+  if (bodyRoot) { scene.remove(bodyRoot); bodyMaterial?.dispose(); }
+  bodyRoot = clonePawnBody(pack, state.body);
+  bodyMaterial = new MeshMatcapMaterial({ matcap, color: new Color(state.skin) });
+  bodyRoot.traverse((o) => {
+    if (o instanceof Mesh) { o.material = bodyMaterial; o.frustumCulled = false; }
+  });
+  scene.add(bodyRoot);
+  bodyRoot.updateMatrixWorld(true);
+
+  headBone = null;
+  bodyRoot.traverse((o) => {
+    if (o instanceof Bone && o.name.toLowerCase() === "head") headBone = o;
+  });
+  if (!headBone) { hud.textContent = "head bone missing"; return; }
+
+  faceCard = new Mesh(cardGeometry, state.mode === "decal" ? decalMaterial : fullskinMaterial);
+  faceCard.renderOrder = 10;
+  faceCard.frustumCulled = false;
+  placeCard();
+}
+
+function placeCard() {
+  if (!faceCard || !headBone) return;
+  faceCard.removeFromParent();
+  const headWorld = new Vector3();
+  headBone.getWorldPosition(headWorld);
+  const s = pack.scale || 1;
+  faceCard.position.set(
+    headWorld.x,
+    headWorld.y + state.card.offsetY * s,
+    headWorld.z + state.card.offsetZ * s,
+  );
+  faceCard.rotation.set(0, 0, 0);
+  faceCard.scale.setScalar(state.card.size * s);
+  scene.add(faceCard);
+  headBone.attach(faceCard);   // world transform preserved; card now tracks the bone
+  faceCard.updateMatrixWorld(true);
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  if (faceCard) faceCard.material = mode === "decal" ? decalMaterial : fullskinMaterial;
+  renderFace();
+  syncPanel();
+}
+
+// ---------- controls ----------
+const FEATURES = ["eyes", "brows", "nose", "mouth"];
+function step(feature, dir) {
+  const current = FACE_STYLE_ORDER.indexOf(state.face.styles[feature]);
+  const next = (current + dir + FACE_STYLE_ORDER.length) % FACE_STYLE_ORDER.length;
+  state.face.styles[feature] = FACE_STYLE_ORDER[next];
+  renderFace(); syncPanel();
+}
+
+const SLIDERS = [
+  ["eyes.spacing", 0.8, 1.35], ["eyes.scaleY", 0.55, 1.6], ["eyes.irisScale", 0.55, 1.45],
+  ["eyes.offsetY", -0.06, 0.06], ["brows.offsetY", -0.06, 0.06], ["nose.scaleY", 0.55, 1.6],
+  ["mouth.scaleX", 0.55, 1.6], ["mouth.offsetY", -0.06, 0.06],
+  ["card.size", 0.1, 0.24], ["card.offsetY", 0.06, 0.16], ["card.offsetZ", 0.07, 0.14],
+];
+function getPath(path) {
+  const [a, b] = path.split(".");
+  return a === "card" ? state.card[b] : state.face[a][b];
+}
+function setPath(path, value) {
+  const [a, b] = path.split(".");
+  if (a === "card") { state.card[b] = value; placeCard(); }
+  else { state.face[a][b] = value; renderFace(); }
+  syncHud();
+}
+
+function swatchRow(colors, get, set) {
+  return colors.map((hex) =>
+    `<span class="sw ${get() === hex ? "on" : ""}" data-hex="${hex}" style="background:${hex}"></span>`).join("");
+}
+
+function syncPanel() {
+  panel.innerHTML = `
+    <h4>BODY</h4>
+    <button data-act="body:male" class="${state.body === "male" ? "on" : ""}">male</button>
+    <button data-act="body:female" class="${state.body === "female" ? "on" : ""}">female</button>
+    <button data-act="mode:decal" class="${state.mode === "decal" ? "on" : ""}">decal</button>
+    <button data-act="mode:fullskin" class="${state.mode === "fullskin" ? "on" : ""}">full-skin</button>
+    <h4>FEATURES</h4>
+    ${FEATURES.map((f) => `<label>${f.padEnd(5)} <button data-act="step:${f}:-1">&lt;</button> <b>${state.face.styles[f]}</b> <button data-act="step:${f}:1">&gt;</button></label>`).join("")}
+    <button data-act="random">randomize</button> <button data-act="reset">reset</button>
+    <h4>SKIN (creator tones)</h4><div data-colors="skin">${swatchRow(SKIN_TONES, () => state.skin)}</div>
+    <h4>EYES</h4><div data-colors="eyeColor">${swatchRow(EYE_COLORS, () => state.face.eyeColor)}</div>
+    <h4>BROWS</h4><div data-colors="browColor">${swatchRow(BROW_COLORS, () => state.face.browColor)}</div>
+    <h4>LIPS</h4><div data-colors="lipColor">${swatchRow(LIP_COLORS, () => state.face.lipColor)}</div>
+    <h4>TRANSFORMS + CARD</h4>
+    ${SLIDERS.map(([p, min, max]) => `<label>${p} <input type="range" data-path="${p}" min="${min}" max="${max}" step="0.005" value="${getPath(p)}"></label>`).join("")}
+    <h4>VIEW</h4>
+    <button data-act="view:face">face</button>
+    <button data-act="view:front">front</button>
+    <button data-act="view:threeq">3/4</button>
+    <button data-act="view:side">side</button>`;
+  syncHud();
+}
+
+panel.addEventListener("click", (event) => {
+  const target = event.target;
+  const act = target.dataset?.act;
+  if (act) {
+    const [verb, a, b] = act.split(":");
+    if (verb === "body") { state.body = a; rebuildBody(); }
+    else if (verb === "mode") setMode(a);
+    else if (verb === "step") step(a, Number(b));
+    else if (verb === "view") frame(a);
+    else if (verb === "random") { state.face = randomFaceConfig(); renderFace(); }
+    else if (verb === "reset") { state.face = normalizeFaceConfig({ eyeColor: EYE_COLORS[0] }); state.card = { ...CARD }; placeCard(); renderFace(); }
+    syncPanel();
+    return;
+  }
+  const hex = target.dataset?.hex;
+  if (hex) {
+    const group = target.parentElement?.dataset?.colors;
+    if (group === "skin") { state.skin = hex; bodyMaterial?.color.set(hex); }
+    else state.face[group] = hex;
+    renderFace(); syncPanel();
+  }
+});
+panel.addEventListener("input", (event) => {
+  const path = event.target?.dataset?.path;
+  if (path) setPath(path, Number(event.target.value));
+});
+
+function syncHud() {
+  const f = state.face;
+  hud.textContent = [
+    `face-fit-lab · body=${state.body} mode=${state.mode} pack.scale=${(pack.scale || 1).toFixed(4)}`,
+    `styles eyes=${f.styles.eyes} brows=${f.styles.brows} nose=${f.styles.nose} mouth=${f.styles.mouth}`,
+    `skin=${state.skin} eye=${f.eyeColor} brow=${f.browColor} lip=${f.lipColor}`,
+    `card size=${state.card.size.toFixed(3)} offsetY=${state.card.offsetY.toFixed(3)} offsetZ=${state.card.offsetZ.toFixed(3)} (raw GLB units, rel head bone)`,
+    `drag=orbit wheel=zoom`,
+  ].join("\n");
+  window.__faceFitLab = { ready: true, body: state.body, mode: state.mode, skin: state.skin, face: JSON.parse(JSON.stringify(state.face)), card: { ...state.card } };
+}
+
+// ---------- camera ----------
+let orbit = { yaw: 0.5, pitch: 0.12, dist: 1.1, target: new Vector3(0, 1.62, 0) };
+function frame(view) {
+  const s = pack.scale || 1;
+  orbit.target.set(0, 1.62 * s, 0);
+  if (view === "face") { orbit.yaw = 0; orbit.pitch = 0.02; orbit.dist = 0.55 * s; orbit.target.y = (1.55 + state.card.offsetY) * s; }
+  else if (view === "front") { orbit.yaw = 0; orbit.pitch = 0.08; orbit.dist = 2.2 * s; orbit.target.y = 1.15 * s; }
+  else if (view === "side") { orbit.yaw = Math.PI / 2; orbit.pitch = 0.05; orbit.dist = 0.8 * s; }
+  else { orbit.yaw = 0.5; orbit.pitch = 0.12; orbit.dist = 1.1 * s; }
+  applyOrbit();
+}
+function applyOrbit() {
+  camera.position.set(
+    orbit.target.x + Math.sin(orbit.yaw) * Math.cos(orbit.pitch) * orbit.dist,
+    orbit.target.y + Math.sin(orbit.pitch) * orbit.dist,
+    orbit.target.z + Math.cos(orbit.yaw) * Math.cos(orbit.pitch) * orbit.dist,
+  );
+  camera.lookAt(orbit.target);
+}
+let dragging = false, lastX = 0, lastY = 0;
+renderer.domElement.addEventListener("pointerdown", (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+addEventListener("pointerup", () => { dragging = false; });
+addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  orbit.yaw -= (e.clientX - lastX) * 0.008;
+  orbit.pitch = Math.max(-1.2, Math.min(1.2, orbit.pitch + (e.clientY - lastY) * 0.006));
+  lastX = e.clientX; lastY = e.clientY;
+  applyOrbit();
+});
+renderer.domElement.addEventListener("wheel", (e) => {
+  orbit.dist = Math.max(0.25, Math.min(6, orbit.dist * (e.deltaY > 0 ? 1.1 : 0.9)));
+  applyOrbit();
+}, { passive: true });
+
+// ---------- boot ----------
+renderFace();
+rebuildBody();
+syncPanel();
+frame(new URLSearchParams(location.search).get("view") || "face");
+function tick() { renderer.render(scene, camera); requestAnimationFrame(tick); }
+tick();
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+  </script>
+</body>
+</html>

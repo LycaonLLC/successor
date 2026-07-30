@@ -1,0 +1,29 @@
+# Deliberately no live values are committed. Copy and fill from the later v8 seal.
+aws_region = "REPLACE_WITH_REGION"
+availability_zones = ["REPLACE_WITH_AZ_1", "REPLACE_WITH_AZ_2"]
+vpc_cidr = "10.42.0.0/16"
+public_subnet_cidrs = ["10.42.0.0/20", "10.42.16.0/20"]
+private_subnet_cidrs = ["10.42.32.0/20", "10.42.48.0/20"]
+ami_id = "REPLACE_WITH_PINNED_AL2023_X86_AMI"
+instance_type = "REPLACE_WITH_X86_SKU"
+state_volume_size_gib = 100
+container_image = "REPLACE_WITH_ECR_URI@sha256:REPLACE_WITH_64_HEX_DIGEST"
+dns_name = "world.successorgame.com"
+game_acm_certificate_arn = "REPLACE_WITH_EXTERNAL_ACM_CERTIFICATE_ARN"
+manage_route53_dns = false
+route53_zone_id = ""
+backup_bucket_name = "REPLACE_WITH_GLOBALLY_UNIQUE_BACKUP_BUCKET"
+asset_bucket_name = "REPLACE_WITH_GLOBALLY_UNIQUE_ASSET_BUCKET"
+budget_limit_usd = 100
+budget_alert_emails = ["REPLACE_WITH_ALERT_EMAIL"]
+alarm_email = "REPLACE_WITH_ALARM_EMAIL"
+rpo_minutes = 60
+rto_minutes = 120
+tags = { Owner = "REPLACE_WITH_OWNER" }
+initialize_empty_volume = false
+backup_interval_minutes = 60
+client_store_origin = "https://REPLACE_WITH_COMPRESS_SUCCESSOR_STORE_ORIGIN"
+runtime_secret_parameter_name = "/successor/staging/runtime-secret"
+runtime_bearer_parameter_name = "/successor/staging/runtime-bearer"
+control_secret_parameter_name = "/successor/staging/alpha-control-secret"
+site_url = "https://www.successorgame.com"

@@ -1,0 +1,35 @@
+{
+  "name": "@successor/client",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./headless": {
+      "types": "./src/headless/index.ts",
+      "import": "./dist/headless/index.js"
+    },
+    "./src/*": "./src/*.ts"
+  },
+  "bin": {
+    "successor-play": "./dist/headless/cli.js"
+  },
+  "scripts": {
+    "build": "tsc && vite build --config vite.headless.config.ts",
+    "build:headless": "vite build --config vite.headless.config.ts",
+    "lint": "eslint src",
+    "test": "vitest run --passWithNoTests",
+    "verify:slice-specs": "node scripts/verify-slice-specs.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "@colyseus/sdk": "^0.17.42"
+  }
+}

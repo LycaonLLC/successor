@@ -1,0 +1,46 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "multiplayer-authority-duel",
+  "fixture": "open-desert-multiplayer-duel",
+  "lanes": ["accel"],
+  "tags": ["multiplayer", "duels"],
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "steps": [
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-duel-alpha", "match": { "lifeState": "alive" } }, "timeoutMs": 8000, "as": "alphaBeforeDuel" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-duel-beta", "match": { "lifeState": "alive" } }, "timeoutMs": 8000, "as": "betaBeforeDuel" } },
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-duel-beta", "lifeState": "alive" } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "alphaSeesBeta" } },
+    { "await": { "kind": "query", "actor": "beta", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-duel-alpha", "lifeState": "alive" } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "betaSeesAlpha" } },
+
+    { "send": { "actor": "beta", "line": "/duel-accept", "as": "betaEarlyAccept" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaEarlyAccept.data.commandId", "commandKind": "DuelAccept", "accepted": false, "reasonCode": "no_pending_duel_challenge" }, "timeoutMs": 10000, "as": "betaEarlyAcceptReject" } },
+
+    { "send": { "actor": "alpha", "line": "/equip-weapon weapon_id=slugthrower weapon_item_id=3101", "as": "alphaEquipSlugthrower" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaEquipSlugthrower.data.commandId", "commandKind": "SetEquippedWeapon", "accepted": true }, "timeoutMs": 10000, "as": "alphaEquipReceipt" } },
+    { "send": { "actor": "alpha", "line": "/target mp-duel-beta", "as": "alphaTargetBeta" } },
+    { "send": { "actor": "alpha", "line": "/attack", "as": "alphaUnscopedAttack" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaUnscopedAttack.data.commandId", "commandKind": "QueueCombatAction", "accepted": false, "reasonCode": "target_unavailable" }, "timeoutMs": 10000, "as": "alphaUnscopedReject" } },
+    { "send": { "actor": "alpha", "line": "/duel-challenge mp-duel-beta", "as": "alphaChallenge" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaChallenge.data.commandId", "commandKind": "DuelChallenge", "accepted": true }, "timeoutMs": 10000, "as": "alphaChallengeReceipt" } },
+    { "send": { "actor": "beta", "line": "/duel-accept", "as": "betaAccept" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaAccept.data.commandId", "commandKind": "DuelAccept", "accepted": true }, "timeoutMs": 10000, "as": "betaAcceptReceipt" } },
+
+    { "send": { "actor": "alpha", "line": "/attack", "as": "alphaDuelAttack" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaDuelAttack.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 10000, "as": "alphaDuelAttackReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "combat", "match": { "data.event.shooterActorId": "mp-duel-alpha", "data.event.targetActorId": "mp-duel-beta", "data.event.weaponId": "slugthrower", "data.event.ammoTypeId": "slug_iron", "data.event.actionId": "basic_shot" }, "timeoutMs": 30000, "as": "alphaScopedCombat" } },
+
+    { "send": { "actor": "beta", "line": "/duel-yield", "as": "betaYield" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaYield.data.commandId", "commandKind": "DuelYield", "accepted": true }, "timeoutMs": 10000, "as": "betaYieldReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "duel_outcome", "match": { "data.payload.actorId": "mp-duel-alpha", "data.payload.opponentActorId": "mp-duel-beta", "data.payload.result": "won", "data.payload.reason": "yield" }, "timeoutMs": 10000, "as": "alphaWonOutcome" } },
+    { "await": { "kind": "event", "actor": "beta", "event": "duel_outcome", "match": { "data.payload.actorId": "mp-duel-beta", "data.payload.opponentActorId": "mp-duel-alpha", "data.payload.result": "lost", "data.payload.reason": "yield" }, "timeoutMs": 10000, "as": "betaLostOutcome" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-duel-alpha", "match": { "lifeState": "alive" } }, "timeoutMs": 8000, "as": "alphaAfterDuel" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-duel-beta", "match": { "lifeState": "alive" } }, "timeoutMs": 8000, "as": "betaAfterDuel" } },
+
+    { "send": { "actor": "beta", "line": "/duel-yield", "as": "betaYieldAfterEnd" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaYieldAfterEnd.data.commandId", "commandKind": "DuelYield", "accepted": false, "reasonCode": "not_in_duel" }, "timeoutMs": 10000, "as": "betaYieldAfterEndReject" } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "duelStableHash" } }
+  ],
+  "notes": "Two real sessions first establish mutual AOI. Alpha's fixture-provisioned Slugthrower and Iron Slugs are equipped without scenario-time grants; before consent, its targeted QueueCombatAction must reject target_unavailable. Beta's pre-challenge DuelAccept must also reject without corrupting the later consent pair. After DuelChallenge/DuelAccept, the identical target receives a real slugthrower QueueCombatAction combat event. Beta yields; both perspective-specific duel outcomes and both final actor oracles prove the terminal state. A second yield must reject not_in_duel."
+}

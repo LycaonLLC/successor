@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "tank_water_frontier",
+  "label": "Frontier Water Reservoir",
+  "kind": "world_prop",
+  "glb": "tank_water_frontier.glb",
+  "source_pack": "full-spectrum-wave-20260720",
+  "source_fbx": "props/successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/source/successor_extraction_petrochemical_tank_medium.blend",
+  "source_path": "props/successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/assets/successor_extraction_petrochemical_tank_medium.glb",
+  "content_hash_sha256": "0878cfb8e4786a61abd551ead78aac370aaa3ed3e32fa0273d38269c96912bc7",
+  "triangles": 3016,
+  "vertices": 1632,
+  "mesh_nodes": 6,
+  "materials": 6,
+  "bbox_gltf_m": { "min": [-0.936, 0, -0.936], "max": [0.936, 2.2373, 0.936], "size": [1.872, 2.2373, 1.872] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/props/successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/reports/successor_extraction_petrochemical_tank_medium.json (validation_pass true)",
+  "source_report": "props/successor/full-spectrum-wave-20260720/extraction-installations/parent-reset-01/reports/successor_extraction_petrochemical_tank_medium.json",
+  "validation_pass": true
+}

@@ -1,0 +1,61 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`full frame composition > 80×24 collapses the rail first — prose and command line survive (hero-log law) 1`] = `
+" SUCCESSOR · OPEN DESERT
+
+
+
+
+
+
+
+
+
+
+ You stand in the open desert. The light is hard and flat, heat standing on
+   the sand.
+ A rogue trooper comes into scope, a stretch off to the east, weapon drawn.
+ › /attack rogue-1
+ Your shot takes the rogue trooper square in the chest — 18.
+ ✗ SAMPLE RESOURCE DENIED — SAMPLER COOLING.
+ ◆ The scanner paints Dantooine iron strongest far off to the east — 100% at
+   the peak.
+────────────────────────────────────────────────────────────────────────────────
+
+ [local] Rusk: anyone near the extractor?
+────────────────────────────────────────────────────────────────────────────────
+ > /attack rogue-1                                                   0✓ 0✗ · —"
+`;
+
+exports[`full frame composition > 100×30 carries the full rail and the hero log 1`] = `
+" SUCCESSOR · OPEN DESERT                      ☼ DUSK 18:01 · First Cycle 1 · E -40 · N 36 · ok 4512
+                                                                    │HP ████████████████████▏  96
+                                                                    │AC █████████████········  62
+                                                                    │SP █████████████████████ 100
+                                                                    │STANDING
+                                                                    │──────────────────────────────
+                                                                    │SLUGTHROWER v0
+                                                                    │▮▮▮▮▮▮▮▯
+                                                                    │7/8 · 180
+                                                                    │──────────────────────────────
+                                                                    │· SHOT
+                                                                    │
+                                                                    │
+                                                                    │
+                                                                    │──────────────────────────────
+ You stand in the open desert. The light is hard and flat, heat     │            ⣠⠤⠤N⠤⢄⣀
+   standing on the sand.                                            │         ⢀⠴⠋ ⡠⠠⠠⠠⢀⠈⠑⣄
+ A rogue trooper comes into scope, a stretch off to the east,       │        ⢀⠎ ⡐⠁⢀⠤⠤⣀ ⠡⡀⠈⣇
+   weapon drawn.                                                    │        ⢸ ⢐  ⡇ ⣤⠐⡇ ⠰ ⢸
+ › /attack rogue-1                                                  │        ⠘⡄ ⢅ ⠑⠤⠤⠔⠁⢀⠅ ⡜
+ Your shot takes the rogue trooper square in the chest — 18.        │         ⠘⢆ ⠐⠠⠄⠄⠄⠂⠁⢀⠞
+ ✗ SAMPLE RESOURCE DENIED — SAMPLER COOLING.                        │           ⠙⠒⠤⠤⠤⠤⠴⠊⠁
+ ◆ The scanner paints Dantooine iron strongest far off to the east  │◆ Dust farmer          SE   5c
+   — 100% at the peak.                                              │▲ Rogue trooper         E  25c
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+ [local] Rusk: anyone near the extractor?
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ > /attack rogue-1                                                                       0✓ 0✗ · —"
+`;

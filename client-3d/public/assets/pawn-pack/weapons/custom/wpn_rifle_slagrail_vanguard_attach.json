@@ -1,0 +1,82 @@
+{
+  "schema": "successor-weapon-attach/1",
+  "weapon": "wpn_rifle_slagrail_vanguard",
+  "source_glb": "source-assets/props/successor/full-spectrum-wave-20260720/weapon-overhaul/reset-zero-01/assets/wpn_rifle_slagrail_vanguard.glb",
+  "silhouette_class": "rifle",
+  "coordinate_space": "weapon_glb_local_gltf",
+  "units": "m",
+  "scale_to_pawn": 1.0,
+  "attach": "two_hand",
+  "handedness": "right",
+  "hands": {
+    "grip": "hand_r",
+    "foregrip": "hand_l"
+  },
+  "nodes": {
+    "frame": "Module_receiver",
+    "mag": "Module_magazine"
+  },
+  "sockets": {
+    "grip": [
+      0.0,
+      -0.091,
+      -0.218
+    ],
+    "foregrip": [
+      0.0,
+      0.0,
+      0.07
+    ],
+    "muzzle": [
+      0.0,
+      0.0,
+      0.142
+    ],
+    "stock": [
+      0.0,
+      0.0015,
+      -0.5885
+    ]
+  },
+  "orientation": {
+    "forward": [
+      0,
+      0,
+      1
+    ],
+    "up": [
+      0,
+      1,
+      0
+    ]
+  },
+  "mount_hand_r_local": {
+    "pos": [
+      -0.07973668,
+      0.29009154,
+      -0.0348619
+    ],
+    "quat": [
+      -0.09279,
+      0.83834,
+      0.53009,
+      -0.08703
+    ],
+    "derivation": "STEN palm transfer: same muzzle+Z authoring convention, quat = q_sten verbatim; pos = pos_sten + R(q_sten)(grip_sten - scale*grip_gun) so this gun's scaled grip socket lands at the STEN palm contact point."
+  },
+  "stow_socket": {
+    "space": "spine_03_local",
+    "pos": [
+      0.16,
+      0,
+      -0.14
+    ],
+    "rot_deg": [
+      85,
+      -45,
+      0
+    ],
+    "derivation": "Copied from accepted STEN back-carry contract; geometry-independent root mount."
+  },
+  "provenance": "reset-zero-01 modular family; textured via STEN 2048 atlas bake pattern (bake_modular.py, deterministic)."
+}

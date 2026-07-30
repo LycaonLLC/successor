@@ -1,0 +1,58 @@
+{
+  "asset_id": "shelter_frontier",
+  "asset_path": "client-3d/public/assets/world-items/shelter_frontier.glb",
+  "asset_hash": "sha256:869f897c1b67ee564046014936037159c6523fca83c74565f120aaedb604e3c7",
+  "asset_kind": "model_glb",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "version": "5.2.0",
+    "tool_snapshot_id": "blender-5.2.0-fbe6228777e7"
+  },
+  "prompt": {
+    "text": "Hand-authored parametric part program (no generative model): compact rigid-panel expedition shelter, open front: steel rib frame + ridge, doubled bone-canvas skin with pressed-panel battens, closed back gable, sandbag skirt, teal accent trim. camp_frontier_v1 set: one shared 8-zone frontier material system (oxidized steel / bone canvas / chipped pale-teal paint / brass / rubber / char / ember coal / burlap) baked per asset to embedded 1024 BaseColor / tangent Normal / packed ORM (R=AO,G=rough,B=metal) / disciplined Emissive (kiln texture pipeline lineage). Runtime world grade is unlit, so BaseColor folds AO in and screens ember emissive.",
+    "denylist_audit": "passed:no franchise/IP terms in names, materials, node names, or artifacts (AI_PROMPT_DENYLIST.md reviewed 2026-07-08)"
+  },
+  "seed": 20260718,
+  "request_id": null,
+  "input_assets": [
+    {
+      "path": "pawn-forge/pawnforgev2/recipes/campfire_scout_v1/build.py",
+      "purpose": "texture_pipeline_reference"
+    }
+  ],
+  "human_edits": [],
+  "rights": {
+    "source_license": "Successor proprietary project asset; all rights reserved",
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant"
+  },
+  "review": {
+    "art_director": "CampPropsAndShoes (vision QA pass on multiview + seam-close contact sheets)",
+    "approved_at": "2026-07-18T04:35:00Z",
+    "notes": "final shelter rebuild per parent independent QA: draped-panel topology (catenary eave/edge curves between supports, scalloped wall bottoms, fold displacement, Solidify 0.036-0.04 thickness), rolled tube hems following the drooped edges, brass grommets + hanging straps outside the wall plane, walls moved outside the columns (no beam-through-canvas), ridge clamp collars; wider proof framing so the ground line is in frame; independent-style vision QA PASS on all items (_pass8_shelter.png); gate G1-G8 PASS (tri budget window raised to 7000 for this hero structure)."
+  },
+  "regeneration_command": "pawn-forge/pawnforgev2/recipes/camp_frontier_v1/run.sh (build -> gate -> proof renders; deterministic seeds, CPU Cycles bakes)",
+  "tri_count": 6924,
+  "gate_report": "pawn-forge/pawnforgev2/recipes/camp_frontier_v1/gate_result.json (overall=PASS, G1..G8 on parsed GLB bytes)",
+  "source_blend_or_script": "pawn-forge/pawnforgev2/recipes/camp_frontier_v1/build.py (deterministic parametric part program; per-asset .blend saved in the bakeoff round dir)",
+  "agent_provenance": {
+    "produced_by": [
+      {
+        "agent_instance_id": "CampPropsAndShoes",
+        "run_id": "camp_frontier_20260718",
+        "role": "content-author",
+        "provider": "anthropic",
+        "model": "claude-fable-5",
+        "started_at": "2026-07-18T00:45:00Z",
+        "completed_at": "2026-07-18T01:55:00Z"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "CampPropsAndShoes",
+        "role": "judge",
+        "notes": "vision QA on lit/unlit multiview + mandatory seam close crops; numeric closure via gate_result.json"
+      }
+    ],
+    "human_approvals": []
+  }
+}

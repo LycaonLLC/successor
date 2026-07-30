@@ -1,0 +1,107 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "lightning_carbine",
+  "asset_path": "client-3d/public/assets/pawn-pack/weapons/custom/lightning_carbine.glb",
+  "asset_hash": "sha256:c1c17593f9ed5d58b87f815b434282880d7ba8688bea9ac37742f80921713989",
+  "asset_kind": "weapon_ranged_glb",
+  "source": {
+    "generator": "pawn-forge:pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/sten_cell_storm/refined_lightning_20260714/refine_lightning.py",
+    "source_blend": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/sten_cell_storm/refined_lightning_20260714/sten_cell_storm_source.blend",
+      "sha256": "ddfe83dae9241792d941cdfa82eda15a83302a1b410697e67de106f378c89ebb"
+    },
+    "derived_glb": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/sten_cell_storm/optimized_storm_20260714/sten_cell_storm_optimized.glb",
+      "sha256": "784cb8d3ac77e77e32de6902c2820f05deaaa117f2b874bd4b071619df2c72f5"
+    },
+    "refined_blend": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/sten_cell_storm/refined_lightning_20260714/lightning_carbine_refined.blend",
+      "sha256": "54ea2cecc6d8fcd665742e77ff2dc7534b8edd0f2fe4ca2daaf048c0a303affd"
+    },
+    "refined_glb": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/sten_cell_storm/refined_lightning_20260714/lightning_carbine_refined.glb",
+      "sha256": "c1c17593f9ed5d58b87f815b434282880d7ba8688bea9ac37742f80921713989"
+    },
+    "refine_report": "pawn-forge:pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/sten_cell_storm/refined_lightning_20260714/lightning-refine-report.json",
+    "gate_report": "pawn-forge:pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/sten_cell_storm/refined_lightning_20260714/lightning-gate.json"
+  },
+  "promotion": {
+    "method": "byte-identical copy of the deterministic refined PawnForge export",
+    "promoted_at": "2026-07-15",
+    "runtime_item_id": 3121,
+    "runtime_weapon_id": "lightning-carbine"
+  },
+  "metrics": {
+    "bytes": 9160624,
+    "mesh_primitives": 11,
+    "triangles": 3446,
+    "bounds_m": {
+      "min": [
+        -0.14443939924240112,
+        -0.14100000262260437,
+        -0.6010679006576538
+      ],
+      "max": [
+        0.06633022427558899,
+        0.07458333671092987,
+        0.19310002028942108
+      ],
+      "dimensions": [
+        0.2107696235179901,
+        0.21558333933353424,
+        0.7941679209470749
+      ]
+    }
+  },
+  "materials": {
+    "material_names": [
+      "Storm_PBR",
+      "StormArc_Emissive",
+      "StormConductor_Emissive"
+    ],
+    "embedded_texture_resolution": 2048,
+    "embedded_maps": [
+      "baseColor",
+      "emissive",
+      "normal",
+      "occlusion",
+      "metallicRoughness"
+    ]
+  },
+  "attachment": {
+    "path": "client-3d/public/assets/pawn-pack/weapons/custom/lightning_carbine_attach.json",
+    "schema": "successor-weapon-attach/1",
+    "frame_node": "Module_receiver",
+    "mag_node": "Module_power_cell"
+  },
+  "validation": {
+    "gltf_errors": 0,
+    "gltf_warnings": "Generated tangent-space warnings remain; no validator errors.",
+    "triangle_budget": 3500,
+    "triangle_budget_pass": true,
+    "deterministic_rebuild": true,
+    "runtime_hash_matches_source": true,
+    "frozen_socket_contract_pass": true,
+    "headed_runtime_pass": true,
+    "headed_runtime_run_id": "weapon-carbine-progression-final-20260715",
+    "headed_visual_reload_pass": true,
+    "client_render_synchronized_capture": true,
+    "headed_visual_proof_grid": "verification/ledgers/artifacts/client3d/weapon-carbine-reload-visual-reseat-final-20260715/proofs/h3d-carbine-progression-06-lightning-reload-grid.jpg",
+    "headed_visual_reload_runs": {
+      "eject": "weapon-carbine-reload-visual-eject-20260715",
+      "drop": "weapon-carbine-reload-visual-drop-20260715",
+      "reseat": "weapon-carbine-reload-visual-reseat-final-20260715"
+    }
+  },
+  "review": {
+    "status": "source-and-headed-runtime-visual-pass",
+    "notes": "Independent source review passed. The headed progression run proved item 3121 certification denial/acceptance, mount, fire, magazine consumption, reload completion, and stow with zero console errors. Client-render-synchronized headed captures separately froze eject at 8/30 HUD pips, drop/belt at 17/30, and reseat at 25/30; enlarged independent review passed the visibly lowered belt hand, detached spent cell, raised reseat hand, coherent weapon hold, and final back stow.",
+    "residual": "The eject pull and newly seated live cell are subtle or occluded at gameplay distance; the complete phase change remains readable through the support-arm retarget, detached spent cell, reseat return, and stow."
+  },
+  "modifications": [
+    {
+      "date": "2026-07-21",
+      "change": "Removed StormConductor_Emissive and StormArc_Emissive primitives (3 prims incl. Action_muzzle_arc mesh ref) from the runtime GLB by owner order — the arc geometry read as a white toothpaste stripe at close zoom. JSON-chunk surgery only; node indices, Storm_PBR zones, and both actions preserved. Backup: tmp/lightning_carbine.backup.glb; canonical authoring remains pawn-forge sten_cell_storm lineage — mirror there before any re-promotion."
+    }
+  ]
+}

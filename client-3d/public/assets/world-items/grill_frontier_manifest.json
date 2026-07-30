@@ -1,0 +1,53 @@
+{
+  "asset": "grill_frontier",
+  "atlas_px": 1024,
+  "bbox_max_m": [
+    0.5899999737739563,
+    1.0490000247955322,
+    0.3486742079257965
+  ],
+  "bbox_min_m": [
+    -0.5899999737739563,
+    0,
+    -0.32249999046325684
+  ],
+  "collision": {
+    "boxes": [
+      {
+        "id": "counter",
+        "max": [
+          0.59,
+          0.85,
+          0.33
+        ],
+        "min": [
+          -0.59,
+          0.0,
+          -0.3225
+        ]
+      }
+    ],
+    "note": "stack pipe + utensil rail decorative above/beside the counter box",
+    "space": "gltf-meters prop-local yaw-0"
+  },
+  "dims_m": {
+    "x": 1.18,
+    "y": 1.049,
+    "z": 0.6712
+  },
+  "front_axis": "+Z",
+  "gate": "gate_result.json",
+  "glb_sha256": "56af6e3a1db2ccd21d3ef9a5f9378242d7264710a7c0a578a41e41500c26f7f8",
+  "maps": [
+    "basecolor",
+    "normal(tangent)",
+    "orm(R=AO,G=rough,B=metal)",
+    "emissive"
+  ],
+  "material": "GrillFrontier_PBR",
+  "object": "grill_frontier",
+  "set": "camp_frontier_v1",
+  "tri_count": 888,
+  "units": "m",
+  "unlit_note": "runtime world grade is unlit; BaseColor has AO folded in and ember emissive screened on top"
+}

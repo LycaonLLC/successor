@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventory Window Smoke</title>
+    <style>
+      html, body, #app { width: 100%; height: 100%; margin: 0; }
+      body { overflow: hidden; background: #05070a; }
+      #diag { position: fixed; left: 8px; top: 8px; z-index: 99; color: #e4d7b4;
+              background: #0b0d10; border: 1px solid #2a2f36; padding: 6px; font: 11px monospace;
+              max-width: 55vw; white-space: pre-wrap; pointer-events: none; }
+    </style>
+  </body>
+  <body>
+    <div id="app"></div>
+    <pre id="diag">…</pre>
+    <script type="module">
+      // INVENTORY smoke — the flagship window on the real WindowManager
+      // (post-refactor API; craft-smoke pattern). Seeds the player's backpack
+      // with the full resource families — including the Wave-3 trio
+      // (Carbon/Fuel/Polymer) carrying authoritative `resourceStats` blocks —
+      // so container plates, kind chips, and the ledger stat rows all render
+      // from one page. I toggles the window (definition hotkey).
+      import "/src/styles.css";
+      import { applyThemeVariables } from "/src/ui/theme.ts";
+      import { loadRuntimeAssetBundle } from "/src/assets/runtimeAssets.ts";
+      import { createPlayState } from "@successor/client/src/slice-core/gameState";
+      import { createWindowManager } from "/src/ui/windows/windowManager.ts";
+      import { createContextRadial } from "/src/ui/windows/contextRadial.ts";
+      import { createInventoryWindowDefinition } from "/src/ui/inventory/shell.ts";
+      import { createExamineWindowDefinition, setExamineItem } from "/src/ui/inventory/examineWindow.ts";
+      import { registerExamineOpener } from "/src/ui/inventory/data.ts";
+      import { initUiTheme, getUiTheme } from "/src/ui/uiTheme.ts";
+
+      const diag = (msg) => { const el = document.getElementById('diag'); if (el) el.textContent = msg; };
+      try {
+        applyThemeVariables();
+        initUiTheme();
+        const app = document.getElementById("app");
+        const assets = await loadRuntimeAssetBundle();
+        const state = createPlayState(assets.slice, assets.rifleMuzzlePoints, assets.slice.camera.followActor);
+        const smokeParams = new URLSearchParams(window.location.search);
+        state.loadout.activeWeaponId = smokeParams.get("weapon") ?? "slugthrower";
+        const forcedWeaponItemId = Number(smokeParams.get("weaponItemId") ?? 0);
+        if (Number.isInteger(forcedWeaponItemId) && forcedWeaponItemId > 0) {
+          state.loadout.activeWeaponId = "slugthrower";
+          state.serverAuthority.playerActorId = state.playerActorId;
+          state.serverAuthority.actors[state.playerActorId] = {
+            id: state.playerActorId,
+            weapon: { weaponId: "slugthrower", weaponItemId: forcedWeaponItemId },
+            inCombat: smokeParams.get("combat") === "1",
+            appearance: null,
+            worn: [],
+          };
+        } else if (smokeParams.get("combat") === "1" && state.loadout.activeWeaponId) {
+          state.serverAuthority.playerActorId = state.playerActorId;
+          state.serverAuthority.actors[state.playerActorId] = {
+            id: state.playerActorId,
+            weapon: {
+              weaponId: state.loadout.activeWeaponId,
+              weaponItemId: state.loadout.activeWeaponId === "vibrosword" ? 3103 : 0,
+            },
+            inCombat: true,
+            appearance: null,
+            worn: [],
+          };
+        }
+        // InventoryData filters rows to the player actor's own containers
+        // (container === actorId || startsWith `${actorId}:`), so seed into the
+        // player's "backpack" container so they actually surface.
+        const bag = `${state.playerActorId}:backpack`;
+        const seed = [
+          ["Slugthrower", 3101, 1], ["Shield", 1004, 1], ["Metal", 2001, 12],
+          ["Tool", 3001, 3], ["Credit Chip", 9002, 1],
+          ["Hide", 2101, 5], ["Bone", 2103, 8], ["Meat", 2102, 2],
+          ["Powder", 2006, 4], ["Bandages", 1002, 7], ["Stimpak", 1001, 9],
+          ["Syringe", 1003, 1], ["Casing", 2002, 14], ["Lead", 2005, 20],
+        ];
+        for (const [item, itemId, qty] of seed) {
+          state.inventory.push({ container: bag, item, itemId, variantId: 0, quantity: qty, reserved: 0, available: qty });
+        }
+        // Wave-3 resources with the authoritative 12-channel stat block
+        // (family whitelists: zeroes are honest zeroes on the wire).
+        const stats = (over) => ({
+          conductivity: 0, malleability: 0, shock_resistance: 0, thermal_resistance: 0,
+          chemical_purity: 0, density: 0, tensile_strength: 0, flexibility: 0,
+          potency: 0, nutrition: 0, stability: 0, extraction_yield: 0, ...over,
+        });
+        const statted = [
+          ["Copper", 2007, 220431, 24, stats({ conductivity: 812, malleability: 430, density: 610, tensile_strength: 355, stability: 540, extraction_yield: 480 })],
+          ["Carbon", 2008, 218310, 36, stats({ density: 810, tensile_strength: 455, stability: 733, extraction_yield: 512 })],
+          ["Fuel", 2009, 47214220, 12, stats({ chemical_purity: 764, stability: 620 })],
+          ["Polymer", 2010, 48012650, 30, stats({ flexibility: 638 })],
+        ];
+        for (const [item, itemId, variantId, qty, resourceStats] of statted) {
+          state.inventory.push({ container: bag, item, itemId, variantId, quantity: qty, reserved: 0, available: qty, resourceStats });
+        }
+        const requestedItemId = Number(
+          smokeParams.get("examineItemId") ?? smokeParams.get("customItemId") ?? 0,
+        );
+        if (Number.isInteger(requestedItemId) && requestedItemId > 0) {
+          const alreadyPresent = state.inventory.some((row) => row.itemId === requestedItemId);
+          if (!alreadyPresent) {
+            state.inventory.push({
+              container: bag,
+              item: `Smoke ${requestedItemId}`,
+              itemId: requestedItemId,
+              variantId: 0,
+              quantity: 1,
+              reserved: 0,
+              available: 1,
+            });
+          }
+        }
+
+        const windowManager = createWindowManager({ mount: app, state, slice: assets.slice });
+        const radial = createContextRadial(windowManager.root);
+        windowManager.register(createInventoryWindowDefinition({ radial }));
+        windowManager.register(createExamineWindowDefinition());
+        registerExamineOpener((key) => {
+          setExamineItem(key);
+          windowManager.open("examine");
+        });
+        windowManager.open("inventory");
+
+        let last = performance.now();
+        let frameErr = null;
+        const frame = (time) => {
+          if (frameErr) return;
+          try {
+            const dt = (time - last) / 1000; last = time;
+            windowManager.update(dt, time);
+          } catch (e) { frameErr = e; diag('FRAME ERROR: ' + (e && e.stack || e)); }
+          requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+        diag('INVENTORY SMOKE · rows=' + state.inventory.length + ' · theme=' + getUiTheme() + ' · I toggles inventory');
+        const examineItem = (key) => {
+          setExamineItem(key);
+          windowManager.open("examine");
+        };
+        if (Number.isInteger(requestedItemId) && requestedItemId > 0) {
+          const row = state.inventory.find((candidate) => candidate.itemId === requestedItemId);
+          if (row) {
+            requestAnimationFrame(() => examineItem(`${row.container}:${row.itemId}:${row.variantId}`));
+          }
+        }
+        window.__smoke = { windowManager, state, examineItem };
+      } catch (err) {
+        diag('SMOKE ERROR: ' + (err && err.stack || err));
+      }
+    </script>
+  </body>
+</html>

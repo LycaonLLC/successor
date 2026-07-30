@@ -1,0 +1,6 @@
+# Copy this file to backend.tf only after the first local-state bootstrap
+# apply creates the state bucket. Keep backend.tf gitignored.
+terraform {
+  required_version = ">= 1.10.0"
+  backend "s3" {}
+}

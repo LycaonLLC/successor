@@ -1,0 +1,38 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "duels-restart-persistence",
+  "fixture": "open-desert-multiplayer-duel",
+  "persistence": true,
+  "lanes": ["accel"],
+  "tags": ["restart", "duels", "multiplayer"],
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "steps": [
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-duel-beta", "lifeState": "alive" } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "alphaSeesBeta" } },
+    { "send": { "actor": "alpha", "line": "/equip-weapon weapon_id=slugthrower weapon_item_id=3101", "as": "equipAlpha" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.equipAlpha.data.commandId", "commandKind": "SetEquippedWeapon", "accepted": true }, "timeoutMs": 12000, "as": "equipAlphaReceipt" } },
+    { "send": { "actor": "alpha", "line": "/duel-challenge mp-duel-beta", "as": "challengeBeta" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.challengeBeta.data.commandId", "commandKind": "DuelChallenge", "accepted": true }, "timeoutMs": 12000, "as": "challengeReceipt" } },
+    { "restart": { "as": "pendingChallengeRestartEvidence", "timeoutMs": 30000 } },
+    { "send": { "actor": "beta", "line": "/duel-accept", "as": "acceptRestoredChallenge" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.acceptRestoredChallenge.data.commandId", "commandKind": "DuelAccept", "accepted": true }, "timeoutMs": 12000, "as": "restoredChallengeAcceptReceipt" } },
+    { "restart": { "as": "activeDuelRestartEvidence", "timeoutMs": 30000 } },
+    { "send": { "actor": "alpha", "line": "/target mp-duel-beta", "as": "targetRestoredOpponent" } },
+    { "send": { "actor": "alpha", "line": "/attack", "as": "attackRestoredDuel" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.attackRestoredDuel.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 12000, "as": "restoredDuelAttackReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "combat", "match": { "data.event.shooterActorId": "mp-duel-alpha", "data.event.targetActorId": "mp-duel-beta", "data.event.weaponId": "slugthrower", "data.event.ammoTypeId": "slug_iron", "data.event.actionId": "basic_shot" }, "timeoutMs": 30000, "as": "restoredScopedCombat" } },
+    { "send": { "actor": "beta", "line": "/duel-yield", "as": "yieldRestoredDuel" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.yieldRestoredDuel.data.commandId", "commandKind": "DuelYield", "accepted": true }, "timeoutMs": 12000, "as": "yieldReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "duel_outcome", "match": { "data.payload.actorId": "mp-duel-alpha", "data.payload.opponentActorId": "mp-duel-beta", "data.payload.result": "won", "data.payload.reason": "yield" }, "timeoutMs": 12000, "as": "winnerOutcomeOnce" } },
+    { "await": { "kind": "event", "actor": "beta", "event": "duel_outcome", "match": { "data.payload.actorId": "mp-duel-beta", "data.payload.opponentActorId": "mp-duel-alpha", "data.payload.result": "lost", "data.payload.reason": "yield" }, "timeoutMs": 12000, "as": "loserOutcomeOnce" } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "event", "match": { "event": "duel_outcome", "data.payload.actorId": "mp-duel-alpha", "data.payload.result": "won", "data.payload.reason": "yield" }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "envelopeCount", "actor": "beta", "envelopeType": "event", "match": { "event": "duel_outcome", "data.payload.actorId": "mp-duel-beta", "data.payload.result": "lost", "data.payload.reason": "yield" }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "envelopeCount", "actor": "beta", "envelopeType": "receipt", "match": { "commandKind": "DuelYield", "accepted": true }, "op": "eq", "value": 1 } },
+    { "send": { "actor": "beta", "line": "/duel-yield", "as": "yieldAgain" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.yieldAgain.data.commandId", "commandKind": "DuelYield", "accepted": false, "reasonCode": "not_in_duel" }, "timeoutMs": 12000, "as": "duplicateTerminalRejected" } },
+    { "expect": { "kind": "envelopeCount", "actor": "beta", "envelopeType": "receipt", "match": { "commandKind": "DuelYield", "accepted": false, "reasonCode": "not_in_duel" }, "op": "eq", "value": 1 } }
+  ],
+  "notes": "A real DuelChallenge survives the first isolated process replacement: the restored target accepts it with a post-reconnect command ID above that session's floor. A second replacement checkpoints the accepted duel; alpha's first post-reconnect authority command is accepted only because the restored consent scope authorizes the paired combat action. One yield emits exactly one terminal outcome per participant, and the duplicate yield rejects not_in_duel without a debug repair path. Each restart validates the fixture source hash and persistence paths before reconnecting."
+}

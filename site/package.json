@@ -1,0 +1,23 @@
+{
+  "name": "@successor/site",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Standalone Successor friends pre-alpha website. Static Vite multi-page build, no framework runtime.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5186",
+    "build": "tsc && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5186",
+    "test": "vitest run",
+    "typecheck": "tsc",
+    "check:budget": "node scripts/check-budget.mjs",
+    "media:import": "node scripts/import-media.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.18",
+    "happy-dom": "^20.10.6",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.2",
+    "vitest": "^2.1.9"
+  }
+}

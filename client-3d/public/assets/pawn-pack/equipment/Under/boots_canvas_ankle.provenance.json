@@ -1,0 +1,66 @@
+{
+  "asset_id": "boots_canvas_ankle",
+  "asset_path": "client-3d/public/assets/pawn-pack/equipment/Under/boots_canvas_ankle.glb",
+  "asset_hash": "sha256:84a8472ecb14636b57619078d7cf8704ad35f8d1bf709a1cd7b4fd3a55c266cc",
+  "asset_kind": "model_glb",
+  "tool": {
+    "name": "python3-analytic-glb-writer",
+    "version": "1.0",
+    "tool_snapshot_id": "boots_canvas_ankle_v2"
+  },
+  "prompt": {
+    "text": "ORIGINAL parametric canvas ankle boot pair (no generative model, NO Synty content): analytic lofted last (superellipse instep dome), elliptical ankle shaft with rolled collar, toe cap / heel counter / eyelet stays / lace bars / tongue panels, extruded outsole. Replaces the retired Synty ApocalypseOutlaws-derived mesh under the SAME stable contract: id boots_canvas_ankle, item 7319, materials boots_canvas_ankle_c0/_c1/_c3 (dye-slot convention: doubleSided, rough 0.85, metal 0, emissiveFactor = baseColor*0.25), 50-joint HumanoidRig skin with joint names + inverse bind matrices sourced from the canonical pawn_male.glb body, weights foot_l/r with calf_l/r collar blend matched to the body's hard split.",
+    "denylist_audit": "passed:no franchise/IP terms in names, materials, node names, or artifacts"
+  },
+  "seed": null,
+  "request_id": null,
+  "input_assets": [
+    {
+      "path": "client-3d/public/assets/pawn-pack/pawn_male.glb",
+      "purpose": "rig_contract_and_foot_fit_reference"
+    },
+    {
+      "path": "client-3d/public/assets/pawn-pack/pawn_female.glb",
+      "purpose": "fit_verification_reference"
+    }
+  ],
+  "human_edits": [],
+  "rights": {
+    "source_license": "Successor proprietary project asset; all rights reserved",
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant"
+  },
+  "review": {
+    "art_director": "CampPropsAndShoes (vision QA: neutral + dorsi/plantar walking poses, magenta poke-through probe, heel/toe/sole/ankle/instep close crops)",
+    "approved_at": "2026-07-18T10:20:00Z",
+    "notes": "runtime-fit revision: fit reference corrected from bare body to the WORN under-layer (under_bodysuit shell) after headed creator proof showed bodysuit toes through the dome; last widened +6mm, instep raised (toe box +8..+22mm), shaft +4mm, liner widened. coverage_proof PASS now includes under_bodysuit.glb as a proof surface (both feet, neutral+dorsi+plantar); 27-tile suit-layer vision sheet _sheet_boot_pass10_suit.png PASS all rows; gltf-transform 0 errors. FINAL winding fix: runtime equipment materials are front-side-only (MeshMatcapMaterial default); analytic faces are now re-wound outward per part (interior liner wound inward) at emit time, and the Blender proof renders with backface culling to match the runtime; culled 27-tile sheet _sheet_boot_pass11_culled.png PASS all rows. pass-13 per independent image gate: panel separations widened (toe cap +9mm, heel counter +8mm shells, stays/laces raised) killing flat-shaded interleaving, and ankle weights switched to the pack-native BINARY foot/calf split at y=0.118 (gradient blend smeared the shaft against the binary-skinned bodysuit and read as collapse); culled sheet _sheet_boot_pass13_culled.png PASS all rows/all checks. pass-14: heel counter rebuilt as a dense smooth 11-sample back band, sole heel/toe rounded with 3-sample arcs, tongue/lace clearances lifted (kills jagged/asymmetric heel+sole reads and strap clipping). pass-15 STRUCTURAL: single watertight upper shell with butt-jointed material regions (dark upper / light toe cap split at z=0.132 with position-welded shared ring; heel counter is a material region of the shaft surface, not a stacked shell); numeric audit proves every vertex binary-owned, every below-cuff vertex foot-owned (one rigid transform => deformation interpenetration impossible), joints welded 11/11 both meshes; culled sheet _sheet_boot_pass15_culled.png PASS all rows. pass-17 FINAL SIMPLIFIED per owner ruling: basic fully-covering boot \u2014 one dark watertight upper (full last dome sunk into the sole band + ankle shaft + collar lip + interior liner, all c1), plain outsole slab (c3), single symmetric cuff trim ring (c0, keeps the 3-slot dye contract); no layered panels; every vertex binary-owned, every below-cuff vertex foot-owned (rigid transform => deformation clipping impossible); culled sheet _sheet_boot_pass17_simple.png PASS all rows all checks. pass-18: cuff trim band lowered below the collar taper (0.182-0.204) so the tapered mouth never cuts through it. pass-19 (headed walk_f regression): lower-band bulge +6mm at the upper's sole seam, sole band inflate 0.011 and top raised to +0.017 \u2014 encloses MIXED-weight bodysuit toe verts that swing under full-chain walk clips (headed gate caught a #89cff0 triangle at the lower-inner toe seam that ankle-only poses missed); coverage_proof extended with full-chain walk_chain/walk_chain_b poses (thigh+calf+foot), PASS 30/30 rows.",
+    "supersedes": {
+      "asset_hash": "sha256:fbb24f181611549796b845fdb1d5ffd63c3f8d6c8bf5c17bd9cf8a2f28470195",
+      "lineage": "Synty Sidekick ApocalypseOutlaws SK_APOC_OUTL_01_20FOTL/21FOTR (ratified apoc wardrobe promotion a513cc1e) - retired"
+    }
+  },
+  "regeneration_command": "python3 pawn-forge/pawnforgev2/recipes/boots_canvas_ankle_v2/build.py && python3 pawn-forge/pawnforgev2/recipes/boots_canvas_ankle_v2/coverage_proof.py",
+  "tri_count": 1124,
+  "gate_report": "pawn-forge/pawnforgev2/_bakeoff/boots_canvas_ankle_20260718/coverage_report.json (overall=PASS)",
+  "source_blend_or_script": "pawn-forge/pawnforgev2/recipes/boots_canvas_ankle_v2/build.py (deterministic analytic part program, pure python GLB writer)",
+  "agent_provenance": {
+    "produced_by": [
+      {
+        "agent_instance_id": "CampPropsAndShoes",
+        "run_id": "boots_canvas_ankle_20260718",
+        "role": "content-author",
+        "provider": "anthropic",
+        "model": "claude-fable-5",
+        "started_at": "2026-07-18T00:55:00Z",
+        "completed_at": "2026-07-18T01:55:00Z"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "CampPropsAndShoes",
+        "role": "judge",
+        "notes": "numeric enclosure proof (coverage_report.json) + vision passes on 33-frame proof set"
+      }
+    ],
+    "human_approvals": []
+  }
+}

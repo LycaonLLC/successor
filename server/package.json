@@ -1,0 +1,42 @@
+{
+  "name": "@successor/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src",
+    "test": "vitest run --passWithNoTests",
+    "test:durability": "vitest run src/durability-process.integration.test.ts src/lifecycleSupervisor.test.ts src/game/routes.test.ts src/game/shard.test.ts -t \"checkpoint|first entry|first-entry|readyz|readiness|hosted durability|final checkpoint\"",
+    "bench:chat": "tsx scripts/bench-chat-hub.ts",
+    "bench:chat:ws": "tsx scripts/bench-chat-websocket.ts",
+    "bench:game:ws": "tsx scripts/bench-game-websocket.ts",
+    "bugreports": "node scripts/bugreports.mjs"
+  },
+  "dependencies": {
+    "@colyseus/core": "^0.17.43",
+    "@colyseus/sdk": "^0.17.42",
+    "@colyseus/ws-transport": "^0.17.13",
+    "@fastify/websocket": "^11.2.0",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "fastify": "^5.8.5",
+    "ioredis": "^5.4.0",
+    "pino": "^9.4.0",
+    "postgres": "^3.4.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^9.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.59.2",
+    "vitest": "^2.1.0"
+  }
+}

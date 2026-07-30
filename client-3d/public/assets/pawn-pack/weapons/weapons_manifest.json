@@ -1,0 +1,125 @@
+{
+  "schema": "successor-weapons-pack/1",
+  "items": [
+    {
+      "id": "scrapline_machete",
+      "glb": "custom/scrapline_machete.glb",
+      "attach": "custom/scrapline_machete_attach.json",
+      "class": "melee",
+      "track": "brawler",
+      "label": "Scrapline Machete",
+      "tier_hint": "starter",
+      "scale": 1
+    },
+    {
+      "id": "field_saber",
+      "glb": "custom/field_saber.glb",
+      "attach": "custom/field_saber_attach.json",
+      "class": "melee",
+      "track": "brawler",
+      "label": "Field Saber",
+      "tier_hint": "starter",
+      "scale": 1
+    },
+    {
+      "id": "quarry_chopper",
+      "glb": "custom/quarry_chopper.glb",
+      "attach": "custom/quarry_chopper_attach.json",
+      "class": "melee",
+      "track": "brawler",
+      "label": "Quarry Chopper",
+      "tier_hint": "starter",
+      "scale": 1
+    },
+    {
+      "id": "wpn_pistol",
+      "glb": "custom/wpn_pistol_badge_bolt.glb",
+      "attach": "custom/wpn_pistol_badge_bolt_attach.json",
+      "class": "pistol",
+      "track": "marksman",
+      "label": "Badge Bolt Pistol",
+      "tier_hint": "C",
+      "scale": 1
+    },
+    {
+      "id": "wpn_smg",
+      "glb": "custom/wpn_smg_sten_mk2.glb",
+      "attach": "custom/wpn_smg_sten_mk2_attach.json",
+      "class": "smg",
+      "track": "marksman",
+      "label": "STEN Mk II",
+      "tier_hint": "B",
+      "scale": 1
+    },
+    {
+      "id": "wpn_carbine",
+      "glb": "custom/wpn_carbine_kiln.glb",
+      "attach": "custom/wpn_carbine_kiln_attach.json",
+      "class": "rifle",
+      "track": "marksman",
+      "label": "Kiln Energy Cell Carbine",
+      "tier_hint": "A",
+      "scale": 1
+    },
+    {
+      "id": "lightning_carbine",
+      "glb": "custom/lightning_carbine.glb",
+      "attach": "custom/lightning_carbine_attach.json",
+      "class": "rifle",
+      "track": "marksman",
+      "label": "Lightning Carbine",
+      "tier_hint": "S",
+      "scale": 1
+    },
+    {
+      "id": "wpn_assault",
+      "glb": "custom/wpn_rifle_slagrail_vanguard.glb",
+      "attach": "custom/wpn_rifle_slagrail_vanguard_attach.json",
+      "class": "rifle",
+      "track": "marksman",
+      "label": "Slagrail Vanguard",
+      "tier_hint": "B",
+      "scale": 1
+    },
+    {
+      "id": "wpn_shotgun",
+      "glb": "custom/wpn_shotgun_coilgate_scatter.glb",
+      "attach": "custom/wpn_shotgun_coilgate_scatter_attach.json",
+      "class": "shotgun",
+      "track": "marksman",
+      "label": "Coilgate Scatter",
+      "tier_hint": "B",
+      "scale": 1.333333
+    },
+    {
+      "id": "wpn_sniper",
+      "glb": "custom/wpn_carbine_kiln.glb",
+      "attach": "custom/wpn_carbine_kiln_attach.json",
+      "class": "rifle",
+      "track": "commando",
+      "label": "Kiln Long Pattern (interim)",
+      "tier_hint": "S",
+      "scale": 1
+    },
+    {
+      "id": "wpn_heavy",
+      "glb": "custom/wpn_heavy_bastion_lmg.glb",
+      "attach": "custom/wpn_heavy_bastion_lmg_attach.json",
+      "class": "rifle",
+      "track": "commando",
+      "label": "Bastion LMG",
+      "tier_hint": "A",
+      "scale": 1
+    },
+    {
+      "id": "wpn_launcher",
+      "glb": "custom/wpn_launcher_flare_net.glb",
+      "attach": "custom/wpn_launcher_flare_net_attach.json",
+      "class": "launcher",
+      "track": "commando",
+      "label": "Flare Net Launcher",
+      "tier_hint": "S",
+      "scale": 1
+    }
+  ]
+}

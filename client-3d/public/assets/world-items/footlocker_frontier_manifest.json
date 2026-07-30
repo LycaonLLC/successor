@@ -1,0 +1,53 @@
+{
+  "asset": "footlocker_frontier",
+  "atlas_px": 1024,
+  "bbox_max_m": [
+    0.5,
+    0.5220000147819519,
+    0.2929999828338623
+  ],
+  "bbox_min_m": [
+    -0.5,
+    0,
+    -0.28700003027915955
+  ],
+  "collision": {
+    "boxes": [
+      {
+        "id": "body",
+        "max": [
+          0.5,
+          0.52,
+          0.293
+        ],
+        "min": [
+          -0.5,
+          0.0,
+          -0.287
+        ]
+      }
+    ],
+    "note": "decorative trim never collides",
+    "space": "gltf-meters prop-local yaw-0"
+  },
+  "dims_m": {
+    "x": 1.0,
+    "y": 0.522,
+    "z": 0.58
+  },
+  "front_axis": "+Z",
+  "gate": "gate_result.json",
+  "glb_sha256": "f8bbc53ff96b0020466da861e6cdce2ac43090db6384d14e8656fa83a71e75ad",
+  "maps": [
+    "basecolor",
+    "normal(tangent)",
+    "orm(R=AO,G=rough,B=metal)",
+    "emissive"
+  ],
+  "material": "FootlockerFrontier_PBR",
+  "object": "footlocker_frontier",
+  "set": "camp_frontier_v1",
+  "tri_count": 436,
+  "units": "m",
+  "unlit_note": "runtime world grade is unlit; BaseColor has AO folded in and ember emissive screened on top"
+}

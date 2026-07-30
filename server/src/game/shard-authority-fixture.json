@@ -1,0 +1,140 @@
+{
+  "schema": "successor.slice.v1",
+  "tick": 24,
+  "tickRateHz": 30,
+  "zone": {
+    "id": 1,
+    "name": "Authority Fixture",
+    "width": 64,
+    "height": 36,
+    "level": 0
+  },
+  "areas": [
+    {
+      "id": "authority-test-overworld",
+      "name": "Authority Test Overworld",
+      "kind": "overworld",
+      "width": 64,
+      "height": 36,
+      "level": 0
+    },
+    {
+      "id": "authority-test-interior",
+      "name": "Authority Test Interior",
+      "kind": "public_interior",
+      "width": 20,
+      "height": 14,
+      "level": 0
+    }
+  ],
+  "stateHash": "server-authority-fixture-v1",
+  "actors": [
+    {
+      "id": "player",
+      "entity": "1:1",
+      "areaId": "authority-test-overworld",
+      "label": "Test Player",
+      "role": "player",
+      "sprite": "adventurer-premium-male",
+      "poseSet": "walk",
+      "direction": "right",
+      "cell": {
+        "x": 11,
+        "y": 17
+      },
+      "route": []
+    },
+    {
+      "id": "vendor",
+      "entity": "2:1",
+      "areaId": "authority-test-overworld",
+      "label": "Test Shopkeeper",
+      "role": "public_shopkeeper",
+      "sprite": "adventurer-premium-female",
+      "poseSet": "idle",
+      "direction": "front",
+      "cell": {
+        "x": 13,
+        "y": 17
+      },
+      "route": []
+    },
+    {
+      "id": "runner",
+      "entity": "3:1",
+      "areaId": "authority-test-overworld",
+      "label": "Test Scripted Actor",
+      "role": "scripted_player",
+      "sprite": "adventurer-premium-male",
+      "poseSet": "walk",
+      "direction": "right",
+      "cell": {
+        "x": 24,
+        "y": 22
+      },
+      "route": [
+        {
+          "x": 24,
+          "y": 22
+        },
+        {
+          "x": 28,
+          "y": 22
+        },
+        {
+          "x": 31,
+          "y": 21
+        },
+        {
+          "x": 28,
+          "y": 20
+        },
+        {
+          "x": 24,
+          "y": 21
+        }
+      ]
+    }
+  ],
+  "props": [],
+  "blockedCells": [],
+  "transitions": [
+    {
+      "id": "interior-to-overworld",
+      "label": "Exit Interior",
+      "style": "door",
+      "fromAreaId": "authority-test-interior",
+      "fromCell": {
+        "x": 10,
+        "y": 7
+      },
+      "triggerSize": {
+        "w": 1,
+        "h": 1
+      },
+      "toAreaId": "authority-test-overworld",
+      "toCell": {
+        "x": 20,
+        "y": 17
+      },
+      "toFacing": "right"
+    }
+  ],
+  "cloneFacilities": [
+    {
+      "id": "authority-cloner-main",
+      "label": "Authority Cloner",
+      "areaId": "authority-test-interior",
+      "respawnCell": {
+        "x": 10,
+        "y": 8
+      },
+      "respawnFacing": "front",
+      "sicknessDurationMs": 180000
+    }
+  ],
+  "inventory": [],
+  "reservations": [],
+  "npcJobs": [],
+  "events": []
+}

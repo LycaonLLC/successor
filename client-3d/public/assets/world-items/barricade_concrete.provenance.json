@@ -1,0 +1,58 @@
+{
+  "asset_id": "barricade_concrete",
+  "asset_path": "client-3d/public/assets/world-items/barricade_concrete.glb",
+  "asset_hash": "sha256:dfcdec624894ed6b74652f39074e62fbffd633817453a66a1c8bf9f8c67777d7",
+  "asset_kind": "model_glb",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "version": "5.2.0",
+    "tool_snapshot_id": "blender-5.2.0-fbe6228777e7"
+  },
+  "prompt": {
+    "text": "PBR texture upgrade of the hand-authored parametric concrete jersey barrier (no generative model). Geometry, names, pivots, grounding, and collision unchanged from lab.py builder. Baked 1024 atlas: aggregate concrete (speckle, light chips, grime streaks heavier near ground) replacing the flat gunmetal swatch on the body, oiled-iron rebar loops, worn/chipped hazard paint stripes over concrete. Maps: BaseColor (sRGB, gentle AO multiply), tangent Normal, packed ORM (R=AO, G=Roughness, B=Metallic). No emissive.",
+    "denylist_audit": "passed: no franchise/IP terms in names, materials, node names, or artifacts"
+  },
+  "seed": 0,
+  "request_id": null,
+  "input_assets": [
+    {
+      "path": "pawn-forge/tools/blender/world_items/lab.py (_build_barricade_concrete)",
+      "purpose": "canonical geometry source"
+    },
+    {
+      "path": "pawn-forge/pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/sten_cell_kiln/texture_kiln.py",
+      "purpose": "bake pipeline convention reference (Kiln PBR standard)"
+    }
+  ],
+  "human_edits": [],
+  "review": {
+    "art_director": "Main",
+    "approved_at": "2026-07-15T03:22:44Z",
+    "notes": "Approved after matched before/after multiview and unlit proofs, the all-green parsed-GLB gate, and final headed-runtime review in camp-footprint-pbr-final-20260715. Concrete variation, worn amber markings, and dark end hardware remain readable at game scale with no geometry regression. Runtime limitation: props.ts convertMaterial currently reads baseColor/emissive only (MeshBasicMaterial); normal/ORM remain authored and bound for a future lit-prop renderer."
+  },
+  "regeneration_command": "blender -b --factory-startup --python-exit-code 1 -P ../pawn-forge/tools/blender/run_world_items_pbr.py",
+  "tri_count": 244,
+  "gate_report": "pawn-forge/qa/world_items/reports/world_items_pbr_gate.json (all_green=true)",
+  "source_blend_or_script": "pawn-forge/tools/blender/world_items/texture_pbr.py (deterministic bake over lab.py builder; snapshot pawn-forge/blender/world_items_pbr_props.blend)",
+  "agent_provenance": {
+    "produced_by": [
+      {
+        "agent_instance_id": "LegacyPropPBR",
+        "run_id": "world_items_pbr_20260714",
+        "role": "content-author",
+        "provider": "anthropic",
+        "model": "claude-fable-5",
+        "started_at": "2026-07-15T01:45:00Z",
+        "completed_at": "2026-07-15T02:30:00Z"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "LegacyPropPBR",
+        "role": "judge",
+        "notes": "vision passes on matched before/after and unlit proofs; objective gate all_green"
+      }
+    ],
+    "human_approvals": []
+  }
+}

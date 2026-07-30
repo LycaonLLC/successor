@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Craft Window Smoke</title>
+    <style>
+      html, body, #app { width: 100%; height: 100%; margin: 0; }
+      body { overflow: hidden; background: #05070a; }
+      #diag { position: fixed; left: 8px; bottom: 8px; z-index: 99; color: #e4d7b4;
+              background: #0b0d10; border: 1px solid #2a2f36; padding: 6px; font: 11px monospace;
+              max-width: 55vw; white-space: pre-wrap; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <pre id="diag">…</pre>
+    <script type="module">
+      // CRAFT smoke — the four-phase window against the fixture arc, with a
+      // page-local stand-in for the session state machine (inventory-smoke
+      // pattern). Contracts stay §E; the live client binds the real port.
+      import "/src/styles.css";
+      import { applyThemeVariables } from "/src/ui/theme.ts";
+      import { initUiTheme, getUiTheme } from "/src/ui/uiTheme.ts";
+      import { loadRuntimeAssetBundle } from "/src/assets/runtimeAssets.ts";
+      import { createPlayState } from "@successor/client/src/slice-core/gameState";
+      import { createWindowManager } from "/src/ui/windows/windowManager.ts";
+      import { createContextRadial } from "/src/ui/windows/contextRadial.ts";
+      import { createCraftWindowDefinition } from "/src/ui/crafting/craftWindow.ts";
+      import { createDatapadWindowDefinition } from "/src/ui/windows/defs/datapadWindow.ts";
+      import {
+        ingestCraftRecipes,
+        ingestCraftRecipeDetail,
+        ingestCraftSession,
+        ingestCraftDrafts,
+      } from "/src/ui/crafting/store.ts";
+      import {
+        fixtureRecipes,
+        fixtureBatteryDetail,
+        fixtureSessionSlots,
+        fixtureSessionAssembled,
+        fixtureDrafts,
+      } from "/src/ui/crafting/fixtures.ts";
+
+      const diag = (msg) => { const el = document.getElementById('diag'); if (el) el.textContent = msg; };
+      try {
+        applyThemeVariables();
+        initUiTheme();
+        const app = document.getElementById("app");
+        const assets = await loadRuntimeAssetBundle();
+        const state = createPlayState(assets.slice, assets.rifleMuzzlePoints, assets.slice.camera.followActor);
+        // Field Multitool in the pack — arms the browser's tool gate.
+        const bag = `${state.playerActorId}:backpack`;
+        state.inventory.push({ container: bag, item: "Field Multitool", itemId: 3001, variantId: 0, quantity: 1, reserved: 0, available: 1 });
+
+        ingestCraftRecipes(fixtureRecipes());
+        ingestCraftRecipeDetail(fixtureBatteryDetail());
+        ingestCraftDrafts(fixtureDrafts());
+
+        // Page-local session machine over the fixtures: every port call is a
+        // pretend-accepted command that moves the store the way the sim would.
+        let session = null;
+        let drafts = fixtureDrafts();
+        const syncAssemble = () => {
+          if (!session?.slotScreen) return;
+          session.slotScreen.canAssemble = session.slotScreen.slots.every((slot) => slot.assigned !== null);
+        };
+        const port = {
+          begin(recipeId) {
+            if (session) return false;
+            session = fixtureSessionSlots();
+            session.recipeId = recipeId;
+            ingestCraftSession(session);
+            return true;
+          },
+          assignSlot(slotIndex, container, stackId, variantId) {
+            const slot = session?.slotScreen?.slots.find((candidate) => candidate.slotIndex === slotIndex);
+            if (!slot) return false;
+            slot.assigned = { container, stackId, variantId };
+            syncAssemble();
+            ingestCraftSession(session);
+            return true;
+          },
+          clearSlot(slotIndex) {
+            const slot = session?.slotScreen?.slots.find((candidate) => candidate.slotIndex === slotIndex);
+            if (!slot) return false;
+            slot.assigned = null;
+            syncAssemble();
+            ingestCraftSession(session);
+            return true;
+          },
+          assemble() {
+            if (!session?.slotScreen?.canAssemble) return false;
+            session = fixtureSessionAssembled();
+            ingestCraftSession(session);
+            return true;
+          },
+          experiment(lineId, points) {
+            const assembled = session?.assembled;
+            if (!assembled || assembled.experimentationPointsRemaining < points) return false;
+            const line = assembled.lines.find((candidate) => candidate.lineId === lineId);
+            if (!line || !line.canRaise) return false;
+            line.valueMilli = Math.min(line.capMilli, line.valueMilli + points * 35);
+            line.canRaise = line.valueMilli < line.capMilli;
+            assembled.experimentationPointsRemaining -= points;
+            ingestCraftSession(session);
+            return true;
+          },
+          finalizePrototype(customName) {
+            if (!session?.assembled) return false;
+            // Mock of the authority name rule: trimmed 1–48 chars, empty
+            // falls back to the canonical recipe name server-side.
+            if (typeof customName !== "string" || customName.length > 48) return false;
+            session = null;
+            ingestCraftSession(null);
+            return true;
+          },
+          finalizePractice() {
+            // Practice: materials already spent by assembly, no item, no
+            // draft — the session just clears (rounded 105% XP is server-side).
+            if (!session?.assembled) return false;
+            session = null;
+            ingestCraftSession(null);
+            return true;
+          },
+          draftSchematic(maxUses) {
+            const assembled = session?.assembled;
+            if (!assembled) return false;
+            drafts = [{
+              schematicId: `schematic:smoke:${Date.now()}`,
+              recipeId: assembled.recipeId,
+              name: "Extractor Battery",
+              outputItemId: 3201,
+              outputVariantId: assembled.outputPreviewVariantId,
+              maxUses,
+              remainingUses: maxUses,
+              resourceLocks: [
+                { itemId: 2007, variantId: 220431, quantity: 24, name: "Daxmire Copper" },
+                { itemId: 2001, variantId: 210218, quantity: 12, name: "Daxmire Iron" },
+                { itemId: 2009, variantId: 47214220, quantity: 12, name: "Fuel" },
+              ],
+              statLines: assembled.lines.map((line) => ({ label: line.label, valueMilli: line.valueMilli })),
+            }, ...drafts];
+            ingestCraftDrafts(drafts);
+            session = null;
+            ingestCraftSession(null);
+            return true;
+          },
+          cancel() {
+            if (!session) return false;
+            session = null;
+            ingestCraftSession(null);
+            return true;
+          },
+        };
+
+        const windowManager = createWindowManager({ mount: app, state, slice: assets.slice });
+        const radial = createContextRadial(windowManager.root);
+        windowManager.register(createCraftWindowDefinition({ commands: port }));
+        windowManager.register(createDatapadWindowDefinition({ radial }));
+        windowManager.open("craft");
+
+        let last = performance.now();
+        let frameErr = null;
+        const frame = (time) => {
+          if (frameErr) return;
+          try {
+            const dt = (time - last) / 1000; last = time;
+            windowManager.update(dt, time);
+          } catch (e) { frameErr = e; diag('FRAME ERROR: ' + (e && e.stack || e)); }
+          requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+        diag('CRAFT SMOKE · theme=' + getUiTheme() + ' · G toggles craft, P datapad');
+        window.__craftSmoke = { windowManager, port, state };
+      } catch (err) {
+        diag('SMOKE ERROR: ' + (err && err.stack || err));
+      }
+    </script>
+  </body>
+</html>

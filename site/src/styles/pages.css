@@ -1,0 +1,448 @@
+/* ---- Inner pages (account, connect, play, download, legal, alpha, roadmap) ----
+   Calm work surfaces under the same neutral monochrome chrome. */
+
+.page-head {
+  padding-block: clamp(2.5rem, 6vw, 4rem) 0;
+  position: relative;
+}
+
+.page-head::before {
+  content: "";
+  display: block;
+  width: 2rem;
+  height: 2px;
+  margin-bottom: 1.25rem;
+  background: var(--active-border);
+  box-shadow: 0 0 12px var(--edge-glow);
+}
+
+.page-head h1 {
+  font-size: var(--step-4);
+  margin-top: 0;
+}
+
+.page-head .lede {
+  margin-top: 1rem;
+  font-size: var(--step-2);
+  line-height: 1.45;
+  color: var(--dust);
+}
+
+.page-section {
+  margin-top: clamp(2.5rem, 6vw, 4.25rem);
+}
+
+.page-section h2 {
+  font-size: var(--step-3);
+  margin-bottom: 1rem;
+}
+
+.page-section .prose {
+  color: var(--dust);
+}
+
+.page-section .prose strong,
+.page-section .prose a {
+  color: var(--chalk);
+}
+
+.page-section .prose a:hover {
+  color: var(--link-hover);
+}
+
+.bench-pair {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 56rem) {
+  .bench-pair {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.panel h2 {
+  font-size: 1.375rem;
+}
+
+.panel > p {
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  color: var(--dust);
+}
+
+.panel form {
+  margin-top: 1.375rem;
+}
+
+.panel-form {
+  margin-top: 1.5rem;
+}
+
+.panel-form h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.panel-form .form-grid {
+  margin-top: 1rem;
+}
+
+[data-requires-session][data-session-state="unknown"] .session-gated,
+[data-requires-session][data-session-state="none"] .session-gated {
+  display: none;
+}
+
+noscript .note {
+  margin-top: 2rem;
+}
+
+/* Legal prose */
+.legal-body {
+  max-width: var(--text-max);
+  margin-top: 2rem;
+}
+
+.legal-body h2 {
+  font-size: var(--step-3);
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.legal-body p,
+.legal-body li {
+  color: var(--dust);
+}
+
+.legal-body strong {
+  color: var(--chalk);
+}
+
+.legal-body ul {
+  padding-left: 1.25rem;
+  margin: 0.75rem 0;
+}
+
+.legal-body li + li {
+  margin-top: 0.5rem;
+}
+
+.legal-meta {
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  color: var(--dust);
+}
+
+/* Account workbench densifies under the stage. */
+body[data-page="account"] .page-head {
+  padding-block: clamp(1.5rem, 3vw, 2.25rem) 0;
+}
+
+body[data-page="account"] .page-head h1 {
+  font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+}
+
+body[data-page="account"] .page-head .lede {
+  margin-top: 0.75rem;
+  font-size: 1.0625rem;
+}
+
+body[data-page="account"] .page-section {
+  margin-top: 1.5rem;
+}
+
+body[data-page="account"] .panel {
+  padding: 1.25rem;
+}
+
+body[data-page="account"] .panel form {
+  margin-top: 1rem;
+}
+
+body[data-page="account"] .panel > p {
+  margin-top: 0.5rem;
+}
+
+body[data-page="account"] .field {
+  gap: 0.25rem;
+}
+
+body[data-page="account"] .field .hint {
+  font-size: 0.78125rem;
+}
+
+body[data-page="account"] .check-field {
+  font-size: 0.875rem;
+}
+
+body[data-page="account"] .panel .form-actions {
+  margin-top: 1rem;
+}
+
+/* ---- Runtime stages ----
+   The client owns the surface, the site owns the rim. */
+
+body[data-page="play"] {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* In full view the authenticated client owns the browser viewport. The small
+   parent-level exit control remains above the cross-origin frame. */
+body[data-page="play"][data-play-state="live"][data-play-view="full"] {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  padding: 0;
+}
+
+body[data-page="play"][data-play-state="live"][data-play-view="full"] > .skip-link,
+body[data-page="play"][data-play-state="live"][data-play-view="full"] > .topbar,
+body[data-page="play"][data-play-state="live"][data-play-view="full"] > .site-foot {
+  display: none;
+}
+
+body[data-page="play"][data-play-state="live"][data-play-view="full"] .play-main {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  flex: none;
+}
+
+body[data-page="play"][data-play-state="live"][data-play-view="full"] .game-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+/* A validated roster/workshop handoff goes straight through this neutral
+   loading surface; the character-picker panel never flashes between the
+   player's ENTER action and the game client. */
+body[data-page="play"][data-play-state="launching"][data-play-view="full"] {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  padding: 0;
+}
+
+body[data-page="play"][data-play-state="launching"][data-play-view="full"] > .skip-link,
+body[data-page="play"][data-play-state="launching"][data-play-view="full"] > .topbar,
+body[data-page="play"][data-play-state="launching"][data-play-view="full"] > .site-foot {
+  display: none;
+}
+
+body[data-page="play"][data-play-state="launching"][data-play-view="full"] .play-main {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  flex: none;
+}
+
+body[data-page="play"][data-play-state="launching"][data-play-view="full"] .game-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+.play-main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  min-height: calc(100vh - var(--topbar-h));
+  min-height: calc(100dvh - var(--topbar-h));
+  background: var(--frame);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.stage-panel {
+  width: min(100% - 2 * var(--gutter), 30rem);
+  margin-inline: auto;
+  padding-block: clamp(1.5rem, 4vh, 3.5rem);
+  display: grid;
+  gap: 1.25rem;
+}
+
+.stage-panel h1 {
+  font-size: var(--step-4);
+}
+
+.stage-lede {
+  color: var(--dust);
+}
+
+.stage-hint {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--dust);
+}
+
+.game-stage[data-stage-state="live"] .stage-panel,
+.game-stage[data-stage-state="launching"] .stage-panel {
+  visibility: hidden;
+}
+
+.game-stage[data-stage-state="launching"]::after {
+  content: "OPENING WORLD…";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--dust);
+  font: 700 0.75rem/1 var(--font-body);
+  letter-spacing: 0.12em;
+}
+
+.play-frame-controls {
+  position: absolute;
+  z-index: var(--z-head);
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  display: none;
+}
+
+.game-stage[data-stage-state="live"] .play-frame-controls {
+  display: flex;
+}
+
+.play-frame-control {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--seam);
+  border-radius: 0;
+  background: var(--frame-2);
+  color: var(--chalk);
+  font: 700 0.875rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.play-frame-control:hover {
+  border-color: var(--active-border);
+  background: var(--frame-3);
+}
+
+.play-frame-control:active {
+  background: var(--primary);
+  color: var(--primary-ink);
+}
+
+body[data-play-view="full"] #play-frame-enter,
+body[data-play-view="framed"] #play-frame-exit {
+  display: none;
+}
+
+body[data-page="play"][data-play-state="live"][data-play-view="framed"] {
+  overflow: hidden;
+  cursor: auto;
+}
+
+.stage-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--frame);
+}
+
+.creator-stage {
+  position: relative;
+  width: 100%;
+  min-height: calc(100vh - var(--topbar-h));
+  min-height: calc(100dvh - var(--topbar-h));
+  background: var(--frame);
+  border-block-end: 1px solid var(--seam);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.stage-caption {
+  margin-block: 1.25rem 0;
+  max-width: var(--text-max);
+  color: var(--dust);
+}
+
+body[data-page="account"][data-session-state="active"] .account-intro {
+  display: none;
+}
+
+.stage-veil {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-content);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 2rem var(--gutter);
+  text-align: center;
+  background: var(--frame);
+}
+
+.creator-stage[data-stage-state="live"] .stage-veil {
+  display: none;
+}
+
+.creator-stage[data-stage-state="unavailable"] .stage-mark {
+  display: none;
+}
+
+/* Neutral pulse while the client wakes. */
+.stage-mark {
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--control-active);
+  box-shadow: 0 0 14px var(--edge-glow);
+  animation: stage-breathe 1.8s var(--ease-out) infinite;
+}
+
+@keyframes stage-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.stage-status {
+  max-width: 38ch;
+  color: var(--dust);
+}
+
+.stage-status:empty {
+  display: none;
+}

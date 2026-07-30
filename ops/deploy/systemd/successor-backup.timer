@@ -1,0 +1,12 @@
+[Unit]
+Description=Scheduled Successor shard state backup
+
+[Timer]
+OnBootSec=5m
+OnUnitActiveSec=BACKUP_INTERVAL_MINUTESm
+Persistent=true
+RandomizedDelaySec=15m
+Unit=successor-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,201 @@
+{
+  "note": "Provenance ledger for every media asset the site serves. Regenerate optimized copies with scripts/import-media.mjs. Slots marked pending render an honest fallback, never stock or staged gameplay.",
+  "sources": {
+    "ownerCaptureLane": {
+      "root": "source://owner-capture-lane/",
+      "sourceCommit": "8e1ed520",
+      "capturedAt": "2026-07-24",
+      "notes": "Local Rust authority ready; outfit matched authority; own nameplate clean."
+    },
+    "verificationFarm": {
+      "root": "verification/ledgers/artifacts/client3d/",
+      "run": "verify-full-1784899243000",
+      "capturedAt": "2026-07-24",
+      "notes": "client-3d journey proofs of the integrated build; honest HUD, probe callsigns."
+    },
+    "cinematicReelCaptures": {
+      "root": "~/media/video/recordings/obs/",
+      "sourceClips": [
+        {
+          "source": "~/media/video/recordings/obs/2026-07-18 10-58-06.mp4",
+          "startSec": 18,
+          "endSec": 22.3,
+          "sha256": "60b843c1ad7da7092b0509a0f92ec3257d1f3126f8b6729bd51fa38e3649d824",
+          "beat": "world-scale/travel"
+        },
+        {
+          "source": "~/media/video/recordings/obs/2026-07-17 21-47-21-under-500mb.mp4",
+          "startSec": 135,
+          "endSec": 139.2,
+          "sha256": "d218726263301e63ba97f57708ae29773956245a745d85fe9ed9e08c9e9bf5eb",
+          "beat": "player identity/loadout"
+        },
+        {
+          "source": "~/media/video/recordings/obs/2026-07-17 21-47-21-under-500mb.mp4",
+          "startSec": 228,
+          "endSec": 232.8,
+          "sha256": "d218726263301e63ba97f57708ae29773956245a745d85fe9ed9e08c9e9bf5eb",
+          "beat": "combat/recovery"
+        },
+        {
+          "source": "~/media/video/recordings/obs/2026-07-15 08-15-51.mp4",
+          "startSec": 175,
+          "endSec": 179.5,
+          "sha256": "48a49d0c8aef997f62ad840fef7248baaa847a48a5d81c6574c857dd88d6cc99",
+          "beat": "datapad/system UI"
+        },
+        {
+          "source": "~/media/video/recordings/obs/2026-07-14 18-42-31.mp4",
+          "startSec": 28,
+          "endSec": 32.5,
+          "sha256": "b03b793605993828a02a59d0a055a19b60d83d896dc57cb202e876875365360d",
+          "beat": "camp-kit crafting"
+        }
+      ],
+      "masters": {
+        "desktop": "~/media/video/successor-site/masters/cinematic-reel-desktop-master.mp4",
+        "mobile": "~/media/video/successor-site/masters/cinematic-reel-mobile-master.mp4"
+      },
+      "provenance": "~/media/video/successor-site/masters/cinematic-reel-provenance.json",
+      "recipe": "~/media/video/successor-site/scripts/encode-cinematic-reel.mjs",
+      "assembledAt": "2026-07-28",
+      "notes": "22.3-second silent hard-cut reel from five real OBS motion segments: travel, live inventory/loadout, combat, datapad UI, and camp-kit crafting."
+    },
+    "terminalRenderer": {
+      "root": "client-tui/src/panes/__snapshots__/frame.test.ts.snap",
+      "sourceCommit": "77198e88",
+      "capturedAt": "2026-07-28",
+      "notes": "Actual 80x24 client-tui frame fixture, embedded as selectable text at its native proportions."
+    }
+  },
+  "slots": [
+    {
+      "id": "identity-hero-desktop",
+      "status": "available",
+      "files": [
+        "/media/cinematic-reel-desktop.mp4",
+        "/media/cinematic-reel-desktop.webm",
+        "/media/cinematic-poster-desktop.webp"
+      ],
+      "poster": "/media/cinematic-poster-desktop.webp",
+      "source": "~/media/video/recordings/obs/",
+      "reusableMaster": "~/media/video/successor-site/masters/cinematic-reel-desktop-master.mp4",
+      "provenance": "cinematicReelCaptures",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "durationSeconds": 22.3,
+      "contentType": "video/mp4, video/webm",
+      "note": "Desktop cinematic hero reel (22.3s, muted real OBS montage). Poster stays under the playing video and is the reduced-motion/failure fallback."
+    },
+    {
+      "id": "identity-hero-mobile",
+      "status": "available",
+      "files": [
+        "/media/cinematic-reel-mobile.mp4",
+        "/media/cinematic-reel-mobile.webm",
+        "/media/cinematic-poster-mobile.webp"
+      ],
+      "poster": "/media/cinematic-poster-mobile.webp",
+      "source": "~/media/video/recordings/obs/",
+      "reusableMaster": "~/media/video/successor-site/masters/cinematic-reel-mobile-master.mp4",
+      "provenance": "cinematicReelCaptures",
+      "dimensions": {
+        "width": 1080,
+        "height": 1920
+      },
+      "durationSeconds": 22.3,
+      "contentType": "video/mp4, video/webm",
+      "note": "Mobile cinematic hero reel (22.3s, muted real OBS montage). Poster stays under the playing video and is the reduced-motion/failure fallback."
+    },
+    {
+      "id": "home-hero-wide",
+      "status": "available",
+      "files": [
+        "/media/hero-dustgate-1600.webp",
+        "/media/hero-dustgate-960.webp",
+        "/media/hero-dustgate-640.webp"
+      ],
+      "source": "source://owner-capture-lane/02-occupied-dustgate-1600x1000.png",
+      "provenance": "ownerCaptureLane",
+      "note": "The occupied Dustgate shelter with full honest HUD, serving as the late full-HUD proof."
+    },
+    {
+      "id": "home-crossing-open",
+      "status": "available",
+      "files": [
+        "/media/crossing-1520.webp",
+        "/media/crossing-760.webp"
+      ],
+      "source": "source://owner-capture-lane/03-open-travel-environment-1600x1000.png",
+      "provenance": "ownerCaptureLane",
+      "note": "Deliberate 1520x640+10+215 band crop: open ground with no HUD panel sliced at any edge."
+    },
+    {
+      "id": "home-moment-craft",
+      "status": "available",
+      "files": [
+        "/media/craft-camp-kit-1200.webp",
+        "/media/craft-camp-kit-640.webp"
+      ],
+      "source": "verification/ledgers/artifacts/client3d/verify-full-1784899243000-3d--camp-a0/proofs/h3d-camp-04-camp-kit-crafted.png",
+      "provenance": "verificationFarm"
+    },
+    {
+      "id": "home-moment-downed",
+      "status": "available",
+      "files": [
+        "/media/downed-recovery-1200.webp",
+        "/media/downed-recovery-640.webp"
+      ],
+      "source": "verification/ledgers/artifacts/client3d/verify-full-1784899243000-3d--revive-a0/proofs/h3d-revive-01-downed.png",
+      "provenance": "verificationFarm"
+    },
+    {
+      "id": "home-terminal-tui",
+      "status": "available",
+      "inline": true,
+      "source": "client-tui/src/panes/__snapshots__/frame.test.ts.snap",
+      "provenance": "terminalRenderer",
+      "note": "Real 80x24 TUI output, plus the matching original opening crawl."
+    },
+    {
+      "id": "audio-old-intro",
+      "status": "available",
+      "files": [
+        "/audio/old-intro-charcreate.mp3"
+      ],
+      "source": "source://successor-client-audio/sfx/music_menu_charcreate_loop.mp3",
+      "losslessSource": "source://successor-source-assets/audio/OST/suno/originals-pack/CharacterCreatorMusic.wav",
+      "ratification": "source://successor-source-assets/audio/OST/RATIFIED.md",
+      "note": "Copied byte-for-byte; ratified audio is never re-encoded."
+    }
+  ],
+  "reviewedNotUsed": [
+    {
+      "source": "source://owner-capture-lane/01-pawn-ancient-structure-1600x1000.png",
+      "reason": "Same spawn-shelter composition as 02; the occupied Dustgate frame carries the hero."
+    },
+    {
+      "source": "source://owner-capture-lane/05-danger-recovery-moment-1600x1000.png",
+      "reason": "Shows a calm full-vitals scene; the INCAPACITATED verification proof is the honest defeat evidence."
+    },
+    {
+      "source": "source://owner-capture-lane/07-tui-same-world-transcript.txt",
+      "reason": "Subset of the full TUI frame dump already rendered verbatim."
+    },
+    {
+      "source": "source://owner-capture-lane/06-mobile-game-surface-390x844.png",
+      "reason": "Retired: a narrow graphical capture was misleadingly presented as the terminal client."
+    },
+    {
+      "source": "source://owner-capture-lane/04-inventory-truth-moment-1600x1000.png",
+      "reason": "Retired from the launch route so the browser client owns the full viewport without supporting copy below it."
+    },
+    {
+      "source": "source://owner-capture-lane/portrait-source.png",
+      "reason": "Owner rejected the decorative braille portrait; the site ships gameplay evidence only."
+    }
+  ]
+}

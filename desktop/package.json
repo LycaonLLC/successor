@@ -1,0 +1,25 @@
+{
+  "name": "@successor/desktop",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "build": "node scripts/build-desktop.mjs",
+    "check": "node --check src/main.mjs && node --check src/server-runtime.mjs && node --check src/state-lock-supervisor.mjs && node --check src/log-sink.mjs && node --check src/preload.cjs && node --check src/hosted-mode.mjs && node --check src/hosted-auth.mjs && node --check src/hosted-session.mjs && node --check src/hosted-bridge.mjs && node --check src/hosted-net-policy.mjs && node --check src/credential-store.mjs && node --check src/shell/connect.mjs && node --check scripts/build-desktop.mjs && node --check scripts/aggregate-release-manifest.mjs && node --check scripts/verify-key-ownership.mjs && node --check scripts/hosted-smoke.mjs",
+    "test": "node --test test/*.test.mjs",
+    "smoke:hosted": "node scripts/hosted-smoke.mjs",
+    "release:manifest": "node scripts/aggregate-release-manifest.mjs",
+    "verify:key-ownership": "node scripts/verify-key-ownership.mjs"
+  },
+  "dependencies": {
+    "electron": "42.2.0"
+  },
+  "devDependencies": {
+    "@successor/client": "workspace:*",
+    "@successor/client-3d": "workspace:*",
+    "@playwright/test": "^1.59.1"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "combat-roll-cancel-reload-realtime-race",
+  "fixture": "open-desert-roll-realtime-race",
+  "lanes": ["realtime"],
+  "matrixLanes": ["realtime"],
+  "realtimeReason": "Combat repeat drain, cancellation, and reload completion are ordered by the live authority clock and must not be proven with manual advancement.",
+  "tags": ["race"],
+  "actors": {
+    "alpha": { "character": "fixture:ranger" }
+  },
+  "steps": [
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "rt-roll-target", "match": { "lifeState": "alive" } }, "timeoutMs": 10000, "as": "targetAlive" } },
+    { "send": { "actor": "alpha", "line": "/set-equipped-weapon slugthrower 3101", "as": "equipSlugthrower" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.equipSlugthrower.data.commandId", "commandKind": "SetEquippedWeapon", "accepted": true }, "timeoutMs": 10000, "as": "equipReceipt" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "player", "match": { "weapon.weaponId": "slugthrower", "weapon.ammoType": "slug_iron", "weapon.loadedRounds": 30 } }, "timeoutMs": 10000, "as": "armed" } },
+    { "send": { "actor": "alpha", "line": "/target rt-roll-target", "as": "targetRollActor" } },
+    { "send": { "actor": "alpha", "line": "/attack", "as": "queueRepeat" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.queueRepeat.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 10000, "as": "queueReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "ability_queue", "match": { "data.event.lifecycle": "fired", "data.event.abilityId": "basic_shot" }, "timeoutMs": 25000, "as": "firstQueueDrain" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "combat", "match": { "data.event.shooterActorId": "player", "data.event.targetActorId": "rt-roll-target", "data.event.weaponId": "slugthrower", "data.event.ammoTypeId": "slug_iron", "data.event.actionId": "basic_shot", "data.event.damage": { "op": "gt", "value": 0 } }, "timeoutMs": 25000, "as": "firstRollCombat" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "player", "match": { "weapon.loadedRounds": { "op": "lt", "value": 30 } } }, "timeoutMs": 10000, "as": "burstDrained" } },
+
+    { "send": { "actor": "alpha", "line": "/peace", "as": "cancelRepeat", "alignTick": false } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.cancelRepeat.data.commandId", "commandKind": "Peace", "accepted": true }, "timeoutMs": 10000, "as": "cancelReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "ability_queue", "match": { "data.event.lifecycle": "dismissed", "data.event.abilityId": "basic_shot" }, "timeoutMs": 10000, "as": "repeatDismissed" } },
+    { "send": { "actor": "alpha", "line": "/reload Slugthrower SlugIron", "as": "reloadAfterCancel", "alignTick": false } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.reloadAfterCancel.data.commandId", "commandKind": "ReloadWeapon", "accepted": true }, "timeoutMs": 10000, "as": "reloadReceipt" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "player", "match": { "weapon.reloadRemainingTicks": { "op": "gt", "value": 0 } } }, "timeoutMs": 10000, "as": "reloadStarted" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "player", "match": { "weapon.reloadRemainingTicks": 0, "weapon.loadedRounds": 30 } }, "timeoutMs": 15000, "as": "reloadCompleted" } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "event", "match": { "event": "combat", "data.event.shooterActorId": "player", "data.event.targetActorId": "rt-roll-target" }, "op": "eq", "value": 6 } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "event", "match": { "event": "ability_queue", "data.event.lifecycle": "dismissed", "data.event.abilityId": "basic_shot" }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "receipt", "match": { "commandKind": "QueueCombatAction", "accepted": true }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "receipt", "match": { "commandKind": "Peace", "accepted": true }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "receipt", "match": { "commandKind": "ReloadWeapon", "accepted": true }, "op": "eq", "value": 1 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "combatRollRaceHash" } }
+  ],
+  "notes": "A fixture-provisioned Slugthrower queues one real basic-shot repeat. The transcript requires accepted queue receipt, FIRED ability event, and one six-event roll burst before the unaligned Peace receipt. Exactly one dismissal then gates an accepted reload, observed reload interval, full magazine completion, and no second roll burst."
+}

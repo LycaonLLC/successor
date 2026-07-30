@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "aircon_rooftop",
+  "label": "Rooftop Cooling Unit",
+  "kind": "world_prop",
+  "glb": "aircon_rooftop.glb",
+  "source_pack": "full-spectrum-wave-20260720",
+  "source_fbx": "props/successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/source/infra_141.blend",
+  "source_path": "props/successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/assets/infra_141.glb",
+  "content_hash_sha256": "ece6e1d5ef6ada9cf975130772ff0e2935363ab2de83cd8018c0b263c652effe",
+  "triangles": 4068,
+  "vertices": 2152,
+  "mesh_nodes": 4,
+  "materials": 4,
+  "bbox_gltf_m": { "min": [-0.275, 0, -0.193], "max": [0.275, 0.468, 0.1968], "size": [0.55, 0.468, 0.3898] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/props/successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/reports/infra_141.json (validation_pass true)",
+  "source_report": "props/successor/full-spectrum-wave-20260720/infrastructure-computing/parent-reset-01/reports/infra_141.json",
+  "validation_pass": true
+}

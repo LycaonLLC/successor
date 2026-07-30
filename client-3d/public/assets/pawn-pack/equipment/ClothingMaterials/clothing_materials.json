@@ -1,0 +1,271 @@
+{
+ "schemaVersion": 1,
+ "purpose": "PawnForgeV2 clothing fabric material packs (monotone; pattern-focused) for Three.js MeshStandardMaterial.",
+ "default": "cotton_jersey",
+ "materials": [
+  {
+   "id": "cotton_jersey",
+   "name": "Cotton jersey",
+   "description": "fine smooth knit, soft low relief",
+   "color": "#8f8f93",
+   "maps": {
+    "baseColor": "ClothingMaterials/cotton_jersey_baseColor.png",
+    "normal": "ClothingMaterials/cotton_jersey_normal.png",
+    "roughness": "ClothingMaterials/cotton_jersey_roughness.png",
+    "metalness": "ClothingMaterials/cotton_jersey_metalness.png"
+   },
+   "metalness": 0,
+   "roughness": 0.86,
+   "normalScale": 0.85,
+   "envMapIntensity": 0.6,
+   "shading": "standard",
+   "repeat": [
+    4,
+    4
+   ]
+  },
+  {
+   "id": "denim_twill",
+   "name": "Denim twill",
+   "description": "diagonal twill weave, medium relief",
+   "color": "#8f8f93",
+   "maps": {
+    "baseColor": "ClothingMaterials/denim_twill_baseColor.png",
+    "normal": "ClothingMaterials/denim_twill_normal.png",
+    "roughness": "ClothingMaterials/denim_twill_roughness.png",
+    "metalness": "ClothingMaterials/denim_twill_metalness.png"
+   },
+   "metalness": 0,
+   "roughness": 0.8,
+   "normalScale": 1.2,
+   "envMapIntensity": 0.6,
+   "shading": "standard",
+   "repeat": [
+    4,
+    4
+   ]
+  },
+  {
+   "id": "canvas_duck",
+   "name": "Canvas duck",
+   "description": "coarse plain-weave canvas, strong relief",
+   "color": "#8f8f93",
+   "maps": {
+    "baseColor": "ClothingMaterials/canvas_duck_baseColor.png",
+    "normal": "ClothingMaterials/canvas_duck_normal.png",
+    "roughness": "ClothingMaterials/canvas_duck_roughness.png",
+    "metalness": "ClothingMaterials/canvas_duck_metalness.png"
+   },
+   "metalness": 0,
+   "roughness": 0.9,
+   "normalScale": 1.1,
+   "envMapIntensity": 0.6,
+   "shading": "standard",
+   "repeat": [
+    4,
+    4
+   ]
+  },
+  {
+   "id": "ribbed_knit",
+   "name": "Ribbed knit",
+   "description": "vertical ribbed knit, regular ridges",
+   "color": "#8f8f93",
+   "maps": {
+    "baseColor": "ClothingMaterials/ribbed_knit_baseColor.png",
+    "normal": "ClothingMaterials/ribbed_knit_normal.png",
+    "roughness": "ClothingMaterials/ribbed_knit_roughness.png",
+    "metalness": "ClothingMaterials/ribbed_knit_metalness.png"
+   },
+   "metalness": 0,
+   "roughness": 0.84,
+   "normalScale": 1.25,
+   "envMapIntensity": 0.6,
+   "shading": "standard",
+   "repeat": [
+    4,
+    4
+   ]
+  },
+  {
+   "id": "corduroy",
+   "name": "Corduroy",
+   "description": "wide-wale corduroy, bold vertical ridges",
+   "color": "#8f8f93",
+   "maps": {
+    "baseColor": "ClothingMaterials/corduroy_baseColor.png",
+    "normal": "ClothingMaterials/corduroy_normal.png",
+    "roughness": "ClothingMaterials/corduroy_roughness.png",
+    "metalness": "ClothingMaterials/corduroy_metalness.png"
+   },
+   "metalness": 0,
+   "roughness": 0.82,
+   "normalScale": 1.2,
+   "envMapIntensity": 0.6,
+   "shading": "standard",
+   "repeat": [
+    4,
+    4
+   ]
+  },
+  {
+   "id": "wool_felt",
+   "name": "Wool felt",
+   "description": "matte felted wool, fuzzy fine grain",
+   "color": "#8f8f93",
+   "maps": {
+    "baseColor": "ClothingMaterials/wool_felt_baseColor.png",
+    "normal": "ClothingMaterials/wool_felt_normal.png",
+    "roughness": "ClothingMaterials/wool_felt_roughness.png",
+    "metalness": "ClothingMaterials/wool_felt_metalness.png"
+   },
+   "metalness": 0,
+   "roughness": 0.95,
+   "normalScale": 0.9,
+   "envMapIntensity": 0.6,
+   "shading": "standard",
+   "repeat": [
+    4,
+    4
+   ]
+  },
+  {
+   "id": "pebbled_leather",
+   "name": "Pebbled leather",
+   "description": "soft pebbled leather grain",
+   "color": "#8f8f93",
+   "maps": {
+    "baseColor": "ClothingMaterials/pebbled_leather_baseColor.png",
+    "normal": "ClothingMaterials/pebbled_leather_normal.png",
+    "roughness": "ClothingMaterials/pebbled_leather_roughness.png",
+    "metalness": "ClothingMaterials/pebbled_leather_metalness.png"
+   },
+   "metalness": 0,
+   "roughness": 0.66,
+   "normalScale": 0.8,
+   "envMapIntensity": 0.6,
+   "shading": "standard",
+   "repeat": [
+    4,
+    4
+   ]
+  },
+  {
+   "id": "hair_raven",
+   "name": "Raven black",
+   "description": "hair color preset (flat; assign via manifest mat)",
+   "color": "#1d1b22",
+   "metalness": 0,
+   "roughness": 0.62,
+   "normalScale": 0,
+   "envMapIntensity": 0.35,
+   "shading": "standard"
+  },
+  {
+   "id": "hair_ink",
+   "name": "Ink blue-black",
+   "description": "hair color preset (flat; assign via manifest mat)",
+   "color": "#232134",
+   "metalness": 0,
+   "roughness": 0.62,
+   "normalScale": 0,
+   "envMapIntensity": 0.35,
+   "shading": "standard"
+  },
+  {
+   "id": "hair_umber",
+   "name": "Dark umber",
+   "description": "hair color preset (flat; assign via manifest mat)",
+   "color": "#3a2a1a",
+   "metalness": 0,
+   "roughness": 0.62,
+   "normalScale": 0,
+   "envMapIntensity": 0.35,
+   "shading": "standard"
+  },
+  {
+   "id": "hair_chestnut",
+   "name": "Chestnut",
+   "description": "hair color preset (flat; assign via manifest mat)",
+   "color": "#5a3a22",
+   "metalness": 0,
+   "roughness": 0.62,
+   "normalScale": 0,
+   "envMapIntensity": 0.35,
+   "shading": "standard"
+  },
+  {
+   "id": "hair_ash_blonde",
+   "name": "Ash blonde",
+   "description": "hair color preset (flat; assign via manifest mat)",
+   "color": "#b3a077",
+   "metalness": 0,
+   "roughness": 0.62,
+   "normalScale": 0,
+   "envMapIntensity": 0.35,
+   "shading": "standard"
+  },
+  {
+   "id": "hair_silver",
+   "name": "Silver",
+   "description": "hair color preset (flat; assign via manifest mat)",
+   "color": "#b9bcc4",
+   "metalness": 0,
+   "roughness": 0.62,
+   "normalScale": 0,
+   "envMapIntensity": 0.35,
+   "shading": "standard"
+  },
+  {
+   "id": "hair_crimson",
+   "name": "Crimson",
+   "description": "hair color preset (flat; assign via manifest mat)",
+   "color": "#7a2330",
+   "metalness": 0,
+   "roughness": 0.62,
+   "normalScale": 0,
+   "envMapIntensity": 0.35,
+   "shading": "standard"
+  },
+  {
+   "id": "hair_auburn",
+   "name": "Auburn",
+   "color": "#6e3a24"
+  },
+  {
+   "id": "hair_honey",
+   "name": "Honey",
+   "color": "#9a7440"
+  },
+  {
+   "id": "hair_steel",
+   "name": "Steel gray",
+   "color": "#7c8088"
+  },
+  {
+   "id": "hair_moss",
+   "name": "Moss",
+   "color": "#4f6842"
+  },
+  {
+   "id": "hair_teal",
+   "name": "Teal",
+   "color": "#2f5f5c"
+  },
+  {
+   "id": "hair_violet",
+   "name": "Violet",
+   "color": "#544060"
+  },
+  {
+   "id": "hair_rose",
+   "name": "Faded rose",
+   "color": "#9c6670"
+  },
+  {
+   "id": "hair_bleach",
+   "name": "Bleach",
+   "color": "#d8d2c0"
+  }
+ ]
+}

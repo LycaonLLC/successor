@@ -1,0 +1,10 @@
+[Unit]
+Description=Successor generation retention cleanup
+After=successor.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/successor/runtime.env
+EnvironmentFile=-/etc/successor/backup-retention.env
+Environment=SUCCESSOR_CLEANUP_RESTART=1
+ExecStart=/usr/local/libexec/successor-cleanup-generations.sh

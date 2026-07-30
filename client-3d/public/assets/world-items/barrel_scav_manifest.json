@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "barrel_scav",
+  "label": "Scavenger Barrel",
+  "kind": "world_prop",
+  "glb": "barrel_scav.glb",
+  "source_pack": "successor-everyday-wave-grok45-20260719",
+  "source_fbx": "props/successor/everyday-wave-20260719/everyday-world-props/source/successor_everyday_barrel_rain.blend",
+  "source_path": "props/successor/everyday-wave-20260719/everyday-world-props/assets/successor_everyday_barrel_rain.glb",
+  "content_hash_sha256": "90ce36958dc35c3e8688ff7eb378b83ae75f64abf2014cee36fcc4cd4b26b373",
+  "triangles": 1532,
+  "vertices": 776,
+  "mesh_nodes": 3,
+  "materials": 3,
+  "bbox_gltf_m": { "min": [-0.2244, 0, -0.2244], "max": [0.2244, 0.4764, 0.229], "size": [0.4488, 0.4764, 0.4534] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/reference/successor/combined-catalog-1000-20260719/catalog.csv",
+  "source_report": "props/successor/everyday-wave-20260719/everyday-world-props/reports/successor_everyday_barrel_rain.json",
+  "validation_pass": true
+}

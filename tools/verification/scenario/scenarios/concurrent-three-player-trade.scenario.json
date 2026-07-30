@@ -1,0 +1,131 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "concurrent-three-player-trade",
+  "fixture": "open-desert-multiplayer-trade",
+  "persistence": true,
+  "lanes": ["accel"],
+  "matrixLanes": ["accel"],
+  "tags": ["trade", "multiplayer", "concurrency", "restart"],
+  "limits": { "perStepTimeoutMs": 60000, "maxWallDurationMs": 120000 },
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" },
+    "gamma": { "character": "fixture:gamma" }
+  },
+  "steps": [
+    { "parallel": [
+      { "actor": "alpha", "steps": [
+        { "send": { "line": "/move 0 1 30 Back false", "as": "alphaMove" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.alphaMove.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 10000 } },
+        "/pause 1.1s",
+        { "query": { "line": "/inv mp-trade-alpha:field-pack", "as": "alphaIndependentInventory" } }
+      ] },
+      { "actor": "beta", "steps": [
+        { "send": { "line": "/move 0 1 30 Back false", "as": "betaMove" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.betaMove.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 10000 } },
+        "/pause 1.1s",
+        { "query": { "line": "/inv mp-trade-beta:field-pack", "as": "betaIndependentInventory" } }
+      ] },
+      { "actor": "gamma", "steps": [
+        { "send": { "line": "/move 1 0 30 Right false", "as": "gammaMove" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.gammaMove.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 10000 } },
+        "/pause 1.1s",
+        { "query": { "line": "/where", "as": "gammaWhereBeforeTrade" } }
+      ] }
+    ] },
+    { "send": { "actor": "alpha", "line": "/trade propose mp-trade-beta offer=- request=2001@0:1", "as": "proposal" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.proposal.data.commandId", "commandKind": "ProposeTrade", "accepted": true }, "timeoutMs": 10000 } },
+    { "await": { "kind": "event", "actor": "beta", "event": "trade_session", "match": { "data.payload.proposalId": 1, "data.payload.mine.actorId": "mp-trade-beta", "data.payload.theirs.actorId": "mp-trade-alpha" }, "timeoutMs": 10000, "as": "betaSeesTradeSession" } },
+    { "parallel": [
+      { "actor": "alpha", "steps": [
+        { "send": { "line": "/set-trade-coin 1 3", "as": "alphaOffer" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.alphaOffer.data.commandId", "commandKind": "SetTradeCoin", "accepted": true }, "timeoutMs": 10000 } }
+      ] },
+      { "actor": "beta", "steps": [
+        { "send": { "line": "/add-trade-item 1 2001@0:1", "as": "betaOffer" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.betaOffer.data.commandId", "commandKind": "AddTradeItem", "accepted": true }, "timeoutMs": 10000 } }
+      ] },
+      { "actor": "gamma", "steps": [
+        "/pause 1s",
+        { "query": { "line": "/where", "as": "gammaWhereDuringOffers" } },
+        { "query": { "line": "/nearby all", "as": "gammaActiveDuringOffers" } }
+      ] }
+    ] },
+    { "await": { "kind": "event", "actor": "alpha", "event": "trade_session", "match": { "data.payload.proposalId": 1, "data.payload.mine.actorId": "mp-trade-alpha", "data.payload.mine.coin": 3, "data.payload.theirs.actorId": "mp-trade-beta", "data.payload.theirs.items.0.itemId": 2001, "data.payload.theirs.items.0.quantity": 2 }, "timeoutMs": 12000, "as": "alphaSeesBothOffers" } },
+    { "await": { "kind": "event", "actor": "beta", "event": "trade_session", "match": { "data.payload.proposalId": 1, "data.payload.mine.actorId": "mp-trade-beta", "data.payload.mine.items.0.itemId": 2001, "data.payload.mine.items.0.quantity": 2, "data.payload.theirs.actorId": "mp-trade-alpha", "data.payload.theirs.coin": 3 }, "timeoutMs": 12000, "as": "betaSeesBothOffers" } },
+    { "parallel": [
+      { "actor": "alpha", "steps": [
+        { "send": { "line": "/accept-trade 1", "as": "alphaLock" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.alphaLock.data.commandId", "commandKind": "AcceptTrade", "accepted": true }, "timeoutMs": 10000 } }
+      ] },
+      { "actor": "beta", "steps": [
+        { "send": { "line": "/accept-trade 1", "as": "betaLock" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.betaLock.data.commandId", "commandKind": "AcceptTrade", "accepted": true }, "timeoutMs": 10000 } }
+      ] },
+      { "actor": "gamma", "steps": [
+        "/pause 1s",
+        { "query": { "line": "/where", "as": "gammaWhereDuringLocks" } },
+        { "query": { "line": "/nearby all", "as": "gammaActiveDuringLocks" } }
+      ] }
+    ] },
+    { "await": { "kind": "event", "actor": "alpha", "event": "trade_session", "match": { "data.payload.proposalId": 1, "data.payload.stage": "confirm", "data.payload.bothLocked": true, "data.payload.mine.actorId": "mp-trade-alpha", "data.payload.mine.locked": true, "data.payload.theirs.actorId": "mp-trade-beta", "data.payload.theirs.locked": true }, "timeoutMs": 12000, "as": "alphaBothLocked" } },
+    { "await": { "kind": "event", "actor": "beta", "event": "trade_session", "match": { "data.payload.proposalId": 1, "data.payload.stage": "confirm", "data.payload.bothLocked": true, "data.payload.mine.actorId": "mp-trade-beta", "data.payload.mine.locked": true, "data.payload.theirs.actorId": "mp-trade-alpha", "data.payload.theirs.locked": true }, "timeoutMs": 12000, "as": "betaBothLocked" } },
+    { "parallel": [
+      { "actor": "alpha", "steps": [
+        { "send": { "line": "/confirm-trade 1", "as": "alphaConfirm" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.alphaConfirm.data.commandId", "commandKind": "ConfirmTrade", "accepted": true }, "timeoutMs": 10000 } }
+      ] },
+      { "actor": "beta", "steps": [
+        { "send": { "line": "/confirm-trade 1", "as": "betaConfirm" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.betaConfirm.data.commandId", "commandKind": "ConfirmTrade", "accepted": true }, "timeoutMs": 10000 } }
+      ] }
+    ] },
+    { "await": { "kind": "event", "actor": "alpha", "event": "trade_session", "match": { "data.payload.proposalId": 1, "data.payload.stage": "executed", "data.payload.bothLocked": true, "data.payload.mine.actorId": "mp-trade-alpha", "data.payload.mine.confirmed": true, "data.payload.theirs.actorId": "mp-trade-beta", "data.payload.theirs.confirmed": true }, "timeoutMs": 12000, "as": "alphaTradeExecuted" } },
+    { "await": { "kind": "event", "actor": "beta", "event": "trade_session", "match": { "data.payload.proposalId": 1, "data.payload.stage": "executed", "data.payload.bothLocked": true, "data.payload.mine.actorId": "mp-trade-beta", "data.payload.mine.confirmed": true, "data.payload.theirs.actorId": "mp-trade-alpha", "data.payload.theirs.confirmed": true }, "timeoutMs": 12000, "as": "betaTradeExecuted" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-trade-alpha", "match": { "credits": { "op": "eq", "value": 4997 } } }, "timeoutMs": 12000, "as": "alphaCreditsDebited" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "mp-trade-alpha:field-pack", "itemId": 2001, "variantId": 0, "match": { "available": { "op": "eq", "value": 2 }, "reserved": { "op": "eq", "value": 0 } } }, "timeoutMs": 12000, "as": "alphaIronCredited" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-trade-beta", "match": { "credits": { "op": "eq", "value": 5003 } } }, "timeoutMs": 12000, "as": "betaCreditsCredited" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "mp-trade-beta:field-pack", "itemId": 2001, "variantId": 0, "match": { "available": { "op": "eq", "value": 3 }, "reserved": { "op": "eq", "value": 0 } } }, "timeoutMs": 12000, "as": "betaIronDebited" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "mp-trade-alpha:field-pack", "itemId": 2001, "variantId": 211337, "match": { "available": { "op": "eq", "value": 5 }, "reserved": { "op": "eq", "value": 0 } } }, "timeoutMs": 12000, "as": "alphaExchangeIronIsolated" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "mp-trade-beta:field-pack", "itemId": 2001, "variantId": 211337, "match": { "available": { "op": "eq", "value": 5 }, "reserved": { "op": "eq", "value": 0 } } }, "timeoutMs": 12000, "as": "betaExchangeIronIsolated" } },
+    { "restart": { "as": "restartEvidence", "timeoutMs": 30000 } },
+    { "expect": { "kind": "captureCompare", "capture": "restartEvidence", "path": "oldProcess.mainPid", "op": "exists", "value": true } },
+    { "expect": { "kind": "captureCompare", "capture": "restartEvidence", "path": "newProcess.mainPid", "op": "ne", "value": "$captures.restartEvidence.oldProcess.mainPid" } },
+    { "expect": { "kind": "captureCompare", "capture": "restartEvidence", "path": "checkpoint.checkpoint.tick", "op": "exists", "value": true } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-trade-alpha", "match": { "credits": { "op": "eq", "value": 4997 } } }, "timeoutMs": 12000, "as": "alphaCreditsAfterRestart" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "mp-trade-alpha:field-pack", "itemId": 2001, "variantId": 0, "match": { "available": { "op": "eq", "value": 2 }, "reserved": { "op": "eq", "value": 0 } } }, "timeoutMs": 12000, "as": "alphaIronAfterRestart" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-trade-beta", "match": { "credits": { "op": "eq", "value": 5003 } } }, "timeoutMs": 12000, "as": "betaCreditsAfterRestart" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "mp-trade-beta:field-pack", "itemId": 2001, "variantId": 0, "match": { "available": { "op": "eq", "value": 3 }, "reserved": { "op": "eq", "value": 0 } } }, "timeoutMs": 12000, "as": "betaIronAfterRestart" } },
+    { "await": { "kind": "query", "actor": "gamma", "query": "/where", "match": { "data.areaId": "$captures.gammaWhereBeforeTrade.data.areaId", "data.x": "$captures.gammaWhereBeforeTrade.data.x", "data.y": "$captures.gammaWhereBeforeTrade.data.y" }, "timeoutMs": 12000, "intervalMs": 250, "as": "gammaIsolatedAfterRestart" } },
+    { "parallel": [
+      { "actor": "alpha", "steps": [
+        { "send": { "line": "/move 0 1 30 Back false", "as": "alphaReconnectMove" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.alphaReconnectMove.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 10000 } }
+      ] },
+      { "actor": "beta", "steps": [
+        { "send": { "line": "/move 0 1 30 Back false", "as": "betaReconnectMove" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.betaReconnectMove.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 10000 } }
+      ] },
+      { "actor": "gamma", "steps": [
+        { "send": { "line": "/move -1 0 30 Left false", "as": "gammaReconnectMove" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.gammaReconnectMove.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 10000 } }
+      ] }
+    ] },
+    { "parallel": [
+      { "actor": "alpha", "steps": [
+        { "send": { "line": "/confirm-trade 1", "as": "alphaClosedTradeProbe" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.alphaClosedTradeProbe.data.commandId", "commandKind": "ConfirmTrade", "accepted": false, "reasonCode": "no_trade_session" }, "timeoutMs": 10000 } }
+      ] },
+      { "actor": "beta", "steps": [
+        { "send": { "line": "/confirm-trade 1", "as": "betaClosedTradeProbe" } },
+        { "await": { "kind": "receipt", "match": { "commandId": "$captures.betaClosedTradeProbe.data.commandId", "commandKind": "ConfirmTrade", "accepted": false, "reasonCode": "no_trade_session" }, "timeoutMs": 10000 } }
+      ] },
+      { "actor": "gamma", "steps": [
+        { "query": { "line": "/nearby all", "as": "gammaStillActiveAfterRestart" } },
+        { "query": { "line": "/where", "as": "gammaWhereAfterRestart" } }
+      ] }
+    ] },
+    { "expect": { "kind": "commandStreamNoMatch", "match": { "commandKind": { "regex": "^Debug" } } } }
+  ],
+  "notes": "Three independent sessions first move and query in parallel. Alpha and beta then run asymmetric two-sided offers (3 scalar wallet credits for 2 variant-0 Iron), lock, and confirm through separate concurrent branches while gamma continues movement/query activity. Exact item and wallet debits, unchanged exchange-variant isolation, restart identity, exact post-reconnect state, gamma position isolation, and two post-restart no_trade_session probes prove atomic persistence with no open trade leak."
+}

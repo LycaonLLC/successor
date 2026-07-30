@@ -1,0 +1,54 @@
+{
+  "asset_id": "extractor_chemical",
+  "asset_path": "client-3d/public/assets/world-items/extractor_chemical.glb",
+  "asset_hash": "sha256:3af945b4627f6bed0570aa0d448b6792d0d98c54a4ba95e7d9aa522e055f3523",
+  "asset_kind": "model_glb",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "version": "5.1.2",
+    "tool_snapshot_id": "blender-5.1.2-ec6e62d40fa9"
+  },
+  "prompt": {
+    "text": "Hand-authored parametric part program (no generative model): chemical placed extractor field unit. Spec: <=1.4m height, <=1 cell footprint, <=1.2k tris, base-center origin, hand-crank and battery slot. Accent color is category-themed (chemical). Nodes: base, chassis, crank_pivot.",
+    "denylist_audit": "passed:no franchise/IP terms in names, materials, node names, or artifacts (AI_PROMPT_DENYLIST.md reviewed 2026-07-08)"
+  },
+  "seed": null,
+  "request_id": null,
+  "input_assets": [
+    {
+      "path": "client-3d/public/assets/world-items/extractor_box_manifest.json",
+      "purpose": "structural_reference"
+    }
+  ],
+  "human_edits": [],
+  "review": {
+    "art_director": "Main (Fable owner-lane, DESIGN-CHECK vision passes)",
+    "approved_at": "2026-07-08T15:10:00Z",
+    "notes": "DESIGN-CHECK verdict PASS. Extractor model for category chemical meets all frozen contract visual specs."
+  },
+  "regeneration_command": "blender -b --factory-startup --python-exit-code 1 -P .tools/successor/extraction_models/build.py -- chemical",
+  "tri_count": 472,
+  "gate_report": "gate_result_chemical.json (overall=PASS)",
+  "source_blend_or_script": "tools/successor/extraction_models/build.py (deterministic parametric build script)",
+  "agent_provenance": {
+    "produced_by": [
+      {
+        "agent_instance_id": "ExtractorModels",
+        "run_id": "extractor_chemical_20260708",
+        "role": "content-author",
+        "provider": "google",
+        "model": "gemini-3.5-flash",
+        "started_at": "2026-07-08T15:00:00Z",
+        "completed_at": "2026-07-08T15:10:00Z"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "Main",
+        "role": "judge",
+        "notes": "vision check at lineup stage; ship call"
+      }
+    ],
+    "human_approvals": []
+  }
+}

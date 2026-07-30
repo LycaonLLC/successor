@@ -1,0 +1,59 @@
+{
+  "building": "house_H1",
+  "clear_opening_m": [
+    1.06,
+    2.04
+  ],
+  "cutaway": {
+    "faces": {
+      "back": "wall_back__",
+      "front": "wall_front__",
+      "left": "wall_left__",
+      "right": "wall_right__"
+    },
+    "hide": [
+      "roof__"
+    ],
+    "keep": [
+      "floor__",
+      "interior__"
+    ],
+    "stub_by_face": true
+  },
+  "door": {
+    "clips": [
+      "door_open",
+      "door_close"
+    ],
+    "node": "door_slide",
+    "slide_axis_local": [
+      -1,
+      0,
+      0
+    ],
+    "slide_distance_m": 1.22
+  },
+  "door_cells": [
+    [
+      4,
+      3
+    ]
+  ],
+  "footprint_cells": [
+    5,
+    4
+  ],
+  "front": "+Z",
+  "interior_clear_height_m": 2.35,
+  "materials": [
+    "HK_Clad",
+    "HK_Clad2",
+    "HK_Door",
+    "HK_Floor",
+    "HK_Frame",
+    "HK_Roof",
+    "HK_Trim"
+  ],
+  "tri_count": 868,
+  "units": "m"
+}

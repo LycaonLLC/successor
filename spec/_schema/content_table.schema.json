@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successor.local/schema/content_table.json",
+  "title": "Content table",
+  "description": "A data table extracted from reference content. Numeric/structural data only. Names are placeholder identifiers; original-universe naming is applied in the content pipeline, not here.",
+  "type": "object",
+  "required": ["name", "shape", "rows"],
+  "properties": {
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "shape": {
+      "type": "object",
+      "required": ["columns"],
+      "properties": {
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "type"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+              "type": { "enum": ["i32", "i64", "u32", "u64", "fixed_q16_16", "string_id", "bool", "enum"] },
+              "domain": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "items": { "type": "object" }
+    }
+  }
+}

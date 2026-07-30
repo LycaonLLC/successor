@@ -1,0 +1,157 @@
+{
+  "schema": "successor.weapon-catalog.v1",
+  "weapons": {
+    "slugthrower": {
+      "id": "slugthrower",
+      "name": "Slugthrower",
+      "shortName": "Slugthrower",
+      "slot": "longGun",
+      "caliber": "slug",
+      "compatibleAmmoTypes": [
+        "slug_iron",
+        "slug_shard",
+        "slug_spike"
+      ],
+      "defaultAmmoType": "slug_iron",
+      "requiredCert": "cert_rifle",
+      "magazineSize": 30,
+      "reloadMs": 2000,
+      "iconKey": "slugthrower",
+      "reloadSfx": "slugthrower_reload"
+    },
+    "wpn-smg": {
+      "id": "wpn-smg",
+      "name": "STEN Mk II",
+      "shortName": "STEN",
+      "slot": "longGun",
+      "caliber": "slug",
+      "compatibleAmmoTypes": [
+        "slug_iron",
+        "slug_shard",
+        "slug_spike"
+      ],
+      "defaultAmmoType": "slug_iron",
+      "requiredCert": "cert_rifle",
+      "magazineSize": 30,
+      "reloadMs": 2000,
+      "iconKey": "slugthrower",
+      "reloadSfx": "slugthrower_reload"
+    },
+    "wpn-carbine": {
+      "id": "wpn-carbine",
+      "name": "Kiln Energy Cell Carbine",
+      "shortName": "Kiln",
+      "slot": "longGun",
+      "caliber": "slug",
+      "compatibleAmmoTypes": [
+        "slug_iron",
+        "slug_shard",
+        "slug_spike"
+      ],
+      "defaultAmmoType": "slug_iron",
+      "requiredCert": "cert_rifle",
+      "magazineSize": 30,
+      "reloadMs": 2000,
+      "iconKey": "slugthrower",
+      "reloadSfx": "slugthrower_reload"
+    },
+    "lightning-carbine": {
+      "id": "lightning-carbine",
+      "name": "Lightning Carbine",
+      "shortName": "Lightning",
+      "slot": "longGun",
+      "caliber": "slug",
+      "compatibleAmmoTypes": [
+        "slug_iron",
+        "slug_shard",
+        "slug_spike"
+      ],
+      "defaultAmmoType": "slug_iron",
+      "requiredCert": "cert_rifle",
+      "magazineSize": 30,
+      "reloadMs": 2000,
+      "iconKey": "slugthrower",
+      "reloadSfx": "slugthrower_reload"
+    },
+    "vibrosword": {
+      "id": "vibrosword",
+      "name": "Vibrosword",
+      "shortName": "Vibro",
+      "slot": "longGun",
+      "caliber": "melee",
+      "compatibleAmmoTypes": [
+        "melee"
+      ],
+      "defaultAmmoType": "melee",
+      "requiredCert": "cert_brawler",
+      "magazineSize": 1,
+      "reloadMs": 400,
+      "iconKey": "sword",
+      "reloadSfx": "ui_button_tick"
+    },
+    "scrapline-machete": {
+      "id": "scrapline-machete",
+      "name": "Scrapline Machete",
+      "shortName": "Machete",
+      "slot": "longGun",
+      "caliber": "melee",
+      "compatibleAmmoTypes": [
+        "melee"
+      ],
+      "defaultAmmoType": "melee",
+      "requiredCert": null,
+      "magazineSize": 1,
+      "reloadMs": 400,
+      "iconKey": "sword",
+      "reloadSfx": "ui_button_tick"
+    },
+    "field-saber": {
+      "id": "field-saber",
+      "name": "Field Saber",
+      "shortName": "Saber",
+      "slot": "longGun",
+      "caliber": "melee",
+      "compatibleAmmoTypes": [
+        "melee"
+      ],
+      "defaultAmmoType": "melee",
+      "requiredCert": null,
+      "magazineSize": 1,
+      "reloadMs": 400,
+      "iconKey": "sword",
+      "reloadSfx": "ui_button_tick"
+    },
+    "quarry-chopper": {
+      "id": "quarry-chopper",
+      "name": "Quarry Chopper",
+      "shortName": "Chopper",
+      "slot": "longGun",
+      "caliber": "melee",
+      "compatibleAmmoTypes": [
+        "melee"
+      ],
+      "defaultAmmoType": "melee",
+      "requiredCert": null,
+      "magazineSize": 1,
+      "reloadMs": 400,
+      "iconKey": "sword",
+      "reloadSfx": "ui_button_tick"
+    },
+    "unarmed": {
+      "id": "unarmed",
+      "name": "Unarmed",
+      "shortName": "Hands",
+      "slot": "longGun",
+      "caliber": "melee",
+      "compatibleAmmoTypes": [
+        "melee"
+      ],
+      "defaultAmmoType": "melee",
+      "requiredCert": null,
+      "magazineSize": 1,
+      "reloadMs": 400,
+      "iconKey": "sword",
+      "reloadSfx": "ui_button_tick"
+    }
+  }
+}

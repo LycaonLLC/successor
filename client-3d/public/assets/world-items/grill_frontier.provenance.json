@@ -1,0 +1,58 @@
+{
+  "asset_id": "grill_frontier",
+  "asset_path": "client-3d/public/assets/world-items/grill_frontier.glb",
+  "asset_hash": "sha256:56af6e3a1db2ccd21d3ef9a5f9378242d7264710a7c0a578a41e41500c26f7f8",
+  "asset_kind": "model_glb",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "version": "5.2.0",
+    "tool_snapshot_id": "blender-5.2.0-fbe6228777e7"
+  },
+  "prompt": {
+    "text": "Hand-authored parametric part program (no generative model): camp cook station: steel counter frame, firebox with teal hatch + warm coal slots, ember bed under a rod grate, teal prep plate, stack pipe, fuel canister, utensil rail. camp_frontier_v1 set: one shared 8-zone frontier material system (oxidized steel / bone canvas / chipped pale-teal paint / brass / rubber / char / ember coal / burlap) baked per asset to embedded 1024 BaseColor / tangent Normal / packed ORM (R=AO,G=rough,B=metal) / disciplined Emissive (kiln texture pipeline lineage). Runtime world grade is unlit, so BaseColor folds AO in and screens ember emissive.",
+    "denylist_audit": "passed:no franchise/IP terms in names, materials, node names, or artifacts (AI_PROMPT_DENYLIST.md reviewed 2026-07-08)"
+  },
+  "seed": 20260723,
+  "request_id": null,
+  "input_assets": [
+    {
+      "path": "pawn-forge/pawnforgev2/recipes/campfire_scout_v1/build.py",
+      "purpose": "texture_pipeline_reference"
+    }
+  ],
+  "human_edits": [],
+  "rights": {
+    "source_license": "Successor proprietary project asset; all rights reserved",
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant"
+  },
+  "review": {
+    "art_director": "CampPropsAndShoes (vision QA pass on multiview + seam-close contact sheets)",
+    "approved_at": "2026-07-18T02:45:00Z",
+    "notes": "pass-3 iteration per parent QA: subdivided sagging cloth with solidify thickness + rolled hems/ties (shelter, chair_a), edge-wear/pointiness + contact grime + widened per-part steel tone spread, brazier ring seated with chunky grounded feet, chair_b slats seated on uprights, grill firebox hatch separated from teal prep plate; objective gate G1-G8 PASS on final bytes; labeled pass-3 sheets nonblank (variance-checked)."
+  },
+  "regeneration_command": "pawn-forge/pawnforgev2/recipes/camp_frontier_v1/run.sh (build -> gate -> proof renders; deterministic seeds, CPU Cycles bakes)",
+  "tri_count": 888,
+  "gate_report": "pawn-forge/pawnforgev2/recipes/camp_frontier_v1/gate_result.json (overall=PASS, G1..G8 on parsed GLB bytes)",
+  "source_blend_or_script": "pawn-forge/pawnforgev2/recipes/camp_frontier_v1/build.py (deterministic parametric part program; per-asset .blend saved in the bakeoff round dir)",
+  "agent_provenance": {
+    "produced_by": [
+      {
+        "agent_instance_id": "CampPropsAndShoes",
+        "run_id": "camp_frontier_20260718",
+        "role": "content-author",
+        "provider": "anthropic",
+        "model": "claude-fable-5",
+        "started_at": "2026-07-18T00:45:00Z",
+        "completed_at": "2026-07-18T01:55:00Z"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "CampPropsAndShoes",
+        "role": "judge",
+        "notes": "vision QA on lit/unlit multiview + mandatory seam close crops; numeric closure via gate_result.json"
+      }
+    ],
+    "human_approvals": []
+  }
+}

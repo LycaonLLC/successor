@@ -1,0 +1,54 @@
+{
+  "schema": "successor-weapon-attach/1",
+  "weapon": "quarry_chopper",
+  "item_id": 3107,
+  "source_glb": "pawn-forge/pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/assets/quarry_chopper.glb",
+  "source_blend": "pawn-forge/pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/melee_early.blend",
+  "source_blend_scope": "Latest family proof snapshot only; it currently contains the final field_saber pass, not Quarry Chopper. build.py plus the authored texture inputs are the editable Quarry Chopper source of truth (accepted pass-6 build).",
+  "source_build": "pawn-forge/pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/build.py",
+  "source_sha256": "a00ac2049ed552151f31ce775c865299c5bd3291405ad518700d7d57c55f32e3",
+  "silhouette_class": "melee",
+  "coordinate_space": "weapon_glb_local_gltf",
+  "space_notes": "Accepted July 12 Pawn Forge export: +X toward the cutting edge, +Y from the grip toward the blade tip, +Z through blade thickness; origin is the grip midpoint.",
+  "units": "m",
+  "scale_to_pawn": 1,
+  "attach": "one_hand",
+  "handedness": "right",
+  "hands": {
+    "grip": "hand_r"
+  },
+  "nodes": {
+    "frame": "quarry_chopper"
+  },
+  "sockets": {
+    "grip": [0, 0, 0],
+    "foregrip": [0, 0.07, 0],
+    "muzzle": [0, 0.475, 0],
+    "stock": [0, -0.1055, 0]
+  },
+  "orientation": {
+    "forward": [0, 1, 0],
+    "up": [0, 0, 1]
+  },
+  "mount_hand_r_local": {
+    "pos": [-0.00972942, 0.0720203, 0.016444],
+    "quat": [-0.57404343, -0.33841423, 0.00743169, -0.74558753],
+    "derivation": "Preserves the live Vibrosword grip-midpoint hand weld while rotating this export's +Y blade axis onto the established melee +Z blade axis; identical family convention to the promoted scrapline_machete."
+  },
+  "stow_socket": {
+    "space": "spine_03_local",
+    "pos": [0.16, 0, -0.14],
+    "rot_deg": [85, -45, 0],
+    "derivation": "Existing Successor spine_03 back-carry contract."
+  },
+  "measured_runtime": {
+    "mesh_count": 1,
+    "triangles": 2308,
+    "bbox_min_m": [-0.03, -0.1055, -0.0234],
+    "bbox_max_m": [0.055, 0.475, 0.0234],
+    "overall_length_m": 0.5805,
+    "grip_reference": "grip midpoint at GLB origin; grip runs -0.086..0.086 along +Y",
+    "socket_derivation": "muzzle = measured blade tip (bbox +Y), stock = measured butt-cap end (bbox -Y), foregrip = upper grip just below the sleeve hand-stop flare (grip span +-0.086)."
+  },
+  "provenance": "Byte-identical promotion of the accepted melee_early family export; Blender source and deterministic build script remain in Pawn Forge."
+}

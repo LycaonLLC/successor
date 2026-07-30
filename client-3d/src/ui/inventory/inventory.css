@@ -1,0 +1,773 @@
+/*
+ * INVENTORY window content — cyberpunk/apocalypse skin.
+ *
+ * The WindowManager owns ALL chrome (glass panel, title strip, drag/resize,
+ * bounds) — see ui/windows/windows.css. This sheet styles only the CONTENT:
+ * the slot grid, the OPERATIVE paper-doll frame, the ledger and the status
+ * foot. EVERY colour flows from the --sc3d-* custom properties the theme
+ * engine installs on :root; translucent and glow variants are derived with
+ * color-mix() from those tokens, so the whole skin re-themes by swapping the
+ * variables. Type is a system monospace stack (terminal feel); geometry is
+ * dense (2–6px), hairline-bordered, 2px corners, single accent.
+ *
+ * The model canvas layer sits BELOW this chrome (z 1 vs z 2): slot wells and
+ * the doll frame keep translucent fills so the rotating 3D renders show
+ * through — an opaque fill would occlude them entirely.
+ */
+
+.inv-root {
+  position: absolute;
+  inset: 0;
+}
+
+.inv-canvas-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.inv-canvas-layer > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.inv-chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Body: 62/38 grid ↔ detail ──────────────────────────────────────────── */
+
+.inv-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 62fr 38fr;
+  gap: 6px;
+  padding: 6px;
+}
+
+.inv-grid-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--sc3d-hairline);
+  padding-right: 6px;
+}
+
+.inv-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 80px);
+  grid-auto-rows: 80px;
+  gap: 4px;
+  align-content: start;
+  /* Bottom inset: the last row's title band never sits flush on the cut. */
+  padding: 4px 4px 10px 0;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--sc3d-accent) 50%, transparent)
+    color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+}
+
+.inv-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* Visible channel — an invisible track read as "no more items" (fe-polish
+ * §1.10: bottom gear rows looked window-clipped). */
+.inv-grid::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+  border-radius: 1px;
+}
+
+.inv-grid::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--sc3d-accent) 45%, transparent);
+  border-radius: 1px;
+}
+
+.inv-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--sc3d-accent);
+}
+
+/* ── Slot tile ──────────────────────────────────────────────────────────── */
+
+.inv-slot {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 2px;
+  /* Translucent: the 3D model canvas paints BELOW this chrome layer (z-1) —
+   * an opaque fill here occludes the rotating item render entirely. */
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+  cursor: var(--sc3d-cursor-interact, pointer);
+  color: var(--sc3d-ink);
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 120ms ease-out, box-shadow 120ms ease-out, background 120ms ease-out;
+}
+
+.inv-slot-well {
+  position: absolute;
+  inset: 0;
+}
+
+/* hover: accent hairline + faint inner glow */
+.inv-slot[data-hover],
+.inv-slot:hover {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 65%, var(--sc3d-hairline));
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 38%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--sc3d-accent) 28%, transparent),
+    0 0 10px color-mix(in srgb, var(--sc3d-accent-glow) 45%, transparent);
+}
+
+.inv-slot:focus-visible {
+  outline: none;
+  border-color: var(--sc3d-accent);
+  box-shadow: inset 0 0 0 1px var(--sc3d-accent-soft);
+}
+
+/* selected: solid accent frame + glow */
+.inv-slot[data-selected] {
+  border-color: var(--sc3d-accent);
+  box-shadow:
+    inset 0 0 0 1px var(--sc3d-accent-soft),
+    0 0 14px color-mix(in srgb, var(--sc3d-accent-glow) 60%, transparent);
+}
+
+/* equipped = accent edge tick on the left (pseudo so it stacks with the
+ * selected/hover box-shadows rather than replacing them) */
+.inv-slot[data-equipped]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--sc3d-accent);
+  box-shadow: 0 0 6px var(--sc3d-accent-glow);
+  z-index: 1;
+}
+
+/* category chip — top-left, tiny mono: purpose glyph + kind label */
+.inv-chip {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 3px;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 80%, transparent);
+  pointer-events: none;
+}
+
+.inv-chip svg {
+  flex: none;
+  width: 10px;
+  height: 10px;
+}
+
+/* item title — bottom band inside the tile, count reserve on the right.
+ * Two-line clamp (fe-polish §1.10): every multi-word noun used to ellipsize
+ * in the one-line band; two lines clear the whole catalog at 80px tiles. */
+.inv-slot-title {
+  position: absolute;
+  left: 0;
+  right: 26px;
+  bottom: 2px;
+  z-index: 2;
+  padding: 0 2px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-align: left;
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+}
+
+/* stack count — bottom-right, condensed mono numeral */
+.inv-count {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  z-index: 2;
+  padding: 0 3px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--sc3d-ink);
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 82%, transparent);
+  pointer-events: none;
+}
+
+.inv-var-chip {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
+  padding: 0 3px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 84%, transparent);
+  pointer-events: none;
+}
+
+.inv-var-chip[hidden] {
+  display: none;
+}
+
+/* ── Detail column: OPERATIVE doll + ledger ─────────────────────────────── */
+
+.inv-detail-col {
+  --inv-doll-share: 62%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+}
+
+.inv-doll-frame {
+  position: relative;
+  flex: 0 0 calc(var(--inv-doll-share) - 6px);
+  min-height: 140px;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 2px;
+  /* Translucent for the same reason as .inv-slot: the paper-doll renders on
+   * the canvas layer beneath; keep the vignette, drop the opaque cell fill. */
+  background:
+    radial-gradient(ellipse at 50% 72%, color-mix(in srgb, var(--sc3d-accent-glow) 10%, transparent), transparent 62%),
+    color-mix(in srgb, var(--sc3d-bg-cell) 30%, transparent);
+}
+
+.inv-doll-well {
+  position: absolute;
+  inset: 6px;
+  /* Drag-rotate host: MUST receive pointer events (pointer-events:none here
+     silently killed doll rotation once drag hosts became per-viewport). */
+  pointer-events: auto;
+  touch-action: none;
+}
+
+/* Draggable splitter between the doll and the ledger. */
+.inv-split {
+  position: relative;
+  flex: 0 0 8px;
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.inv-split::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  width: 42px;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--sc3d-hairline) 90%, transparent);
+  transition: background 150ms ease-out;
+}
+
+.inv-split:hover::before,
+.inv-split:active::before {
+  background: var(--sc3d-accent);
+}
+
+.inv-ledger {
+  flex: 1 1 auto;
+  min-height: 96px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 2px;
+  border-top: 1px solid var(--sc3d-hairline);
+}
+
+.inv-ledger-name {
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: var(--sc3d-ink);
+}
+
+.inv-ledger-meta {
+  display: flex;
+  gap: 12px;
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+.inv-ledger-variant,
+.exm-variant {
+  padding: 1px 4px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+  color: var(--sc3d-accent);
+  letter-spacing: 0.14em;
+}
+
+.inv-ledger-variant[hidden],
+.exm-variant[hidden] {
+  display: none;
+}
+
+.inv-ledger-stats,
+.exm-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.inv-ledger-stats[hidden],
+.exm-stats[hidden] {
+  display: none;
+}
+
+.inv-stat-row {
+  display: grid;
+  grid-template-columns: 68px minmax(42px, 1fr) 38px;
+  align-items: center;
+  gap: 6px;
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink-dim);
+}
+
+.inv-stat-meter {
+  height: 6px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.inv-stat-fill {
+  display: block;
+  height: 100%;
+  background: var(--sc3d-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--sc3d-accent-glow) 65%, transparent);
+}
+
+.inv-stat-value {
+  text-align: right;
+  color: var(--sc3d-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.inv-ledger-desc {
+  margin: 2px 0 0;
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--sc3d-ink) 85%, var(--sc3d-ink-dim));
+}
+
+/* ── Action row ─────────────────────────────────────────────────────────── */
+
+.inv-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  min-height: 28px;
+  flex-wrap: wrap;
+}
+
+.inv-action-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 4px 12px;
+  border: 1px solid var(--sc3d-accent);
+  border-radius: 1px;
+  background: transparent;
+  color: var(--sc3d-accent);
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: background 100ms ease-out, color 100ms ease-out, box-shadow 100ms ease-out;
+}
+
+.inv-action-btn:hover:not(:disabled),
+.inv-action-btn:focus-visible:not(:disabled) {
+  background: var(--sc3d-accent);
+  color: var(--sc3d-bg-panel);
+  outline: none;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--sc3d-accent-glow) 60%, transparent);
+}
+
+.inv-action-btn:disabled {
+  opacity: 0.35;
+  cursor: var(--sc3d-cursor-default, default);
+}
+
+/* DISCARD STACK — danger-voiced two-step button. Idle: quiet danger
+   outline; armed: filled, names the exact quantity until timeout. */
+.inv-action-btn--danger {
+  border-color: color-mix(in srgb, var(--sc3d-danger) 70%, transparent);
+  color: var(--sc3d-danger);
+}
+
+.inv-action-btn--danger:hover:not(:disabled),
+.inv-action-btn--danger:focus-visible:not(:disabled) {
+  background: color-mix(in srgb, var(--sc3d-danger) 18%, transparent);
+  color: var(--sc3d-danger);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--sc3d-danger) 35%, transparent);
+}
+
+.inv-action-btn--danger[data-armed] {
+  background: var(--sc3d-danger);
+  border-color: var(--sc3d-danger);
+  color: var(--sc3d-bg-panel);
+}
+
+.inv-action-btn--danger[data-armed]:hover:not(:disabled),
+.inv-action-btn--danger[data-armed]:focus-visible:not(:disabled) {
+  background: var(--sc3d-danger);
+  color: var(--sc3d-bg-panel);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--sc3d-danger) 55%, transparent);
+}
+
+/* ── Footer status line ─────────────────────────────────────────────────── */
+
+.inv-foot {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-top: 1px solid var(--sc3d-hairline);
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+.inv-status[data-flash] {
+  color: var(--sc3d-accent);
+  letter-spacing: 0.16em;
+}
+
+/* ── EXAMINE window content ─────────────────────────────────────────────── */
+
+.exm-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  box-sizing: border-box;
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Large model well — the turntable canvas mounts inside (position:relative
+ * is set by the renderer if needed; declare it anyway for the hairline). */
+.exm-well {
+  position: relative;
+  flex: 1 1 58%;
+  min-height: 140px;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 2px;
+  background:
+    radial-gradient(ellipse at 50% 68%, color-mix(in srgb, var(--sc3d-accent-glow) 10%, transparent), transparent 62%),
+    color-mix(in srgb, var(--sc3d-bg-cell) 30%, transparent);
+}
+
+.exm-info {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--sc3d-hairline);
+}
+
+.exm-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: var(--sc3d-ink);
+}
+
+.exm-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+.exm-desc {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--sc3d-ink) 85%, var(--sc3d-ink-dim));
+}
+/* The author display would defeat the hidden attribute's UA display:none. */
+.exm-empty[hidden] {
+  display: none;
+}
+
+/* Honest empty state — item no longer held; window keeps its position. */
+.exm-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--sc3d-ink-dim);
+}
+
+/* ── TARGET EXAMINE combat pane ─────────────────────────────────────────── */
+
+.txm-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 7px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  pointer-events: auto;
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.txm-model {
+  position: relative;
+  flex: 1 1 46%;
+  min-height: 146px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  border-radius: 2px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent), transparent),
+    radial-gradient(ellipse at 50% 82%, color-mix(in srgb, var(--sc3d-accent-glow) 18%, transparent), transparent 58%),
+    color-mix(in srgb, var(--sc3d-bg-panel) 68%, #02050a);
+}
+
+.txm-model::after {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: 14px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--sc3d-hairline), transparent);
+  opacity: 0.7;
+}
+
+.txm-card {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 198px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 65%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 32%, transparent);
+}
+
+.txm-head,
+.txm-row,
+.txm-grid {
+  display: flex;
+  align-items: center;
+}
+
+.txm-head {
+  gap: 8px;
+}
+
+.txm-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.txm-stamp {
+  padding: 2px 5px;
+  border: 1px solid var(--sc3d-danger);
+  color: var(--sc3d-danger);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+}
+
+.txm-subtitle,
+.txm-grid,
+.txm-statuses,
+.txm-row {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.txm-subtitle {
+  color: var(--sc3d-ink-dim);
+  line-height: 1.3;
+}
+
+.txm-row {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.txm-attitude,
+.txm-life {
+  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+}
+
+.txm-attitude[data-attitude="hostile"] {
+  color: var(--sc3d-danger);
+  border-color: var(--sc3d-danger);
+}
+
+.txm-attitude[data-attitude="alerted"],
+.txm-attitude[data-attitude="passive"] {
+  color: #ffd36d;
+  border-color: color-mix(in srgb, #ffd36d 70%, transparent);
+}
+
+.txm-life {
+  color: var(--sc3d-ink);
+}
+
+.txm-vitals {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.txm-vital {
+  display: grid;
+  grid-template-columns: 46px minmax(64px, 1fr) 68px;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+.txm-vital-track {
+  position: relative;
+  height: 7px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 55%, transparent);
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.txm-vital-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--sc3d-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--sc3d-accent-glow) 75%, transparent);
+}
+
+.txm-vital-track[data-low] .txm-vital-fill {
+  background: var(--sc3d-danger);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--sc3d-danger) 55%, transparent);
+}
+
+.txm-vital-value {
+  text-align: right;
+  color: var(--sc3d-ink);
+}
+
+.txm-grid {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 4px 8px;
+  padding-top: 5px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 55%, transparent);
+  color: var(--sc3d-ink-dim);
+}
+
+.txm-grid strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sc3d-ink);
+  font-weight: 600;
+}
+
+.txm-statuses {
+  min-height: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.txm-status {
+  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  color: var(--sc3d-ink-dim);
+}
+
+.txm-empty[hidden] {
+  display: none;
+}
+
+.txm-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--sc3d-ink-dim);
+}
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .inv-slot,
+  .inv-action-btn {
+    transition: none;
+  }
+}

@@ -1,0 +1,1482 @@
+@import "./ui/windows/windows.css";
+@import "./ui/hud/hud.css";
+@import "./ui/inventory/inventory.css";
+/*
+ * Quartermaster's Slate — Successor 3D UI shell.
+ * Palette + font stacks are CSS custom properties installed at boot by
+ * ui/theme.ts (single source of truth). Chunky forms, stencils and stamps;
+ * no glossy gradients — the DOM UI is not PS2-filtered but must harmonize.
+ */
+
+/* Saira Stencil One — SIL Open Font License 1.1 (see assets/fonts/OFL.txt). */
+@font-face {
+  font-family: "Saira Stencil One";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/saira-stencil-one-latin.woff2") format("woff2");
+}
+
+:root {
+  /* Fallback chrome palette = SIGNAL theme (the default). uiTheme.ts overrides
+   * these on documentElement at boot, before first paint; the values here let
+   * every component render correctly even before the theme engine runs. */
+  --sc3d-bg-panel: #070b0d;
+  --sc3d-bg-cell: #0b1216;
+  --sc3d-ink: #cfe9ef;
+  --sc3d-ink-dim: #5f818c;
+  --sc3d-hairline: #1d2f37;
+  --sc3d-accent: #48d6e6;
+  --sc3d-accent-soft: #0f3b44;
+  --sc3d-accent-glow: rgba(72,214,230,0.45);
+  --sc3d-danger: #e34a4a;
+  --sc3d-glass: color-mix(in srgb, #070b0d 72%, transparent);
+  /* Semantic z-scale (DESIGN.md): hud < windows < dock < radial < ghost. */
+  --sc3d-z-hud: 6;
+  --sc3d-z-window: 20;
+  --sc3d-z-dock: 30;
+  --sc3d-z-radial: 40;
+  --sc3d-z-ghost: 50;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  /* bg-panel fallback (signal) baked in; uiTheme.ts overrides before paint. */
+  background: var(--sc3d-bg-panel, #070b0d);
+  color: var(--sc3d-ink);
+  font-family: var(--sc-fixed-font-fine);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+/* ── Shell ──────────────────────────────────────────────────────────────── */
+
+.successor3d-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* Game-UI text is chrome, not a document: click-drag must never paint
+     selection highlights (owner: "MMO jank"). Re-enabled ONLY for real text
+     surfaces below (chat, inputs) — future scripted-macro editors join that
+     allowlist. */
+  user-select: none;
+  -webkit-user-select: none;
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 46px, color-mix(in srgb, var(--sc3d-ink) 4%, transparent) 46px 92px),
+    radial-gradient(ellipse at 50% 18%, var(--sc3d-bg-cell) 0%, var(--sc3d-bg-panel) 72%);
+}
+
+.successor3d-shell input,
+.successor3d-shell textarea,
+.successor3d-shell [contenteditable],
+.successor3d-shell .sc3d-chat-log {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.successor3d-shell img,
+.successor3d-shell canvas {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+.successor3d-stage,
+.successor3d-canvas-host,
+.successor3d-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.successor3d-canvas-host {
+  position: relative;
+  overflow: hidden;
+}
+
+.successor3d-canvas-host::after {
+  content: attr(data-webgl-error);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: none;
+  max-width: 420px;
+  padding: 16px 18px;
+  border: 2px solid var(--sc3d-danger);
+  background: var(--sc3d-bg-panel);
+  color: var(--sc3d-ink);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transform: translate(-50%, -50%);
+}
+
+.successor3d-canvas-host[data-webgl-error]::after {
+  display: block;
+}
+
+.successor3d-canvas {
+  display: block;
+  image-rendering: pixelated;
+  outline: none;
+}
+
+
+/* ── Entry: the requisition form ────────────────────────────────────────── */
+
+.successor3d-entry {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.successor3d-shell[data-state="world"] .successor3d-entry {
+  display: none;
+}
+
+.successor3d-form {
+  position: relative;
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 48px));
+  padding: 22px 30px 18px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 27px, rgb(var(--sc-fixed-ink-rgb) / 0.07) 27px 28px),
+    linear-gradient(160deg, rgb(var(--sc-fixed-ink-rgb) / 0.08), transparent 42%),
+    var(--sc-fixed-paper);
+  color: var(--sc-fixed-ink);
+  border: 2px solid var(--sc-fixed-ink);
+  box-shadow:
+    0 18px 60px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgb(var(--sc-fixed-bone-rgb) / 0.08);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+}
+
+.successor3d-form-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgb(var(--sc-fixed-ink-rgb) / 0.55);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: rgb(var(--sc-fixed-ink-rgb) / 0.75);
+}
+
+.successor3d-masthead {
+  margin: 16px 0 2px;
+  font-family: var(--sc-fixed-font-stencil);
+  font-weight: 400;
+  font-size: clamp(44px, 9vw, 64px);
+  line-height: 0.95;
+  letter-spacing: 0.03em;
+  color: var(--sc-fixed-ink);
+  /* second print pass, slightly misregistered */
+  text-shadow: 3px 2px 0 color-mix(in srgb, var(--sc3d-accent) 28%, transparent);
+}
+
+.successor3d-subline {
+  margin: 0 0 22px;
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  color: rgb(var(--sc-fixed-ink-rgb) / 0.65);
+}
+
+.successor3d-formline {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.successor3d-formline span {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgb(var(--sc-fixed-ink-rgb) / 0.8);
+}
+
+.successor3d-formline input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 2px;
+  border: 0;
+  border-bottom: 2px solid var(--sc-fixed-ink);
+  background: transparent;
+  color: var(--sc-fixed-ink);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  caret-color: var(--sc3d-accent);
+  outline: none;
+}
+
+.successor3d-formline input:focus {
+  border-bottom-color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-accent) 6%, transparent);
+}
+
+/* Stamped ENTER WORLD button; hover = stamp press. */
+#successor3d-enter {
+  width: 100%;
+  padding: 12px 14px;
+  background: transparent;
+  border: 3px double var(--sc3d-accent);
+  color: var(--sc3d-accent);
+  cursor: var(--sc3d-cursor-interact, pointer);
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 20px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transform: rotate(-0.6deg);
+  transition: transform 90ms ease-out, background 90ms ease-out, color 90ms ease-out, box-shadow 90ms ease-out;
+}
+
+#successor3d-enter:hover:not(:disabled),
+#successor3d-enter:focus-visible:not(:disabled) {
+  background: var(--sc3d-accent);
+  color: var(--sc-fixed-paper);
+  outline: none;
+  transform: rotate(-0.6deg) translateY(2px) scale(0.99);
+  box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.28);
+}
+
+#successor3d-enter:active:not(:disabled) {
+  transform: rotate(-0.6deg) translateY(3px) scale(0.985);
+}
+
+#successor3d-enter:disabled {
+  opacity: 0.55;
+  cursor: var(--sc3d-cursor-default, default);
+}
+
+.successor3d-entry-status {
+  min-height: 18px;
+  margin: 14px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--sc-fixed-ink-rgb) / 0.7);
+}
+
+.successor3d-fineprint {
+  display: grid;
+  gap: 3px;
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px dashed rgb(var(--sc-fixed-ink-rgb) / 0.55);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: rgb(var(--sc-fixed-ink-rgb) / 0.6);
+}
+
+/* ── World loading ribbon ───────────────────────────────────────────────── */
+
+.successor3d-ribbon {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  z-index: 11;
+  padding: 8px 18px;
+  background: var(--sc3d-bg-panel);
+  border: 1px solid var(--sc3d-hairline);
+  color: var(--sc3d-ink);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* ── Status plate — phosphor terminal treatment matching the window/inventory
+ * chrome (owner call 2026-07-03: "not really military aesthetic"). Glass
+ * panel, hairline border, accent title underline, clean fills — no stencil
+ * type, no wear speckle, no clipped corner, no brass. ─────────────────────── */
+
+.successor3d-plate {
+  /* Top-left HUD anchor (DESIGN.md): player status leads the HUD corner
+   * group; the target plate docks adjacent to its right. Always visible. */
+  position: absolute;
+  left: max(14px, env(safe-area-inset-left, 0px));
+  top: max(14px, env(safe-area-inset-top, 0px));
+  z-index: var(--sc3d-z-hud);
+  box-sizing: border-box;
+  width: min(256px, calc(100vw - 36px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-width: calc(100% - 36px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  padding: 8px 0 6px;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  color: var(--sc3d-ink);
+  background: var(--sc3d-glass);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  border-top: 2px solid var(--sc3d-accent);
+  border-radius: 2px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+}
+
+.successor3d-plate[data-life="downed"],
+.successor3d-plate[data-life="respawning"] {
+  border-color: color-mix(in srgb, var(--sc3d-danger) 70%, transparent);
+  border-top-color: var(--sc3d-danger);
+}
+
+.successor3d-plate[data-signal="none"] .successor3d-gauges,
+.successor3d-plate[data-signal="none"] .successor3d-mag {
+  opacity: 0.35;
+}
+
+/* State tags (OBSERVER / CAMP COLLAPSE / DOWN) — in-flow above gauges so
+ * long countdown copy never covers HEALTH label/fill at the HUD anchor. */
+.successor3d-plate-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  margin: 0 8px 4px;
+  min-height: 0;
+}
+.successor3d-plate-tags:not(:has(> :not([hidden]))) {
+  display: none;
+  margin: 0;
+}
+
+.successor3d-plate-obs {
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  color: var(--sc3d-ink-dim);
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+
+/* Armed auto-sample loop tag — brass working-state, quieter than a stamp. */
+.successor3d-plate-sampler {
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--sc-fixed-ochre) 55%, transparent);
+  background: color-mix(in srgb, var(--sc-fixed-ochre) 12%, transparent);
+  color: var(--sc-fixed-ochre);
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Storm-shelter tag — calm phosphor accent: protected, not alarmed. */
+.successor3d-plate-sheltered {
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent) 10%, transparent);
+  color: var(--sc3d-accent);
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+
+/* Armed camp-abandonment countdown — brass working-state, sampler family. */
+.successor3d-plate-campdown {
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--sc-fixed-ochre) 55%, transparent);
+  background: color-mix(in srgb, var(--sc-fixed-ochre) 12%, transparent);
+  color: var(--sc-fixed-ochre);
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+
+.successor3d-plate-stamp {
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-danger) 60%, transparent);
+  background: color-mix(in srgb, var(--sc3d-danger) 16%, transparent);
+  color: var(--sc3d-danger);
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+/* Vitals: clean hairline wells, smooth phosphor fills. */
+.successor3d-gauges {
+  padding: 0 8px;
+}
+
+.successor3d-gauge {
+  display: grid;
+  grid-template-columns: 52px 1fr 30px;
+  gap: 8px;
+  align-items: center;
+  margin: 5px 0;
+}
+
+.successor3d-gauge-label {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.successor3d-gauge-track {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  background: var(--sc3d-bg-cell);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 75%, transparent);
+  border-radius: 1px;
+}
+
+.successor3d-gauge-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  transition: width 180ms ease-out;
+}
+
+.successor3d-gauge[data-vital="health"] .successor3d-gauge-fill {
+  background: color-mix(in srgb, var(--sc3d-danger) 78%, var(--sc3d-ink));
+}
+
+.successor3d-gauge[data-vital="action"] .successor3d-gauge-fill {
+  background: color-mix(in srgb, var(--sc3d-accent) 72%, var(--sc3d-ink));
+}
+
+.successor3d-gauge[data-vital="spirit"] .successor3d-gauge-fill {
+  background: color-mix(in srgb, var(--sc-fixed-ochre) 80%, var(--sc3d-ink));
+}
+
+.successor3d-gauge-track[data-low] .successor3d-gauge-fill {
+  animation: successor3d-low-blink 1.1s ease-in-out infinite;
+}
+
+@keyframes successor3d-low-blink {
+  50% {
+    filter: brightness(1.45);
+  }
+}
+
+.successor3d-gauge-value {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 10px;
+  text-align: right;
+  color: var(--sc3d-ink-dim);
+}
+
+/* Magazine: phosphor round segments. */
+.successor3d-mag {
+  margin: 9px 8px 0;
+  padding-top: 7px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 65%, transparent);
+}
+
+.successor3d-mag-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.successor3d-mag-weapon {
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.successor3d-mag-rounds {
+  padding: 0 5px;
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 60%, transparent);
+}
+
+.successor3d-mag[data-reloading] .successor3d-mag-rounds {
+  color: var(--sc3d-accent);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 45%, transparent);
+}
+
+/* Melee swing timer: rides the mag block where ammo pips live. */
+.successor3d-swing {
+  margin-top: 6px;
+  height: 4px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 65%, transparent);
+  background: color-mix(in srgb, var(--sc3d-ink-dim) 18%, transparent);
+}
+
+.successor3d-swing-fill {
+  height: 100%;
+  width: 0;
+  background: var(--sc3d-accent);
+}
+
+.successor3d-swing[data-ready] .successor3d-swing-fill {
+  background: color-mix(in srgb, var(--sc3d-accent) 55%, #9fff9f);
+}
+
+.successor3d-pips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.successor3d-pip {
+  width: 5px;
+  height: 12px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--sc3d-ink) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 1px;
+}
+
+.successor3d-pip.filled {
+  background: color-mix(in srgb, var(--sc3d-accent) 78%, var(--sc3d-ink));
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+}
+
+.successor3d-pip.lead {
+  animation: successor3d-pip-feed 0.4s ease-in-out infinite;
+}
+
+@keyframes successor3d-pip-feed {
+  50% {
+    background: var(--sc3d-ink);
+    border-color: var(--sc3d-ink);
+  }
+}
+
+.successor3d-plate-fine {
+  margin: 8px 8px 0;
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--sc3d-ink) 45%, transparent);
+}
+
+/* ── RUN toggle (persistent sprint; keyboard twin X) ────────────────────── */
+
+.successor3d-run {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 8px 0;
+  padding: 3px 8px;
+  pointer-events: auto;
+  cursor: pointer;
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--sc3d-ink) 62%, transparent);
+  background: color-mix(in srgb, var(--sc3d-ink) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+}
+
+.successor3d-run:focus-visible {
+  outline: 1px solid var(--sc3d-accent);
+  outline-offset: 1px;
+}
+
+.successor3d-run-key {
+  padding: 0 3px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  border-radius: 2px;
+  font-size: 8px;
+  opacity: 0.75;
+}
+
+.successor3d-run[data-state="on"] {
+  color: color-mix(in srgb, var(--sc3d-accent) 85%, var(--sc3d-ink));
+  background: color-mix(in srgb, var(--sc3d-accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+}
+
+/* Winded (amber caution, --sc3d-warn family like the link-dead tag): sprint
+ * recovery locked until Action refills — exertion, not damage, so it must
+ * not read as the red danger family. Pressed intent stays visible via
+ * aria-pressed; the plate never promises speed it cannot deliver. */
+.successor3d-run[data-state="locked"] {
+  color: color-mix(in srgb, var(--sc3d-warn, #e8c26a) 80%, var(--sc3d-ink));
+  border-color: color-mix(in srgb, var(--sc3d-warn, #e8c26a) 55%, transparent);
+  background: color-mix(in srgb, var(--sc3d-warn, #e8c26a) 9%, transparent);
+}
+
+.successor3d-run[data-state="locked"][aria-pressed="true"] {
+  animation: successor3d-run-recover 1.6s ease-in-out infinite;
+}
+
+@keyframes successor3d-run-recover {
+  50% {
+    background: color-mix(in srgb, var(--sc3d-warn, #e8c26a) 18%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .successor3d-run {
+    transition: none;
+  }
+  .successor3d-run[data-state="locked"][aria-pressed="true"] {
+    animation: none;
+  }
+  .successor3d-gauge-fill {
+    transition: none;
+  }
+  .successor3d-gauge-track[data-low] .successor3d-gauge-fill {
+    animation: none;
+    filter: brightness(1.28);
+  }
+  .successor3d-vignette {
+    transition: none;
+  }
+}
+
+/* ── Downed vignette (cheap, CSS-only) ──────────────────────────────────── */
+
+.successor3d-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms ease-out;
+  box-shadow:
+    inset 0 0 140px 42px rgb(var(--sc-fixed-oxide-deep-rgb) / 0.38),
+    inset 0 0 60px 12px rgba(0, 0, 0, 0.42);
+}
+
+.successor3d-vignette[data-active] {
+  opacity: 1;
+}
+
+/* ── Controls hint ──────────────────────────────────────────────────────── */
+
+.successor3d-hint {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  color: color-mix(in srgb, var(--sc3d-ink) 60%, transparent);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+
+
+/* ── Planetfall load screen ────────────────────────────────────────────── */
+
+.sc3d-loadscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(1px 1px at 12% 24%, rgba(255, 255, 255, 0.5) 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 12%, rgba(255, 255, 255, 0.35) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 62% 68%, rgba(255, 255, 255, 0.4) 50%, transparent 51%),
+    radial-gradient(1px 1px at 30% 82%, rgba(255, 255, 255, 0.3) 50%, transparent 51%),
+    radial-gradient(1px 1px at 88% 46%, rgba(255, 255, 255, 0.45) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 44% 8%, rgba(255, 255, 255, 0.25) 50%, transparent 51%),
+    radial-gradient(1px 1px at 8% 58%, rgba(255, 255, 255, 0.35) 50%, transparent 51%),
+    radial-gradient(ellipse at 50% 120%, #101623 0%, #05070c 60%);
+  opacity: 1;
+  transition: opacity 0.45s ease;
+}
+
+.sc3d-loadscreen--fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sc3d-loadscreen-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(46vh, 70vw);
+}
+
+.sc3d-loadscreen-chart {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(180, 200, 190, 0.18);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 0 42px rgba(20, 40, 34, 0.55);
+}
+
+.sc3d-loadscreen-chart .scp-travel-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sc3d-loadscreen-nochart {
+  width: 100%;
+  height: 100%;
+  background: #0b1118;
+}
+
+.sc3d-loadscreen-name {
+  margin: 6px 0 0;
+  font-family: var(--sc-fixed-font-stencil, monospace);
+  font-size: clamp(22px, 4.2vh, 36px);
+  letter-spacing: 0.22em;
+  color: #d8d2c2;
+}
+
+.sc3d-loadscreen-tag {
+  font-family: var(--sc-fixed-font-fine, monospace);
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  color: rgba(216, 210, 194, 0.55);
+}
+
+.sc3d-loadscreen-phase {
+  margin-top: 10px;
+  font-family: var(--sc-fixed-font-fine, monospace);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  color: rgba(160, 220, 190, 0.85);
+}
+
+.sc3d-loadscreen-dots::after {
+  content: "";
+  animation: sc3d-loadscreen-dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes sc3d-loadscreen-dots {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75% { content: "..."; }
+}
+
+.sc3d-loadscreen-bar {
+  width: 72%;
+  height: 3px;
+  margin-top: 4px;
+  background: rgba(216, 210, 194, 0.12);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sc3d-loadscreen-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--sc3d-accent, #57e0b8);
+  animation-name: sc3d-loadscreen-fill;
+  animation-timing-function: cubic-bezier(0.2, 0.6, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+
+@keyframes sc3d-loadscreen-fill {
+  0% { width: 0%; }
+  70% { width: 86%; }
+  100% { width: 100%; }
+}
+
+/* ── Character select / create (owner spec 2026-07-06) ──────────────────── */
+
+.sc3d-charselect {
+  position: relative;
+  display: grid;
+  grid-template-columns: 300px 1fr 300px;
+  gap: 16px;
+  align-items: stretch;
+  padding: 18px;
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.sc3d-cs-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(0, 0, 0, 0) 0%, rgba(4, 6, 8, 0.55) 100%),
+    linear-gradient(168deg, #6d5330 0%, #a3763f 52%, #7c5a33 100%);
+}
+
+.sc3d-cs-win {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  color: var(--sc3d-ink);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 86%, transparent);
+  backdrop-filter: blur(3px);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 2px;
+  user-select: none;
+  max-height: calc(100vh - 36px);
+}
+
+.sc3d-cs-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 22px;
+  padding: 0 8px;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-accent) 8%, transparent);
+  border-bottom: 1px solid var(--sc3d-hairline);
+}
+
+.sc3d-cs-title em {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--sc3d-ink-dim);
+}
+
+.sc3d-cs-title em[data-offline] {
+  color: var(--sc3d-danger);
+}
+
+.sc3d-cs-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scrollbar-width: thin;
+}
+
+.sc3d-cs-row {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 9px;
+  text-align: left;
+  font: inherit;
+  color: var(--sc3d-ink);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.sc3d-cs-row strong {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.sc3d-cs-row small {
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+}
+
+.sc3d-cs-row {
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.sc3d-cs-row:hover {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, var(--sc3d-hairline));
+  background: color-mix(in srgb, var(--sc3d-accent) 4%, transparent);
+}
+
+.sc3d-cs-row[data-active] {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 70%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent) 10%, transparent);
+  box-shadow: inset 2px 0 0 var(--sc3d-accent);
+}
+
+.sc3d-cs-row[data-linkdead] strong {
+  color: var(--sc3d-warn, #e8c26a);
+}
+
+.sc3d-cs-newbtn {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 6px;
+  padding: 8px 0;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink);
+  background: transparent;
+  border: 1px dashed var(--sc3d-hairline);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.sc3d-cs-newbtn:hover:not(:disabled) {
+  color: var(--sc3d-accent);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+}
+
+.sc3d-cs-newbtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.sc3d-cs-newbtn:disabled {
+  color: var(--sc3d-ink-dim);
+  cursor: default;
+}
+
+.sc3d-cs-doll {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+/* Staged floor glow behind the doll (WebGL canvas clears transparent). */
+.sc3d-cs-doll::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 46% 14% at 50% 82%, color-mix(in srgb, var(--sc3d-accent) 13%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 50% 55%, color-mix(in srgb, #000 14%, transparent), transparent 72%);
+}
+
+.sc3d-cs-dollhost {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sc3d-chardoll-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sc3d-cs-dollname {
+  margin: 0;
+  padding: 6px 0 2px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--sc3d-ink);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+.sc3d-cs-status {
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sc3d-cs-status div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sc3d-cs-status dt {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.sc3d-cs-status dd {
+  margin: 0;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+
+.sc3d-cs-summary {
+  padding: 4px 8px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sc3d-cs-profgrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  padding: 7px 8px 0;
+}
+
+.sc3d-cs-profcard {
+  -webkit-appearance: none;
+  appearance: none;
+  display: grid;
+  grid-template-columns: minmax(82px, 0.7fr) 1fr;
+  gap: 2px 8px;
+  padding: 7px 8px;
+  text-align: left;
+  font: inherit;
+  color: var(--sc3d-ink);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 58%, transparent);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.sc3d-cs-profcard:hover {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 45%, var(--sc3d-hairline));
+  background: color-mix(in srgb, var(--sc3d-accent) 5%, transparent);
+}
+
+.sc3d-cs-profcard[data-active] {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 75%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent) 12%, transparent);
+  box-shadow: inset 2px 0 0 var(--sc3d-accent);
+}
+
+.sc3d-cs-profcard:active {
+  transform: translateY(1px);
+}
+
+.sc3d-cs-profcard b {
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-accent);
+}
+
+.sc3d-cs-profcard span,
+.sc3d-cs-profcard small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sc3d-cs-profcard span {
+  font-size: 8px;
+  color: var(--sc3d-ink);
+}
+
+.sc3d-cs-profcard small {
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  color: var(--sc3d-ink-dim);
+}
+
+.sc3d-cs-profresolve {
+  margin: 0 8px 4px;
+  padding: 7px 0 8px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-accent) 35%, var(--sc3d-hairline));
+  background: color-mix(in srgb, var(--sc3d-accent) 5%, transparent);
+}
+
+.sc3d-cs-profresolve > p {
+  margin: 0;
+  padding: 0 8px;
+  font-size: 7px;
+  line-height: 1.45;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+}
+
+.sc3d-cs-profconfirm {
+  -webkit-appearance: none;
+  appearance: none;
+  width: calc(100% - 16px);
+  margin: 7px 8px 0;
+  padding: 7px 4px;
+  font: inherit;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-bg-cell);
+  background: var(--sc3d-accent);
+  border: 1px solid var(--sc3d-accent);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.sc3d-cs-profconfirm:disabled {
+  color: var(--sc3d-ink-dim);
+  background: transparent;
+  border-color: var(--sc3d-hairline);
+  cursor: default;
+}
+
+.sc3d-cs-sumline {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9px;
+}
+
+.sc3d-cs-sumline span {
+  color: var(--sc3d-ink-dim);
+  letter-spacing: 0.1em;
+  font-size: 8px;
+}
+
+.sc3d-cs-sumline b {
+  font-weight: 400;
+  text-align: right;
+}
+
+.sc3d-cs-enter {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 8px;
+  padding: 10px 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-bg-cell);
+  background: var(--sc3d-accent);
+  border: 1px solid var(--sc3d-accent);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.sc3d-cs-enter:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.sc3d-cs-enter:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.sc3d-cs-enter:disabled {
+  color: var(--sc3d-ink-dim);
+  background: transparent;
+  border-color: var(--sc3d-hairline);
+  cursor: default;
+}
+
+.sc3d-cs-cancel {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0 8px 8px;
+  padding: 6px 0;
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink-dim);
+  background: transparent;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.sc3d-cs-note {
+  min-height: 12px;
+  margin: 0;
+  padding: 0 8px 8px;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-accent);
+}
+
+.sc3d-cs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 8px 0;
+}
+
+.sc3d-cs-field span {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+.sc3d-cs-field input {
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 60%, transparent);
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 2px;
+  outline: none;
+}
+
+.sc3d-cs-field input:focus {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, var(--sc3d-hairline));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc3d-accent) 30%, transparent);
+}
+
+.sc3d-cs-field input::placeholder {
+  color: color-mix(in srgb, var(--sc3d-ink-dim) 65%, transparent);
+  letter-spacing: 0.06em;
+}
+
+.sc3d-cs-fieldnote {
+  margin: 0;
+  padding: 4px 8px 0;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+}
+
+.sc3d-cs-fieldnote[data-bad] {
+  color: var(--sc3d-danger);
+}
+
+.sc3d-cs-swatchrow {
+  display: flex;
+  gap: 5px;
+  padding: 8px 8px 0;
+  flex-wrap: wrap;
+}
+
+.sc3d-cs-swatch {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 90%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.28);
+  transition: border-color 120ms ease;
+}
+
+.sc3d-cs-swatch:hover:not([data-disabled]) {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 60%, var(--sc3d-hairline));
+}
+
+.sc3d-cs-swatch:active {
+  transform: translateY(1px);
+}
+
+.sc3d-cs-swatch[data-active] {
+  outline: 2px solid var(--sc3d-accent);
+  outline-offset: 1px;
+  border-color: color-mix(in srgb, var(--sc3d-accent) 80%, transparent);
+}
+
+.sc3d-cs-swatch[data-disabled] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sc3d-cs-chiprow {
+  display: flex;
+  gap: 4px;
+  padding: 8px 8px 0;
+  flex-wrap: wrap;
+}
+
+.sc3d-cs-chip {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 4px 9px;
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink);
+  background: transparent;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.sc3d-cs-chip[data-active] {
+  color: var(--sc3d-accent);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 65%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent) 12%, transparent);
+}
+
+.sc3d-cs-createactions {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+  flex: 0 0 auto;
+  padding: 0 0 2px;
+}
+
+.sc3d-cs-win [data-ref="sidePanels"] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sc3d-cs-win [data-panel] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sc3d-cs-win [data-panel][hidden] {
+  display: none;
+}
+
+.sc3d-cs-win [data-panel="select"] {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.sc3d-cs-delete {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 6px 8px 0;
+  padding: 6px 0;
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: color-mix(in srgb, #c96a5a 85%, var(--sc3d-ink));
+  background: transparent;
+  border: 1px solid color-mix(in srgb, #c96a5a 45%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.sc3d-cs-delete:hover:not(:disabled) {
+  background: color-mix(in srgb, #c96a5a 12%, transparent);
+}
+
+.sc3d-cs-delete[data-armed] {
+  color: #f0d9d3;
+  background: color-mix(in srgb, #b3402e 55%, transparent);
+  border-color: #b3402e;
+}
+
+.sc3d-cs-delete:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Creator wardrobe form: the create panel scrolls; actions stay pinned. */
+.sc3d-cs-create-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--sc3d-hairline) 80%, transparent) transparent;
+  padding-bottom: 10px;
+}
+
+.sc3d-cs-secthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding: 6px 8px 4px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: color-mix(in srgb, var(--sc3d-ink) 62%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 55%, transparent);
+  background: color-mix(in srgb, var(--sc3d-accent) 3%, transparent);
+}
+
+.sc3d-cs-secthead b {
+  font-weight: 600;
+  color: var(--sc3d-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Accent tick anchors each section of the registry form. */
+.sc3d-cs-secthead b::before {
+  content: "";
+  width: 3px;
+  height: 8px;
+  background: var(--sc3d-accent);
+  flex: 0 0 auto;
+}
+
+.sc3d-cs-stepper {
+  display: grid;
+  grid-template-columns: 22px 1fr 22px;
+  gap: 4px;
+  padding: 6px 8px 0;
+}
+
+.sc3d-cs-stepbtn {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  font: inherit;
+  font-size: 9px;
+  color: var(--sc3d-ink);
+  background: transparent;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 2px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sc3d-cs-stepbtn:hover {
+  color: var(--sc3d-accent);
+  border-color: color-mix(in srgb, var(--sc3d-accent) 65%, transparent);
+}
+
+.sc3d-cs-stepbtn:active {
+  transform: translateY(1px);
+}
+
+.sc3d-cs-stepname {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  border: 1px solid var(--sc3d-hairline);
+  border-radius: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+}
+
+/* Mini palette rail (hair dye): one even stretch row — any swatch count,
+ * any panel width, no orphan wrap. */
+.sc3d-cs-swatchrow[data-mini] {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+  padding-top: 5px;
+}
+
+.sc3d-cs-swatchrow[data-mini] .sc3d-cs-swatch {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  height: 16px;
+}

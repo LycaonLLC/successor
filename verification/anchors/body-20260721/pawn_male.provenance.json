@@ -1,0 +1,40 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "pawn_male",
+  "asset_path": "client-3d/public/assets/pawn-pack/pawn_male.glb",
+  "asset_hash": "sha256:6eaac9062bcfbc5efdf40c64f9e3236402a0d81832f1e0e8f4ce9a0a4dacac42",
+  "asset_kind": "pawn_body_glb",
+  "source": {
+    "derived_from": "previous runtime pawn_male.glb (sha256:3b4920454aaf9909878bda7ddaef53a9844e2072f71c4c672a3dc849d7875376, 2026-07-07) with ONLY the body primitive's POSITION/NORMAL/JOINTS_0/WEIGHTS_0 replaced",
+    "body_state": "source-assets:characters/synty-fit/labs/_backup/bottoms_precoresplit_0000.blend (sha256:eaedc9efdab7032e3146c718221cdf5a0fc7e5b2562490d9d2cf4787672a86e1) — the pre-core-split v8 accommodated body: weight-field match to garment donors (body_match_pants.py, zone z 0.12-1.02 ramped) + v4 geometry shrink (12mm, seat +14mm). No core split (shelved by owner 2026-07-08), no helper bones, no crease rings.",
+    "generator": "surgical accessor transplant (byte-preserving for skeleton/animations/materials); vertex order proven identical via index-buffer equality; JOINTS_0 remapped by joint name",
+    "not_used": "labs/bottoms.blend head state (54-bone helper-rig variant from body_prepare_clothed.py) — constraint-driven helpers cannot ship; runtime contract is exactly 50 bones (ue5_mannequin_50)"
+  },
+  "promotion": {
+    "method": "in-place body-attribute swap into a copy of the prior runtime GLB",
+    "promoted_at": "2026-07-21",
+    "reason": "waistband/hip clipping on all synty pants in-game; lab body accommodation was never promoted to the runtime pack"
+  },
+  "metrics": {
+    "bytes": 2732136,
+    "joints": 50,
+    "animations": 47,
+    "body_vertices": 2752,
+    "changed_vertices": 107,
+    "max_position_delta_mm": 22.0,
+    "height_max_y_m": 1.76264
+  },
+  "validation": {
+    "gltf_errors": 0,
+    "joint_names_and_order_identical_to_previous": true,
+    "animation_names_and_order_identical_to_previous": true,
+    "weight_rows_normalized": true,
+    "changed_weights_outside_z_zone": 0,
+    "gates": ["src/render/pawns.specialHumanoid.test.ts", "src/assets/pawnPack.catalog.test.ts", "tsc --noEmit"],
+    "visual_proof": "asset-lab before/after frame pairs (walk_f CLOSE waist framing): legs_wrapped_workpants, legs_reinforced_denim_pants, legs_padded_canvas_trousers, workpants+top_frayed_tunic, naked idle 3/4 — clipping resolved in all AFTER frames, naked silhouette unchanged"
+  },
+  "review": {
+    "status": "structural-and-headed-visual-pass",
+    "notes": "pawn_female.glb intentionally untouched: the synty-fit bottoms lab body-accommodation program covered only the male pawn_body; no female pass exists in the lab lineage."
+  }
+}

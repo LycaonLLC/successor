@@ -1,0 +1,7 @@
+# Replace before plan; never commit the resulting terraform.tfvars.
+aws_region       = "REPLACE_WITH_EXPLICIT_AWS_REGION"
+state_bucket_name = "REPLACE_WITH_GLOBALLY_UNIQUE_STATE_BUCKET"
+tags = {
+  Owner = "REPLACE_WITH_OWNER"
+}
+hosted_zone_name = "successor.compress.biz"

@@ -1,0 +1,235 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "active-systems-restart-persistence",
+  "fixture": "open-desert-active-systems-restart",
+  "persistence": true,
+  "actors": {
+    "alpha": { "character": "fixture:active" }
+  },
+  "steps": [
+    {
+      "action": {
+        "name": "trainSkill",
+        "actor": "alpha",
+        "args": { "boxId": "craftsman-novice", "move": false }
+      },
+      "as": "craftsmanPrerequisite"
+    },
+    {
+      "action": {
+        "name": "trainSkill",
+        "actor": "alpha",
+        "args": { "boxId": "medic-novice", "move": false }
+      },
+      "as": "medicPrerequisite"
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "skillBoxes": { "op": "includes", "value": "craftsman-experimentation-ii" }
+              }
+            },
+            "professions[2].id": "medic",
+            "professions[2].skillBoxes": { "op": "includes", "value": "medic-medical-crafting-ii" }
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "hybridPrerequisitesBeforeBioengineer"
+      }
+    },
+    {
+      "action": {
+        "name": "trainSkill",
+        "actor": "alpha",
+        "args": { "boxId": "bioengineer-novice", "move": false }
+      },
+      "as": "bioengineerKit"
+    },
+    { "send": { "actor": "alpha", "line": "/craft-begin recipe_id=chemical_survey_tool", "as": "beginCraft" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.beginCraft.data.commandId", "commandKind": "CraftBegin", "accepted": true }, "timeoutMs": 10000 } },
+    { "action": { "name": "craftAssignSlot", "actor": "alpha", "args": { "slotIndex": 0, "itemId": 2001, "minAvailable": 24 } }, "as": "craftIronReservation" },
+    { "action": { "name": "craftAssignSlot", "actor": "alpha", "args": { "slotIndex": 1, "itemId": 2007, "minAvailable": 12 } }, "as": "craftCopperReservation" },
+    { "send": { "actor": "alpha", "line": "/craft-assemble", "as": "assembleCraft" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.assembleCraft.data.commandId", "commandKind": "CraftAssemble", "accepted": true }, "timeoutMs": 10000 } },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "assembled",
+          "data.payload.recipeId": "chemical_survey_tool",
+          "data.payload.assembled.experimentationPointsRemaining": { "op": "gte", "value": 0 }
+        },
+        "timeoutMs": 10000,
+        "as": "craftLockedBeforeRestart"
+      }
+    },
+
+    { "action": { "name": "surveyBest", "actor": "alpha", "args": { "family": "iron", "move": true, "toleranceCells": 0.9 } }, "as": "richIronSurveyBeforeExtractor" },
+    { "send": { "actor": "alpha", "line": "/place-extractor iron", "as": "placeExtractor" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.placeExtractor.data.commandId", "commandKind": "PlaceExtractor", "accepted": true }, "timeoutMs": 10000 } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "active-restart:field-pack", "itemId": 3201, "minAvailable": 1 }, "timeoutMs": 10000, "as": "batteryBeforeRestart" } },
+    { "send": { "actor": "alpha", "line": "/insert-battery extractor:active-restart:1 $captures.batteryBeforeRestart.container $captures.batteryBeforeRestart.stackId $captures.batteryBeforeRestart.variantId", "as": "insertBattery" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.insertBattery.data.commandId", "commandKind": "InsertBattery", "accepted": true }, "timeoutMs": 10000 } },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "placedExtractors[0].extractorId": "extractor:active-restart:1",
+          "placedExtractors[0].mode": "battery",
+          "placedExtractors[0].batteryPct": { "op": "gt", "value": 0 }
+        },
+        "timeoutMs": 10000,
+        "as": "batteryExtractorBeforeRestart"
+      }
+    },
+
+    { "action": { "name": "spliceBegin", "actor": "alpha", "args": { "species": "ashgrain" } }, "as": "spliceBeforeRestart" },
+    { "action": { "name": "spliceAssignSlot", "actor": "alpha", "args": { "slotIndex": 0, "itemId": 6001, "minAvailable": 2 } }, "as": "spliceParentOneBeforeRestart" },
+    { "action": { "name": "spliceAssignSlot", "actor": "alpha", "args": { "slotIndex": 1, "itemId": 6001, "minAvailable": 2 } }, "as": "spliceParentTwoBeforeRestart" },
+    { "action": { "name": "moveTo", "actor": "alpha", "args": { "x": 535, "y": 121, "toleranceCells": 0.9 } }, "as": "returnToRestartRogue" },
+
+    { "send": { "actor": "alpha", "line": "/equip-weapon weapon_id=slugthrower weapon_item_id=3101", "as": "equipSlugthrower" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.equipSlugthrower.data.commandId", "commandKind": "SetEquippedWeapon", "accepted": true }, "timeoutMs": 10000 } },
+    { "send": { "actor": "alpha", "line": "/target active-restart-rogue", "as": "targetRestartRogue" } },
+    { "send": { "actor": "alpha", "line": "/attack", "as": "queueRoll" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.queueRoll.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 10000 } },
+    "/pause 100ms",
+    { "send": { "actor": "alpha", "line": "/reload", "as": "reloadRoll" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.reloadRoll.data.commandId", "commandKind": "ReloadWeapon", "accepted": true }, "timeoutMs": 10000 } },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "weapon.weaponId": "slugthrower",
+            "weapon.weaponItemId": 3101,
+            "weapon.reloadRemainingTicks": { "op": "gt", "value": 0 },
+            "combatQueue.entries[0].targetActorId": "active-restart-rogue"
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "rollReloadQueuedBeforeRestart"
+      }
+    },
+
+    { "send": { "actor": "alpha", "line": "/sample iron", "as": "sampleIntent" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.sampleIntent.data.commandId", "commandKind": "SampleResource", "accepted": true }, "timeoutMs": 10000 } },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "posture": "kneeling_down",
+            "nextSampleTick": { "op": "gt", "value": 0 }
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "sampleIntentBeforeRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "extractorCollectableUnits",
+          "extractorId": "extractor:active-restart:1",
+          "min": 1
+        },
+        "timeoutMs": 40000,
+        "as": "extractorBeforeRestart"
+      }
+    },
+
+    { "restart": { "as": "restartEvidence", "timeoutMs": 30000 } },
+
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "placedExtractors[0].extractorId": "$captures.extractorBeforeRestart.extractorId",
+          "placedExtractors[0].isOwner": "$captures.extractorBeforeRestart.isOwner",
+          "placedExtractors[0].mode": "$captures.extractorBeforeRestart.mode",
+          "placedExtractors[0].batteryPct": "$captures.extractorBeforeRestart.batteryPct",
+          "placedExtractors[0].hopperPct": "$captures.extractorBeforeRestart.hopperPct",
+          "placedExtractors[0].familyLabel": "$captures.extractorBeforeRestart.familyLabel",
+          "placedExtractors[0].collectableUnits": "$captures.extractorBeforeRestart.collectableUnits"
+        },
+        "timeoutMs": 10000,
+        "as": "extractorAfterRestartExact"
+      }
+    },
+
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "placedExtractors[0].extractorId": "extractor:active-restart:1",
+          "placedExtractors[0].mode": "battery",
+          "placedExtractors[0].batteryPct": { "op": "gt", "value": 0 }
+        },
+        "timeoutMs": 10000,
+        "as": "batteryExtractorAfterRestart"
+      }
+    },
+
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "weapon.weaponId": "slugthrower",
+            "weapon.weaponItemId": 3101,
+            "weapon.reloadRemainingTicks": { "op": "gt", "value": 0 },
+            "combatQueue.entries[0].targetActorId": "active-restart-rogue",
+            "nextSampleTick": { "op": "gt", "value": 0 }
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "rollReloadQueuedAfterRestart"
+      }
+    },
+
+    { "send": { "actor": "alpha", "line": "/craft-finalize-prototype", "as": "finalizeCraftAfterRestart" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.finalizeCraftAfterRestart.data.commandId", "commandKind": "CraftFinalizePrototype", "accepted": true }, "timeoutMs": 10000 } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "active-restart:crafted-gear", "itemId": 3009, "minAvailable": 1 }, "timeoutMs": 10000, "as": "craftedSurveyToolAfterRestart" } },
+
+    { "action": { "name": "spliceCancel", "actor": "alpha", "args": {} }, "as": "spliceCancelledAfterRestart" },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "active-restart:resource-crate", "itemId": 2001, "variantId": 219954, "minAvailable": 1 }, "timeoutMs": 20000, "as": "sampleCompletedAfterRestart" } },
+    { "await": { "kind": "oracle", "condition": { "type": "extractorCollectableUnits", "extractorId": "extractor:active-restart:1", "min": 1 }, "timeoutMs": 40000, "as": "batteryExtractorCollectableAfterRestart" } },
+    { "send": { "actor": "alpha", "line": "/stop-sample iron", "as": "stopSampleAfterRestart" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.stopSampleAfterRestart.data.commandId", "commandKind": "SampleResource", "accepted": true }, "timeoutMs": 10000 } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.alpha.id", "match": { "posture": "kneeling" } }, "timeoutMs": 10000, "as": "samplePostureSettledAfterRestart" } },
+    { "send": { "actor": "alpha", "line": "/stand", "as": "standAfterRestart" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.standAfterRestart.data.commandId", "commandKind": "SetPosture", "accepted": true }, "timeoutMs": 10000 } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.alpha.id", "match": { "posture": "standing" } }, "timeoutMs": 10000, "as": "standingBeforeExtractorCollectAfterRestart" } },
+    { "action": { "name": "moveTo", "actor": "alpha", "args": { "x": "$captures.batteryExtractorAfterRestart.placedExtractors[0].cellX", "y": "$captures.batteryExtractorAfterRestart.placedExtractors[0].cellY", "toleranceCells": 0.25, "pulseMs": 160, "sprint": false } }, "as": "returnToRichExtractorAfterRestart" },
+    { "await": { "kind": "oracle", "condition": { "type": "extractorCollectableUnits", "extractorId": "extractor:active-restart:1", "min": 1 }, "timeoutMs": 10000, "as": "batteryExtractorCollectableAtCollection" } },
+    { "query": { "actor": "alpha", "line": "/inv active-restart:resource-crate", "as": "resourcesBeforeExtractorCollectAfterRestart" } },
+    { "send": { "actor": "alpha", "line": "/collect-extractor extractor:active-restart:1", "as": "collectBatteryExtractorAfterRestart", "atTick": "$captures.batteryExtractorCollectableAtCollection.tick" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.collectBatteryExtractorAfterRestart.data.commandId", "commandKind": "CollectExtractor", "accepted": true }, "timeoutMs": 10000 } },
+    { "query": { "actor": "alpha", "line": "/inv active-restart:resource-crate", "as": "resourcesAfterExtractorCollectAfterRestart" } },
+    { "expect": { "kind": "queryDelta", "from": "resourcesBeforeExtractorCollectAfterRestart", "to": "resourcesAfterExtractorCollectAfterRestart", "path": "data.totalAvailable", "op": "eq", "value": "$captures.batteryExtractorCollectableAtCollection.collectableUnits" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "active-restart:resource-crate", "itemId": "$captures.sampleCompletedAfterRestart.itemId", "variantId": "$captures.sampleCompletedAfterRestart.variantId", "minAvailable": 1 }, "timeoutMs": 10000, "as": "extractedResourceAfterRestart" } },
+    { "expect": { "kind": "captureCompare", "capture": "extractedResourceAfterRestart", "path": "itemId", "op": "eq", "value": "$captures.sampleCompletedAfterRestart.itemId" } },
+    { "expect": { "kind": "captureCompare", "capture": "extractedResourceAfterRestart", "path": "variantId", "op": "eq", "value": "$captures.sampleCompletedAfterRestart.variantId" } },
+    { "send": { "actor": "alpha", "line": "/collect-extractor extractor:active-restart:1", "as": "collectBatteryExtractorAgainAfterRestart" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.collectBatteryExtractorAgainAfterRestart.data.commandId", "commandKind": "CollectExtractor", "accepted": false, "reasonCode": "extractor_hopper_empty" }, "timeoutMs": 10000 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "activeSystemsRestartStableHash" } }
+  ],
+  "notes": "Manual-clock real-process restart proof. Before restart it has an assembled craft session with resource locks, an owned battery extractor, two active Ashgrain splice parent slots, a queued/reloading equipped Slugthrower, and a live iron sample loop. The extractor wait captures exact nonzero hopper units plus extractor ID, isOwner, battery mode/remaining percentage, hopper percentage, and resource family before checkpoint; the immediately post-reconnect oracle requires those exact observable values before any clock advance. The unauthenticated oracle intentionally strips ownerActorId and resource variant, so accepted owner collection plus the post-collect inventory row proves owner and exact item/variant. The restart must relaunch the isolated process against the same shard and character store, then preserve each authority state long enough for the original craft to finalize once, the splice session to cancel, the sample to produce material, and the battery extractor to collect exactly the captured units. The first collect must accept and the immediate duplicate must reject as an empty hopper."
+}

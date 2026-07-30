@@ -1,0 +1,175 @@
+{
+  "schema": "successor.custom-item-assets.v1",
+  "source": "build.py",
+  "runtimeRoot": "/assets/items/custom/field-tools/",
+  "atlas": {
+    "basecolorSource": "field_tools_kiln_basecolor_2048.png",
+    "ormSource": "field_tools_kiln_orm_2048.png",
+    "normalSource": "field_tools_kiln_normal_2048.png",
+    "runtimeResolution": 1024
+  },
+  "assets": {
+    "field_multitool": {
+      "itemIds": [
+        3001
+      ],
+      "name": "Field Multitool",
+      "glb": "/assets/items/custom/field-tools/field_multitool.glb",
+      "sourceGlb": "field_multitool.glb",
+      "sharedModel": false,
+      "triangles": 2356,
+      "materialRecipes": [
+        "kiln_amber",
+        "molded_polymer",
+        "polymer_dark",
+        "worn_alloy"
+      ],
+      "accents": [
+        "kiln_amber"
+      ]
+    },
+    "scout_processing_kit": {
+      "itemIds": [
+        3004
+      ],
+      "name": "Scout Processing Kit",
+      "glb": "/assets/items/custom/field-tools/scout_processing_kit.glb",
+      "sourceGlb": "scout_processing_kit.glb",
+      "sharedModel": false,
+      "triangles": 1104,
+      "materialRecipes": [
+        "bio_glass",
+        "graphite",
+        "kiln_amber",
+        "molded_polymer",
+        "polymer_dark",
+        "soil_fiber",
+        "worn_alloy"
+      ],
+      "accents": [
+        "kiln_amber"
+      ]
+    },
+    "mineral_spectrometer_scanner": {
+      "itemIds": [
+        3008
+      ],
+      "name": "Mineral Spectrometer Scanner",
+      "glb": "/assets/items/custom/field-tools/mineral_spectrometer_scanner.glb",
+      "sourceGlb": "mineral_spectrometer_scanner.glb",
+      "sharedModel": false,
+      "triangles": 2020,
+      "materialRecipes": [
+        "accent_mineral",
+        "bio_glass",
+        "graphite",
+        "polymer_dark",
+        "worn_alloy"
+      ],
+      "accents": [
+        "accent_mineral"
+      ]
+    },
+    "camp_kit": {
+      "itemIds": [
+        3007
+      ],
+      "name": "Camp Kit",
+      "glb": "/assets/items/custom/field-tools/camp_kit.glb",
+      "sourceGlb": "camp_kit.glb",
+      "sharedModel": false,
+      "triangles": 5812,
+      "materialRecipes": [
+        "graphite",
+        "kiln_amber",
+        "molded_polymer",
+        "polymer_dark",
+        "soil_fiber",
+        "worn_alloy"
+      ],
+      "accents": [
+        "kiln_amber"
+      ]
+    },
+    "chemical_survey_device": {
+      "itemIds": [
+        3009
+      ],
+      "name": "Chemical Survey Device",
+      "glb": "/assets/items/custom/field-tools/chemical_survey_device.glb",
+      "sourceGlb": "chemical_survey_device.glb",
+      "sharedModel": false,
+      "triangles": 1964,
+      "materialRecipes": [
+        "accent_chemical",
+        "bio_glass",
+        "graphite",
+        "molded_polymer",
+        "polymer_dark",
+        "worn_alloy"
+      ],
+      "accents": [
+        "accent_chemical"
+      ]
+    },
+    "gas_survey_tool": {
+      "itemIds": [
+        3010
+      ],
+      "name": "Gas Survey Tool",
+      "glb": "/assets/items/custom/field-tools/gas_survey_tool.glb",
+      "sourceGlb": "gas_survey_tool.glb",
+      "sharedModel": false,
+      "triangles": 1336,
+      "materialRecipes": [
+        "accent_gas",
+        "graphite",
+        "polymer_dark",
+        "worn_alloy"
+      ],
+      "accents": [
+        "accent_gas"
+      ]
+    },
+    "water_survey_tool": {
+      "itemIds": [
+        3011
+      ],
+      "name": "Water Survey Tool",
+      "glb": "/assets/items/custom/field-tools/water_survey_tool.glb",
+      "sourceGlb": "water_survey_tool.glb",
+      "sharedModel": false,
+      "triangles": 1500,
+      "materialRecipes": [
+        "accent_water",
+        "bio_glass",
+        "graphite",
+        "polymer_dark",
+        "worn_alloy"
+      ],
+      "accents": [
+        "accent_water"
+      ]
+    },
+    "extractor_battery": {
+      "itemIds": [
+        3201
+      ],
+      "name": "Extractor Battery",
+      "glb": "/assets/items/custom/field-tools/extractor_battery.glb",
+      "sourceGlb": "extractor_battery.glb",
+      "sharedModel": false,
+      "triangles": 1192,
+      "materialRecipes": [
+        "graphite",
+        "kiln_amber",
+        "molded_polymer",
+        "polymer_dark",
+        "worn_alloy"
+      ],
+      "accents": [
+        "kiln_amber"
+      ]
+    }
+  }
+}

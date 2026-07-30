@@ -1,0 +1,1 @@
+Anchor 2026-07-21. REVERT: cp <chosen>.glb client-3d/public/assets/pawn-pack/pawn_male.glb && reload. CURRENT = accommodation body (pants clean, thin naked). OLD = pre-accommodation (fuller naked, pants clip in motion). Git HEAD also holds OLD.

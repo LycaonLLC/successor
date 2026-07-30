@@ -1,0 +1,51 @@
+{
+  "agent_provenance": {
+    "human_approvals": [],
+    "produced_by": [
+      {
+        "agent_instance_id": "CommerceTerminalBuilder",
+        "model": "Fable 5",
+        "provider": "anthropic",
+        "role": "content-author",
+        "run_id": "commerce-terminals-20260718"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "CommerceTerminalBuilder",
+        "notes": "numeric parsed-GLB gates + multi-pass studio render/crop review in .game-lab/commerce-terminals-20260718/renders/",
+        "role": "judge"
+      }
+    ]
+  },
+  "asset_hash": "sha256:eb825f81370b014660499bcb7fc67480895b3734683ba6647234203b996c2151",
+  "asset_id": "bank_terminal_civic",
+  "asset_kind": "model_glb",
+  "asset_path": "client-3d/public/assets/world-items/bank_terminal_civic.glb",
+  "gate_report": ".game-lab/commerce-terminals-20260718/gate.json",
+  "human_edits": [],
+  "input_assets": [
+    {
+      "path": "tools/successor/assets/build_cloning_facility.py",
+      "purpose": "design-language + gate/manifest contract reference (shoulder-house civic props)"
+    }
+  ],
+  "prompt": {
+    "denylist_audit": "passed: no franchise/IP terms and no baked words in names, materials, node names, textures, or artifacts",
+    "text": "Hand-authored parametric part program (no generative model): Dustgate civic bank terminal \u2014 secure/private vault kiosk: chamfered basalt plinth with anchor studs, layered ceramic armor column with recessed side panels and brass strap bands, a bladed brass vault iris with spoked hub, dog bolts and an energized seal ring, a recessed amber deposit throat with roller, an angled credential console with beveled keypad, recessed teal palm window and half-inserted card, and a hooded privacy head with a stepped-bezel amber ledger screen. Fully serviced back: recessed access door on hinge barrels, latch, louvered vents, clipped cable riser with junction box. UV-backed procedural PBR maps (baseColor + metallicRoughness + normal, deterministic seeds), non-text emissive screen UI, shared Dustgate civic commerce palette."
+  },
+  "regeneration_command": "/snap/bin/blender -b --factory-startup --python-exit-code 1 -P tools/successor/assets/build_commerce_terminals.py",
+  "rights": {
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "source_license": "Successor proprietary project asset; all rights reserved"
+  },
+  "schema": "successor-asset-provenance/1",
+  "seed": "deterministic numpy seeds 2026071801..05 + per-screen layout constants",
+  "source_blend_or_script": "tools/successor/assets/build_commerce_terminals.py (deterministic parametric part program; no .blend needed)",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "tool_snapshot_id": "blender-5.2.0",
+    "version": "5.2.0"
+  },
+  "tri_count": 6072
+}

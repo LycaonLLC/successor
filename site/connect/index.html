@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Approve a device | Successor</title>
+    <meta
+      name="description"
+      content="Approve a Successor client with its short code."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F8F8F8" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Karrik-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link
+      rel="preload"
+      href="/fonts/AtkinsonHyperlegibleNext-Latin-var.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body data-page="connect" data-requires-session data-session-state="unknown">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+      <div class="shell">
+        <a class="wordmark" href="/">
+          <img
+            class="wordmark-mark"
+            src="/brand/successor-mark.svg"
+            width="20"
+            height="20"
+            alt=""
+            decoding="async"
+          />
+          <img
+            class="wordmark-type"
+            src="/brand/successor-wordmark.svg"
+            width="132"
+            height="16"
+            alt="Successor"
+            decoding="async"
+          />
+        </a>
+                <nav class="site-nav" aria-label="Site">
+          <ul class="nav-inline">
+            <li><a href="/">Home</a></li>
+            <li><a href="/roadmap/">Roadmap</a></li>
+            <li><a href="/alpha/">Alpha</a></li>
+            <li><a href="/account/">Account</a></li>
+            <li><a href="/play/">Play</a></li>
+          </ul>
+          <details class="nav-menu">
+            <summary>Menu</summary>
+            <ul class="nav-list">
+            <li><a href="/">Home</a></li>
+            <li><a href="/roadmap/">Roadmap</a></li>
+            <li><a href="/alpha/">Alpha</a></li>
+            <li><a href="/account/">Account</a></li>
+            <li><a href="/play/">Play</a></li>
+            </ul>
+          </details>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="shell">
+      <div class="page-head">
+        <h1>Approve a device</h1>
+        <p class="lede">Enter the code shown by the client. Never enter your password there.</p>
+      </div>
+
+      <noscript>
+        <p class="note">Device approval needs JavaScript. The rest of the site works without it.</p>
+      </noscript>
+
+      <div class="page-section">
+        <div class="prose">
+          <p>
+            Codes last ten minutes. Approval lasts until you revoke it.
+          </p>
+        </div>
+      </div>
+
+      <p class="note" id="api-status" role="status" aria-live="polite" hidden></p>
+
+      <p class="note" id="signin-first" hidden>
+        Approving a device requires a signed-in account. <a href="/account/">Sign in</a> first,
+        then come back; the code keeps for ten minutes.
+      </p>
+
+      <section class="page-section session-gated" id="decision-section" aria-labelledby="h-decision" hidden>
+        <div class="panel">
+          <h2 id="h-decision">Approve or deny a code</h2>
+          <form id="device-decision-form" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label for="device-code">Device code</label>
+                <input
+                  id="device-code"
+                  name="userCode"
+                  type="text"
+                  autocomplete="off"
+                  spellcheck="false"
+                  required
+                  maxlength="16"
+                />
+                <p class="hint">Exactly as the client shows it. Dashes and case do not matter.</p>
+                <p class="field-error" aria-live="polite"></p>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" name="decision" value="approved" data-busy-label="Approving…">
+                Approve this device
+              </button>
+              <button type="submit" class="btn btn-secondary" name="decision" value="denied" data-busy-label="Denying…">
+                Deny it
+              </button>
+              <span class="form-status" role="status" aria-live="polite"></span>
+            </div>
+          </form>
+          <p class="note" id="decision-result" role="status" hidden></p>
+        </div>
+      </section>
+
+      <section class="page-section session-gated" id="devices-section" aria-labelledby="h-devices" hidden>
+        <h2 id="h-devices">Devices you approved</h2>
+        <div class="prose">
+          <p>Revoking one signs that machine out within minutes.</p>
+        </div>
+        <ul class="device-list" id="device-list"></ul>
+        <p class="form-status" id="devices-status" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+
+        <footer class="site-foot">
+      <div class="shell">
+        <p>Invite alpha. Saves may reset.</p>
+        <ul class="foot-links">
+          <li><a href="/roadmap/">Roadmap</a></li>
+          <li><a href="/alpha/">Alpha</a></li>
+          <li><a href="/legal/terms/">Terms</a></li>
+          <li><a href="/legal/privacy/">Privacy</a></li>
+          <li><a href="/download/">Downloads</a></li>
+          <li><a href="/legal/terms/#contact">Contact</a></li>
+        </ul>
+        <p class="foot-credit">From Lycaon LLC, in partnership with ROYCORP GAME STUDIOS.</p>
+      </div>
+    </footer>
+  </body>
+</html>

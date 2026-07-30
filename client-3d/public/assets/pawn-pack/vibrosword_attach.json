@@ -1,0 +1,89 @@
+{
+  "schema": "successor-weapon-attach/1",
+  "weapon": "vibrosword",
+  "item_id": 3103,
+  "source_glb": "vibrosword_powered.glb",
+  "source_blend": "vibrosword_powered.blend",
+  "source_build": "build_vibrosword_powered.py",
+  "silhouette_class": "melee",
+  "coordinate_space": "weapon_glb_local_gltf",
+  "units": "m",
+  "space_notes": "Powered cleaver frame: +Z blade tip, +Y spine/up, +X right face; emitter block straddles z=0, grip runs -0.260..-0.045 with grip midpoint at z=-0.1525.",
+  "scale_to_pawn": 1,
+  "attach": "one_hand",
+  "handedness": "right",
+  "hands": {
+    "grip": "hand_r"
+  },
+  "nodes": {
+    "frame": "Gear_vibrosword_powered"
+  },
+  "sockets": {
+    "grip": [
+      0.0,
+      0.0,
+      -0.1525
+    ],
+    "pommel": [
+      0.0,
+      0.0,
+      -0.315
+    ],
+    "tip": [
+      0.0,
+      -0.004,
+      0.69
+    ],
+    "cell": [
+      0.0,
+      0.044,
+      0.012
+    ],
+    "throat": [
+      0.0,
+      -0.004,
+      0.063
+    ]
+  },
+  "orientation": {
+    "forward": [
+      0,
+      0,
+      1
+    ],
+    "up": [
+      0,
+      1,
+      0
+    ]
+  },
+  "mount_hand_r_local": {
+    "pos": [
+      0.05121,
+      0.124,
+      0.14622
+    ],
+    "quat": [
+      0.1213,
+      -0.24455,
+      -0.23404,
+      -0.93312
+    ],
+    "derivation": "Live vibrosword_3103 weld quaternion retained for the identical +Z blade / +Y spine family frame. Position re-solved so this weapon's grip midpoint (z=-0.1525) occupies the same hand_r-local point as the live grip midpoint (z=-0.13): p_new = p_live + R(q)@(0,0,0.0225)."
+  },
+  "stow_socket": {
+    "space": "spine_03_local",
+    "pos": [
+      0.16,
+      0,
+      -0.14
+    ],
+    "rot_deg": [
+      85,
+      -45,
+      0
+    ],
+    "derivation": "Existing Successor spine_03 back-carry contract."
+  },
+  "provenance": "Source-authored powered cleaver redesign derived from the F4 lane; deterministic rebuild via build_vibrosword_powered.py."
+}

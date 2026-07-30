@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trade Window Smoke</title>
+    <style>
+      html, body, #app { width: 100%; height: 100%; margin: 0; }
+      body { overflow: hidden; background: #05070a; }
+      #diag { position: fixed; left: 8px; bottom: 8px; z-index: 99; color: #e4d7b4;
+              background: #0b0d10; border: 1px solid #2a2f36; padding: 6px; font: 11px monospace;
+              max-width: 55vw; white-space: pre-wrap; pointer-events: none; }
+      #partner { position: fixed; right: 8px; top: 8px; z-index: 99; display: flex; flex-direction: column;
+                 gap: 4px; background: #0b0d10; border: 1px solid #2a2f36; padding: 6px; }
+      #partner button { font: 10px monospace; background: #14181d; color: #e4d7b4;
+                        border: 1px solid #2a2f36; padding: 3px 8px; cursor: pointer; text-align: left; }
+      #partner button:hover { border-color: #b98c3a; }
+      #partner b { color: #a2946f; font: 9px monospace; letter-spacing: 0.1em; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="partner">
+      <b>VEX MARROW (partner sim)</b>
+      <button data-ev="open">open table (ProposeTrade)</button>
+      <button data-ev="addCopper">theirs: add 2 Ashfall Copper</button>
+      <button data-ev="addHide">theirs: add 1 Creature Hide</button>
+      <button data-ev="coin250">theirs: set coin 250</button>
+      <button data-ev="coinScam">theirs: COIN SWITCH → 20 (scam)</button>
+      <button data-ev="accept">theirs: ACCEPT (seal)</button>
+      <button data-ev="confirm">theirs: CONFIRM (countersign)</button>
+      <button data-ev="decline">theirs: DECLINE</button>
+      <button data-ev="tick">probe: manual tick</button>
+    </div>
+    <pre id="diag">…</pre>
+    <script type="module">
+      // TRADE smoke — the secure-trade window against the double-lock fixture
+      // machine (craft-smoke pattern). The command port maps every window
+      // action to a reducer event on MY side; the partner strip (top-right)
+      // drives THEIRS events through the same reducer, so both halves of the
+      // anti-abuse protocol are walkable without a sim. Live client binds the
+      // real port + authority stream instead.
+      import "/src/styles.css";
+      import { applyThemeVariables } from "/src/ui/theme.ts";
+      import { initUiTheme, getUiTheme } from "/src/ui/uiTheme.ts";
+      import { loadRuntimeAssetBundle } from "/src/assets/runtimeAssets.ts";
+      import { createPlayState } from "@successor/client/src/slice-core/gameState";
+      import { createWindowManager } from "/src/ui/windows/windowManager.ts";
+      import { createContextRadial } from "/src/ui/windows/contextRadial.ts";
+      import { createInventoryWindowDefinition } from "/src/ui/inventory/shell.ts";
+      import { createTradeWindowDefinition } from "/src/ui/trade/tradeWindow.ts";
+      import {
+        wireTradeWindowLifecycle,
+        pollTradeLifecycle,
+        TRADE_WINDOW_ID,
+      } from "/src/ui/trade/lifecycle.ts";
+      import { ingestTradeSession, tradeSession, acknowledgeTradeClose } from "/src/ui/trade/store.ts";
+      import { reduceTradeSession } from "/src/ui/trade/machine.ts";
+      import { fixtureTradeOpen, fixtureCopperLine, fixtureHideLine } from "/src/ui/trade/fixtures.ts";
+
+      const diag = (msg) => { const el = document.getElementById('diag'); if (el) el.textContent = msg; };
+      try {
+        applyThemeVariables();
+        initUiTheme();
+        const app = document.getElementById("app");
+        const assets = await loadRuntimeAssetBundle();
+        const state = createPlayState(assets.slice, assets.rifleMuzzlePoints, assets.slice.camera.followActor);
+
+        // My pack: tradable stacks (stackId arms the inventory window's
+        // native stack drag) + the scalar wallet balance used by trade.
+        const bag = `${state.playerActorId}:backpack`;
+        state.serverAuthority.playerActorId = state.playerActorId;
+        state.serverAuthority.actors[state.playerActorId] = {
+          id: state.playerActorId,
+          credits: 1250,
+        };
+        const seed = [
+          [bag, "Creature Hide", 2101, 210777, 4, 11],
+          [bag, "Vibrosword", 3103, 0, 1, 12],
+          [bag, "Daxmire Iron", 2001, 210218, 12, 13],
+          [bag, "Stimpak A", 1001, 0, 3, 14],
+        ];
+        for (const [container, item, itemId, variantId, qty, stackId] of seed) {
+          state.inventory.push({ container, item, itemId, variantId, quantity: qty, reserved: 0, available: qty, stackId });
+        }
+
+        // Page-local double-lock machine: the REAL reducer over the fixture
+        // table. Every mutation re-ingests; a terminal stage nulls one beat
+        // later (the wire's one-tick hold), exercising the store latch.
+        let session = null;
+        let nextProposalId = 11;
+        const publish = () => { ingestTradeSession(session); };
+        const step = (event) => {
+          if (!session) return false;
+          const next = reduceTradeSession(session, event);
+          if (next === session) return false;
+          session = next;
+          publish();
+          if (session.stage === "executed" || session.stage === "declined") {
+            const terminal = session;
+            setTimeout(() => {
+              if (session === terminal) { session = null; ingestTradeSession(null); }
+            }, 160);
+          }
+          return true;
+        };
+        const nameFor = (itemId, variantId) => {
+          const row = state.inventory.find((r) => r.itemId === itemId && r.variantId === variantId);
+          return row ? row.item : `Item ${itemId}`;
+        };
+
+        const port = {
+          open(partnerActorId) {
+            if (session) return false;
+            session = fixtureTradeOpen();
+            session.proposalId = nextProposalId++;
+            session.partnerActorId = partnerActorId || session.partnerActorId;
+            publish();
+            return true;
+          },
+          addItem(proposalId, itemId, variantId, quantity) {
+            return step({ kind: "addItem", side: "mine", line: { itemId, variantId, name: nameFor(itemId, variantId), quantity } });
+          },
+          removeItem(proposalId, itemId, variantId, quantity) {
+            return step({ kind: "removeItem", side: "mine", itemId, variantId });
+          },
+          setCoin(proposalId, amount) { return step({ kind: "setCoin", side: "mine", amount }); },
+          accept() { return step({ kind: "accept", side: "mine" }); },
+          confirm() { return step({ kind: "confirm", side: "mine" }); },
+          decline() { return step({ kind: "decline", side: "mine", reason: "declined" }); },
+        };
+
+        const windowManager = createWindowManager({ mount: app, state, slice: assets.slice });
+        const radial = createContextRadial(windowManager.root);
+        windowManager.register(createInventoryWindowDefinition({ radial }));
+        windowManager.register(createTradeWindowDefinition({
+          commands: port,
+          closeWindow: (id) => windowManager.close(id),
+        }));
+        wireTradeWindowLifecycle(windowManager, port);
+        windowManager.open("inventory");
+        windowManager.open(TRADE_WINDOW_ID);
+
+        // Partner sim strip → THEIRS reducer events.
+        const partnerEvents = {
+          open: () => port.open("vex-marrow"),
+          addCopper: () => step({ kind: "addItem", side: "theirs", line: fixtureCopperLine(2) }),
+          addHide: () => step({ kind: "addItem", side: "theirs", line: fixtureHideLine(1) }),
+          coin250: () => step({ kind: "setCoin", side: "theirs", amount: 250 }),
+          coinScam: () => step({ kind: "setCoin", side: "theirs", amount: 20 }),
+          accept: () => step({ kind: "accept", side: "theirs" }),
+          confirm: () => step({ kind: "confirm", side: "theirs" }),
+          decline: () => step({ kind: "decline", side: "theirs", reason: "declined" }),
+          tick: () => {
+            try { windowManager.update(0.016, performance.now()); return "tick-ok"; }
+            catch (err) { return "TICK ERROR: " + (err && err.stack || err); }
+          },
+        };
+        document.getElementById("partner").addEventListener("click", (e) => {
+          const ev = e.target?.dataset?.ev;
+          if (!ev || !partnerEvents[ev]) return;
+          try {
+            const ok = partnerEvents[ev]();
+            const s = tradeSession();
+            diag(`EV ${ev} -> ${ok} · stage=${s ? s.stage : "null"} · locks=${s ? `${s.mine.locked}/${s.theirs.locked}` : "-"} · confirms=${s ? `${s.mine.confirmed}/${s.theirs.confirmed}` : "-"}`);
+          } catch (err) {
+            diag('EV ERROR ' + ev + ': ' + (err && err.stack || err));
+          }
+        });
+
+        let last = performance.now();
+        let frameErr = null;
+        const frame = (time) => {
+          if (frameErr) return;
+          try {
+            const dt = (time - last) / 1000; last = time;
+            // Composition-root wiring mirrored: lifecycle poll (auto-open) first.
+            pollTradeLifecycle(state, windowManager);
+            windowManager.update(dt, time);
+          } catch (e) { frameErr = e; diag('FRAME ERROR: ' + (e && e.stack || e)); }
+          requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+        // Headless RAF starves when the tab isn't being painted — a low-rate
+        // pump keeps the window loop honest for driver-based proofs.
+        setInterval(() => {
+          if (frameErr) return;
+          const now = performance.now();
+          if (now - last <= 250) return;
+          try {
+            const dt = (now - last) / 1000; last = now;
+            pollTradeLifecycle(state, windowManager);
+            windowManager.update(dt, now);
+          } catch (e) { frameErr = e; diag('FRAME ERROR: ' + (e && e.stack || e)); }
+        }, 120);
+        diag('TRADE SMOKE · theme=' + getUiTheme() + ' · open table via __tradeSmoke.port.open("vex-marrow")');
+        window.__tradeSmoke = {
+          windowManager, port, state, step, partnerEvents,
+          session: () => tradeSession(),
+          acknowledge: acknowledgeTradeClose,
+        };
+      } catch (err) {
+        diag('SMOKE ERROR: ' + (err && err.stack || err));
+      }
+    </script>
+  </body>
+</html>

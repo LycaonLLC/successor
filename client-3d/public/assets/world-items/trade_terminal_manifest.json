@@ -1,0 +1,68 @@
+{
+  "asset": "trade_terminal",
+  "collisionProxy": {
+    "id": "trade_terminal__counter",
+    "max": [
+      0.579,
+      1.35,
+      0.365
+    ],
+    "min": [
+      -0.579,
+      0.0,
+      -0.36
+    ],
+    "shape": "box",
+    "source": "authored",
+    "space": "asset-local meters, +Z front; placement yaw is applied by the world lane after this box (one stable post-rotation footprint proxy per terminal)"
+  },
+  "dims_m": {
+    "x": 1.158,
+    "y": 1.35,
+    "z": 0.725
+  },
+  "front_clearance_m": 0.8,
+  "front_clearance_note": "keep the cell in front of +Z free; every interactable surface faces +Z",
+  "gates": {
+    "detail": ".game-lab/commerce-terminals-20260718/gate.json",
+    "result": "see gate.json"
+  },
+  "glb": "trade_terminal.glb",
+  "gltf_conventions": {
+    "front": "+Z (interaction face: screens, controls)",
+    "pivot": "base center, min_y=0",
+    "up": "+Y"
+  },
+  "identity": "Dustgate district exchange terminal \u2014 inspection/exchange counter: chamfered ceramic counter on a basalt plinth with corner posts and recessed aprons, a sunken teal scan bed with sloped rim, rails and a cyan-lensed gantry carriage, a sprung item scale with bellows, brass collar and hooded amber readout, a receipt mouth with cutter bar and curled stub, a coin tray, and a brass weight rail with graduated handled weights. Fully serviced back: hinged hopper chute with latch, louvered vents, clipped conduit with junction box.",
+  "materials": [
+    "CM_Basalt",
+    "CM_Brass",
+    "CM_Ceramic",
+    "CM_GlowAmber",
+    "CM_GlowCyan",
+    "CM_Ink",
+    "CM_ScreenTrade",
+    "CM_Steel",
+    "CM_TealGlass"
+  ],
+  "textures": [
+    "commerce_basalt_basecolor.png",
+    "commerce_basalt_mr.png",
+    "commerce_basalt_normal.png",
+    "commerce_brass_basecolor.png",
+    "commerce_brass_mr.png",
+    "commerce_brass_normal.png",
+    "commerce_ceramic_basecolor.png",
+    "commerce_ceramic_mr.png",
+    "commerce_ceramic_normal.png",
+    "commerce_ink_basecolor.png",
+    "commerce_ink_mr.png",
+    "commerce_ink_normal.png",
+    "commerce_screen_trade_emissive.png",
+    "commerce_steel_basecolor.png",
+    "commerce_steel_mr.png",
+    "commerce_steel_normal.png"
+  ],
+  "tri_count": 5176,
+  "units": "m"
+}

@@ -1,0 +1,89 @@
+# Successor denylist
+#
+# Forbidden terms. Any tracked file or AI prompt containing one of these triggers a CI failure.
+# Maintained by the reference team. Implementation contributors must not edit this file.
+#
+# Format: one term per line. Comments start with #. Case-insensitive matching.
+# Place each term on its own line. Regex is NOT used here; literal substring match.
+#
+# This file ships intentionally minimal in the skeleton. The reference team populates
+# the full term set during Phase -1 spec extraction.
+#
+# Initial categories (terms TBD — added by reference team):
+#   - characters (named individuals from outside references)
+#   - places (named planets, regions, ships, stations)
+#   - species (named races / sentient species)
+#   - factions (named political/military organizations)
+#   - technologies (named weapons, vehicles, devices)
+#   - lore terms (named mystical/scientific concepts unique to outside references)
+#   - retail asset filenames
+#   - reference module / class / namespace identifiers from external source trees
+#
+# Generic infrastructure terms below are blocked because they signal dirty context.
+
+# Reference repository / project markers (these would only appear if reference content was copied)
+MMOCoreORB
+mmocoreorb
+SwgClientSetup_r
+LaunchPad.exe
+swgshared
+swgsharednetworkmessages
+
+# Star Wars / SWG umbrella terms (the project may not name what it is a clone of, in shipped artifacts)
+star wars galaxies
+swg
+sony online entertainment
+soe
+lucasarts
+lucasfilm
+disney star wars
+
+# Distinctive Star Wars vocabulary — these are denied because no plausible original universe needs them
+# Word-boundary matching: each term must match as a whole word (or whole phrase
+# for multi-word entries). Generic words appear only inside compound phrases.
+jedi
+sith
+lightsaber
+wookiee
+wookie
+tatooine
+naboo
+coruscant
+endor
+dagobah
+mustafar
+mandalore
+mandalorian
+holocron
+midi-chlorian
+midichlorian
+death star
+x-wing
+tie fighter
+millennium falcon
+yoda
+chewbacca
+greedo
+han solo
+skywalker
+darth vader
+palpatine
+obi-wan
+kenobi
+ahsoka
+darth maul
+ewok
+twi'lek
+trandoshan
+rodian
+ithorian
+gungan
+clone wars
+galactic empire
+galactic republic
+sith lord
+jedi knight
+jedi master
+padawan
+
+# Note: the above is non-exhaustive. The reference team adds to this list as Phase 0 spec extraction surfaces additional distinctive terms.

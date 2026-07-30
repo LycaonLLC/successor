@@ -1,0 +1,24 @@
+# Workspace-level clippy configuration. Per ADR-0004 (Deterministic WASM profile).
+#
+# These lints catch the classes of nondeterminism that the deterministic profile bans.
+# They run via `cargo clippy --workspace --all-targets --locked` in CI.
+#
+# Per-crate deterministic lints (`#![deny(clippy::float_arithmetic)]`,
+# `#![deny(clippy::disallowed_types)]`, `#![deny(clippy::disallowed_methods)]`)
+# live in each deterministic crate's lib.rs.
+
+msrv = "1.83"
+disallowed-types = [
+    { path = "std::collections::HashMap", reason = "arbitrary iteration order in deterministic code; use BTreeMap or sorted Vec" },
+    { path = "std::collections::HashSet", reason = "arbitrary iteration order in deterministic code; use BTreeSet or sorted Vec" },
+    { path = "ahash::AHashMap",           reason = "non-deterministic hash; banned in deterministic crates" },
+    { path = "ahash::AHashSet",           reason = "non-deterministic hash; banned in deterministic crates" },
+]
+
+disallowed-methods = [
+    { path = "std::time::Instant::now",     reason = "wall clock forbidden in deterministic tick" },
+    { path = "std::time::SystemTime::now",  reason = "wall clock forbidden in deterministic tick" },
+    { path = "rand::thread_rng", allow-invalid = true, reason = "host RNG forbidden; use successor_core::DeterministicRng (allow-invalid: path validated against the workspace dep graph, not per-crate)" },
+    { path = "std::env::var",               reason = "environment reads forbidden in deterministic crates" },
+    { path = "std::env::var_os",            reason = "environment reads forbidden in deterministic crates" },
+]

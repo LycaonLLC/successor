@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successor.local/schemas/ledger-entry.schema.json",
+  "title": "Successor Verification Ledger Entry",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "runId", "ledger", "timestamp", "status", "repo", "command"],
+  "properties": {
+    "schema": {
+      "const": "successor.ledger-entry.v1"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 8
+    },
+    "ledger": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "phase": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "enum": ["pass", "fail", "waived"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "repo": {
+      "type": "object",
+      "required": ["root", "branch", "commit", "dirty", "packageHash"],
+      "properties": {
+        "root": { "type": "string" },
+        "branch": { "type": "string" },
+        "commit": { "type": "string" },
+        "dirty": { "type": "boolean" },
+        "statusShort": { "type": "array", "items": { "type": "string" } },
+        "packageHash": { "type": "string" }
+      }
+    },
+    "command": {
+      "type": "object",
+      "required": ["argv", "durationMs"],
+      "properties": {
+        "argv": { "type": "array", "items": { "type": "string" } },
+        "cwd": { "type": "string" },
+        "durationMs": { "type": "number", "minimum": 0 },
+        "exitCode": { "type": ["integer", "null"] },
+        "signal": { "type": ["string", "null"] }
+      }
+    },
+    "metrics": {
+      "type": "object"
+    },
+    "artifacts": {
+      "type": "object"
+    },
+    "details": {
+      "type": "object"
+    }
+  }
+}

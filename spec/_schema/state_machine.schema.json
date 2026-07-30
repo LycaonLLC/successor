@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successor.local/schema/state_machine.json",
+  "title": "State machine",
+  "description": "A finite-state machine extracted from reference material. State and event names use generic identifiers (state_a, state_b) — never reference-derived names.",
+  "type": "object",
+  "required": ["name", "states", "events", "transitions", "initial"],
+  "properties": {
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "states": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "description": { "type": "string" },
+          "on_enter": { "type": "array", "items": { "type": "string" } },
+          "on_exit": { "type": "array", "items": { "type": "string" } },
+          "invariants": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "payload_type": { "type": "string" }
+        }
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["from", "event", "to"],
+        "properties": {
+          "from": { "type": "string" },
+          "event": { "type": "string" },
+          "to": { "type": "string" },
+          "guard": { "type": "string", "description": "Boolean predicate over payload + entity state" },
+          "actions": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "initial": { "type": "string" }
+  }
+}

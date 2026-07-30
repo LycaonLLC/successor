@@ -1,0 +1,17 @@
+Font provenance and licenses
+============================
+
+Karrik-Regular.woff2
+  Karrik, by Jean-Baptiste Morizot and Lucas Le Bihan.
+  Published by Velvetyne Type Foundry (velvetyne.fr/fonts/karrik).
+  Fetched 2026-07-24 from the official repository
+  gitlab.com/phantomfoundry/karrik_fonts (fonts/Web/WOFF2/Karrik-Regular.woff2).
+  License: SIL Open Font License 1.1 (repository LICENCE.txt).
+
+AtkinsonHyperlegibleNext-Latin-var.woff2
+  Atkinson Hyperlegible Next, by the Braille Institute of America.
+  Variable weight 400-700, latin subset, served by Google Fonts (v7),
+  fetched 2026-07-24 from fonts.gstatic.com via the css2 API.
+  License: SIL Open Font License 1.1.
+
+Both licenses permit self-hosting and subsetting with attribution kept.

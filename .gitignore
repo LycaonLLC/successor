@@ -1,0 +1,88 @@
+# Rust
+/target/
+**/target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# Node
+node_modules/
+**/node_modules/
+.pnpm-store/
+dist/
+**/dist/
+/build/
+.cache/
+
+
+# Python/generated caches
+__pycache__/
+**/__pycache__/
+*.pyc
+# WASM
+*.wasm
+pkg/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Local secrets / env
+.env
+.env.local
+*.local.toml
+
+# Verification fixtures and reports — large or generated
+.checkpoints/
+verification/.runs/
+tools/verification/coverage/temp-*.json
+verification/golden-replays/*.bin
+verification/fixtures/*.bin
+verification/mvh/**/reports/*.html
+verification/mvh/**/reports/*.json
+!verification/mvh/**/reports/.gitkeep
+verification/ledgers/*.jsonl
+verification/ledgers/artifacts/
+test-results/
+**/test-results/
+tmp/
+/tmp/
+client/test-results/
+client/client/test-results/
+/test-results/
+desktop/dist/
+desktop/release/
+
+# Local/generated verification and asset-lab outputs
+client-3d/public/assets/asset-lab/
+client-3d/.generated/
+
+# Content pipeline outputs (manifest-tracked, but binaries excluded)
+content-pipeline/models/**/*.glb
+content-pipeline/models/**/*.gltf
+content-pipeline/textures/**/*.ktx2
+content-pipeline/textures/**/*.basis
+content-pipeline/sfx/**/*.wav
+content-pipeline/sfx/**/*.ogg
+content-pipeline/music/**/*.wav
+content-pipeline/music/**/*.ogg
+content-pipeline/voice/**/*.wav
+content-pipeline/voice/**/*.ogg
+content-pipeline/animation/**/*.bvh
+content-pipeline/animation/**/*.glb
+
+# Reference vault MUST NOT appear in this repo
+reference/
+**/reference-vault/
+
+# Logs
+*.log
+logs/
+
+# Local runtime persistence
+server/.local-state/
+server/data/
+
+.game-lab/

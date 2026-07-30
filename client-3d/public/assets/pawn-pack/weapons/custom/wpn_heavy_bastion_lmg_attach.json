@@ -1,0 +1,82 @@
+{
+  "schema": "successor-weapon-attach/1",
+  "weapon": "wpn_heavy_bastion_lmg",
+  "source_glb": "source-assets/props/successor/full-spectrum-wave-20260720/weapon-overhaul/reset-zero-01/assets/wpn_heavy_bastion_lmg.glb",
+  "silhouette_class": "lmg",
+  "coordinate_space": "weapon_glb_local_gltf",
+  "units": "m",
+  "scale_to_pawn": 1,
+  "attach": "two_hand",
+  "handedness": "right",
+  "hands": {
+    "grip": "hand_r",
+    "foregrip": "hand_l"
+  },
+  "nodes": {
+    "frame": "Module_receiver",
+    "mag": "Module_magazine"
+  },
+  "sockets": {
+    "grip": [
+      0,
+      -0.091,
+      -0.251
+    ],
+    "muzzle": [
+      0,
+      0,
+      0.28
+    ],
+    "stock": [
+      0,
+      0,
+      -0.362
+    ],
+    "foregrip": [
+      0,
+      0,
+      0.1
+    ]
+  },
+  "orientation": {
+    "forward": [
+      0,
+      0,
+      1
+    ],
+    "up": [
+      0,
+      1,
+      0
+    ]
+  },
+  "mount_hand_r_local": {
+    "pos": [
+      -0.08779843,
+      0.31888867,
+      -0.04881588
+    ],
+    "quat": [
+      -0.09279,
+      0.83834,
+      0.53009,
+      -0.08703
+    ],
+    "derivation": "STEN palm transfer at authored scale 1 (final 2026-07-21): class-band upscaling experiments made the compact modular frames read stock-dominant; authored scale matches the proven STEN-family presentation. Long-class silhouette is logged as authoring debt, not a weld problem."
+  },
+  "stow_socket": {
+    "space": "spine_03_local",
+    "pos": [
+      0.16,
+      0,
+      -0.14
+    ],
+    "rot_deg": [
+      85,
+      -45,
+      0
+    ],
+    "derivation": "Copied from accepted STEN back-carry contract; geometry-independent root mount."
+  },
+  "provenance": "reset-zero-01 modular family; textured via STEN 2048 atlas bake pattern (bake_modular.py, deterministic)."
+}

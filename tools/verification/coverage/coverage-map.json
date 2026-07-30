@@ -1,0 +1,2036 @@
+{
+  "schema": "successor.coverage-registry.v1",
+  "commandManifest": "tools/codegen/generated/successor.commands.manifest.v1.json",
+  "systems": [
+    {
+      "id": "combat_roll",
+      "properties": {
+        "realTimeRace": "high",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "high",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "combat-receipt-journey",
+        "multiplayer-assist-kill",
+        "combat-roll-cancel-reload-realtime-race",
+        "active-systems-restart-persistence",
+        "cohesive-long-haul-restart",
+        "multiplayer-bank-clone-corpse-restart",
+        "encounter-proximity-barks-restart"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/040-combat.mjs",
+        "client-tui/journeys/journeys/042-attack-approach.mjs",
+        "client-tui/journeys/journeys/046-weapon-equip.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/melee.mjs",
+        "tools/verification/client3d/journeys/unarmed.mjs",
+        "tools/verification/client3d/journeys/ranged.mjs"
+      ]
+    },
+    {
+      "id": "crafting",
+      "properties": {
+        "realTimeRace": "low",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "low",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "bootstrap-crafter-journey",
+        "active-systems-restart-persistence"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/070-craft.mjs",
+        "client-tui/journeys/journeys/072-medic-craft.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/craft.mjs",
+        "tools/verification/client3d/journeys/medic-craft.mjs"
+      ]
+    },
+    {
+      "id": "duels",
+      "properties": {
+        "realTimeRace": "high",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "high",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "multiplayer-authority-duel",
+        "duels-restart-persistence",
+        "duel-deathblow-restart",
+        "duel-simultaneous-yield-realtime-race"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/125-duel-duo.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/duel.mjs",
+        "tools/verification/client3d/journeys/deathblow.mjs"
+      ]
+    },
+    {
+      "id": "exchange",
+      "properties": {
+        "realTimeRace": "medium",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "high",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "social-trade-exchange-restart-persistence",
+        "multiplayer-bank-clone-corpse-restart"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/090-travel-exchange.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/exchange.mjs"
+      ]
+    },
+    {
+      "id": "extraction",
+      "properties": {
+        "realTimeRace": "medium",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "medium",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "multiplayer-extractor-ownership",
+        "resource-land-restart-persistence"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/080-extractor.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/extractor.mjs"
+      ]
+    },
+    {
+      "id": "farming_land",
+      "properties": {
+        "realTimeRace": "low",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "medium",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "resource-land-restart-persistence"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/150-farm-loop.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/farm.mjs"
+      ]
+    },
+    {
+      "id": "groups",
+      "properties": {
+        "realTimeRace": "medium",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "high",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "groups-xp-live",
+        "multiplayer-assist-kill",
+        "groups-inventory-restart-persistence",
+        "gaia-party-rights-restart"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/110-group-duo.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/group.mjs",
+        "tools/verification/client3d/journeys/association-terminal.mjs"
+      ]
+    },
+    {
+      "id": "guilds",
+      "properties": {
+        "realTimeRace": "low",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "high",
+        "persistenceNeed": true,
+        "browserVisible": false
+      },
+      "scenarioRefs": [
+        "guild-lifecycle-restart-chat-privacy"
+      ],
+      "tuiJourneys": [],
+      "client3dJourneys": []
+    },
+    {
+      "id": "inventory_stacks",
+      "properties": {
+        "realTimeRace": "low",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "medium",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "multiplayer-trade-roundtrip",
+        "groups-inventory-restart-persistence",
+        "multiplayer-bank-clone-corpse-restart"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/155-credit-chip.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/creation.mjs",
+        "tools/verification/client3d/journeys/credit-chip.mjs",
+        "tools/verification/client3d/journeys/hair-helmet.mjs",
+        "tools/verification/client3d/journeys/inventory-equip.mjs",
+        "tools/verification/client3d/journeys/bank-proximity.mjs"
+      ]
+    },
+    {
+      "id": "loot",
+      "properties": {
+        "realTimeRace": "medium",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "high",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "loot-journey",
+        "multiplayer-loot-contention",
+        "loot-restart-persistence",
+        "multiplayer-bank-clone-corpse-restart",
+        "encounter-proximity-barks-restart",
+        "gaia-party-rights-restart"
+      ],
+      "tuiJourneys": [],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/loot-drops.mjs",
+        "tools/verification/client3d/journeys/footlocker.mjs",
+        "tools/verification/client3d/journeys/loot.mjs",
+        "tools/verification/client3d/journeys/harvest-corpse.mjs"
+      ]
+    },
+    {
+      "id": "movement",
+      "properties": {
+        "realTimeRace": "high",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "high",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "move-displacement",
+        "movement-smoke",
+        "multiplayer-mutual-visibility",
+        "scout-sprint-delta",
+        "movement-collision-realtime-race",
+        "movement-vitals-restart-persistence"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/020-movement.mjs",
+        "client-tui/journeys/journeys/025-scout-sprint.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/movement.mjs",
+        "tools/verification/client3d/journeys/scout-sprint.mjs"
+      ]
+    },
+    {
+      "id": "profession_training",
+      "properties": {
+        "realTimeRace": "low",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "low",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "bootstrap-crafter-journey",
+        "weapon-certification-gate",
+        "profession-travel-restart-persistence"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/045-certification.mjs",
+        "client-tui/journeys/journeys/060-converse-train.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/certification.mjs",
+        "tools/verification/client3d/journeys/trainer.mjs"
+      ]
+    },
+    {
+      "id": "resource_economy",
+      "properties": {
+        "realTimeRace": "medium",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "low",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "bootstrap-crafter-journey",
+        "active-systems-restart-persistence"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/050-survey-sample.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/survey.mjs"
+      ]
+    },
+    {
+      "id": "splice_bioengineer",
+      "properties": {
+        "realTimeRace": "low",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "low",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "active-systems-restart-persistence"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/145-splice.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/splice.mjs"
+      ]
+    },
+    {
+      "id": "trade",
+      "properties": {
+        "realTimeRace": "medium",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "high",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "multiplayer-trade-roundtrip",
+        "social-trade-exchange-restart-persistence"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/120-trade-duo.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/trade.mjs"
+      ]
+    },
+    {
+      "id": "travel_doors",
+      "properties": {
+        "realTimeRace": "low",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "medium",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "profession-travel-restart-persistence"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/090-travel-exchange.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/travel.mjs"
+      ]
+    },
+    {
+      "id": "vitals_status",
+      "properties": {
+        "realTimeRace": "medium",
+        "accelLaneEligible": true,
+        "multiplayerNeed": "high",
+        "persistenceNeed": true,
+        "browserVisible": true
+      },
+      "scenarioRefs": [
+        "multiplayer-assist-kill",
+        "movement-vitals-restart-persistence",
+        "multiplayer-bank-clone-corpse-restart"
+      ],
+      "tuiJourneys": [
+        "client-tui/journeys/journeys/135-camp.mjs"
+      ],
+      "client3dJourneys": [
+        "tools/verification/client3d/journeys/camp.mjs",
+        "tools/verification/client3d/journeys/revive.mjs"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "kind": "Move",
+      "systemId": "movement",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/movement_and_world.rs",
+            "anchor": "ClientCommand::Move"
+          }
+        ],
+        "scenarios": [
+          "move-displacement",
+          "movement-smoke"
+        ]
+      }
+    },
+    {
+      "kind": "SetMoveIntent",
+      "systemId": "movement",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/core_and_combat.rs",
+            "anchor": "ClientCommand::SetMoveIntent"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "QueueCombatAction",
+      "systemId": "combat_roll",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/core_and_combat.rs",
+            "anchor": "ClientCommand::QueueCombatAction"
+          }
+        ],
+        "scenarios": [
+          "combat-receipt-journey",
+          "multiplayer-assist-kill",
+          "encounter-proximity-barks-restart"
+        ]
+      }
+    },
+    {
+      "kind": "Peace",
+      "systemId": "combat_roll",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/core_and_combat.rs",
+            "anchor": "fn authority_roll_peace_suppresses_auto_fire_without_ending_combat()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "CancelAbilityQueue",
+      "systemId": "combat_roll",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/core_and_combat.rs",
+            "anchor": "fn authority_cancel_ability_queue_is_idempotent_and_rejects_unknown_ids()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "ReloadWeapon",
+      "systemId": "combat_roll",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/combat_ai.rs",
+            "anchor": "ClientCommand::ReloadWeapon"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SetEquippedWeapon",
+      "systemId": "combat_roll",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/extraction_loot_weapons.rs",
+            "anchor": "ClientCommand::SetEquippedWeapon"
+          }
+        ],
+        "scenarios": [
+          "encounter-proximity-barks-restart",
+          "weapon-certification-gate"
+        ]
+      }
+    },
+    {
+      "kind": "SetEquippedClothing",
+      "systemId": "inventory_stacks",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/medical_and_inventory.rs",
+            "anchor": "fn authority_creator_clothing_rejects_legacy_unequip_and_substitution_without_mutation()"
+          },
+          {
+            "path": "client-3d/src/ui/inventory/data.test.ts",
+            "anchor": "SetEquippedClothing"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "DebugGiveItem",
+      "systemId": "inventory_stacks",
+      "debugOnly": true,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/core_and_combat.rs",
+            "anchor": "ClientCommand::DebugGiveItem"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "DebugGrantSkillBoxes",
+      "systemId": "profession_training",
+      "debugOnly": true,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/core_and_combat.rs",
+            "anchor": "ClientCommand::DebugGrantSkillBoxes"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "EnterTransition",
+      "systemId": "movement",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/movement_and_world.rs",
+            "anchor": "ClientCommand::EnterTransition"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "UseConsumable",
+      "systemId": "vitals_status",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/medical_and_inventory.rs",
+            "anchor": "ClientCommand::UseConsumable"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "RefillAmmo",
+      "systemId": "combat_roll",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/durability_and_resources.rs",
+            "anchor": "ClientCommand::RefillAmmo"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "ApplyServiceBuff",
+      "systemId": "vitals_status",
+      "debugOnly": false,
+      "refs": {
+        "files": [],
+        "scenarios": [
+          "movement-vitals-restart-persistence"
+        ]
+      }
+    },
+    {
+      "kind": "CloneRespawn",
+      "systemId": "vitals_status",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/durability_and_resources.rs",
+            "anchor": "ClientCommand::CloneRespawn"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "ReviveActor",
+      "systemId": "vitals_status",
+      "debugOnly": false,
+      "refs": {
+        "files": [],
+        "scenarios": [
+          "movement-vitals-restart-persistence"
+        ]
+      }
+    },
+    {
+      "kind": "SetPosture",
+      "systemId": "movement",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/durability_and_resources.rs",
+            "anchor": "ClientCommand::SetPosture"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SampleResource",
+      "systemId": "resource_economy",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/extraction_loot_weapons.rs",
+            "anchor": "ClientCommand::SampleResource"
+          }
+        ],
+        "scenarios": [
+          "bootstrap-crafter-journey"
+        ]
+      }
+    },
+    {
+      "kind": "SurveyResource",
+      "systemId": "resource_economy",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/extraction_loot_weapons.rs",
+            "anchor": "ClientCommand::SurveyResource"
+          }
+        ],
+        "scenarios": [
+          "bootstrap-crafter-journey"
+        ]
+      }
+    },
+    {
+      "kind": "PlaceExtractor",
+      "systemId": "extraction",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/extraction_loot_weapons.rs",
+            "anchor": "ClientCommand::PlaceExtractor"
+          }
+        ],
+        "scenarios": [
+          "multiplayer-extractor-ownership"
+        ]
+      }
+    },
+    {
+      "kind": "CrankExtractor",
+      "systemId": "extraction",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/extraction_loot_weapons.rs",
+            "anchor": "ClientCommand::CrankExtractor"
+          }
+        ],
+        "scenarios": [
+          "multiplayer-extractor-ownership"
+        ]
+      }
+    },
+    {
+      "kind": "StopCrank",
+      "systemId": "extraction",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/extraction_loot_weapons.rs",
+            "anchor": "ClientCommand::StopCrank"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "InsertBattery",
+      "systemId": "extraction",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/extraction_loot_weapons.rs",
+            "anchor": "ClientCommand::InsertBattery"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "CollectExtractor",
+      "systemId": "extraction",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/extraction_loot_weapons.rs",
+            "anchor": "ClientCommand::CollectExtractor"
+          }
+        ],
+        "scenarios": [
+          "multiplayer-extractor-ownership"
+        ]
+      }
+    },
+    {
+      "kind": "DestroyExtractor",
+      "systemId": "extraction",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/extraction_loot_weapons.rs",
+            "anchor": "ClientCommand::DestroyExtractor"
+          }
+        ],
+        "scenarios": [
+          "multiplayer-extractor-ownership"
+        ]
+      }
+    },
+    {
+      "kind": "PlaceCamp",
+      "systemId": "vitals_status",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/camps_trade_and_duels.rs",
+            "anchor": "ClientCommand::PlaceCamp"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "PackUpCamp",
+      "systemId": "vitals_status",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/camps_trade_and_duels.rs",
+            "anchor": "ClientCommand::PackUpCamp"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "DiscardStack",
+      "systemId": "inventory_stacks",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/core_and_combat.rs",
+            "anchor": "fn authority_discard_stack_requires_exact_owned_unprotected_fingerprint()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SplitStack",
+      "systemId": "inventory_stacks",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/loot_and_population.rs",
+            "anchor": "ClientCommand::SplitStack"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "MergeStacks",
+      "systemId": "inventory_stacks",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/progression_and_economy.rs",
+            "anchor": "fn authority_merge_stacks_caps_resource_remainder_and_exact_cap()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "RedeemCreditChip",
+      "systemId": "inventory_stacks",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/progression_and_economy.rs",
+            "anchor": "fn credit_chip_redeem_banks_quantity_as_credits_and_consumes_stack()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "HarvestCorpse",
+      "systemId": "loot",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/loot_and_population.rs",
+            "anchor": "ClientCommand::HarvestCorpse"
+          }
+        ],
+        "scenarios": [
+          "gaia-party-rights-restart"
+        ]
+      }
+    },
+    {
+      "kind": "TakeLootItem",
+      "systemId": "loot",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/loot_and_population.rs",
+            "anchor": "ClientCommand::TakeLootItem"
+          }
+        ],
+        "scenarios": [
+          "loot-journey",
+          "multiplayer-loot-contention",
+          "encounter-proximity-barks-restart"
+        ]
+      }
+    },
+    {
+      "kind": "PurchaseTravelTicket",
+      "systemId": "travel_doors",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "server/src/game/shard.test.ts",
+            "anchor": "PurchaseTravelTicket:"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "UseTravelTicket",
+      "systemId": "travel_doors",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "server/src/game/shard.test.ts",
+            "anchor": "UseTravelTicket:"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "ToggleDoor",
+      "systemId": "travel_doors",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "server/src/game/shard.test.ts",
+            "anchor": "ToggleDoor:"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "CraftItem",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/crafting_systems.rs",
+            "anchor": "ClientCommand::CraftItem"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "CraftBegin",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/crafting_systems.rs",
+            "anchor": "ClientCommand::CraftBegin"
+          }
+        ],
+        "scenarios": [
+          "bootstrap-crafter-journey"
+        ]
+      }
+    },
+    {
+      "kind": "CraftAssignSlot",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/crafting_systems.rs",
+            "anchor": "ClientCommand::CraftAssignSlot"
+          }
+        ],
+        "scenarios": [
+          "bootstrap-crafter-journey"
+        ]
+      }
+    },
+    {
+      "kind": "CraftClearSlot",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "tools/successor/play-flows/primitives.test.mjs",
+            "anchor": "craftClearSlot behavior test"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "CraftAssemble",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/crafting_systems.rs",
+            "anchor": "ClientCommand::CraftAssemble"
+          }
+        ],
+        "scenarios": [
+          "bootstrap-crafter-journey"
+        ]
+      }
+    },
+    {
+      "kind": "CraftExperiment",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/crafting_systems.rs",
+            "anchor": "ClientCommand::CraftExperiment"
+          }
+        ],
+        "scenarios": [
+          "bootstrap-crafter-journey"
+        ]
+      }
+    },
+    {
+      "kind": "CraftFinalizePrototype",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/crafting_systems.rs",
+            "anchor": "ClientCommand::CraftFinalizePrototype"
+          }
+        ],
+        "scenarios": [
+          "bootstrap-crafter-journey"
+        ]
+      }
+    },
+    {
+      "kind": "CraftFinalizePractice",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/medical_and_inventory.rs",
+            "anchor": "ClientCommand::CraftFinalizePractice"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "CraftDraftSchematic",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "tools/successor/play-flows/primitives.test.mjs",
+            "anchor": "craftDraftSchematic behavior test"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "FactoryManufacture",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/combat_gaia_and_factory.rs",
+            "anchor": "factory_manufacture_split_stack_success_and_reject_matrix"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "CraftCancel",
+      "systemId": "crafting",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/crafting_systems.rs",
+            "anchor": "ClientCommand::CraftCancel"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "BankStoreItem",
+      "systemId": "inventory_stacks",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/durability_and_resources.rs",
+            "anchor": "ClientCommand::BankStoreItem"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "BankRetrieveItem",
+      "systemId": "inventory_stacks",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/durability_and_resources.rs",
+            "anchor": "ClientCommand::BankRetrieveItem"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "BankDepositCredits",
+      "systemId": "inventory_stacks",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/durability_and_resources.rs",
+            "anchor": "ClientCommand::BankDepositCredits"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "BankWithdrawCredits",
+      "systemId": "inventory_stacks",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/durability_and_resources.rs",
+            "anchor": "ClientCommand::BankWithdrawCredits"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "CloneSaveSkillBackup",
+      "systemId": "profession_training",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/durability_and_resources.rs",
+            "anchor": "ClientCommand::CloneSaveSkillBackup"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "CorpseTakeCredits",
+      "systemId": "loot",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/durability_and_resources.rs",
+            "anchor": "ClientCommand::CorpseTakeCredits"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "RequestStarterTool",
+      "systemId": "profession_training",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/progression_and_economy.rs",
+            "anchor": "ClientCommand::RequestStarterTool"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "PurchaseSkillBox",
+      "systemId": "profession_training",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/progression_and_economy.rs",
+            "anchor": "ClientCommand::PurchaseSkillBox"
+          }
+        ],
+        "scenarios": [
+          "bootstrap-crafter-journey"
+        ]
+      }
+    },
+    {
+      "kind": "UnlearnSkillBox",
+      "systemId": "profession_training",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/progression_and_economy.rs",
+            "anchor": "ClientCommand::UnlearnSkillBox"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SetProfessionTitle",
+      "systemId": "profession_training",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/progression_and_economy.rs",
+            "anchor": "ClientCommand::SetProfessionTitle"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SetCareerGoal",
+      "systemId": "profession_training",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/progression_and_economy.rs",
+            "anchor": "ClientCommand::SetCareerGoal"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "StoreToExchange",
+      "systemId": "exchange",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/crafting_systems.rs",
+            "anchor": "ClientCommand::StoreToExchange"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "RetrieveFromExchange",
+      "systemId": "exchange",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/crafting_systems.rs",
+            "anchor": "ClientCommand::RetrieveFromExchange"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "ProposeTrade",
+      "systemId": "trade",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/camps_trade_and_duels.rs",
+            "anchor": "fn authority_trade_accept_locks_and_any_change_clears_both_locks()"
+          }
+        ],
+        "scenarios": [
+          "multiplayer-trade-roundtrip"
+        ]
+      }
+    },
+    {
+      "kind": "AcceptTrade",
+      "systemId": "trade",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/camps_trade_and_duels.rs",
+            "anchor": "fn authority_trade_accept_locks_and_any_change_clears_both_locks()"
+          }
+        ],
+        "scenarios": [
+          "multiplayer-trade-roundtrip"
+        ]
+      }
+    },
+    {
+      "kind": "DeclineTrade",
+      "systemId": "trade",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/camps_trade_and_duels.rs",
+            "anchor": "fn authority_trade_abort_paths_are_refund_clean()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "AddTradeItem",
+      "systemId": "trade",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/camps_trade_and_duels.rs",
+            "anchor": "fn authority_trade_accept_locks_and_any_change_clears_both_locks()"
+          }
+        ],
+        "scenarios": [
+          "multiplayer-trade-roundtrip"
+        ]
+      }
+    },
+    {
+      "kind": "RemoveTradeItem",
+      "systemId": "trade",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/camps_trade_and_duels.rs",
+            "anchor": "fn authority_trade_accept_locks_and_any_change_clears_both_locks()"
+          }
+        ],
+        "scenarios": [
+          "multiplayer-trade-roundtrip"
+        ]
+      }
+    },
+    {
+      "kind": "SetTradeCoin",
+      "systemId": "trade",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/camps_trade_and_duels.rs",
+            "anchor": "fn authority_trade_accept_locks_and_any_change_clears_both_locks()"
+          }
+        ],
+        "scenarios": [
+          "multiplayer-trade-roundtrip"
+        ]
+      }
+    },
+    {
+      "kind": "ConfirmTrade",
+      "systemId": "trade",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/camps_trade_and_duels.rs",
+            "anchor": "fn authority_trade_confirm_gate_and_single_confirm_insufficient()"
+          }
+        ],
+        "scenarios": [
+          "multiplayer-trade-roundtrip"
+        ]
+      }
+    },
+    {
+      "kind": "GroupInvite",
+      "systemId": "groups",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/groups.rs",
+            "anchor": "fn invite_accept_forms_group_with_inviter_as_leader()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": [
+          "groups-xp-live",
+          "gaia-party-rights-restart"
+        ]
+      }
+    },
+    {
+      "kind": "GroupAccept",
+      "systemId": "groups",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/groups.rs",
+            "anchor": "fn invite_accept_forms_group_with_inviter_as_leader()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": [
+          "groups-xp-live",
+          "gaia-party-rights-restart"
+        ]
+      }
+    },
+    {
+      "kind": "GroupDecline",
+      "systemId": "groups",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/groups.rs",
+            "anchor": "fn accept_without_invite_is_rejected()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "GroupLeave",
+      "systemId": "groups",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/groups.rs",
+            "anchor": "fn leader_succession_on_leave_is_deterministic()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "GroupDisband",
+      "systemId": "groups",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/groups.rs",
+            "anchor": "fn kick_and_disband_are_leader_only()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "GroupKick",
+      "systemId": "groups",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/groups.rs",
+            "anchor": "fn kick_and_disband_are_leader_only()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "DuelChallenge",
+      "systemId": "duels",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/duels.rs",
+            "anchor": "fn no_self_duel()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "DuelAccept",
+      "systemId": "duels",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/duels.rs",
+            "anchor": "fn challenge_accept_forms_duel_with_sorted_participants()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "DuelDecline",
+      "systemId": "duels",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/duels.rs",
+            "anchor": "fn accept_or_decline_without_challenge_is_rejected()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "DuelYield",
+      "systemId": "duels",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/duels.rs",
+            "anchor": "fn yield_ends_duel_yielder_lives_both_get_outcome()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "Deathblow",
+      "systemId": "duels",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/duels.rs",
+            "anchor": "fn explicit_deathblow_uses_normal_respawn_lifecycle_and_ends_duel()",
+            "kind": "inlineTest"
+          }
+        ],
+        "scenarios": [
+          "duel-deathblow-restart"
+        ]
+      }
+    },
+    {
+      "kind": "GeneSample",
+      "systemId": "splice_bioengineer",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/professions_and_biology.rs",
+            "anchor": "ClientCommand::GeneSample"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "ScanGenome",
+      "systemId": "splice_bioengineer",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/professions_and_biology.rs",
+            "anchor": "ClientCommand::ScanGenome"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SpliceBegin",
+      "systemId": "splice_bioengineer",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/professions_and_biology.rs",
+            "anchor": "ClientCommand::SpliceBegin"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SpliceAssignSlot",
+      "systemId": "splice_bioengineer",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/professions_and_biology.rs",
+            "anchor": "ClientCommand::SpliceAssignSlot"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SpliceClearSlot",
+      "systemId": "splice_bioengineer",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "tools/successor/play-flows/primitives.test.mjs",
+            "anchor": "spliceClearSlot behavior test"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SpliceChooseAllele",
+      "systemId": "splice_bioengineer",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/professions_and_biology.rs",
+            "anchor": "ClientCommand::SpliceChooseAllele"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SpliceAssemble",
+      "systemId": "splice_bioengineer",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/professions_and_biology.rs",
+            "anchor": "ClientCommand::SpliceAssemble"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SpliceExperimentLocus",
+      "systemId": "splice_bioengineer",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/professions_and_biology.rs",
+            "anchor": "ClientCommand::SpliceExperimentLocus"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SpliceMint",
+      "systemId": "splice_bioengineer",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/professions_and_biology.rs",
+            "anchor": "ClientCommand::SpliceMint"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "SpliceCancel",
+      "systemId": "splice_bioengineer",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "tools/successor/play-flows/primitives.test.mjs",
+            "anchor": "spliceCancel behavior test"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "ClaimParcel",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn parcel_claim_mints_a_parcel_and_spends_credits()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "AbandonParcel",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn parcel_rename_and_abandon_owner_only_and_free_slot()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "RenameParcel",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn parcel_rename_and_abandon_owner_only_and_free_slot()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "PayUpkeep",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn upkeep_lapse_pauses_growth_and_payment_resumes()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "TillTile",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn tile_lifecycle_till_plant_clear_and_gates()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "PlantSeed",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn tile_lifecycle_till_plant_clear_and_gates()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "ClearTile",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn tile_lifecycle_till_plant_clear_and_gates()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "WaterTile",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn water_revives_dormant_crop_from_saved_progress()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "TendPlot",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn tend_plot_durable_intent_waters_then_breaks_on_stand()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "PlaceFarmStructure",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn sprinkler_keeps_crop_growing_offline()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "RemoveFarmStructure",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "tools/successor/play-flows/primitives.test.mjs",
+            "anchor": "removeFarmStructure behavior test"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "Fertilize",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn fertilize_speed_accelerates_growth()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "BuildPlace",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [{"path": "crates/successor-sim/src/authority/farming_tests.rs", "anchor": "fn building_authority_2x2_enclosure_door_refund_and_historical_roundtrip"}],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "BuildRemove",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [{"path": "crates/successor-sim/src/authority/farming_tests.rs", "anchor": "fn building_authority_2x2_enclosure_door_refund_and_historical_roundtrip"}],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "BuildToggleDoor",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [{"path": "crates/successor-sim/src/authority/farming_tests.rs", "anchor": "fn building_authority_2x2_enclosure_door_refund_and_historical_roundtrip"}],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "HarvestCrop",
+      "systemId": "farming_land",
+      "debugOnly": false,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/farming_tests.rs",
+            "anchor": "fn full_loop_harvest_mints_produce_and_offspring_then_replants()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
+      "kind": "GuildCreate",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildInvite",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildAcceptInvite",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildDeclineInvite",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildLeave",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildKick",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildSetRole",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildSetPermissions",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildTransferLeadership",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildDeclareWar",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildAcceptWar",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildRescindWar",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    },
+    {
+      "kind": "GuildDisband",
+      "systemId": "guilds",
+      "debugOnly": false,
+      "refs": { "files": [], "scenarios": ["guild-lifecycle-restart-chat-privacy"] }
+    }
+  ],
+  "operationalSurfaces": [
+    {
+      "id": "local-identity-joined-player-load",
+      "required": true,
+      "evidence": [
+        {
+          "type": "sourceTest",
+          "path": "tools/verification/load/player-load.test.mjs",
+          "anchor": "ramps distinct identity-joined clients, correlates each queued authority receipt, samples metrics, and writes a validated report"
+        }
+      ]
+    },
+    {
+      "id": "cross-host-identity-joined-player-load",
+      "required": true,
+      "evidence": [
+        {
+          "type": "sourceTest",
+          "path": "tools/verification/load/cross-host.test.mjs",
+          "anchor": "runs one request-bound Mac generator against the PC-owned server and reconciles exact authority deltas"
+        }
+      ]
+    },
+    {
+      "id": "reconnect-command-id-continuity",
+      "required": true,
+      "evidence": [
+        {
+          "type": "sourceTest",
+          "path": "tools/verification/scenario/runner.test.mjs",
+          "anchor": "continues command IDs above the settled pre-checkpoint authority command and records the accepted post-restart receipt"
+        }
+      ]
+    },
+    {
+      "id": "slow-consumer-backpressure-isolation",
+      "required": true,
+      "evidence": [
+        {
+          "type": "sourceTest",
+          "path": "client/src/headless/slowConsumerBackpressure.integration.test.ts",
+          "anchor": "bounds or fail-closes a non-draining session without delaying healthy authority receipts"
+        }
+      ]
+    },
+    {
+      "id": "malformed-client-isolation",
+      "required": true,
+      "evidence": [
+        {
+          "type": "sourceTest",
+          "path": "client/src/headless/malformedClientIsolation.integration.test.ts",
+          "anchor": "rejects a schema-invalid game.command while a healthy peer still receives its accepted receipt"
+        }
+      ]
+    },
+    {
+      "id": "teardown-resource-leak-proof",
+      "required": true,
+      "evidence": [
+        {
+          "type": "sourceTest",
+          "path": "tools/verification/load/player-load.test.mjs",
+          "anchor": "tears down a partially started client when the hello/ready lifecycle fails or the supplied signal aborts"
+        }
+      ]
+    }
+  ],
+  "operationalWaivers": [],
+  "waivers": []
+}

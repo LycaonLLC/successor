@@ -1,0 +1,667 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "multiplayer-trade-roundtrip",
+  "fixture": "open-desert-multiplayer-trade",
+  "actors": {
+    "alpha": {
+      "character": "fixture:alpha"
+    },
+    "beta": {
+      "character": "fixture:beta"
+    }
+  },
+  "steps": [
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "mp-trade-alpha",
+          "match": {
+            "credits": {
+              "op": "eq",
+              "value": 5000
+            }
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "alphaCreditsBefore"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "mp-trade-beta:field-pack",
+          "itemId": 2001,
+          "variantId": 0,
+          "match": {
+            "available": {
+              "op": "eq",
+              "value": 5
+            }
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "betaIronBefore"
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "DebugGiveItem": {
+            "item_id": 1001,
+            "variant_id": 0,
+            "quantity": 4,
+            "equip": false
+          }
+        },
+        "as": "giveAlphaStim"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "giveAlphaStim",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "ProposeTrade": {
+            "partner_actor_id": "mp-trade-beta",
+            "offer": [],
+            "request": []
+          }
+        },
+        "as": "propose"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "propose",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "trade_session",
+        "match": {
+          "data.payload.proposalId": 1,
+          "data.payload.mine.actorId": "mp-trade-alpha",
+          "data.payload.theirs.actorId": "mp-trade-beta"
+        },
+        "timeoutMs": 10000,
+        "as": "alphaSeesSession"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "beta",
+        "event": "trade_session",
+        "match": {
+          "data.payload.proposalId": 1,
+          "data.payload.mine.actorId": "mp-trade-beta",
+          "data.payload.theirs.actorId": "mp-trade-alpha"
+        },
+        "timeoutMs": 10000,
+        "as": "betaSeesSession"
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "AddTradeItem": {
+            "proposal_id": 1,
+            "item": {
+              "item_id": 1001,
+              "variant_id": 0,
+              "quantity": 2
+            }
+          }
+        },
+        "as": "alphaAddStim"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "alphaAddStim",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "SetTradeCoin": {
+            "proposal_id": 1,
+            "amount": 5
+          }
+        },
+        "as": "alphaSetCoin"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "alphaSetCoin",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "command": {
+        "actor": "beta",
+        "body": {
+          "AddTradeItem": {
+            "proposal_id": 1,
+            "item": {
+              "item_id": 2001,
+              "variant_id": 0,
+              "quantity": 3
+            }
+          }
+        },
+        "as": "betaAddIron"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "betaAddIron",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "AcceptTrade": {
+            "proposal_id": 1
+          }
+        },
+        "as": "alphaLock"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "alphaLock",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "command": {
+        "actor": "beta",
+        "body": {
+          "AcceptTrade": {
+            "proposal_id": 1
+          }
+        },
+        "as": "betaLock"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "betaLock",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "trade_session",
+        "match": {
+          "data.payload.bothLocked": true,
+          "data.payload.stage": "confirm",
+          "data.payload.mine.actorId": "mp-trade-alpha",
+          "data.payload.mine.items.0.itemId": 1001,
+          "data.payload.mine.items.0.quantity": 2,
+          "data.payload.mine.coin": 5,
+          "data.payload.mine.locked": true,
+          "data.payload.theirs.actorId": "mp-trade-beta",
+          "data.payload.theirs.items.0.itemId": 2001,
+          "data.payload.theirs.items.0.quantity": 3,
+          "data.payload.theirs.locked": true
+        },
+        "timeoutMs": 10000,
+        "as": "alphaSeesFundedBothLocked"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "beta",
+        "event": "trade_session",
+        "match": {
+          "data.payload.bothLocked": true,
+          "data.payload.stage": "confirm",
+          "data.payload.mine.actorId": "mp-trade-beta",
+          "data.payload.mine.items.0.itemId": 2001,
+          "data.payload.mine.items.0.quantity": 3,
+          "data.payload.mine.locked": true,
+          "data.payload.theirs.actorId": "mp-trade-alpha",
+          "data.payload.theirs.items.0.itemId": 1001,
+          "data.payload.theirs.items.0.quantity": 2,
+          "data.payload.theirs.coin": 5,
+          "data.payload.theirs.locked": true
+        },
+        "timeoutMs": 10000,
+        "as": "betaSeesFundedBothLocked"
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "AddTradeItem": {
+            "proposal_id": 1,
+            "item": {
+              "item_id": 1001,
+              "variant_id": 0,
+              "quantity": 1
+            }
+          }
+        },
+        "as": "alphaChange"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "alphaChange",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "ConfirmTrade": {
+            "proposal_id": 1
+          }
+        },
+        "as": "confirmAfterChange"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "confirmAfterChange",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": false
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "confirmAfterChange",
+        "path": "receipt.reasonCode",
+        "op": "eq",
+        "value": "trade_not_locked"
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "RemoveTradeItem": {
+            "proposal_id": 1,
+            "item": {
+              "item_id": 1001,
+              "variant_id": 0,
+              "quantity": 1
+            }
+          }
+        },
+        "as": "alphaUndo"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "alphaUndo",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "AcceptTrade": {
+            "proposal_id": 1
+          }
+        },
+        "as": "alphaRelock"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "alphaRelock",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "command": {
+        "actor": "beta",
+        "body": {
+          "AcceptTrade": {
+            "proposal_id": 1
+          }
+        },
+        "as": "betaRelock"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "betaRelock",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "ConfirmTrade": {
+            "proposal_id": 1
+          }
+        },
+        "as": "alphaConfirm"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "alphaConfirm",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "mp-trade-alpha:field-pack",
+          "itemId": 1001,
+          "variantId": 0,
+          "match": {
+            "available": {
+              "op": "eq",
+              "value": 4
+            }
+          }
+        },
+        "timeoutMs": 6000,
+        "as": "alphaStimStillFour"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "mp-trade-alpha",
+          "match": {
+            "credits": {
+              "op": "eq",
+              "value": 5000
+            }
+          }
+        },
+        "timeoutMs": 6000,
+        "as": "alphaCreditsStillFiveThousand"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "mp-trade-beta:field-pack",
+          "itemId": 2001,
+          "variantId": 0,
+          "match": {
+            "available": {
+              "op": "eq",
+              "value": 5
+            }
+          }
+        },
+        "timeoutMs": 6000,
+        "as": "betaIronStillFive"
+      }
+    },
+    {
+      "command": {
+        "actor": "beta",
+        "body": {
+          "ConfirmTrade": {
+            "proposal_id": 1
+          }
+        },
+        "as": "betaConfirm"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "betaConfirm",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "trade_session",
+        "match": {
+          "data.payload.stage": "executed",
+          "data.payload.bothLocked": true,
+          "data.payload.mine.actorId": "mp-trade-alpha",
+          "data.payload.mine.confirmed": true,
+          "data.payload.theirs.actorId": "mp-trade-beta",
+          "data.payload.theirs.confirmed": true
+        },
+        "timeoutMs": 10000,
+        "as": "alphaSeesExecuted"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "beta",
+        "event": "trade_session",
+        "match": {
+          "data.payload.stage": "executed",
+          "data.payload.bothLocked": true,
+          "data.payload.mine.actorId": "mp-trade-beta",
+          "data.payload.mine.confirmed": true,
+          "data.payload.theirs.actorId": "mp-trade-alpha",
+          "data.payload.theirs.confirmed": true
+        },
+        "timeoutMs": 10000,
+        "as": "betaSeesExecuted"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "mp-trade-alpha:field-pack",
+          "itemId": 1001,
+          "variantId": 0,
+          "match": {
+            "available": {
+              "op": "eq",
+              "value": 2
+            }
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "alphaStimAfter"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "mp-trade-beta:field-pack",
+          "itemId": 1001,
+          "variantId": 0,
+          "match": {
+            "available": {
+              "op": "eq",
+              "value": 2
+            }
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "betaStimAfter"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "mp-trade-alpha:field-pack",
+          "itemId": 2001,
+          "variantId": 0,
+          "match": {
+            "available": {
+              "op": "eq",
+              "value": 3
+            }
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "alphaIronAfter"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "mp-trade-beta:field-pack",
+          "itemId": 2001,
+          "variantId": 0,
+          "match": {
+            "available": {
+              "op": "eq",
+              "value": 2
+            }
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "betaIronAfter"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "mp-trade-alpha",
+          "match": {
+            "credits": {
+              "op": "eq",
+              "value": 4995
+            }
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "alphaCreditsAfter"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "mp-trade-beta",
+          "match": {
+            "credits": {
+              "op": "eq",
+              "value": 5005
+            }
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "betaCreditsAfter"
+      }
+    },
+    {
+      "command": {
+        "actor": "alpha",
+        "body": {
+          "ConfirmTrade": {
+            "proposal_id": 1
+          }
+        },
+        "as": "confirmClosed"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "confirmClosed",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": false
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "confirmClosed",
+        "path": "receipt.reasonCode",
+        "op": "eq",
+        "value": "no_trade_session"
+      }
+    }
+  ],
+  "notes": "Two driver sessions prove the trade double-lock contract. Both sides commit funded offers, dual acceptance opens confirmation, and an offer mutation clears both locks. After relocking, the first confirmation leaves assets untouched and the second atomically swaps both item sides and currency. Both participants receive the executed event, and a duplicate terminal confirmation rejects with no_trade_session."
+}

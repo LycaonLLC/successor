@@ -1,0 +1,28 @@
+{
+  "name": "@successor/client-tui",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "successor-tui": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc && vite build",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@successor/client": "workspace:*",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^22.19.18",
+    "@types/ws": "^8.18.1",
+    "eslint": "^9.0.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^6.4.2",
+    "vitest": "^2.1.9"
+  }
+}

@@ -1,0 +1,102 @@
+# Statistical-Process-Control configuration for live-ops drift dashboards.
+# Per ADR-0009.
+#
+# Each metric declares: chart type, segmentation, alert thresholds.
+# Charts:
+#   shewhart   - large abrupt excursions (patch-day breakage)
+#   ewma       - slow drift
+#   cusum      - persistent small shifts
+#   robust_q   - quantile-based for heavy tails
+#
+# Alert rule: fire when EITHER one severe breach OR two independent moderate signals
+# AND the segment has at least min_sample_size observations.
+#
+# Output: JSONL/CSV first; Grafana/Metabase later.
+
+defaults:
+  segmentation: [shard, planet, resource_class, cohort_age, patch_version]
+  patch_blackout_hours: 4    # suppress or model first 4 hours after a patch separately
+  min_sample_size: 100
+  alert_route: triage_queue
+
+metrics:
+
+  faucet_sink_ratio:
+    chart: shewhart
+    purpose: patch-day economy breakage
+    severe_breach_sigma: 4
+    moderate_breach_sigma: 2.5
+
+  resource_scarcity_index:
+    chart: ewma
+    purpose: slow scarcity drift
+    smoothing_lambda: 0.2
+    severe_breach_sigma: 4
+    moderate_breach_sigma: 2.5
+
+  median_ttk:
+    chart: ewma
+    purpose: combat balance drift
+    smoothing_lambda: 0.2
+    segmentation: [shard, encounter_archetype, patch_version]
+
+  ttk_p95_p99:
+    chart: robust_q
+    purpose: tail-risk on combat duration
+    quantiles: [0.95, 0.99]
+
+  crafting_success_rate:
+    chart: ewma
+    purpose: drift in experimentation outcomes
+    smoothing_lambda: 0.15
+
+  market_concentration_gini:
+    chart: ewma
+    purpose: economic concentration
+    smoothing_lambda: 0.1
+    additional_signals: [hhi, top1_share, top5_share, per_shard_liquidity]
+
+  market_prices:
+    chart: cusum
+    purpose: persistent price drift on tracked items
+    cusum_h: 5.0
+    cusum_k: 0.5
+
+  drop_rate_creep:
+    chart: cusum
+    purpose: stochastic drift in loot tables
+    cusum_h: 5.0
+    cusum_k: 0.5
+
+  death_rate_per_zone:
+    chart: shewhart
+    purpose: patch-day spike detection
+    severe_breach_sigma: 4
+
+  travel_time_distribution:
+    chart: robust_q
+    purpose: navigation regressions
+    quantiles: [0.50, 0.95]
+
+  account_to_first_action_time:
+    chart: ewma
+    purpose: onboarding drift
+    smoothing_lambda: 0.2
+
+  snapshot_bytes_per_player_p95:
+    chart: shewhart
+    purpose: network budget regression
+    severe_breach_sigma: 3
+    target_threshold_kb: 16
+    emergency_threshold_kb: 24
+
+  # Anomaly models route to triage; they may not auto-rebalance economy.
+  isolation_forest_economy:
+    chart: anomaly
+    purpose: triage only
+    action: open_ticket
+
+  isolation_forest_player_behavior:
+    chart: anomaly
+    purpose: triage only; bot-detection signal
+    action: route_to_bot_review_queue

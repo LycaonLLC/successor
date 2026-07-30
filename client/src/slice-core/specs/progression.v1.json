@@ -1,0 +1,2859 @@
+{
+  "schema": "successor.progression-specs.v1",
+  "professionRankXp": 100,
+  "sessionBuffDurationMs": 10800000,
+  "professions": {
+    "marksman": "Marksman",
+    "craftsman": "Craftsman",
+    "medic": "Medic",
+    "scout": "Scout",
+    "brawler": "Brawler",
+    "bioengineer": "Bio-Engineer",
+    "commando": "Commando"
+  },
+  "skillNodes": [
+    {
+      "id": "marksman-novice",
+      "profession": "marksman",
+      "label": "Novice Marksman",
+      "unlocked": true,
+      "row": 0,
+      "column": 1,
+      "xpCost": 0,
+      "grants": [
+        "Basic Ranged Combat",
+        "Ammo Recovery"
+      ],
+      "weaponCertifications": [
+        "Slugthrower"
+      ],
+      "abilities": [
+        "Ranged Combat",
+        "Ammo Recovery"
+      ],
+      "authorityCapabilities": [
+        "combat:ranged_basic",
+        "harvest:ammo"
+      ],
+      "description": "Baseline ranged profession for player-like pawns and guards.",
+      "phase": 0,
+      "title": "Novice Marksman",
+      "track": "novice",
+      "skillPointCost": 16,
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-rifle-i",
+      "profession": "marksman",
+      "label": "Rifle I",
+      "unlocked": false,
+      "row": 1,
+      "column": 0,
+      "xpCost": 100,
+      "grants": [
+        "Rifle Handling I",
+        "Burst Discipline I"
+      ],
+      "description": "Improves sustained rifle fire and target acquisition.",
+      "phase": 1,
+      "track": "rifle",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "marksman-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-rifle-ii",
+      "profession": "marksman",
+      "label": "Rifle II",
+      "unlocked": false,
+      "row": 2,
+      "column": 0,
+      "xpCost": 300,
+      "grants": [
+        "Rifle Handling II",
+        "Burst Discipline II"
+      ],
+      "weaponCertifications": [
+        "Shotgun"
+      ],
+      "description": "Improves sustained rifle fire and target acquisition.",
+      "phase": 2,
+      "track": "rifle",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "marksman-rifle-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-rifle-iii",
+      "profession": "marksman",
+      "label": "Rifle III",
+      "unlocked": false,
+      "row": 3,
+      "column": 0,
+      "xpCost": 650,
+      "grants": [
+        "Rifle Handling III",
+        "Burst Discipline III"
+      ],
+      "weaponCertifications": [
+        "Crafted Slugthrower",
+        "Assault Rifle"
+      ],
+      "description": "Improves sustained rifle fire and target acquisition.",
+      "phase": 3,
+      "track": "rifle",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "marksman-rifle-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-rifle-iv",
+      "profession": "marksman",
+      "label": "Rifle IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 0,
+      "xpCost": 1100,
+      "grants": [
+        "Rifle Handling IV",
+        "Burst Discipline IV"
+      ],
+      "weaponCertifications": [
+        "Carbine"
+      ],
+      "description": "Improves sustained rifle fire and target acquisition.",
+      "phase": 4,
+      "track": "rifle",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "marksman-rifle-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-pistol-i",
+      "profession": "marksman",
+      "label": "Pistol I",
+      "unlocked": false,
+      "row": 1,
+      "column": 1,
+      "xpCost": 100,
+      "grants": [
+        "Sidearm Handling I",
+        "Close Response I"
+      ],
+      "weaponCertifications": [
+        "Pistol"
+      ],
+      "description": "Improves close-range sidearm handling and backup weapon response.",
+      "phase": 1,
+      "track": "pistol",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "marksman-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-pistol-ii",
+      "profession": "marksman",
+      "label": "Pistol II",
+      "unlocked": false,
+      "row": 2,
+      "column": 1,
+      "xpCost": 300,
+      "grants": [
+        "Sidearm Handling II",
+        "Close Response II"
+      ],
+      "description": "Improves close-range sidearm handling and backup weapon response.",
+      "phase": 2,
+      "track": "pistol",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "marksman-pistol-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-pistol-iii",
+      "profession": "marksman",
+      "label": "Pistol III",
+      "unlocked": false,
+      "row": 3,
+      "column": 1,
+      "xpCost": 650,
+      "grants": [
+        "Sidearm Handling III",
+        "Close Response III"
+      ],
+      "weaponCertifications": [
+        "Submachine Gun"
+      ],
+      "description": "Improves close-range sidearm handling and backup weapon response.",
+      "phase": 3,
+      "track": "pistol",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "marksman-pistol-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-pistol-iv",
+      "profession": "marksman",
+      "label": "Pistol IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 1,
+      "xpCost": 1100,
+      "grants": [
+        "Sidearm Handling IV",
+        "Close Response IV"
+      ],
+      "description": "Improves close-range sidearm handling and backup weapon response.",
+      "phase": 4,
+      "track": "pistol",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "marksman-pistol-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-tactics-i",
+      "profession": "marksman",
+      "label": "Tactics I",
+      "unlocked": false,
+      "row": 1,
+      "column": 2,
+      "xpCost": 100,
+      "grants": [
+        "Target Priority I",
+        "Fire Discipline I"
+      ],
+      "description": "Improves target selection, pressure timing, and fire discipline hooks.",
+      "phase": 1,
+      "track": "tactics",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "marksman-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-tactics-ii",
+      "profession": "marksman",
+      "label": "Tactics II",
+      "unlocked": false,
+      "row": 2,
+      "column": 2,
+      "xpCost": 300,
+      "grants": [
+        "Target Priority II",
+        "Fire Discipline II"
+      ],
+      "description": "Improves target selection, pressure timing, and fire discipline hooks.",
+      "phase": 2,
+      "track": "tactics",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "marksman-tactics-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-tactics-iii",
+      "profession": "marksman",
+      "label": "Tactics III",
+      "unlocked": false,
+      "row": 3,
+      "column": 2,
+      "xpCost": 650,
+      "grants": [
+        "Target Priority III",
+        "Fire Discipline III"
+      ],
+      "description": "Improves target selection, pressure timing, and fire discipline hooks.",
+      "phase": 3,
+      "track": "tactics",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "marksman-tactics-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-tactics-iv",
+      "profession": "marksman",
+      "label": "Tactics IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 2,
+      "xpCost": 1100,
+      "grants": [
+        "Target Priority IV",
+        "Fire Discipline IV"
+      ],
+      "description": "Improves target selection, pressure timing, and fire discipline hooks.",
+      "phase": 4,
+      "track": "tactics",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "marksman-tactics-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-fieldcraft-i",
+      "profession": "marksman",
+      "label": "Fieldcraft I",
+      "unlocked": false,
+      "row": 1,
+      "column": 3,
+      "xpCost": 100,
+      "grants": [
+        "Cover Discipline I",
+        "Field Movement I"
+      ],
+      "description": "Improves defensive positioning and field movement hooks.",
+      "phase": 1,
+      "track": "fieldcraft",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "marksman-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-fieldcraft-ii",
+      "profession": "marksman",
+      "label": "Fieldcraft II",
+      "unlocked": false,
+      "row": 2,
+      "column": 3,
+      "xpCost": 300,
+      "grants": [
+        "Cover Discipline II",
+        "Field Movement II"
+      ],
+      "description": "Improves defensive positioning and field movement hooks.",
+      "phase": 2,
+      "track": "fieldcraft",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "marksman-fieldcraft-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-fieldcraft-iii",
+      "profession": "marksman",
+      "label": "Fieldcraft III",
+      "unlocked": false,
+      "row": 3,
+      "column": 3,
+      "xpCost": 650,
+      "grants": [
+        "Cover Discipline III",
+        "Field Movement III"
+      ],
+      "description": "Improves defensive positioning and field movement hooks.",
+      "phase": 3,
+      "track": "fieldcraft",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "marksman-fieldcraft-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-fieldcraft-iv",
+      "profession": "marksman",
+      "label": "Fieldcraft IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 3,
+      "xpCost": 1100,
+      "grants": [
+        "Cover Discipline IV",
+        "Field Movement IV"
+      ],
+      "description": "Improves defensive positioning and field movement hooks.",
+      "phase": 4,
+      "track": "fieldcraft",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "marksman-fieldcraft-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "marksman-master",
+      "profession": "marksman",
+      "label": "Master Marksman",
+      "unlocked": false,
+      "row": 5,
+      "column": 1,
+      "xpCost": 1800,
+      "grants": [
+        "Advanced Squad Fire"
+      ],
+      "weaponCertifications": [
+        "Lightning Carbine"
+      ],
+      "description": "Capstone hook for high-confidence ranged discipline and squad fire.",
+      "phase": 5,
+      "title": "Master Marksman",
+      "track": "master",
+      "skillPointCost": 1,
+      "prerequisites": [
+        "marksman-rifle-iv",
+        "marksman-pistol-iv",
+        "marksman-tactics-iv",
+        "marksman-fieldcraft-iv"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-novice",
+      "profession": "scout",
+      "label": "Novice Scout",
+      "unlocked": true,
+      "row": 0,
+      "column": 1,
+      "xpCost": 0,
+      "grants": [
+        "Traversal Basics",
+        "Clod Harvest"
+      ],
+      "craftingSchematics": [
+        "Camp Kit"
+      ],
+      "abilities": [
+        "Creature Harvesting",
+        "Creature Processing"
+      ],
+      "authorityCapabilities": [
+        "craft:scout_processing",
+        "harvest:creature"
+      ],
+      "description": "Baseline travel, field harvesting, and creature-resource branch.",
+      "phase": 0,
+      "title": "Novice Scout",
+      "track": "novice",
+      "skillPointCost": 16,
+      "creditCost": 0
+    },
+    {
+      "id": "scout-creature-harvesting-i",
+      "profession": "scout",
+      "label": "Creature Harvesting I",
+      "unlocked": false,
+      "row": 1,
+      "column": 2,
+      "xpCost": 100,
+      "grants": [
+        "Creature Harvest Yield I",
+        "Carcass Work I"
+      ],
+      "description": "Improves creature corpse access, yield, and processing hooks.",
+      "phase": 1,
+      "track": "creature-harvesting",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "scout-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-creature-harvesting-ii",
+      "profession": "scout",
+      "label": "Creature Harvesting II",
+      "unlocked": false,
+      "row": 2,
+      "column": 2,
+      "xpCost": 300,
+      "grants": [
+        "Creature Harvest Yield II",
+        "Carcass Work II"
+      ],
+      "description": "Improves creature corpse access, yield, and processing hooks.",
+      "phase": 2,
+      "track": "creature-harvesting",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "scout-creature-harvesting-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-creature-harvesting-iii",
+      "profession": "scout",
+      "label": "Creature Harvesting III",
+      "unlocked": false,
+      "row": 3,
+      "column": 2,
+      "xpCost": 650,
+      "grants": [
+        "Creature Harvest Yield III",
+        "Carcass Work III"
+      ],
+      "description": "Improves creature corpse access, yield, and processing hooks.",
+      "phase": 3,
+      "track": "creature-harvesting",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "scout-creature-harvesting-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-creature-harvesting-iv",
+      "profession": "scout",
+      "label": "Creature Harvesting IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 2,
+      "xpCost": 1100,
+      "grants": [
+        "Creature Harvest Yield IV",
+        "Carcass Work IV"
+      ],
+      "description": "Improves creature corpse access, yield, and processing hooks.",
+      "phase": 4,
+      "track": "creature-harvesting",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "scout-creature-harvesting-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-sprinting-i",
+      "profession": "scout",
+      "label": "Sprinting I",
+      "unlocked": false,
+      "row": 1,
+      "column": 1,
+      "xpCost": 100,
+      "grants": [
+        "Sprint Efficiency I",
+        "Action Recovery I"
+      ],
+      "description": "Improves sprint speed, action efficiency, and recovery hooks.",
+      "phase": 1,
+      "track": "sprinting",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "scout-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-sprinting-ii",
+      "profession": "scout",
+      "label": "Sprinting II",
+      "unlocked": false,
+      "row": 2,
+      "column": 1,
+      "xpCost": 300,
+      "grants": [
+        "Sprint Efficiency II",
+        "Action Recovery II"
+      ],
+      "description": "Improves sprint speed, action efficiency, and recovery hooks.",
+      "phase": 2,
+      "track": "sprinting",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "scout-sprinting-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-sprinting-iii",
+      "profession": "scout",
+      "label": "Sprinting III",
+      "unlocked": false,
+      "row": 3,
+      "column": 1,
+      "xpCost": 650,
+      "grants": [
+        "Sprint Efficiency III",
+        "Action Recovery III"
+      ],
+      "description": "Improves sprint speed, action efficiency, and recovery hooks.",
+      "phase": 3,
+      "track": "sprinting",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "scout-sprinting-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-sprinting-iv",
+      "profession": "scout",
+      "label": "Sprinting IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 1,
+      "xpCost": 1100,
+      "grants": [
+        "Sprint Efficiency IV",
+        "Action Recovery IV"
+      ],
+      "description": "Improves sprint speed, action efficiency, and recovery hooks.",
+      "phase": 4,
+      "track": "sprinting",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "scout-sprinting-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-traversal-i",
+      "profession": "scout",
+      "label": "Traversal I",
+      "unlocked": false,
+      "row": 1,
+      "column": 0,
+      "xpCost": 100,
+      "grants": [
+        "Traversal Speed I",
+        "Path Efficiency I"
+      ],
+      "description": "Improves baseline travel speed and path efficiency hooks.",
+      "phase": 1,
+      "track": "traversal",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "scout-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-traversal-ii",
+      "profession": "scout",
+      "label": "Traversal II",
+      "unlocked": false,
+      "row": 2,
+      "column": 0,
+      "xpCost": 300,
+      "grants": [
+        "Traversal Speed II",
+        "Path Efficiency II"
+      ],
+      "description": "Improves baseline travel speed and path efficiency hooks.",
+      "phase": 2,
+      "track": "traversal",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "scout-traversal-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-traversal-iii",
+      "profession": "scout",
+      "label": "Traversal III",
+      "unlocked": false,
+      "row": 3,
+      "column": 0,
+      "xpCost": 650,
+      "grants": [
+        "Traversal Speed III",
+        "Path Efficiency III"
+      ],
+      "description": "Improves baseline travel speed and path efficiency hooks.",
+      "phase": 3,
+      "track": "traversal",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "scout-traversal-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-traversal-iv",
+      "profession": "scout",
+      "label": "Traversal IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 0,
+      "xpCost": 1100,
+      "grants": [
+        "Traversal Speed IV",
+        "Path Efficiency IV"
+      ],
+      "description": "Improves baseline travel speed and path efficiency hooks.",
+      "phase": 4,
+      "track": "traversal",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "scout-traversal-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-campcraft-i",
+      "profession": "scout",
+      "label": "Campcraft I",
+      "unlocked": false,
+      "row": 1,
+      "column": 3,
+      "xpCost": 100,
+      "grants": [
+        "Camp Setup I",
+        "Field Rest I"
+      ],
+      "description": "Improves temporary camp, regroup, safe-rest, and survival hooks.",
+      "phase": 1,
+      "track": "campcraft",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "scout-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-campcraft-ii",
+      "profession": "scout",
+      "label": "Campcraft II",
+      "unlocked": false,
+      "row": 2,
+      "column": 3,
+      "xpCost": 300,
+      "grants": [
+        "Camp Setup II",
+        "Field Rest II"
+      ],
+      "description": "Improves temporary camp, regroup, safe-rest, and survival hooks.",
+      "phase": 2,
+      "track": "campcraft",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "scout-campcraft-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-campcraft-iii",
+      "profession": "scout",
+      "label": "Campcraft III",
+      "unlocked": false,
+      "row": 3,
+      "column": 3,
+      "xpCost": 650,
+      "grants": [
+        "Camp Setup III",
+        "Field Rest III"
+      ],
+      "description": "Improves temporary camp, regroup, safe-rest, and survival hooks.",
+      "phase": 3,
+      "track": "campcraft",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "scout-campcraft-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-campcraft-iv",
+      "profession": "scout",
+      "label": "Campcraft IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 3,
+      "xpCost": 1100,
+      "grants": [
+        "Camp Setup IV",
+        "Field Rest IV"
+      ],
+      "description": "Improves temporary camp, regroup, safe-rest, and survival hooks.",
+      "phase": 4,
+      "track": "campcraft",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "scout-campcraft-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "scout-master",
+      "profession": "scout",
+      "label": "Master Scout",
+      "unlocked": false,
+      "row": 5,
+      "column": 1,
+      "xpCost": 1800,
+      "grants": [
+        "Master Field Mobility",
+        "Advanced Creature Harvesting"
+      ],
+      "description": "Capstone hook for movement, campcraft, high-yield harvesting, and field sustainment.",
+      "phase": 5,
+      "title": "Master Scout",
+      "track": "master",
+      "skillPointCost": 1,
+      "prerequisites": [
+        "scout-traversal-iv",
+        "scout-sprinting-iv",
+        "scout-creature-harvesting-iv",
+        "scout-campcraft-iv"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-novice",
+      "profession": "craftsman",
+      "label": "Novice Craftsman",
+      "unlocked": true,
+      "row": 0,
+      "column": 1,
+      "xpCost": 0,
+      "grants": [
+        "Iron Sampling",
+        "Assembly Fundamentals",
+        "Experimentation Fundamentals"
+      ],
+      "craftingSchematics": [
+        "Field Multitool",
+        "Iron Slug",
+        "Shard Slug",
+        "Spike Slug",
+        "Fuel",
+        "Polymer",
+        "Extractor Battery",
+        "Personal Mineral Sampler",
+        "Field Saber",
+        "Mineral Survey Tool",
+        "Chemical Survey Device",
+        "Gas Survey Tool",
+        "Water Survey Tool",
+        "Personal Chemical Extractor",
+        "Personal Gas Harvester",
+        "Survival Moisture Vaporator",
+        "Irrigation Sprinkler"
+      ],
+      "abilities": [
+        "Ammo Crafting",
+        "Profession Tool Crafting",
+        "Iron Gathering"
+      ],
+      "authorityCapabilities": [
+        "craft:ammo",
+        "craft:profession_tool",
+        "gather:iron"
+      ],
+      "description": "Baseline resource sampling, assembly, and experimentation branch.",
+      "phase": 0,
+      "title": "Novice Craftsman",
+      "track": "novice",
+      "skillPointCost": 16,
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-survey-i",
+      "profession": "craftsman",
+      "label": "Survey I",
+      "unlocked": false,
+      "row": 1,
+      "column": 0,
+      "xpCost": 100,
+      "grants": [
+        "Resource Survey I",
+        "Heat Reading I"
+      ],
+      "description": "Improves surveying and resource-location hooks.",
+      "phase": 1,
+      "track": "survey",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "craftsman-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-survey-ii",
+      "profession": "craftsman",
+      "label": "Survey II",
+      "unlocked": false,
+      "row": 2,
+      "column": 0,
+      "xpCost": 300,
+      "grants": [
+        "Resource Survey II",
+        "Heat Reading II"
+      ],
+      "description": "Improves surveying and resource-location hooks.",
+      "phase": 2,
+      "track": "survey",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "craftsman-survey-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-survey-iii",
+      "profession": "craftsman",
+      "label": "Survey III",
+      "unlocked": false,
+      "row": 3,
+      "column": 0,
+      "xpCost": 650,
+      "grants": [
+        "Resource Survey III",
+        "Heat Reading III"
+      ],
+      "description": "Improves surveying and resource-location hooks.",
+      "phase": 3,
+      "track": "survey",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "craftsman-survey-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-survey-iv",
+      "profession": "craftsman",
+      "label": "Survey IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 0,
+      "xpCost": 1100,
+      "grants": [
+        "Resource Survey IV",
+        "Heat Reading IV"
+      ],
+      "description": "Improves surveying and resource-location hooks.",
+      "phase": 4,
+      "track": "survey",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "craftsman-survey-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-tools-i",
+      "profession": "craftsman",
+      "label": "Tools I",
+      "unlocked": false,
+      "row": 1,
+      "column": 1,
+      "xpCost": 100,
+      "grants": [
+        "Field Multitool tuning I",
+        "Scout Kit I"
+      ],
+      "description": "Improves profession tool assembly and quality hooks.",
+      "phase": 1,
+      "track": "tools",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "craftsman-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-tools-ii",
+      "profession": "craftsman",
+      "label": "Tools II",
+      "unlocked": false,
+      "row": 2,
+      "column": 1,
+      "xpCost": 300,
+      "grants": [
+        "Field Multitool tuning II",
+        "Scout Kit II"
+      ],
+      "description": "Improves profession tool assembly and quality hooks.",
+      "phase": 2,
+      "track": "tools",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "craftsman-tools-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-tools-iii",
+      "profession": "craftsman",
+      "label": "Tools III",
+      "unlocked": false,
+      "row": 3,
+      "column": 1,
+      "xpCost": 650,
+      "grants": [
+        "Field Multitool tuning III",
+        "Scout Kit III"
+      ],
+      "description": "Improves profession tool assembly and quality hooks.",
+      "phase": 3,
+      "track": "tools",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "craftsman-tools-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-tools-iv",
+      "profession": "craftsman",
+      "label": "Tools IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 1,
+      "xpCost": 1100,
+      "grants": [
+        "Field Multitool tuning IV",
+        "Scout Kit IV"
+      ],
+      "description": "Improves profession tool assembly and quality hooks.",
+      "phase": 4,
+      "track": "tools",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "craftsman-tools-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-experimentation-i",
+      "profession": "craftsman",
+      "label": "Experimentation I",
+      "unlocked": false,
+      "row": 1,
+      "column": 2,
+      "xpCost": 100,
+      "grants": [
+        "Experimentation Chance I",
+        "Experiment Points I"
+      ],
+      "description": "Improves experimentation success chance and total available experimentation points.",
+      "phase": 1,
+      "track": "experimentation",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "craftsman-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-experimentation-ii",
+      "profession": "craftsman",
+      "label": "Experimentation II",
+      "unlocked": false,
+      "row": 2,
+      "column": 2,
+      "xpCost": 300,
+      "grants": [
+        "Experimentation Chance II",
+        "Experiment Points II"
+      ],
+      "description": "Improves experimentation success chance and total available experimentation points.",
+      "phase": 2,
+      "track": "experimentation",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "craftsman-experimentation-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-experimentation-iii",
+      "profession": "craftsman",
+      "label": "Experimentation III",
+      "unlocked": false,
+      "row": 3,
+      "column": 2,
+      "xpCost": 650,
+      "grants": [
+        "Experimentation Chance III",
+        "Experiment Points III"
+      ],
+      "description": "Improves experimentation success chance and total available experimentation points.",
+      "phase": 3,
+      "track": "experimentation",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "craftsman-experimentation-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-experimentation-iv",
+      "profession": "craftsman",
+      "label": "Experimentation IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 2,
+      "xpCost": 1100,
+      "grants": [
+        "Experimentation Chance IV",
+        "Experiment Points IV"
+      ],
+      "description": "Improves experimentation success chance and total available experimentation points.",
+      "phase": 4,
+      "track": "experimentation",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "craftsman-experimentation-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-assembly-i",
+      "profession": "craftsman",
+      "label": "Assembly I",
+      "unlocked": false,
+      "row": 1,
+      "column": 3,
+      "xpCost": 100,
+      "grants": [
+        "Assembly Roll I",
+        "Craft Quality I"
+      ],
+      "craftingSchematics": [
+        "Crafted Slugthrower Mk I",
+        "Quarry Chopper"
+      ],
+      "description": "Improves advanced item assembly rolls before experimentation.",
+      "phase": 1,
+      "track": "assembly",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "craftsman-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-assembly-ii",
+      "profession": "craftsman",
+      "label": "Assembly II",
+      "unlocked": false,
+      "row": 2,
+      "column": 3,
+      "xpCost": 300,
+      "grants": [
+        "Assembly Roll II",
+        "Craft Quality II"
+      ],
+      "description": "Improves advanced item assembly rolls before experimentation.",
+      "phase": 2,
+      "track": "assembly",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "craftsman-assembly-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-assembly-iii",
+      "profession": "craftsman",
+      "label": "Assembly III",
+      "unlocked": false,
+      "row": 3,
+      "column": 3,
+      "xpCost": 650,
+      "grants": [
+        "Assembly Roll III",
+        "Craft Quality III"
+      ],
+      "craftingSchematics": [
+        "Kiln Energy Cell Carbine"
+      ],
+      "description": "Improves advanced item assembly rolls before experimentation.",
+      "phase": 3,
+      "track": "assembly",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "craftsman-assembly-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-assembly-iv",
+      "profession": "craftsman",
+      "label": "Assembly IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 3,
+      "xpCost": 1100,
+      "grants": [
+        "Assembly Roll IV",
+        "Craft Quality IV"
+      ],
+      "craftingSchematics": [
+        "Lightning Carbine"
+      ],
+      "description": "Improves advanced item assembly rolls before experimentation.",
+      "phase": 4,
+      "track": "assembly",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "craftsman-assembly-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "craftsman-master",
+      "profession": "craftsman",
+      "label": "Master Craftsman",
+      "unlocked": false,
+      "row": 5,
+      "column": 1,
+      "xpCost": 1800,
+      "grants": [
+        "Master Assembly",
+        "Master Experimentation",
+        "Prototype Weapon Assembly"
+      ],
+      "description": "Caps the craftsman tree with stronger assembly rolls and experimentation control.",
+      "phase": 5,
+      "title": "Master Craftsman",
+      "track": "master",
+      "skillPointCost": 1,
+      "prerequisites": [
+        "craftsman-survey-iv",
+        "craftsman-tools-iv",
+        "craftsman-assembly-iv",
+        "craftsman-experimentation-iv"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-novice",
+      "profession": "medic",
+      "label": "Novice Medic",
+      "unlocked": true,
+      "row": 0,
+      "column": 1,
+      "xpCost": 0,
+      "grants": [
+        "Stimpak A use",
+        "Baseline medicine potency",
+        "2 medical experiment points"
+      ],
+      "craftingSchematics": [
+        "Solid Delivery Shell",
+        "Basic Stimpak",
+        "Body Enhancement Pack",
+        "Spirit Enhancement Pack"
+      ],
+      "abilities": [
+        "Medicine Crafting",
+        "Basic Revive"
+      ],
+      "authorityCapabilities": [
+        "craft:medicine",
+        "medical:revive_basic"
+      ],
+      "description": "Unlocks basic stimpak and enhancement pack use plus novice medical crafting experimentation.",
+      "phase": 0,
+      "title": "Novice Medic",
+      "track": "novice",
+      "skillPointCost": 16,
+      "creditCost": 0
+    },
+    {
+      "id": "medic-trauma-i",
+      "profession": "medic",
+      "label": "Trauma Care I",
+      "unlocked": false,
+      "row": 1,
+      "column": 1,
+      "xpCost": 100,
+      "grants": [
+        "Trauma Care I",
+        "Stabilization I"
+      ],
+      "description": "Improves revive, stabilization, bleed, and triage hooks.",
+      "phase": 1,
+      "track": "trauma",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "medic-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-trauma-ii",
+      "profession": "medic",
+      "label": "Trauma Care II",
+      "unlocked": false,
+      "row": 2,
+      "column": 1,
+      "xpCost": 300,
+      "grants": [
+        "Trauma Care II",
+        "Stabilization II"
+      ],
+      "description": "Improves revive, stabilization, bleed, and triage hooks.",
+      "phase": 2,
+      "track": "trauma",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "medic-trauma-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-trauma-iii",
+      "profession": "medic",
+      "label": "Trauma Care III",
+      "unlocked": false,
+      "row": 3,
+      "column": 1,
+      "xpCost": 650,
+      "grants": [
+        "Trauma Care III",
+        "Stabilization III"
+      ],
+      "description": "Improves revive, stabilization, bleed, and triage hooks.",
+      "phase": 3,
+      "track": "trauma",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "medic-trauma-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-trauma-iv",
+      "profession": "medic",
+      "label": "Trauma Care IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 1,
+      "xpCost": 1100,
+      "grants": [
+        "Trauma Care IV",
+        "Stabilization IV"
+      ],
+      "description": "Improves revive, stabilization, bleed, and triage hooks.",
+      "phase": 4,
+      "track": "trauma",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "medic-trauma-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medicine-use-i",
+      "profession": "medic",
+      "label": "Medicine Use I",
+      "unlocked": false,
+      "row": 1,
+      "column": 0,
+      "xpCost": 100,
+      "grants": [
+        "Medicine potency +50% line progress"
+      ],
+      "description": "Improves stimpak and enhancement pack strength when used by the medic.",
+      "phase": 1,
+      "track": "medicine-use",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "medic-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medicine-use-ii",
+      "profession": "medic",
+      "label": "Medicine Use II",
+      "unlocked": false,
+      "row": 2,
+      "column": 0,
+      "xpCost": 300,
+      "grants": [
+        "Medicine potency +100% line progress"
+      ],
+      "description": "Improves stimpak and enhancement pack strength when used by the medic.",
+      "phase": 2,
+      "track": "medicine-use",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "medic-medicine-use-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medicine-use-iii",
+      "profession": "medic",
+      "label": "Medicine Use III",
+      "unlocked": false,
+      "row": 3,
+      "column": 0,
+      "xpCost": 650,
+      "grants": [
+        "Medicine potency +150% line progress"
+      ],
+      "description": "Improves stimpak and enhancement pack strength when used by the medic.",
+      "phase": 3,
+      "track": "medicine-use",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "medic-medicine-use-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medicine-use-iv",
+      "profession": "medic",
+      "label": "Medicine Use IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 0,
+      "xpCost": 1100,
+      "grants": [
+        "Medicine potency +200% line progress"
+      ],
+      "description": "Improves stimpak and enhancement pack strength when used by the medic.",
+      "phase": 4,
+      "track": "medicine-use",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "medic-medicine-use-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medicine-speed-i",
+      "profession": "medic",
+      "label": "Medicine Use Speed I",
+      "unlocked": false,
+      "row": 1,
+      "column": 2,
+      "xpCost": 100,
+      "grants": [
+        "Medicine cooldown speed +50% line progress"
+      ],
+      "description": "Reduces the cooldown window before another stimpak can be used.",
+      "phase": 1,
+      "track": "medicine-speed",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "medic-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medicine-speed-ii",
+      "profession": "medic",
+      "label": "Medicine Use Speed II",
+      "unlocked": false,
+      "row": 2,
+      "column": 2,
+      "xpCost": 300,
+      "grants": [
+        "Medicine cooldown speed +100% line progress"
+      ],
+      "description": "Reduces the cooldown window before another stimpak can be used.",
+      "phase": 2,
+      "track": "medicine-speed",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "medic-medicine-speed-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medicine-speed-iii",
+      "profession": "medic",
+      "label": "Medicine Use Speed III",
+      "unlocked": false,
+      "row": 3,
+      "column": 2,
+      "xpCost": 650,
+      "grants": [
+        "Medicine cooldown speed +150% line progress"
+      ],
+      "description": "Reduces the cooldown window before another stimpak can be used.",
+      "phase": 3,
+      "track": "medicine-speed",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "medic-medicine-speed-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medicine-speed-iv",
+      "profession": "medic",
+      "label": "Medicine Use Speed IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 2,
+      "xpCost": 1100,
+      "grants": [
+        "Medicine cooldown speed +200% line progress"
+      ],
+      "description": "Reduces the cooldown window before another stimpak can be used.",
+      "phase": 4,
+      "track": "medicine-speed",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "medic-medicine-speed-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medical-crafting-i",
+      "profession": "medic",
+      "label": "Medical Crafting I",
+      "unlocked": false,
+      "row": 1,
+      "column": 3,
+      "xpCost": 100,
+      "grants": [
+        "Medical crafting +50 line progress"
+      ],
+      "craftingSchematics": [
+        "Biological Effect Controller",
+        "Liquid Suspension",
+        "Anti-Dizzy Stim",
+        "Anti-Blind Stim"
+      ],
+      "description": "Improves medical assembly quality and grants more medical experimentation points.",
+      "phase": 1,
+      "track": "medical-crafting",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "medic-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medical-crafting-ii",
+      "profession": "medic",
+      "label": "Medical Crafting II",
+      "unlocked": false,
+      "row": 2,
+      "column": 3,
+      "xpCost": 300,
+      "grants": [
+        "Medical crafting +100 line progress"
+      ],
+      "craftingSchematics": [
+        "Chemical Release Duration Mechanism",
+        "Advanced Stimpak"
+      ],
+      "description": "Improves medical assembly quality and grants more medical experimentation points.",
+      "phase": 2,
+      "track": "medical-crafting",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "medic-medical-crafting-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medical-crafting-iii",
+      "profession": "medic",
+      "label": "Medical Crafting III",
+      "unlocked": false,
+      "row": 3,
+      "column": 3,
+      "xpCost": 650,
+      "grants": [
+        "Medical crafting +150 line progress"
+      ],
+      "description": "Improves medical assembly quality and grants more medical experimentation points.",
+      "phase": 3,
+      "track": "medical-crafting",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "medic-medical-crafting-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-medical-crafting-iv",
+      "profession": "medic",
+      "label": "Medical Crafting IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 3,
+      "xpCost": 1100,
+      "grants": [
+        "Medical crafting +200 line progress"
+      ],
+      "description": "Improves medical assembly quality and grants more medical experimentation points.",
+      "phase": 4,
+      "track": "medical-crafting",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "medic-medical-crafting-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "medic-master",
+      "profession": "medic",
+      "label": "Master Medic",
+      "unlocked": false,
+      "row": 5,
+      "column": 1,
+      "xpCost": 1800,
+      "grants": [
+        "Master Medic title",
+        "Medicine potency 4x with full medicine-use line",
+        "Medicine cooldown 4x speed with full speed line"
+      ],
+      "description": "Completes the Medic profession and heavily rewards full medical skill investment.",
+      "phase": 5,
+      "title": "Master Medic",
+      "track": "master",
+      "skillPointCost": 1,
+      "prerequisites": [
+        "medic-medicine-use-iv",
+        "medic-trauma-iv",
+        "medic-medicine-speed-iv",
+        "medic-medical-crafting-iv"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-novice",
+      "profession": "brawler",
+      "label": "Novice Brawler",
+      "unlocked": true,
+      "row": 0,
+      "column": 1,
+      "xpCost": 0,
+      "grants": [
+        "Basic Melee Combat",
+        "Footwork Fundamentals",
+        "Attack Tempo Fundamentals"
+      ],
+      "abilities": [
+        "Melee Combat",
+        "Creature Harvesting"
+      ],
+      "authorityCapabilities": [
+        "combat:melee_basic",
+        "harvest:creature"
+      ],
+      "description": "Baseline melee profession for vibrosword, movement, and close-quarters pressure.",
+      "phase": 0,
+      "title": "Novice Brawler",
+      "track": "novice",
+      "skillPointCost": 16,
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-melee-i",
+      "profession": "brawler",
+      "label": "Melee I",
+      "unlocked": false,
+      "row": 1,
+      "column": 0,
+      "xpCost": 100,
+      "grants": [
+        "Vibrosword Handling I",
+        "Strike Timing I"
+      ],
+      "description": "Improves basic vibrosword handling and close-range strike timing.",
+      "phase": 1,
+      "track": "melee",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "brawler-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-melee-ii",
+      "profession": "brawler",
+      "label": "Melee II",
+      "unlocked": false,
+      "row": 2,
+      "column": 0,
+      "xpCost": 300,
+      "grants": [
+        "Vibrosword Handling II",
+        "Strike Timing II"
+      ],
+      "description": "Improves basic vibrosword handling and close-range strike timing.",
+      "phase": 2,
+      "track": "melee",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "brawler-melee-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-melee-iii",
+      "profession": "brawler",
+      "label": "Melee III",
+      "unlocked": false,
+      "row": 3,
+      "column": 0,
+      "xpCost": 650,
+      "grants": [
+        "Vibrosword Handling III",
+        "Strike Timing III"
+      ],
+      "weaponCertifications": [
+        "Vibrosword"
+      ],
+      "description": "Improves basic vibrosword handling and close-range strike timing.",
+      "phase": 3,
+      "track": "melee",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "brawler-melee-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-melee-iv",
+      "profession": "brawler",
+      "label": "Melee IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 0,
+      "xpCost": 1100,
+      "grants": [
+        "Vibrosword Handling IV",
+        "Strike Timing IV"
+      ],
+      "weaponCertifications": [
+        "Plasma Sword"
+      ],
+      "description": "Improves basic vibrosword handling and close-range strike timing.",
+      "phase": 4,
+      "track": "melee",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "brawler-melee-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-guard-i",
+      "profession": "brawler",
+      "label": "Guard I",
+      "unlocked": false,
+      "row": 1,
+      "column": 1,
+      "xpCost": 100,
+      "grants": [
+        "Close Guard I",
+        "Brace I",
+        "Ranged Deflection I"
+      ],
+      "description": "THE WALL: parry incoming melee, deflect ranged fire, and brace against damage while holding a dangerous lane.",
+      "phase": 1,
+      "track": "guard",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "brawler-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-guard-ii",
+      "profession": "brawler",
+      "label": "Guard II",
+      "unlocked": false,
+      "row": 2,
+      "column": 1,
+      "xpCost": 300,
+      "grants": [
+        "Close Guard II",
+        "Brace II",
+        "Ranged Deflection II"
+      ],
+      "description": "THE WALL: parry incoming melee, deflect ranged fire, and brace against damage while holding a dangerous lane.",
+      "phase": 2,
+      "track": "guard",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "brawler-guard-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-guard-iii",
+      "profession": "brawler",
+      "label": "Guard III",
+      "unlocked": false,
+      "row": 3,
+      "column": 1,
+      "xpCost": 650,
+      "grants": [
+        "Close Guard III",
+        "Brace III",
+        "Ranged Deflection III"
+      ],
+      "description": "THE WALL: parry incoming melee, deflect ranged fire, and brace against damage while holding a dangerous lane.",
+      "phase": 3,
+      "track": "guard",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "brawler-guard-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-guard-iv",
+      "profession": "brawler",
+      "label": "Guard IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 1,
+      "xpCost": 1100,
+      "grants": [
+        "Close Guard IV",
+        "Brace IV",
+        "Ranged Deflection IV"
+      ],
+      "description": "THE WALL: parry incoming melee, deflect ranged fire, and brace against damage while holding a dangerous lane.",
+      "phase": 4,
+      "track": "guard",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "brawler-guard-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-movement-speed-i",
+      "profession": "brawler",
+      "label": "Movement Speed I",
+      "unlocked": false,
+      "row": 1,
+      "column": 2,
+      "xpCost": 100,
+      "grants": [
+        "Footwork Speed I",
+        "Close Distance I"
+      ],
+      "description": "Improves movement speed while closing, repositioning, and disengaging in melee pressure.",
+      "phase": 1,
+      "track": "movement-speed",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "brawler-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-movement-speed-ii",
+      "profession": "brawler",
+      "label": "Movement Speed II",
+      "unlocked": false,
+      "row": 2,
+      "column": 2,
+      "xpCost": 300,
+      "grants": [
+        "Footwork Speed II",
+        "Close Distance II"
+      ],
+      "description": "Improves movement speed while closing, repositioning, and disengaging in melee pressure.",
+      "phase": 2,
+      "track": "movement-speed",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "brawler-movement-speed-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-movement-speed-iii",
+      "profession": "brawler",
+      "label": "Movement Speed III",
+      "unlocked": false,
+      "row": 3,
+      "column": 2,
+      "xpCost": 650,
+      "grants": [
+        "Footwork Speed III",
+        "Close Distance III"
+      ],
+      "description": "Improves movement speed while closing, repositioning, and disengaging in melee pressure.",
+      "phase": 3,
+      "track": "movement-speed",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "brawler-movement-speed-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-movement-speed-iv",
+      "profession": "brawler",
+      "label": "Movement Speed IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 2,
+      "xpCost": 1100,
+      "grants": [
+        "Footwork Speed IV",
+        "Close Distance IV"
+      ],
+      "description": "Improves movement speed while closing, repositioning, and disengaging in melee pressure.",
+      "phase": 4,
+      "track": "movement-speed",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "brawler-movement-speed-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-attack-speed-i",
+      "profession": "brawler",
+      "label": "Attack Speed I",
+      "unlocked": false,
+      "row": 1,
+      "column": 3,
+      "xpCost": 100,
+      "grants": [
+        "Vibrosword Tempo I",
+        "Recovery Speed I"
+      ],
+      "description": "Reduces vibrosword recovery time between melee attacks.",
+      "phase": 1,
+      "track": "attack-speed",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "brawler-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-attack-speed-ii",
+      "profession": "brawler",
+      "label": "Attack Speed II",
+      "unlocked": false,
+      "row": 2,
+      "column": 3,
+      "xpCost": 300,
+      "grants": [
+        "Vibrosword Tempo II",
+        "Recovery Speed II"
+      ],
+      "description": "Reduces vibrosword recovery time between melee attacks.",
+      "phase": 2,
+      "track": "attack-speed",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "brawler-attack-speed-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-attack-speed-iii",
+      "profession": "brawler",
+      "label": "Attack Speed III",
+      "unlocked": false,
+      "row": 3,
+      "column": 3,
+      "xpCost": 650,
+      "grants": [
+        "Vibrosword Tempo III",
+        "Recovery Speed III"
+      ],
+      "description": "Reduces vibrosword recovery time between melee attacks.",
+      "phase": 3,
+      "track": "attack-speed",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "brawler-attack-speed-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-attack-speed-iv",
+      "profession": "brawler",
+      "label": "Attack Speed IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 3,
+      "xpCost": 1100,
+      "grants": [
+        "Vibrosword Tempo IV",
+        "Recovery Speed IV"
+      ],
+      "description": "Reduces vibrosword recovery time between melee attacks.",
+      "phase": 4,
+      "track": "attack-speed",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "brawler-attack-speed-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "brawler-master",
+      "profession": "brawler",
+      "label": "Master Brawler",
+      "unlocked": false,
+      "row": 5,
+      "column": 1,
+      "xpCost": 1800,
+      "grants": [
+        "Master Vibrosword Discipline",
+        "Master Footwork",
+        "Master Attack Tempo",
+        "Master Ranged Deflection"
+      ],
+      "description": "Caps the brawler tree with melee control, movement speed, attack tempo, and full ranged deflection.",
+      "phase": 5,
+      "title": "Master Brawler",
+      "track": "master",
+      "skillPointCost": 1,
+      "prerequisites": [
+        "brawler-melee-iv",
+        "brawler-guard-iv",
+        "brawler-movement-speed-iv",
+        "brawler-attack-speed-iv"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-novice",
+      "profession": "bioengineer",
+      "label": "Novice Bio-Engineer",
+      "unlocked": false,
+      "row": 0,
+      "column": 1,
+      "xpCost": 0,
+      "grants": [
+        "Gene Sampler",
+        "Genome Scanner",
+        "Splice Bench",
+        "Starter Seed Packet",
+        "Sequencing & Splice Fundamentals"
+      ],
+      "abilities": [
+        "Flora Sampling",
+        "Genome Splicing"
+      ],
+      "authorityCapabilities": [
+        "sample:flora",
+        "splice:genome"
+      ],
+      "description": "Hybrid elite off Craftsman + Medic: samples wild flora, scans genomes, and splices crop lines. Grants the bio toolkit and a fertile starter seed.",
+      "phase": 0,
+      "title": "Novice Bio-Engineer",
+      "track": "novice",
+      "skillPointCost": 16,
+      "prerequisites": [
+        "craftsman-experimentation-ii",
+        "medic-medical-crafting-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-sequencing-i",
+      "profession": "bioengineer",
+      "label": "Sequencing I",
+      "unlocked": false,
+      "row": 1,
+      "column": 0,
+      "xpCost": 100,
+      "grants": [
+        "Gene-Scanner Depth I (hidden-allele presence)",
+        "Wild-Flora Sample Yield I"
+      ],
+      "description": "Gene-scanner reveal depth, wild-flora sample yield/quality, and creature-tissue sampling.",
+      "phase": 1,
+      "track": "sequencing",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "bioengineer-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-sequencing-ii",
+      "profession": "bioengineer",
+      "label": "Sequencing II",
+      "unlocked": false,
+      "row": 2,
+      "column": 0,
+      "xpCost": 300,
+      "grants": [
+        "Gene-Scanner Depth II (exact allele values)",
+        "Wild-Flora Sample Yield II"
+      ],
+      "description": "Gene-scanner reveal depth, wild-flora sample yield/quality, and creature-tissue sampling.",
+      "phase": 2,
+      "track": "sequencing",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "bioengineer-sequencing-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-sequencing-iii",
+      "profession": "bioengineer",
+      "label": "Sequencing III",
+      "unlocked": false,
+      "row": 3,
+      "column": 0,
+      "xpCost": 650,
+      "grants": [
+        "Gene-Scanner Depth III",
+        "Creature-Tissue Sampling"
+      ],
+      "description": "Gene-scanner reveal depth, wild-flora sample yield/quality, and creature-tissue sampling.",
+      "phase": 3,
+      "track": "sequencing",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "bioengineer-sequencing-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-sequencing-iv",
+      "profession": "bioengineer",
+      "label": "Sequencing IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 0,
+      "xpCost": 1100,
+      "grants": [
+        "Gene-Scanner Depth IV (mutation-potential + lineage)",
+        "Wild-Flora Sample Yield IV"
+      ],
+      "description": "Gene-scanner reveal depth, wild-flora sample yield/quality, and creature-tissue sampling.",
+      "phase": 4,
+      "track": "sequencing",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "bioengineer-sequencing-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-splicing-i",
+      "profession": "bioengineer",
+      "label": "Splicing I",
+      "unlocked": false,
+      "row": 1,
+      "column": 1,
+      "xpCost": 100,
+      "grants": [
+        "Splice Experiment Points I",
+        "Splice Assembly Quality I"
+      ],
+      "description": "Splice experimentation points, simultaneous editable loci, deterministic gain-per-point, and assembly quality.",
+      "phase": 1,
+      "track": "splicing",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "bioengineer-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-splicing-ii",
+      "profession": "bioengineer",
+      "label": "Splicing II",
+      "unlocked": false,
+      "row": 2,
+      "column": 1,
+      "xpCost": 300,
+      "grants": [
+        "Splice Experiment Points II",
+        "Simultaneous Editable Loci II"
+      ],
+      "description": "Splice experimentation points, simultaneous editable loci, deterministic gain-per-point, and assembly quality.",
+      "phase": 2,
+      "track": "splicing",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "bioengineer-splicing-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-splicing-iii",
+      "profession": "bioengineer",
+      "label": "Splicing III",
+      "unlocked": false,
+      "row": 3,
+      "column": 1,
+      "xpCost": 650,
+      "grants": [
+        "Splice Experiment Points III",
+        "Deterministic Gain-Per-Point III"
+      ],
+      "description": "Splice experimentation points, simultaneous editable loci, deterministic gain-per-point, and assembly quality.",
+      "phase": 3,
+      "track": "splicing",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "bioengineer-splicing-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-splicing-iv",
+      "profession": "bioengineer",
+      "label": "Splicing IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 1,
+      "xpCost": 1100,
+      "grants": [
+        "Splice Experiment Points IV",
+        "Splice Assembly Quality IV"
+      ],
+      "description": "Splice experimentation points, simultaneous editable loci, deterministic gain-per-point, and assembly quality.",
+      "phase": 4,
+      "track": "splicing",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "bioengineer-splicing-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-cultivation-i",
+      "profession": "bioengineer",
+      "label": "Cultivation I",
+      "unlocked": false,
+      "row": 1,
+      "column": 2,
+      "xpCost": 100,
+      "grants": [
+        "True-Breeding Stabilization I",
+        "Bio-Reagent Potency I"
+      ],
+      "description": "True-breeding stabilization, bio-reagent potency, and produce-quality realization.",
+      "phase": 1,
+      "track": "cultivation",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "bioengineer-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-cultivation-ii",
+      "profession": "bioengineer",
+      "label": "Cultivation II",
+      "unlocked": false,
+      "row": 2,
+      "column": 2,
+      "xpCost": 300,
+      "grants": [
+        "True-Breeding Stabilization II",
+        "Bio-Reagent Potency II"
+      ],
+      "description": "True-breeding stabilization, bio-reagent potency, and produce-quality realization.",
+      "phase": 2,
+      "track": "cultivation",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "bioengineer-cultivation-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-cultivation-iii",
+      "profession": "bioengineer",
+      "label": "Cultivation III",
+      "unlocked": false,
+      "row": 3,
+      "column": 2,
+      "xpCost": 650,
+      "grants": [
+        "Produce-Quality Realization III",
+        "Bio-Reagent Potency III"
+      ],
+      "description": "True-breeding stabilization, bio-reagent potency, and produce-quality realization.",
+      "phase": 3,
+      "track": "cultivation",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "bioengineer-cultivation-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-cultivation-iv",
+      "profession": "bioengineer",
+      "label": "Cultivation IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 2,
+      "xpCost": 1100,
+      "grants": [
+        "True-Breeding Stabilization IV",
+        "Produce-Quality Realization IV"
+      ],
+      "description": "True-breeding stabilization, bio-reagent potency, and produce-quality realization.",
+      "phase": 4,
+      "track": "cultivation",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "bioengineer-cultivation-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-genelock-i",
+      "profession": "bioengineer",
+      "label": "Genelock I",
+      "unlocked": false,
+      "row": 1,
+      "column": 3,
+      "xpCost": 100,
+      "grants": [
+        "Sterile-Seed Craft",
+        "Gene-Lock Kit"
+      ],
+      "description": "Sterile-seed craft, sterility guarantee + Seed Vault, and cultivar registration/patent + landrace-vault access.",
+      "phase": 1,
+      "track": "genelock",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "bioengineer-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-genelock-ii",
+      "profession": "bioengineer",
+      "label": "Genelock II",
+      "unlocked": false,
+      "row": 2,
+      "column": 3,
+      "xpCost": 300,
+      "grants": [
+        "Sterility Guarantee",
+        "Seed Vault I"
+      ],
+      "description": "Sterile-seed craft, sterility guarantee + Seed Vault, and cultivar registration/patent + landrace-vault access.",
+      "phase": 2,
+      "track": "genelock",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "bioengineer-genelock-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-genelock-iii",
+      "profession": "bioengineer",
+      "label": "Genelock III",
+      "unlocked": false,
+      "row": 3,
+      "column": 3,
+      "xpCost": 650,
+      "grants": [
+        "Seed Vault II",
+        "Landrace-Vault Access"
+      ],
+      "description": "Sterile-seed craft, sterility guarantee + Seed Vault, and cultivar registration/patent + landrace-vault access.",
+      "phase": 3,
+      "track": "genelock",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "bioengineer-genelock-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-genelock-iv",
+      "profession": "bioengineer",
+      "label": "Genelock IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 3,
+      "xpCost": 1100,
+      "grants": [
+        "Cultivar Registration / Patent",
+        "Apex Landrace-Vault Access"
+      ],
+      "description": "Sterile-seed craft, sterility guarantee + Seed Vault, and cultivar registration/patent + landrace-vault access.",
+      "phase": 4,
+      "track": "genelock",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "bioengineer-genelock-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "bioengineer-master",
+      "profession": "bioengineer",
+      "label": "Master Bio-Engineer",
+      "unlocked": false,
+      "row": 5,
+      "column": 1,
+      "xpCost": 1800,
+      "grants": [
+        "Master Bio-Engineer title",
+        "Guaranteed Primary-Line Capping",
+        "Chimeric Splice (extra locus / cross-kingdom graft)",
+        "Apex Cultivar Registration"
+      ],
+      "description": "Caps the Bio-Engineer tree: reliable primary-line capping, the master-gated Chimeric Splice, and Apex Cultivar registration.",
+      "phase": 5,
+      "title": "Master Bio-Engineer",
+      "track": "master",
+      "skillPointCost": 1,
+      "prerequisites": [
+        "bioengineer-sequencing-iv",
+        "bioengineer-splicing-iv",
+        "bioengineer-cultivation-iv",
+        "bioengineer-genelock-iv"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-novice",
+      "profession": "commando",
+      "label": "Novice Commando",
+      "unlocked": false,
+      "row": 0,
+      "column": 1,
+      "xpCost": 0,
+      "grants": [
+        "Heavy Ordnance Basics",
+        "Demolitions Fundamentals"
+      ],
+      "abilities": [
+        "Elite Ranged Combat",
+        "Ammo Recovery"
+      ],
+      "authorityCapabilities": [
+        "combat:ranged_basic",
+        "harvest:ammo"
+      ],
+      "description": "Hybrid elite off Marksman + Brawler — the elite gun specialist. Unlocks the carbine and opens the heavy-weapons, demolitions, suppression, and field-hardening tracks.",
+      "phase": 0,
+      "title": "Novice Commando",
+      "track": "novice",
+      "skillPointCost": 16,
+      "prerequisites": [
+        "marksman-rifle-iv",
+        "brawler-melee-iv"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-heavy-weapons-i",
+      "profession": "commando",
+      "label": "Heavy Weapons I",
+      "unlocked": false,
+      "row": 1,
+      "column": 0,
+      "xpCost": 100,
+      "grants": [
+        "Heavy Weapon Handling I",
+        "Splash Radius I"
+      ],
+      "description": "Elite heavy-weapon handling: recoil control, sustained fire, and blast radius.",
+      "phase": 1,
+      "track": "heavy-weapons",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "commando-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-heavy-weapons-ii",
+      "profession": "commando",
+      "label": "Heavy Weapons II",
+      "unlocked": false,
+      "row": 2,
+      "column": 0,
+      "xpCost": 300,
+      "grants": [
+        "Heavy Weapon Handling II",
+        "Splash Radius II"
+      ],
+      "weaponCertifications": [
+        "Heavy Weapon"
+      ],
+      "description": "Elite heavy-weapon handling: recoil control, sustained fire, and blast radius.",
+      "phase": 2,
+      "track": "heavy-weapons",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "commando-heavy-weapons-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-heavy-weapons-iii",
+      "profession": "commando",
+      "label": "Heavy Weapons III",
+      "unlocked": false,
+      "row": 3,
+      "column": 0,
+      "xpCost": 650,
+      "grants": [
+        "Heavy Weapon Handling III",
+        "Splash Radius III"
+      ],
+      "description": "Elite heavy-weapon handling: recoil control, sustained fire, and blast radius.",
+      "phase": 3,
+      "track": "heavy-weapons",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "commando-heavy-weapons-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-heavy-weapons-iv",
+      "profession": "commando",
+      "label": "Heavy Weapons IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 0,
+      "xpCost": 1100,
+      "grants": [
+        "Heavy Weapon Handling IV",
+        "Splash Radius IV"
+      ],
+      "weaponCertifications": [
+        "Sniper Rifle"
+      ],
+      "description": "Elite heavy-weapon handling: recoil control, sustained fire, and blast radius.",
+      "phase": 4,
+      "track": "heavy-weapons",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "commando-heavy-weapons-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-demolitions-i",
+      "profession": "commando",
+      "label": "Demolitions I",
+      "unlocked": false,
+      "row": 1,
+      "column": 1,
+      "xpCost": 100,
+      "grants": [
+        "Launcher Handling I",
+        "Ordnance Yield I"
+      ],
+      "description": "Launchers and area ordnance: projectile arc, blast yield, and reload discipline.",
+      "phase": 1,
+      "track": "demolitions",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "commando-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-demolitions-ii",
+      "profession": "commando",
+      "label": "Demolitions II",
+      "unlocked": false,
+      "row": 2,
+      "column": 1,
+      "xpCost": 300,
+      "grants": [
+        "Launcher Handling II",
+        "Ordnance Yield II"
+      ],
+      "weaponCertifications": [
+        "Launcher"
+      ],
+      "description": "Launchers and area ordnance: projectile arc, blast yield, and reload discipline.",
+      "phase": 2,
+      "track": "demolitions",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "commando-demolitions-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-demolitions-iii",
+      "profession": "commando",
+      "label": "Demolitions III",
+      "unlocked": false,
+      "row": 3,
+      "column": 1,
+      "xpCost": 650,
+      "grants": [
+        "Launcher Handling III",
+        "Ordnance Yield III"
+      ],
+      "description": "Launchers and area ordnance: projectile arc, blast yield, and reload discipline.",
+      "phase": 3,
+      "track": "demolitions",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "commando-demolitions-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-demolitions-iv",
+      "profession": "commando",
+      "label": "Demolitions IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 1,
+      "xpCost": 1100,
+      "grants": [
+        "Launcher Handling IV",
+        "Ordnance Yield IV"
+      ],
+      "description": "Launchers and area ordnance: projectile arc, blast yield, and reload discipline.",
+      "phase": 4,
+      "track": "demolitions",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "commando-demolitions-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-suppression-i",
+      "profession": "commando",
+      "label": "Suppression I",
+      "unlocked": false,
+      "row": 1,
+      "column": 2,
+      "xpCost": 100,
+      "grants": [
+        "Suppressive Fire I"
+      ],
+      "description": "Suppressive fire that pins targets and degrades their accuracy across an arc.",
+      "phase": 1,
+      "track": "suppression",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "commando-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-suppression-ii",
+      "profession": "commando",
+      "label": "Suppression II",
+      "unlocked": false,
+      "row": 2,
+      "column": 2,
+      "xpCost": 300,
+      "grants": [
+        "Suppressive Fire II"
+      ],
+      "description": "Suppressive fire that pins targets and degrades their accuracy across an arc.",
+      "phase": 2,
+      "track": "suppression",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "commando-suppression-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-suppression-iii",
+      "profession": "commando",
+      "label": "Suppression III",
+      "unlocked": false,
+      "row": 3,
+      "column": 2,
+      "xpCost": 650,
+      "grants": [
+        "Suppressive Fire III"
+      ],
+      "description": "Suppressive fire that pins targets and degrades their accuracy across an arc.",
+      "phase": 3,
+      "track": "suppression",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "commando-suppression-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-suppression-iv",
+      "profession": "commando",
+      "label": "Suppression IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 2,
+      "xpCost": 1100,
+      "grants": [
+        "Suppressive Fire IV"
+      ],
+      "description": "Suppressive fire that pins targets and degrades their accuracy across an arc.",
+      "phase": 4,
+      "track": "suppression",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "commando-suppression-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-field-hardening-i",
+      "profession": "commando",
+      "label": "Field Hardening I",
+      "unlocked": false,
+      "row": 1,
+      "column": 3,
+      "xpCost": 100,
+      "grants": [
+        "Damage Resistance I"
+      ],
+      "description": "Battlefield survivability: incoming-damage resistance and status resilience.",
+      "phase": 1,
+      "track": "field-hardening",
+      "skillPointCost": 8,
+      "prerequisites": [
+        "commando-novice"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-field-hardening-ii",
+      "profession": "commando",
+      "label": "Field Hardening II",
+      "unlocked": false,
+      "row": 2,
+      "column": 3,
+      "xpCost": 300,
+      "grants": [
+        "Damage Resistance II"
+      ],
+      "description": "Battlefield survivability: incoming-damage resistance and status resilience.",
+      "phase": 2,
+      "track": "field-hardening",
+      "skillPointCost": 6,
+      "prerequisites": [
+        "commando-field-hardening-i"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-field-hardening-iii",
+      "profession": "commando",
+      "label": "Field Hardening III",
+      "unlocked": false,
+      "row": 3,
+      "column": 3,
+      "xpCost": 650,
+      "grants": [
+        "Damage Resistance III"
+      ],
+      "description": "Battlefield survivability: incoming-damage resistance and status resilience.",
+      "phase": 3,
+      "track": "field-hardening",
+      "skillPointCost": 4,
+      "prerequisites": [
+        "commando-field-hardening-ii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-field-hardening-iv",
+      "profession": "commando",
+      "label": "Field Hardening IV",
+      "unlocked": false,
+      "row": 4,
+      "column": 3,
+      "xpCost": 1100,
+      "grants": [
+        "Damage Resistance IV"
+      ],
+      "description": "Battlefield survivability: incoming-damage resistance and status resilience.",
+      "phase": 4,
+      "track": "field-hardening",
+      "skillPointCost": 2,
+      "prerequisites": [
+        "commando-field-hardening-iii"
+      ],
+      "creditCost": 0
+    },
+    {
+      "id": "commando-master",
+      "profession": "commando",
+      "label": "Master Commando",
+      "unlocked": false,
+      "row": 5,
+      "column": 1,
+      "xpCost": 1800,
+      "grants": [
+        "Master Commando title",
+        "Maximal Splash & Suppression",
+        "Ordnance Mastery"
+      ],
+      "description": "Caps the Commando tree: peak heavy-weapon splash, suppression coverage, and field hardening.",
+      "phase": 5,
+      "title": "Master Commando",
+      "track": "master",
+      "skillPointCost": 1,
+      "prerequisites": [
+        "commando-heavy-weapons-iv",
+        "commando-demolitions-iv",
+        "commando-suppression-iv",
+        "commando-field-hardening-iv"
+      ],
+      "creditCost": 0
+    }
+  ],
+  "effects": {
+    "medic-prep": {
+      "id": "medic-prep",
+      "label": "Medic Prep",
+      "kind": "buff",
+      "sourceProfession": "medic",
+      "durationMs": 10800000,
+      "traitDelta": {
+        "body": 70
+      },
+      "description": "Fast steroid/field-med package. Temporary Body lift that derives Health, Action, regen, and tolerance."
+    },
+    "entertainer-session": {
+      "id": "entertainer-session",
+      "label": "Entertainer Session",
+      "kind": "buff",
+      "sourceProfession": "medic",
+      "durationMs": 10800000,
+      "traitDelta": {
+        "spirit": 75
+      },
+      "description": "Social/morale preparation for long outings. Temporary Spirit lift for composure, pressure tolerance, and steadier body output."
+    },
+    "clone-sickness": {
+      "id": "clone-sickness",
+      "label": "Clone Sickness",
+      "kind": "debuff",
+      "sourceProfession": "medic",
+      "durationMs": 1200000,
+      "traitDelta": {
+        "body": -28,
+        "spirit": -18
+      },
+      "description": "Temporary post-respawn weakness. Future Medic/Entertainer services can treat or shorten it."
+    }
+  }
+}

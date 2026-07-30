@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successor.local/schema/generated_asset_manifest.json",
+  "title": "Generated asset manifest",
+  "description": "Provenance manifest for an AI-generated asset. See docs/ASSET_PROVENANCE_POLICY.md. Updated 2026-05-10 with audio block (per ADR-0007) and agent_provenance block (per ADR-0010).",
+  "type": "object",
+  "required": ["asset_id", "asset_path", "asset_hash", "asset_kind", "tool", "prompt", "review"],
+  "properties": {
+    "asset_id": { "type": "string" },
+    "asset_path": { "type": "string" },
+    "asset_hash": {
+      "type": "string",
+      "pattern": "^(blake3|sha256):[0-9a-f]+$"
+    },
+    "asset_kind": {
+      "enum": [
+        "model_glb",
+        "model_source",
+        "material",
+        "texture",
+        "shader",
+        "visual_effect",
+        "ui_icon",
+        "sfx",
+        "music",
+        "voice",
+        "animation"
+      ]
+    },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "tool_snapshot_id": { "type": ["string", "null"] }
+      }
+    },
+    "prompt": {
+      "type": "object",
+      "required": ["text", "denylist_audit"],
+      "properties": {
+        "text": { "type": "string" },
+        "denylist_audit": {
+          "type": "string",
+          "pattern": "^(passed|failed):.+$"
+        },
+        "negative_terms": { "type": "array", "items": { "type": "string" } },
+        "system_prompt": { "type": "string" }
+      }
+    },
+    "seed": { "type": ["integer", "string", "null"] },
+    "request_id": { "type": ["string", "null"] },
+    "input_assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "purpose"],
+        "properties": {
+          "path": { "type": "string", "description": "Path, URI, or stable source identifier for an input used in generation. Original reference files must not be copied into product bundles unless separately approved as product assets." },
+          "purpose": {
+            "enum": [
+              "style_reference",
+              "structural_reference",
+              "img2img",
+              "audio2audio",
+              "model_reference",
+              "material_reference",
+              "motion_reference"
+            ]
+          }
+        }
+      }
+    },
+    "human_edits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["by", "date", "summary"],
+        "properties": {
+          "by": { "type": "string" },
+          "date": { "type": "string", "format": "date-time" },
+          "summary": { "type": "string" }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["art_director", "approved_at"],
+      "properties": {
+        "art_director": { "type": "string" },
+        "approved_at": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string" }
+      }
+    },
+    "regeneration_command": { "type": ["string", "null"] },
+    "audio": {
+      "type": "object",
+      "description": "Audio-specific metadata for sfx/music/voice assets (per ADR-0007).",
+      "required": [
+        "role",
+        "event_id",
+        "bus",
+        "duration_ms",
+        "source_format",
+        "runtime_formats",
+        "loudness_lufs",
+        "true_peak_dbfs",
+        "release"
+      ],
+      "properties": {
+        "role": { "enum": ["footstep", "weapon", "creature", "ambience", "ui", "music", "voice"] },
+        "event_id": { "type": "string" },
+        "bus": { "enum": ["sfx", "music", "voice", "ui", "ambience", "master"] },
+        "bank": { "type": ["string", "null"] },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "source_format": { "type": "string" },
+        "runtime_formats": { "type": "array", "items": { "type": "string" } },
+        "loudness_lufs": { "type": "number" },
+        "true_peak_dbfs": { "type": "number" },
+        "loop": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "start_ms": { "type": ["integer", "null"], "minimum": 0 },
+            "end_ms": { "type": ["integer", "null"], "minimum": 0 },
+            "crossfade_ms": { "type": "integer", "minimum": 0 },
+            "seam_score": { "type": ["number", "null"] },
+            "authored": { "type": "boolean" }
+          }
+        },
+        "spatial": {
+          "type": "object",
+          "properties": {
+            "mode": { "enum": ["non_spatial", "spatial", "headlocked"] },
+            "distance_model": { "enum": ["linear", "inverse", "exponential"] },
+            "ref_distance": { "type": "number" },
+            "max_distance": { "type": "number" },
+            "rolloff_factor": { "type": "number" },
+            "occlusion_profile": { "enum": ["none", "light", "medium", "heavy"] },
+            "reverb_send": { "type": ["string", "null"] }
+          }
+        },
+        "variation": {
+          "type": "object",
+          "properties": {
+            "group_id": { "type": ["string", "null"] },
+            "weight": { "type": "number" },
+            "avoid_repeat": { "type": "integer", "minimum": 0 },
+            "cooldown_ms": { "type": "integer", "minimum": 0 },
+            "chain_next": { "type": ["string", "null"] }
+          }
+        },
+        "gameplay_tags": {
+          "type": "object",
+          "properties": {
+            "surface": { "type": ["string", "null"] },
+            "weapon_type": { "type": ["string", "null"] },
+            "creature_family": { "type": ["string", "null"] },
+            "material": { "type": ["string", "null"] },
+            "emotion": { "type": ["string", "null"] }
+          }
+        },
+        "music": {
+          "type": "object",
+          "description": "Music-specific subfields per ADR-0007.",
+          "properties": {
+            "music_role": { "type": ["string", "null"] },
+            "theme_family": { "type": ["string", "null"] },
+            "intensity_state": { "type": ["string", "null"] },
+            "bpm": { "type": ["number", "null"] },
+            "time_signature": { "type": ["string", "null"] },
+            "key": { "type": ["string", "null"] },
+            "stem_layout": { "type": "array", "items": { "type": "string" } },
+            "stem_gap_notes": { "type": ["string", "null"] },
+            "intro_ms": { "type": ["integer", "null"] },
+            "loop_start_ms": { "type": ["integer", "null"] },
+            "loop_end_ms": { "type": ["integer", "null"] },
+            "outro_ms": { "type": ["integer", "null"] },
+            "crossfade_ms": { "type": ["integer", "null"] }
+          }
+        },
+        "voice": {
+          "type": "object",
+          "description": "Voice-specific subfields. AI-disclosure-required when applicable.",
+          "properties": {
+            "speaker_id": { "type": ["string", "null"] },
+            "character_id": { "type": ["string", "null"] },
+            "voice_model_id": { "type": ["string", "null"] },
+            "performer_source_note": { "type": ["string", "null"] },
+            "language": { "type": ["string", "null"] },
+            "locale": { "type": ["string", "null"] },
+            "emotion": { "type": ["string", "null"] },
+            "intensity": { "type": ["string", "null"] },
+            "line_id": { "type": ["string", "null"] },
+            "subtitle_id": { "type": ["string", "null"] },
+            "pronunciation_dict_id": { "type": ["string", "null"] },
+            "ai_disclosure_required": { "type": "boolean" }
+          }
+        },
+        "release": {
+          "type": "object",
+          "required": ["tool_snapshot_id", "final_ship_approved", "asset_replacement_priority"],
+          "properties": {
+            "tool_snapshot_id": { "type": ["string", "null"] },
+            "final_ship_approved": { "type": "boolean" },
+            "asset_replacement_priority": { "enum": ["low", "medium", "high", "unknown"] }
+          }
+        }
+      }
+    },
+    "agent_provenance": {
+      "type": "object",
+      "description": "Agent identity + provenance for AI-produced artifacts (per ADR-0010).",
+      "properties": {
+        "produced_by": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["agent_instance_id", "run_id", "role"],
+            "properties": {
+              "agent_instance_id": { "type": "string" },
+              "run_id": { "type": "string" },
+              "role": {
+                "enum": ["spec-harvester", "spec-reviewer", "system-builder", "harness-author", "content-author", "playtest-bot", "judge"]
+              },
+              "provider": { "type": "string" },
+              "model": { "type": "string" },
+              "model_version": { "type": "string" },
+              "prompt_fingerprint": { "type": "string" },
+              "policy_fingerprint": { "type": "string" },
+              "toolchain_fingerprint": { "type": "string" },
+              "base_commit": { "type": "string" },
+              "output_commit": { "type": "string" },
+              "started_at": { "type": "string", "format": "date-time" },
+              "completed_at": { "type": "string", "format": "date-time" },
+              "token_usage": {
+                "type": "object",
+                "properties": {
+                  "input": { "type": "integer", "minimum": 0 },
+                  "cached_input": { "type": "integer", "minimum": 0 },
+                  "output": { "type": "integer", "minimum": 0 }
+                }
+              },
+              "cost_usd": { "type": "number", "minimum": 0 },
+              "trace_uri": { "type": "string" }
+            }
+          }
+        },
+        "reviewed_by_agents": { "type": "array", "items": { "type": "object" } },
+        "human_approvals": { "type": "array", "items": { "type": "object" } }
+      }
+    }
+  }
+}

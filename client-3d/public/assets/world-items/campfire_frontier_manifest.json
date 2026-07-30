@@ -1,0 +1,53 @@
+{
+  "asset": "campfire_frontier",
+  "atlas_px": 1024,
+  "bbox_max_m": [
+    0.7799999713897705,
+    1.5549999475479126,
+    0.7799999713897705
+  ],
+  "bbox_min_m": [
+    -0.7799999713897705,
+    -0.003000000026077032,
+    -0.800000011920929
+  ],
+  "collision": {
+    "boxes": [
+      {
+        "id": "fire_ring",
+        "max": [
+          0.68,
+          0.37,
+          0.68
+        ],
+        "min": [
+          -0.68,
+          0.0,
+          -0.68
+        ]
+      }
+    ],
+    "note": "cook tripod rods/chain decorative; only the steel ring blocks",
+    "space": "gltf-meters prop-local yaw-0"
+  },
+  "dims_m": {
+    "x": 1.56,
+    "y": 1.558,
+    "z": 1.58
+  },
+  "front_axis": "+Z",
+  "gate": "gate_result.json",
+  "glb_sha256": "0e26fb5eadc7d1ebb869c7bc10f2d9dd1ac816e56aea5193985bbf0da6e553c1",
+  "maps": [
+    "basecolor",
+    "normal(tangent)",
+    "orm(R=AO,G=rough,B=metal)",
+    "emissive"
+  ],
+  "material": "CampfireFrontier_PBR",
+  "object": "campfire_frontier",
+  "set": "camp_frontier_v1",
+  "tri_count": 2032,
+  "units": "m",
+  "unlit_note": "runtime world grade is unlit; BaseColor has AO folded in and ember emissive screened on top"
+}

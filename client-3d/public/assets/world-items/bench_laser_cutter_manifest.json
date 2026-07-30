@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "bench_laser_cutter",
+  "label": "Bench Laser Cutter",
+  "kind": "world_prop",
+  "glb": "bench_laser_cutter.glb",
+  "source_pack": "successor-content-wave-grok45-20260718",
+  "source_fbx": "props/successor/grok45-wave-20260718/profession-world-weapons/source/successor_profprop_cutting_frame.blend",
+  "source_path": "props/successor/grok45-wave-20260718/profession-world-weapons/assets/successor_profprop_cutting_frame.glb",
+  "content_hash_sha256": "26c6e2de87268d506cbe3602b8a982c1069af1476a5b2c27461385ae2bdb0814",
+  "triangles": 16064,
+  "vertices": 8400,
+  "mesh_nodes": 5,
+  "materials": 5,
+  "bbox_gltf_m": { "min": [-0.93, 0, -0.42], "max": [1.13, 1.54, 0.275], "size": [2.06, 1.54, 0.695] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/reference/successor/combined-catalog-1000-20260719/catalog.csv",
+  "source_report": "props/successor/grok45-wave-20260718/profession-world-weapons/reports/successor_profprop_cutting_frame.json",
+  "validation_pass": true
+}

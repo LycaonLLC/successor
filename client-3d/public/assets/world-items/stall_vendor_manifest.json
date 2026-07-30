@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "stall_vendor",
+  "label": "Frontier Vendor Stall",
+  "kind": "world_prop",
+  "glb": "stall_vendor.glb",
+  "source_pack": "successor-content-wave-grok45-20260718",
+  "source_fbx": "props/successor/grok45-wave-20260718/profession-world-weapons/source/successor_profprop_flooded_market_stall.blend",
+  "source_path": "props/successor/grok45-wave-20260718/profession-world-weapons/assets/successor_profprop_flooded_market_stall.glb",
+  "content_hash_sha256": "004804e3f4f396b7694d422daca55dee307af15b573a9540246287c5cea36225",
+  "triangles": 7696,
+  "vertices": 4012,
+  "mesh_nodes": 5,
+  "materials": 5,
+  "bbox_gltf_m": { "min": [-1.090451, -0.017574, -0.54], "max": [1.090451, 2.108385, 1.035], "size": [2.180902, 2.125959, 1.575] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/reference/successor/combined-catalog-1000-20260719/catalog.csv",
+  "source_report": "props/successor/grok45-wave-20260718/profession-world-weapons/reports/successor_profprop_flooded_market_stall.json",
+  "validation_pass": true
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "movement-smoke",
+  "fixture": "open-desert-movement",
+  "lanes": ["accel", "realtime"],
+  "matrixLanes": ["accel", "realtime"],
+  "realtimeReason": "golden digest parity",
+  "actors": {
+    "alpha": { "character": "fixture:ranger-01" }
+  },
+  "steps": [
+    { "query": { "actor": "alpha", "line": "/where", "as": "start" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.alpha.id", "match": { "lifeState": "alive" } }, "timeoutMs": 8000, "as": "oracleStart" } },
+    { "send": { "actor": "alpha", "line": "/move 1 0 30 Right false", "as": "move1" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.move1.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 8000, "as": "move1Receipt" } },
+    "/pause 1.1s",
+    { "send": { "actor": "alpha", "line": "/move 1 0 30 Right false", "as": "move2" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.move2.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 8000, "as": "move2Receipt" } },
+    "/pause 1.1s",
+    { "send": { "actor": "alpha", "line": "/move 1 0 30 Right false", "as": "move3" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.move3.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 8000, "as": "move3Receipt" } },
+    "/pause 1.2s",
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.alpha.id", "match": { "x": { "op": "gt", "value": 523 } } }, "timeoutMs": 8000, "as": "oracleEnd" } },
+    { "query": { "actor": "alpha", "line": "/where", "as": "end" } },
+    { "expect": { "kind": "queryDelta", "from": "oracleStart", "to": "oracleEnd", "xPath": "x", "yPath": "y", "minDistanceCells": 3 } },
+    { "expect": { "kind": "captureCompare", "capture": "end", "path": "data.source", "op": "eq", "value": "server" } },
+    { "expect": { "kind": "oraclePredictionError", "actor": "alpha", "query": "end", "maxCells": 4.25 } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "receipt", "match": { "commandKind": "Move", "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "shard", "match": { "counters.rejectedCommands": { "op": "eq", "value": 0 } } } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "movementStableHash" } }
+  ],
+  "notes": "Headless sprint-hold smoke: movement distance and bounded prediction error without a renderer, DOM, or GPU."
+}

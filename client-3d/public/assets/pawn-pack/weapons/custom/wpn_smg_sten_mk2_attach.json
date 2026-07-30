@@ -1,0 +1,43 @@
+{
+  "schema": "successor-weapon-attach/1",
+  "weapon": "wpn_smg",
+  "source_glb": "pawn-forge/pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/assets/sten_mk2_modular_full.glb",
+  "accepted_assembly": "pawn-forge/pawnforgev2/_bakeoff/sten_mk2_schematic_luna56_20260711_run01/modular/sten-mk2-modular.assembly.json",
+  "silhouette_class": "smg",
+  "coordinate_space": "weapon_glb_local_gltf",
+  "space_notes": "Accepted PawnForge runtime frame: +X right, +Y up, +Z forward. Sockets are assembly reference points resolved into the combined GLB root; no Synty bounds or remodel transform is used.",
+  "units": "m",
+  "scale_to_pawn": 1,
+  "attach": "two_hand",
+  "handedness": "right",
+  "hands": { "grip": "hand_r", "foregrip": "hand_l" },
+  "nodes": { "frame": "Module_receiver", "mag": "Module_magazine" },
+  "sockets": {
+    "grip": [0, -0.091, -0.218],
+    "foregrip": [0, 0, 0.07],
+    "muzzle": [0, 0, 0.142],
+    "stock": [0, 0.0015, -0.5885]
+  },
+  "orientation": { "forward": [0, 0, 1], "up": [0, 1, 0] },
+  "mount_hand_r_local": {
+    "pos": [-0.07973668, 0.29009154, -0.0348619],
+    "quat": [-0.09279, 0.83834, 0.53009, -0.08703],
+    "derivation": "Old hand weld translated by measured accepted grip_palm_center delta; preserves the existing hand_r palm contact while the accepted STEN geometry supplies all sockets."
+  },
+  "stow_socket": {
+    "space": "spine_03_local",
+    "pos": [0.16, 0, -0.14],
+    "rot_deg": [85, -45, 0],
+    "derivation": "Existing Successor spine_03 back-carry contract; geometry-independent root mount, not a legacy weapon bbox."
+  },
+  "measured_runtime": {
+    "module_count": 8,
+    "bbox_m": [0.32795, 0.1975, 0.737],
+    "bore_len_m": 0.737,
+    "grip_reference": "grip_palm_center",
+    "foregrip_reference": "shroud_support_hand_center",
+    "muzzle_reference": "muzzle_center",
+    "stock_reference": "stock_butt_center"
+  },
+  "provenance": "Accepted STEN Mk II modular assembly; runtime packet is a byte-identical copy of the accepted full GLB."
+}

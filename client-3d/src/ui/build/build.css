@@ -1,0 +1,385 @@
+/*
+ * BUILD panel — Sims-style property builder rail in the hairline HUD-glass
+ * language. Imported by buildPanel.ts (module-scoped stylesheet, dialogue.css
+ * pattern). Every colour flows from the --sc3d-* chrome tokens; the demolish
+ * and invalid-reason chrome uses --sc3d-danger. Fonts come from the fixed
+ * --sc-fixed-* requisition set (stencil headers, fine mono data).
+ *
+ * The panel fills its host: a narrow left rail over the north-up birdseye
+ * world. It must stay readable without ever covering most of the canvas.
+ */
+
+.scb-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  max-width: 312px;
+  color: var(--sc3d-ink);
+  font-family: var(--sc-fixed-font-fine);
+  font-size: 11px;
+  background: color-mix(in srgb, var(--sc3d-bg-panel) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  pointer-events: auto;
+}
+
+.scb-panel[hidden] {
+  display: none;
+}
+
+/* ── Top strip: title · parcel · close ──────────────────────────────────── */
+
+.scb-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px 5px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+}
+
+.scb-title {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--sc3d-accent);
+}
+
+.scb-parcel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scb-close {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 120ms ease-out, background 120ms ease-out;
+}
+
+.scb-close:hover,
+.scb-close:focus-visible {
+  color: var(--sc3d-danger);
+  background: color-mix(in srgb, var(--sc3d-danger) 14%, transparent);
+  outline: none;
+}
+
+/* ── Materials strip ────────────────────────────────────────────────────── */
+
+.scb-materials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 4px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  color: var(--sc3d-ink-dim);
+  letter-spacing: 0.08em;
+}
+
+.scb-mat b {
+  font-weight: 600;
+  color: var(--sc3d-ink);
+}
+
+.scb-materials:empty {
+  display: none;
+}
+
+/* ── Category tabs ──────────────────────────────────────────────────────── */
+
+.scb-tabs {
+  display: flex;
+  border-bottom: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+}
+
+.scb-tab {
+  flex: 1;
+  padding: 5px 0 4px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: color 120ms ease-out, border-color 120ms ease-out;
+}
+
+.scb-tab[aria-selected="true"] {
+  color: var(--sc3d-accent);
+  border-bottom-color: var(--sc3d-accent);
+}
+
+.scb-tab:hover,
+.scb-tab:focus-visible {
+  color: var(--sc3d-ink);
+  outline: none;
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 55%, transparent);
+}
+
+/* ── Search ─────────────────────────────────────────────────────────────── */
+
+.scb-search {
+  margin: 6px 8px 0;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  letter-spacing: 0.06em;
+}
+
+.scb-search::placeholder {
+  color: color-mix(in srgb, var(--sc3d-ink-dim) 75%, transparent);
+}
+
+.scb-search:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--sc3d-accent) 55%, transparent);
+}
+
+/* ── Catalog grid ───────────────────────────────────────────────────────── */
+
+.scb-grid {
+  flex: 1;
+  min-height: 84px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-content: start;
+  padding: 8px;
+  scrollbar-width: thin;
+}
+
+.scb-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 8px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 40%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease-out, background 120ms ease-out;
+}
+
+.scb-tile:hover,
+.scb-tile:focus-visible {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 70%, transparent);
+  outline: none;
+}
+
+.scb-tile[aria-selected="true"] {
+  border-color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 30%, transparent);
+}
+
+.scb-tile-name {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.scb-tile-cost {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scb-tile[data-short] .scb-tile-cost {
+  color: var(--sc3d-danger);
+}
+
+.scb-grid-empty {
+  grid-column: 1 / -1;
+  padding: 14px 0;
+  text-align: center;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink-dim);
+}
+
+/* ── Selected item · reason ─────────────────────────────────────────────── */
+
+.scb-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scb-info b {
+  font-weight: 600;
+  color: var(--sc3d-ink);
+}
+
+.scb-reason {
+  display: none;
+  padding: 4px 10px;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-danger);
+  background: color-mix(in srgb, var(--sc3d-danger) 10%, transparent);
+}
+
+.scb-reason[data-visible] {
+  display: block;
+}
+
+/* ── Palette slots ──────────────────────────────────────────────────────── */
+
+.scb-palette {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scb-palette-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scb-slot {
+  width: 22px;
+  height: 22px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background:
+    linear-gradient(45deg, transparent 46%, var(--sc3d-hairline) 46%, var(--sc3d-hairline) 54%, transparent 54%),
+    color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+  cursor: pointer;
+  transition: box-shadow 120ms ease-out;
+}
+
+.scb-slot[data-color] {
+  background: var(--scb-slot-color);
+}
+
+.scb-slot:hover,
+.scb-slot:focus-visible {
+  box-shadow: 0 0 8px var(--sc3d-accent-glow);
+  outline: none;
+}
+
+.scb-slot[aria-expanded="true"] {
+  outline: 1px solid var(--sc3d-accent);
+  outline-offset: 1px;
+}
+
+.scb-swatches {
+  display: none;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 10px 6px;
+}
+
+.scb-swatches[data-visible] {
+  display: flex;
+}
+
+.scb-swatch {
+  width: 18px;
+  height: 18px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background: var(--scb-swatch-color);
+  cursor: pointer;
+}
+
+.scb-swatch[data-none] {
+  background:
+    linear-gradient(45deg, transparent 46%, var(--sc3d-danger) 46%, var(--sc3d-danger) 54%, transparent 54%),
+    color-mix(in srgb, var(--sc3d-bg-cell) 45%, transparent);
+}
+
+.scb-swatch:hover,
+.scb-swatch:focus-visible {
+  box-shadow: 0 0 8px var(--sc3d-accent-glow);
+  outline: none;
+}
+
+/* ── Bottom tool strip ──────────────────────────────────────────────────── */
+
+.scb-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 5px;
+  padding: 6px 8px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+}
+
+.scb-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 2px 4px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 40%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: border-color 120ms ease-out, color 120ms ease-out;
+}
+
+.scb-tool:hover:not(:disabled),
+.scb-tool:focus-visible {
+  border-color: color-mix(in srgb, var(--sc3d-accent) 70%, transparent);
+  outline: none;
+}
+
+.scb-tool:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.scb-tool[aria-pressed="true"] {
+  border-color: var(--sc3d-accent);
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 30%, transparent);
+  color: var(--sc3d-accent);
+}
+
+.scb-tool--demolish[aria-pressed="true"] {
+  border-color: var(--sc3d-danger);
+  background: color-mix(in srgb, var(--sc3d-danger) 16%, transparent);
+  color: var(--sc3d-danger);
+}
+
+.scb-tool-key {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--sc3d-ink-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scb-close,
+  .scb-tab,
+  .scb-tile,
+  .scb-slot,
+  .scb-tool {
+    transition: none;
+  }
+}

@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Account | Successor</title>
+    <meta
+      name="description"
+      content="One callsign, one password. No email, no reset. Register when admissions are open, or sign in to an existing Successor account."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F8F8F8" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Karrik-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link
+      rel="preload"
+      href="/fonts/AtkinsonHyperlegibleNext-Latin-var.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body data-page="account" data-requires-session data-session-state="unknown">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+      <div class="shell">
+        <a class="wordmark" href="/">
+          <img
+            class="wordmark-mark"
+            src="/brand/successor-mark.svg"
+            width="20"
+            height="20"
+            alt=""
+            decoding="async"
+          />
+          <img
+            class="wordmark-type"
+            src="/brand/successor-wordmark.svg"
+            width="132"
+            height="16"
+            alt="Successor"
+            decoding="async"
+          />
+        </a>
+                <nav class="site-nav" aria-label="Site">
+          <ul class="nav-inline">
+            <li><a href="/">Home</a></li>
+            <li><a href="/roadmap/">Roadmap</a></li>
+            <li><a href="/alpha/">Alpha</a></li>
+            <li><a href="/account/" aria-current="page">Account</a></li>
+            <li><a href="/play/">Play</a></li>
+          </ul>
+          <details class="nav-menu">
+            <summary>Menu</summary>
+            <ul class="nav-list">
+            <li><a href="/">Home</a></li>
+            <li><a href="/roadmap/">Roadmap</a></li>
+            <li><a href="/alpha/">Alpha</a></li>
+            <li><a href="/account/" aria-current="page">Account</a></li>
+            <li><a href="/play/">Play</a></li>
+            </ul>
+          </details>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Signed in, the workshop stage IS the page: directly under the
+           header, full width, the whole viewport. Copy sits below it. -->
+      <section class="workshop-stage session-gated" id="creator-section" aria-labelledby="h-creator" hidden>
+        <h2 class="visually-hidden" id="h-creator" tabindex="-1">Character workshop</h2>
+        <div class="creator-stage" id="creator-stage" data-stage-state="loading">
+          <div class="stage-veil">
+            <span class="stage-mark" aria-hidden="true"></span>
+            <p class="stage-status" id="creator-status" role="status" aria-live="polite">
+              Starting the character workshop…
+            </p>
+            <button type="button" class="btn btn-secondary" id="creator-retry" hidden>Try again</button>
+          </div>
+        </div>
+        <div class="shell">
+          <p class="stage-caption">
+            Name your character. Choose a profession. Enter the world.
+          </p>
+        </div>
+      </section>
+
+      <div class="shell">
+        <div class="page-head account-intro">
+          <h1>Account</h1>
+          <p class="lede">Register when admissions are open, or sign in.</p>
+        </div>
+
+        <noscript>
+          <p class="note">
+            Account actions need JavaScript. Everything else on this site works without it.
+          </p>
+        </noscript>
+
+        <div class="page-section account-intro">
+          <p class="note">
+            No email recovery. <strong>Lose the password, lose the account.</strong>
+          </p>
+        </div>
+
+        <p class="note" id="api-status" role="status" aria-live="polite" hidden></p>
+
+        <section class="page-section" id="auth-benches" aria-label="Sign in or register">
+          <div class="bench-pair">
+            <section class="panel" aria-labelledby="h-signin">
+              <h2 id="h-signin">Sign in</h2>
+              <form id="login-form" novalidate>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="login-callsign">Callsign</label>
+                    <input id="login-callsign" name="callsign" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required />
+                    <p class="field-error" aria-live="polite"></p>
+                  </div>
+                  <div class="field">
+                    <label for="login-password">Password</label>
+                    <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+                    <p class="field-error" aria-live="polite"></p>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" data-busy-label="Signing in…">Sign in</button>
+                  <span class="form-status" role="status" aria-live="polite"></span>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel" aria-labelledby="h-register">
+              <h2 id="h-register">Register</h2>
+              <form id="register-form" novalidate>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="reg-callsign">Callsign</label>
+                    <input
+                      id="reg-callsign"
+                      name="callsign"
+                      type="text"
+                      autocomplete="username"
+                      autocapitalize="off"
+                      autocorrect="off"
+                      spellcheck="false"
+                      required
+                      minlength="3"
+                      maxlength="24"
+                    />
+                    <p class="hint">Your public name in the world. 3–24 characters.</p>
+                    <p class="field-error" aria-live="polite"></p>
+                  </div>
+                  <div class="field">
+                    <label for="reg-password">Password</label>
+                    <input
+                      id="reg-password"
+                      name="password"
+                      type="password"
+                      autocomplete="new-password"
+                      required
+                      minlength="10"
+                    />
+                    <p class="hint">At least 10 characters. Long beats clever; there is no reset.</p>
+                    <p class="field-error" aria-live="polite"></p>
+                  </div>
+                  <div class="field">
+                    <label for="reg-password-repeat">Password, again</label>
+                    <input
+                      id="reg-password-repeat"
+                      name="passwordRepeat"
+                      type="password"
+                      autocomplete="new-password"
+                      required
+                    />
+                    <p class="field-error" aria-live="polite"></p>
+                  </div>
+                  <label class="check-field">
+                    <input id="reg-legal" name="acceptLegal" type="checkbox" required />
+                    <span>
+                      I read the <a href="/legal/terms/">terms</a> and the
+                      <a href="/legal/privacy/">privacy note</a> (version 2026-07-24).
+                    </span>
+                  </label>
+                  <p class="field-error" data-for="reg-legal" aria-live="polite"></p>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" data-busy-label="Creating…">Create account</button>
+                  <span class="form-status" role="status" aria-live="polite"></span>
+                </div>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section class="page-section session-gated" id="session-panel" aria-labelledby="h-session" hidden>
+          <div class="panel">
+            <h2 id="h-session">Signed in</h2>
+            <p>
+              Callsign: <strong data-slot="session-callsign"></strong>
+            </p>
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="logout-button" data-busy-label="Signing out…">
+                Sign out
+              </button>
+              <span class="form-status" role="status" aria-live="polite"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="page-section session-gated" id="roster-section" aria-labelledby="h-roster" hidden>
+          <h2 id="h-roster">Characters</h2>
+          <div class="prose">
+            <p>Five slots. A character stays in its slot after first entry.</p>
+          </div>
+          <ul class="roster-list" id="roster-list" aria-label="Your characters"></ul>
+          <div class="roster-actions">
+            <p class="form-status" id="roster-status" role="status" aria-live="polite"></p>
+            <button type="button" class="btn btn-secondary" id="roster-retry" hidden data-busy-label="Loading…">
+              Try again
+            </button>
+          </div>
+        </section>
+
+        <section class="page-section session-gated" id="devices-section" aria-labelledby="h-devices" hidden>
+          <h2 id="h-devices">Approved devices</h2>
+          <div class="prose">
+            <p>
+              Clients approved on the <a href="/connect/">connect page</a>.
+              Revoke one to sign it out.
+            </p>
+          </div>
+          <ul class="device-list" id="device-list"></ul>
+          <p class="form-status" id="devices-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="page-section session-gated" id="delete-section" aria-labelledby="h-delete" hidden>
+          <h2 id="h-delete">Delete account</h2>
+          <div class="prose">
+            <p>
+              Deletion signs you out everywhere, revokes approved devices, and queues the account for
+              removal. Characters go to cold storage until a proper retirement flow exists.
+            </p>
+          </div>
+          <form id="delete-form" class="panel panel-form" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label for="delete-password">Password, to confirm it is you</label>
+                <input id="delete-password" name="password" type="password" autocomplete="current-password" required />
+                <p class="field-error" aria-live="polite"></p>
+              </div>
+              <label class="check-field">
+                <input id="delete-confirm" type="checkbox" required />
+                <span>I understand this cannot be undone from here.</span>
+              </label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-secondary" data-busy-label="Deleting…">Delete this account</button>
+              <span class="form-status" role="status" aria-live="polite"></span>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+
+        <footer class="site-foot">
+      <div class="shell">
+        <p>Invite alpha. Saves may reset.</p>
+        <ul class="foot-links">
+          <li><a href="/roadmap/">Roadmap</a></li>
+          <li><a href="/alpha/">Alpha</a></li>
+          <li><a href="/legal/terms/">Terms</a></li>
+          <li><a href="/legal/privacy/">Privacy</a></li>
+          <li><a href="/download/">Downloads</a></li>
+          <li><a href="/legal/terms/#contact">Contact</a></li>
+        </ul>
+        <p class="foot-credit">From Lycaon LLC, in partnership with ROYCORP GAME STUDIOS.</p>
+      </div>
+    </footer>
+  </body>
+</html>

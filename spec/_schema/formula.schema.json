@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successor.local/schema/formula.json",
+  "title": "Formula",
+  "description": "A named mathematical formula extracted from reference material.",
+  "type": "object",
+  "required": ["name", "inputs", "output", "expression"],
+  "properties": {
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "enum": ["i32", "i64", "u32", "u64", "fixed_q16_16", "fixed_q32_32", "bool", "enum"] },
+          "domain": { "type": "string", "description": "e.g. [0, 1.0] or {low, mid, high}" }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["i32", "i64", "u32", "u64", "fixed_q16_16", "fixed_q32_32", "bool"] },
+        "range": { "type": "string" }
+      }
+    },
+    "expression": {
+      "type": "string",
+      "description": "Mathematical expression in deterministic-sim subset. Use fixed-point operators where applicable. No reference code text."
+    },
+    "constants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "value", "type"],
+        "properties": {
+          "name": { "type": "string" },
+          "value": {},
+          "type": { "type": "string" },
+          "source_note": { "type": "string", "description": "How this value was derived from reference (e.g. 'observed from packet stream', 'computed from Lua table', 'documented in research/Implementation-Guides/...')." }
+        }
+      }
+    },
+    "test_vectors": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["inputs", "expected"],
+        "properties": {
+          "inputs": { "type": "object" },
+          "expected": {}
+        }
+      }
+    }
+  }
+}

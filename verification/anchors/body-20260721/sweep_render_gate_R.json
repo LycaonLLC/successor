@@ -1,0 +1,62 @@
+{
+ "legs_gaitered_cargo_pants": {
+  "total_px": 4,
+  "worst_cell_px": 1,
+  "worst_cell": "f02_c2.png"
+ },
+ "legs_layered_shorts": {
+  "total_px": 1,
+  "worst_cell_px": 1,
+  "worst_cell": "f00_c2.png"
+ },
+ "legs_layered_wrap_skirt": {
+  "total_px": 6,
+  "worst_cell_px": 2,
+  "worst_cell": "f07_c1.png"
+ },
+ "legs_padded_canvas_trousers": {
+  "total_px": 1,
+  "worst_cell_px": 1,
+  "worst_cell": "f10_c5.png"
+ },
+ "legs_plated_trousers": {
+  "total_px": 6,
+  "worst_cell_px": 5,
+  "worst_cell": "f00_c3.png"
+ },
+ "legs_reinforced_denim_pants": {
+  "total_px": 2,
+  "worst_cell_px": 1,
+  "worst_cell": "f05_c2.png"
+ },
+ "legs_sashed_patrol_pants": {
+  "total_px": 6,
+  "worst_cell_px": 1,
+  "worst_cell": "f00_c2.png"
+ },
+ "legs_skirted_workpants": {
+  "total_px": 0,
+  "worst_cell_px": 0,
+  "worst_cell": ""
+ },
+ "legs_strapped_trousers": {
+  "total_px": 3,
+  "worst_cell_px": 1,
+  "worst_cell": "f06_c1.png"
+ },
+ "legs_wrapped_workpants": {
+  "total_px": 1,
+  "worst_cell_px": 1,
+  "worst_cell": "f09_c5.png"
+ },
+ "under_bodysuit": {
+  "total_px": 0,
+  "worst_cell_px": 0,
+  "worst_cell": ""
+ },
+ "under_shorts": {
+  "total_px": 0,
+  "worst_cell_px": 0,
+  "worst_cell": ""
+ }
+}

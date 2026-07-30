@@ -1,0 +1,142 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "quarry_chopper",
+  "asset_path": "client-3d/public/assets/pawn-pack/weapons/custom/quarry_chopper.glb",
+  "asset_hash": "sha256:a00ac2049ed552151f31ce775c865299c5bd3291405ad518700d7d57c55f32e3",
+  "asset_kind": "weapon_melee_glb",
+  "source": {
+    "glb": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/assets/quarry_chopper.glb",
+      "sha256": "a00ac2049ed552151f31ce775c865299c5bd3291405ad518700d7d57c55f32e3"
+    },
+    "review_bundle_glb": {
+      "path": "review-bundle:successor-cozy-asset-wave-20260712/assets/melee/quarry_chopper.glb",
+      "sha256": "a00ac2049ed552151f31ce775c865299c5bd3291405ad518700d7d57c55f32e3"
+    },
+    "builder": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/build.py",
+      "sha256": "fa6d78d5490ec60b03c92f9a9038659e1931582d7b3535d59a6ca48bbb7fd99d"
+    },
+    "textures": {
+      "basecolor": {
+        "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/textures/quarry_chopper_basecolor.png",
+        "sha256": "e165afd3d751b8a8f368fecc167fcef35073b5264f0e8412f03e0af3cf4d7635"
+      },
+      "normal": {
+        "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/textures/quarry_chopper_normal.png",
+        "sha256": "a88633139284cea803c990cbfe1a75519bfeed08df3c219dcacb1c92493b2463"
+      },
+      "orm": {
+        "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/textures/quarry_chopper_orm.png",
+        "sha256": "b401c3459537a19b068766bfbae0c6ece1fee1ea981db3c028f4bce9f1fd482f"
+      }
+    },
+    "family_blend_snapshot": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/melee_early.blend",
+      "sha256": "35632b4850d8f86f44b4cf7dc87da439fc93acf98000b2362182c6de8120cccd",
+      "contains_promoted_asset": false,
+      "note": "The latest --only family pass overwrote this proof snapshot with field_saber. Quarry Chopper's accepted GLB is the pass-6 rebuild; build.py and the authored texture inputs are its editable source of truth."
+    },
+    "family_manifest": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/manifest.json",
+    "family_metrics": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/metrics.json",
+    "family_gate_report": "pawn-forge:pawnforgev2/_bakeoff/successor_cozy_asset_wave_20260712_run01/families/melee_early/gate-report.json",
+    "review_bundle_catalog": "review-bundle:successor-cozy-asset-wave-20260712/catalog.json"
+  },
+  "rights": {
+    "authoring_context": "Locally authored in the project-owner workspace under project-owner direction.",
+    "source_license": "Successor proprietary project asset; all rights reserved",
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "note": "Project-owner-directed original work. This is not an open-content or third-party reuse license."
+  },
+  "authoring": {
+    "profile_label_from_builder": "Fable-5",
+    "exporter": "Khronos glTF Blender I/O v5.1.20",
+    "source_axis_contract": "Blender Z-up with blade +Z; exported glTF Y-up with blade +Y, cutting edge +X, and grip midpoint at the origin.",
+    "session_note": "The packet does not record a provider, model id, or authoring-session id; none is inferred here."
+  },
+  "promotion": {
+    "method": "byte-identical copy of the reviewed melee_early export",
+    "promoted_at": "2026-07-14",
+    "human_edits_after_export": [],
+    "runtime_item_id": 3107,
+    "runtime_weapon_id": "quarry-chopper"
+  },
+  "metrics": {
+    "bytes": 8018064,
+    "mesh_count": 1,
+    "vertices": 1584,
+    "triangles": 2308,
+    "material_count": 1,
+    "uv_sets": [
+      "TEXCOORD_0"
+    ],
+    "animations": 0,
+    "bounds_m": {
+      "min": [-0.029999999329447746, -0.1054999977350235, -0.023398268967866898],
+      "max": [0.054999999701976776, 0.4749999940395355, 0.023398268967866898],
+      "dimensions": [0.08499999903142452, 0.580499991774559, 0.046796537935733795]
+    },
+    "overall_length_m": 0.5805,
+    "origin": "grip midpoint"
+  },
+  "materials": {
+    "material_names": [
+      "quarry_chopper_mat"
+    ],
+    "embedded_texture_resolution": 2048,
+    "embedded_source_maps": {
+      "basecolor_sha256": "e165afd3d751b8a8f368fecc167fcef35073b5264f0e8412f03e0af3cf4d7635",
+      "normal_sha256": "a88633139284cea803c990cbfe1a75519bfeed08df3c219dcacb1c92493b2463",
+      "orm_sha256": "b401c3459537a19b068766bfbae0c6ece1fee1ea981db3c028f4bce9f1fd482f"
+    },
+    "content_gates": {
+      "basecolor_unique_colors": true,
+      "basecolor_luma_variance": true,
+      "normal_variance": true,
+      "normal_blue_mean": true,
+      "orm_roughness_variance": true
+    },
+    "uv_validation": {
+      "set": "TEXCOORD_0",
+      "values": 1584,
+      "min": [0.00390625, 0.00390625],
+      "max": [0.99609375, 0.9862499833106995],
+      "non_finite_values": 0,
+      "values_outside_unit_range": 0
+    }
+  },
+  "attachment": {
+    "path": "client-3d/public/assets/pawn-pack/weapons/custom/quarry_chopper_attach.json",
+    "schema": "successor-weapon-attach/1",
+    "frame_node": "quarry_chopper",
+    "handedness": "right",
+    "scale_to_pawn": 1,
+    "grip_socket": [0, 0, 0],
+    "forward_axis": [0, 1, 0],
+    "up_axis": [0, 0, 1]
+  },
+  "runtime": {
+    "weapons_manifest": "client-3d/public/assets/pawn-pack/weapons/weapons_manifest.json",
+    "model_registry": "client-3d/src/assets/weaponModelRegistry.ts",
+    "inventory_registry": "client-3d/src/ui/inventory/itemModels.json",
+    "renderer": "client-3d/src/render/weapons/swordRig.ts",
+    "integration_note": "Central manifest and TypeScript/Rust registration are Main-owned and intentionally untouched by this asset-only promotion."
+  },
+  "validation": {
+    "runtime_hash_matches_source": true,
+    "source_hash_matches_review_bundle": true,
+    "source_gltf_errors": 0,
+    "source_gltf_warnings": 0,
+    "runtime_gltf_errors": 0,
+    "runtime_gltf_warnings": 0,
+    "family_gate_report_pass": true,
+    "validator": "@gltf-transform/cli validate (Khronos strict), run 2026-07-14 on both the PawnForge source and the promoted runtime copy",
+    "embedded_maps_match_authored_pngs": true,
+    "successor_in_camera_review": "pending Main-owned runtime integration; asset-only promotion in this lane"
+  },
+  "review": {
+    "status": "approved",
+    "reviewed_at": "2026-07-12",
+    "notes": "Accepted in the melee_early family gate (gate-report.json pass=true; accepted pass-6 rebuild, byte-identical through passes 7-8). Carries the recorded spec deviation: belly widened to 0.085 per MeleeCreativeSpec ruling (widest point 89% -> ~79%). Byte identity to the reviewed source and review bundle, strict validation, measured geometry, embedded PBR maps, and UV attribute verified at promotion on 2026-07-14. Successor in-camera QA follows Main-owned registration."
+  }
+}

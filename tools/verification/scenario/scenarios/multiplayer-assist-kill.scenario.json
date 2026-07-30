@@ -1,0 +1,39 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "multiplayer-assist-kill",
+  "fixture": "open-desert-multiplayer-assist",
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "steps": [
+    { "command": { "actor": "alpha", "body": { "DebugGrantSkillBoxes": { "skill_box_ids": ["marksman-novice"] } }, "as": "alphaGrantMarksman" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGrantMarksman", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "alpha", "body": { "DebugGiveItem": { "item_id": 3101, "variant_id": 0, "quantity": 1, "equip": true } }, "as": "alphaGiveSlugthrower" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGiveSlugthrower", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "alpha", "body": { "DebugGiveItem": { "item_id": 1101, "variant_id": 0, "quantity": 240, "equip": false } }, "as": "alphaGiveAmmo" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGiveAmmo", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "beta", "body": { "DebugGrantSkillBoxes": { "skill_box_ids": ["marksman-novice"] } }, "as": "betaGrantMarksman" } },
+    { "expect": { "kind": "captureCompare", "capture": "betaGrantMarksman", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "beta", "body": { "DebugGiveItem": { "item_id": 3101, "variant_id": 0, "quantity": 1, "equip": true } }, "as": "betaGiveSlugthrower" } },
+    { "expect": { "kind": "captureCompare", "capture": "betaGiveSlugthrower", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "beta", "body": { "DebugGiveItem": { "item_id": 1101, "variant_id": 0, "quantity": 240, "equip": false } }, "as": "betaGiveAmmo" } },
+    { "expect": { "kind": "captureCompare", "capture": "betaGiveAmmo", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-assist-rogue", "lifeState": "alive" } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "alphaSeesRogue" } },
+    { "send": { "actor": "alpha", "line": "/target mp-assist-rogue", "as": "alphaTarget" } },
+    { "send": { "actor": "beta", "line": "/target mp-assist-rogue", "as": "betaTarget" } },
+    { "send": { "actor": "alpha", "line": "/attack", "as": "alphaAttack" } },
+    { "send": { "actor": "beta", "line": "/attack", "as": "betaAttack" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaAttack.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 12000, "as": "alphaAttackReceipt" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaAttack.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 12000, "as": "betaAttackReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "combat", "match": { "data.event.shooterActorId": "mp-assist-alpha", "data.event.targetActorId": "mp-assist-rogue", "data.event.damage": { "op": "gt", "value": 0 } }, "timeoutMs": 30000, "as": "alphaDamages" } },
+    { "await": { "kind": "event", "actor": "beta", "event": "combat", "match": { "data.event.shooterActorId": "mp-assist-beta", "data.event.targetActorId": "mp-assist-rogue", "data.event.damage": { "op": "gt", "value": 0 } }, "timeoutMs": 45000, "as": "betaDamages" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-assist-rogue", "match": { "lifeState": "downed" } }, "timeoutMs": 90000, "as": "assistCorpse" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-assist-alpha", "match": { "professions[0].id": "marksman", "professions[0].trackXp.rifle": { "op": "gt", "value": 0 } } }, "timeoutMs": 15000, "as": "alphaKillXp" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-assist-beta", "match": { "professions[0].id": "marksman", "professions[0].trackXp.rifle": { "op": "gt", "value": 0 } } }, "timeoutMs": 15000, "as": "betaKillXp" } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "receipt", "match": { "commandKind": "QueueCombatAction", "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "envelopeCount", "actor": "beta", "envelopeType": "receipt", "match": { "commandKind": "QueueCombatAction", "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "assistKillStableHash" } }
+  ],
+  "notes": "Both mp-assist-alpha and mp-assist-beta must land damaging hits on mp-assist-rogue and receive the full kill-ledger XP on their marksman Slugthrower tracks. The current rule awards full XP to every human damager at kill time, without a proportional split or group requirement."
+}

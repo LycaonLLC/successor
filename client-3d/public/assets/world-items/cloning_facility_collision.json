@@ -1,0 +1,122 @@
+{
+  "contract": {
+    "decorativeExcluded": [
+      "trim",
+      "bolts",
+      "glow",
+      "pipes",
+      "windows",
+      "floor_guides",
+      "roof_gear"
+    ],
+    "geometrySource": "P",
+    "structuralRoles": [
+      "outer_shell",
+      "entry_bay_returns",
+      "entry_bay_front_segments",
+      "closed_door"
+    ]
+  },
+  "door": {
+    "closed": {
+      "id": "closed_door_panel",
+      "maxX": 2.0,
+      "maxZ": 3.76,
+      "minX": -0.3,
+      "minZ": 3.42
+    },
+    "node": "door_slide"
+  },
+  "floor": {
+    "slabThicknessM": 0.14,
+    "topY": 0.02
+  },
+  "footprint": {
+    "centerX": 0.0,
+    "centerZ": 0.0,
+    "maxX": 4.75,
+    "maxZ": 3.8,
+    "minX": -4.75,
+    "minZ": -3.8,
+    "spanX": 9.5,
+    "spanZ": 7.6
+  },
+  "generatedBy": "tools/successor/assets/build_cloning_facility.py",
+  "interiorRegions": [
+    {
+      "floorTopY": 0.02,
+      "id": "main_walkable_interior",
+      "maxX": 4.2,
+      "maxZ": 3.4,
+      "minX": -4.2,
+      "minZ": -3.25
+    }
+  ],
+  "schema": "successor.structure-collision.v3",
+  "source": "cloning_facility.glb",
+  "walls": [
+    {
+      "id": "outer_shell_left",
+      "maxX": -4.2,
+      "maxZ": 3.1,
+      "minX": -4.75,
+      "minZ": -3.55
+    },
+    {
+      "id": "outer_shell_right",
+      "maxX": 4.75,
+      "maxZ": 3.1,
+      "minX": 4.2,
+      "minZ": -3.55
+    },
+    {
+      "id": "outer_shell_back",
+      "maxX": 4.5,
+      "maxZ": -3.25,
+      "minX": -4.5,
+      "minZ": -3.55
+    },
+    {
+      "id": "outer_shell_front_left",
+      "maxX": -0.3,
+      "maxZ": 3.1,
+      "minX": -4.5,
+      "minZ": 2.8
+    },
+    {
+      "id": "outer_shell_front_right",
+      "maxX": 4.5,
+      "maxZ": 3.1,
+      "minX": 2.0,
+      "minZ": 2.8
+    },
+    {
+      "id": "entry_bay_return_left",
+      "maxX": -2.95,
+      "maxZ": 3.72,
+      "minX": -3.25,
+      "minZ": 3.1
+    },
+    {
+      "id": "entry_bay_return_right",
+      "maxX": 2.75,
+      "maxZ": 3.72,
+      "minX": 2.45,
+      "minZ": 3.1
+    },
+    {
+      "id": "entry_bay_front_left",
+      "maxX": -0.3,
+      "maxZ": 3.72,
+      "minX": -2.95,
+      "minZ": 3.42
+    },
+    {
+      "id": "entry_bay_front_right",
+      "maxX": 2.45,
+      "maxZ": 3.72,
+      "minX": 2.0,
+      "minZ": 3.42
+    }
+  ]
+}

@@ -1,0 +1,1912 @@
+{
+  "schema": "successor.fixture-registry.v1",
+  "defaults": {
+    "slicePath": "client/public/successor-slice/open-desert-slice.json",
+    "serverUnitPrefix": "successor-play-gate",
+    "portBase": 28120,
+    "portMin": 28000,
+    "portMax": 65535,
+    "spawnArea": "open-desert-overworld",
+    "facing": "right"
+  },
+  "fixtures": {
+    "open-desert-movement": {
+      "description": "Open desert transient shard with a camp-safe ranger for headless movement smoke.",
+      "characters": {
+        "ranger-01": {
+          "id": "movement-ranger",
+          "name": "RangerOne",
+          "initialProfessionId": "scout",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 520,
+            "y": 520,
+            "facing": "right"
+          }
+        }
+      }
+    },
+    "open-desert-movement-blocked": {
+      "description": "Open desert transient shard with a clean open-ground mover and a blocked-cell movement regression actor.",
+      "characters": {
+        "ranger-open": {
+          "id": "movement-open",
+          "name": "MovementOpen",
+          "initialProfessionId": "scout",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 520,
+            "y": 520,
+            "facing": "right"
+          }
+        },
+        "ranger-blocked": {
+          "id": "movement-blocked",
+          "name": "MovementBlocked",
+          "initialProfessionId": "scout",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 520,
+            "y": 522,
+            "facing": "right"
+          }
+        }
+      },
+      "sliceOverlay": {
+        "blockedCells": [
+          {
+            "areaId": "open-desert-overworld",
+            "x": 521,
+            "y": 522
+          }
+        ]
+      }
+    },
+    "open-desert-combat-active": {
+      "description": "Open desert transient shard spawning inside rogue zone 001 so active hostiles are in weapon range.",
+      "notes": "Verification-only adjacent rogue at open-desert (511,97) provides a deterministic live target for current roll-combat scenarios.",
+      "characters": {
+        "combat-ranger": {
+          "id": "player",
+          "name": "CombatRanger",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 511,
+            "y": 97,
+            "facing": "right"
+          }
+        },
+        "loot-ranger": {
+          "id": "player",
+          "name": "LootRanger",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 511,
+            "y": 97,
+            "facing": "right"
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "verification-rogue-01",
+            "entity": "verification:rogue:01",
+            "areaId": "open-desert-overworld",
+            "label": "Rogue Drifter",
+            "role": "skirmisher",
+            "factionId": "rogue_troopers",
+            "socialGroup": "open_desert_rogues",
+            "pvpStatus": "overt",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 512,
+              "y": 97
+            },
+            "route": [],
+            "vitals": {
+              "health": 90,
+              "action": 100,
+              "spirit": 80
+            },
+            "maxVitals": {
+              "health": 90,
+              "action": 100,
+              "spirit": 80
+            }
+          }
+        ],
+        "inventory": [
+          {
+            "container": "verification-rogue-01:field-pack",
+            "item": "Stimpak A",
+            "itemId": 1001,
+            "variantId": 0,
+            "quantity": 2,
+            "reserved": 0,
+            "available": 2
+          }
+        ]
+      }
+    },
+    "open-desert-roll-realtime-race": {
+      "description": "Roll-combat realtime race fixture with a certified player, a durable passive hostile, and source-provisioned Slugthrower ammunition.",
+      "characters": {
+        "ranger": {
+          "id": "player",
+          "name": "RealtimeRollRanger",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 511,
+            "y": 97,
+            "facing": "right"
+          },
+          "professions": {
+            "learned": [
+              "marksman"
+            ],
+            "trackXp": {},
+            "skillBoxes": [
+              "marksman-novice",
+              "marksman-rifle-ii",
+              "marksman-rifle-iii"
+            ],
+            "activeTitleId": null,
+            "credits": 1000,
+            "skillPointCap": 250
+          }
+        }
+      },
+      "sliceOverlay": {
+        "combatModel": "roll",
+        "actors": [
+          {
+            "id": "rt-roll-target",
+            "entity": "scenario:rt-roll-target",
+            "areaId": "open-desert-overworld",
+            "label": "RealtimeRollTarget",
+            "role": "scenario_player",
+            "factionId": "rogue_troopers",
+            "socialGroup": "open_desert_rogues",
+            "pvpStatus": "overt",
+            "professionIds": [],
+            "skillBoxIds": [],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 512,
+              "y": 97
+            },
+            "route": [],
+            "vitals": {
+              "health": 10000,
+              "action": 100,
+              "spirit": 80
+            },
+            "maxVitals": {
+              "health": 10000,
+              "action": 100,
+              "spirit": 80
+            }
+          }
+        ]
+      },
+      "notes": "The source player inventory supplies Slugthrower 3101 and Iron Slugs 1101. Fixture certification and the passive durable hostile remove debug setup and target-death timing from the queue-cancel-reload race."
+    },
+    "open-desert-bootstrap-crafter": {
+      "description": "Open desert transient shard with a Brawler starter spawned at Dustgate camp for the owner crafter acceptance arc.",
+      "notes": "The disposable character enters through the real Brawler creator allocation and receives its Scrapline Machete starter kit. No actor-owned source inventory rows or scenario-time grants bypass the later Craftsman trainer purchase.",
+      "characters": {
+        "bootstrap-crafter": {
+          "id": "bootcraft",
+          "name": "BootCraft",
+          "initialProfessionId": "brawler",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 512,
+            "y": 512,
+            "facing": "right"
+          },
+          "professions": {
+            "learned": [],
+            "trackXp": {},
+            "skillBoxes": [],
+            "activeTitleId": null,
+            "credits": 1000,
+            "skillPointCap": 250
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "bootcraft",
+            "entity": "scenario:bootcraft",
+            "areaId": "open-desert-overworld",
+            "label": "BootCraft",
+            "role": "scenario_player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [],
+            "skillBoxIds": [],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "right",
+            "cell": {
+              "x": 512,
+              "y": 512
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          }
+        ],
+        "inventory": []
+      }
+    },
+    "open-desert-cohesive-long-haul": {
+      "description": "First-entry Brawler progression, deterministic combat, player death, cloning, and restart proof.",
+      "characters": {
+        "long-haul": {
+          "id": "long-haul-player",
+          "name": "LongHaulPlayer",
+          "vitals": { "health": 20, "action": 160, "spirit": 100 },
+          "initialProfessionId": "brawler",
+          "position": { "areaId": "open-desert-overworld", "x": 512, "y": 512, "facing": "right" },
+          "professions": { "learned": [], "trackXp": {}, "skillBoxes": [], "activeTitleId": null, "credits": 1000, "skillPointCap": 250 }
+        },
+        "executioner": {
+          "id": "long-haul-executioner",
+          "name": "LongHaulExecutioner",
+          "initialProfessionId": "marksman",
+          "position": { "areaId": "open-desert-overworld", "x": 540, "y": 512, "facing": "left" },
+          "professions": {
+            "learned": ["marksman"],
+            "trackXp": {},
+            "skillBoxes": ["marksman-novice", "marksman-rifle-ii", "marksman-rifle-iii"],
+            "activeTitleId": null,
+            "credits": 1000,
+            "skillPointCap": 250
+          }
+        }
+      },
+      "sliceOverlay": {
+        "combatModel": "roll",
+        "actors": [{
+          "id": "long-haul-raider",
+          "entity": "scenario:long-haul-raider",
+          "areaId": "open-desert-overworld",
+          "label": "Long Haul Raider",
+          "role": "scenario_player",
+          "factionId": "rogue_troopers",
+          "socialGroup": "open_desert_rogues",
+          "pvpStatus": "overt",
+          "professionIds": ["marksman"],
+          "skillBoxIds": ["marksman-novice"],
+          "sprite": "adventurer-premium-male",
+          "poseSet": "idle",
+          "direction": "left",
+          "cell": { "x": 513, "y": 512 },
+          "route": [],
+          "vitals": { "health": 40, "action": 160, "spirit": 100 },
+          "maxVitals": { "health": 40, "action": 160, "spirit": 100 }
+        }, {
+          "id": "long-haul-executioner",
+          "entity": "scenario:long-haul-executioner",
+          "areaId": "open-desert-overworld",
+          "label": "Long Haul Executioner",
+          "role": "player",
+          "factionId": "desert_wardens",
+          "socialGroup": "open_desert_camp",
+          "pvpStatus": "none",
+          "professionIds": ["marksman"],
+          "skillBoxIds": ["marksman-novice", "marksman-rifle-ii", "marksman-rifle-iii"],
+          "sprite": "adventurer-premium-male",
+          "poseSet": "idle",
+          "direction": "left",
+          "cell": { "x": 540, "y": 512 },
+          "route": [],
+          "vitals": { "health": 500, "action": 160, "spirit": 100 },
+          "maxVitals": { "health": 500, "action": 160, "spirit": 100 }
+        }],
+        "inventory": [{
+          "container": "long-haul-executioner:field-pack",
+          "item": "Slugthrower",
+          "itemId": 3101,
+          "variantId": 0,
+          "quantity": 1,
+          "reserved": 0,
+          "available": 1
+        }, {
+          "container": "long-haul-executioner:field-pack",
+          "item": "Iron Slug",
+          "itemId": 1101,
+          "variantId": 0,
+          "quantity": 1000,
+          "reserved": 0,
+          "available": 1000
+        }]
+      }
+    },
+    "open-desert-multiplayer-bank-clone-corpse": {
+      "description": "Three durable character sessions for private bank, medic incap, lethal player corpse, clone restore, and restart recovery.",
+      "characters": {
+        "owner": {
+          "id": "bank-clone-owner",
+          "name": "BankCloneOwner",
+          "initialProfessionId": "brawler",
+          "position": { "areaId": "open-desert-overworld", "x": 480, "y": 480, "facing": "right" },
+          "vitals": { "health": 180, "action": 160, "spirit": 100 },
+          "professions": {
+            "learned": ["brawler"],
+            "trackXp": {},
+            "skillBoxes": ["brawler-novice"],
+            "activeTitleId": null,
+            "credits": 3200,
+            "skillPointCap": 250
+          }
+        },
+        "executioner": {
+          "id": "bank-clone-executioner",
+          "name": "BankCloneExecutioner",
+          "initialProfessionId": "marksman",
+          "position": { "areaId": "open-desert-overworld", "x": 481, "y": 480, "facing": "left" },
+          "vitals": { "health": 500, "action": 160, "spirit": 100 },
+          "professions": {
+            "learned": ["marksman"],
+            "trackXp": {},
+            "skillBoxes": ["marksman-novice", "marksman-rifle-ii", "marksman-rifle-iii"],
+            "activeTitleId": null,
+            "credits": 5000,
+            "skillPointCap": 250
+          }
+        },
+        "medic": {
+          "id": "bank-clone-medic",
+          "name": "BankCloneMedic",
+          "initialProfessionId": "medic",
+          "position": { "areaId": "open-desert-overworld", "x": 482, "y": 482, "facing": "front" },
+          "vitals": { "health": 260, "action": 160, "spirit": 100 },
+          "professions": {
+            "learned": ["medic"],
+            "trackXp": {},
+            "skillBoxes": ["medic-novice", "medic-trauma-i", "medic-trauma-ii", "medic-trauma-iii"],
+            "activeTitleId": null,
+            "credits": 5000,
+            "skillPointCap": 250
+          }
+        }
+      },
+      "sliceOverlay": {
+        "combatModel": "roll",
+        "actors": [{
+          "id": "bank-clone-raider",
+          "entity": "scenario:bank-clone-raider",
+          "areaId": "open-desert-overworld",
+          "label": "Bank Clone Raider",
+          "role": "skirmisher",
+          "factionId": "rogue_troopers",
+          "socialGroup": "open_desert_rogues",
+          "pvpStatus": "overt",
+          "professionIds": ["marksman"],
+          "skillBoxIds": ["marksman-novice"],
+          "sprite": "adventurer-premium-male",
+          "poseSet": "idle",
+          "direction": "left",
+          "cell": { "x": 500, "y": 480 },
+          "route": [],
+          "vitals": { "health": 120, "action": 160, "spirit": 100 },
+          "maxVitals": { "health": 120, "action": 160, "spirit": 100 }
+        }, {
+          "id": "camp-trainer",
+          "entity": "1:2",
+          "areaId": "open-desert-overworld",
+          "label": "Knox Vale",
+          "role": "profession_trainer",
+          "factionId": "desert_wardens",
+          "socialGroup": "open_desert_camp",
+          "pvpStatus": "none",
+          "professionIds": ["craftsman", "marksman", "medic", "brawler", "scout", "bioengineer"],
+          "skillBoxIds": [],
+          "sprite": "adventurer-premium-male",
+          "poseSet": "idle",
+          "direction": "front",
+          "cell": { "x": 510, "y": 504 },
+          "route": []
+        }],
+        "inventory": [
+          { "container": "bank-clone-owner:field-pack", "stackId": 41, "item": "Copper Ore", "itemId": 2007, "variantId": 17, "quantity": 9, "reserved": 0, "available": 9 },
+          { "container": "bank-clone-owner:field-pack", "stackId": 42, "item": "Iron Ore", "itemId": 2001, "variantId": 3, "quantity": 4, "reserved": 0, "available": 4 },
+          { "container": "bank-clone-owner:field-pack", "stackId": 43, "item": "Scrapline Machete", "itemId": 3105, "variantId": 0, "quantity": 1, "reserved": 0, "available": 1 },
+          { "container": "bank-clone-executioner:field-pack", "stackId": 51, "item": "Slugthrower", "itemId": 3101, "variantId": 0, "quantity": 1, "reserved": 0, "available": 1 },
+          { "container": "bank-clone-executioner:field-pack", "stackId": 52, "item": "Iron Slug", "itemId": 1101, "variantId": 0, "quantity": 1000, "reserved": 0, "available": 1000 },
+          { "container": "bank-clone-medic:field-pack", "stackId": 61, "item": "Resuscitation Kit", "itemId": 1003, "variantId": 0, "quantity": 2, "reserved": 0, "available": 2 }
+        ],
+        "props": [{
+          "id": "verification-bank-terminal",
+          "entity": "prop:verification-bank-terminal",
+          "areaId": "open-desert-overworld",
+          "label": "Verification Bank Terminal",
+          "kind": "bank_terminal",
+          "assetKey": "bank_terminal",
+          "cell": { "x": 480, "y": 481 },
+          "size": { "w": 1, "h": 1 },
+          "interactive": true,
+          "solid": false,
+          "visible": true
+        }]
+      }
+    },
+    "open-desert-multiplayer-visibility": {
+      "description": "Two authored player actors at Dustgate camp for mutual AOI visibility, movement, and posture observation.",
+      "characters": {
+        "alpha": {
+          "id": "mp-vis-alpha",
+          "name": "VisAlpha",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 520,
+            "y": 520,
+            "facing": "right"
+          }
+        },
+        "beta": {
+          "id": "mp-vis-beta",
+          "name": "VisBeta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 522,
+            "y": 520,
+            "facing": "right"
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "mp-vis-alpha",
+            "entity": "scenario:mp-vis-alpha",
+            "areaId": "open-desert-overworld",
+            "label": "VisAlpha",
+            "role": "scenario_player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "right",
+            "cell": {
+              "x": 520,
+              "y": 520
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          },
+          {
+            "id": "mp-vis-beta",
+            "entity": "scenario:mp-vis-beta",
+            "areaId": "open-desert-overworld",
+            "label": "VisBeta",
+            "role": "scenario_player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "right",
+            "cell": {
+              "x": 522,
+              "y": 520
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          }
+        ],
+        "inventory": []
+      },
+      "notes": "Mutual AOI visibility via player-visible /nearby, with oracle-backed position and posture truth."
+    },
+    "open-desert-multiplayer-loot-contention": {
+      "description": "Two marksmen (scenario command steps inject weapons) and one loot-bearing rogue for damage-ledger loot-right contention.",
+      "characters": {
+        "alpha": {
+          "id": "mp-loot-alpha",
+          "name": "LootAlpha",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 800,
+            "y": 800,
+            "facing": "right"
+          }
+        },
+        "beta": {
+          "id": "mp-loot-beta",
+          "name": "LootBeta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 802,
+            "y": 800,
+            "facing": "right"
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "mp-loot-rogue",
+            "entity": "scenario:mp-loot-rogue",
+            "areaId": "open-desert-overworld",
+            "label": "LootRogue",
+            "role": "skirmisher",
+            "factionId": "rogue_troopers",
+            "socialGroup": "open_desert_rogues",
+            "pvpStatus": "overt",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 801,
+              "y": 800
+            },
+            "route": [],
+            "vitals": {
+              "health": 160,
+              "action": 100,
+              "spirit": 80
+            },
+            "maxVitals": {
+              "health": 160,
+              "action": 100,
+              "spirit": 80
+            }
+          }
+        ],
+        "inventory": [
+          {
+            "container": "mp-loot-rogue:field-pack",
+            "item": "Stimpak A",
+            "itemId": 1001,
+            "variantId": 0,
+            "quantity": 2,
+            "reserved": 0,
+            "available": 2
+          }
+        ]
+      },
+      "notes": "Scenario command steps explicitly grant marksman novice, a debug-equipped Slugthrower, and ammo to both players so real character joins can stay doctrine-bare. Alpha solos rogue to health<70 of 160 (lead>=90 > 70 remaining => deterministic ledger winner). Beta assists; lootRightsActorId=mp-loot-alpha; beta honest loot_no_rights; alpha loots."
+    },
+    "open-desert-multiplayer-loot-restart-cache": {
+      "description": "Dedicated two-player corpse-right contention fixture with one nearby sealed cache for restart-only source persistence and terminal-lifecycle proof.",
+      "characters": {
+        "alpha": {
+          "id": "mp-loot-alpha",
+          "name": "LootAlpha",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 800,
+            "y": 800,
+            "facing": "right"
+          }
+        },
+        "beta": {
+          "id": "mp-loot-beta",
+          "name": "LootBeta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 802,
+            "y": 800,
+            "facing": "right"
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "mp-loot-rogue",
+            "entity": "scenario:mp-loot-rogue",
+            "areaId": "open-desert-overworld",
+            "label": "LootRogue",
+            "role": "skirmisher",
+            "factionId": "rogue_troopers",
+            "socialGroup": "open_desert_rogues",
+            "pvpStatus": "overt",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 801,
+              "y": 800
+            },
+            "route": [],
+            "vitals": {
+              "health": 160,
+              "action": 100,
+              "spirit": 80
+            },
+            "maxVitals": {
+              "health": 160,
+              "action": 100,
+              "spirit": 80
+            }
+          }
+        ],
+        "props": [
+          {
+            "id": "mp-loot-restart-cache",
+            "entity": "cache:mp-loot-restart-cache",
+            "areaId": "open-desert-overworld",
+            "label": "Restart Supply Cache",
+            "kind": "storage_chest",
+            "cell": {
+              "x": 799,
+              "y": 800
+            },
+            "size": {
+              "w": 1,
+              "h": 1
+            },
+            "interactive": true,
+            "solid": false,
+            "visible": true
+          }
+        ],
+        "inventory": [
+          {
+            "container": "mp-loot-rogue:field-pack",
+            "item": "Stimpak A",
+            "itemId": 1001,
+            "variantId": 0,
+            "quantity": 2,
+            "reserved": 0,
+            "available": 2
+          },
+          {
+            "container": "cache:mp-loot-restart-cache",
+            "item": "Iron",
+            "itemId": 2001,
+            "variantId": 0,
+            "quantity": 3,
+            "reserved": 0,
+            "available": 3
+          }
+        ]
+      },
+      "notes": "Dedicated restart-only fixture: alpha earns the corpse right after the normal damage ledger and cache:mp-loot-restart-cache provides a second exact source whose terminal state is externally observable as loot_not_lootable on a duplicate take. The shared loot-contention fixture remains unchanged for non-restart coverage."
+    },
+    "open-desert-multiplayer-assist": {
+      "description": "Two explicitly armed marksmen and one high-health rogue for two-on-one assist receipts and full kill-ledger XP.",
+      "characters": {
+        "alpha": {
+          "id": "mp-assist-alpha",
+          "name": "AssistAlpha",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 800,
+            "y": 800,
+            "facing": "right"
+          }
+        },
+        "beta": {
+          "id": "mp-assist-beta",
+          "name": "AssistBeta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 802,
+            "y": 800,
+            "facing": "right"
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "mp-assist-rogue",
+            "entity": "scenario:mp-assist-rogue",
+            "areaId": "open-desert-overworld",
+            "label": "AssistRogue",
+            "role": "skirmisher",
+            "factionId": "rogue_troopers",
+            "socialGroup": "open_desert_rogues",
+            "pvpStatus": "overt",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 801,
+              "y": 800
+            },
+            "route": [],
+            "vitals": {
+              "health": 170,
+              "action": 100,
+              "spirit": 80
+            },
+            "maxVitals": {
+              "health": 170,
+              "action": 100,
+              "spirit": 80
+            }
+          }
+        ],
+        "inventory": []
+      },
+      "notes": "Scenario command steps explicitly grant marksman novice, a debug-equipped Slugthrower, and ammo to both players so real character joins can stay doctrine-bare. BOTH mp-assist-alpha AND mp-assist-beta land damaging hits and receive marksman slugthrower XP under the current full-kill-ledger XP rule."
+    },
+    "open-desert-multiplayer-aoi": {
+      "description": "Stationary observer (alpha) far from base actors + a mover (beta) starting inside alpha's AOI, then exiting it, for honest AOI removal (no ghost).",
+      "characters": {
+        "alpha": {
+          "id": "mp-aoi-alpha",
+          "name": "AoiAlpha",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 30,
+            "y": 990,
+            "facing": "right"
+          }
+        },
+        "beta": {
+          "id": "mp-aoi-beta",
+          "name": "AoiBeta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 172,
+            "y": 990,
+            "facing": "right"
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "mp-aoi-alpha",
+            "entity": "scenario:mp-aoi-alpha",
+            "areaId": "open-desert-overworld",
+            "label": "AoiAlpha",
+            "role": "scenario_player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "right",
+            "cell": {
+              "x": 30,
+              "y": 990
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          },
+          {
+            "id": "mp-aoi-beta",
+            "entity": "scenario:mp-aoi-beta",
+            "areaId": "open-desert-overworld",
+            "label": "AoiBeta",
+            "role": "scenario_player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "right",
+            "cell": {
+              "x": 172,
+              "y": 990
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          }
+        ],
+        "inventory": []
+      },
+      "notes": "Alpha at (30,990) is isolated from base actors. Beta starts at x=172 inside alpha's warm AOI, then deterministic bounded movement carries it beyond the exit boundary without relying on realtime scheduling."
+    },
+    "open-desert-multiplayer-trade": {
+      "description": "Three nearby players with exact-variant Iron rows for shared exchange contention and a funded two-sided atomic trade.",
+      "characters": {
+        "alpha": {
+          "id": "mp-trade-alpha",
+          "name": "TradeAlpha",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 512,
+            "y": 512,
+            "facing": "right"
+          }
+        },
+        "beta": {
+          "id": "mp-trade-beta",
+          "name": "TradeBeta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 513,
+            "y": 512,
+            "facing": "left"
+          }
+        },
+        "gamma": {
+          "id": "mp-trade-gamma",
+          "name": "TradeGamma",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 514,
+            "y": 512,
+            "facing": "left"
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "mp-trade-alpha",
+            "entity": "scenario:mp-trade-alpha",
+            "areaId": "open-desert-overworld",
+            "label": "TradeAlpha",
+            "role": "player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "credits": 5000,
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "right",
+            "cell": {
+              "x": 512,
+              "y": 512
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          },
+          {
+            "id": "mp-trade-beta",
+            "entity": "scenario:mp-trade-beta",
+            "areaId": "open-desert-overworld",
+            "label": "TradeBeta",
+            "role": "player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "credits": 5000,
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 513,
+              "y": 512
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          },
+          {
+            "id": "mp-trade-gamma",
+            "entity": "scenario:mp-trade-gamma",
+            "areaId": "open-desert-overworld",
+            "label": "TradeGamma",
+            "role": "player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 514,
+              "y": 512
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          }
+        ],
+        "props": [
+          {
+            "id": "restart-trade-exchange",
+            "entity": "container:district-exchange",
+            "areaId": "open-desert-overworld",
+            "label": "Restart Exchange",
+            "kind": "resource_container",
+            "cell": {
+              "x": 511,
+              "y": 512
+            },
+            "size": {
+              "w": 1,
+              "h": 1
+            },
+            "interactive": true,
+            "solid": false,
+            "visible": true
+          }
+        ],
+        "inventory": [
+          {
+            "container": "mp-trade-alpha:field-pack",
+            "item": "Iron",
+            "itemId": 2001,
+            "variantId": 211337,
+            "quantity": 5,
+            "reserved": 0,
+            "available": 5
+          },
+          {
+            "container": "mp-trade-beta:field-pack",
+            "item": "Iron",
+            "itemId": 2001,
+            "variantId": 0,
+            "quantity": 5,
+            "reserved": 0,
+            "available": 5
+          },
+          {
+            "container": "mp-trade-beta:field-pack",
+            "item": "Iron",
+            "itemId": 2001,
+            "variantId": 211337,
+            "quantity": 5,
+            "reserved": 0,
+            "available": 5
+          }
+        ]
+      },
+      "notes": "Alpha and beta each own five Iron units at exact variant 211337 for shared-exchange isolation, beta has the variant-0 Iron trade offer, and both actors have exact 5,000-credit fresh-character wallets. Gamma exists solely to decline a second real invite, leaving alpha/beta's formed group and leadership continuity unambiguous. The district exchange terminal is adjacent to all three actors."
+    },
+    "open-desert-multiplayer-extractor": {
+      "description": "Two players over a mineral spawn: owner alpha places/collects an extractor; non-owner beta is rejected with not_extractor_owner.",
+      "characters": {
+        "alpha": {
+          "id": "mp-extract-alpha",
+          "name": "ExtractAlpha",
+          "initialProfessionId": "craftsman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 512,
+            "y": 512,
+            "facing": "right"
+          }
+        },
+        "beta": {
+          "id": "mp-extract-beta",
+          "name": "ExtractBeta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 513,
+            "y": 512,
+            "facing": "right"
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "mp-extract-alpha",
+            "entity": "scenario:mp-extract-alpha",
+            "areaId": "open-desert-overworld",
+            "label": "ExtractAlpha",
+            "role": "scenario_player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "craftsman"
+            ],
+            "skillBoxIds": [
+              "craftsman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "right",
+            "cell": {
+              "x": 512,
+              "y": 512
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          },
+          {
+            "id": "mp-extract-beta",
+            "entity": "scenario:mp-extract-beta",
+            "areaId": "open-desert-overworld",
+            "label": "ExtractBeta",
+            "role": "scenario_player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "right",
+            "cell": {
+              "x": 513,
+              "y": 512
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          }
+        ],
+        "inventory": [
+          {
+            "container": "mp-extract-alpha:field-pack",
+            "item": "Metal Extractor",
+            "itemId": 3006,
+            "variantId": 0,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1
+          }
+        ]
+      },
+      "notes": "Owner boundary: alpha carries the extractor tool (fixture inv; debug-give-item is client-blocked as debug-gated) + place-extractor metal (no survey needed; deterministic id extractor:mp-extract-alpha:1). Non-owner beta collect + crank => not_extractor_owner; owner alpha destroy succeeds."
+    },
+    "open-desert-multiplayer-chat-range": {
+      "description": "Two authored chat participants plus one off-zone websocket client for landed chat routing coverage.",
+      "characters": {
+        "alpha": {
+          "id": "mp-chat-alpha",
+          "name": "ChatAlpha",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 512,
+            "y": 512,
+            "facing": "right"
+          }
+        },
+        "beta": {
+          "id": "mp-chat-beta",
+          "name": "ChatBeta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 514,
+            "y": 512,
+            "facing": "left"
+          }
+        }
+      },
+      "notes": "Chat hub currently routes local/zone by websocket zone rather than shard cell radius. Scenario asserts same-zone local and zone delivery, off-zone exclusion, and whisper target delivery."
+    },
+    "open-desert-core-world-restart": {
+      "description": "Isolated core-world persistence fixture: Dustgate player plus a nearby authored patient for exact inventory, profession, travel/door, camp, service-buff, wound, and revive restart contracts.",
+      "characters": {
+        "core": {
+          "id": "core-restart",
+          "name": "CoreRestart",
+          "initialProfessionId": "craftsman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 512,
+            "y": 512,
+            "facing": "right"
+          },
+          "professions": {
+            "learned": [
+              "craftsman",
+              "scout",
+              "medic",
+              "bioengineer",
+              "marksman"
+            ],
+            "trackXp": {},
+            "skillBoxes": [
+              "craftsman-novice",
+              "craftsman-experimentation-i",
+              "craftsman-experimentation-ii",
+              "scout-novice",
+              "medic-novice",
+              "bioengineer-novice",
+              "marksman-novice",
+              "marksman-rifle-ii",
+              "marksman-rifle-iii"
+            ],
+            "activeTitleId": "craftsman-novice",
+            "credits": 100000,
+            "skillPointCap": 250
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "core-restart",
+            "entity": "scenario:core-restart",
+            "areaId": "open-desert-overworld",
+            "label": "CoreRestart",
+            "role": "player",
+            "factionId": "desert_wardens",
+            "pvpStatus": "none",
+            "credits": 100000,
+            "activeTitleId": "craftsman-novice",
+            "professionIds": [
+              "craftsman",
+              "scout",
+              "medic",
+              "bioengineer",
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "craftsman-novice",
+              "craftsman-experimentation-i",
+              "craftsman-experimentation-ii",
+              "scout-novice",
+              "medic-novice",
+              "bioengineer-novice",
+              "marksman-novice",
+              "marksman-rifle-ii",
+              "marksman-rifle-iii"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "right",
+            "cell": {
+              "x": 512,
+              "y": 512
+            },
+            "route": [],
+            "vitals": {
+              "health": 210,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          },
+          {
+            "id": "core-restart-patient",
+            "entity": "scenario:core-restart-patient",
+            "areaId": "open-desert-overworld",
+            "label": "CoreRestartPatient",
+            "role": "agent_player",
+            "factionId": "open_desert_rogues",
+            "pvpStatus": "overt",
+            "credits": 0,
+            "professionIds": [
+              "medic"
+            ],
+            "skillBoxIds": [
+              "medic-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 523,
+              "y": 512
+            },
+            "route": [],
+            "vitals": {
+              "health": 20,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 20,
+              "action": 160,
+              "spirit": 100
+            }
+          }
+        ],
+        "inventory": [
+          {
+            "container": "core-restart:field-pack",
+            "item": "Credit Chip",
+            "itemId": 9002,
+            "variantId": 0,
+            "quantity": 1200,
+            "reserved": 0,
+            "available": 1200
+          },
+          {
+            "container": "core-restart:field-pack",
+            "item": "Ashgrain Seed",
+            "itemId": 6001,
+            "variantId": 0,
+            "quantity": 2,
+            "reserved": 0,
+            "available": 2
+          },
+          {
+            "container": "core-restart:field-pack",
+            "item": "Stimpak A",
+            "itemId": 1001,
+            "variantId": 0,
+            "quantity": 2,
+            "reserved": 0,
+            "available": 2
+          },
+          {
+            "container": "core-restart:field-pack",
+            "item": "Resuscitation Kit",
+            "itemId": 1003,
+            "variantId": 0,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1
+          },
+          {
+            "container": "core-restart:field-pack",
+            "item": "Camp Kit",
+            "itemId": 3007,
+            "variantId": 0,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1
+          },
+          {
+            "container": "core-restart:field-pack",
+            "item": "Crafted Slugthrower Mk I",
+            "itemId": 3101,
+            "variantId": 0,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1
+          },
+          {
+            "container": "core-restart:field-pack",
+            "item": "Iron Slug",
+            "itemId": 1101,
+            "variantId": 0,
+            "quantity": 240,
+            "reserved": 0,
+            "available": 240
+          },
+          {
+            "container": "core-restart:field-pack",
+            "item": "Iron",
+            "itemId": 2001,
+            "variantId": 0,
+            "quantity": 24,
+            "reserved": 0,
+            "available": 24
+          },
+          {
+            "container": "core-restart:field-pack",
+            "item": "Copper",
+            "itemId": 2007,
+            "variantId": 0,
+            "quantity": 12,
+            "reserved": 0,
+            "available": 12
+          }
+        ]
+      },
+      "notes": "The core actor begins wounded but alive with medic/craftsman/bioengineer/marksman profession boxes, Rifle III certification, and wallet credits. All scenario mutations use real authority commands. The authored rogue patient is downed only through live combat, then restored only through ReviveActor; no debug grant or forced lifecycle state is supplied."
+    },
+    "open-desert-active-systems-restart": {
+      "description": "Isolated active-systems restart fixture with real crafting, survey, extraction, bioengineering, and roll-combat preconditions.",
+      "characters": {
+        "active": {
+          "id": "active-restart",
+          "name": "ActiveRestart",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 535,
+            "y": 121,
+            "facing": "right"
+          },
+          "professions": {
+            "learned": [
+              "marksman"
+            ],
+            "trackXp": {},
+            "skillBoxes": [
+              "marksman-novice",
+              "marksman-rifle-ii",
+              "marksman-rifle-iii",
+              "craftsman-experimentation-ii",
+              "medic-medical-crafting-ii"
+            ],
+            "activeTitleId": null,
+            "credits": 5000,
+            "skillPointCap": 250
+          }
+        }
+      },
+      "sliceOverlay": {
+        "combatModel": "roll",
+        "actors": [
+          {
+            "id": "active-restart-trainer",
+            "entity": "scenario:active-restart-trainer",
+            "areaId": "open-desert-overworld",
+            "label": "Restart Trainer",
+            "role": "profession_trainer",
+            "factionId": "desert_wardens",
+            "pvpStatus": "none",
+            "professionIds": [
+              "craftsman",
+              "medic",
+              "bioengineer"
+            ],
+            "skillBoxIds": [],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 534,
+              "y": 121
+            },
+            "route": []
+          },
+          {
+            "id": "active-restart-rogue",
+            "entity": "scenario:active-restart-rogue",
+            "areaId": "open-desert-overworld",
+            "label": "Restart Rogue",
+            "role": "scenario_player",
+            "factionId": "rogue_troopers",
+            "socialGroup": "open_desert_rogues",
+            "pvpStatus": "overt",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 536,
+              "y": 121
+            },
+            "route": [],
+            "vitals": {
+              "health": 500,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 500,
+              "action": 160,
+              "spirit": 100
+            }
+          }
+        ],
+        "inventory": [
+          {
+            "container": "active-restart:resource-crate",
+            "item": "Iron",
+            "itemId": 2001,
+            "variantId": 211337,
+            "quantity": 240,
+            "reserved": 0,
+            "available": 240
+          },
+          {
+            "container": "active-restart:resource-crate",
+            "item": "Copper",
+            "itemId": 2007,
+            "variantId": 211337,
+            "quantity": 120,
+            "reserved": 0,
+            "available": 120
+          },
+          {
+            "container": "active-restart:field-pack",
+            "item": "Field Multitool Q500",
+            "itemId": 3001,
+            "variantId": 500,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1
+          },
+          {
+            "container": "active-restart:field-pack",
+            "item": "Mineral Survey Tool",
+            "itemId": 3008,
+            "variantId": 500,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1
+          },
+          {
+            "container": "active-restart:field-pack",
+            "item": "Metal Extractor",
+            "itemId": 3006,
+            "variantId": 500,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1
+          },
+          {
+            "container": "active-restart:field-pack",
+            "item": "Extractor Battery 8640s",
+            "itemId": 3201,
+            "variantId": 32008640,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1
+          },
+          {
+            "container": "active-restart:field-pack",
+            "item": "Slugthrower",
+            "itemId": 3101,
+            "variantId": 0,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1
+          },
+          {
+            "container": "active-restart:field-pack",
+            "item": "Iron Slug",
+            "itemId": 1101,
+            "variantId": 0,
+            "quantity": 180,
+            "reserved": 0,
+            "available": 180
+          }
+        ]
+      },
+      "notes": "The fixture grants only the two Bio-Engineer hybrid prerequisite boxes so Craftsman novice, Medic novice, and Bio-Engineer novice can be trained through the real nearby trainer. Every active cross-restart state is then opened through ordinary authority verbs; the fixture supplies deterministic tools, materials, and nearby trainer/hostile only."
+    },
+    "open-desert-guild-lifecycle": {
+      "description": "Four legitimate, credit-funded characters around the final Dustgate PA terminal for guild lifecycle, privacy, chat, war, and restart proof.",
+      "characters": {
+        "alpha": {
+          "id": "mp-guild-alpha",
+          "name": "GuildAlpha",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 509,
+            "y": 502,
+            "facing": "right"
+          },
+          "professions": {
+            "credits": 300000,
+            "skillPointCap": 250
+          }
+        },
+        "beta": {
+          "id": "mp-guild-beta",
+          "name": "GuildBeta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 509,
+            "y": 502,
+            "facing": "left"
+          },
+          "professions": {
+            "credits": 300000,
+            "skillPointCap": 250
+          }
+        },
+        "gamma": {
+          "id": "mp-guild-gamma",
+          "name": "GuildGamma",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 509,
+            "y": 502,
+            "facing": "left"
+          },
+          "professions": {
+            "credits": 300000,
+            "skillPointCap": 250
+          }
+        },
+        "delta": {
+          "id": "mp-guild-delta",
+          "name": "GuildDelta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 509,
+            "y": 502,
+            "facing": "right"
+          },
+          "professions": {
+            "credits": 300000,
+            "skillPointCap": 250
+          }
+        }
+      },
+      "notes": "No runtime grant is used. The fixture supplies four ordinary character records with 300000 credits; each charter must debit exactly 250000 from the authority wallet. Runtime requires the regenerated dustgate-pa-terminal prop at cell (509,501) in open-desert-overworld."
+    },
+    "open-desert-multiplayer-duel": {
+      "description": "Two fully equipped marksmen at point-blank range for an authority-only consent duel, scoped damage, and honorable yield.",
+      "characters": {
+        "alpha": {
+          "id": "mp-duel-alpha",
+          "name": "DuelAlpha",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 512,
+            "y": 512,
+            "facing": "right"
+          },
+          "professions": {
+            "learned": [
+              "marksman"
+            ],
+            "trackXp": {},
+            "skillBoxes": [
+              "marksman-novice",
+              "marksman-rifle-ii",
+              "marksman-rifle-iii"
+            ],
+            "activeTitleId": null,
+            "credits": 1000,
+            "skillPointCap": 250
+          }
+        },
+        "beta": {
+          "id": "mp-duel-beta",
+          "name": "DuelBeta",
+          "initialProfessionId": "marksman",
+          "position": {
+            "areaId": "open-desert-overworld",
+            "x": 514,
+            "y": 512,
+            "facing": "left"
+          },
+          "professions": {
+            "learned": [
+              "marksman"
+            ],
+            "trackXp": {},
+            "skillBoxes": [
+              "marksman-novice",
+              "marksman-rifle-ii",
+              "marksman-rifle-iii"
+            ],
+            "activeTitleId": null,
+            "credits": 1000,
+            "skillPointCap": 250
+          }
+        }
+      },
+      "sliceOverlay": {
+        "actors": [
+          {
+            "id": "mp-duel-alpha",
+            "entity": "scenario:mp-duel-alpha",
+            "areaId": "open-desert-overworld",
+            "label": "DuelAlpha",
+            "role": "player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice",
+              "marksman-rifle-ii",
+              "marksman-rifle-iii"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "right",
+            "cell": {
+              "x": 512,
+              "y": 512
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          },
+          {
+            "id": "mp-duel-beta",
+            "entity": "scenario:mp-duel-beta",
+            "areaId": "open-desert-overworld",
+            "label": "DuelBeta",
+            "role": "player",
+            "factionId": "desert_wardens",
+            "socialGroup": "open_desert_camp",
+            "pvpStatus": "none",
+            "professionIds": [
+              "marksman"
+            ],
+            "skillBoxIds": [
+              "marksman-novice",
+              "marksman-rifle-ii",
+              "marksman-rifle-iii"
+            ],
+            "sprite": "adventurer-premium-male",
+            "poseSet": "idle",
+            "direction": "left",
+            "cell": {
+              "x": 514,
+              "y": 512
+            },
+            "route": [],
+            "vitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            },
+            "maxVitals": {
+              "health": 280,
+              "action": 160,
+              "spirit": 100
+            }
+          }
+        ],
+        "inventory": [
+          {
+            "container": "mp-duel-alpha:field-pack",
+            "item": "Slugthrower",
+            "itemId": 3101,
+            "variantId": 0,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1
+          },
+          {
+            "container": "mp-duel-alpha:field-pack",
+            "item": "Iron Slug",
+            "itemId": 1101,
+            "variantId": 0,
+            "quantity": 240,
+            "reserved": 0,
+            "available": 240
+          }
+        ]
+      },
+      "notes": "No scenario-time grants: alpha's Slugthrower (3101), Iron Slugs (1101), and Rifle III cert are fixture state. Beta is a real, nearby second player and may yield after the scoped exchange."
+    },
+    "open-desert-procedural-encounter": {
+      "description": "Final generated rogue-zone encounter: exactly two procedural skirmishers, one stable patrol center, and one camp footlocker.",
+      "characters": {
+        "alpha": {
+          "id": "encounter-alpha",
+          "name": "EncounterAlpha",
+          "initialProfessionId": "marksman",
+          "position": { "areaId": "open-desert-overworld", "x": 154, "y": 162, "facing": "right" },
+          "professions": {
+            "learned": ["marksman"],
+            "trackXp": {},
+            "skillBoxes": ["marksman-novice", "marksman-rifle-i"],
+            "activeTitleId": null,
+            "credits": 1000,
+            "skillPointCap": 250
+          }
+        },
+        "beta": {
+          "id": "encounter-beta",
+          "name": "EncounterBeta",
+          "initialProfessionId": "marksman",
+          "position": { "areaId": "open-desert-overworld", "x": 153, "y": 162, "facing": "right" },
+          "professions": {
+            "learned": ["marksman"],
+            "trackXp": {},
+            "skillBoxes": ["marksman-novice", "marksman-rifle-i"],
+            "activeTitleId": null,
+            "credits": 1000,
+            "skillPointCap": 250
+          }
+        }
+      },
+      "sliceOverlay": {
+        "inventory": [
+          { "container": "encounter-alpha:field-pack", "item": "Slugthrower", "itemId": 3101, "variantId": 0, "quantity": 1, "reserved": 0, "available": 1 },
+          { "container": "encounter-alpha:field-pack", "item": "Iron Slug", "itemId": 1101, "variantId": 0, "quantity": 240, "reserved": 0, "available": 240 },
+          { "container": "encounter-beta:field-pack", "item": "Slugthrower", "itemId": 3101, "variantId": 0, "quantity": 1, "reserved": 0, "available": 1 },
+          { "container": "encounter-beta:field-pack", "item": "Iron Slug", "itemId": 1101, "variantId": 0, "quantity": 240, "reserved": 0, "available": 240 }
+        ]
+      },
+      "notes": "The final generated slice owns zone actors, encounter metadata, patrol bounds, weather immunity, and footlocker contents. This registry deliberately does not overlay those authored rows."
+    },
+    "open-desert-gaia-party-rights": {
+      "description": "Final generated bellback zone for grouped Gaia rights and full per-claim harvest/kill rewards.",
+      "characters": {
+        "winnerA": { "id": "winner-a", "name": "WinnerA", "initialProfessionId": "marksman", "position": { "areaId": "open-desert-overworld", "x": 193, "y": 97, "facing": "right" }, "professions": { "learned": ["marksman", "scout"], "trackXp": {}, "skillBoxes": ["marksman-novice", "marksman-rifle-i", "scout-novice"], "activeTitleId": null, "credits": 1000, "skillPointCap": 250 } },
+        "winnerB": { "id": "winner-b", "name": "WinnerB", "initialProfessionId": "marksman", "position": { "areaId": "open-desert-overworld", "x": 194, "y": 97, "facing": "left" }, "professions": { "learned": ["marksman", "scout"], "trackXp": {}, "skillBoxes": ["marksman-novice", "marksman-rifle-i", "scout-novice"], "activeTitleId": null, "credits": 1000, "skillPointCap": 250 } },
+        "winnerNoncontributor": { "id": "winner-noncontributor", "name": "WinnerNoncontributor", "initialProfessionId": "marksman", "position": { "areaId": "open-desert-overworld", "x": 195, "y": 97, "facing": "left" }, "professions": { "learned": ["marksman", "scout"], "trackXp": {}, "skillBoxes": ["marksman-novice", "marksman-rifle-i", "scout-novice"], "activeTitleId": null, "credits": 1000, "skillPointCap": 250 } },
+        "loser": { "id": "loser", "name": "Loser", "initialProfessionId": "marksman", "position": { "areaId": "open-desert-overworld", "x": 196, "y": 97, "facing": "left" }, "professions": { "learned": ["marksman", "scout"], "trackXp": {}, "skillBoxes": ["marksman-novice", "marksman-rifle-i", "scout-novice"], "activeTitleId": null, "credits": 1000, "skillPointCap": 250 } },
+        "loserMember": { "id": "loser-member", "name": "LoserMember", "initialProfessionId": "marksman", "position": { "areaId": "open-desert-overworld", "x": 197, "y": 97, "facing": "left" }, "professions": { "learned": ["marksman", "scout"], "trackXp": {}, "skillBoxes": ["marksman-novice", "marksman-rifle-i", "scout-novice"], "activeTitleId": null, "credits": 1000, "skillPointCap": 250 } }
+      },
+      "sliceOverlay": {
+        "inventory": [
+          { "container": "winner-a:field-pack", "item": "Slugthrower", "itemId": 3101, "variantId": 0, "quantity": 1, "reserved": 0, "available": 1 },
+          { "container": "winner-a:field-pack", "item": "Iron Slug", "itemId": 1101, "variantId": 0, "quantity": 240, "reserved": 0, "available": 240 },
+          { "container": "winner-b:field-pack", "item": "Slugthrower", "itemId": 3101, "variantId": 0, "quantity": 1, "reserved": 0, "available": 1 },
+          { "container": "winner-b:field-pack", "item": "Iron Slug", "itemId": 1101, "variantId": 0, "quantity": 240, "reserved": 0, "available": 240 },
+          { "container": "winner-noncontributor:field-pack", "item": "Slugthrower", "itemId": 3101, "variantId": 0, "quantity": 1, "reserved": 0, "available": 1 },
+          { "container": "winner-noncontributor:field-pack", "item": "Iron Slug", "itemId": 1101, "variantId": 0, "quantity": 240, "reserved": 0, "available": 240 },
+          { "container": "loser:field-pack", "item": "Slugthrower", "itemId": 3101, "variantId": 0, "quantity": 1, "reserved": 0, "available": 1 },
+          { "container": "loser:field-pack", "item": "Iron Slug", "itemId": 1101, "variantId": 0, "quantity": 240, "reserved": 0, "available": 240 },
+          { "container": "loser-member:field-pack", "item": "Slugthrower", "itemId": 3101, "variantId": 0, "quantity": 1, "reserved": 0, "available": 1 },
+          { "container": "loser-member:field-pack", "item": "Iron Slug", "itemId": 1101, "variantId": 0, "quantity": 240, "reserved": 0, "available": 240 }
+        ]
+      },
+      "notes": "The final generated slice owns open-desert-bellback-zone-01 and actors open-desert-bellback-01-01/-02. No Gaia rights ledger or bark claims are overlaid."
+    }
+  }
+}

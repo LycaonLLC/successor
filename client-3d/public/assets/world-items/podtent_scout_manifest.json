@@ -1,0 +1,66 @@
+{
+  "bbox_span_m": [
+    2.85,
+    2.86,
+    2.85
+  ],
+  "building": "podtent_scout",
+  "clear_opening_m": [
+    1.06,
+    2.04
+  ],
+  "cutaway": {
+    "faces": {
+      "back": "wall_back__",
+      "front": "wall_front__",
+      "left": "wall_left__",
+      "right": "wall_right__"
+    },
+    "hide": [
+      "roof__"
+    ],
+    "keep": [
+      "floor__",
+      "interior__"
+    ],
+    "stub_by_face": true
+  },
+  "door": {
+    "clips": [
+      "door_open",
+      "door_close"
+    ],
+    "node": "door_slide",
+    "slide_axis_local": [
+      -1,
+      0,
+      0
+    ],
+    "slide_distance_m": 1.22
+  },
+  "door_cells": [
+    [
+      3,
+      4
+    ]
+  ],
+  "door_contract_source": "house_h1_manifest.json (standard shelter-house door + animation, dropped in unchanged)",
+  "footprint_cells": [
+    5,
+    5
+  ],
+  "front": "+Z",
+  "interior_clear_height_m": 2.52,
+  "materials": [
+    "HK_Clad",
+    "HK_Clad2",
+    "HK_Door",
+    "HK_Floor",
+    "HK_Frame",
+    "HK_Roof",
+    "HK_Trim"
+  ],
+  "runtime_scale_at_5x5_cells": 1.754386,
+  "tri_count": 996,
+  "units": "m"
+}

@@ -1,0 +1,8 @@
+# Copy to backend.hcl and replace every value before terraform init.
+# The state bucket and lock file must be bootstrapped first; this file does not
+# create or mutate AWS resources.
+bucket       = "REPLACE_WITH_UNIQUE_TERRAFORM_STATE_BUCKET"
+key          = "successor/staging/terraform.tfstate"
+region       = "REPLACE_WITH_EXPLICIT_AWS_REGION"
+encrypt      = true
+use_lockfile = true

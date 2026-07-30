@@ -1,0 +1,1866 @@
+{
+ "template": "r4_ref",
+ "version": 1,
+ "note": "PawnForgeV2 template. PF2-LOCAL layer model (Under=soft wearable closest to skin, Armor=hard over it). NOT the global export/manifest.json game gear/paint system.",
+ "groups": [
+  "Torso",
+  "Bicep_L",
+  "Bicep_R",
+  "Legs",
+  "Helmet — bake-off",
+  "Headwear — baseline",
+  "Hair",
+  "SYNTY TRIALS",
+  "Footwear",
+  "Gloves",
+  "Tops",
+  "Bottoms"
+ ],
+ "layers": [
+  {
+   "name": "Under",
+   "proximity": 0,
+   "desc": "closest-to-skin soft wearable (e.g. the Tank cope)"
+  },
+  {
+   "name": "Armor",
+   "proximity": 1,
+   "desc": "hard armor, second layer over Under"
+  }
+ ],
+ "items": [
+  {
+   "layer": "Armor",
+   "name": "Harness",
+   "group": "Torso",
+   "id": "armor_harness",
+   "slot": "armor_harness",
+   "glb": "Armor/Harness.glb",
+   "meshes": [
+    "harness"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "Nape Reinforcement",
+   "group": "Torso",
+   "id": "armor_nape_reinforcement",
+   "slot": "armor_nape_reinforcement",
+   "glb": "Armor/Nape_Reinforcement.glb",
+   "meshes": [
+    "backtop"
+   ],
+   "requires": [
+    "armor_harness"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "Reinforcement",
+   "group": "Torso",
+   "id": "armor_reinforcement",
+   "slot": "armor_reinforcement",
+   "glb": "Armor/Reinforcement.glb",
+   "meshes": [
+    "bp"
+   ],
+   "requires": [
+    "armor_harness"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "Gorget",
+   "group": "Torso",
+   "id": "armor_gorget",
+   "slot": "armor_gorget",
+   "glb": "Armor/Gorget.glb",
+   "meshes": [
+    "collar_l",
+    "collar_r",
+    "gorget_l",
+    "gorget_r"
+   ],
+   "requires": [
+    "armor_harness"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "Bicep_L",
+   "group": "Bicep_L",
+   "id": "armor_bicep_l",
+   "slot": "armor_bicep_l",
+   "glb": "Armor/Bicep_L.glb",
+   "meshes": [
+    "shoulderpad_l",
+    "uparm_l"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "Bicep_R",
+   "group": "Bicep_R",
+   "id": "armor_bicep_r",
+   "slot": "armor_bicep_r",
+   "glb": "Armor/Bicep_R.glb",
+   "meshes": [
+    "shoulderpad_r",
+    "uparm_r"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "Helmet A — Faithful",
+   "group": "Helmet — bake-off",
+   "id": "helmet_a",
+   "slot": "cranium",
+   "glb": "Armor/Helmet_A.glb",
+   "meshes": [
+    "helmet"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "Helmet B — Chunk Hero",
+   "group": "Helmet — bake-off",
+   "id": "helmet_b",
+   "slot": "cranium",
+   "glb": "Armor/Helmet_B.glb",
+   "meshes": [
+    "helmet"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "Helmet C — Angular",
+   "group": "Helmet — bake-off",
+   "id": "helmet_c",
+   "slot": "cranium",
+   "glb": "Armor/Helmet_C.glb",
+   "meshes": [
+    "helmet"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "Helmet D — Tall Dome",
+   "group": "Helmet — bake-off",
+   "id": "helmet_d",
+   "slot": "cranium",
+   "glb": "Armor/Helmet_D.glb",
+   "meshes": [
+    "helmet"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "Helmet V1 Heritage",
+   "group": "Helmet — bake-off",
+   "id": "helmet_v1port",
+   "slot": "cranium",
+   "glb": "Armor/Helmet_V1PORT.glb",
+   "meshes": [
+    "helmet"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "S1 — V1 Smooth Heritage",
+   "group": "Helmet — bake-off",
+   "id": "helmet_s1",
+   "slot": "cranium",
+   "glb": "Armor/Helmet_S1.glb",
+   "meshes": [
+    "helmet"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "S2 — Prop Faithful",
+   "group": "Helmet — bake-off",
+   "id": "helmet_s2",
+   "slot": "cranium",
+   "glb": "Armor/Helmet_S2.glb",
+   "meshes": [
+    "helmet"
+   ]
+  },
+  {
+   "layer": "Armor",
+   "name": "S3 — Foundry (smith's choice)",
+   "group": "Helmet — bake-off",
+   "id": "helmet_s3",
+   "slot": "cranium",
+   "glb": "Armor/Helmet_S3.glb",
+   "meshes": [
+    "helmet"
+   ]
+  },
+  {
+   "layer": "Under",
+   "name": "Warm Hat (oracle rebuild)",
+   "group": "Headwear — baseline",
+   "id": "hat_warm",
+   "slot": "cranium",
+   "mat": "wool_felt",
+   "glb": "Under/Hat_Warm.glb",
+   "meshes": [
+    "warmhat"
+   ]
+  },
+  {
+   "layer": "Under",
+   "name": "Field Cap",
+   "group": "Headwear — baseline",
+   "id": "hat_field_cap",
+   "slot": "cranium",
+   "glb": "../../items/custom/accessories/field_cap.glb",
+   "authorityItemId": 7203,
+   "rigidAnchorBone": "head"
+  },
+  {
+   "layer": "Under",
+   "name": "Tank",
+   "group": "Torso",
+   "id": "under_tank",
+   "slot": "under_torso",
+   "glb": "Under/Tank.glb",
+   "meshes": [
+    "tank"
+   ]
+  },
+  {
+   "layer": "Under",
+   "name": "Shorts",
+   "group": "Legs",
+   "id": "under_shorts",
+   "slot": "under_legs",
+   "glb": "Under/Shorts.glb",
+   "meshes": [
+    "shorts"
+   ]
+  },
+  {
+   "layer": "Under",
+   "name": "Mop Top",
+   "group": "Hair",
+   "id": "hair_mop",
+   "slot": "cranium",
+   "mat": "hair_umber",
+   "glb": "Under/Hair_Mop.glb",
+   "meshes": [
+    "hair_mop_shell"
+   ]
+  },
+  {
+   "layer": "Under",
+   "name": "Afro",
+   "group": "Hair",
+   "id": "hair_afro2",
+   "slot": "cranium",
+   "mat": "hair_umber",
+   "glb": "Under/Hair_Afro.glb",
+   "meshes": [
+    "hair_afro2"
+   ]
+  },
+  {
+   "layer": "Under",
+   "name": "Short Crop",
+   "group": "Hair",
+   "id": "hair_crop2",
+   "slot": "cranium",
+   "mat": "hair_chestnut",
+   "glb": "Under/Hair_Crop.glb",
+   "meshes": [
+    "hair_crop2"
+   ]
+  },
+  {
+   "layer": "Under",
+   "name": "Bodysuit",
+   "group": "Underlayer",
+   "id": "under_bodysuit",
+   "slot": "under_full",
+   "mat": "cotton_jersey",
+   "glb": "Under/under_bodysuit.glb",
+   "meshes": [
+    "bodysuit"
+   ],
+   "palette": {
+    "zones": [
+     {
+      "key": "suit",
+      "family": "workcloth",
+      "slots": [
+       "PF2_Cloth"
+      ],
+      "default": "#89cff0"
+     }
+    ]
+   },
+   "note": "full-body under garment (neck->wrists->ankles); fixed-issue starter suit — occupies the whole under layer (under_full slot)"
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Helmet A",
+   "group": "SYNTY TRIALS",
+   "id": "trial_helm_a",
+   "slot": "cranium",
+   "mat": "smooth_steel",
+   "glb": "Armor/trial_helm_a.glb",
+   "meshes": [
+    "trial_helm_a"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Helmet B",
+   "group": "SYNTY TRIALS",
+   "id": "trial_helm_b",
+   "slot": "cranium",
+   "mat": "smooth_steel",
+   "glb": "Armor/trial_helm_b.glb",
+   "meshes": [
+    "trial_helm_b"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Helmet C",
+   "group": "SYNTY TRIALS",
+   "id": "trial_helm_c",
+   "slot": "cranium",
+   "mat": "smooth_steel",
+   "glb": "Armor/trial_helm_c.glb",
+   "meshes": [
+    "trial_helm_c"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Helmet D",
+   "group": "SYNTY TRIALS",
+   "id": "trial_helm_d",
+   "slot": "cranium",
+   "mat": "smooth_steel",
+   "glb": "Armor/trial_helm_d.glb",
+   "meshes": [
+    "trial_helm_d"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Hood A (OFF-CENTER)",
+   "group": "SYNTY TRIALS",
+   "id": "trial_hood_a",
+   "slot": "cranium",
+   "mat": "cotton_jersey",
+   "glb": "Armor/trial_hood_a.glb",
+   "meshes": [
+    "trial_hood_a"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Visor A",
+   "group": "SYNTY TRIALS",
+   "id": "trial_visor_a",
+   "slot": "face",
+   "mat": "smooth_steel",
+   "glb": "Armor/trial_visor_a.glb",
+   "meshes": [
+    "trial_visor_a"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Mask B (MISALIGNED — R3 regression)",
+   "group": "SYNTY TRIALS",
+   "id": "trial_mask_b",
+   "slot": "face",
+   "mat": "smooth_steel",
+   "glb": "Armor/trial_mask_b.glb",
+   "meshes": [
+    "trial_mask_b"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Back A",
+   "group": "SYNTY TRIALS",
+   "id": "trial_back_a",
+   "slot": "back",
+   "mat": "smooth_steel",
+   "glb": "Armor/trial_back_a.glb",
+   "meshes": [
+    "trial_back_a"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Back B",
+   "group": "SYNTY TRIALS",
+   "id": "trial_back_b",
+   "slot": "back",
+   "mat": "cotton_jersey",
+   "glb": "Armor/trial_back_b.glb",
+   "meshes": [
+    "trial_back_b"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Hip Front A",
+   "group": "SYNTY TRIALS",
+   "id": "trial_hip_front_a",
+   "slot": "hip",
+   "mat": "smooth_steel",
+   "glb": "Armor/trial_hip_front_a.glb",
+   "meshes": [
+    "trial_hip_front_a"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Hip Back A",
+   "group": "SYNTY TRIALS",
+   "id": "trial_hip_back_a",
+   "slot": "hip",
+   "mat": "smooth_steel",
+   "glb": "Armor/trial_hip_back_a.glb",
+   "meshes": [
+    "trial_hip_back_a"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Hip Side A",
+   "group": "SYNTY TRIALS",
+   "id": "trial_hip_side_a",
+   "slot": "hip",
+   "mat": "smooth_steel",
+   "glb": "Armor/trial_hip_side_a.glb",
+   "meshes": [
+    "trial_hip_side_a"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Hair A",
+   "group": "SYNTY TRIALS",
+   "id": "trial_hair_a",
+   "slot": "cranium",
+   "mat": "hair_umber",
+   "glb": "Armor/trial_hair_a.glb",
+   "meshes": [
+    "trial_hair_a"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Hair B",
+   "group": "SYNTY TRIALS",
+   "id": "trial_hair_b",
+   "slot": "cranium",
+   "mat": "hair_chestnut",
+   "glb": "Armor/trial_hair_b.glb",
+   "meshes": [
+    "trial_hair_b"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Hair C",
+   "group": "SYNTY TRIALS",
+   "id": "trial_hair_c",
+   "slot": "cranium",
+   "mat": "hair_umber",
+   "glb": "Armor/trial_hair_c.glb",
+   "meshes": [
+    "trial_hair_c"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Armor",
+   "name": "Trial Hair D",
+   "group": "SYNTY TRIALS",
+   "id": "trial_hair_d",
+   "slot": "cranium",
+   "mat": "hair_chestnut",
+   "glb": "Armor/trial_hair_d.glb",
+   "meshes": [
+    "trial_hair_d"
+   ],
+   "viewerOnly": true
+  },
+  {
+   "layer": "Under",
+   "name": "SciFi Top (synty refit)",
+   "group": "SYNTY TRIALS",
+   "id": "under_scfi_top",
+   "slot": "under_torso",
+   "glb": "Under/SCFI_Top_Refit.glb",
+   "meshes": [
+    "SK_SCFI_CIVL_01_10TORS_HU01.fbx__Mesh",
+    "SK_SCFI_CIVL_01_11AUPL_HU01.fbx__Mesh",
+    "SK_SCFI_CIVL_01_12AUPR_HU01.fbx__Mesh",
+    "SK_SCFI_CIVL_01_13ALWL_HU01.fbx__Mesh",
+    "SK_SCFI_CIVL_01_14ALWR_HU01.fbx__Mesh"
+   ],
+   "viewerOnly": true,
+   "note": "Bind-delta refit pilot from synty sidekick scfi_civl_01; lab preview only"
+  },
+  {
+   "layer": "Under",
+   "name": "SciFi Pants (synty refit)",
+   "group": "SYNTY TRIALS",
+   "id": "under_scfi_pants",
+   "slot": "under_legs",
+   "glb": "Under/SCFI_Pants_Refit.glb",
+   "meshes": [
+    "SK_SCFI_CIVL_01_17HIPS_HU01.fbx__Mesh",
+    "SK_SCFI_CIVL_01_18LEGL_HU01.fbx__Mesh",
+    "SK_SCFI_CIVL_01_19LEGR_HU01.fbx__Mesh"
+   ],
+   "viewerOnly": true,
+   "note": "Bind-delta refit pilot from synty sidekick scfi_civl_01; lab preview only"
+  },
+  {
+   "layer": "Under",
+   "name": "Rigged Canvas Tank",
+   "group": "Tops",
+   "id": "top_rigged_tank",
+   "slot": "under_torso",
+   "glb": "Under/top_rigged_tank.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c3"
+      ],
+      "default": "#b08040"
+     },
+     {
+      "key": "straps",
+      "family": "workcloth",
+      "slots": [
+       "c5"
+      ],
+      "default": "#406090"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Frayed Work Tunic",
+   "group": "Tops",
+   "id": "top_frayed_tunic",
+   "slot": "under_torso",
+   "glb": "Under/top_frayed_tunic.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#806040"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Plated Chest-Rig Vest",
+   "group": "Tops",
+   "id": "top_plated_rig_vest",
+   "slot": "under_torso",
+   "glb": "Under/top_plated_rig_vest.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "plates",
+      "family": "leather",
+      "slots": [
+       "c5"
+      ],
+      "default": "#b08040"
+     },
+     {
+      "key": "vest",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#303030"
+     },
+     {
+      "key": "collar",
+      "family": "workcloth",
+      "slots": [
+       "c3"
+      ],
+      "default": "#908060"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Padded Leather Vest",
+   "group": "Tops",
+   "id": "top_padded_leather_vest",
+   "slot": "under_torso",
+   "glb": "Under/top_padded_leather_vest.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "leather",
+      "slots": [
+       "c0"
+      ],
+      "default": "#806040"
+     },
+     {
+      "key": "padding",
+      "family": "rubber",
+      "slots": [
+       "c1"
+      ],
+      "default": "#303020"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Spiked Leather Vest",
+   "group": "Tops",
+   "id": "top_spiked_leather_vest",
+   "slot": "under_torso",
+   "glb": "Under/top_spiked_leather_vest.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "panels",
+      "family": "leather",
+      "slots": [
+       "c1"
+      ],
+      "default": "#b08040"
+     },
+     {
+      "key": "sides",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#806040"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Reinforced Crop Vest",
+   "group": "Tops",
+   "id": "top_reinforced_crop_vest",
+   "slot": "under_torso",
+   "glb": "Under/top_reinforced_crop_vest.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "plates",
+      "family": "workcloth",
+      "slots": [
+       "c3"
+      ],
+      "default": "#908070"
+     },
+     {
+      "key": "shoulders",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#303030"
+     },
+     {
+      "key": "hem",
+      "family": "workcloth",
+      "slots": [
+       "c4"
+      ],
+      "default": "#606060"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Scrap-Plate Tunic",
+   "group": "Tops",
+   "id": "top_scrap_plate_tunic",
+   "slot": "under_torso",
+   "glb": "Under/top_scrap_plate_tunic.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#b08040"
+     },
+     {
+      "key": "scraps",
+      "family": "workcloth",
+      "slots": [
+       "c4"
+      ],
+      "default": "#908060"
+     },
+     {
+      "key": "trim",
+      "family": "leather",
+      "slots": [
+       "c2"
+      ],
+      "default": "#806040"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Laced Corset Vest",
+   "group": "Tops",
+   "id": "top_laced_corset_vest",
+   "slot": "under_torso",
+   "glb": "Under/top_laced_corset_vest.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "tunic",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#b08040"
+     },
+     {
+      "key": "wrap",
+      "family": "workcloth",
+      "slots": [
+       "c2"
+      ],
+      "default": "#406090"
+     },
+     {
+      "key": "corset",
+      "family": "leather",
+      "slots": [
+       "c0"
+      ],
+      "default": "#303030"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Wrapped Workpants",
+   "group": "Bottoms",
+   "id": "legs_wrapped_workpants",
+   "slot": "under_legs",
+   "glb": "Under/legs_wrapped_workpants.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "pants",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#804040"
+     },
+     {
+      "key": "wrap",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#505060"
+     },
+     {
+      "key": "guard",
+      "family": "leather",
+      "slots": [
+       "c5"
+      ],
+      "default": "#706050"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Reinforced Denim Pants",
+   "group": "Bottoms",
+   "id": "legs_reinforced_denim_pants",
+   "slot": "under_legs",
+   "glb": "Under/legs_reinforced_denim_pants.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "pants",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#804040"
+     },
+     {
+      "key": "guards",
+      "family": "rubber",
+      "slots": [
+       "c1"
+      ],
+      "default": "#505050"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Plated Combat Trousers",
+   "group": "Bottoms",
+   "id": "legs_plated_trousers",
+   "slot": "under_legs",
+   "glb": "Under/legs_plated_trousers.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "pants",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#804040"
+     },
+     {
+      "key": "shells",
+      "family": "rubber",
+      "slots": [
+       "c2"
+      ],
+      "default": "#808080"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Layered Combat Shorts",
+   "group": "Bottoms",
+   "id": "legs_layered_shorts",
+   "slot": "under_legs",
+   "glb": "Under/legs_layered_shorts.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "shorts",
+      "family": "workcloth",
+      "slots": [
+       "c2"
+      ],
+      "default": "#505060"
+     },
+     {
+      "key": "wraps",
+      "family": "workcloth",
+      "slots": [
+       "c1",
+       "c3"
+      ],
+      "default": "#908070"
+     },
+     {
+      "key": "bands",
+      "family": "workcloth",
+      "slots": [
+       "c4"
+      ],
+      "default": "#804040"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Strapped Utility Trousers",
+   "group": "Bottoms",
+   "id": "legs_strapped_trousers",
+   "slot": "under_legs",
+   "glb": "Under/legs_strapped_trousers.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "pants",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#804040"
+     },
+     {
+      "key": "guards",
+      "family": "rubber",
+      "slots": [
+       "c3"
+      ],
+      "default": "#406090"
+     },
+     {
+      "key": "straps",
+      "family": "workcloth",
+      "slots": [
+       "c2"
+      ],
+      "default": "#303030"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Skirted Workpants",
+   "group": "Bottoms",
+   "id": "legs_skirted_workpants",
+   "slot": "under_legs",
+   "glb": "Under/legs_skirted_workpants.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "pants",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#804040"
+     },
+     {
+      "key": "skirt",
+      "family": "workcloth",
+      "slots": [
+       "c2"
+      ],
+      "default": "#505060"
+     },
+     {
+      "key": "belt",
+      "family": "leather",
+      "slots": [
+       "c3"
+      ],
+      "default": "#406090"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Gaitered Cargo Pants",
+   "group": "Bottoms",
+   "id": "legs_gaitered_cargo_pants",
+   "slot": "under_legs",
+   "glb": "Under/legs_gaitered_cargo_pants.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "pants",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#804040"
+     },
+     {
+      "key": "gaiters",
+      "family": "workcloth",
+      "slots": [
+       "c4"
+      ],
+      "default": "#908060"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Padded Canvas Trousers",
+   "group": "Bottoms",
+   "id": "legs_padded_canvas_trousers",
+   "slot": "under_legs",
+   "glb": "Under/legs_padded_canvas_trousers.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "pants",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#804040"
+     },
+     {
+      "key": "wrap",
+      "family": "workcloth",
+      "slots": [
+       "c2"
+      ],
+      "default": "#505060"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Sashed Patrol Pants",
+   "group": "Bottoms",
+   "id": "legs_sashed_patrol_pants",
+   "slot": "under_legs",
+   "glb": "Under/legs_sashed_patrol_pants.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "pants",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#804040"
+     },
+     {
+      "key": "sash",
+      "family": "workcloth",
+      "slots": [
+       "c3"
+      ],
+      "default": "#605040"
+     },
+     {
+      "key": "straps",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#406090"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Layered Wrap Skirt",
+   "group": "Bottoms",
+   "id": "legs_layered_wrap_skirt",
+   "slot": "under_legs",
+   "glb": "Under/legs_layered_wrap_skirt.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "skirt",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#804040"
+     },
+     {
+      "key": "straps",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#406090"
+     },
+     {
+      "key": "guards",
+      "family": "rubber",
+      "slots": [
+       "c5"
+      ],
+      "default": "#505060"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Canvas Ankle Boots",
+   "group": "Footwear",
+   "id": "boots_canvas_ankle",
+   "slot": "under_feet",
+   "glb": "Under/boots_canvas_ankle.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#303030"
+     },
+     {
+      "key": "panels",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#808080"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Layered Street Sneakers",
+   "group": "Footwear",
+   "id": "boots_layered_sneakers",
+   "slot": "under_feet",
+   "glb": "Under/boots_layered_sneakers.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "panels",
+      "family": "leather",
+      "slots": [
+       "c1"
+      ],
+      "default": "#505050"
+     },
+     {
+      "key": "vamp",
+      "family": "workcloth",
+      "slots": [
+       "c3"
+      ],
+      "default": "#808080"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Split-Toe Boots",
+   "group": "Footwear",
+   "id": "boots_split_toe",
+   "slot": "under_feet",
+   "glb": "Under/boots_split_toe.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "upper",
+      "family": "leather",
+      "slots": [
+       "c0"
+      ],
+      "default": "#908070"
+     },
+     {
+      "key": "vamp",
+      "family": "workcloth",
+      "slots": [
+       "c3"
+      ],
+      "default": "#808080"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Rugged Trail Shoes",
+   "group": "Footwear",
+   "id": "boots_trail_shoes",
+   "slot": "under_feet",
+   "glb": "Under/boots_trail_shoes.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c5"
+      ],
+      "default": "#808080"
+     },
+     {
+      "key": "tongue",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#303030"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Double-Strap Boots",
+   "group": "Footwear",
+   "id": "boots_double_strap",
+   "slot": "under_feet",
+   "glb": "Under/boots_double_strap.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "straps",
+      "family": "workcloth",
+      "slots": [
+       "c2"
+      ],
+      "default": "#303030"
+     },
+     {
+      "key": "cuff",
+      "family": "leather",
+      "slots": [
+       "c3"
+      ],
+      "default": "#406090"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Rubberized Canvas Boots",
+   "group": "Footwear",
+   "id": "boots_rubberized_canvas",
+   "slot": "under_feet",
+   "glb": "Under/boots_rubberized_canvas.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#303030"
+     },
+     {
+      "key": "collar",
+      "family": "workcloth",
+      "slots": [
+       "c3"
+      ],
+      "default": "#706050"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Toe-Capped Work Boots",
+   "group": "Footwear",
+   "id": "boots_toe_capped",
+   "slot": "under_feet",
+   "glb": "Under/boots_toe_capped.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "upper",
+      "family": "leather",
+      "slots": [
+       "c0"
+      ],
+      "default": "#303030"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Combat Sneakers",
+   "group": "Footwear",
+   "id": "boots_combat_sneakers",
+   "slot": "under_feet",
+   "glb": "Under/boots_combat_sneakers.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "upper",
+      "family": "leather",
+      "slots": [
+       "c2"
+      ],
+      "default": "#303030"
+     },
+     {
+      "key": "laces",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#808080"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Cuffed Runners",
+   "group": "Footwear",
+   "id": "boots_cuffed_runners",
+   "slot": "under_feet",
+   "glb": "Under/boots_cuffed_runners.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "cuff",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#303030"
+     },
+     {
+      "key": "vamp",
+      "family": "leather",
+      "slots": [
+       "c3"
+      ],
+      "default": "#808080"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Reinforced Street Boots",
+   "group": "Footwear",
+   "id": "boots_reinforced_street",
+   "slot": "under_feet",
+   "glb": "Under/boots_reinforced_street.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#303030"
+     },
+     {
+      "key": "collar",
+      "family": "workcloth",
+      "slots": [
+       "c2"
+      ],
+      "default": "#808080"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Knuckled Half-Gloves",
+   "group": "Gloves",
+   "id": "gloves_knuckled_half",
+   "slot": "under_hands",
+   "glb": "Under/gloves_knuckled_half.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "cuff",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#406090"
+     },
+     {
+      "key": "knuckle",
+      "family": "rubber",
+      "slots": [
+       "c2"
+      ],
+      "default": "#808080"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Guarded Leather Gloves",
+   "group": "Gloves",
+   "id": "gloves_guarded_leather",
+   "slot": "under_hands",
+   "glb": "Under/gloves_guarded_leather.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "leather",
+      "slots": [
+       "c0"
+      ],
+      "default": "#a07040"
+     },
+     {
+      "key": "knuckle",
+      "family": "rubber",
+      "slots": [
+       "c3"
+      ],
+      "default": "#406090"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Plain Work Gloves",
+   "group": "Gloves",
+   "id": "gloves_plain_work",
+   "slot": "under_hands",
+   "glb": "Under/gloves_plain_work.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#a07040"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Reinforced Knit Gloves",
+   "group": "Gloves",
+   "id": "gloves_reinforced_knit",
+   "slot": "under_hands",
+   "glb": "Under/gloves_reinforced_knit.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#808080"
+     },
+     {
+      "key": "cuff",
+      "family": "workcloth",
+      "slots": [
+       "c2"
+      ],
+      "default": "#406090"
+     },
+     {
+      "key": "knuckle",
+      "family": "rubber",
+      "slots": [
+       "c4"
+      ],
+      "default": "#a07040"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Light Utility Gloves",
+   "group": "Gloves",
+   "id": "gloves_light_utility",
+   "slot": "under_hands",
+   "glb": "Under/gloves_light_utility.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#605090"
+     },
+     {
+      "key": "cuff",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#908070"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Tipped Work Gloves",
+   "group": "Gloves",
+   "id": "gloves_tipped_work",
+   "slot": "under_hands",
+   "glb": "Under/gloves_tipped_work.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "body",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#a07040"
+     },
+     {
+      "key": "cuff",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#303030"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Plated Hand-Wraps",
+   "group": "Gloves",
+   "id": "gloves_plated_handwraps",
+   "slot": "under_hands",
+   "glb": "Under/gloves_plated_handwraps.glb",
+   "meshes": [],
+   "palette": {
+    "zones": [
+     {
+      "key": "cuff",
+      "family": "workcloth",
+      "slots": [
+       "c0"
+      ],
+      "default": "#505050"
+     },
+     {
+      "key": "wrap",
+      "family": "workcloth",
+      "slots": [
+       "c1"
+      ],
+      "default": "#a07040"
+     }
+    ]
+   }
+  },
+  {
+   "layer": "Under",
+   "name": "Banded Mohawk",
+   "group": "Hair",
+   "id": "hair_banded_mohawk",
+   "slot": "cranium",
+   "glb": "Under/hair_banded_mohawk.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Spiked Topknot",
+   "group": "Hair",
+   "id": "hair_spiked_topknot",
+   "slot": "cranium",
+   "glb": "Under/hair_spiked_topknot.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Twin Pigtails",
+   "group": "Hair",
+   "id": "hair_twin_pigtails",
+   "slot": "cranium",
+   "glb": "Under/hair_twin_pigtails.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Swept Spikes",
+   "group": "Hair",
+   "id": "hair_swept_spikes",
+   "slot": "cranium",
+   "glb": "Under/hair_swept_spikes.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Short Ponytail",
+   "group": "Hair",
+   "id": "hair_short_ponytail",
+   "slot": "cranium",
+   "glb": "Under/hair_short_ponytail.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Spiked Mohawk",
+   "group": "Hair",
+   "id": "hair_spiked_mohawk",
+   "slot": "cranium",
+   "glb": "Under/hair_spiked_mohawk.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Flared Wings",
+   "group": "Hair",
+   "id": "hair_flared_wings",
+   "slot": "cranium",
+   "glb": "Under/hair_flared_wings.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Low Tufts",
+   "group": "Hair",
+   "id": "hair_low_tufts",
+   "slot": "cranium",
+   "glb": "Under/hair_low_tufts.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Swept Bob",
+   "group": "Hair",
+   "id": "hair_swept_bob",
+   "slot": "cranium",
+   "glb": "Under/hair_swept_bob.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Braided Crown",
+   "group": "Hair",
+   "id": "hair_braided_crown",
+   "slot": "cranium",
+   "glb": "Under/hair_braided_crown.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Ridge Mohawk",
+   "group": "Hair",
+   "id": "hair_ridge_mohawk",
+   "slot": "cranium",
+   "glb": "Under/hair_ridge_mohawk.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Side Ponytail",
+   "group": "Hair",
+   "id": "hair_side_ponytail",
+   "slot": "cranium",
+   "glb": "Under/hair_side_ponytail.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Split Mohawk",
+   "group": "Hair",
+   "id": "hair_split_mohawk",
+   "slot": "cranium",
+   "glb": "Under/hair_split_mohawk.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Fauxhawk",
+   "group": "Hair",
+   "id": "hair_fauxhawk",
+   "slot": "cranium",
+   "glb": "Under/hair_fauxhawk.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Slicked Crop",
+   "group": "Hair",
+   "id": "hair_slicked_crop",
+   "slot": "cranium",
+   "glb": "Under/hair_slicked_crop.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Side Sweep",
+   "group": "Hair",
+   "id": "hair_side_sweep",
+   "slot": "cranium",
+   "glb": "Under/hair_side_sweep.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Flared Shag",
+   "group": "Hair",
+   "id": "hair_flared_shag",
+   "slot": "cranium",
+   "glb": "Under/hair_flared_shag.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Cropped Buzz",
+   "group": "Hair",
+   "id": "hair_cropped_buzz",
+   "slot": "cranium",
+   "glb": "Under/hair_cropped_buzz.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Messy Crop",
+   "group": "Hair",
+   "id": "hair_messy_crop",
+   "slot": "cranium",
+   "glb": "Under/hair_messy_crop.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Textured Crop",
+   "group": "Hair",
+   "id": "hair_textured_crop",
+   "slot": "cranium",
+   "glb": "Under/hair_textured_crop.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Shoulder Shag",
+   "group": "Hair",
+   "id": "hair_shoulder_shag",
+   "slot": "cranium",
+   "glb": "Under/hair_shoulder_shag.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Messy Side-Part",
+   "group": "Hair",
+   "id": "hair_messy_side_part",
+   "slot": "cranium",
+   "glb": "Under/hair_messy_side_part.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Flat Top",
+   "group": "Hair",
+   "id": "hair_flat_top",
+   "slot": "cranium",
+   "glb": "Under/hair_flat_top.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  },
+  {
+   "layer": "Under",
+   "name": "Top Patch",
+   "group": "Hair",
+   "id": "hair_top_patch",
+   "slot": "cranium",
+   "glb": "Under/hair_top_patch.glb",
+   "meshes": [],
+   "mat": "hair_umber"
+  }
+ ]
+}

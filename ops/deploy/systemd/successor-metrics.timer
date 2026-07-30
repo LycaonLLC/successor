@@ -1,0 +1,11 @@
+[Unit]
+Description=Successor shard CloudWatch metrics timer
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=1m
+Persistent=true
+Unit=successor-metrics.service
+
+[Install]
+WantedBy=timers.target

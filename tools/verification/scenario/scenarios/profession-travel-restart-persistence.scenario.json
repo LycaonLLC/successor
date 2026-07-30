@@ -1,0 +1,454 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "profession-travel-restart-persistence",
+  "fixture": "open-desert-bootstrap-crafter",
+  "lanes": [
+    "accel"
+  ],
+  "matrixLanes": [
+    "accel"
+  ],
+  "persistence": true,
+  "actors": {
+    "alpha": {
+      "character": "fixture:bootstrap-crafter"
+    }
+  },
+  "steps": [
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 496,
+          "y": 512,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 240
+        }
+      },
+      "as": "trainerWestBypass"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 505,
+          "y": 509,
+          "toleranceCells": 0.3,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 180
+        }
+      },
+      "as": "trainerSouthApproach"
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/toggle-door prop_id=dustgate-commerce-facility",
+        "as": "openCommerceDoor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.openCommerceDoor.data.commandId",
+          "commandKind": "ToggleDoor",
+          "accepted": true
+        },
+        "timeoutMs": 10000,
+        "as": "commerceDoorReceipt"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 505,
+          "y": 505,
+          "toleranceCells": 0.3,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 120
+        }
+      },
+      "as": "trainerDoorway"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 509,
+          "y": 504,
+          "toleranceCells": 0.2,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 180
+        }
+      },
+      "as": "trainerInteriorApproach"
+    },
+    {
+      "action": {
+        "name": "trainSkill",
+        "actor": "alpha",
+        "args": {
+          "boxId": "craftsman-novice",
+          "trainerId": "camp-trainer",
+          "move": false
+        }
+      },
+      "as": "trainCraftsmanBeforeRestart"
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/request-starter-tool trainer_actor_id=camp-trainer",
+        "as": "requestStarterToolBeforeRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.requestStarterToolBeforeRestart.data.commandId",
+          "commandKind": "RequestStarterTool",
+          "accepted": true
+        },
+        "timeoutMs": 10000,
+        "as": "starterToolReceiptBeforeRestart"
+      }
+    },
+    {
+      "action": {
+        "name": "setCareerGoal",
+        "actor": "alpha",
+        "args": {
+          "goalId": "rifle_quartermaster",
+          "settleTicks": 2
+        }
+      },
+      "as": "careerGoalBeforeRestart"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 505,
+          "y": 507,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 120
+        }
+      },
+      "as": "trainerExitDoorway"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 505,
+          "y": 517,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 180
+        }
+      },
+      "as": "trainerExitSouth"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 513,
+          "y": 513,
+          "toleranceCells": 0.35,
+          "pulseMs": 160,
+          "sprint": false
+        }
+      },
+      "as": "doorApproachBeforeRestart"
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/toggle-door prop_id=open-desert-shelter-house",
+        "as": "doorBeforeRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.doorBeforeRestart.data.commandId",
+          "commandKind": "ToggleDoor",
+          "accepted": true
+        },
+        "timeoutMs": 10000,
+        "as": "doorReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "propStates.open-desert-shelter-house.doorOpen": true
+        },
+        "timeoutMs": 10000,
+        "as": "doorStateBeforeRestart"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 524,
+          "y": 512,
+          "toleranceCells": 0.8
+        }
+      },
+      "as": "terminalApproachBeforeRestart"
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/purchase-travel-ticket terminal_prop_id=travel-terminal-dustgate to_planet_id=verdance to_city_id=lowbough",
+        "as": "ticketBeforeRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.ticketBeforeRestart.data.commandId",
+          "commandKind": "PurchaseTravelTicket",
+          "accepted": true
+        },
+        "timeoutMs": 10000,
+        "as": "ticketReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "careerGoalId": "rifle_quartermaster",
+            "activeTitle.id": "craftsman-novice",
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "skillBoxes": {
+                  "op": "includes",
+                  "value": "craftsman-novice"
+                }
+              }
+            }
+          }
+        },
+        "timeoutMs": 12000,
+        "as": "professionBeforeRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:field-pack",
+          "itemId": 3001,
+          "minAvailable": 1
+        },
+        "timeoutMs": 10000,
+        "as": "starterToolStateBeforeRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:field-pack",
+          "itemId": 5001,
+          "match": {
+            "available": 1,
+            "metadata.travelTicket.toPlanetId": "verdance",
+            "metadata.travelTicket.toCityId": "lowbough"
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "ticketStateBeforeRestart"
+      }
+    },
+    {
+      "restart": {
+        "as": "restartEvidence",
+        "timeoutMs": 30000
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "restartEvidence",
+        "path": "oldProcess.mainPid",
+        "op": "exists",
+        "value": true,
+        "as": "oldProcessIdentity"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "restartEvidence",
+        "path": "newProcess.mainPid",
+        "op": "ne",
+        "value": "$captures.restartEvidence.oldProcess.mainPid",
+        "as": "newProcessIdentity"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "careerGoalId": "$captures.professionBeforeRestart.careerGoalId",
+            "activeTitle.id": "$captures.professionBeforeRestart.activeTitle.id",
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "skillBoxes": {
+                  "op": "includes",
+                  "value": "craftsman-novice"
+                }
+              }
+            }
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "professionAfterRestart"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "professionAfterRestart",
+        "path": "careerGoalId",
+        "op": "eq",
+        "value": "$captures.professionBeforeRestart.careerGoalId",
+        "as": "careerGoalExact"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "professionAfterRestart",
+        "path": "activeTitle.id",
+        "op": "eq",
+        "value": "$captures.professionBeforeRestart.activeTitle.id",
+        "as": "titleExact"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:field-pack",
+          "itemId": 3001,
+          "minAvailable": 1
+        },
+        "timeoutMs": 15000,
+        "as": "starterToolAfterRestart"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "starterToolAfterRestart",
+        "path": "itemId",
+        "op": "eq",
+        "value": "$captures.starterToolStateBeforeRestart.itemId",
+        "as": "starterToolExact"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "propStates.open-desert-shelter-house.doorOpen": "$captures.doorStateBeforeRestart.propStates.open-desert-shelter-house.doorOpen"
+        },
+        "timeoutMs": 15000,
+        "as": "doorAfterRestart"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "doorAfterRestart",
+        "path": "propStates.open-desert-shelter-house.doorOpen",
+        "op": "eq",
+        "value": "$captures.doorStateBeforeRestart.propStates.open-desert-shelter-house.doorOpen",
+        "as": "doorExact"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:field-pack",
+          "itemId": 5001,
+          "match": {
+            "available": 1,
+            "metadata.travelTicket.toPlanetId": "verdance",
+            "metadata.travelTicket.toCityId": "lowbough"
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "ticketAfterRestart"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "ticketAfterRestart",
+        "path": "itemId",
+        "op": "eq",
+        "value": "$captures.ticketStateBeforeRestart.itemId",
+        "as": "ticketExact"
+      }
+    },
+    {
+      "expect": {
+        "kind": "commandStreamNoMatch",
+        "match": {
+          "commandKind": {
+            "regex": "^Debug"
+          }
+        },
+        "as": "noDebugCommands"
+      }
+    }
+  ],
+  "notes": "Bounded profession/travel/doors restart proof. Staged commerce-door approach: west bypass, south approach, toggle dustgate-commerce-facility door, doorway, interior to trainer at (509,504), trainSkill with move:false. Exit via doorway south. SetCareerGoal persists rifle-quartermaster goal and active title; starter tool and Verdance/Lowbough ticket persist in field pack; shelter door remains open. One ProcessHost restart required; old/new PIDs compared and every before/after property has named capture and exact assertion."
+}

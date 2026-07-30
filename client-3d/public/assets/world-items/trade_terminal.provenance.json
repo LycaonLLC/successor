@@ -1,0 +1,51 @@
+{
+  "agent_provenance": {
+    "human_approvals": [],
+    "produced_by": [
+      {
+        "agent_instance_id": "CommerceTerminalBuilder",
+        "model": "Fable 5",
+        "provider": "anthropic",
+        "role": "content-author",
+        "run_id": "commerce-terminals-20260718"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "CommerceTerminalBuilder",
+        "notes": "numeric parsed-GLB gates + multi-pass studio render/crop review in .game-lab/commerce-terminals-20260718/renders/",
+        "role": "judge"
+      }
+    ]
+  },
+  "asset_hash": "sha256:90a2602192261b3e5f14cc738c49d240ae44776166acf1779239527d23179805",
+  "asset_id": "trade_terminal",
+  "asset_kind": "model_glb",
+  "asset_path": "client-3d/public/assets/world-items/trade_terminal.glb",
+  "gate_report": ".game-lab/commerce-terminals-20260718/gate.json",
+  "human_edits": [],
+  "input_assets": [
+    {
+      "path": "tools/successor/assets/build_cloning_facility.py",
+      "purpose": "design-language + gate/manifest contract reference (shoulder-house civic props)"
+    }
+  ],
+  "prompt": {
+    "denylist_audit": "passed: no franchise/IP terms and no baked words in names, materials, node names, textures, or artifacts",
+    "text": "Hand-authored parametric part program (no generative model): Dustgate district exchange terminal \u2014 inspection/exchange counter: chamfered ceramic counter on a basalt plinth with corner posts and recessed aprons, a sunken teal scan bed with sloped rim, rails and a cyan-lensed gantry carriage, a sprung item scale with bellows, brass collar and hooded amber readout, a receipt mouth with cutter bar and curled stub, a coin tray, and a brass weight rail with graduated handled weights. Fully serviced back: hinged hopper chute with latch, louvered vents, clipped conduit with junction box. UV-backed procedural PBR maps (baseColor + metallicRoughness + normal, deterministic seeds), non-text emissive screen UI, shared Dustgate civic commerce palette."
+  },
+  "regeneration_command": "/snap/bin/blender -b --factory-startup --python-exit-code 1 -P tools/successor/assets/build_commerce_terminals.py",
+  "rights": {
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "source_license": "Successor proprietary project asset; all rights reserved"
+  },
+  "schema": "successor-asset-provenance/1",
+  "seed": "deterministic numpy seeds 2026071801..05 + per-screen layout constants",
+  "source_blend_or_script": "tools/successor/assets/build_commerce_terminals.py (deterministic parametric part program; no .blend needed)",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "tool_snapshot_id": "blender-5.2.0",
+    "version": "5.2.0"
+  },
+  "tri_count": 5176
+}

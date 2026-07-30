@@ -1,0 +1,164 @@
+<!doctype html>
+<!-- creature-fit-lab.html — play idle/walk/rest on lab creature GLBs. Dev-only. -->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Creature fit lab</title>
+  <style>
+    html, body { margin: 0; background: #4a5560; color: #e8eef2; font: 12px/1.35 ui-monospace, monospace; }
+    #hud { position: fixed; left: 10px; top: 10px; z-index: 2; opacity: 0.92; white-space: pre; pointer-events: none; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="hud">loading…</div>
+  <script type="module">
+import {
+  AnimationMixer,
+  Clock,
+  Color,
+  DirectionalLight,
+  Group,
+  HemisphereLight,
+  LoopOnce,
+  Mesh,
+  MeshBasicMaterial,
+  PerspectiveCamera,
+  PlaneGeometry,
+  Scene,
+  SRGBColorSpace,
+  Texture,
+  Vector3,
+  WebGLRenderer,
+} from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
+
+const CREATURES = [
+  { id: "cloudsheep_wooly", label: "CLOUDSHEEP WOOLY", url: "/creature-lab-assets/cloudsheep_wooly.glb" },
+  { id: "cloudsheep_shaved", label: "CLOUDSHEEP SHAVED", url: "/creature-lab-assets/cloudsheep_shaved.glb" },
+];
+
+const params = new URLSearchParams(location.search);
+const index = Math.max(0, Math.min(CREATURES.length - 1, Number(params.get("i") || 0)));
+const clipName = (params.get("clip") || "idle").toLowerCase();
+const entry = CREATURES[index];
+
+const hud = document.getElementById("hud");
+const renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new Scene();
+scene.background = new Color("#5a6470");
+const camera = new PerspectiveCamera(35, innerWidth / innerHeight, 0.05, 50);
+scene.add(new HemisphereLight(0xfff2e0, 0x405040, 1.1));
+const sun = new DirectionalLight(0xffffff, 1.2);
+sun.position.set(2, 4, 2);
+scene.add(sun);
+
+const floor = new Mesh(new PlaneGeometry(6, 6), new MeshBasicMaterial({ color: "#4a5a48" }));
+floor.rotation.x = -Math.PI / 2;
+scene.add(floor);
+
+function unlitFrom(source) {
+  const material = new MeshBasicMaterial({ fog: false });
+  if (source && "map" in source && source.map instanceof Texture) {
+    source.map.colorSpace = SRGBColorSpace;
+    material.map = source.map;
+  }
+  if (source && "color" in source && source.color) {
+    material.color.copy(source.color);
+  } else if (!material.map) {
+    material.color.set("#e8e0d4");
+  }
+  return material;
+}
+
+const loader = new GLTFLoader();
+const gltf = await loader.loadAsync(entry.url + "?t=" + Date.now());
+const root = SkeletonUtils.clone(gltf.scene);
+root.traverse((o) => {
+  if (o instanceof Mesh) {
+    o.material = Array.isArray(o.material) ? o.material.map(unlitFrom) : unlitFrom(o.material);
+    o.frustumCulled = false;
+  }
+});
+const group = new Group();
+group.add(root);
+scene.add(group);
+
+const mixer = new AnimationMixer(root);
+const clips = gltf.animations || [];
+const clipNames = clips.map((c) => c.name);
+const chosen =
+  clips.find((c) => c.name.toLowerCase() === clipName) ||
+  clips.find((c) => c.name.toLowerCase().includes(clipName)) ||
+  clips[0] ||
+  null;
+if (chosen) {
+  const action = mixer.clipAction(chosen);
+  action.play();
+  if (chosen.name.toLowerCase() === "rest") {
+    action.setLoop(LoopOnce, 1);
+    action.clampWhenFinished = true;
+  }
+}
+
+// frame bounds
+let minY = Infinity;
+let maxY = -Infinity;
+root.updateMatrixWorld(true);
+root.traverse((o) => {
+  if (!(o instanceof Mesh) || !o.geometry) return;
+  o.geometry.computeBoundingBox();
+  if (!o.geometry.boundingBox) return;
+  const b = o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld);
+  minY = Math.min(minY, b.min.y);
+  maxY = Math.max(maxY, b.max.y);
+});
+const mid = new Vector3(
+  0,
+  0.5 * ((Number.isFinite(minY) ? minY : 0) + (Number.isFinite(maxY) ? maxY : 0.5)),
+  0,
+);
+const height = Math.max(0.4, Number.isFinite(maxY) && Number.isFinite(minY) ? maxY - minY : 0.6);
+// Sheep faces +X (Blender export). Front = nose-on (+X), side = profile (+Y).
+const view = params.get("view") || "threeq";
+if (view === "front") camera.position.set(mid.x + height * 2.4, mid.y + 0.05, mid.z);
+else if (view === "side") camera.position.set(mid.x, mid.y + 0.05, mid.z + height * 2.4);
+else camera.position.set(mid.x + height * 1.7, mid.y + 0.15, mid.z + height * 1.5);
+camera.lookAt(mid);
+
+hud.textContent =
+  `${index + 1}/${CREATURES.length}  ${entry.label}\n` +
+  `clips: ${clipNames.join(", ") || "(none)"}\n` +
+  `playing: ${chosen?.name || "none"}\n` +
+  `?i=0|1  ?clip=idle|walk|rest  ?view=front|side|threeq`;
+
+window.__creatureFit = {
+  ready: true,
+  entry: entry.id,
+  clips: clipNames,
+  playing: chosen?.name || null,
+  view,
+};
+
+const clock = new Clock();
+function tick() {
+  mixer.update(clock.getDelta());
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+tick();
+
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+  </script>
+</body>
+</html>

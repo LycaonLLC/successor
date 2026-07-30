@@ -1,0 +1,31 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "combat-receipt-journey",
+  "fixture": "open-desert-combat-active",
+  "lanes": ["accel", "realtime"],
+  "matrixLanes": ["accel"],
+  "realtimeReason": "optional organic certification; arrival-dependent final ticks make realtime digest parity unstable",
+  "actors": {
+    "alpha": { "character": "fixture:combat-ranger" }
+  },
+  "steps": [
+    { "command": { "actor": "alpha", "body": { "DebugGrantSkillBoxes": { "skill_box_ids": ["marksman-novice"] } }, "as": "alphaGrantMarksman" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGrantMarksman", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "alpha", "body": { "DebugGiveItem": { "item_id": 3101, "variant_id": 0, "quantity": 1, "equip": true } }, "as": "alphaGiveSlugthrower" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGiveSlugthrower", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "alpha", "body": { "DebugGiveItem": { "item_id": 1101, "variant_id": 0, "quantity": 240, "equip": false } }, "as": "alphaGiveAmmo" } },
+    { "expect": { "kind": "captureCompare", "capture": "alphaGiveAmmo", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "query": { "actor": "alpha", "line": "/nearby all", "as": "nearbyAllBeforeTarget" } },
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "verification-rogue-01", "lifeState": "alive" } } }, "timeoutMs": 15000, "intervalMs": 500, "as": "nearbyRogue" } },
+    { "send": { "actor": "alpha", "line": "/target verification-rogue-01", "as": "targetEvent" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$captures.targetEvent.data.result.data.target.id", "match": { "lifeState": "alive" } }, "timeoutMs": 8000, "as": "targetBefore" } },
+    { "send": { "actor": "alpha", "line": "/attack", "as": "attackQueued" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.attackQueued.data.commandId", "commandKind": "QueueCombatAction", "accepted": true }, "timeoutMs": 10000, "as": "attackReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "ability_queue", "match": { "data.event.lifecycle": "fired", "data.event.abilityId": "basic_shot" }, "timeoutMs": 25000, "as": "firedEvent" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "combat", "match": { "data.event.targetActorId": "$captures.targetEvent.data.result.data.target.id" }, "timeoutMs": 25000, "as": "combatEvent" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$captures.targetEvent.data.result.data.target.id", "match": { "vitals.health": { "op": "lt", "value": "$captures.targetBefore.vitals.health" } } }, "timeoutMs": 10000, "as": "targetAfterHit" } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "receipt", "match": { "commandKind": "QueueCombatAction", "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "combatStableHash" } }
+  ],
+  "notes": "Current roll-combat receipt proof: explicit Slugthrower and ammo setup, then /target and /attack must produce an accepted QueueCombatAction receipt, a fired ability beat, a combat event, and target vital loss."
+}

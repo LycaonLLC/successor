@@ -1,0 +1,1652 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "bootstrap-crafter-journey",
+  "fixture": "open-desert-bootstrap-crafter",
+  "actors": {
+    "alpha": {
+      "character": "fixture:bootstrap-crafter"
+    }
+  },
+  "steps": [
+    {
+      "query": {
+        "actor": "alpha",
+        "line": "/where",
+        "as": "spawnWhere"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 496,
+          "y": 512,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 240
+        }
+      },
+      "as": "trainerWestBypass"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 505,
+          "y": 509,
+          "toleranceCells": 0.3,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 180
+        }
+      },
+      "as": "trainerSouthApproach"
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/toggle-door prop_id=dustgate-commerce-facility",
+        "as": "openCommerceDoor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.openCommerceDoor.data.commandId",
+          "commandKind": "ToggleDoor",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 505,
+          "y": 505,
+          "toleranceCells": 0.3,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 120
+        }
+      },
+      "as": "trainerDoorway"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 509,
+          "y": 504,
+          "toleranceCells": 0.2,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 180
+        }
+      },
+      "as": "trainerInteriorApproach"
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/train-skill craftsman-novice camp-trainer",
+        "as": "trainCraftsman"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.trainCraftsman.data.commandId",
+          "commandKind": "PurchaseSkillBox",
+          "accepted": true
+        },
+        "timeoutMs": 10000,
+        "as": "trainCraftsmanReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "skillBoxes": {
+                  "op": "includes",
+                  "value": "craftsman-novice"
+                }
+              }
+            }
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "trainedCraftsman"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/request-starter-tool trainer_actor_id=camp-trainer",
+        "as": "requestStarterTool"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.requestStarterTool.data.commandId",
+          "commandKind": "RequestStarterTool",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "requestStarterToolReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:field-pack",
+          "itemId": 3001,
+          "minAvailable": 1
+        },
+        "timeoutMs": 8000,
+        "as": "fieldMultitool"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/pause 10.2s",
+        "as": "waitAfterTrainer"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/sample iron",
+        "as": "sampleIron"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.sampleIron.data.commandId",
+          "commandKind": "SampleResource",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "sampleIronReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:resource-crate",
+          "itemId": 2001,
+          "minAvailable": 140
+        },
+        "timeoutMs": 60000,
+        "as": "ironForCrafting"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/stand",
+        "as": "standAfterIron"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.standAfterIron.data.commandId",
+          "commandKind": "SetPosture",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "standAfterIronReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "posture": "standing"
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "standingAfterIron"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/stop-sample iron",
+        "as": "stopIronSampling"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.stopIronSampling.data.commandId",
+          "commandKind": "SampleResource",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "stopIronSamplingReceipt"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/pause 5.2s",
+        "as": "waitAfterIronSampling"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 505,
+          "y": 507,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 120
+        }
+      },
+      "as": "trainerExitDoorway"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 505,
+          "y": 517,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 180
+        }
+      },
+      "as": "trainerExitSouth"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "alpha",
+        "args": {
+          "x": 506,
+          "y": 538,
+          "toleranceCells": 0.8,
+          "maxPulses": 200
+        }
+      },
+      "as": "copperSurveyApproach"
+    },
+    {
+      "query": {
+        "actor": "alpha",
+        "line": "/where",
+        "as": "copperSurveyTargetWhere"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "copperSurveyTargetWhere",
+        "path": "data.x",
+        "op": "lt",
+        "value": 507
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "copperSurveyTargetWhere",
+        "path": "data.y",
+        "op": "gt",
+        "value": 536
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/sample copper",
+        "as": "sampleCopper"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.sampleCopper.data.commandId",
+          "commandKind": "SampleResource",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "sampleCopperReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:resource-crate",
+          "itemId": 2007,
+          "minAvailable": 84
+        },
+        "timeoutMs": 75000,
+        "as": "copperForCrafting"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/stand",
+        "as": "standAfterCopper"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.standAfterCopper.data.commandId",
+          "commandKind": "SetPosture",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "standAfterCopperReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "posture": "standing"
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "standingAfterCopper"
+      }
+    },
+    {
+      "action": {
+        "name": "craftRecipe",
+        "actor": "alpha",
+        "args": {
+          "recipeId": "mineral_survey_tool",
+          "slots": [
+            {
+              "slotIndex": 0,
+              "itemId": 2001,
+              "minAvailable": 24
+            },
+            {
+              "slotIndex": 1,
+              "itemId": 2007,
+              "minAvailable": 12
+            }
+          ],
+          "outputItemId": 3008
+        }
+      },
+      "as": "craftMineralSurveyTool"
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:crafted-gear",
+          "itemId": 3008,
+          "minAvailable": 1
+        },
+        "timeoutMs": 8000,
+        "as": "mineralSurveyTool"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/survey copper",
+        "as": "surveyCopperWithCraftedTool"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.surveyCopperWithCraftedTool.data.commandId",
+          "commandKind": "SurveyResource",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "surveyCopperWithCraftedToolReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "survey_result",
+        "match": {
+          "data.payload.spawnId": {
+            "regex": "copper$"
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "surveyCopperWithCraftedToolResult"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-begin chemical_survey_tool",
+        "as": "beginChemicalSurveyDevice"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.beginChemicalSurveyDevice.data.commandId",
+          "commandKind": "CraftBegin",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "beginChemicalSurveyDeviceReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "slots",
+          "data.payload.recipeId": "chemical_survey_tool",
+          "data.payload.slotScreen.canAssemble": false
+        },
+        "timeoutMs": 8000,
+        "as": "chemicalSurveyDeviceSlotScreen"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assign-slot 0 $captures.ironForCrafting.container $captures.ironForCrafting.stackId $captures.ironForCrafting.variantId",
+        "as": "assignChemicalSurveyDeviceIron"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assignChemicalSurveyDeviceIron.data.commandId",
+          "commandKind": "CraftAssignSlot",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assignChemicalSurveyDeviceIronReceipt"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assign-slot 1 $captures.copperForCrafting.container $captures.copperForCrafting.stackId $captures.copperForCrafting.variantId",
+        "as": "assignChemicalSurveyDeviceCopper"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assignChemicalSurveyDeviceCopper.data.commandId",
+          "commandKind": "CraftAssignSlot",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assignChemicalSurveyDeviceCopperReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "slots",
+          "data.payload.recipeId": "chemical_survey_tool",
+          "data.payload.slotScreen.canAssemble": true
+        },
+        "timeoutMs": 8000,
+        "as": "chemicalSurveyDeviceReadyToAssemble"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assemble",
+        "as": "assembleChemicalSurveyDevice"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assembleChemicalSurveyDevice.data.commandId",
+          "commandKind": "CraftAssemble",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assembleChemicalSurveyDeviceReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "assembled",
+          "data.payload.recipeId": "chemical_survey_tool"
+        },
+        "timeoutMs": 8000,
+        "as": "chemicalSurveyDeviceAssembledSession"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-finalize-prototype",
+        "as": "finalizeChemicalSurveyDevice"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.finalizeChemicalSurveyDevice.data.commandId",
+          "commandKind": "CraftFinalizePrototype",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "finalizeChemicalSurveyDeviceReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:crafted-gear",
+          "itemId": 3009,
+          "minAvailable": 1
+        },
+        "timeoutMs": 8000,
+        "as": "chemicalSurveyDevice"
+      }
+    },
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 1 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "alpha> /move 0 -1 30",
+    "/pause 1.1s",
+    "/pause 10.2s",
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/survey chemical",
+        "as": "surveyPetro"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.surveyPetro.data.commandId",
+          "commandKind": "SurveyResource",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "surveyPetroReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "survey_result",
+        "match": {
+          "data.payload.spawnId": {
+            "regex": "chemical$"
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "surveyPetroResult"
+      }
+    },
+    "/pause 10.2s",
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/sample chemical",
+        "as": "samplePetro"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.samplePetro.data.commandId",
+          "commandKind": "SampleResource",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "samplePetroReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:resource-crate",
+          "itemId": 2002,
+          "minAvailable": 12
+        },
+        "timeoutMs": 60000,
+        "as": "petrochemicalForCrafting"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/stand",
+        "as": "standAfterPetro"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.standAfterPetro.data.commandId",
+          "commandKind": "SetPosture",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "standAfterPetroReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "posture": "standing"
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "standingAfterPetro"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-begin fuel",
+        "as": "beginFuel"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.beginFuel.data.commandId",
+          "commandKind": "CraftBegin",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "beginFuelReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "slots",
+          "data.payload.recipeId": "fuel",
+          "data.payload.slotScreen.canAssemble": false
+        },
+        "timeoutMs": 8000,
+        "as": "fuelSlotScreen"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assign-slot 0 $captures.petrochemicalForCrafting.container $captures.petrochemicalForCrafting.stackId $captures.petrochemicalForCrafting.variantId",
+        "as": "assignFuelPetro"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assignFuelPetro.data.commandId",
+          "commandKind": "CraftAssignSlot",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assignFuelPetroReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "slots",
+          "data.payload.recipeId": "fuel",
+          "data.payload.slotScreen.canAssemble": true
+        },
+        "timeoutMs": 8000,
+        "as": "fuelReadyToAssemble"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assemble",
+        "as": "assembleFuel"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assembleFuel.data.commandId",
+          "commandKind": "CraftAssemble",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assembleFuelReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "assembled",
+          "data.payload.recipeId": "fuel"
+        },
+        "timeoutMs": 8000,
+        "as": "fuelAssembledSession"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-finalize-prototype",
+        "as": "finalizeFuel"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.finalizeFuel.data.commandId",
+          "commandKind": "CraftFinalizePrototype",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "finalizeFuelReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:resource-crate",
+          "itemId": 2009,
+          "minAvailable": 12
+        },
+        "timeoutMs": 8000,
+        "as": "fuelForBattery"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-begin extractor_battery",
+        "as": "beginBattery"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.beginBattery.data.commandId",
+          "commandKind": "CraftBegin",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "beginBatteryReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "slots",
+          "data.payload.recipeId": "extractor_battery",
+          "data.payload.slotScreen.canAssemble": false,
+          "data.payload.detail.slots[0].requiredItemId": 2007,
+          "data.payload.detail.slots[1].requiredItemId": 2001,
+          "data.payload.detail.slots[2].requiredItemId": 2009,
+          "data.payload.detail.slots[2].requiredQty": 12
+        },
+        "timeoutMs": 8000,
+        "as": "batterySlotScreen"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assign-slot 0 $captures.copperForCrafting.container $captures.copperForCrafting.stackId $captures.copperForCrafting.variantId",
+        "as": "assignBatteryCopper"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assignBatteryCopper.data.commandId",
+          "commandKind": "CraftAssignSlot",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assignBatteryCopperReceipt"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assign-slot 1 $captures.ironForCrafting.container $captures.ironForCrafting.stackId $captures.ironForCrafting.variantId",
+        "as": "assignBatteryIron"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assignBatteryIron.data.commandId",
+          "commandKind": "CraftAssignSlot",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assignBatteryIronReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "slots",
+          "data.payload.recipeId": "extractor_battery",
+          "data.payload.slotScreen.canAssemble": false
+        },
+        "timeoutMs": 8000,
+        "as": "batteryTwoSlotsAssigned"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assign-slot 2 $captures.fuelForBattery.container $captures.fuelForBattery.stackId $captures.fuelForBattery.variantId",
+        "as": "assignBatteryFuel"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assignBatteryFuel.data.commandId",
+          "commandKind": "CraftAssignSlot",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assignBatteryFuelReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "slots",
+          "data.payload.recipeId": "extractor_battery",
+          "data.payload.slotScreen.canAssemble": true
+        },
+        "timeoutMs": 8000,
+        "as": "batteryReadyToAssemble"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assemble",
+        "as": "assembleBattery"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assembleBattery.data.commandId",
+          "commandKind": "CraftAssemble",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assembleBatteryReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "assembled",
+          "data.payload.recipeId": "extractor_battery",
+          "data.payload.assembled.experimentationPointsRemaining": {
+            "op": "gt",
+            "value": 0
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "batteryAssembledSession"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-experiment line_id=0 points=1",
+        "as": "experimentBattery"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.experimentBattery.data.commandId",
+          "commandKind": "CraftExperiment",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "experimentBatteryReceipt"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-finalize-prototype",
+        "as": "finalizeBattery"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.finalizeBattery.data.commandId",
+          "commandKind": "CraftFinalizePrototype",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "finalizeBatteryReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:crafted-gear",
+          "itemId": 3201,
+          "minAvailable": 1
+        },
+        "timeoutMs": 8000,
+        "as": "batteryForExtractor"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-begin metal_extractor",
+        "as": "beginExtractor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.beginExtractor.data.commandId",
+          "commandKind": "CraftBegin",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "beginExtractorReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "slots",
+          "data.payload.recipeId": "metal_extractor",
+          "data.payload.slotScreen.canAssemble": false,
+          "data.payload.detail.slots[0].requiredItemId": 2001,
+          "data.payload.detail.slots[1].requiredItemId": 2007
+        },
+        "timeoutMs": 8000,
+        "as": "extractorSlotScreen"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assign-slot 0 $captures.ironForCrafting.container $captures.ironForCrafting.stackId $captures.ironForCrafting.variantId",
+        "as": "assignExtractorIron"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assignExtractorIron.data.commandId",
+          "commandKind": "CraftAssignSlot",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assignExtractorIronReceipt"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assign-slot 1 $captures.copperForCrafting.container $captures.copperForCrafting.stackId $captures.copperForCrafting.variantId",
+        "as": "assignExtractorCopper"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assignExtractorCopper.data.commandId",
+          "commandKind": "CraftAssignSlot",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assignExtractorCopperReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "slots",
+          "data.payload.recipeId": "metal_extractor",
+          "data.payload.slotScreen.canAssemble": true
+        },
+        "timeoutMs": 8000,
+        "as": "extractorReadyToAssemble"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-assemble",
+        "as": "assembleExtractor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.assembleExtractor.data.commandId",
+          "commandKind": "CraftAssemble",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "assembleExtractorReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "alpha",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "assembled",
+          "data.payload.recipeId": "metal_extractor",
+          "data.payload.assembled.experimentationPointsRemaining": {
+            "op": "gt",
+            "value": 0
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "extractorAssembledSession"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-experiment line_id=0 points=1",
+        "as": "experimentExtractor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.experimentExtractor.data.commandId",
+          "commandKind": "CraftExperiment",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "experimentExtractorReceipt"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/craft-finalize-prototype",
+        "as": "finalizeExtractor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.finalizeExtractor.data.commandId",
+          "commandKind": "CraftFinalizePrototype",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "finalizeExtractorReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "bootcraft:crafted-gear",
+          "itemId": 3006,
+          "minAvailable": 1
+        },
+        "timeoutMs": 8000,
+        "as": "metalExtractor"
+      }
+    },
+    {
+      "action": {
+        "name": "surveyBest",
+        "actor": "alpha",
+        "args": {
+          "family": "copper",
+          "move": true,
+          "toleranceCells": 0.9,
+          "moveOptions": {
+            "sprint": false,
+            "pulseMs": 160,
+            "maxPulses": 400
+          }
+        }
+      },
+      "as": "extractorCopperLode"
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/place-extractor copper",
+        "as": "placeExtractor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.placeExtractor.data.commandId",
+          "commandKind": "PlaceExtractor",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "placeExtractorReceipt"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/insert-battery extractor:bootcraft:1 $captures.batteryForExtractor.container $captures.batteryForExtractor.stackId $captures.batteryForExtractor.variantId",
+        "as": "insertBattery"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.insertBattery.data.commandId",
+          "commandKind": "InsertBattery",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "insertBatteryReceipt"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "extractorCollectableUnits",
+          "extractorId": "extractor:bootcraft:1",
+          "min": 1
+        },
+        "timeoutMs": 5000,
+        "as": "extractorCollectable"
+      }
+    },
+    {
+      "query": {
+        "actor": "alpha",
+        "line": "/inv bootcraft:resource-crate",
+        "as": "resourcesBeforeCollect"
+      }
+    },
+    {
+      "send": {
+        "actor": "alpha",
+        "line": "/collect-extractor extractor:bootcraft:1",
+        "as": "collectExtractor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "alpha",
+        "match": {
+          "commandId": "$captures.collectExtractor.data.commandId",
+          "commandKind": "CollectExtractor",
+          "accepted": true
+        },
+        "timeoutMs": 8000,
+        "as": "collectExtractorReceipt"
+      }
+    },
+    {
+      "query": {
+        "actor": "alpha",
+        "line": "/inv bootcraft:resource-crate",
+        "as": "resourcesAfterCollect"
+      }
+    },
+    {
+      "expect": {
+        "kind": "queryDelta",
+        "from": "resourcesBeforeCollect",
+        "to": "resourcesAfterCollect",
+        "path": "data.totalAvailable",
+        "minDelta": 1
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.alpha.id",
+          "match": {
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "xp": {
+                  "op": "gt",
+                  "value": 0
+                }
+              }
+            }
+          }
+        },
+        "timeoutMs": 8000,
+        "as": "finalCrafterState"
+      }
+    },
+    {
+      "expect": {
+        "kind": "envelopeCount",
+        "actor": "alpha",
+        "envelopeType": "receipt",
+        "match": {
+          "accepted": false
+        },
+        "op": "eq",
+        "value": 0
+      }
+    },
+    {
+      "expect": {
+        "kind": "stableHash",
+        "sourceStateHash": "fixture",
+        "as": "bootstrapCrafterStableHash"
+      }
+    }
+  ],
+  "notes": "Bootstrap acceptance gate: a Brawler starter enters with only its Scrapline Machete, learns Craftsman from the real trainer, and explicitly requests the starter bundle's Field Multitool and Mineral Survey Tool. Universal tool-free hand sampling gathers the first iron and copper. The issued Mineral Survey Tool unlocks trained mapping, followed by a crafted Chemical Survey Device, Fuel, a three-slot battery, and a crafted extractor through collection. No debug grants occur after the fixture-provided character store."
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successor.local/schema/asset_registry.json",
+  "title": "Asset registry",
+  "description": "Registry contract for authored 3D, presentation, and audio assets promoted into Successor.",
+  "type": "object",
+  "required": ["version", "assets"],
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["asset_id", "kind", "path", "manifest"],
+        "properties": {
+          "asset_id": { "type": "string" },
+          "kind": {
+            "enum": [
+              "model_glb",
+              "model_source",
+              "material",
+              "texture",
+              "shader",
+              "visual_effect",
+              "ui_icon",
+              "sfx",
+              "music",
+              "voice",
+              "animation"
+            ]
+          },
+          "path": { "type": "string", "description": "Path relative to content-pipeline/" },
+          "manifest": { "type": "string", "description": "Path to manifest, relative to content-pipeline/" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "maturity": {
+            "type": "string",
+            "enum": ["integrated", "cataloged", "source"],
+            "description": "Promotion state defined by docs/CANONICAL_CONTEXT.md"
+          }
+        }
+      }
+    }
+  }
+}

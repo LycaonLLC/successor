@@ -1,0 +1,339 @@
+{
+  "version": 2,
+  "generated": "2026-07-14",
+  "style": "filled-silhouette",
+  "source_sheet_sha256": "130f99749ea55647f53ce061ce5088208ee4009b10ac0dd331c4a5a452ab9ddc",
+  "model": "gpt-image-2",
+  "note": "Theme-tintable white-alpha mask PNGs (128px). The FE renders vectors composed by purposeIconSvgs.ts from generated registries; PNGs stage the same set for canvas/raster consumers. The legacy top-level source/model fields describe the v1 base sheet; source_sheets records every generation lane. name -> path -> purpose.",
+  "source_sheets": [
+    {
+      "catalog": "catalog-v1.json",
+      "sha256": "130f99749ea55647f53ce061ce5088208ee4009b10ac0dd331c4a5a452ab9ddc",
+      "provider": "OpenAI",
+      "model": "gpt-image-2",
+      "date": "2026-07-08"
+    },
+    {
+      "catalog": "catalog-crafting-v2.json",
+      "sha256": "c7c05f18e549cf22b9438760e785c844674819a9b5f51bb3f0f5852e3d252f05",
+      "provider": "OpenAI built-in image generation",
+      "requested_model": "gpt-image-2",
+      "reported_model": null,
+      "date": "2026-07-14"
+    }
+  ],
+  "icons": [
+    {
+      "name": "resource.mineral",
+      "path": "assets/ui/icons/icon_resource_mineral.png",
+      "purpose": "a rough faceted ore chunk",
+      "domain": "resource"
+    },
+    {
+      "name": "resource.chemical",
+      "path": "assets/ui/icons/icon_resource_chemical.png",
+      "purpose": "an Erlenmeyer flask with a fill line",
+      "domain": "resource"
+    },
+    {
+      "name": "resource.gas",
+      "path": "assets/ui/icons/icon_resource_gas.png",
+      "purpose": "a pressure cylinder with a valve stem",
+      "domain": "resource"
+    },
+    {
+      "name": "resource.water",
+      "path": "assets/ui/icons/icon_resource_water.png",
+      "purpose": "a single droplet",
+      "domain": "resource"
+    },
+    {
+      "name": "resource.flora",
+      "path": "assets/ui/icons/icon_resource_flora.png",
+      "purpose": "a leaf with a midrib",
+      "domain": "resource"
+    },
+    {
+      "name": "resource.creature",
+      "path": "assets/ui/icons/icon_resource_creature.png",
+      "purpose": "an animal paw print",
+      "domain": "resource"
+    },
+    {
+      "name": "purpose.casing",
+      "path": "assets/ui/icons/icon_purpose_casing.png",
+      "purpose": "an open rectangular housing shell with a cavity",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.conductor",
+      "path": "assets/ui/icons/icon_purpose_conductor.png",
+      "purpose": "a lightning bolt over a wire coil",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.structural",
+      "path": "assets/ui/icons/icon_purpose_structural.png",
+      "purpose": "an I-beam girder cross-section",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.barrel",
+      "path": "assets/ui/icons/icon_purpose_barrel.png",
+      "purpose": "a gun barrel muzzle, two concentric circles with tick marks",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.propellant",
+      "path": "assets/ui/icons/icon_purpose_propellant.png",
+      "purpose": "a flame over a powder charge",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.grip",
+      "path": "assets/ui/icons/icon_purpose_grip.png",
+      "purpose": "a wrapped pistol grip handle",
+      "domain": "purpose"
+    },
+    {
+      "name": "item.weapon",
+      "path": "assets/ui/icons/icon_item_weapon.png",
+      "purpose": "an angular rifle silhouette",
+      "domain": "item"
+    },
+    {
+      "name": "item.armor",
+      "path": "assets/ui/icons/icon_item_armor.png",
+      "purpose": "a chest plate cuirass",
+      "domain": "item"
+    },
+    {
+      "name": "item.tool",
+      "path": "assets/ui/icons/icon_item_tool.png",
+      "purpose": "a wrench",
+      "domain": "item"
+    },
+    {
+      "name": "item.seed",
+      "path": "assets/ui/icons/icon_item_seed.png",
+      "purpose": "a sprouting seed with two leaves",
+      "domain": "item"
+    },
+    {
+      "name": "item.battery",
+      "path": "assets/ui/icons/icon_item_battery.png",
+      "purpose": "a battery cell with terminal studs",
+      "domain": "item"
+    },
+    {
+      "name": "item.kit",
+      "path": "assets/ui/icons/icon_item_kit.png",
+      "purpose": "a field case with a cross",
+      "domain": "item"
+    },
+    {
+      "name": "window.inventory",
+      "path": "assets/ui/icons/icon_window_inventory.png",
+      "purpose": "a footlocker crate",
+      "domain": "window"
+    },
+    {
+      "name": "window.character",
+      "path": "assets/ui/icons/icon_window_character.png",
+      "purpose": "a head-and-shoulders person bust",
+      "domain": "window"
+    },
+    {
+      "name": "window.survey",
+      "path": "assets/ui/icons/icon_window_survey.png",
+      "purpose": "a radar dish emitting waves",
+      "domain": "window"
+    },
+    {
+      "name": "window.craft",
+      "path": "assets/ui/icons/icon_window_craft.png",
+      "purpose": "a hammer over an anvil",
+      "domain": "window"
+    },
+    {
+      "name": "window.trade",
+      "path": "assets/ui/icons/icon_window_trade.png",
+      "purpose": "two opposing horizontal arrows",
+      "domain": "window"
+    },
+    {
+      "name": "window.datapad",
+      "path": "assets/ui/icons/icon_window_datapad.png",
+      "purpose": "a handheld tablet with an antenna",
+      "domain": "window"
+    },
+    {
+      "name": "system.skills",
+      "path": "assets/ui/icons/icon_system_skills.png",
+      "purpose": "three ascending connected nodes",
+      "domain": "system"
+    },
+    {
+      "name": "system.macro",
+      "path": "assets/ui/icons/icon_system_macro.png",
+      "purpose": "a terminal prompt chevron and cursor line in a frame",
+      "domain": "system"
+    },
+    {
+      "name": "system.travel",
+      "path": "assets/ui/icons/icon_system_travel.png",
+      "purpose": "a signpost with two direction boards",
+      "domain": "system"
+    },
+    {
+      "name": "system.camp",
+      "path": "assets/ui/icons/icon_system_camp.png",
+      "purpose": "a field tent",
+      "domain": "system"
+    },
+    {
+      "name": "system.group",
+      "path": "assets/ui/icons/icon_system_group.png",
+      "purpose": "two person silhouettes side by side",
+      "domain": "system"
+    },
+    {
+      "name": "system.rare",
+      "path": "assets/ui/icons/icon_system_rare.png",
+      "purpose": "a five-pointed star",
+      "domain": "system"
+    },
+    {
+      "name": "item.tool_survey_mineral",
+      "path": "assets/ui/icons/icon_tool_survey_mineral.png",
+      "purpose": "handheld mineral survey scanner with ore facet cutout",
+      "domain": "item"
+    },
+    {
+      "name": "item.tool_survey_chemical",
+      "path": "assets/ui/icons/icon_tool_survey_chemical.png",
+      "purpose": "handheld chemical survey scanner with Erlenmeyer flask cutout",
+      "domain": "item"
+    },
+    {
+      "name": "item.tool_survey_gas",
+      "path": "assets/ui/icons/icon_tool_survey_gas.png",
+      "purpose": "handheld gas survey scanner with bubble cutout",
+      "domain": "item"
+    },
+    {
+      "name": "item.tool_survey_water",
+      "path": "assets/ui/icons/icon_tool_survey_water.png",
+      "purpose": "handheld water survey scanner with droplet cutout",
+      "domain": "item"
+    },
+    {
+      "name": "purpose.housing",
+      "path": "assets/ui/icons/icon_purpose_housing.png",
+      "purpose": "a protective equipment housing with an open center cavity",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.dielectric",
+      "path": "assets/ui/icons/icon_purpose_dielectric.png",
+      "purpose": "an electrical insulator with separated terminals and a lightning cutout",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.shell",
+      "path": "assets/ui/icons/icon_purpose_shell.png",
+      "purpose": "a hard rounded outer shell plate",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.agent",
+      "path": "assets/ui/icons/icon_purpose_agent.png",
+      "purpose": "a sealed treatment vial with an active compound mark",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.reagent",
+      "path": "assets/ui/icons/icon_purpose_reagent.png",
+      "purpose": "a laboratory reagent bottle with a stopper",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.solvent",
+      "path": "assets/ui/icons/icon_purpose_solvent.png",
+      "purpose": "a chemical flask containing a dissolving droplet",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.regulator",
+      "path": "assets/ui/icons/icon_purpose_regulator.png",
+      "purpose": "an adjustment dial with control tick marks",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.frame",
+      "path": "assets/ui/icons/icon_purpose_frame.png",
+      "purpose": "a rigid structural chassis frame",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.biogel",
+      "path": "assets/ui/icons/icon_purpose_biogel.png",
+      "purpose": "a soft medical gel pouch with a droplet",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.salts",
+      "path": "assets/ui/icons/icon_purpose_salts.png",
+      "purpose": "a cluster of crystalline mineral salts",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.controller",
+      "path": "assets/ui/icons/icon_purpose_controller.png",
+      "purpose": "a compact control module with directional inputs",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.suspension",
+      "path": "assets/ui/icons/icon_purpose_suspension.png",
+      "purpose": "a suspended liquid vessel with particles in solution",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.stimulant",
+      "path": "assets/ui/icons/icon_purpose_stimulant.png",
+      "purpose": "a medical ampoule with an energy bolt",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.binder",
+      "path": "assets/ui/icons/icon_purpose_binder.png",
+      "purpose": "two bonded material layers held together",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.inhalant",
+      "path": "assets/ui/icons/icon_purpose_inhalant.png",
+      "purpose": "a compact inhaler emitting a measured spray",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.neuro",
+      "path": "assets/ui/icons/icon_purpose_neuro.png",
+      "purpose": "a brain and neural pathway symbol",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.counter",
+      "path": "assets/ui/icons/icon_purpose_counter.png",
+      "purpose": "a defensive medical counteragent shield",
+      "domain": "purpose"
+    },
+    {
+      "name": "purpose.eyewash",
+      "path": "assets/ui/icons/icon_purpose_eyewash.png",
+      "purpose": "an eye above a rinsing droplet",
+      "domain": "purpose"
+    }
+  ]
+}

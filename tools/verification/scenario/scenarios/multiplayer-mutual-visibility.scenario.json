@@ -1,0 +1,28 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "multiplayer-mutual-visibility",
+  "fixture": "open-desert-multiplayer-visibility",
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "steps": [
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-vis-beta", "lifeState": "alive" } } }, "timeoutMs": 10000, "intervalMs": 250, "as": "alphaSeesBetaStart" } },
+    { "await": { "kind": "query", "actor": "beta", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-vis-alpha", "lifeState": "alive" } } }, "timeoutMs": 10000, "intervalMs": 250, "as": "betaSeesAlphaStart" } },
+    { "query": { "actor": "beta", "line": "/where", "as": "betaWhereStart" } },
+    { "send": { "actor": "beta", "line": "/move 1 0 30 Right false", "as": "betaMove" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaMove.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 8000, "as": "betaMoveReceipt" } },
+    "/pause 1.2s",
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-vis-beta", "match": { "x": { "op": "gt", "value": 523 } } }, "timeoutMs": 10000, "as": "betaMovedOracle" } },
+    { "query": { "actor": "beta", "line": "/where", "as": "betaWhereMoved" } },
+    { "expect": { "kind": "oraclePredictionError", "actor": "beta", "query": "betaWhereMoved", "maxCells": 4.25 } },
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-vis-beta", "x": { "op": "gt", "value": 523 } } } }, "timeoutMs": 10000, "intervalMs": 250, "as": "alphaSeesBetaMoved" } },
+    { "send": { "actor": "beta", "line": "/kneel", "as": "betaKneel" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaKneel.data.commandId", "commandKind": "SetPosture", "accepted": true }, "timeoutMs": 8000, "as": "betaKneelReceipt" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-vis-beta", "match": { "posture": "kneeling" } }, "timeoutMs": 10000, "as": "betaKneelingOracle" } },
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-vis-beta", "lifeState": "alive" } } }, "timeoutMs": 10000, "intervalMs": 250, "as": "alphaSeesBetaKneeling" } },
+    { "expect": { "kind": "envelopeCount", "actor": "beta", "envelopeType": "receipt", "match": { "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "visibilityStableHash" } }
+  ],
+  "notes": "Mutual AOI visibility uses player-visible /nearby for both directions and oracle-backed position and posture truth for movement and kneel assertions."
+}

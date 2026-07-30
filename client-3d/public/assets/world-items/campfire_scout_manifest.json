@@ -1,0 +1,28 @@
+{
+  "asset": "campfire_scout",
+  "atlas_px": 1024,
+  "bbox_max_m": [
+    0.5002025365829468,
+    0.3076208829879761,
+    0.5330810546875
+  ],
+  "bbox_min_m": [
+    -0.5600079298019409,
+    -0.003000000026077032,
+    -0.5418037176132202
+  ],
+  "footprint_diameter_m": 1.0749,
+  "gate": "gate_result.json",
+  "glb_sha256": "8dccd5dd003b6d1544c27a49ee65266cb5204e99c3d7e01e80568e61b85672c6",
+  "maps": [
+    "basecolor",
+    "normal(tangent)",
+    "orm(R=AO,G=rough,B=metal)",
+    "emissive(ember accents)"
+  ],
+  "material": "Campfire_PBR",
+  "object": "campfire_scout",
+  "tri_count": 1128,
+  "units": "m",
+  "unlit_note": "runtime world grade is unlit; BaseColor has AO folded in and ember emissive screened on top so MeshBasicMaterial carries the read"
+}

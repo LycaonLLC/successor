@@ -1,0 +1,9 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+backend.hcl
+
+# Bootstrap backend is generated only after the local bucket apply.
+bootstrap/backend.tf

@@ -1,0 +1,1289 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "core-world-restart-persistence",
+  "fixture": "open-desert-core-world-restart",
+  "lanes": [
+    "accel"
+  ],
+  "matrixLanes": [
+    "accel"
+  ],
+  "persistence": true,
+  "actors": {
+    "core": {
+      "character": "fixture:core"
+    }
+  },
+  "steps": [
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 506,
+          "y": 514,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 200
+        }
+      },
+      "as": "commerceWestBypass"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 506,
+          "y": 508,
+          "toleranceCells": 0.3,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 180
+        }
+      },
+      "as": "commerceSouthApproach"
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/toggle-door prop_id=dustgate-commerce-facility",
+        "as": "openCommerceDoor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.openCommerceDoor.data.commandId",
+          "commandKind": "ToggleDoor",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "propStates.dustgate-commerce-facility.doorOpen": true
+        },
+        "timeoutMs": 10000,
+        "as": "commerceDoorOpen"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 506,
+          "y": 505,
+          "toleranceCells": 0.3,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 120
+        }
+      },
+      "as": "commerceDoorway"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 509,
+          "y": 505,
+          "toleranceCells": 0.2,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 120
+        }
+      },
+      "as": "trainerInteriorApproach"
+    },
+    {
+      "action": {
+        "name": "setCareerGoal",
+        "actor": "core",
+        "args": {
+          "goalId": "rifle_quartermaster",
+          "trainerId": "camp-trainer",
+          "move": false,
+          "settleTicks": 2
+        }
+      },
+      "as": "careerGoalBeforeRestart"
+    },
+    {
+      "action": {
+        "name": "trainSkill",
+        "actor": "core",
+        "args": {
+          "boxId": "scout-novice",
+          "trainerId": "camp-trainer",
+          "move": false
+        }
+      },
+      "as": "restoreScoutAfterCareerRespec"
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/request-starter-tool trainer_actor_id=camp-trainer",
+        "as": "starterTool"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.starterTool.data.commandId",
+          "commandKind": "RequestStarterTool",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/apply-service-buff effect_id=medic_prep",
+        "as": "applyMedicPrep"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.applyMedicPrep.data.commandId",
+          "commandKind": "ApplyServiceBuff",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.core.id",
+          "match": {
+            "careerGoalId": "rifle_quartermaster",
+            "activeTitle.id": "craftsman-novice",
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "skillBoxes": {
+                  "op": "includes",
+                  "value": "craftsman-experimentation-ii"
+                }
+              }
+            },
+            "statuses": {
+              "includesObject": {
+                "id": "medic-prep"
+              }
+            },
+            "vitals.health": 170
+          }
+        },
+        "timeoutMs": 12000,
+        "as": "initialProfessionState"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "core-restart:field-pack",
+          "itemId": 3001,
+          "match": {
+            "available": 1
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "starterToolBeforeRestart"
+      }
+    },
+    {
+      "query": {
+        "actor": "core",
+        "line": "/inv 9002",
+        "as": "chipBeforeSplit"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "core-restart:field-pack",
+          "itemId": 9002,
+          "minAvailable": 1200
+        },
+        "timeoutMs": 10000,
+        "as": "chipBeforeSplitRow"
+      }
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/split-stack container=core-restart:field-pack stack_id=$captures.chipBeforeSplitRow.stackId item_id=9002 variant_id=0 quantity=200",
+        "as": "splitChip"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.splitChip.data.commandId",
+          "commandKind": "SplitStack",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "query": {
+        "actor": "core",
+        "line": "/inv 9002",
+        "as": "chipSplit"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "chipSplit",
+        "path": "data.totalStacks",
+        "op": "eq",
+        "value": 2
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "chipSplit",
+        "path": "data.totalAvailable",
+        "op": "eq",
+        "value": 1200
+      }
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/merge-stacks container=core-restart:field-pack source_stack_id=$captures.chipSplit.data.rows.1.stackId target_stack_id=$captures.chipSplit.data.rows.0.stackId",
+        "as": "mergeChip"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.mergeChip.data.commandId",
+          "commandKind": "MergeStacks",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "query": {
+        "actor": "core",
+        "line": "/inv 9002",
+        "as": "chipAfterMerge"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "chipAfterMerge",
+        "path": "data.totalStacks",
+        "op": "eq",
+        "value": 1
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "chipAfterMerge",
+        "path": "data.totalAvailable",
+        "op": "eq",
+        "value": 1200
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "core-restart:field-pack",
+          "itemId": 9002,
+          "match": {
+            "available": 1200
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "chipAfterMergeRow"
+      }
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/redeem-chip container=core-restart:field-pack stack_id=$captures.chipAfterMergeRow.stackId",
+        "as": "redeemChip"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.redeemChip.data.commandId",
+          "commandKind": "RedeemCreditChip",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "query": {
+        "actor": "core",
+        "line": "/inv 9002",
+        "as": "chipAfterRedeem"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "chipAfterRedeem",
+        "path": "data.totalStacks",
+        "op": "eq",
+        "value": 0
+      }
+    },
+    {
+      "command": {
+        "actor": "core",
+        "body": {
+          "RedeemCreditChip": {
+            "container": "core-restart:field-pack",
+            "stack_id": "$captures.chipAfterMergeRow.stackId"
+          }
+        },
+        "as": "duplicateRedeem"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "duplicateRedeem",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": false
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "duplicateRedeem",
+        "path": "receipt.reasonCode",
+        "op": "eq",
+        "value": "item_unavailable"
+      }
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/craft-begin recipe_id=chemical_survey_tool",
+        "as": "beginCraftDraft"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.beginCraftDraft.data.commandId",
+          "commandKind": "CraftBegin",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "action": {
+        "name": "craftAssignSlot",
+        "actor": "core",
+        "args": {
+          "slotIndex": 0,
+          "itemId": 2001,
+          "minAvailable": 24
+        }
+      },
+      "as": "assignDraftIron"
+    },
+    {
+      "action": {
+        "name": "craftAssignSlot",
+        "actor": "core",
+        "args": {
+          "slotIndex": 1,
+          "itemId": 2007,
+          "minAvailable": 12
+        }
+      },
+      "as": "assignDraftCopper"
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "core",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "slots",
+          "data.payload.recipeId": "chemical_survey_tool",
+          "data.payload.slotScreen.canAssemble": true
+        },
+        "timeoutMs": 10000,
+        "as": "craftDraftReadyBeforeRestart"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 505,
+          "y": 507,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 120
+        }
+      },
+      "as": "commerceExitDoorway"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 506,
+          "y": 514,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 180
+        }
+      },
+      "as": "commerceExitSouth"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 512.5,
+          "y": 513,
+          "toleranceCells": 0.35,
+          "pulseMs": 160,
+          "sprint": false
+        }
+      },
+      "as": "doorApproachBeforeRestart"
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/toggle-door prop_id=open-desert-shelter-house",
+        "as": "openDoor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.openDoor.data.commandId",
+          "commandKind": "ToggleDoor",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "propStates.open-desert-shelter-house.doorOpen": true
+        },
+        "timeoutMs": 10000,
+        "as": "doorBeforeRestart"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 521,
+          "y": 516,
+          "toleranceCells": 0.8
+        }
+      },
+      "as": "campApproach"
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/place-camp",
+        "as": "placeCamp"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.placeCamp.data.commandId",
+          "commandKind": "PlaceCamp",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "query": {
+        "actor": "core",
+        "line": "/where",
+        "as": "campPlacementPosition"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "placedCamps[0].campId": {
+            "op": "exists",
+            "value": true
+          },
+          "placedCamps[0].areaId": "open-desert-overworld",
+          "placedCamps[0].renderKind": "scout-camp"
+        },
+        "timeoutMs": 10000,
+        "as": "campBeforeRestart"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 524,
+          "y": 512,
+          "toleranceCells": 0.8
+        }
+      },
+      "as": "terminalApproach"
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/purchase-travel-ticket terminal_prop_id=travel-terminal-dustgate to_planet_id=verdance to_city_id=lowbough",
+        "as": "purchaseTicket"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.purchaseTicket.data.commandId",
+          "commandKind": "PurchaseTravelTicket",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "core-restart:field-pack",
+          "itemId": 5001,
+          "match": {
+            "available": 1,
+            "metadata.travelTicket.toPlanetId": "verdance",
+            "metadata.travelTicket.toCityId": "lowbough"
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "ticketBeforeRestart"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 524,
+          "y": 510,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 80
+        }
+      },
+      "as": "terminalNorthClear"
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 518,
+          "y": 510,
+          "toleranceCells": 0.4,
+          "pulseMs": 160,
+          "sprint": false,
+          "maxPulses": 120
+        }
+      },
+      "as": "patientPlazaWest"
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/equip-weapon weapon_id=slugthrower weapon_item_id=3101",
+        "as": "equipWeapon"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.equipWeapon.data.commandId",
+          "commandKind": "SetEquippedWeapon",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.core.id",
+          "match": {
+            "careerGoalId": "rifle_quartermaster",
+            "areaId": "open-desert-overworld",
+            "activeTitle.id": "craftsman-novice",
+            "vitals.health": 170,
+            "credits": 100500,
+            "weapon.weaponId": "slugthrower",
+            "weapon.weaponItemId": 3101,
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "skillBoxes": {
+                  "op": "includes",
+                  "value": "craftsman-experimentation-ii"
+                }
+              }
+            },
+            "statuses": {
+              "includesObject": {
+                "id": "medic-prep"
+              }
+            }
+          }
+        },
+        "timeoutMs": 12000,
+        "as": "actorBeforeCombat"
+      }
+    },
+    {
+      "action": {
+        "name": "attackUntilDowned",
+        "actor": "core",
+        "args": {
+          "targetId": "core-restart-patient",
+          "maxTicks": 900,
+          "pollTicks": 15,
+          "approachRangeCells": 1.5
+        }
+      },
+      "as": "patientDownedBeforeRestart"
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "core-restart-patient",
+          "match": {
+            "lifeState": "downed",
+            "vitals.health": 0
+          }
+        },
+        "timeoutMs": 12000,
+        "as": "patientDowned"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.core.id",
+          "match": {
+            "careerGoalId": "rifle_quartermaster",
+            "areaId": "open-desert-overworld",
+            "activeTitle.id": "craftsman-novice",
+            "credits": 100500,
+            "weapon.weaponId": "slugthrower",
+            "weapon.weaponItemId": 3101,
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "skillBoxes": {
+                  "op": "includes",
+                  "value": "craftsman-experimentation-ii"
+                }
+              }
+            },
+            "statuses": {
+              "includesObject": {
+                "id": "medic-prep"
+              }
+            }
+          }
+        },
+        "timeoutMs": 12000,
+        "as": "actorBeforeRestart"
+      }
+    },
+    {
+      "restart": {
+        "as": "restartEvidence",
+        "timeoutMs": 30000
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "restartEvidence",
+        "path": "oldProcess.mainPid",
+        "op": "exists",
+        "value": true
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "restartEvidence",
+        "path": "newProcess.mainPid",
+        "op": "ne",
+        "value": "$captures.restartEvidence.oldProcess.mainPid"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.core.id",
+          "match": {
+            "careerGoalId": "$captures.actorBeforeRestart.careerGoalId",
+            "areaId": "$captures.actorBeforeRestart.areaId",
+            "activeTitle.id": "$captures.actorBeforeRestart.activeTitle.id",
+            "vitals.health": "$captures.actorBeforeRestart.vitals.health",
+            "vitals.action": "$captures.actorBeforeRestart.vitals.action",
+            "vitals.spirit": "$captures.actorBeforeRestart.vitals.spirit",
+            "credits": "$captures.actorBeforeRestart.credits",
+            "weapon.weaponId": "$captures.actorBeforeRestart.weapon.weaponId",
+            "weapon.weaponItemId": "$captures.actorBeforeRestart.weapon.weaponItemId",
+            "weapon.ammoType": "$captures.actorBeforeRestart.weapon.ammoType",
+            "weapon.loadedRounds": "$captures.actorBeforeRestart.weapon.loadedRounds",
+            "professions": {
+              "includesObject": {
+                "id": "craftsman",
+                "skillBoxes": {
+                  "op": "includes",
+                  "value": "craftsman-experimentation-ii"
+                }
+              }
+            },
+            "statuses": {
+              "includesObject": {
+                "id": "medic-prep"
+              }
+            }
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "actorAfterRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "core-restart:field-pack",
+          "itemId": 3001,
+          "match": {
+            "available": 1
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "starterToolAfterRestart"
+      }
+    },
+    {
+      "query": {
+        "actor": "core",
+        "line": "/inv 9002",
+        "as": "chipAfterRestart"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "chipAfterRestart",
+        "path": "data.totalStacks",
+        "op": "eq",
+        "value": 0
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "core-restart:field-pack",
+          "itemId": 5001,
+          "match": {
+            "available": 1,
+            "metadata.travelTicket.toPlanetId": "verdance",
+            "metadata.travelTicket.toCityId": "lowbough"
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "ticketAfterRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "core-restart:field-pack",
+          "itemId": 2001,
+          "match": {
+            "reserved": 0,
+            "available": 24
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "ironUnconsumedAfterRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "core-restart:field-pack",
+          "itemId": 2007,
+          "match": {
+            "reserved": 0,
+            "available": 12
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "copperUnconsumedAfterRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "propStates.open-desert-shelter-house.doorOpen": true,
+          "placedCamps[0].campId": "$captures.campBeforeRestart.placedCamps.0.campId",
+          "placedCamps[0].areaId": "$captures.campBeforeRestart.placedCamps.0.areaId",
+          "placedCamps[0].cellX": "$captures.campBeforeRestart.placedCamps.0.cellX",
+          "placedCamps[0].cellY": "$captures.campBeforeRestart.placedCamps.0.cellY",
+          "placedCamps[0].renderKind": "$captures.campBeforeRestart.placedCamps.0.renderKind"
+        },
+        "timeoutMs": 15000,
+        "as": "worldAfterRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "core-restart-patient",
+          "match": {
+            "lifeState": "downed",
+            "vitals.health": 0
+          }
+        },
+        "timeoutMs": 15000,
+        "as": "patientAfterRestart"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 518,
+          "y": 511,
+          "toleranceCells": 0.3,
+          "pulseMs": 120,
+          "sprint": false,
+          "maxPulses": 80
+        }
+      },
+      "as": "patientApproachAfterRestart"
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/revive-actor target_actor_id=core-restart-patient",
+        "as": "revivePatient"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.revivePatient.data.commandId",
+          "commandKind": "ReviveActor",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/craft-cancel",
+        "as": "cancelCraftAfterRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.cancelCraftAfterRestart.data.commandId",
+          "commandKind": "CraftCancel",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "command": {
+        "actor": "core",
+        "body": {
+          "CraftCancel": {}
+        },
+        "as": "duplicateCraftCancel"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "duplicateCraftCancel",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": true
+      }
+    },
+    {
+      "await": {
+        "kind": "event",
+        "actor": "core",
+        "event": "craft_session",
+        "match": {
+          "data.payload.phase": "browse"
+        },
+        "timeoutMs": 10000,
+        "as": "craftSessionClearedAfterRestart"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "core-restart:field-pack",
+          "itemId": 2001,
+          "match": {
+            "reserved": 0,
+            "available": 24
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "ironRestoredAfterCancel"
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "inventoryRow",
+          "container": "core-restart:field-pack",
+          "itemId": 2007,
+          "match": {
+            "reserved": 0,
+            "available": 12
+          }
+        },
+        "timeoutMs": 10000,
+        "as": "copperRestoredAfterCancel"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": "$captures.campPlacementPosition.data.x",
+          "y": "$captures.campPlacementPosition.data.y",
+          "toleranceCells": 0.8
+        }
+      },
+      "as": "campApproachAfterRestart"
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/pack-up-camp",
+        "as": "packCamp"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.packCamp.data.commandId",
+          "commandKind": "PackUpCamp",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "command": {
+        "actor": "core",
+        "body": {
+          "PackUpCamp": {}
+        },
+        "as": "duplicatePackCamp"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "duplicatePackCamp",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": false
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "duplicatePackCamp",
+        "path": "receipt.reasonCode",
+        "op": "eq",
+        "value": "no_placed_camp"
+      }
+    },
+    {
+      "command": {
+        "actor": "core",
+        "body": {
+          "ReviveActor": {
+            "target_actor_id": "core-restart-patient"
+          }
+        },
+        "as": "duplicateRevive"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "duplicateRevive",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": false
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "duplicateRevive",
+        "path": "receipt.reasonCode",
+        "op": "eq",
+        "value": "item_unavailable"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 513,
+          "y": 513,
+          "toleranceCells": 0.8
+        }
+      },
+      "as": "returnToShelterDoor"
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/toggle-door prop_id=open-desert-shelter-house",
+        "as": "closeDoor"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.closeDoor.data.commandId",
+          "commandKind": "ToggleDoor",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "propStates.open-desert-shelter-house.doorOpen": false
+        },
+        "timeoutMs": 10000,
+        "as": "doorClosedAfterRestart"
+      }
+    },
+    {
+      "action": {
+        "name": "moveTo",
+        "actor": "core",
+        "args": {
+          "x": 524,
+          "y": 512,
+          "toleranceCells": 0.8
+        }
+      },
+      "as": "returnToTravelTerminal"
+    },
+    {
+      "send": {
+        "actor": "core",
+        "line": "/use-travel-ticket container=core-restart:field-pack stack_id=$captures.ticketAfterRestart.stackId item_id=travel_ticket item_numeric_id=5001",
+        "as": "useTicket"
+      }
+    },
+    {
+      "await": {
+        "kind": "receipt",
+        "actor": "core",
+        "match": {
+          "commandId": "$captures.useTicket.data.commandId",
+          "commandKind": "UseTravelTicket",
+          "accepted": true
+        },
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "command": {
+        "actor": "core",
+        "body": {
+          "UseTravelTicket": {
+            "container": "core-restart:field-pack",
+            "stack_id": "$captures.ticketAfterRestart.stackId",
+            "item_id": "travel_ticket",
+            "item_numeric_id": 5001
+          }
+        },
+        "as": "duplicateUseTicket"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "duplicateUseTicket",
+        "path": "receipt.accepted",
+        "op": "eq",
+        "value": false
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "duplicateUseTicket",
+        "path": "receipt.reasonCode",
+        "op": "eq",
+        "value": "travel_ticket_not_found"
+      }
+    },
+    {
+      "query": {
+        "actor": "core",
+        "line": "/inv 5001",
+        "as": "ticketAfterUse"
+      }
+    },
+    {
+      "expect": {
+        "kind": "captureCompare",
+        "capture": "ticketAfterUse",
+        "path": "data.totalStacks",
+        "op": "eq",
+        "value": 0
+      }
+    },
+    {
+      "await": {
+        "kind": "oracle",
+        "condition": {
+          "type": "actor",
+          "actor": "$actors.core.id",
+          "match": {
+            "areaId": "verdance-forest-overworld",
+            "credits": 100500
+          }
+        },
+        "timeoutMs": 12000,
+        "as": "finalTravelState"
+      }
+    }
+  ],
+  "notes": "One isolated accel-only fixture owns exact preconditions and all mutations use real authority commands. The Rifle Quartermaster career respec drops one out-of-plan skill box for 600 credits; redeeming the 1200-credit chip and retraining novice Scout leaves exactly 100500. Captures prove careerGoalId, activeTitle, profession/skill boxes, the two-item starter bundle, exact vitals, service status, chip conservation and consumption, an assigned two-slot craft draft, open shelter door, held travel ticket metadata, patient downed state, equipped weapon, and exact camp identity/location across one ProcessHost restart. A post-restart accepted CraftCancel proves the in-progress draft survived; the deliberately idempotent duplicate remains accepted, the streamed session returns to browse, and exact inputs remain unconsumed. An accepted post-restart PackUpCamp proves ownership without leaking owner identity through the public debug oracle. Cleanup also revives the patient, closes the door, and consumes the travel ticket; non-idempotent consumptions have duplicate-rejection teeth."
+}

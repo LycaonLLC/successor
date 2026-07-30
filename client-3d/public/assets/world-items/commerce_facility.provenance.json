@@ -1,0 +1,55 @@
+{
+  "agent_provenance": {
+    "human_approvals": [],
+    "produced_by": [
+      {
+        "agent_instance_id": "CommerceTerminalBuilder",
+        "model": "Fable 5",
+        "provider": "anthropic",
+        "role": "content-author",
+        "run_id": "commerce-facility-20260718"
+      }
+    ],
+    "reviewed_by_agents": [
+      {
+        "agent_instance_id": "CommerceTerminalBuilder",
+        "notes": "numeric parsed-GLB gates + two labeled render iterations in .game-lab/commerce-facility-20260718/renders/",
+        "role": "judge"
+      }
+    ]
+  },
+  "asset_hash": "sha256:19d1e17a6b345202a5cf5e6d1e81b878eacc5630678a34ef41f7805260090f96",
+  "asset_id": "commerce_facility",
+  "asset_kind": "model_glb",
+  "asset_path": "client-3d/public/assets/world-items/commerce_facility.glb",
+  "gate_report": ".game-lab/commerce-facility-20260718/gate.json",
+  "human_edits": [],
+  "input_assets": [
+    {
+      "path": "tools/successor/assets/build_commerce_terminals.py",
+      "purpose": "shared premium design language, palette, materials, UV texture maps, mesh helpers"
+    },
+    {
+      "path": "tools/successor/assets/build_cloning_facility.py",
+      "purpose": "facility door/cutaway/collision/manifest contract reference"
+    }
+  ],
+  "prompt": {
+    "denylist_audit": "passed: no franchise/IP terms and no baked words in names, materials, node names, textures, or artifacts",
+    "text": "Hand-authored parametric part program (no generative model): Dustgate commerce facility \u2014 12x9-cell enterable civic marketplace landmark in the upgraded commerce premium language: chamfered basalt plinth course, buttressed back, pilastered sides, sand-ceramic recessed panels with bolts, offset entry bay with a centered 2.47 m (2.6 m runtime) pocket portal (door_slide + door_open/door_close), energized amber portal gasket, clerestory roof lantern, vent hoods and brass ductwork. Flagship interior: vestibule piers, medallion concourse on a warm ceramic concourse floor field, glazed bank counter with brass-ringed wall vault face and a distinct bank bay floor cue (ink anchor pad + brass vault ring + amber halo), trade counter with wall shelving and sample crates, PA civic notice bay with brass seal, three brass queue-rail runs, benches, wall sconces, ceiling light coves kept lit through the roof-peel cutaway (interior__ keep content), and a trainer consultation nook. Terminal machine cells (3,3)/(6,3)/(9,3) and trainer cell (10,6) kept clear for separate props. Mesh 11.4 x 8.55 m (runtime scale 1.0526315789 at 12x9 cells), floor top y=0.02 m. Shared commerce_* UV PBR texture maps (baseColor+MR+normal). Converted-mesh civic label 'DUSTGATE EXCHANGE' on the sign band (owner-directed); no franchise/IP motifs."
+  },
+  "regeneration_command": "/snap/bin/blender -b --factory-startup --python-exit-code 1 -P tools/successor/assets/build_commerce_facility.py",
+  "rights": {
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "source_license": "Successor proprietary project asset; all rights reserved"
+  },
+  "schema": "successor-asset-provenance/1",
+  "seed": "deterministic numpy texture seeds 2026071801..05 (shared with commerce terminals)",
+  "source_blend_or_script": "tools/successor/assets/build_commerce_facility.py (deterministic parametric part program; no .blend needed)",
+  "tool": {
+    "name": "blender-bpy-headless",
+    "tool_snapshot_id": "blender-5.2.0",
+    "version": "5.2.0"
+  },
+  "tri_count": 14502
+}

@@ -1,0 +1,120 @@
+{
+  "format": "successor/props-mapping/1",
+  "assetBase": "/assets/world-items/",
+  "source": "pawn-forge/export/world_items (approved world-items GLB library)",
+  "notes": [
+    "Keys are matched against PropSnapshot.assetKey first, then PropSnapshot.kind.",
+    "glb entries instance the referenced GLB, uniform-scaled to fit the world-cell footprint.",
+    "assetRotationDegrees is an explicit XYZ asset-space correction applied before bounds, recentering, and footprint fitting.",
+    "placeholder entries render a correctly-sized dark flat-shaded box and are flagged needs-authoring.",
+    "skip entries are non-physical logical constructs (ground fill, gather zones, debug cover overlays).",
+    "randomYaw applies a deterministic per-prop-id yaw for variety on organic items when the prop has no authored rotation.",
+    "megalith_* entries are megalith_kit_v2 bakeoff atoms (pawn-forge/pawnforgev2/_bakeoff/megalith_kit_v2_20260703; banded band_top/mid/base, color-only materials) promoted as camp ruin dressing 2026-07-05.",
+    "house_shoulder: buildings-20260704 H1 Shoulder House, owner-ratified player-structure language.",
+    "Dustgate occupation pack (wave2): everyday-world-props GLBs referenced by absolute public path under /assets/wave-props/ so fixture mapping can promote already-public runtime assets without copying into world-items."
+  ],
+  "entries": {
+    "road_barrier": { "glb": "barricade_concrete.glb" },
+    "storage_chest": { "glb": "supply_cache.glb", "interactable": true },
+    "travel_terminal": {
+      "glb": "travel_terminal_grok_wedge.glb",
+      "interactable": true,
+      "assetRotationDegrees": [-90, 0, 0],
+      "nodeTransforms": [
+        { "node": "Module_screen", "translate": [0, -0.16, 0] }
+      ],
+      "animatedScreen": {
+        "node": "Module_screen",
+        "texture": "travel_terminal_grok_wedge_screen.png",
+        "speed": 0.16,
+        "pulseHz": 0.62,
+        "repeatY": 0.28
+      }
+    },
+    "box_stack": { "glb": "crate_planked.glb" },
+    "megalith_brick_hex": { "glb": "megalith_brick_hex.glb" },
+    "megalith_brick_hex_half": { "glb": "megalith_brick_hex_half.glb" },
+    "megalith_brick_hex_xl": { "glb": "megalith_brick_hex_xl.glb" },
+    "megalith_plinth": { "glb": "megalith_plinth.glb" },
+    "house_shoulder": {
+      "glb": "house_h1.glb",
+      "slideDoor": { "node": "door_slide", "axisLocal": [-1, 0, 0], "distance": 1.22 },
+      "enterable": {
+        "revealPrefixes": ["roof__"],
+        "manifest": "house_h1_manifest.json",
+        "fadeSeconds": 0.25
+      }
+    },
+    "bank_terminal": { "glb": "bank_terminal.glb", "interactable": true },
+    "clone_terminal": { "glb": "clone_terminal.glb", "interactable": true },
+    "clone_pod": { "glb": "clone_pod.glb" },
+    "bank_terminal_civic": { "glb": "bank_terminal_civic.glb", "interactable": true },
+    "trade_terminal": { "glb": "trade_terminal.glb", "interactable": true },
+    "pa_terminal": { "glb": "pa_terminal.glb", "interactable": true },
+    "commerce_facility": {
+      "glb": "commerce_facility.glb",
+      "enterable": {
+        "revealPrefixes": ["roof__", "wall_front__", "wall_right__"],
+        "manifest": "commerce_facility_manifest.json",
+        "fadeSeconds": 0.25
+      },
+      "slideDoor": { "node": "door_slide", "axisLocal": [-1, 0, 0], "distance": 2.58 }
+    },
+    "cloning_facility": {
+      "glb": "cloning_facility.glb",
+      "enterable": {
+        "revealPrefixes": ["roof__", "wall_front__", "wall_right__"],
+        "manifest": "cloning_facility_manifest.json",
+        "fadeSeconds": 0.25
+      },
+      "slideDoor": { "node": "door_slide", "axisLocal": [-1, 0, 0], "distance": 2.4 }
+    },
+    "shelter_frontier": { "glb": "shelter_frontier.glb" },
+    "footlocker_frontier": { "glb": "footlocker_frontier.glb", "interactable": true },
+    "campfire_frontier": { "glb": "campfire_frontier.glb" },
+    "chair_frontier_a": { "glb": "chair_frontier_a.glb", "randomYaw": true },
+    "chair_frontier_b": { "glb": "chair_frontier_b.glb", "randomYaw": true },
+    "grill_frontier": { "glb": "grill_frontier.glb" },
+    "bench_mining_laser": { "glb": "bench_mining_laser.glb" },
+    "bench_laser_cutter": { "glb": "bench_laser_cutter.glb" },
+    "bench_welder": { "glb": "bench_welder.glb" },
+    "bench_flame_unit": { "glb": "bench_flame_unit.glb" },
+    "weapon_scrap_rifle": { "glb": "weapon_scrap_rifle.glb" },
+    "battery_pack_industrial": { "glb": "battery_pack_industrial.glb" },
+    "antenna_comms": { "glb": "antenna_comms.glb" },
+    "barrel_scav": { "glb": "barrel_scav.glb", "randomYaw": true },
+    "heap_scrap_desert": { "glb": "heap_scrap_desert.glb", "randomYaw": true },
+    "crate_cargo_heavy": { "glb": "crate_cargo_heavy.glb" },
+    "aircon_rooftop": { "glb": "aircon_rooftop.glb" },
+    "tank_water_frontier": { "glb": "tank_water_frontier.glb" },
+    "turret_sentry": { "glb": "turret_sentry.glb" },
+    "stall_vendor": { "glb": "stall_vendor.glb" },
+    "dumpster": { "placeholder": { "height": 1.35, "tint": "#5a6066", "needsAuthoring": "dumpster (large steel refuse container / box-truck-scale hull)" } },
+    "tire_stack": { "placeholder": { "height": 1.05, "tint": "#45484c", "needsAuthoring": "tire stack / tire wall cover" } },
+    "warning_sign": { "placeholder": { "height": 1.7, "tint": "#8a7440", "needsAuthoring": "post-mounted warning sign" } },
+    "traffic_cone": { "placeholder": { "height": 0.55, "tint": "#a05c2c", "needsAuthoring": "traffic cone" } },
+    "trash": { "placeholder": { "height": 0.4, "tint": "#6b6353", "needsAuthoring": "trash / scrap pile", "randomYaw": true } },
+    "aircon": { "placeholder": { "height": 0.95, "tint": "#78808a", "needsAuthoring": "AC / machinery unit" } },
+    "monitor": { "placeholder": { "height": 1.4, "tint": "#4e6470", "needsAuthoring": "terminal monitor kiosk" } },
+    "custom_cloner_exterior": { "placeholder": { "height": 2.4, "tint": "#5e7078", "needsAuthoring": "cloning center exterior shell" } },
+    "tile": { "skip": true },
+    "gather_point": { "skip": true },
+    "ai_test_cover": { "skip": true },
+    "everyday_vendor_awning": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_vendor_awning.glb" },
+    "everyday_wicker_display_stand": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_wicker_display_stand.glb", "randomYaw": true },
+    "everyday_wooden_pallet": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_wooden_pallet.glb", "randomYaw": true },
+    "everyday_wooden_crate_open": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_wooden_crate_open.glb", "randomYaw": true },
+    "everyday_burlap_sack_full": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_burlap_sack_full.glb", "randomYaw": true },
+    "everyday_paper_bags_stack": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_paper_bags_stack.glb", "randomYaw": true },
+    "everyday_workbench": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_workbench.glb" , "interactable": true },
+    "everyday_sawhorse_pair": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_sawhorse_pair.glb" },
+    "everyday_lumber_stack": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_lumber_stack.glb" },
+    "everyday_brick_stack": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_brick_stack.glb", "randomYaw": true },
+    "everyday_cement_bag": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_cement_bag.glb", "randomYaw": true },
+    "everyday_wheelbarrow": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_wheelbarrow.glb" },
+    "everyday_bucket_construction": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_bucket_construction.glb", "randomYaw": true },
+    "everyday_street_lamp_post": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_street_lamp_post.glb" },
+    "everyday_price_sign_slate": { "glb": "/assets/wave-props/everyday-wave-20260719/everyday-world-props/successor_everyday_price_sign_slate.glb" }
+  },
+  "defaultPlaceholder": { "height": 0.8, "tint": "#6e6557", "needsAuthoring": "unmapped prop type" }
+}

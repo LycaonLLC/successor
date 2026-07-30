@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Successor</title>
+    <meta
+      name="description"
+      content="A hard road through open desert and occupied places."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F8F8F8" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Karrik-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link
+      rel="preload"
+      href="/fonts/AtkinsonHyperlegibleNext-Latin-var.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/media/cinematic-poster-desktop.webp"
+      as="image"
+      type="image/webp"
+      media="(min-width: 48rem)"
+    />
+    <link
+      rel="preload"
+      href="/media/cinematic-poster-mobile.webp"
+      as="image"
+      type="image/webp"
+      media="(max-width: 47.99rem)"
+    />
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body data-page="home">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+      <div class="shell">
+        <a class="wordmark" href="/" aria-current="page">
+          <img
+            class="wordmark-mark"
+            src="/brand/successor-mark.svg"
+            width="20"
+            height="20"
+            alt=""
+            decoding="async"
+          />
+          <img
+            class="wordmark-type"
+            src="/brand/successor-wordmark.svg"
+            width="132"
+            height="16"
+            alt="Successor"
+            decoding="async"
+          />
+        </a>
+        <nav class="site-nav" aria-label="Site">
+          <ul class="nav-inline">
+            <li><a href="/" aria-current="page">Home</a></li>
+            <li><a href="/roadmap/">Roadmap</a></li>
+            <li><a href="/alpha/">Alpha</a></li>
+            <li><a href="/account/">Account</a></li>
+            <li><a href="/play/">Play</a></li>
+          </ul>
+          <details class="nav-menu">
+            <summary>Menu</summary>
+            <ul class="nav-list">
+              <li><a href="/" aria-current="page">Home</a></li>
+              <li><a href="/roadmap/">Roadmap</a></li>
+              <li><a href="/alpha/">Alpha</a></li>
+              <li><a href="/account/">Account</a></li>
+              <li><a href="/play/">Play</a></li>
+            </ul>
+          </details>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="home-main">
+      <section
+        class="cinema-hero"
+        aria-labelledby="h-hero"
+        data-cinema-hero
+        data-media-mode="static"
+      >
+        <figure class="cinema-stage" data-slot="identity-hero-desktop">
+          <picture data-slot="identity-hero-mobile">
+            <source
+              media="(max-width: 47.99rem)"
+              srcset="/media/cinematic-poster-mobile.webp"
+              type="image/webp"
+              width="1080"
+              height="1920"
+            />
+            <img
+              class="cinema-poster"
+              src="/media/cinematic-poster-desktop.webp"
+              width="1920"
+              height="1080"
+              fetchpriority="high"
+              decoding="async"
+              alt=""
+            />
+          </picture>
+          <video
+            data-cinema-video
+            class="cinema-video"
+            autoplay
+            muted
+            playsinline
+            loop
+            preload="metadata"
+            poster="/media/cinematic-poster-desktop.webp"
+            aria-hidden="true"
+            data-poster-desktop="/media/cinematic-poster-desktop.webp"
+            data-poster-mobile="/media/cinematic-poster-mobile.webp"
+            data-src-desktop-webm="/media/cinematic-reel-desktop.webm"
+            data-src-desktop-mp4="/media/cinematic-reel-desktop.mp4"
+            data-src-mobile-webm="/media/cinematic-reel-mobile.webm"
+            data-src-mobile-mp4="/media/cinematic-reel-mobile.mp4"
+          ></video>
+        </figure>
+        <div class="cinema-veil" aria-hidden="true"></div>
+        <div class="cinema-copy">
+          <img
+            class="cinema-wordmark"
+            src="/brand/successor-wordmark.svg"
+            width="405"
+            height="50"
+            alt="Successor"
+            decoding="async"
+          />
+          <h1 id="h-hero">The world is occupied.</h1>
+          <p class="cinema-support">A hard road through open desert and occupied places.</p>
+          <div class="cinema-actions">
+            <a class="btn btn-primary" href="/alpha/">Join the Alpha</a>
+            <a class="btn btn-secondary" href="#world">See the World</a>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn btn-icon cinema-sound"
+          data-cinema-sound
+          hidden
+          aria-pressed="false"
+          data-label-mute="Mute"
+          data-label-unmute="Sound on"
+        >
+          Sound on
+        </button>
+      </section>
+
+      <section id="world" class="act act-world" aria-labelledby="h-world" data-reveal>
+        <figure class="act-media act-media-bleed" data-slot="home-crossing-open">
+          <img
+            src="/media/crossing-1520.webp"
+            srcset="/media/crossing-760.webp 760w, /media/crossing-1520.webp 1520w"
+            sizes="100vw"
+            width="1520"
+            height="640"
+            loading="lazy"
+            decoding="async"
+            alt="Open desert around a shelter door: empty ground in every direction."
+          />
+        </figure>
+        <div class="act-rail">
+          <div class="act-copy">
+            <h2 id="h-world">Connected Lands</h2>
+            <p>Open desert. Verdance forest. Travel terminals join the long crossings.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="act act-craft" aria-labelledby="h-craft" data-reveal>
+        <div class="act-split">
+          <div class="act-copy">
+            <h2 id="h-craft">Gear Has a History</h2>
+            <p>What you carry came from a trainer, a workbench, a trade, or a fight.</p>
+          </div>
+          <figure class="act-media" data-slot="home-moment-craft">
+            <img
+              src="/media/craft-camp-kit-1200.webp"
+              srcset="/media/craft-camp-kit-640.webp 640w, /media/craft-camp-kit-1200.webp 1200w"
+              sizes="(min-width: 56rem) 52vw, 100vw"
+              width="1200"
+              height="750"
+              loading="lazy"
+              decoding="async"
+              alt="Craft window on the assemble step for a camp kit pattern."
+            />
+          </figure>
+        </div>
+      </section>
+
+      <section class="act act-tension" aria-labelledby="h-tension" data-reveal>
+        <div class="act-split act-split-invert">
+          <figure class="act-media" data-slot="home-moment-downed">
+            <img
+              src="/media/downed-recovery-1200.webp"
+              srcset="/media/downed-recovery-640.webp 640w, /media/downed-recovery-1200.webp 1200w"
+              sizes="(min-width: 56rem) 58vw, 100vw"
+              width="1200"
+              height="750"
+              loading="lazy"
+              decoding="async"
+              alt="A downed player lies in the sand while an incapacitated panel counts down."
+            />
+          </figure>
+          <div class="act-copy">
+            <h2 id="h-tension">Death Leaves a Mark</h2>
+            <p>Your corpse remains where you fell.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="act act-dustgate home-section" aria-label="Dustgate" data-reveal>
+        <figure class="dustgate-frame" data-slot="home-hero-wide">
+          <img
+            src="/media/hero-dustgate-1600.webp"
+            srcset="
+              /media/hero-dustgate-640.webp   640w,
+              /media/hero-dustgate-960.webp   960w,
+              /media/hero-dustgate-1600.webp 1600w
+            "
+            sizes="100vw"
+            width="1600"
+            height="1000"
+            loading="lazy"
+            decoding="async"
+            alt="Dustgate shelter and the people gathered around it."
+          />
+          <figcaption>Dustgate.</figcaption>
+        </figure>
+      </section>
+
+      <section class="terminal-act home-section" aria-labelledby="h-terminal" data-terminal-preview>
+        <div class="shell terminal-head">
+          <div>
+            <h2 id="h-terminal">Successor Runs in a Terminal</h2>
+            <p>Play from a terminal. The public build is still in testing.</p>
+          </div>
+          <button type="button" class="btn btn-secondary terminal-replay" data-terminal-replay>
+            Replay opening
+          </button>
+        </div>
+        <figure class="terminal-viewport" data-slot="home-terminal-tui">
+          <div class="terminal-crawl" aria-hidden="true">
+            <div class="terminal-crawl-plane">
+              <p class="terminal-crawl-kicker">DUSTGATE / FIRST CYCLE</p>
+              <p>
+                Dustgate holds the desert margin. Roads and rusted shells lead out into country
+                that does not care whether you are ready.
+              </p>
+              <p>
+                You step onto the road with a novice trade and the clothes on your back.
+              </p>
+              <p>The rest is already out there.</p>
+            </div>
+          </div>
+          <!-- Actual client-tui 80x24 frame fixture, kept as text rather than a scaled image. -->
+          <pre class="terminal-screen" data-terminal-screen tabindex="0" aria-label="Successor terminal client field screen"> SUCCESSOR · OPEN DESERT
+
+
+
+
+
+
+
+
+
+ You stand in the open desert. The light is hard and flat, heat standing on
+   the sand.
+ A rogue trooper comes into scope, a stretch off to the east, weapon drawn.
+ › /attack rogue-1
+ Your shot takes the rogue trooper square in the chest — 18.
+ ✗ SAMPLE RESOURCE DENIED — SAMPLER COOLING.
+ ◆ The scanner paints Dantooine iron strongest far off to the east — 100% at
+   the peak.
+────────────────────────────────────────────────────────────────────────────────
+
+ [local] Rusk: anyone near the extractor?
+────────────────────────────────────────────────────────────────────────────────
+ &gt; /attack rogue-1                                                   0✓ 0✗ · —</pre>
+          <figcaption>The field, at 80 × 24.</figcaption>
+        </figure>
+      </section>
+
+      <section class="alpha-close" aria-labelledby="h-alpha">
+        <div class="shell">
+          <h2 id="h-alpha">Join the Alpha</h2>
+          <p class="lede">Invite alpha. Access is limited.</p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="/alpha/">Join the Alpha</a>
+            <a class="btn btn-secondary" href="/play/">Play</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-foot">
+      <div class="shell">
+        <p>Invite alpha. Saves may reset.</p>
+        <ul class="foot-links">
+          <li><a href="/roadmap/">Roadmap</a></li>
+          <li><a href="/alpha/">Alpha</a></li>
+          <li><a href="/legal/terms/">Terms</a></li>
+          <li><a href="/legal/privacy/">Privacy</a></li>
+          <li><a href="/download/">Downloads</a></li>
+          <li><a href="/legal/terms/#contact">Contact</a></li>
+        </ul>
+        <p class="foot-credit">From Lycaon LLC, in partnership with ROYCORP GAME STUDIOS.</p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+[Unit]
+Description=Successor shard CloudWatch metrics
+After=network-online.target successor.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/successor/runtime.env
+EnvironmentFile=-/etc/successor/backup-retention.env
+ExecStart=/usr/local/libexec/successor-metrics.sh

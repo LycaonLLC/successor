@@ -1,0 +1,113 @@
+/* Neutral monochrome system.
+   Dark default, light via prefers-color-scheme.
+   Zero chroma on brand/UI tokens. Danger/ok keep semantic color. */
+:root {
+  --frame: oklch(0.12 0 0);
+  --frame-2: oklch(0.16 0 0);
+  --frame-3: oklch(0.2 0 0);
+  --seam: oklch(0.42 0 0 / 0.42);
+
+  --chalk: oklch(0.96 0 0);
+  --dust: oklch(0.78 0 0);
+
+  --primary: oklch(0.96 0 0);
+  --primary-ink: oklch(0.12 0 0);
+  --primary-hover: oklch(0.9 0 0);
+  --primary-press: oklch(0.82 0 0);
+
+  --link: oklch(0.88 0 0);
+  --link-hover: oklch(0.96 0 0);
+  --link-decoration: oklch(0.7 0 0 / 0.5);
+
+  --focus: oklch(0.9 0 0);
+  --selection-bg: oklch(0.36 0 0);
+  --selection-ink: oklch(0.96 0 0);
+
+  --active-border: oklch(0.9 0 0);
+  --control-active: oklch(0.96 0 0);
+  --edge-glow: oklch(0.96 0 0 / 0.28);
+
+  --danger: oklch(0.72 0.17 25);
+  --ok: oklch(0.78 0.13 155);
+
+  --font-display: "Karrik", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible Next", system-ui, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+
+  --step-5: clamp(2.5rem, 1.7rem + 3.4vw, 4.5rem);
+  --step-4: clamp(1.85rem, 1.4rem + 2vw, 2.85rem);
+  --step-3: clamp(1.35rem, 1.15rem + 0.9vw, 1.75rem);
+  --step-2: clamp(1.125rem, 1.05rem + 0.4vw, 1.35rem);
+
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+  --page-max: 72rem;
+  --topbar-h: 3.5rem;
+  --text-max: 40rem;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --speed: 160ms;
+
+  --z-base: 0;
+  --z-content: 1;
+  --z-hero-ui: 5;
+  --z-head: 20;
+  --z-menu: 25;
+  --z-skip: 30;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --frame: oklch(0.985 0 0);
+    --frame-2: oklch(0.96 0 0);
+    --frame-3: oklch(0.935 0 0);
+    --seam: oklch(0.45 0 0 / 0.28);
+
+    --chalk: oklch(0.16 0 0);
+    --dust: oklch(0.38 0 0);
+
+    --primary: oklch(0.16 0 0);
+    --primary-ink: oklch(0.985 0 0);
+    --primary-hover: oklch(0.28 0 0);
+    --primary-press: oklch(0.1 0 0);
+
+    --link: oklch(0.28 0 0);
+    --link-hover: oklch(0.12 0 0);
+    --link-decoration: oklch(0.4 0 0 / 0.45);
+
+    --focus: oklch(0.28 0 0);
+    --selection-bg: oklch(0.82 0 0);
+    --selection-ink: oklch(0.12 0 0);
+
+    --active-border: oklch(0.28 0 0);
+    --control-active: oklch(0.16 0 0);
+    --edge-glow: oklch(0.16 0 0 / 0.18);
+
+    --danger: oklch(0.5 0.19 25);
+    --ok: oklch(0.42 0.12 155);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --seam: oklch(0.55 0 0 / 0.7);
+    --dust: oklch(0.84 0 0);
+    --link: oklch(0.94 0 0);
+    --link-decoration: oklch(0.88 0 0 / 0.75);
+    --focus: oklch(0.98 0 0);
+    --active-border: oklch(0.98 0 0);
+    --edge-glow: oklch(1 0 0 / 0.45);
+  }
+}
+
+@media (prefers-color-scheme: light) and (prefers-contrast: more) {
+  :root {
+    --seam: oklch(0.28 0 0 / 0.55);
+    --dust: oklch(0.28 0 0);
+    --link: oklch(0.14 0 0);
+    --link-decoration: oklch(0.22 0 0 / 0.7);
+    --focus: oklch(0.1 0 0);
+    --active-border: oklch(0.1 0 0);
+    --edge-glow: oklch(0 0 0 / 0.32);
+  }
+}

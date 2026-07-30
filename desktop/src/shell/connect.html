@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="dark">
+<title>Successor — Sign in</title>
+<link rel="stylesheet" href="./connect.css">
+</head>
+<body>
+<main class="plate" id="plate" data-stage="loading" data-notice="">
+  <header class="masthead">
+    <h1 class="masthead-word">SUCCESSOR</h1>
+    <p class="masthead-sub">Account link</p>
+  </header>
+
+  <section class="stage stage-loading" aria-live="polite">
+    <p class="status">Checking this computer's link…</p>
+  </section>
+
+  <section class="stage stage-signin">
+    <h2 class="stage-title">Sign in</h2>
+    <p class="lede">This computer needs a link to your account. You approve the link in your browser — nothing about your account is typed here.</p>
+    <p class="status notice-line" id="signin-notice" role="status"></p>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-start" type="button">Get a link code</button>
+    </div>
+  </section>
+
+  <section class="stage stage-linking">
+    <h2 class="stage-title">Link code</h2>
+    <p class="code" id="user-code" aria-live="polite"></p>
+    <ol class="steps">
+      <li>Open <span class="host" id="approval-host"></span> in your browser.</li>
+      <li>Sign in and enter the code above.</li>
+    </ol>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-open" type="button">Open <span id="open-label"></span></button>
+      <button class="btn" id="btn-copy" type="button">Copy code</button>
+    </div>
+    <p class="status" id="linking-status" role="status">Waiting for approval in your browser.</p>
+    <p class="status dim" id="countdown"></p>
+    <div class="actions quiet-row">
+      <button class="btn btn-quiet" id="btn-cancel" type="button">Cancel</button>
+    </div>
+  </section>
+
+  <section class="stage stage-characters">
+    <h2 class="stage-title">Characters</h2>
+    <p class="status notice-line" id="characters-notice" role="status"></p>
+    <ul class="roster" id="roster" role="listbox" aria-label="Characters"></ul>
+    <p class="status dim" id="roster-empty" hidden>No characters on this account yet. Create one in your browser, then refresh.</p>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-enter" type="button">Enter world</button>
+      <button class="btn" id="btn-refresh" type="button">Refresh</button>
+    </div>
+    <p class="status dim" id="persist-note" hidden>This computer can't store the sign-in securely, so you'll need a new code next launch.</p>
+    <div class="actions quiet-row">
+      <button class="btn btn-quiet" id="btn-create" type="button">Open account page</button>
+      <button class="btn btn-quiet" id="btn-signout" type="button">Unlink this computer</button>
+    </div>
+  </section>
+
+  <section class="stage stage-launching" aria-live="polite">
+    <h2 class="stage-title">Entering world</h2>
+    <p class="status">One moment — joining the shared world.</p>
+  </section>
+
+  <section class="stage stage-nobridge">
+    <p class="status">This page only works inside the Successor desktop app.</p>
+  </section>
+</main>
+<script type="module" src="./connect.mjs"></script>
+</body>
+</html>

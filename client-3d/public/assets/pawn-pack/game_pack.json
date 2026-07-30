@@ -1,0 +1,607 @@
+{
+  "schema": "successor3d.game-pack/1",
+  "pawns": {
+    "male": {
+      "file": "pawn_male.glb",
+      "bare_file": "pawn_male_bare.glb",
+      "height_m": 1.7525,
+      "bones": 50,
+      "skeleton": "ue5_mannequin_50"
+    },
+    "female": {
+      "file": "pawn_female.glb",
+      "height_m": 1.7525,
+      "clips": "none \u2014 runtime rebinds pawn_male.glb clips (identical bone set and skin joint order, gate-verified)",
+      "bones": 50,
+      "skeleton": "ue5_mannequin_50"
+    }
+  },
+  "clips": [
+    {
+      "name": "idle",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 8.3,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.051
+    },
+    {
+      "name": "walk_f",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 1.0333,
+      "move_speed_mps": 1.399,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "run_f",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 0.7333,
+      "move_speed_mps": 3.654,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "walk_b",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 4.0,
+      "move_speed_mps": 0.963,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "rifle_idle",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 3.1333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "rifle_walk_f",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 1.4,
+      "move_speed_mps": 0.833,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "rifle_run_f",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 0.7667,
+      "move_speed_mps": 2.636,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "strafe_l",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 0.5667,
+      "move_speed_mps": 2.356,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "strafe_r",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 0.7,
+      "move_speed_mps": 2.759,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "crouch_idle",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 4.0,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "crouch_walk",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 4.0,
+      "move_speed_mps": 0.886,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "rifle_aim",
+      "layer": "upper",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 3.1333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "rifle_fire",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.3,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.001
+    },
+    {
+      "name": "reload",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 3.3333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "gun_grip_trigger_discipline",
+      "layer": "hand",
+      "mask": "hand",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 1.0,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_idle",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 2.0333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_walk_f",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 1.4,
+      "move_speed_mps": 0.924,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_run_f",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 0.6333,
+      "move_speed_mps": 3.641,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_ready",
+      "layer": "upper",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 2.0333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_grip",
+      "layer": "hand",
+      "mask": "hand",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.0667,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_draw",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.8333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_sheath",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.8333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_draw_alt",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.5333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "swing_h1",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 1.3,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "swing_h2",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 3.5667,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "swing_h3",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 1.8667,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "swing_thrust",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 1.2333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_flinch",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.9,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "block_hold",
+      "layer": "upper",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.5333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "swing_spin_aoe",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 1.9,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_strafe_l",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 1.1333,
+      "move_speed_mps": 0.981,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_strafe_r",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 1.2,
+      "move_speed_mps": 1.06,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_walk_v2",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 1.3333,
+      "move_speed_mps": 0.856,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_run_v2",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 0.6333,
+      "move_speed_mps": 3.641,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_turn_180",
+      "layer": "base",
+      "mask": null,
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.8333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "melee_turn_90",
+      "layer": "base",
+      "mask": null,
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.7667,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "death_f",
+      "layer": "base",
+      "mask": "full",
+      "loop": false,
+      "clamp_when_finished": true,
+      "duration_s": 3.0,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "death_b",
+      "layer": "base",
+      "mask": "full",
+      "loop": false,
+      "clamp_when_finished": true,
+      "duration_s": 2.8667,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true,
+      "max_root_drift_cm": 0.0
+    },
+    {
+      "name": "meditate_loop",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 4.0,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true
+    },
+    {
+      "name": "kneel_loop",
+      "layer": "base",
+      "mask": null,
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 4.0,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true
+    },
+    {
+      "name": "cast_aoe",
+      "layer": "montage",
+      "mask": "full",
+      "loop": false,
+      "clamp_when_finished": true,
+      "duration_s": 1.2,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true
+    },
+    {
+      "name": "cast_directed_windup",
+      "layer": "montage",
+      "mask": "full",
+      "loop": false,
+      "clamp_when_finished": true,
+      "duration_s": 0.5,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true
+    },
+    {
+      "name": "cast_directed_loop",
+      "layer": "montage",
+      "mask": "full",
+      "loop": true,
+      "clamp_when_finished": false,
+      "duration_s": 1.6,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true
+    },
+    {
+      "name": "stim_inject",
+      "layer": "arm",
+      "mask": "arm_l",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 1.8,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true
+    },
+    {
+      "name": "deflect_r",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.3667,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true
+    },
+    {
+      "name": "deflect_l",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.3667,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true
+    },
+    {
+      "name": "deflect_c",
+      "layer": "montage",
+      "mask": "upper",
+      "loop": false,
+      "clamp_when_finished": false,
+      "duration_s": 0.3333,
+      "move_speed_mps": 0.0,
+      "in_place_verified": true
+    }
+  ],
+  "weapons": {
+    "slugthrower": {
+      "file": "slugthrower.glb",
+      "attach": "slugthrower_attach.json"
+    },
+    "vibrosword": {
+      "file": "vibrosword.glb",
+      "attach": "vibrosword_attach.json"
+    }
+  },
+  "runtime_notes": [
+    "death_f/death_b are manifest-declared base clips with full masks for montage consumers; pelvis horizontal locked in-place and pelvis-Z fall kept (clamp_when_finished) \u2014 sim owns all horizontal translation",
+    "manifest_anim.json masks define upper/lower/arm/hand; the loader also derives a full mask from the cooked skeleton"
+  ],
+  "provenance": {
+    "cooked_utc": "2026-07-06T21:08:12+00:00",
+    "cook_script": "pawnforgev2/harness/cook_game_pack.py + cook_game_pack_v2.py",
+    "verify_script": "pawnforgev2/harness/verify_game_pack.py",
+    "blender": "5.1.2",
+    "canonical_body": "export/anim_preview/pawn_subtle_hero.glb (via its slim-shooter re-export, identical rest rig)",
+    "clip_sources": {
+      "mixamo_loco (pawn_loco_pack.glb; tmp_retarget_pack.py onto ue5_mannequin_50)": {
+        "idle": "idle",
+        "walk_f": "walking",
+        "run_f": "standard run"
+      },
+      "slim_shooter (pawn_subtle_hero_slim_shooter.glb; contracted merged_50 rifle clips/side steps + reload)": {
+        "strafe_l": "walk_left",
+        "strafe_r": "walk_right",
+        "rifle_aim": "idle_aiming",
+        "rifle_fire": "rifle_fire",
+        "reload": "reload",
+        "rifle_idle": "idle_aiming",
+        "rifle_walk_f": "walk_forward",
+        "rifle_run_f": "run_forward"
+      },
+      "kimodo_grips (pawn_kimodo_anims.glb, world-delta retarget, identical rest, source-cleaned support hand)": [
+        "gun_grip_trigger_discipline"
+      ],
+      "kimodo_combat (pawn_combat_anims.glb, world-delta retarget + linear pelvis de-drift)": [
+        "walk_b",
+        "crouch_idle",
+        "crouch_walk"
+      ],
+      "death_pack (export/game_pack_staging/death_pack.glb, DeathAnimSmith; direct action transfer, identical rest)": [
+        "death_f",
+        "death_b"
+      ],
+      "melee_pack (export/anim_preview/pawn_melee_pack.glb; Mixamo greatsword retarget recipe)": [
+        "melee_idle",
+        "melee_walk_f",
+        "melee_run_f",
+        "melee_ready",
+        "melee_grip",
+        "melee_draw",
+        "melee_sheath",
+        "melee_draw_alt",
+        "swing_h1",
+        "swing_h2",
+        "swing_h3",
+        "swing_thrust",
+        "melee_flinch",
+        "block_hold",
+        "swing_spin_aoe",
+        "melee_strafe_l",
+        "melee_strafe_r",
+        "melee_walk_v2",
+        "melee_run_v2",
+        "melee_turn_180",
+        "melee_turn_90"
+      ]
+    },
+    "death_pack_provenance": "see export/game_pack_staging/death_pack.manifest.json (mixamo retarget for deaths)",
+    "female_body": "export/game_pack_staging/pawn_subtle_hero_f.glb (FemaleVariant) \u2014 byte-copied",
+    "banned_material_excluded": "Unarmed idle/walk_f/run_f come from the allowed Mixamo Locomotion Pack carrier pawn_loco_pack.glb. Slim-shooter consumption remains limited to side steps and the rifle lane rifle_idle/rifle_walk_f/rifle_run_f plus rifle_aim/rifle_fire/reload. Pro_Rifle_Pack_2-derived merged_50 locomotion such as walk_backward/crouch remains excluded from this runtime pack; deaths are documented in death_pack.manifest.json.",
+    "move_speed_note": "loco walk_f/run_f speeds are measured from pre-dedrift endpoint travel during cook; slim rifle_walk_f/rifle_run_f speeds come from builder raw_audit pre-dedrift travel (pawn_v2_full_slim_fire_raw.clips.json); kimodo speeds measured pre-dedrift during cook.",
+    "slugthrower_glb_sha256": "8e0f4aaa7294fbc525ea545298d579e5fa37aa567b94ac1cf43f234dbdadfa86"
+  }
+}

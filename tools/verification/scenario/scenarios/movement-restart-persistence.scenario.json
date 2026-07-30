@@ -1,0 +1,45 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "movement-restart-persistence",
+  "fixture": "open-desert-movement",
+  "lanes": ["accel"],
+  "matrixLanes": ["accel"],
+  "persistence": true,
+  "actors": {
+    "alpha": { "character": "fixture:ranger-01" }
+  },
+  "steps": [
+    { "send": { "actor": "alpha", "line": "/kneel", "as": "kneel" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.kneel.data.commandId", "commandKind": "SetPosture", "accepted": true }, "timeoutMs": 10000, "as": "kneelReceipt" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.alpha.id", "match": { "posture": "kneeling", "lifeState": "alive" } }, "timeoutMs": 10000, "as": "kneelingState" } },
+    { "send": { "actor": "alpha", "line": "/stand", "as": "stand" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.stand.data.commandId", "commandKind": "SetPosture", "accepted": true }, "timeoutMs": 10000, "as": "standReceipt" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.alpha.id", "match": { "posture": "standing", "lifeState": "alive" } }, "timeoutMs": 10000, "as": "standingState" } },
+
+    { "query": { "actor": "alpha", "line": "/where", "as": "whereBeforeRestart" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.alpha.id", "match": { "areaId": "open-desert-overworld", "x": "$captures.whereBeforeRestart.data.x", "y": "$captures.whereBeforeRestart.data.y", "direction": "right", "posture": "standing", "lifeState": "alive" } }, "timeoutMs": 10000, "as": "actorBeforeRestart" } },
+    { "send": { "actor": "alpha", "line": "/set-move-intent 1 0 Right false", "alignTick": false, "as": "heldIntent" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.heldIntent.data.commandId", "commandKind": "SetMoveIntent", "accepted": true }, "timeoutMs": 10000, "as": "heldIntentReceipt" } },
+
+    { "restart": { "as": "restartEvidence", "timeoutMs": 30000 } },
+    { "query": { "actor": "alpha", "line": "/where", "as": "whereAfterRestart" } },
+    { "expect": { "kind": "captureCompare", "capture": "whereAfterRestart", "path": "data.areaId", "op": "eq", "value": "$captures.whereBeforeRestart.data.areaId" } },
+    { "expect": { "kind": "captureCompare", "capture": "whereAfterRestart", "path": "data.x", "op": "gte", "value": "$captures.whereBeforeRestart.data.x" } },
+    { "expect": { "kind": "captureCompare", "capture": "whereAfterRestart", "path": "data.y", "op": "eq", "value": "$captures.whereBeforeRestart.data.y" } },
+    { "expect": { "kind": "captureCompare", "capture": "whereAfterRestart", "path": "data.facing", "op": "eq", "value": "$captures.whereBeforeRestart.data.facing" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.alpha.id", "match": { "areaId": "$captures.actorBeforeRestart.areaId", "x": { "op": "gte", "value": "$captures.actorBeforeRestart.x" }, "y": "$captures.actorBeforeRestart.y", "direction": "$captures.actorBeforeRestart.direction", "posture": "$captures.actorBeforeRestart.posture", "lifeState": "$captures.actorBeforeRestart.lifeState" } }, "timeoutMs": 10000, "as": "actorAfterRestart" } },
+    { "expect": { "kind": "captureCompare", "capture": "actorAfterRestart", "path": "areaId", "op": "eq", "value": "$captures.actorBeforeRestart.areaId" } },
+    { "expect": { "kind": "captureCompare", "capture": "actorAfterRestart", "path": "x", "op": "gte", "value": "$captures.actorBeforeRestart.x" } },
+    { "expect": { "kind": "captureCompare", "capture": "actorAfterRestart", "path": "y", "op": "eq", "value": "$captures.actorBeforeRestart.y" } },
+    { "expect": { "kind": "captureCompare", "capture": "actorAfterRestart", "path": "direction", "op": "eq", "value": "$captures.actorBeforeRestart.direction" } },
+    { "expect": { "kind": "captureCompare", "capture": "actorAfterRestart", "path": "posture", "op": "eq", "value": "$captures.actorBeforeRestart.posture" } },
+
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "$actors.alpha.id", "match": { "x": { "op": "gt", "value": "$captures.whereAfterRestart.data.x" }, "areaId": "$captures.actorBeforeRestart.areaId", "lifeState": "alive" } }, "timeoutMs": 10000, "as": "heldIntentResumed" } },
+    { "send": { "actor": "alpha", "line": "/set-move-intent 1 0 Right false", "as": "postRestartIntent" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.postRestartIntent.data.commandId", "commandKind": "SetMoveIntent", "accepted": true }, "timeoutMs": 10000, "as": "postRestartIntentReceipt" } },
+    { "expect": { "kind": "captureCompare", "capture": "postRestartIntent", "path": "data.commandId", "op": "gt", "value": "$captures.heldIntent.data.commandId" } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "receipt", "match": { "commandKind": "SetMoveIntent", "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "commandStreamNoMatch", "match": { "commandKind": { "regex": "^Debug" } } } }
+  ],
+  "notes": "Manual-clock ProcessHost restart proof on the existing open-desert-movement fixture. Real posture commands establish and settle a standing posture, then an accepted SetMoveIntent transport command remains held at checkpoint with no pending receipt. Position, single-area continuity, facing/direction, posture, and life state are compared immediately after reconnect; resumed displacement proves the authority-held intent was restored. The post-restart SetMoveIntent receipt must use a command ID above the pre-restart command. The fixture has no legal area transition or destination, so this proves same-area continuity only; true transition continuity needs a fixture-registry character spawn adjacent to a legal transition plus the corresponding slice transition link/destination."
+}

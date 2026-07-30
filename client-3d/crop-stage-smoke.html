@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crop World Stage Smoke</title>
+    <style>
+      html, body, #app { width: 100%; height: 100%; margin: 0; }
+      body { overflow: hidden; background: #05070a; }
+      #diag { position: fixed; left: 8px; bottom: 8px; z-index: 99; color: #e4d7b4;
+              background: #0b0d10; border: 1px solid #2a2f36; padding: 6px; font: 11px monospace;
+              max-width: 70vw; white-space: pre-wrap; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <pre id="diag">…</pre>
+    <script type="module">
+      // CROP WORLD smoke — the REAL FarmCropsRenderer fed authoritative-shaped
+      // `serverAuthority.farmPlots` rows for all 9 species × 4 looks (+ a
+      // distressed row). No parallel mock renderer: every mesh below went
+      // through resolveCropRender/cropHealthPct/the shared template cache —
+      // the exact path SuccessorThreeRenderer drives in the live client.
+      import {
+        AmbientLight,
+        Color,
+        DirectionalLight,
+        Fog,
+        GridHelper,
+        HemisphereLight,
+        Mesh,
+        MeshBasicMaterial,
+        OrthographicCamera,
+        PlaneGeometry,
+        Scene,
+        WebGLRenderer,
+      } from "three";
+      import { FarmCropsRenderer, CROP_WORLD_SPECIES } from "/src/render/crops.ts";
+
+      const diag = (msg) => { const el = document.getElementById("diag"); if (el) el.textContent = msg; };
+      try {
+        const app = document.getElementById("app");
+        const scene = new Scene();
+        scene.background = new Color(0x0d1117);
+        scene.fog = new Fog(0x0d1117, 60, 140);
+
+        // Real asset materials are lit PBR, not debug-unlit. Give the smoke
+        // page a neutral three-point rig so every authored species/stage can
+        // be judged instead of merely proving that 45 dark meshes loaded.
+        scene.add(new HemisphereLight(0xddeeff, 0x46382a, 2.2));
+        scene.add(new AmbientLight(0xffffff, 1.15));
+        const keyLight = new DirectionalLight(0xfff1d4, 3.1);
+        keyLight.position.set(10, 18, 12);
+        scene.add(keyLight);
+        const fillLight = new DirectionalLight(0x8eb7ff, 1.7);
+        fillLight.position.set(-12, 9, -7);
+        scene.add(fillLight);
+
+        // Ground + grid so silhouettes and the 1-cell footprint read.
+        const ground = new Mesh(new PlaneGeometry(60, 30), new MeshBasicMaterial({ color: 0x3a3228 }));
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.set(9, -0.01, 5);
+        scene.add(ground);
+        const grid = new GridHelper(60, 60, 0x71624d, 0x332c23);
+        grid.position.set(9, 0, 5);
+        scene.add(grid);
+
+        // Authoritative-shaped streamed rows. Column = species, row = driven
+        // look. `health` uses the REAL wire strings (farming.rs W3):
+        //   planted       stage 0/5, vigorous
+        //   establishing  stage 2/5, vigorous
+        //   laden         stage 4/5, mature
+        //   husk          "dead" through the same cropHealthPct adapter (the
+        //                 numeric ≤0 channel is not yet streamed — see crops.ts)
+        //   distressed    stage 2/5, "wilting" (desaturation + droop on establishing)
+        const rows = [
+          { stage: 0, mature: false, health: "vigorous" },
+          { stage: 2, mature: false, health: "vigorous" },
+          { stage: 4, mature: true,  health: "vigorous" },
+          { stage: 4, mature: true,  health: "dead" },
+          { stage: 2, mature: false, health: "wilting" },
+        ];
+        const tiles = [];
+        CROP_WORLD_SPECIES.forEach((species, column) => {
+          rows.forEach((row, rank) => {
+            tiles.push({
+              cellX: column * 2,
+              cellY: rank * 2,
+              tilled: true,
+              moisturePct: 60,
+              fertilizer: "none",
+              legalVerbs: [],
+              crop: {
+                seedItemId: 6001 + column,
+                seedVariantId: 0,
+                species,
+                stage: row.stage,
+                stageCount: 5,
+                health: row.health,
+                blight: "none",
+                timeToMatureGameDays: row.mature ? null : 2,
+                qualitySoFarMilli: 500,
+                footprintW: 1,
+                footprintH: 1,
+                mature: row.mature,
+              },
+            });
+          });
+        });
+        const state = {
+          activeAreaId: "smoke-area",
+          serverAuthority: {
+            farmPlots: [{ parcelId: "smoke-parcel", areaId: "smoke-area", tiles }],
+          },
+        };
+
+        const crops = new FarmCropsRenderer(scene);
+
+        const renderer = new WebGLRenderer({ antialias: false });
+        renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+        app.appendChild(renderer.domElement);
+        const camera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+        const focusX = CROP_WORLD_SPECIES.length - 1 + 0.5; // grid center
+        const stageNames = ["planted", "establishing", "laden", "husk", "distressed(wilting)"];
+        const requestedRank = Number(new URLSearchParams(window.location.search).get("rank"));
+        const focusedRank = Number.isInteger(requestedRank) && requestedRank >= 0 && requestedRank < rows.length
+          ? requestedRank
+          : null;
+        const focusZ = focusedRank === null ? rows.length - 1 + 0.5 : focusedRank * 2 + 0.5;
+        const resize = () => {
+          const width = window.innerWidth;
+          const height = window.innerHeight;
+          renderer.setSize(width, height);
+          const viewHalf = focusedRank === null ? 7 : 2.75;
+          const aspect = width / Math.max(1, height);
+          camera.left = -viewHalf * aspect;
+          camera.right = viewHalf * aspect;
+          camera.top = viewHalf;
+          camera.bottom = -viewHalf;
+          camera.updateProjectionMatrix();
+        };
+        // Full grid uses the three-quarter overview. `?rank=0..4` gives a
+        // close, still three-dimensional audit lane across all nine species.
+        if (focusedRank === null) {
+          camera.position.set(focusX + 14, 16, focusZ + 14);
+        } else {
+          camera.position.set(focusX, 8, focusZ + 10);
+        }
+        camera.lookAt(focusX, 0.4, focusZ);
+        window.addEventListener("resize", resize);
+        resize();
+
+        let frameErr = null;
+        const frame = () => {
+          if (frameErr) return;
+          try {
+            crops.update(state); // same reconcile the live client runs per frame
+            renderer.render(scene, camera);
+            const counts = crops.debugInstanceCounts();
+            const live = Object.values(counts).reduce((sum, n) => sum + n, 0);
+            const failed = crops.debugFailedPaths();
+            diag(
+              `CROP WORLD SMOKE · ${CROP_WORLD_SPECIES.length} species × ${rows.length} rows` +
+              `\nrows: planted / establishing / laden / husk / distressed(wilting)` +
+              (focusedRank === null ? "" : `\nfocused row: ${stageNames[focusedRank]}`) +
+              `\ninstances: ${live}/${tiles.length}` +
+              (failed.length ? `\nMISSING GLBs (${failed.length}):\n  ${failed.join("\n  ")}` : "\nall requested GLBs loaded"),
+            );
+          } catch (e) { frameErr = e; diag("FRAME ERROR: " + (e && e.stack || e)); }
+          requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+        window.__cropSmoke = { crops, state, scene };
+      } catch (err) {
+        diag("SMOKE ERROR: " + (err && err.stack || err));
+      }
+    </script>
+  </body>
+</html>

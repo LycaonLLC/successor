@@ -1,0 +1,68 @@
+{
+  "asset": "pa_terminal",
+  "collisionProxy": {
+    "id": "pa_terminal__pylon",
+    "max": [
+      0.529,
+      1.75,
+      0.329
+    ],
+    "min": [
+      -0.529,
+      0.0,
+      -0.329
+    ],
+    "shape": "box",
+    "source": "authored",
+    "space": "asset-local meters, +Z front; placement yaw is applied by the world lane after this box (one stable post-rotation footprint proxy per terminal)"
+  },
+  "dims_m": {
+    "x": 1.058,
+    "y": 1.75,
+    "z": 0.658
+  },
+  "front_clearance_m": 0.8,
+  "front_clearance_note": "keep the cell in front of +Z free; every interactable surface faces +Z",
+  "gates": {
+    "detail": ".game-lab/commerce-terminals-20260718/gate.json",
+    "result": "see gate.json"
+  },
+  "glb": "pa_terminal.glb",
+  "gltf_conventions": {
+    "front": "+Z (interaction face: screens, controls)",
+    "pivot": "base center, min_y=0",
+    "up": "+Y"
+  },
+  "identity": "Dustgate association registry terminal \u2014 civic roster pylon: chamfered basalt feet with anchor studs, a ceramic slab in profiled basalt pilasters under a stepped cornice with a recessed cyan beacon cove, a layered brass identity seal on an ink backplate with a cyan halo ring (geometric, no words), a stepped-bezel portrait roster screen with side control keys and speaker louvers, and a reader podium with a two-step brass tap disc and amber slit. Fully serviced back: deep recessed notice panel with riveted frame, hinged access hatch, louvered vents, clipped conduit with junction box.",
+  "materials": [
+    "CM_Basalt",
+    "CM_Brass",
+    "CM_Ceramic",
+    "CM_GlowAmber",
+    "CM_GlowCyan",
+    "CM_Ink",
+    "CM_ScreenPA",
+    "CM_Steel",
+    "CM_TealGlass"
+  ],
+  "textures": [
+    "commerce_basalt_basecolor.png",
+    "commerce_basalt_mr.png",
+    "commerce_basalt_normal.png",
+    "commerce_brass_basecolor.png",
+    "commerce_brass_mr.png",
+    "commerce_brass_normal.png",
+    "commerce_ceramic_basecolor.png",
+    "commerce_ceramic_mr.png",
+    "commerce_ceramic_normal.png",
+    "commerce_ink_basecolor.png",
+    "commerce_ink_mr.png",
+    "commerce_ink_normal.png",
+    "commerce_screen_pa_emissive.png",
+    "commerce_steel_basecolor.png",
+    "commerce_steel_mr.png",
+    "commerce_steel_normal.png"
+  ],
+  "tri_count": 4608,
+  "units": "m"
+}

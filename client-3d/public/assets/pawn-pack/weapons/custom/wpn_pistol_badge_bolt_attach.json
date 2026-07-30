@@ -1,0 +1,77 @@
+{
+  "schema": "successor-weapon-attach/1",
+  "weapon": "wpn_pistol_badge_bolt",
+  "source_glb": "source-assets/props/successor/full-spectrum-wave-20260720/weapon-overhaul/reset-zero-01/assets/wpn_pistol_badge_bolt.glb",
+  "silhouette_class": "pistol",
+  "coordinate_space": "weapon_glb_local_gltf",
+  "units": "m",
+  "scale_to_pawn": 1,
+  "attach": "two_hand",
+  "handedness": "right",
+  "hands": {
+    "grip": "hand_r",
+    "foregrip": "hand_l"
+  },
+  "nodes": {
+    "frame": "Module_receiver",
+    "mag": "Module_magazine"
+  },
+  "sockets": {
+    "grip": [
+      0,
+      -0.028,
+      -0.095
+    ],
+    "muzzle": [
+      0,
+      0,
+      0.075
+    ],
+    "stock": [
+      0,
+      0,
+      -0.18
+    ]
+  },
+  "orientation": {
+    "forward": [
+      0,
+      0,
+      1
+    ],
+    "up": [
+      0,
+      1,
+      0
+    ]
+  },
+  "mount_hand_r_local": {
+    "pos": [
+      -0.04569969,
+      0.15624707,
+      -0.03986298
+    ],
+    "quat": [
+      -0.09279,
+      0.83834,
+      0.53009,
+      -0.08703
+    ],
+    "derivation": "STEN palm transfer against the AUTHORED grip socket [0,-0.028,-0.095] (2026-07-21 final): the interim -0.035Y 'plug->palm' drop over-corrected and left the pistol floating below the hand; the authored socket weld is the configuration that passed visual checks."
+  },
+  "stow_socket": {
+    "space": "spine_03_local",
+    "pos": [
+      0.16,
+      0,
+      -0.14
+    ],
+    "rot_deg": [
+      85,
+      -45,
+      0
+    ],
+    "derivation": "Copied from accepted STEN back-carry contract; geometry-independent root mount."
+  },
+  "provenance": "reset-zero-01 modular family; textured via STEN 2048 atlas bake pattern (bake_modular.py, deterministic)."
+}

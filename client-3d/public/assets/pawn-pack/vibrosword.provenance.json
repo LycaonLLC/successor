@@ -1,0 +1,65 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "vibrosword",
+  "asset_path": "client-3d/public/assets/pawn-pack/vibrosword.glb",
+  "asset_hash": "sha256:f81f42214828e71baafac2f0905f3b3b3c1558da329876976f67639721027121",
+  "asset_kind": "weapon_melee_glb",
+  "source": {
+    "derived_from": "pawn-forge:pawnforgev2/_bakeoff/vibrosword_20260703/forks/F4/vibrosword_F4.glb",
+    "derived_glb_sha256": "3b46e98d48be2e486727a80f1efd9a4a31487266544f4152a35eb6698efaa616",
+    "generator": "pawn-forge:pawnforgev2/_bakeoff/successor_vibrosword_powered_fable5_20260714_run01/build_vibrosword_powered.py",
+    "generator_sha256": "d3a5c7063bda85c36a2c4c0be892dc1d5aae00ced23ae184323460da7d958837",
+    "blend": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_vibrosword_powered_fable5_20260714_run01/vibrosword_powered.blend",
+      "sha256": "7a0edfa36f14376e0e97cb07907e723f46cc4261023803279aa13485f20fef43"
+    },
+    "glb": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_vibrosword_powered_fable5_20260714_run01/vibrosword_powered.glb",
+      "sha256": "f81f42214828e71baafac2f0905f3b3b3c1558da329876976f67639721027121"
+    },
+    "attach": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_vibrosword_powered_fable5_20260714_run01/vibrosword_powered_attach.json",
+      "sha256": "d7d913664277696e0fdf3779db5ceff0b99d6729637087de71c284d73df45045"
+    },
+    "gate_report": "pawn-forge:pawnforgev2/_bakeoff/successor_vibrosword_powered_fable5_20260714_run01/gate.json"
+  },
+  "promotion": {
+    "method": "byte-identical copy of the deterministic powered PawnForge export",
+    "promoted_at": "2026-07-15",
+    "runtime_item_id": 3103,
+    "runtime_weapon_id": "vibrosword"
+  },
+  "metrics": {
+    "bytes": 187784,
+    "mesh_nodes": 1,
+    "triangles": 2472,
+    "overall_length_m": 1.004103,
+    "bounds_m": {
+      "min": [-0.02375, -0.082, -0.315],
+      "max": [0.02375, 0.082, 0.689103]
+    }
+  },
+  "materials": {
+    "material_names": ["VibroSteel", "VibroHousing", "VibroGrip", "VibroCell", "VibroTrim"],
+    "embedded_texture_resolution": 1024,
+    "embedded_maps": ["baseColor", "emissive", "normal", "occlusion", "metallicRoughness"],
+    "powered_material": "VibroCell",
+    "powered_emissive_strength": 4
+  },
+  "validation": {
+    "gltf_errors": 0,
+    "triangle_budget": 3000,
+    "triangle_budget_pass": true,
+    "gate_checks_passed": 22,
+    "gate_checks_total": 22,
+    "deterministic_rebuild": true,
+    "runtime_hash_matches_source": true,
+    "mount_resolved_for_grip_midpoint": true,
+    "headed_runtime_pass": true,
+    "headed_run_id": "weapon-melee-powered-final-20260715"
+  },
+  "review": {
+    "status": "source-and-headed-runtime-pass",
+    "notes": "The final 2472-triangle powered-cleaver source packet rebuilt byte-identically twice and passed independent side, three-quarter, tip, cell, gameplay-distance, and dark-scene review with no visible blockers. Headed run weapon-melee-powered-final-20260715 then proved item 3103 equip and swing with zero console errors; independent runtime review passed grip alignment, one-hand scale, blade identity, and swing coherence."
+  }
+}

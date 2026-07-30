@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "turret_sentry",
+  "label": "Sentry Turret Dressing",
+  "kind": "world_prop",
+  "glb": "turret_sentry.glb",
+  "source_pack": "successor-content-wave-grok45-20260718",
+  "source_fbx": "props/successor/grok45-wave-20260718/profession-world-weapons/source/successor_weapon_fulgurite_mortar.blend",
+  "source_path": "props/successor/grok45-wave-20260718/profession-world-weapons/assets/successor_weapon_fulgurite_mortar.glb",
+  "content_hash_sha256": "8a78c37e277df8b4649389429a5cfae8dac47d2b6b5953a26f31692aa52d8915",
+  "triangles": 3572,
+  "vertices": 1848,
+  "mesh_nodes": 6,
+  "materials": 6,
+  "bbox_gltf_m": { "min": [-0.105, -0.257041, -0.358], "max": [0.105, 0.244023, 0.421494], "size": [0.21, 0.501064, 0.779494] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/reference/successor/combined-catalog-1000-20260719/catalog.csv",
+  "source_report": "props/successor/grok45-wave-20260718/profession-world-weapons/reports/successor_weapon_fulgurite_mortar.json",
+  "validation_pass": true
+}

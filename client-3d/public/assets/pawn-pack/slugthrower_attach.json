@@ -1,0 +1,45 @@
+{
+  "weapon": "slugthrower",
+  "source_glb": "slugthrower.glb",
+  "coordinate_space": "weapon_glb_local_gltf",
+  "space_notes": "Sockets/orientation are in the weapon's GLB-local (glTF) frame, the shared asset space for ALL consumers. three.js uses them directly. Blender's glTF importer rotates loose meshes +90deg about X, so a Blender consumer maps glTF (x,y,z) -> Blender (x,-z,y) before use. UE applies its own glTF import transform. Keep this file the single source of truth; the anim manifest references it via weapons.slugthrower.spec.",
+  "units": "m",
+  "nodes": { "frame": "Gear_sten_mk2", "mag": "Gear_sten_mk2_mag" },
+  "_nodes_note": "Node names are GLB-internal identifiers baked into slugthrower.glb (asset bytes are locked byte-for-byte); they change only when the mesh is re-exported with renamed nodes.",
+  "sockets": {
+    "grip":     [0.0, -0.109, -0.042],
+    "foregrip": [0.0, -0.03,  0.250],
+    "muzzle":   [0.0,  0.008, 0.438],
+    "stock":    [0.0, -0.014, -0.410]
+  },
+  "orientation": {
+    "forward": [0.0, 0.0, 1.0],
+    "up":      [0.0, 1.0,  0.0]
+  },
+  "mount_hand_r_local": {
+    "_status": "USER_TUNED_2026-06-26 — locked firing-hand placement (closest by eye)",
+    "pos":  [-0.03788, 0.14408, 0.05585],
+    "quat": [-0.09279, 0.83834, 0.53009, -0.08703],
+    "adjust_deltas": { "apx": 0.024, "apy": -0.026, "apz": -0.012, "arx": 5, "ary": 21, "arz": 5 },
+    "_note": "hand_r-local transform. Viewer/UE attach the Slugthrower with this. Support hand still reaches past the short frame -> left-hand IK to foregrip (or longer barrel) needed."
+  },
+  "legacy_shouldered_mount_DEPRECATED_do_not_consume": {
+    "type": "shouldered",
+    "shoulder_bone": "clavicle_r",
+    "forward": 0.06, "down": 0.05, "inboard": 0.03, "blade_deg": -35.0,
+    "target_palm_r": [-1.0, 0.0, 0.0], "target_finger_r": [0.0, 0.0, 1.0],
+    "target_palm_l": [0.0, 1.0, 0.0],  "target_thumb_l": [0.0, 0.0, 1.0],
+    "_note": "Buttstock seats into the shoulder pocket: anchor = clavicle_r TAIL (shoulder joint, torso space, OUTSIDE the arm IK chain), offset forward/down toward the pocket + inboard toward spine. blade_deg yaws the upper spine to advance the support-side shoulder so the forward support hand reaches the barrel shroud (support hand stays FORWARD on the shroud, never the mag housing)."
+  },
+  "attach": "two_hand",
+  "handedness": "right",
+  "hands": { "grip": "hand_r", "foregrip": "hand_l" },
+  "aim_defaults": {
+    "_space": "scene world (engine placement guidance, not asset-local)",
+    "world_forward": [0.0, -1.0, 0.0],
+    "world_up":      [0.0,  0.0, 1.0],
+    "_deprecated_grip_target_world": "REMOVED from placement. The shouldered solver seats the STOCK into the shoulder pocket (see mount), NOT a floating grip target. Do NOT reintroduce this as the placement anchor -- doing so recreates the pistol/SMG hip-hold."
+  },
+  "provenance": "sockets+orientation+stock+mount seeded by tmp_solve_aim.py heuristic detector (measured Blender-space, converted to glTF-local), frozen as authored CANDIDATE values (promote to ground-truth after per-weapon visual confirmation). Detector is a GENERATOR ONLY. The support hand targets FORWARD on the barrel shroud (user-confirmed correct; NOT the mag housing); its exact along-barrel position (~0.62) is geometric and may be nudged on visual review. CAVEAT: the spec-vs-measured delta proves only the glTF<->Blender conversion + no drift from the seeding heuristic (same heuristic both sides), NOT semantic socket identity. The 0mm IK verify proves reach to these coords and, with the stock->shoulder mount + torso blade, that both hands reach a shouldered hold -- it does not replace a per-weapon visual check of the LOOK.",
+  "generator": "blender -b -P tmp_solve_aim.py -- <humanoid.glb> <weapon.glb> <out> (no spec present -> writes a <weapon>_attach.json draft you confirm + freeze)"
+}

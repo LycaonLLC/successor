@@ -1,0 +1,48 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "duel-deathblow-restart",
+  "fixture": "open-desert-multiplayer-duel",
+  "persistence": true,
+  "lanes": ["accel"],
+  "matrixLanes": ["accel"],
+  "tags": ["restart", "duels", "multiplayer", "deathblow"],
+  "limits": { "perStepTimeoutMs": 120000, "maxWallDurationMs": 240000 },
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "steps": [
+    { "await": { "kind": "query", "actor": "alpha", "query": "/nearby all", "match": { "data.actors": { "includesObject": { "id": "mp-duel-beta", "lifeState": "alive" } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "alphaSeesAliveBeta" } },
+    { "send": { "actor": "alpha", "line": "/equip-weapon weapon_id=slugthrower weapon_item_id=3101", "as": "equipAlpha" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.equipAlpha.data.commandId", "commandKind": "SetEquippedWeapon", "accepted": true }, "timeoutMs": 12000, "as": "equipAlphaReceipt" } },
+
+    { "send": { "actor": "alpha", "line": "/deathblow mp-duel-beta", "as": "aliveTargetBeforeDuel" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.aliveTargetBeforeDuel.data.commandId", "commandKind": "Deathblow", "accepted": false, "reasonCode": "not_in_duel" }, "timeoutMs": 12000, "as": "aliveTargetBeforeDuelReject" } },
+
+    { "send": { "actor": "alpha", "line": "/duel-challenge mp-duel-beta", "as": "challengeBeta" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.challengeBeta.data.commandId", "commandKind": "DuelChallenge", "accepted": true }, "timeoutMs": 12000, "as": "challengeReceipt" } },
+    { "send": { "actor": "beta", "line": "/duel-accept", "as": "acceptChallenge" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.acceptChallenge.data.commandId", "commandKind": "DuelAccept", "accepted": true }, "timeoutMs": 12000, "as": "acceptReceipt" } },
+
+    { "send": { "actor": "alpha", "line": "/deathblow mp-duel-beta", "as": "aliveTargetInDuel" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.aliveTargetInDuel.data.commandId", "commandKind": "Deathblow", "accepted": false, "reasonCode": "target_unavailable" }, "timeoutMs": 12000, "as": "aliveTargetReject" } },
+
+    { "action": { "name": "attackUntilDowned", "actor": "alpha", "args": { "targetId": "mp-duel-beta", "actionId": "aimed_shot", "maxTicks": 1800, "pollTicks": 15, "requeueTicks": 45, "approachRangeCells": 2.0 } }, "as": "betaDownedByNormalAttack" },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-duel-beta", "match": { "lifeState": "downed", "vitals.health": 0, "bodyVanishTick": 0 } }, "timeoutMs": 30000, "as": "betaDowned" } },
+
+    { "restart": { "as": "downedDuelRestartEvidence", "timeoutMs": 30000 } },
+    { "send": { "actor": "alpha", "line": "/move 1 0 30 Right false", "as": "alphaReconnectMove" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaReconnectMove.data.commandId", "commandKind": "Move", "accepted": true }, "timeoutMs": 12000, "as": "alphaReconnectMoveReceipt" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-duel-beta", "match": { "lifeState": "downed", "vitals.health": 0 } }, "timeoutMs": 12000, "as": "noAutomaticDeathblow" } },
+
+    { "send": { "actor": "alpha", "line": "/deathblow mp-duel-beta", "as": "legalDeathblow" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.legalDeathblow.data.commandId", "commandKind": "Deathblow", "accepted": true }, "timeoutMs": 12000, "as": "legalDeathblowReceipt" } },
+    { "await": { "kind": "event", "actor": "alpha", "event": "duel_outcome", "match": { "data.payload.actorId": "mp-duel-alpha", "data.payload.opponentActorId": "mp-duel-beta", "data.payload.result": "won", "data.payload.reason": "deathblow" }, "timeoutMs": 12000, "as": "deathblowWinnerOutcome" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-duel-beta", "match": { "lifeState": "respawning", "vitals.health": 0, "respawnAtTick": { "op": "gt", "value": 0 } } }, "timeoutMs": 20000, "as": "betaRespawning" } },
+    { "send": { "actor": "alpha", "line": "/deathblow mp-duel-beta", "as": "duplicateDeathblow" } },
+    { "expect": { "kind": "captureCompare", "capture": "duplicateDeathblow", "path": "status", "op": "eq", "value": "verb_rejected" } },
+    { "expect": { "kind": "captureCompare", "capture": "duplicateDeathblow", "path": "data.result.data.error", "op": "eq", "value": "target_not_visible" } },
+    { "expect": { "kind": "commandStreamNoMatch", "match": { "commandKind": { "regex": "^Debug" } } } }
+  ],
+  "notes": "A live target is rejected before consent and again inside the active duel. The client target resolver does not dispatch a self-target Deathblow, so self rejection remains covered by the authority rejection matrix rather than this normal command scenario. Alpha then uses normal authority attackUntilDowned, and the first downed state survives an isolated checkpoint/process restart with no automatic finisher. The explicit post-restart Deathblow is the only accepted terminal action, transitions beta to Respawning, emits the deathblow duel outcome, and a duplicate command rejects after the duel has ended."
+}

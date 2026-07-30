@@ -1,0 +1,25 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "multiplayer-extractor-ownership",
+  "fixture": "open-desert-multiplayer-extractor",
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "steps": [
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "mp-extract-alpha:field-pack", "itemId": 3006, "variantId": 0, "minAvailable": 1 }, "timeoutMs": 8000, "as": "alphaHasTool" } },
+    { "send": { "actor": "alpha", "line": "/place-extractor metal", "as": "alphaPlace" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaPlace.data.commandId", "commandKind": "PlaceExtractor", "accepted": true }, "timeoutMs": 10000, "as": "alphaPlaceReceipt" } },
+    { "await": { "kind": "oracle", "condition": { "placedExtractors[0].extractorId": "extractor:mp-extract-alpha:1", "placedExtractors[0].ownerActorId": { "exists": false } }, "timeoutMs": 8000, "as": "extractorPlaced" } },
+    { "send": { "actor": "beta", "line": "/collect-extractor extractor:mp-extract-alpha:1", "as": "betaCollect" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaCollect.data.commandId", "commandKind": "CollectExtractor", "accepted": false, "reasonCode": "not_extractor_owner" }, "timeoutMs": 10000, "as": "betaCollectReject" } },
+    { "send": { "actor": "beta", "line": "/crank-extractor extractor:mp-extract-alpha:1", "as": "betaCrank" } },
+    { "await": { "kind": "receipt", "actor": "beta", "match": { "commandId": "$captures.betaCrank.data.commandId", "commandKind": "CrankExtractor", "accepted": false, "reasonCode": "not_extractor_owner" }, "timeoutMs": 10000, "as": "betaCrankReject" } },
+    { "send": { "actor": "alpha", "line": "/destroy-extractor extractor:mp-extract-alpha:1", "as": "alphaDestroy" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.alphaDestroy.data.commandId", "commandKind": "DestroyExtractor", "accepted": true }, "timeoutMs": 10000, "as": "alphaDestroyReceipt" } },
+    { "expect": { "kind": "envelopeCount", "actor": "beta", "envelopeType": "receipt", "match": { "reasonCode": "not_extractor_owner" }, "op": "eq", "value": 2 } },
+    { "expect": { "kind": "envelopeCount", "actor": "alpha", "envelopeType": "receipt", "match": { "accepted": false }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "extractorOwnershipStableHash" } }
+  ],
+  "notes": "Extractor ownership boundary. Alpha carries the fixture-provided tool and places extractor:mp-extract-alpha:1. The unauthenticated oracle intentionally strips ownerActorId, so receipts are the ownership proof: non-owner beta must be rejected on collect and crank with not_extractor_owner, while owner alpha destroys the extractor successfully."
+}

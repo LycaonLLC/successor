@@ -1,0 +1,62 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "groups-inventory-restart-persistence",
+  "fixture": "open-desert-multiplayer-trade",
+  "persistence": true,
+  "lanes": ["accel"],
+  "tags": ["restart", "groups", "inventory_stacks", "credit-chip", "bounded"],
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "bootstrap": {
+    "debugAuthority": true,
+    "note": "Declared setup only: provision one 1200-value Credit Chip stack before measured assertions. No debug authority command occurs after restart.",
+    "commands": ["DebugGiveItem:9002x1200"]
+  },
+  "steps": [
+    { "command": { "actor": "alpha", "body": { "DebugGiveItem": { "item_id": 9002, "variant_id": 0, "quantity": 1200, "equip": false } }, "as": "bootstrapCreditChip" } },
+
+    { "command": { "actor": "alpha", "body": { "GroupInvite": { "target_actor_id": "mp-trade-beta" } }, "as": "inviteBeta" } },
+    { "expect": { "kind": "captureCompare", "capture": "inviteBeta", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "command": { "actor": "beta", "body": { "GroupAccept": {} }, "as": "acceptBeta" } },
+    { "expect": { "kind": "captureCompare", "capture": "acceptBeta", "path": "receipt.accepted", "op": "eq", "value": true } },
+    { "await": { "kind": "query", "actor": "alpha", "query": "/group", "match": { "data.group.leaderActorId": "mp-trade-alpha", "data.group.memberActorIds": { "op": "includes", "value": "mp-trade-beta" }, "data.members": { "includesObject": { "actorId": "mp-trade-alpha", "name": "TradeAlpha", "isLeader": true } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "groupBeforeRestartAlpha" } },
+    { "await": { "kind": "query", "actor": "beta", "query": "/group", "match": { "data.group.leaderActorId": "mp-trade-alpha", "data.group.memberActorIds": { "op": "includes", "value": "mp-trade-alpha" }, "data.members": { "includesObject": { "actorId": "mp-trade-alpha", "name": "TradeAlpha", "isLeader": true } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "groupBeforeRestartBeta" } },
+
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "mp-trade-alpha:field-pack", "itemId": 9002, "variantId": 0, "match": { "available": 1200, "reserved": 0 } }, "timeoutMs": 10000, "as": "creditChipBeforeSplit" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-trade-alpha", "match": { "credits": { "op": "gte", "value": 0 } } }, "timeoutMs": 10000, "as": "creditsBeforeRestart" } },
+    { "send": { "actor": "alpha", "line": "/split-stack container=mp-trade-alpha:field-pack stack_id=$captures.creditChipBeforeSplit.stackId item_id=9002 variant_id=0 quantity=200", "as": "splitCreditChip" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.splitCreditChip.data.commandId", "commandKind": "SplitStack", "accepted": true }, "timeoutMs": 10000, "as": "splitCreditChipReceipt" } },
+    { "query": { "actor": "alpha", "line": "/inv 9002", "as": "creditChipSplit" } },
+    { "expect": { "kind": "captureCompare", "capture": "creditChipSplit", "path": "data.totalStacks", "op": "eq", "value": 2 } },
+    { "expect": { "kind": "captureCompare", "capture": "creditChipSplit", "path": "data.totalAvailable", "op": "eq", "value": 1200 } },
+    { "expect": { "kind": "captureCompare", "capture": "creditChipSplit", "path": "data.rows.0.reserved", "op": "eq", "value": 0 } },
+    { "expect": { "kind": "captureCompare", "capture": "creditChipSplit", "path": "data.rows.1.reserved", "op": "eq", "value": 0 } },
+    { "send": { "actor": "alpha", "line": "/merge-stacks container=mp-trade-alpha:field-pack source_stack_id=$captures.creditChipSplit.data.rows.1.stackId target_stack_id=$captures.creditChipSplit.data.rows.0.stackId", "as": "mergeCreditChip" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.mergeCreditChip.data.commandId", "commandKind": "MergeStacks", "accepted": true }, "timeoutMs": 10000, "as": "mergeCreditChipReceipt" } },
+    { "query": { "actor": "alpha", "line": "/inv 9002", "as": "creditChipMerged" } },
+    { "expect": { "kind": "captureCompare", "capture": "creditChipMerged", "path": "data.totalStacks", "op": "eq", "value": 1 } },
+    { "expect": { "kind": "captureCompare", "capture": "creditChipMerged", "path": "data.totalAvailable", "op": "eq", "value": 1200 } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "mp-trade-alpha:field-pack", "itemId": 9002, "variantId": 0, "match": { "available": "$captures.creditChipMerged.data.totalAvailable", "reserved": 0 } }, "timeoutMs": 10000, "as": "creditChipBeforeRestart" } },
+
+    { "restart": { "as": "restartEvidence", "timeoutMs": 30000 } },
+    { "expect": { "kind": "captureCompare", "capture": "restartEvidence", "path": "oldProcess.mainPid", "op": "exists", "value": true } },
+    { "expect": { "kind": "captureCompare", "capture": "restartEvidence", "path": "newProcess.mainPid", "op": "ne", "value": "$captures.restartEvidence.oldProcess.mainPid" } },
+    { "expect": { "kind": "captureCompare", "capture": "restartEvidence", "path": "checkpoint.checkpoint.tick", "op": "exists", "value": true } },
+    { "await": { "kind": "query", "actor": "alpha", "query": "/group", "match": { "data.group.leaderActorId": "mp-trade-alpha", "data.group.memberActorIds": { "op": "includes", "value": "mp-trade-beta" }, "data.members": { "includesObject": { "actorId": "mp-trade-alpha", "name": "TradeAlpha", "isLeader": true } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "groupAfterRestartAlpha" } },
+    { "await": { "kind": "query", "actor": "beta", "query": "/group", "match": { "data.group.leaderActorId": "mp-trade-alpha", "data.group.memberActorIds": { "op": "includes", "value": "mp-trade-alpha" }, "data.members": { "includesObject": { "actorId": "mp-trade-alpha", "name": "TradeAlpha", "isLeader": true } } }, "timeoutMs": 12000, "intervalMs": 250, "as": "groupAfterRestartBeta" } },
+    { "expect": { "kind": "captureCompare", "capture": "groupAfterRestartAlpha", "path": "data.group.leaderActorId", "op": "eq", "value": "$captures.groupBeforeRestartAlpha.data.group.leaderActorId" } },
+    { "expect": { "kind": "captureCompare", "capture": "groupAfterRestartBeta", "path": "data.members.1.actorId", "op": "eq", "value": "$captures.groupBeforeRestartBeta.data.members.1.actorId" } },
+    { "await": { "kind": "oracle", "condition": { "type": "inventoryRow", "container": "mp-trade-alpha:field-pack", "itemId": 9002, "variantId": 0, "match": { "available": "$captures.creditChipBeforeRestart.available", "reserved": "$captures.creditChipBeforeRestart.reserved" } }, "timeoutMs": 10000, "as": "creditChipAfterRestart" } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-trade-alpha", "match": { "credits": "$captures.creditsBeforeRestart.credits" } }, "timeoutMs": 10000, "as": "creditsAfterRestart" } },
+
+    { "send": { "actor": "alpha", "line": "/redeem-chip container=mp-trade-alpha:field-pack stack_id=$captures.creditChipAfterRestart.stackId", "as": "redeemCreditChipAfterRestart" } },
+    { "await": { "kind": "receipt", "actor": "alpha", "match": { "commandId": "$captures.redeemCreditChipAfterRestart.data.commandId", "commandKind": "RedeemCreditChip", "accepted": true }, "timeoutMs": 10000, "as": "redeemCreditChipReceipt" } },
+    { "query": { "actor": "alpha", "line": "/inv 9002", "as": "creditChipConsumed" } },
+    { "expect": { "kind": "captureCompare", "capture": "creditChipConsumed", "path": "data.totalStacks", "op": "eq", "value": 0 } },
+    { "await": { "kind": "oracle", "condition": { "type": "actor", "actor": "mp-trade-alpha", "match": { "credits": { "op": "eq", "value": 6200 } } }, "timeoutMs": 10000, "as": "creditsAfterRedeemExact" } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "groupsInventoryRestartStableHash" } }
+  ],
+  "notes": "Bounded restart proof for exactly groups and inventory_stacks. Alpha and beta form a real alpha-led group, then alpha's declared bootstrap Credit Chip is split 1000/200 and merged back to one 1200-value stack with zero public reservation before the checkpoint. Post-restart group queries prove membership and leadership from both sessions; chip quantity, reservation, and scalar credits are captured unchanged. Redemption after restart consumes exactly the restored stack (public /inv totalStacks=0) and asserts the observed trade-fixture scalar balance rises to exactly 6200. The public oracle exposes inventory reserved counts but no active reservation lifecycle is opened here, so zero reservation is asserted before and after restart rather than inventing an escrow property. No debug authority command occurs after restart."
+}

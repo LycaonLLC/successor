@@ -1,0 +1,96 @@
+locals {
+  shard_name               = "successor-staging-1"
+  shard_id                 = "open-desert-shard-1"
+  server_release_id        = "planetfall-v5-seed-424242-size-1024-rogues-18-desert-critters-48-verdance-critters-24-areas-open-desert-overworld-verdance-forest-overworld"
+  release_id               = "${local.server_release_id}@a0d1d1450a75f340"
+  client_release_id        = "successor-alpha@a2d02071e180f9df"
+  client_release_allowlist = "${local.client_release_id},successor-alpha"
+  bootstrap_files = {
+    "scripts/backup.sh"                           = filebase64("${path.root}/../../../scripts/backup.sh")
+    "scripts/cleanup-generations.sh"              = filebase64("${path.root}/../../../scripts/cleanup-generations.sh")
+    "scripts/deploy.sh"                           = filebase64("${path.root}/../../../scripts/deploy.sh")
+    "scripts/maintenance-deploy.sh"               = filebase64("${path.root}/../../../scripts/maintenance-deploy.sh")
+    "scripts/metrics.sh"                          = filebase64("${path.root}/../../../scripts/metrics.sh")
+    "scripts/post-session-review.sh"              = filebase64("${path.root}/../../../scripts/post-session-review.sh")
+    "scripts/preflight.sh"                        = filebase64("${path.root}/../../../scripts/preflight.sh")
+    "scripts/restore-rehearsal.sh"                = filebase64("${path.root}/../../../scripts/restore-rehearsal.sh")
+    "scripts/restore.sh"                          = filebase64("${path.root}/../../../scripts/restore.sh")
+    "scripts/rollback.sh"                         = filebase64("${path.root}/../../../scripts/rollback.sh")
+    "scripts/run-authority.sh"                    = filebase64("${path.root}/../../../scripts/run-authority.sh")
+    "scripts/validate-retention.sh"               = filebase64("${path.root}/../../../scripts/validate-retention.sh")
+    "systemd/successor-backup.service"            = filebase64("${path.root}/../../../systemd/successor-backup.service")
+    "systemd/successor-backup.timer"              = filebase64("${path.root}/../../../systemd/successor-backup.timer")
+    "systemd/successor-cleanup.service"           = filebase64("${path.root}/../../../systemd/successor-cleanup.service")
+    "systemd/successor-cleanup.timer"             = filebase64("${path.root}/../../../systemd/successor-cleanup.timer")
+    "systemd/successor-metrics.service"           = filebase64("${path.root}/../../../systemd/successor-metrics.service")
+    "systemd/successor-metrics.timer"             = filebase64("${path.root}/../../../systemd/successor-metrics.timer")
+    "systemd/successor-restore-rehearsal.service" = filebase64("${path.root}/../../../systemd/successor-restore-rehearsal.service")
+    "systemd/successor-restore-rehearsal.timer"   = filebase64("${path.root}/../../../systemd/successor-restore-rehearsal.timer")
+    "systemd/successor.service"                   = filebase64("${path.root}/../../../systemd/successor.service")
+  }
+  bootstrap_revision = sha256(join("", [for name in sort(keys(local.bootstrap_files)) : "${name}:${sha256(local.bootstrap_files[name])}\n"]))
+  user_data_values = {
+    state_device                  = "/dev/xvdf"
+    shard_id                      = local.shard_id
+    release_id                    = local.release_id
+    server_release_id             = local.server_release_id
+    client_release_id             = local.client_release_id
+    client_release_allowlist      = local.client_release_allowlist
+    container_image               = var.container_image
+    aws_region                    = var.aws_region
+    backup_bucket_name            = var.backup_bucket_name
+    bootstrap_revision            = local.bootstrap_revision
+    runtime_secret_parameter_name = var.runtime_secret_parameter_name
+    runtime_bearer_parameter_name = var.runtime_bearer_parameter_name
+    control_secret_parameter_name = var.control_secret_parameter_name
+    site_url                      = var.site_url
+    initialize_empty_volume       = var.initialize_empty_volume
+    expected_state_tag            = "${local.shard_name}-state"
+    backup_interval_minutes       = var.backup_interval_minutes
+  }
+}
+
+module "shard" {
+  source = "../../modules/successor-shard"
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+  name                             = local.shard_name
+  region                           = var.aws_region
+  availability_zones               = var.availability_zones
+  vpc_cidr                         = var.vpc_cidr
+  public_subnet_cidrs              = var.public_subnet_cidrs
+  private_subnet_cidrs             = var.private_subnet_cidrs
+  ami_id                           = var.ami_id
+  instance_type                    = var.instance_type
+  state_volume_size_gib            = var.state_volume_size_gib
+  container_image                  = var.container_image
+  dns_name                         = var.dns_name
+  game_acm_certificate_arn         = var.game_acm_certificate_arn
+  manage_route53_dns               = var.manage_route53_dns
+  route53_zone_id                  = var.route53_zone_id
+  backup_bucket_name               = var.backup_bucket_name
+  asset_bucket_name                = var.asset_bucket_name
+  client_store_origin              = var.client_store_origin
+  runtime_secret_parameter_name    = var.runtime_secret_parameter_name
+  runtime_bearer_parameter_name    = var.runtime_bearer_parameter_name
+  control_secret_parameter_name    = var.control_secret_parameter_name
+  site_url                         = var.site_url
+  site_bucket_name                 = var.site_bucket_name
+  site_aliases                     = var.site_aliases
+  site_acm_certificate_domain_name = var.site_acm_certificate_domain_name
+  site_acm_certificate_arn         = var.site_acm_certificate_arn
+  game_websocket_path_pattern      = var.game_websocket_path_pattern
+  staging_readiness_path           = var.staging_readiness_path
+  staging_readiness_cidr_blocks    = var.staging_readiness_cidr_blocks
+  budget_limit_usd                 = var.budget_limit_usd
+  budget_alert_emails              = var.budget_alert_emails
+  alarm_email                      = var.alarm_email
+  rpo_minutes                      = var.rpo_minutes
+  rto_minutes                      = var.rto_minutes
+  tags                             = var.tags
+  user_data_template               = "${path.root}/../../../user-data.sh.tftpl"
+  user_data_values                 = local.user_data_values
+  bootstrap_files                  = local.bootstrap_files
+}

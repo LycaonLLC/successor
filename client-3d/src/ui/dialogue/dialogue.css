@@ -1,0 +1,284 @@
+/*
+ * CONVERSE window — established sandbox-style dialogue in the hairline HUD-glass language.
+ *
+ * Imported by converseWindow.ts (module-scoped stylesheet, same pattern as
+ * overlay.css). Every colour flows from the --sc3d-* theme tokens. Dialogue
+ * prose is CONTENT, not chrome: it keeps sentence case and a reading line
+ * height; chrome bits (footer, role tag, option digits) stay in the terse
+ * uppercase register.
+ */
+
+.scv-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.scv-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+  padding: 8px;
+}
+
+/* ── Left rail: portrait + identity ─────────────────────────────────────── */
+
+.scv-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding-right: 8px;
+  border-right: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  min-width: 0;
+}
+
+.scv-portrait {
+  position: relative;
+  width: 104px;
+  height: 122px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  /* Backing vignette (inv-doll-frame family): the raw matcap bust crushed
+   * into the dark glass — a soft accent wash separates the silhouette
+   * (fe-polish §1.22 dark-preview finding). */
+  background:
+    radial-gradient(ellipse at 50% 42%, color-mix(in srgb, var(--sc3d-accent-glow) 16%, transparent), transparent 68%),
+    color-mix(in srgb, var(--sc3d-bg-cell) 55%, transparent);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Exposure lift on the bust — matcap-true materials read crushed on the
+ * glass; the in-world pawn gets the PS2 grade's lift, the bust gets this. */
+.scv-portrait-canvas {
+  display: block;
+  filter: brightness(1.22) contrast(1.04);
+}
+
+/* Styled-nameplate fallback: initials carry the face until (unless) the
+ * one-shot bust render lands. */
+.scv-portrait-initials {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--sc3d-ink-dim);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.scv-portrait[data-portrait="ready"] .scv-portrait-initials {
+  display: none;
+}
+
+.scv-name {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink);
+}
+
+.scv-role {
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  color: var(--sc3d-ink-dim);
+}
+
+/* ── Right column: log + options ────────────────────────────────────────── */
+
+.scv-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.scv-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 2px 4px 0;
+}
+
+.scv-beat {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--sc3d-ink-dim);
+  overflow-wrap: break-word;
+}
+
+.scv-beat[data-who="you"] {
+  padding-left: 10px;
+  font-size: 10px;
+}
+
+/* The NPC's live line — bright, accent rule, the eye lands here. */
+.scv-current {
+  color: var(--sc3d-ink);
+  border-left: 2px solid var(--sc3d-accent);
+  padding-left: 8px;
+}
+
+.scv-options {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  padding-top: 6px;
+  max-height: 46%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.scv-option {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--sc3d-ink);
+  font-family: inherit;
+  font-size: 10px;
+  text-align: left;
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: background 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.scv-option kbd {
+  flex: 0 0 auto;
+  min-width: 14px;
+  padding: 1px 3px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 8px;
+  line-height: 1;
+  text-align: center;
+  color: var(--sc3d-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.scv-option span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.scv-option:hover,
+.scv-option:focus-visible {
+  background: color-mix(in srgb, var(--sc3d-accent-soft) 55%, transparent);
+  color: var(--sc3d-accent);
+  outline: none;
+}
+
+.scv-option:hover kbd,
+.scv-option:focus-visible kbd {
+  border-color: var(--sc3d-accent);
+  color: var(--sc3d-accent);
+}
+
+.scv-option[aria-disabled="true"] {
+  color: var(--sc3d-ink-dim);
+  cursor: not-allowed;
+}
+
+.scv-option[aria-disabled="true"]:hover {
+  background: transparent;
+  color: var(--sc3d-ink-dim);
+}
+
+.scv-option[aria-disabled="true"]:hover kbd {
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  color: var(--sc3d-ink-dim);
+}
+
+/* Disabled-state glyph — the reason is hover-only (title tooltip). */
+.scv-option-lock {
+  flex: 0 0 auto;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--sc3d-ink-dim);
+}
+
+/* ── Empty plate (no target / channel closed) ───────────────────────────── */
+
+.scv-empty {
+  position: absolute;
+  inset: 0 0 22px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scv-empty[hidden] {
+  display: none;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.scv-foot {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink-dim);
+}
+
+.scv-status {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 150ms ease-out;
+}
+
+.scv-status[data-flash] {
+  color: var(--sc3d-accent);
+}
+
+.scv-range {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.scv-range[data-missing] {
+  color: var(--sc3d-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scv-option,
+  .scv-status {
+    transition: none;
+  }
+}

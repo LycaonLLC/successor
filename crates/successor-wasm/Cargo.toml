@@ -1,0 +1,14 @@
+[package]
+name = "successor-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Optional WASM bindings for deterministic replay and platform integration; not a player authority."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+successor-sim = { path = "../successor-sim" }
+serde_json.workspace = true
+wasm-bindgen.workspace = true

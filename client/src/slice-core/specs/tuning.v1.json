@@ -1,0 +1,16 @@
+{
+  "schema": "successor.slice-tuning.v1",
+  "movement": {
+    "playerSpeedCellsPerSecond": 1.357,
+    "sprintSpeedMultiplier": 4.809,
+    "sprintActionDrainPerSecond": 10
+  },
+  "spatialChat": {
+    "minTtlMs": 2200,
+    "maxTtlMs": 7000,
+    "msPerChar": 56,
+    "fadeInMs": 120,
+    "fadeOutMs": 320,
+    "maxStack": 3
+  }
+}

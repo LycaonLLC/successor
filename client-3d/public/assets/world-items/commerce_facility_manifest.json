@@ -1,0 +1,102 @@
+{
+  "bbox_span_m": [
+    11.4,
+    4.22,
+    8.55
+  ],
+  "building": "commerce_facility",
+  "clear_opening_m": [
+    2.47,
+    2.5
+  ],
+  "collisionProxy": {
+    "includesFurniture": true,
+    "sidecar": "commerce_facility_collision.json",
+    "source": "P",
+    "structuralOnly": false
+  },
+  "cutaway": {
+    "faces": {
+      "back": "wall_back__",
+      "front": "wall_front__",
+      "left": "wall_left__",
+      "right": "wall_right__"
+    },
+    "hide": [
+      "roof__"
+    ],
+    "keep": [
+      "floor__",
+      "interior__"
+    ],
+    "stub_by_face": true
+  },
+  "door": {
+    "clips": [
+      "door_open",
+      "door_close"
+    ],
+    "node": "door_slide",
+    "slide_axis_local": [
+      -1,
+      0,
+      0
+    ],
+    "slide_distance_m": 2.58
+  },
+  "door_cells": [
+    [
+      5,
+      8
+    ],
+    [
+      6,
+      8
+    ]
+  ],
+  "floorHeightM": 0.02,
+  "floorTopY": 0.02,
+  "front": "+Z",
+  "interiorRegions": [
+    {
+      "floorTopY": 0.02,
+      "id": "main_walkable_interior",
+      "maxX": 5.15,
+      "maxZ": 3.58,
+      "minX": -5.15,
+      "minZ": -3.75
+    }
+  ],
+  "interior_clear_height_m": 3.1,
+  "materials": [
+    "CM_Basalt",
+    "CM_Brass",
+    "CM_Ceramic",
+    "CM_GlowAmber",
+    "CM_GlowCyan",
+    "CM_Ink",
+    "CM_Steel",
+    "CM_TealGlass"
+  ],
+  "runtime_scale_at_12x9_cells": 1.052632,
+  "service_anchor_cells": {
+    "bank_terminal_civic": [
+      3,
+      3
+    ],
+    "pa_terminal": [
+      9,
+      3
+    ],
+    "trade_terminal": [
+      6,
+      3
+    ],
+    "trainer_npc": [
+      10,
+      6
+    ]
+  },
+  "tri_count": 14502,
+  "units": "m"
+}

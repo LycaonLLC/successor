@@ -1,0 +1,24 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "pawn_male_bare",
+  "asset_path": "client-3d/public/assets/pawn-pack/pawn_male_bare.glb",
+  "asset_hash": "sha256:5c182b3f7dcbb33a61965f633e66e820342f6d0f46746e30bce591a5b3182bca",
+  "asset_kind": "pawn_body_glb",
+  "source": {
+    "derived_from": "verification/anchors/body-20260721/pawn_male_W.glb (sha256:5c182b3f7dcbb33a61965f633e66e820342f6d0f46746e30bce591a5b3182bca)",
+    "body_state": "full-volume pre-shrink geometry with accommodation weight-field; the anchor preserves the shipped pawn_male skeleton, joints, clips, and 50-bone contract",
+    "generator": "byte copy of the verified W anchor; no runtime mesh, skeleton, or animation edits",
+    "anchor_reference": "verification/anchors/body-20260721/pawn_male_W.glb"
+  },
+  "promotion": {
+    "method": "optional worn-state body variant in the pawn pack",
+    "promoted_at": "2026-07-21",
+    "reason": "render full-volume male body when no leg-covering equipment is worn; retain accommodation body under legwear to prevent clipping"
+  },
+  "validation": {
+    "gltf_errors": 0,
+    "byte_identical_to_anchor": true,
+    "joints": 50,
+    "provenance_anchor_sha256": "sha256:5c182b3f7dcbb33a61965f633e66e820342f6d0f46746e30bce591a5b3182bca"
+  }
+}

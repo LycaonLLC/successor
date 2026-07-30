@@ -1,0 +1,262 @@
+{
+  "contract": {
+    "decorativeExcluded": [
+      "trim",
+      "bolts",
+      "glow",
+      "inlays",
+      "sconces",
+      "notice_panels",
+      "stool",
+      "rug",
+      "lamp",
+      "roof_gear",
+      "windows"
+    ],
+    "furnitureRoles": [
+      "counters",
+      "vault_face",
+      "shelving",
+      "queue_rails",
+      "benches",
+      "vestibule_piers",
+      "columns",
+      "trainer_desk"
+    ],
+    "geometrySource": "P",
+    "structuralRoles": [
+      "outer_shell",
+      "front_walls",
+      "entry_bay_returns",
+      "entry_bay_front_segments",
+      "closed_door"
+    ],
+    "terminal_cells_kept_clear": {
+      "bank_terminal_civic": [
+        3,
+        3
+      ],
+      "pa_terminal": [
+        9,
+        3
+      ],
+      "trade_terminal": [
+        6,
+        3
+      ],
+      "trainer_npc": [
+        10,
+        6
+      ]
+    }
+  },
+  "door": {
+    "closed": {
+      "id": "closed_door_panel",
+      "maxX": 1.235,
+      "maxZ": 4.21,
+      "minX": -1.235,
+      "minZ": 3.91
+    },
+    "node": "door_slide"
+  },
+  "floor": {
+    "slabThicknessM": 0.14,
+    "topY": 0.02
+  },
+  "footprint": {
+    "centerX": 0.0,
+    "centerZ": 0.0,
+    "maxX": 5.7,
+    "maxZ": 4.275,
+    "minX": -5.7,
+    "minZ": -4.275,
+    "spanX": 11.4,
+    "spanZ": 8.55
+  },
+  "furniture": [
+    {
+      "id": "counter_bank",
+      "maxX": -1.3,
+      "maxZ": -1.43,
+      "minX": -3.45,
+      "minZ": -1.9
+    },
+    {
+      "id": "counter_trade",
+      "maxX": 1.55,
+      "maxZ": -1.43,
+      "minX": -0.6,
+      "minZ": -1.9
+    },
+    {
+      "id": "counter_pa",
+      "maxX": 4.4,
+      "maxZ": -1.43,
+      "minX": 2.25,
+      "minZ": -1.9
+    },
+    {
+      "id": "bank_vault_face",
+      "maxX": -1.6,
+      "maxZ": -3.26,
+      "minX": -4.7,
+      "minZ": -3.75
+    },
+    {
+      "id": "trade_shelving",
+      "maxX": 1.7,
+      "maxZ": -3.42,
+      "minX": -0.7,
+      "minZ": -3.75
+    },
+    {
+      "id": "queue_rail_bank",
+      "maxX": -1.48,
+      "maxZ": 0.59,
+      "minX": -3.27,
+      "minZ": 0.51
+    },
+    {
+      "id": "queue_rail_trade",
+      "maxX": 1.37,
+      "maxZ": 0.59,
+      "minX": -0.42,
+      "minZ": 0.51
+    },
+    {
+      "id": "queue_rail_pa",
+      "maxX": 4.22,
+      "maxZ": 0.59,
+      "minX": 2.43,
+      "minZ": 0.51
+    },
+    {
+      "id": "bench_west",
+      "maxX": -4.7,
+      "maxZ": 1.65,
+      "minX": -5.15,
+      "minZ": -1.05
+    },
+    {
+      "id": "bench_front",
+      "maxX": -2.85,
+      "maxZ": 3.58,
+      "minX": -4.95,
+      "minZ": 3.26
+    },
+    {
+      "id": "vestibule_pier_left",
+      "maxX": -1.53,
+      "maxZ": 3.47,
+      "minX": -1.87,
+      "minZ": 3.13
+    },
+    {
+      "id": "vestibule_pier_right",
+      "maxX": 1.87,
+      "maxZ": 3.47,
+      "minX": 1.53,
+      "minZ": 3.13
+    },
+    {
+      "id": "column_west",
+      "maxX": -2.62,
+      "maxZ": 2.43,
+      "minX": -3.08,
+      "minZ": 1.97
+    },
+    {
+      "id": "column_east",
+      "maxX": 3.08,
+      "maxZ": 2.43,
+      "minX": 2.62,
+      "minZ": 1.97
+    },
+    {
+      "id": "trainer_desk",
+      "maxX": 5.15,
+      "maxZ": 2.6,
+      "minX": 4.76,
+      "minZ": 1.24
+    }
+  ],
+  "generatedBy": "tools/successor/assets/build_commerce_facility.py",
+  "interiorRegions": [
+    {
+      "floorTopY": 0.02,
+      "id": "main_walkable_interior",
+      "maxX": 5.15,
+      "maxZ": 3.58,
+      "minX": -5.15,
+      "minZ": -3.75
+    }
+  ],
+  "schema": "successor.structure-collision.v3",
+  "source": "commerce_facility.glb",
+  "walls": [
+    {
+      "id": "outer_shell_left",
+      "maxX": -5.15,
+      "maxZ": 3.9,
+      "minX": -5.7,
+      "minZ": -4.05
+    },
+    {
+      "id": "outer_shell_right",
+      "maxX": 5.7,
+      "maxZ": 3.9,
+      "minX": 5.15,
+      "minZ": -4.05
+    },
+    {
+      "id": "outer_shell_back",
+      "maxX": 5.45,
+      "maxZ": -3.75,
+      "minX": -5.45,
+      "minZ": -4.275
+    },
+    {
+      "id": "front_wall_left",
+      "maxX": -3.95,
+      "maxZ": 3.9,
+      "minX": -5.45,
+      "minZ": 3.6
+    },
+    {
+      "id": "front_wall_right",
+      "maxX": 5.45,
+      "maxZ": 3.9,
+      "minX": 2.05,
+      "minZ": 3.6
+    },
+    {
+      "id": "entry_bay_return_left",
+      "maxX": -3.65,
+      "maxZ": 4.275,
+      "minX": -3.95,
+      "minZ": 3.9
+    },
+    {
+      "id": "entry_bay_return_right",
+      "maxX": 2.05,
+      "maxZ": 4.275,
+      "minX": 1.75,
+      "minZ": 3.9
+    },
+    {
+      "id": "entry_bay_front_left",
+      "maxX": -1.235,
+      "maxZ": 4.275,
+      "minX": -3.65,
+      "minZ": 3.91
+    },
+    {
+      "id": "entry_bay_front_right",
+      "maxX": 1.75,
+      "maxZ": 4.275,
+      "minX": 1.235,
+      "minZ": 3.91
+    }
+  ]
+}

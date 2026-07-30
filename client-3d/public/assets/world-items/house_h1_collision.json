@@ -1,0 +1,176 @@
+{
+  "schema": "successor.structure-collision.v2",
+  "source": "house_h1.glb",
+  "generatedBy": "tools/successor/extract-structure-collision.mjs",
+  "sliceHeights": [
+    0.4003,
+    1.0003,
+    1.6003
+  ],
+  "gridMeters": 0.025,
+  "footprint": {
+    "minX": -2.3,
+    "minZ": -1.65,
+    "maxX": 2.3,
+    "maxZ": 2.15,
+    "spanX": 4.6,
+    "spanZ": 3.8,
+    "centerX": 0,
+    "centerZ": 0.25
+  },
+  "walls": [
+    {
+      "minX": -1.925,
+      "minZ": -1.55,
+      "maxX": 1.925,
+      "maxZ": -1.275
+    },
+    {
+      "minX": -2.2,
+      "minZ": -1.275,
+      "maxX": -1.925,
+      "maxZ": 1.275
+    },
+    {
+      "minX": 1.925,
+      "minZ": -1.275,
+      "maxX": 2.2,
+      "maxZ": 0.375
+    },
+    {
+      "minX": 1.925,
+      "minZ": 0.375,
+      "maxX": 2.175,
+      "maxZ": 1.275
+    },
+    {
+      "minX": 2.2,
+      "minZ": 0.375,
+      "maxX": 2.225,
+      "maxZ": 0.475
+    },
+    {
+      "minX": 2.175,
+      "minZ": 0.475,
+      "maxX": 2.2,
+      "maxZ": 1.275
+    },
+    {
+      "minX": -1.925,
+      "minZ": 1.275,
+      "maxX": -0.825,
+      "maxZ": 1.55
+    },
+    {
+      "minX": 1.85,
+      "minZ": 1.275,
+      "maxX": 1.925,
+      "maxZ": 1.55
+    },
+    {
+      "minX": -0.825,
+      "minZ": 1.55,
+      "maxX": -0.55,
+      "maxZ": 1.575
+    },
+    {
+      "minX": 1.575,
+      "minZ": 1.55,
+      "maxX": 1.85,
+      "maxZ": 1.775
+    },
+    {
+      "minX": -0.825,
+      "minZ": 1.575,
+      "maxX": -0.8,
+      "maxZ": 1.625
+    },
+    {
+      "minX": -0.55,
+      "minZ": 1.575,
+      "maxX": 0.325,
+      "maxZ": 1.625
+    },
+    {
+      "minX": 0.35,
+      "minZ": 1.6,
+      "maxX": 0.4,
+      "maxZ": 1.775
+    },
+    {
+      "minX": 1.45,
+      "minZ": 1.6,
+      "maxX": 1.525,
+      "maxZ": 1.775
+    },
+    {
+      "minX": -0.85,
+      "minZ": 1.625,
+      "maxX": -0.825,
+      "maxZ": 1.775
+    },
+    {
+      "minX": -0.8,
+      "minZ": 1.625,
+      "maxX": -0.55,
+      "maxZ": 1.775
+    },
+    {
+      "minX": -0.55,
+      "minZ": 1.775,
+      "maxX": 0.35,
+      "maxZ": 2
+    },
+    {
+      "minX": 1.525,
+      "minZ": 1.775,
+      "maxX": 1.575,
+      "maxZ": 2
+    },
+    {
+      "minX": -0.55,
+      "minZ": 2,
+      "maxX": 0.15,
+      "maxZ": 2.05
+    },
+    {
+      "minX": 1.575,
+      "minZ": 2,
+      "maxX": 1.7,
+      "maxZ": 2.15
+    },
+    {
+      "minX": 0.15,
+      "minZ": 2.05,
+      "maxX": 0.4,
+      "maxZ": 2.075
+    },
+    {
+      "minX": 1.45,
+      "minZ": 2.05,
+      "maxX": 1.575,
+      "maxZ": 2.075
+    },
+    {
+      "minX": 0.15,
+      "minZ": 2.075,
+      "maxX": 0.35,
+      "maxZ": 2.15
+    },
+    {
+      "minX": 1.525,
+      "minZ": 2.075,
+      "maxX": 1.575,
+      "maxZ": 2.15
+    }
+  ],
+  "door": {
+    "node": "door_slide",
+    "closed": {
+      "minX": 0.4,
+      "minZ": 1.63,
+      "maxX": 1.46,
+      "maxZ": 1.725
+    }
+  }
+}

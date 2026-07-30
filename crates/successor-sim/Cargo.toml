@@ -1,0 +1,15 @@
+[package]
+name = "successor-sim"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Top-level simulation: hosts subsystems, drives the tick."
+
+[dependencies]
+successor-core = { path = "../successor-core" }
+successor-inventory = { path = "../successor-inventory" }
+successor-net = { path = "../successor-net" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+blake3.workspace = true

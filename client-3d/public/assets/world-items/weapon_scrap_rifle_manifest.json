@@ -1,0 +1,20 @@
+{
+  "schema": "successor/world-item-provenance/1",
+  "id": "weapon_scrap_rifle",
+  "label": "Static Scrap Rifle",
+  "kind": "world_prop",
+  "glb": "weapon_scrap_rifle.glb",
+  "source_pack": "successor-content-wave-grok45-20260718",
+  "source_fbx": "props/successor/grok45-wave-20260718/profession-world-weapons/source/successor_weapon_cinder_pulse_carbine.blend",
+  "source_path": "props/successor/grok45-wave-20260718/profession-world-weapons/assets/successor_weapon_cinder_pulse_carbine.glb",
+  "content_hash_sha256": "f0201d5a435cc24f32b5e2c31c53b569abbd488c53072ce9eab67c037efdb630",
+  "triangles": 4852,
+  "vertices": 2524,
+  "mesh_nodes": 6,
+  "materials": 6,
+  "bbox_gltf_m": { "min": [-0.046, -0.187971, -0.255], "max": [0.046, 0.081471, 0.43], "size": [0.092, 0.269442, 0.685] },
+  "material_policy": "wave GLB PBR material set; runtime texture conversion applies the first material when a mesh is multi-material",
+  "curation_source": "source-assets/reference/successor/combined-catalog-1000-20260719/catalog.csv",
+  "source_report": "props/successor/grok45-wave-20260718/profession-world-weapons/reports/successor_weapon_cinder_pulse_carbine.json",
+  "validation_pass": true
+}

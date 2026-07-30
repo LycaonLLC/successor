@@ -1,0 +1,1188 @@
+{
+  "schema": "successor.farm-timings.v1",
+  "remoteOverheadMs": 15000,
+  "referenceCores": 24,
+  "laneDefaultsMs": {
+    "rust": 180000,
+    "node": 120000,
+    "accel": 45000,
+    "realtime": 180000,
+    "tui": 90000,
+    "3d": 150000,
+    "audio": 30000,
+    "desktop": 180000
+  },
+  "tasks": {
+    "static:commands": {
+      "samplesMs": [
+        208,
+        202,
+        205,
+        203,
+        203,
+        219
+      ],
+      "medianMs": 205
+    },
+    "static:coverage": {
+      "samplesMs": [
+        350,
+        349,
+        342,
+        349,
+        363,
+        357
+      ],
+      "medianMs": 350
+    },
+    "static:denylist": {
+      "samplesMs": [
+        12384,
+        4859,
+        4884,
+        4971,
+        5008,
+        5108
+      ],
+      "medianMs": 5008
+    },
+    "static:successor-context": {
+      "samplesMs": [
+        1187,
+        1171,
+        1176,
+        1187,
+        1191,
+        1230
+      ],
+      "medianMs": 1187
+    },
+    "static:wardrobe": {
+      "samplesMs": [
+        194,
+        185,
+        184,
+        195,
+        192,
+        194
+      ],
+      "medianMs": 194
+    },
+    "static:zero-gpu": {
+      "samplesMs": [
+        237,
+        219,
+        222,
+        216,
+        222,
+        224
+      ],
+      "medianMs": 222
+    },
+    "node:client": {
+      "samplesMs": [
+        12267,
+        8250,
+        7804,
+        11001,
+        8320,
+        7660,
+        8099
+      ],
+      "medianMs": 8250
+    },
+    "node:client-3d": {
+      "samplesMs": [
+        2347,
+        1623,
+        1648,
+        1646,
+        1765,
+        1584,
+        1668
+      ],
+      "medianMs": 1648
+    },
+    "node:client-tui": {
+      "samplesMs": [
+        1270,
+        1199,
+        1145,
+        1146,
+        1143,
+        1132,
+        1193
+      ],
+      "medianMs": 1146
+    },
+    "node:server": {
+      "samplesMs": [
+        6056,
+        6440,
+        5731,
+        5936,
+        6124,
+        5862,
+        5872
+      ],
+      "medianMs": 5936
+    },
+    "rust:successor-core": {
+      "samplesMs": [
+        876,
+        58,
+        65,
+        64,
+        63,
+        65
+      ],
+      "medianMs": 65
+    },
+    "rust:successor-inventory": {
+      "samplesMs": [
+        1571,
+        78,
+        80,
+        75,
+        70,
+        82
+      ],
+      "medianMs": 80
+    },
+    "rust:successor-net": {
+      "samplesMs": [
+        1183,
+        160,
+        170,
+        169,
+        155,
+        168
+      ],
+      "medianMs": 169
+    },
+    "rust:successor-sim": {
+      "samplesMs": [
+        27559,
+        27771,
+        27258,
+        27281,
+        27006,
+        28390
+      ],
+      "medianMs": 27559
+    },
+    "rust:successor-wasm": {
+      "samplesMs": [
+        24559,
+        5879,
+        3655,
+        3203,
+        3154,
+        3164
+      ],
+      "medianMs": 3655
+    },
+    "build:authority-bridge": {
+      "samplesMs": [
+        39,
+        40,
+        37,
+        37,
+        39,
+        41,
+        41,
+        37,
+        35
+      ],
+      "medianMs": 39
+    },
+    "build:client-3d": {
+      "samplesMs": [
+        4971,
+        4915,
+        4996,
+        5046,
+        5101,
+        5125,
+        5036,
+        5184,
+        5142
+      ],
+      "medianMs": 5046
+    },
+    "build:client-headless": {
+      "samplesMs": [
+        782,
+        779,
+        784,
+        789,
+        740,
+        721
+      ],
+      "medianMs": 782
+    },
+    "build:desktop": {
+      "samplesMs": [
+        20525,
+        20624,
+        20788,
+        21323,
+        20718
+      ],
+      "medianMs": 20718
+    },
+    "build:server": {
+      "samplesMs": [
+        2431,
+        2421,
+        2381,
+        2297,
+        2343,
+        2329,
+        2378,
+        2344,
+        2290
+      ],
+      "medianMs": 2344
+    },
+    "build:tui": {
+      "samplesMs": [
+        2674,
+        2664,
+        2618,
+        2583,
+        2643,
+        2575,
+        2591,
+        2598,
+        2506
+      ],
+      "medianMs": 2598
+    },
+    "3d:camp": {
+      "samplesMs": [
+        243,
+        234,
+        39665,
+        45235,
+        25987,
+        36617,
+        37825,
+        38135,
+        38180
+      ],
+      "medianMs": 37825
+    },
+    "3d:certification": {
+      "samplesMs": [
+        231,
+        256,
+        71356,
+        32560,
+        27069,
+        23346,
+        29382,
+        30586
+      ],
+      "medianMs": 29382
+    },
+    "3d:craft": {
+      "samplesMs": [
+        237,
+        233,
+        77336,
+        48875,
+        73676,
+        33218,
+        32864,
+        34087
+      ],
+      "medianMs": 34087
+    },
+    "3d:creation": {
+      "samplesMs": [
+        233,
+        233,
+        40899,
+        21434,
+        22248,
+        20646,
+        21241
+      ],
+      "medianMs": 21241
+    },
+    "3d:credit-chip": {
+      "samplesMs": [
+        244,
+        229,
+        26183,
+        27190,
+        25251,
+        23048,
+        23761
+      ],
+      "medianMs": 23761
+    },
+    "3d:duel": {
+      "samplesMs": [
+        239,
+        231,
+        94053,
+        90118,
+        72138,
+        54105,
+        53999
+      ],
+      "medianMs": 54105
+    },
+    "3d:exchange": {
+      "samplesMs": [
+        236,
+        229,
+        17803,
+        17198,
+        15775,
+        16028
+      ],
+      "medianMs": 16028
+    },
+    "3d:extractor": {
+      "samplesMs": [
+        233,
+        226,
+        33621,
+        76818,
+        44067,
+        76404,
+        33668,
+        33881
+      ],
+      "medianMs": 33881
+    },
+    "3d:farm": {
+      "samplesMs": [
+        237,
+        230,
+        68757,
+        54319,
+        42129,
+        35872,
+        40445,
+        45993,
+        48846
+      ],
+      "medianMs": 42129
+    },
+    "3d:group": {
+      "samplesMs": [
+        247,
+        240,
+        50506,
+        90989,
+        47338,
+        44930,
+        45350
+      ],
+      "medianMs": 45350
+    },
+    "3d:hair-helmet": {
+      "samplesMs": [
+        235,
+        221,
+        77129,
+        36432,
+        24420,
+        18218,
+        18403
+      ],
+      "medianMs": 18403
+    },
+    "3d:inventory-equip": {
+      "samplesMs": [
+        242,
+        227,
+        25147,
+        23485,
+        21587,
+        22737
+      ],
+      "medianMs": 22737
+    },
+    "3d:loot": {
+      "samplesMs": [
+        238,
+        231,
+        27619,
+        26048,
+        23744,
+        25286
+      ],
+      "medianMs": 25286
+    },
+    "3d:loot-drops": {
+      "samplesMs": [
+        243,
+        236,
+        76961,
+        26983,
+        24634,
+        24614,
+        24107
+      ],
+      "medianMs": 24614
+    },
+    "3d:macros": {
+      "samplesMs": [
+        236,
+        238,
+        18026,
+        17187,
+        16658,
+        17147
+      ],
+      "medianMs": 17147
+    },
+    "3d:medic-craft": {
+      "samplesMs": [
+        236,
+        236,
+        36565,
+        35750,
+        41684,
+        36598,
+        36941,
+        37515
+      ],
+      "medianMs": 36598
+    },
+    "3d:melee": {
+      "samplesMs": [
+        234,
+        228,
+        26272,
+        71387,
+        71927,
+        75007,
+        28104,
+        28797
+      ],
+      "medianMs": 28797
+    },
+    "3d:movement": {
+      "samplesMs": [
+        243,
+        238,
+        27986,
+        76217,
+        25005,
+        23789,
+        22654,
+        22844
+      ],
+      "medianMs": 23789
+    },
+    "3d:ranged": {
+      "samplesMs": [
+        240,
+        235,
+        37079,
+        31636,
+        75174,
+        29996,
+        28829,
+        29924
+      ],
+      "medianMs": 29996
+    },
+    "3d:revive": {
+      "samplesMs": [
+        239,
+        234,
+        29913,
+        75246,
+        55006,
+        75540,
+        79371,
+        83903
+      ],
+      "medianMs": 75246
+    },
+    "3d:scout-sprint": {
+      "samplesMs": [
+        241,
+        230,
+        31711,
+        25364,
+        24640,
+        24830
+      ],
+      "medianMs": 24830
+    },
+    "3d:splice": {
+      "samplesMs": [
+        239,
+        227,
+        44122,
+        33458,
+        48707,
+        49014,
+        49167
+      ],
+      "medianMs": 44122
+    },
+    "3d:survey": {
+      "samplesMs": [
+        234,
+        236,
+        49287,
+        31926,
+        71798,
+        24369,
+        23823,
+        23876
+      ],
+      "medianMs": 24369
+    },
+    "3d:trade": {
+      "samplesMs": [
+        239,
+        236,
+        67921,
+        96250,
+        29641,
+        71655,
+        50661,
+        51004
+      ],
+      "medianMs": 51004
+    },
+    "3d:trainer": {
+      "samplesMs": [
+        229,
+        233,
+        21456,
+        75669,
+        19899,
+        18799,
+        18767
+      ],
+      "medianMs": 18799
+    },
+    "3d:travel": {
+      "samplesMs": [
+        237,
+        233,
+        30102,
+        24881,
+        24577,
+        24896
+      ],
+      "medianMs": 24881
+    },
+    "3d:windows": {
+      "samplesMs": [
+        232,
+        233,
+        51474,
+        38260,
+        38105,
+        36022,
+        36354
+      ],
+      "medianMs": 36354
+    },
+    "accel:active-systems-restart-persistence": {
+      "samplesMs": [
+        14811,
+        19386,
+        16230,
+        15446,
+        14861
+      ],
+      "medianMs": 15446
+    },
+    "accel:bootstrap-crafter-journey": {
+      "samplesMs": [
+        13675,
+        13380,
+        17301,
+        13842,
+        13509
+      ],
+      "medianMs": 13675
+    },
+    "accel:combat-receipt-journey": {
+      "samplesMs": [
+        11847,
+        11573,
+        12391,
+        12151,
+        12343
+      ],
+      "medianMs": 12151
+    },
+    "accel:core-world-restart-persistence": {
+      "samplesMs": [
+        13873,
+        11439,
+        16227,
+        15406,
+        13795,
+        13470
+      ],
+      "medianMs": 13873
+    },
+    "accel:duels-restart-persistence": {
+      "samplesMs": [
+        12854,
+        12759,
+        13317,
+        13348,
+        13175
+      ],
+      "medianMs": 13175
+    },
+    "accel:groups-inventory-restart-persistence": {
+      "samplesMs": [
+        12401,
+        14115,
+        13919,
+        12887,
+        12108
+      ],
+      "medianMs": 12887
+    },
+    "accel:groups-xp-live": {
+      "samplesMs": [
+        13096,
+        13087,
+        14208,
+        13220,
+        13268
+      ],
+      "medianMs": 13220
+    },
+    "accel:loot-journey": {
+      "samplesMs": [
+        12744,
+        13346,
+        13743,
+        12802,
+        13914
+      ],
+      "medianMs": 13346
+    },
+    "accel:loot-restart-persistence": {
+      "samplesMs": [
+        14344,
+        13988,
+        14926,
+        14084,
+        14587
+      ],
+      "medianMs": 14344
+    },
+    "accel:move-displacement": {
+      "samplesMs": [
+        11584,
+        13523,
+        11239,
+        11554,
+        12649
+      ],
+      "medianMs": 11584
+    },
+    "accel:movement-restart-persistence": {
+      "samplesMs": [
+        11805,
+        15699,
+        12223,
+        11796,
+        12287
+      ],
+      "medianMs": 12223
+    },
+    "accel:movement-smoke": {
+      "samplesMs": [
+        11243,
+        11394,
+        13408,
+        11852,
+        10725,
+        16014
+      ],
+      "medianMs": 11852
+    },
+    "accel:movement-vitals-restart-persistence": {
+      "samplesMs": [
+        13105,
+        18999,
+        13397,
+        14557,
+        12662,
+        12910
+      ],
+      "medianMs": 13397
+    },
+    "accel:multiplayer-aoi-exit-hygiene": {
+      "samplesMs": [
+        11576,
+        12346,
+        11746,
+        11386,
+        11702
+      ],
+      "medianMs": 11702
+    },
+    "accel:multiplayer-assist-kill": {
+      "samplesMs": [
+        13382,
+        19140,
+        13414,
+        13359,
+        13265
+      ],
+      "medianMs": 13382
+    },
+    "accel:multiplayer-authority-duel": {
+      "samplesMs": [
+        12282,
+        12525,
+        13433,
+        11760,
+        11993
+      ],
+      "medianMs": 12282
+    },
+    "accel:multiplayer-chat-range": {
+      "samplesMs": [
+        11871,
+        13009,
+        12284,
+        11724,
+        11322
+      ],
+      "medianMs": 11871
+    },
+    "accel:multiplayer-extractor-ownership": {
+      "samplesMs": [
+        11529,
+        11479,
+        12598,
+        12488,
+        11659
+      ],
+      "medianMs": 11659
+    },
+    "accel:multiplayer-loot-contention": {
+      "samplesMs": [
+        13858,
+        15586,
+        14917,
+        13501,
+        13653
+      ],
+      "medianMs": 13858
+    },
+    "accel:multiplayer-mutual-visibility": {
+      "samplesMs": [
+        11395,
+        11995,
+        10840,
+        10976,
+        11902
+      ],
+      "medianMs": 11395
+    },
+    "accel:multiplayer-trade-roundtrip": {
+      "samplesMs": [
+        11802,
+        11398,
+        12173,
+        11921,
+        11310
+      ],
+      "medianMs": 11802
+    },
+    "accel:profession-travel-restart-persistence": {
+      "samplesMs": [
+        12549,
+        14528,
+        13063,
+        12409,
+        12042
+      ],
+      "medianMs": 12549
+    },
+    "accel:resource-land-restart-persistence": {
+      "samplesMs": [
+        23865,
+        23537,
+        27278,
+        23650,
+        24566
+      ],
+      "medianMs": 23865
+    },
+    "accel:scout-sprint-delta": {
+      "samplesMs": [
+        11433,
+        11054,
+        12247,
+        11164,
+        11078
+      ],
+      "medianMs": 11164
+    },
+    "accel:social-trade-exchange-restart-persistence": {
+      "samplesMs": [
+        12929,
+        16957,
+        12964,
+        12704,
+        13402
+      ],
+      "medianMs": 12964
+    },
+    "accel:weapon-certification-gate": {
+      "samplesMs": [
+        12081,
+        16335,
+        11996,
+        11711,
+        12154
+      ],
+      "medianMs": 12081
+    },
+    "desktop:smoke": {
+      "samplesMs": [
+        234,
+        224,
+        399,
+        386,
+        16180,
+        16615,
+        16951
+      ],
+      "medianMs": 399
+    },
+    "realtime:combat-receipt-journey": {
+      "samplesMs": [
+        12985,
+        12011,
+        11820,
+        12883,
+        12597
+      ],
+      "medianMs": 12597
+    },
+    "realtime:combat-roll-cancel-reload-realtime-race": {
+      "samplesMs": [
+        13619,
+        13119,
+        14099,
+        13314,
+        13988
+      ],
+      "medianMs": 13619
+    },
+    "realtime:duel-simultaneous-yield-realtime-race": {
+      "samplesMs": [
+        11735,
+        11615,
+        11453,
+        11334,
+        11592
+      ],
+      "medianMs": 11592
+    },
+    "realtime:movement-collision-realtime-race": {
+      "samplesMs": [
+        13323,
+        14347,
+        14535,
+        14030,
+        13997
+      ],
+      "medianMs": 14030
+    },
+    "realtime:movement-smoke": {
+      "samplesMs": [
+        14496,
+        14642,
+        15507,
+        15399,
+        15142
+      ],
+      "medianMs": 15142
+    },
+    "tui:attack-approach": {
+      "samplesMs": [
+        8693,
+        8692,
+        8715,
+        8681,
+        9855,
+        9867,
+        32224,
+        32257,
+        32280
+      ],
+      "medianMs": 9855
+    },
+    "tui:camp": {
+      "samplesMs": [
+        11799,
+        11763,
+        15766,
+        15649,
+        15785
+      ],
+      "medianMs": 15649
+    },
+    "tui:certification": {
+      "samplesMs": [
+        10270,
+        10278,
+        10272,
+        10294,
+        10265,
+        10397,
+        5071
+      ],
+      "medianMs": 10272
+    },
+    "tui:combat": {
+      "samplesMs": [
+        9870,
+        10037,
+        3373,
+        3141,
+        3261,
+        3153
+      ],
+      "medianMs": 3373
+    },
+    "tui:connect-look": {
+      "samplesMs": [
+        876,
+        811,
+        712,
+        684
+      ],
+      "medianMs": 811
+    },
+    "tui:converse-train": {
+      "samplesMs": [
+        12379,
+        12469,
+        12497,
+        12487,
+        12486,
+        12503,
+        1761
+      ],
+      "medianMs": 12486
+    },
+    "tui:craft": {
+      "samplesMs": [
+        22999,
+        23104,
+        10477,
+        15120,
+        15107,
+        15084,
+        15225,
+        10150
+      ],
+      "medianMs": 15120
+    },
+    "tui:credit-chip": {
+      "samplesMs": [
+        13576,
+        13759,
+        13555,
+        13590,
+        13572,
+        13574,
+        4146
+      ],
+      "medianMs": 13574
+    },
+    "tui:duel-duo": {
+      "samplesMs": [
+        8898,
+        10053,
+        8802,
+        8834,
+        8700,
+        9978,
+        3975
+      ],
+      "medianMs": 8834
+    },
+    "tui:extractor": {
+      "samplesMs": [
+        11684,
+        11671,
+        11589,
+        11784,
+        11675,
+        11570,
+        4312
+      ],
+      "medianMs": 11671
+    },
+    "tui:farm-loop": {
+      "samplesMs": [
+        18510,
+        18387,
+        18402,
+        18569,
+        18383,
+        18417,
+        36191,
+        36292
+      ],
+      "medianMs": 18510
+    },
+    "tui:frames": {
+      "samplesMs": [
+        3532,
+        3601,
+        3449,
+        3426,
+        3420
+      ],
+      "medianMs": 3449
+    },
+    "tui:group-duo": {
+      "samplesMs": [
+        6862,
+        8719,
+        4692,
+        8891,
+        8805,
+        8704,
+        8807,
+        4527
+      ],
+      "medianMs": 8719
+    },
+    "tui:macros": {
+      "samplesMs": [
+        1259,
+        1152,
+        1254,
+        1261
+      ],
+      "medianMs": 1259
+    },
+    "tui:medic-craft": {
+      "samplesMs": [
+        11590,
+        11593,
+        11580,
+        11588,
+        11578,
+        11584,
+        6629,
+        6616
+      ],
+      "medianMs": 11584
+    },
+    "tui:movement": {
+      "samplesMs": [
+        4885,
+        4994,
+        5112,
+        4874,
+        4969,
+        4922,
+        4869,
+        4877,
+        4920
+      ],
+      "medianMs": 4920
+    },
+    "tui:queries": {
+      "samplesMs": [
+        1754,
+        11682,
+        11762,
+        11581,
+        11579,
+        1731
+      ],
+      "medianMs": 11581
+    },
+    "tui:scout-sprint": {
+      "samplesMs": [
+        3709,
+        3810,
+        3828,
+        3721,
+        3703,
+        3697,
+        4558
+      ],
+      "medianMs": 3721
+    },
+    "tui:splice": {
+      "samplesMs": [
+        7597,
+        7589,
+        8297,
+        8412,
+        8304
+      ],
+      "medianMs": 8297
+    },
+    "tui:survey-sample": {
+      "samplesMs": [
+        13677,
+        13704,
+        13576,
+        13567,
+        13573,
+        13572,
+        1732,
+        1746
+      ],
+      "medianMs": 13573
+    },
+    "tui:trade-duo": {
+      "samplesMs": [
+        8924,
+        8848,
+        8682,
+        11879,
+        8688,
+        8808,
+        2166
+      ],
+      "medianMs": 8808
+    },
+    "tui:travel-exchange": {
+      "samplesMs": [
+        702,
+        709,
+        711,
+        727
+      ],
+      "medianMs": 711
+    },
+    "tui:weapon-equip": {
+      "samplesMs": [
+        10078,
+        10081,
+        10069,
+        10205,
+        10095,
+        10188,
+        3132
+      ],
+      "medianMs": 10081
+    }
+  }
+}

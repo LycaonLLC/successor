@@ -1,0 +1,54 @@
+{
+  "schema": "successor.scenario-golden-digests.v1",
+  "scenarios": {
+    "combat-receipt-journey": {
+      "digest": "sha256:d289871f7d86c28e42a7cced9b472ea884073355757dfe9c80c0a538835a0433",
+      "recordedAtCommit": "43ec1827011d706741fc7e3234d02cbaeda78330",
+      "lanes": [
+        "accel"
+      ],
+      "accelEligible": true,
+      "demotion": {
+        "reason": "Realtime system-clock combat snapshots include the arrival-dependent authority tick; repeated passing runs diverge while accel stays deterministic. Accel digest restamped after Gaia-danger retaliation/skirmisher preferred-range cutover: final compact oracle counters become shotsFired=12/hits=10 with mutual 13 damage (rogue health 90->77) once basic_shot fires on the engaged verification rogue.",
+        "divergenceStep": 17
+      },
+      "stateHash": "sha256:d289871f7d86c28e42a7cced9b472ea884073355757dfe9c80c0a538835a0433",
+      "sourceIdentity": {
+        "schema": "successor.source-identity.v1",
+        "sourceHash": "1d4dc84cb7c1bfbe8ff8ecff7f4201397b5375e4747666c8007fe576b3a6f59a",
+        "fileCount": 4314,
+        "totalBytes": 908888069,
+        "provenance": {
+          "headCommit": "43ec1827011d706741fc7e3234d02cbaeda78330",
+          "dirty": false,
+          "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "trackedDiffBytes": 0,
+          "untrackedFileCount": 0
+        }
+      }
+    },
+    "movement-smoke": {
+      "digest": "sha256:aa783505cb15ca542152f6a27a5ab51c33fcd4390700da4983cd24e7b8b7299f",
+      "recordedAtCommit": "5e651cc1a27fea01cb2173e10c2eb21a70a76143",
+      "lanes": [
+        "accel",
+        "realtime"
+      ],
+      "accelEligible": true,
+      "stateHash": "sha256:aa783505cb15ca542152f6a27a5ab51c33fcd4390700da4983cd24e7b8b7299f",
+      "sourceIdentity": {
+        "schema": "successor.source-identity.v1",
+        "sourceHash": "581e5780134f0514b7b0f287204abf60cb3f2924373dc1939588d3c708802335",
+        "fileCount": 4314,
+        "totalBytes": 908887380,
+        "provenance": {
+          "headCommit": "5e651cc1a27fea01cb2173e10c2eb21a70a76143",
+          "dirty": false,
+          "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "trackedDiffBytes": 0,
+          "untrackedFileCount": 0
+        }
+      }
+    }
+  }
+}

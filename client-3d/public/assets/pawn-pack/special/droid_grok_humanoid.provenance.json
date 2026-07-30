@@ -1,0 +1,102 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "droid_grok_humanoid",
+  "asset_path": "client-3d/public/assets/pawn-pack/special/droid_grok_humanoid.glb",
+  "asset_hash": "sha256:41d83904e7fdf0f6793c0306cd49c7db1a95f86af24cb7d92a9972a69c084dc5",
+  "asset_kind": "rigged_humanoid_glb",
+  "source": {
+    "glb": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_droid_brother_20260714_run01/assets/droid_brother.glb",
+      "sha256": "41d83904e7fdf0f6793c0306cd49c7db1a95f86af24cb7d92a9972a69c084dc5"
+    },
+    "blend": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_droid_brother_20260714_run01/proof/droid_brother_v2_source.blend",
+      "sha256": "20f388eee36b4d7fa9867731ce9d13fcddde26f0aa950ebba239d0c177e0c605"
+    },
+    "builder": {
+      "path": "pawn-forge:pawnforgev2/_bakeoff/successor_droid_brother_20260714_run01/build_droid_v2.py",
+      "sha256": "56e648f99681d8276876aef893e36ad4b9ee64888793f31a091c083eb3efe177"
+    },
+    "build_report": "pawn-forge:pawnforgev2/_bakeoff/successor_droid_brother_20260714_run01/build-report.json",
+    "rig_input": {
+      "path": "pawn-forge:export/anim_preview/pawn_subtle_hero.glb",
+      "sha256": "6619c0570baa7515f0027977c574a8d7a95627ab314d8017983bda18f32d7e76"
+    }
+  },
+  "rights": {
+    "authoring_context": "Locally authored in the project-owner workspace under project-owner direction.",
+    "source_license": "Successor proprietary project asset; all rights reserved",
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "note": "Project-owner-directed original work. This is not an open-content or third-party reuse license."
+  },
+  "authoring": {
+    "tool": {
+      "name": "Blender",
+      "version": "5.1.2",
+      "tool_snapshot_id": "blender-5.1.2-ec6e62d40fa9"
+    },
+    "generator_attribution": {
+      "provider": "xai-oauth",
+      "model": "grok-4.5"
+    },
+    "prompt_record": "Retained with the non-public authoring source; intentionally omitted from shipped web metadata."
+  },
+  "promotion": {
+    "method": "byte-identical copy of droid_brother.glb under a stable Successor runtime id",
+    "promoted_at": "2026-07-14",
+    "human_edits_after_export": [],
+    "runtime_name": "GR0K",
+    "runtime_wardrobe_policy": "authored droid body only; human clothing and hair are intentionally skipped"
+  },
+  "metrics": {
+    "bytes": 1377764,
+    "vertices": 10244,
+    "source_faces": 9814,
+    "height_m": 1.7308552106842399,
+    "skinned_meshes": 1,
+    "vertex_groups": 50,
+    "joint_name_contract": "exact 50-joint name match with the live humanoid pawn rig",
+    "embedded_animation_clips": 0
+  },
+  "materials": {
+    "material_zones": [
+      "DroidShell",
+      "DroidDark",
+      "DroidJoint",
+      "DroidPiston",
+      "DroidCore",
+      "DroidOptic"
+    ],
+    "uv_sets": [
+      "TEXCOORD_0"
+    ],
+    "external_textures": [],
+    "embedded_textures": [],
+    "note": "The authored appearance is color/material-zone based. UV coordinates are present, but no texture image is missing from this packet."
+  },
+  "runtime": {
+    "special_body_registry": "client-3d/src/assets/pawnPack.ts",
+    "sprite_mapping": "client-3d/src/render/pawns.ts",
+    "sprite_id": "droid-grok-humanoid",
+    "fixture_generator": "tools/successor/configure-open-desert-fixture.mjs",
+    "fixture_actor_id": "grok",
+    "animation_source": "shared PawnAnimator humanoid clips",
+    "focused_test": "client-3d/src/render/pawns.specialHumanoid.test.ts"
+  },
+  "validation": {
+    "runtime_hash_matches_source": true,
+    "rig_joint_name_match": "50 of 50",
+    "skinning_attributes": [
+      "JOINTS_0",
+      "WEIGHTS_0"
+    ],
+    "uv_attribute": "TEXCOORD_0",
+    "focused_runtime_tests": "passed 2026-07-14",
+    "successor_in_camera_review": "passed 2026-07-14 (verification/ledgers/artifacts/client3d/client3d-gate-20260714211601-5c84fefd/client3d-gate-report.json; h3d-start-zone-00-grok-in-world.png and h3d-start-zone-01-grok-examine.png)"
+  },
+  "review": {
+    "status": "approved",
+    "reviewed_at": "2026-07-14",
+    "notes": "Source renders, rig/load contract, and isolated Successor start-zone camera/post-stack proof were reviewed. GR0K renders with the promoted humanoid-droid body, shared idle animation, and correct examine identity. Proprietary Successor runtime-distribution rights are recorded; no standalone reuse grant is implied."
+  }
+}

@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successor.local/schema/spec_document.json",
+  "title": "Specification document",
+  "description": "Top-level wrapper for any subsystem specification. References more specific schemas (formula, state_machine, content_table) by union. Updated 2026-05-10 per ADR-0009 + ADR-0010 from research consolidation.",
+  "type": "object",
+  "required": ["spec_id", "spec_version", "subsystem", "version", "reference_paths", "allowed_content", "forbidden_content", "review", "ready_status"],
+  "properties": {
+    "spec_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+\\.[a-z0-9_]+(\\.[a-z0-9_]+)*\\.v[0-9]+$",
+      "description": "Stable identifier. Major lineage suffix (e.g. .v1) is immutable; SemVer in spec_version tracks patch/minor revisions."
+    },
+    "spec_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "SemVer. Incompatible changes major; compatible additions minor; bug-fix corrections patch."
+    },
+    "subsystem": {
+      "type": "string",
+      "enum": ["resource", "combat", "crafting", "ai_behavior", "economy", "mission", "social", "world", "ui", "packet"]
+    },
+    "version": { "type": "integer", "minimum": 1, "description": "Major lineage integer matching the spec_id suffix." },
+    "supersedes": { "type": ["string", "null"], "description": "spec_id of a prior version this replaces" },
+    "change_type": {
+      "enum": ["initial", "patch", "minor", "major"],
+      "description": "Categorize the kind of change relative to predecessor."
+    },
+    "compatibility": {
+      "enum": ["initial", "compatible", "breaking"],
+      "description": "Wire-format / behavior compatibility relative to predecessor."
+    },
+    "migration_notes": { "type": "string", "description": "Human prose for breaking changes: affected formulas, fixtures, code." },
+    "fixture_version": { "type": "string", "description": "Version stamp on the fixture set; bumps when fixtures regenerate." },
+    "source_inventory_version": { "type": "string", "description": "Version of the subsystem's source_inventory.json this spec was authored against." },
+    "reference_paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Paths within the reference vault that informed this spec. Audit trail; not consulted at build time."
+    },
+    "allowed_content": {
+      "type": "array",
+      "items": {
+        "enum": ["formulas", "constants", "state_machines", "tables", "wire_format", "schema_shape", "algorithm_prose"]
+      }
+    },
+    "forbidden_content": {
+      "type": "array",
+      "items": {
+        "enum": ["code_text", "comments", "names", "lore", "strings", "asset_references"]
+      }
+    },
+    "formulas": { "type": "array", "items": { "$ref": "formula.schema.json" } },
+    "state_machines": { "type": "array", "items": { "$ref": "state_machine.schema.json" } },
+    "tables": { "type": "array", "items": { "$ref": "content_table.schema.json" } },
+    "fixtures": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Input/output examples sufficient to write a test.",
+      "items": {
+        "type": "object",
+        "required": ["name", "inputs", "expected"],
+        "properties": {
+          "name": { "type": "string" },
+          "inputs": { "type": "object" },
+          "expected": {},
+          "tolerance": {
+            "type": "object",
+            "description": "Acceptance band for stochastic outputs (per ADR-0009).",
+            "properties": {
+              "metric": {
+                "enum": [
+                  "exact",
+                  "max_error",
+                  "wasserstein_1",
+                  "total_variation",
+                  "jensen_shannon",
+                  "quantile_delta",
+                  "autocorrelation_delta",
+                  "run_length_delta",
+                  "event_log_exact"
+                ]
+              },
+              "threshold": { "type": "number" },
+              "unit": { "type": "string", "description": "e.g. 'normalized fraction of valid range', 'days', 'seconds', 'count'" },
+              "normalized": { "type": "boolean" },
+              "sample_size": { "type": "integer", "minimum": 1 },
+              "confidence": { "type": "number", "description": "e.g. 0.95 for one-sided 95% upper CI" },
+              "bootstrap_replicates": { "type": "integer", "minimum": 1, "description": "Default 5000" },
+              "bootstrap_strata": { "type": "array", "items": { "type": "string" }, "description": "e.g. ['seed', 'planet']" },
+              "multiple_comparison_correction": { "enum": ["holm_bonferroni", "benjamini_hochberg", "none"] },
+              "effect_size_rationale": { "type": "string", "description": "Why this band was chosen; designer-owned where possible." }
+            }
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["reference_reviewer", "implementation_reviewer", "date"],
+      "properties": {
+        "reference_reviewer": { "type": "string", "description": "Human or human-owned approval identity." },
+        "implementation_reviewer": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "notes": { "type": "string" },
+        "produced_by_agents": {
+          "type": "array",
+          "description": "Agents that drafted or extracted; never sole reviewers.",
+          "items": { "$ref": "#/definitions/agent_provenance_entry" }
+        },
+        "assisted_review_by_agents": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/agent_provenance_entry" }
+        }
+      }
+    },
+    "ready_status": {
+      "enum": ["draft", "candidate", "frozen", "superseded", "deprecated"],
+      "description": "Implementation agents may consume only frozen specs."
+    },
+    "coverage": {
+      "type": "object",
+      "description": "Spec readiness coverage score per ADR-0010.",
+      "properties": {
+        "source_clusters_total": { "type": "integer", "minimum": 0 },
+        "source_clusters_mapped": { "type": "integer", "minimum": 0 },
+        "behavior_fixtures": { "type": "integer", "minimum": 0 },
+        "edge_fixtures": { "type": "integer", "minimum": 0 },
+        "stochastic_bands": { "type": "integer", "minimum": 0 },
+        "sci": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "rng_contract": {
+      "type": "object",
+      "description": "Deterministic RNG behavior for stochastic systems per ADR-0010.",
+      "properties": {
+        "algorithm": { "enum": ["pcg64", "chacha8", "reference_captured_only"] },
+        "seed_format": { "type": "string", "description": "e.g. 'u64_hex', 'bytes32_hex'" },
+        "draw_order_documented": { "type": "boolean" },
+        "draw_order_notes": { "type": "string" }
+      }
+    },
+    "validation_artifacts": {
+      "type": "array",
+      "description": "Pointers to artifacts that prove the spec correct.",
+      "items": {
+        "type": "object",
+        "required": ["kind", "path", "hash"],
+        "properties": {
+          "kind": { "enum": ["reference_fixture", "runner_diff", "mutation_report", "distribution_report", "replay_hash_log"] },
+          "path": { "type": "string" },
+          "hash": { "type": "string", "description": "blake3:<hex> or sha256:<hex>" }
+        }
+      }
+    },
+    "source_conflicts": {
+      "type": "array",
+      "description": "Recorded disagreements between reference sources per ADR-0010 priority order.",
+      "items": {
+        "type": "object",
+        "required": ["sources", "disagreement", "resolution"],
+        "properties": {
+          "sources": { "type": "array", "items": { "type": "string" } },
+          "disagreement": { "type": "string" },
+          "resolution": { "type": "string" },
+          "confidence": { "enum": ["low", "medium", "high"] },
+          "reviewer": { "type": "string" },
+          "fixture_proving_decision": { "type": "string" },
+          "open_uncertainty": { "type": "boolean" }
+        }
+      }
+    },
+    "mutation_score": {
+      "type": "object",
+      "description": "Latest cargo-mutants result. Two scores per ADR-0009.",
+      "properties": {
+        "global_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "targeted_gameplay_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "critical_survivors": { "type": "integer", "minimum": 0, "description": "Must be 0 to ship." },
+        "equivalent_suppressions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["operator", "rationale", "reviewer"],
+            "properties": {
+              "operator": { "type": "string" },
+              "rationale": { "type": "string" },
+              "reviewer": { "type": "string" }
+            }
+          }
+        },
+        "tool_version": { "type": "string" },
+        "operator_set_version": { "type": "string" },
+        "measured_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "definitions": {
+    "agent_provenance_entry": {
+      "type": "object",
+      "required": ["agent_instance_id", "run_id", "role"],
+      "properties": {
+        "agent_instance_id": { "type": "string", "description": "e.g. agent/system-builder/frontier-codex/v1" },
+        "run_id": { "type": "string" },
+        "role": {
+          "enum": ["spec-harvester", "spec-reviewer", "system-builder", "harness-author", "content-author", "playtest-bot", "judge"]
+        },
+        "provider": { "type": "string" },
+        "model": { "type": "string" },
+        "model_version": { "type": "string" },
+        "prompt_fingerprint": { "type": "string" },
+        "policy_fingerprint": { "type": "string" },
+        "toolchain_fingerprint": { "type": "string" },
+        "base_commit": { "type": "string" },
+        "output_commit": { "type": "string" },
+        "started_at": { "type": "string", "format": "date-time" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "token_usage": {
+          "type": "object",
+          "properties": {
+            "input": { "type": "integer", "minimum": 0 },
+            "cached_input": { "type": "integer", "minimum": 0 },
+            "output": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "cost_usd": { "type": "number", "minimum": 0 },
+        "trace_uri": { "type": "string" },
+        "allowed_paths": { "type": "array", "items": { "type": "string" } },
+        "denied_paths": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

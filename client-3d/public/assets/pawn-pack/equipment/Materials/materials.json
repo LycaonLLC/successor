@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "purpose": "PawnForgeV2 armor material preview packs for Three.js MeshStandardMaterial.",
+  "default": "smooth_steel",
+  "materials": [
+    {
+      "id": "smooth_steel",
+      "name": "Smooth steel",
+      "description": "neutral light-gray steel, low texture, medium shine",
+      "color": "#b2b6b8",
+      "maps": {
+        "baseColor": "Materials/smooth_steel_baseColor.png",
+        "normal": "Materials/smooth_steel_normal.png",
+        "roughness": "Materials/smooth_steel_roughness.png",
+        "metalness": "Materials/smooth_steel_metalness.png"
+      },
+      "metalness": 0.58,
+      "roughness": 0.34,
+      "normalScale": 0.18,
+      "envMapIntensity": 1.0,
+      "shading": "standard",
+      "repeat": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "polished_chrome",
+      "name": "Polished chrome",
+      "description": "ultra-smooth neutral chrome preview; no tiled texture, no scratches",
+      "color": "#acb2b8",
+      "maps": {
+        "baseColor": "Materials/polished_chrome_baseColor.png",
+        "normal": "Materials/polished_chrome_normal.png",
+        "roughness": "Materials/polished_chrome_roughness.png",
+        "metalness": "Materials/polished_chrome_metalness.png"
+      },
+      "metalness": 0.96,
+      "roughness": 0.04,
+      "normalScale": 0.0,
+      "envMapIntensity": 1.6,
+      "shading": "matcap_chrome",
+      "repeat": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "brushed_steel",
+      "name": "Brushed steel",
+      "description": "neutral gray metal with directional scratches and satin shine",
+      "color": "#a4a8aa",
+      "maps": {
+        "baseColor": "Materials/brushed_steel_baseColor.png",
+        "normal": "Materials/brushed_steel_normal.png",
+        "roughness": "Materials/brushed_steel_roughness.png",
+        "metalness": "Materials/brushed_steel_metalness.png"
+      },
+      "metalness": 0.62,
+      "roughness": 0.48,
+      "normalScale": 0.42,
+      "envMapIntensity": 1.0,
+      "shading": "standard",
+      "repeat": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "matte_ceramic",
+      "name": "Matte ceramic",
+      "description": "pale neutral ceramic, non-metal, soft broad roughness",
+      "color": "#bebeb8",
+      "maps": {
+        "baseColor": "Materials/matte_ceramic_baseColor.png",
+        "normal": "Materials/matte_ceramic_normal.png",
+        "roughness": "Materials/matte_ceramic_roughness.png",
+        "metalness": "Materials/matte_ceramic_metalness.png"
+      },
+      "metalness": 0.02,
+      "roughness": 0.86,
+      "normalScale": 0.55,
+      "envMapIntensity": 1.0,
+      "shading": "standard",
+      "repeat": [
+        3,
+        3
+      ]
+    }
+  ]
+}

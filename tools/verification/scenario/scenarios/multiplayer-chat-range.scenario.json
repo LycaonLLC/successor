@@ -1,0 +1,25 @@
+{
+  "schema": "successor.scenario.v1",
+  "name": "multiplayer-chat-range",
+  "fixture": "open-desert-multiplayer-chat-range",
+  "actors": {
+    "alpha": { "character": "fixture:alpha" },
+    "beta": { "character": "fixture:beta" }
+  },
+  "steps": [
+    { "chatConnect": { "actor": "alpha", "as": "alphaChat" } },
+    { "chatConnect": { "actor": "beta", "as": "betaChat" } },
+    { "chatConnect": { "playerId": "mp-chat-gamma", "displayName": "ChatGamma", "zone": "verdance-forest-overworld", "as": "farChat" } },
+    { "chatSend": { "client": "alphaChat", "channel": "local", "body": "local range pulse", "as": "alphaLocal" } },
+    { "await": { "kind": "chat", "client": "betaChat", "match": { "type": "chat.message", "message.channel": "local", "message.body": "local range pulse", "message.sender.id": "mp-chat-alpha" }, "timeoutMs": 8000, "as": "betaLocalReceived" } },
+    { "expect": { "kind": "chatEnvelopeCount", "client": "farChat", "match": { "type": "chat.message", "message.body": "local range pulse" }, "op": "eq", "value": 0 } },
+    { "chatSend": { "client": "betaChat", "channel": "zone", "body": "area channel pulse", "as": "betaZone" } },
+    { "await": { "kind": "chat", "client": "alphaChat", "match": { "type": "chat.message", "message.channel": "zone", "message.body": "area channel pulse", "message.sender.id": "mp-chat-beta" }, "timeoutMs": 8000, "as": "alphaZoneReceived" } },
+    { "expect": { "kind": "chatEnvelopeCount", "client": "farChat", "match": { "type": "chat.message", "message.body": "area channel pulse" }, "op": "eq", "value": 0 } },
+    { "chatSend": { "client": "alphaChat", "channel": "whisper", "targetId": "mp-chat-beta", "body": "quiet escrow ready", "as": "alphaWhisper" } },
+    { "await": { "kind": "chat", "client": "betaChat", "match": { "type": "chat.message", "message.channel": "whisper", "message.body": "quiet escrow ready", "message.sender.id": "mp-chat-alpha", "message.targetId": "mp-chat-beta" }, "timeoutMs": 8000, "as": "betaWhisperReceived" } },
+    { "expect": { "kind": "chatEnvelopeCount", "client": "farChat", "match": { "type": "chat.message", "message.body": "quiet escrow ready" }, "op": "eq", "value": 0 } },
+    { "expect": { "kind": "stableHash", "sourceStateHash": "fixture", "as": "chatRangeStableHash" } }
+  ],
+  "notes": "Chat range is tested against the landed chat hub behavior: local/zone route by zone, not cell radius, and whispers route only to sender plus target. The catalog keeps true same-area cell-radius chat as a flip point for when chat consumes shard positions."
+}

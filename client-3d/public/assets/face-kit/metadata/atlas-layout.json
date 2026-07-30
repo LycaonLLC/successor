@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "grid": { "columns": 4, "rows": 2 },
+  "cellOrder": [
+    "stoic", "rogue", "youth", "ghost",
+    "sharp", "feral", "regal", "veteran"
+  ],
+  "backgroundKey": [202, 136, 97],
+  "files": {
+    "eyes": "assets/face-eyes-v3.png",
+    "brows": "assets/face-brows-v3.png",
+    "noses": "assets/face-noses-v3.png",
+    "mouths": "assets/face-mouths-v3.png",
+    "semanticIrisMask": "assets/face-iris-mask-v3.png",
+    "originalCombinedReference": "assets/face-feature-sheet-v2.png"
+  },
+  "semanticMaskChannels": {
+    "red": "complete iris island, including pupil and highlight protection",
+    "green": "recolorable iris pigment",
+    "blue": "reserved"
+  },
+  "localFeatureCenters": {
+    "eyes": [[0.29, 0.385], [0.71, 0.385]],
+    "brows": [[0.29, 0.225], [0.71, 0.225]],
+    "nose": [0.5, 0.585],
+    "mouth": [0.5, 0.755]
+  }
+}
+

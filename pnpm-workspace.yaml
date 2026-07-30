@@ -1,0 +1,19 @@
+
+packages:
+  - server
+  - client
+  - desktop
+  - client-3d
+  - client-tui
+  - site
+  - tools/*
+allowBuilds:
+  esbuild: true
+  msgpackr-extract: true
+blockExoticSubdeps: true
+minimumReleaseAge: 1440
+overrides:
+  qs@>=6.11.1 <=6.15.1: 6.15.2
+  undici@>=7.0.0 <7.28.0: 7.28.0
+  ws@>=8.0.0 <8.21.0: 8.21.0
+strictDepBuilds: true

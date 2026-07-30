@@ -1,0 +1,79 @@
+{
+  "asset": "shelter_frontier",
+  "atlas_px": 1024,
+  "bbox_max_m": [
+    1.6430003643035889,
+    2.2924997806549072,
+    1.334337830543518
+  ],
+  "bbox_min_m": [
+    -1.6430003643035889,
+    -0.003000000026077032,
+    -1.3600000143051147
+  ],
+  "collision": {
+    "boxes": [
+      {
+        "id": "wall_left",
+        "max": [
+          -1.48,
+          1.72,
+          1.33
+        ],
+        "min": [
+          -1.643,
+          0.0,
+          -1.33
+        ]
+      },
+      {
+        "id": "wall_right",
+        "max": [
+          1.643,
+          1.72,
+          1.33
+        ],
+        "min": [
+          1.48,
+          0.0,
+          -1.33
+        ]
+      },
+      {
+        "id": "wall_back",
+        "max": [
+          1.64,
+          1.72,
+          -1.18
+        ],
+        "min": [
+          -1.64,
+          0.0,
+          -1.34
+        ]
+      }
+    ],
+    "note": "open front; roof/gable above pawn height; sandbags decorative",
+    "space": "gltf-meters prop-local yaw-0"
+  },
+  "dims_m": {
+    "x": 3.286,
+    "y": 2.2955,
+    "z": 2.6943
+  },
+  "front_axis": "+Z",
+  "gate": "gate_result.json",
+  "glb_sha256": "869f897c1b67ee564046014936037159c6523fca83c74565f120aaedb604e3c7",
+  "maps": [
+    "basecolor",
+    "normal(tangent)",
+    "orm(R=AO,G=rough,B=metal)",
+    "emissive"
+  ],
+  "material": "ShelterFrontier_PBR",
+  "object": "shelter_frontier",
+  "set": "camp_frontier_v1",
+  "tri_count": 6924,
+  "units": "m",
+  "unlit_note": "runtime world grade is unlit; BaseColor has AO folded in and ember emissive screened on top"
+}

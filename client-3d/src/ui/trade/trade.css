@@ -1,0 +1,455 @@
+/*
+ * TRADE window — secure trade in the hairline HUD-glass language.
+ *
+ * Imported by tradeWindow.ts (module-scoped stylesheet, dialogue.css
+ * pattern). Every colour flows from the --sc3d-* chrome tokens; the seal
+ * stamps borrow the fixed --sc-fixed-* requisition palette (oxide ink, stencil
+ * face) because a notary stamp is paper-language, not chrome.
+ *
+ * Layering contract (inventory.css): the shared turntable canvas layer sits
+ * at z 1, this chrome at z 2 with TRANSLUCENT cell fills so the rotating
+ * models show through the item cells and the preview well.
+ */
+
+.scp-trade {
+  position: absolute;
+  inset: 0;
+}
+
+.scp-trade .inv-canvas-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.scp-trade .inv-canvas-layer > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scp-trade-chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 8px 4px;
+  min-height: 0;
+}
+
+/* ── The table: two notarized columns ───────────────────────────────────── */
+
+.scp-trade-table {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  min-height: 0;
+}
+
+.scp-trade-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 30%, transparent);
+  min-width: 0;
+  transition: border-color 180ms ease-out;
+}
+
+/* The visible lock state — hairline warms to the seal. */
+.scp-trade-col[data-locked] {
+  border-color: color-mix(in srgb, var(--sc-fixed-oxide) 65%, var(--sc3d-hairline));
+}
+
+.scp-trade-col-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.scp-trade-col-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.scp-trade-stagetag {
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+}
+
+/* ── Offer grid (3-wide inventory-style cells) ──────────────────────────── */
+
+.scp-trade-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  align-content: start;
+}
+
+.scp-trade-grid[data-drop] {
+  outline: 1px dashed var(--sc3d-accent);
+  outline-offset: 2px;
+}
+
+.scp-trade-cell {
+  appearance: none;
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 75%, transparent);
+  /* Translucent well — the turntable renders through from the canvas layer. */
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 40%, transparent);
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+
+.scp-trade-cell:hover:not(.scp-trade-cell--empty),
+.scp-trade-cell:focus-visible {
+  border-color: var(--sc3d-accent);
+  outline: none;
+}
+
+.scp-trade-cell[data-selected] {
+  border-color: var(--sc3d-accent);
+  box-shadow: 0 0 6px var(--sc3d-accent-glow), inset 0 0 0 1px var(--sc3d-accent-soft);
+}
+
+.scp-trade-cell--empty {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 45%, transparent);
+  background: transparent;
+  cursor: default;
+}
+
+.scp-trade-cell-count {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  padding: 0 3px;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
+  color: var(--sc3d-ink);
+  background: color-mix(in srgb, var(--sc3d-glass) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  pointer-events: none;
+}
+
+.scp-trade-cell-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--sc3d-ink-dim);
+  background: color-mix(in srgb, var(--sc3d-glass) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+}
+
+.scp-trade-cell-remove svg {
+  width: 8px;
+  height: 8px;
+}
+
+.scp-trade-cell:hover .scp-trade-cell-remove {
+  display: flex;
+}
+
+.scp-trade-cell-remove:hover {
+  color: var(--sc3d-danger);
+  border-color: var(--sc3d-danger);
+}
+
+/* ── Coin line ──────────────────────────────────────────────────────────── */
+
+.scp-trade-coin {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.scp-trade-coin-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--sc-fixed-ochre, #b98c3a);
+}
+
+.scp-trade-coin-input {
+  flex: 0 1 84px;
+  min-width: 48px;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 80%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 2px 5px;
+  text-align: right;
+}
+
+.scp-trade-coin-input:focus-visible {
+  border-color: var(--sc3d-accent);
+  outline: none;
+}
+
+.scp-trade-coin-input:disabled {
+  color: var(--sc3d-ink-dim);
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 55%, transparent);
+}
+
+.scp-trade-coin-value {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--sc3d-ink);
+}
+
+.scp-trade-coin-held {
+  margin-left: auto;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+}
+
+/* ── The seal — a notary stamp across a locked column ───────────────────── */
+
+.scp-trade-seal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  padding: 3px 14px;
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 17px;
+  letter-spacing: 0.26em;
+  color: var(--sc-fixed-oxide);
+  border: 2px solid var(--sc-fixed-oxide);
+  background: color-mix(in srgb, var(--sc-fixed-soot-deep, #0c0a06) 55%, transparent);
+  opacity: 0.92;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Preview band: turntable well + examine ledger ──────────────────────── */
+
+.scp-trade-preview {
+  flex: 1;
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: minmax(96px, 132px) 1fr;
+  gap: 8px;
+}
+
+.scp-trade-well {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 70%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 35%, transparent);
+  /* Spin-drag surface for the shared turntable (slotDragHost). */
+  cursor: var(--sc3d-cursor-interact, grab);
+  touch-action: none;
+}
+
+.scp-trade-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.scp-trade-info--idle {
+  align-items: flex-start;
+  justify-content: center;
+  /* Framed like its bordered neighbours (fe-polish §1.23) — the bare idle
+   * block read as a hole between the turntable well and the grids. */
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--sc3d-hairline) 55%, transparent);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 22%, transparent);
+  color: var(--sc3d-ink-dim);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.scp-trade-info--idle .scp-empty-glyph {
+  width: 18px;
+  height: 18px;
+}
+
+.scp-trade-info--idle small {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--sc3d-ink-dim) 80%, transparent);
+}
+
+.scp-trade-info-name {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sc3d-ink);
+}
+
+.scp-trade-info-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-trade-info-desc {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--sc3d-ink-dim);
+}
+
+.scp-trade-info-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+/* ── CTA bar ────────────────────────────────────────────────────────────── */
+
+.scp-trade-ctas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Align the CTA rail with the column CELL grid (col border 1px + 6px
+   * padding): ACCEPT used to jut past the left edge, DECLINE hugged the
+   * window margin (fe-polish §1.23). */
+  padding: 0 7px;
+}
+
+/* Shared button voice (craft-bench weight). */
+.scp-trade-btn {
+  appearance: none;
+  border: 1px solid var(--sc3d-hairline);
+  background: color-mix(in srgb, var(--sc3d-bg-cell) 80%, transparent);
+  color: var(--sc3d-ink);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  padding: 5px 12px;
+  cursor: var(--sc3d-cursor-interact, pointer);
+  transition: border-color 150ms ease-out, background 150ms ease-out;
+}
+
+.scp-trade-btn:hover:not(:disabled),
+.scp-trade-btn:focus-visible {
+  border-color: var(--sc3d-accent);
+  outline: none;
+}
+
+.scp-trade-btn:disabled {
+  color: var(--sc3d-ink-dim);
+  border-color: color-mix(in srgb, var(--sc3d-hairline) 60%, transparent);
+  cursor: not-allowed;
+}
+
+.scp-trade-btn--accent:not(:disabled) {
+  border-color: var(--sc3d-accent);
+  background: var(--sc3d-accent-soft);
+}
+
+.scp-trade-btn--danger {
+  margin-left: auto;
+}
+
+.scp-trade-btn--danger:not(:disabled) {
+  border-color: color-mix(in srgb, var(--sc3d-danger) 70%, transparent);
+  color: var(--sc3d-danger);
+}
+
+.scp-trade-cta-note {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--sc3d-ink-dim);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── Terminal banner (stamped verdict over the table) ───────────────────── */
+
+/* `display: flex` would beat the UA [hidden] rule — pin both closed states. */
+.scp-trade-banner[hidden] {
+  display: none;
+}
+
+/* Empty state (no table): the dead columns/preview/CTAs leave the stage. */
+.scp-trade-chrome[data-empty] .scp-trade-table,
+.scp-trade-chrome[data-empty] .scp-trade-preview,
+.scp-trade-chrome[data-empty] .scp-trade-ctas {
+  display: none;
+}
+
+.scp-trade-banner {
+  position: absolute;
+  inset: 0 0 52px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--sc-fixed-soot-deep, #0c0a06) 62%, transparent);
+  backdrop-filter: blur(1px);
+}
+
+.scp-trade-banner-stamp {
+  font-family: var(--sc-fixed-font-stencil);
+  font-size: 24px;
+  letter-spacing: 0.3em;
+  padding: 5px 22px;
+  border: 2px solid var(--sc-fixed-oxide);
+  color: var(--sc-fixed-oxide);
+  transform: rotate(-7deg);
+}
+
+.scp-trade-banner[data-kind="executed"] .scp-trade-banner-stamp {
+  border-color: var(--sc-fixed-olive, #767446);
+  color: var(--sc-fixed-bone, #e4d7b4);
+}
+
+.scp-trade-banner-line {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink);
+}
+
+/* ── Session tag in the status foot ─────────────────────────────────────── */
+
+.scp-trade-session-tag {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--sc3d-ink-dim);
+  white-space: nowrap;
+}
