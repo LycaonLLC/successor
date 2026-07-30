@@ -21,7 +21,7 @@ only a candidate display name.
   canonical repository paths rather than duplicated.
 - Production artifact root:
   `verification/ledgers/artifacts/dustgate-opus5-production-20260729/`,
-  197 files and 258,777,060 bytes.
+  197 files and 258,777,059 bytes.
 - The artifact root includes three editable `.blend` checkpoints, nine
   standalone GLBs, manifests and collision sidecars, eight PBR texture sets,
   40-item audit evidence, 48 standalone proof renders, a nine-frame assembly
