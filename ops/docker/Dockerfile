@@ -2,7 +2,7 @@
 # Both build stages run on TARGETPLATFORM. The release lane is explicitly
 # linux/amd64 so Cargo emits an x86_64 bridge, never an ARM binary copied into
 # an amd64 runtime. Base images are digest pinned; no floating apt installs.
-FROM --platform=$TARGETPLATFORM node:22-bookworm-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc55349f39b4bc3688448bb6e AS node-build
+FROM --platform=$TARGETPLATFORM node:22-bookworm-slim@sha256:f32b81066cde10a75dbac96646099533316d94bac4150c55da1636e1f0ffdc46 AS node-build
 ARG TARGETARCH
 RUN test "$TARGETARCH" = "amd64"
 RUN npm install --global pnpm@10.33.0
@@ -34,7 +34,7 @@ COPY tools/denylist/denylist.txt ./tools/denylist/denylist.txt
 RUN cargo build --locked --release -p successor-sim --example authority_bridge_server
 RUN file target/release/examples/authority_bridge_server | grep -q "ELF 64-bit.*x86-64"
 
-FROM --platform=$TARGETPLATFORM node:22-bookworm-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc55349f39b4bc3688448bb6e AS runtime
+FROM --platform=$TARGETPLATFORM node:22-bookworm-slim@sha256:f32b81066cde10a75dbac96646099533316d94bac4150c55da1636e1f0ffdc46 AS runtime
 ARG TARGETARCH
 RUN test "$TARGETARCH" = "amd64" \
     && groupadd --system --gid 10001 successor \
