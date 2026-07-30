@@ -45,6 +45,11 @@ jobs:
     needs: denylist
     steps:
       - uses: actions/checkout@v4
+      - name: hydrate LFS assets exercised by tests
+        run: >
+          git lfs pull
+          --include="client-3d/public/assets/pawn-pack/equipment/Under/boots_canvas_ankle.glb,client-3d/public/assets/pawn-pack/equipment/Under/under_bodysuit.glb,client-3d/public/assets/pawn-pack/equipment/Under/gloves_knuckled_half.glb,client-3d/public/assets/pawn-pack/weapons/custom/scrapline_machete.glb,client-3d/public/assets/pawn-pack/weapons/custom/field_saber.glb,client-3d/public/assets/pawn-pack/weapons/custom/quarry_chopper.glb,client-3d/public/assets/pawn-pack/weapons/custom/wpn_smg_sten_mk2.glb,client-3d/public/assets/pawn-pack/weapons/custom/wpn_carbine_kiln.glb,client-3d/public/assets/pawn-pack/weapons/custom/lightning_carbine.glb,client-3d/public/assets/pawn-pack/vibrosword.glb,client-3d/public/assets/pawn-pack/pawn_male.glb,client-3d/public/assets/pawn-pack/special/droid_grok_humanoid.glb,client-3d/public/assets/world-items/travel_terminal_grok_wedge.glb,client-3d/public/assets/world-items/travel_terminal_grok_wedge_screen.png"
+          --exclude=""
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
