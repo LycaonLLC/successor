@@ -58,7 +58,14 @@ fn main() {
         });
         let clip = arg_value(&args, "--clip");
         let screenshot = arg_value(&args, "--screenshot");
-        run_glb_view(&glb, clip.as_deref(), frames, screenshot.as_deref());
+        let lighting_minute = arg_value(&args, "--minute").and_then(|value| value.parse().ok());
+        run_glb_view(
+            &glb,
+            clip.as_deref(),
+            frames,
+            screenshot.as_deref(),
+            lighting_minute,
+        );
         return;
     }
 
@@ -1113,7 +1120,13 @@ fn percentiles(samples: &mut [f64]) -> (f64, f64) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn run_glb_view(glb_path: &str, clip: Option<&str>, frames: u64, screenshot: Option<&str>) {
+fn run_glb_view(
+    glb_path: &str,
+    clip: Option<&str>,
+    frames: u64,
+    screenshot: Option<&str>,
+    lighting_minute: Option<f32>,
+) {
     use successor_client::glb_scene::GlbScene;
     use successor_engine_render::gpu::Gpu;
     let bytes = match std::fs::read(glb_path) {
@@ -1133,7 +1146,7 @@ fn run_glb_view(glb_path: &str, clip: Option<&str>, frames: u64, screenshot: Opt
     }
     let mut gpu = successor_platform::create_gpu();
     let _ = &mut gpu as &mut dyn Gpu;
-    let mut scene = match GlbScene::build(&mut gpu, &bytes, clip) {
+    let mut scene = match GlbScene::build(&mut gpu, &bytes, clip, lighting_minute) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("GLB parse failed for {glb_path}: {e:?}");

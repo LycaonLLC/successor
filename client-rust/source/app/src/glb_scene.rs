@@ -31,15 +31,30 @@ pub struct GlbScene {
 impl GlbScene {
     /// Parse `bytes` and build a scene. `clip` names the animation to play
     /// (falls back to the first animation, or none for static meshes).
+    /// `lighting_minute` applies the shipped world environment when present.
     pub fn build<G: Gpu>(
         gpu: &mut G,
         bytes: &[u8],
         clip: Option<&str>,
+        lighting_minute: Option<f32>,
     ) -> Result<GlbScene, glb::GlbError> {
         let doc = glb::parse(bytes)?;
+        let lighting = lighting_minute.map(successor_engine_render::environment::sample);
         let mut renderer =
             Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
         renderer.set_ambient(0.35);
+        if let Some(environment) = lighting {
+            renderer.set_grade(
+                environment.bone_tint,
+                environment.desaturate,
+                environment.scene_darken,
+                environment.black_lift,
+            );
+            renderer
+                .set_bloom(1.0, environment.bloom)
+                .expect("authored environment bloom is valid");
+            renderer.set_fog(environment.fog, 180.0, 340.0);
+        }
         let mut world = GameWorld::new();
 
         let globals = node_globals(&doc);
@@ -121,12 +136,25 @@ impl GlbScene {
         let orbit_radius = (extent.length() * 0.5).max(0.05) * 2.4;
 
         // Sun.
+        let (sun_dir, sun_color) = lighting.map_or(
+            (vec3(-0.4, -1.0, -0.3).normalize(), [1.0, 0.98, 0.92]),
+            |environment| {
+                (
+                    vec3(
+                        environment.sun_dir[0],
+                        environment.sun_dir[1],
+                        environment.sun_dir[2],
+                    ),
+                    environment.sun_color,
+                )
+            },
+        );
         let sun = world.spawn();
         world.set_component(
             sun,
             DirectionalLight {
-                dir: vec3(-0.4, -1.0, -0.3).normalize(),
-                color: [1.0, 0.98, 0.92],
+                dir: sun_dir,
+                color: sun_color,
                 cast_shadows: true,
             },
         );
@@ -145,7 +173,14 @@ impl GlbScene {
                 },
                 target: CamTarget::Screen(successor_engine_render::components::RectNorm::FULL),
                 clear: successor_engine_render::gpu::ClearSpec {
-                    color: Some([0.08, 0.09, 0.11, 1.0]),
+                    color: Some(lighting.map_or([0.08, 0.09, 0.11, 1.0], |environment| {
+                        [
+                            environment.fog[0],
+                            environment.fog[1],
+                            environment.fog[2],
+                            1.0,
+                        ]
+                    })),
                     depth: Some(1.0),
                 },
                 eye: center.add(vec3(orbit_radius, orbit_radius * 0.6, orbit_radius)),
