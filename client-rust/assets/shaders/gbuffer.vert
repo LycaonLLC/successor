@@ -1,6 +1,6 @@
 // Deferred G-buffer vertex shader. The GL backend prepends the target header
 // (`#version 330 core` / `#version 300 es` + precision); the renderer prepends
-// `#define SKINNED 1` for the skinned variant.
+// `#define SKINNED 1` or `#define INSTANCED 1` for specialized variants.
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec3 a_normal;
 layout(location = 2) in vec2 a_uv;
@@ -12,6 +12,12 @@ uniform int u_hasTangent;
 layout(location = 5) in vec4 a_joints;
 layout(location = 6) in vec4 a_weights;
 uniform mat4 u_joints[64];
+#endif
+#ifdef INSTANCED
+layout(location = 7) in vec4 a_instance0;
+layout(location = 8) in vec4 a_instance1;
+layout(location = 9) in vec4 a_instance2;
+layout(location = 10) in vec4 a_instance3;
 #endif
 
 uniform mat4 u_model;
@@ -32,6 +38,10 @@ void main() {
         a_weights.z * u_joints[int(a_joints.z)] +
         a_weights.w * u_joints[int(a_joints.w)];
     deform = u_model * skin;
+#endif
+#ifdef INSTANCED
+    mat4 instanceModel = mat4(a_instance0, a_instance1, a_instance2, a_instance3);
+    deform = u_model * instanceModel;
 #endif
     vec4 world = deform * vec4(a_pos, 1.0);
     gl_Position = u_viewProj * world;

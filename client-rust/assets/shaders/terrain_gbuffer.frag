@@ -12,6 +12,7 @@ uniform vec2 u_terrainOrigin;
 uniform float u_terrainWorldSize;
 uniform float u_terrainTileScale;
 uniform float u_terrainNormalStrength;
+uniform int u_terrainBiome;
 uniform vec3 u_camEye;
 
 layout(location = 0) out vec4 gb0;
@@ -114,6 +115,14 @@ void sampleSurface(float surface, vec2 worldUv, out vec3 albedo, out vec4 nrma) 
 }
 
 void main() {
+    // Reconstruct the displaced geometric normal instead of shading a flat
+    // plane. The flip keeps winding-independent derivative normals upright.
+    vec3 geometricNormal = normalize(cross(dFdx(v_worldPos), dFdy(v_worldPos)));
+    if (geometricNormal.y < 0.0) {
+        geometricNormal = -geometricNormal;
+    }
+    float slope = 1.0 - geometricNormal.y;
+
     // Low-frequency nonperiodic world fields vary surface coverage without
     // inheriting chunk boundaries or introducing a visible repeat interval.
     float macroA = worldNoise(v_worldPos.xz * 0.025 + vec2(13.7, -5.1)) * 2.0 - 1.0;
@@ -124,6 +133,9 @@ void main() {
         0.30 + macroB * 0.35,
         0.25 + macroC * 0.30
     );
+    // Steeper faces expose compact soil and stone instead of stretched sand,
+    // loam, or moss.
+    weights.z += smoothstep(0.035, 0.38, slope) * 1.35;
     weights = max(weights, vec3(0.03));
     weights /= dot(weights, vec3(1.0));
     vec2 worldUv = v_worldPos.xz / u_terrainTileScale;
@@ -139,22 +151,43 @@ void main() {
     sampleSurface(2.0, worldUv, albedo2, nrma2);
     vec3 albedo = albedo0 * weights.x + albedo1 * weights.y + albedo2 * weights.z;
     vec4 nrma = nrma0 * weights.x + nrma1 * weights.y + nrma2 * weights.z;
+
+    float distanceToEye = distance(v_worldPos, u_camEye);
     float microA = worldNoise(v_worldPos.xz * 3.7 + vec2(17.3, -9.1)) * 2.0 - 1.0;
     float microB = worldNoise(v_worldPos.xz * 10.9 + vec2(-4.7, 31.2)) * 2.0 - 1.0;
     float microDetail = microA * 0.72 + microB * 0.28;
-    float microFade = 1.0 - smoothstep(35.0, 120.0, distance(v_worldPos, u_camEye));
+    float microFade = 1.0 - smoothstep(35.0, 120.0, distanceToEye);
     albedo *= 1.0 + microDetail * 0.16 * microFade;
 
     float macroTint = 1.0 + (macroA * 0.55 + macroB * 0.30 + macroC * 0.15) * 0.18;
-    float detailFade = 1.0 - smoothstep(45.0, 150.0, distance(v_worldPos, u_camEye));
+    albedo *= macroTint;
+    float detailFade = 1.0 - smoothstep(45.0, 150.0, distanceToEye);
     vec2 normalXz = (nrma.rg * 2.0 - 1.0) * u_terrainNormalStrength * detailFade;
-    vec3 worldNormal = normalize(vec3(normalXz.x, 1.0, normalXz.y));
-    float roughness = clamp(nrma.b, 0.045, 1.0);
+    vec3 worldNormal = normalize(geometricNormal + vec3(normalXz.x, 0.0, normalXz.y));
+
+    // Independent world fields produce broad dry crust, damp soil, and rare
+    // reflective pools. Forest receives more damp coverage; desert pools stay
+    // sparse and collect only on level ground.
+    float moisture = worldNoise(v_worldPos.xz * 0.032 + vec2(-31.2, 18.9)) * 0.68
+        + worldNoise(v_worldPos.xz * 0.097 + vec2(7.4, -42.1)) * 0.32;
+    float flatness = 1.0 - smoothstep(0.025, 0.20, slope);
+    float wetThreshold = u_terrainBiome == 1 ? 0.48 : 0.73;
+    float wet = smoothstep(wetThreshold, 0.91, moisture) * flatness;
+    float puddleBias = u_terrainBiome == 1 ? 0.04 : 0.0;
+    float puddle = smoothstep(0.86, 0.97, moisture + puddleBias) * flatness;
+    float dryness = worldNoise(v_worldPos.xz * 0.071 + vec2(53.7, 11.3));
+
+    albedo *= mix(0.88 + dryness * 0.18, 0.62, wet);
+    albedo *= mix(1.0, 0.78, puddle);
+    float roughness = clamp(nrma.b + (dryness - 0.5) * 0.18, 0.08, 1.0);
+    roughness = mix(roughness, 0.17, wet);
+    roughness = mix(roughness, 0.055, puddle);
     float ao = clamp(nrma.a, 0.0, 1.0);
+    float clearcoat = clamp(wet * 0.22 + puddle * 0.78, 0.0, 1.0);
+    float clearcoatRoughness = mix(0.24, 0.045, puddle);
 
     gb0 = vec4(albedo, 0.0);
     gb1 = vec4(encodeOctahedral(worldNormal), roughness, ao);
     gb2 = vec4(0.0, 0.0, 0.0, 1.0 / 255.0);
-    float dielectricF0 = 0.04;
-    gb3 = vec4(0.0, 0.045, dielectricF0, 0.0);
+    gb3 = vec4(clearcoat, clearcoatRoughness, 0.04, 0.0);
 }

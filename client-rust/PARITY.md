@@ -140,19 +140,23 @@ Tracking the ordered parity waves from `local://rust-client-parity-plan.md`.
   (`fs_read`/`http_get` + web `js_fetch_get`). `--demo glb-view --glb <p>
   [--clip <name>]` renders any repo GLB; verified via screenshots of
   `bank_terminal.glb` (static multi-material) and `pawn_male.glb --clip idle`
-  (skinned, animated). Budgets raised to 4 MiB native / 3 MiB wasm / 512 MiB
-  RSS; all gates green (native 909 KB, wasm 128 KB, allocs 0, p99 +1%).
-- **Wave 2 — World rendering: DONE + verified.** Terrain procgen
-  (`world/terrain.rs`, byte-exact vs `tools/successor/dump-terrain-fixture.mjs`
-  over 3 seeds × 2 biomes × 64 coords), chunk streamer with textured ground
-  quads (`world/chunks.rs`), prop GLB pipeline (`world/props.rs`: mapping
-  resolve → GLB load/recenter/footprint-fit + `hashYaw`/`composePlacement`,
-  placeholders), cutaway machine (`world/cutaway.rs`), orthographic isometric
-  camera + `Mat4::inverse` ground unprojection (`world/camera.rs`), mouse
-  picking (`world/picking.rs`), per-biome distance fog (mesh shader + textured
-  materials). Demos: `--demo terrain [--biome forest]` and `--demo props`
-  (renders all 139 Dustgate slice props on terrain) — verified via screenshots.
-  Gates green (native 926 KB, wasm 130 KB, allocs 0); baseline refreshed.
+  (skinned, animated). Current fidelity-first budgets are 6 MiB native / 4 MiB
+  wasm / 512 MiB RSS, with zero steady-state frame allocations.
+- **Wave 2 — World rendering: DONE + verified.** One authority cell, one
+  renderer world unit, and one metre are the canonical scale. PawnForge bodies
+  normalize to a 1.8-metre adult height; fixture prop footprints remain metric;
+  non-building props and pawns sample terrain elevation; building footprints
+  are flattened with feathered transitions and reject detail scatter. Terrain
+  uses continuous deterministic multi-octave displacement on pooled
+  tessellated chunks, matching displaced G-buffer and depth/shadow paths.
+  Desert and forest use slope-aware three-surface PBR blending with dry, damp,
+  puddled, rough, smooth, and clear-coated regions plus world-space
+  non-repeating macro variation. Three fixed-capacity global instance batches
+  render deterministic rocks, ground cover, and shrubs with distance/viewport
+  culling and no steady-state allocation. Fixed biome beauty views pass native
+  and WebGL2 ROI/non-repetition probes, including resize and half-float-disabled
+  fallback. The live camera frames a terrain-elevated 1.8-metre pawn from a
+  metric 14-metre-up/21-metre-back offset.
 - **Wave 3 — Pawns: DONE + verified.** Actor protocol extended to the
   render-relevant field set + compact move/ref fast path (`client-proto`,
   decode-tested). Pawn pack loader (`pawn/pack.rs` — `PawnTemplate` from a real

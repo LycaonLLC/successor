@@ -1,7 +1,7 @@
-//! Terrain chunk streamer: updates continuous world-space control maps around
-//! a center and renders pooled quads with one shared PBR tile library. It ports
-//! the `client-3d` ring-prefetch and eviction policy without baking final color
-//! into per-chunk textures.
+//! Terrain chunk streamer: updates continuous material/height controls around a
+//! center and renders pooled tessellated patches with one shared PBR tile
+//! library. It ports the `client-3d` ring-prefetch and eviction policy without
+//! baking final color into per-chunk textures.
 
 use std::collections::HashMap;
 
@@ -11,14 +11,32 @@ use successor_engine_render::components::{MaterialId, MeshId, MeshRenderer, Skin
 use successor_engine_render::gpu::{
     Filter, Gpu, MinFilter, TextureArrayDesc, TextureDesc, TextureFormat, TextureId, Wrap,
 };
-use successor_engine_render::renderer::{MaterialDesc, Renderer, TerrainMaterialDesc};
+use successor_engine_render::renderer::{
+    InstanceBatchId, MaterialDesc, Renderer, TerrainMaterialDesc,
+};
 
-use super::terrain::{sample_terrain, Biome};
+use super::flora::{
+    biome_density, detail_instance_matrix, rock_mesh, scatter_into, shrub_mesh, tuft_mesh,
+    DetailKind, FloraInstance,
+};
+use super::terrain::{sample_terrain, terrain_height, Biome};
 use super::terrain_material::{generate_terrain_tiles, TILE_LAYERS, TILE_SIZE};
+use super::{TERRAIN_MATERIAL_METERS_PER_TILE, WORLD_UNITS_PER_CELL};
 use crate::GameWorld;
 
 const CONTROL_INTERIOR_PX: u32 = 128;
 const CONTROL_PX: u32 = CONTROL_INTERIOR_PX + 2;
+const GRID_SEGMENTS: u32 = 32;
+const HEIGHT_RANGE: f32 = 4.0;
+const DETAIL_CAPACITY_PER_KIND: u32 = 128;
+const DETAIL_MAX_DISTANCE: f32 = 260.0;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TerrainExclusion {
+    pub min: [f32; 2],
+    pub max: [f32; 2],
+    pub feather: f32,
+}
 
 /// Flat mean ground albedo per biome, fed to the GI volume as the bounce color
 /// of the y=0 plane.
@@ -32,6 +50,7 @@ fn biome_ground_albedo(biome: Biome) -> [f32; 3] {
 struct TerrainSlot {
     control: TextureId,
     material: MaterialId,
+    detail_matrices: [Vec<[f32; 16]>; 3],
     entity: Option<Entity>,
 }
 
@@ -48,6 +67,11 @@ pub struct TerrainStreamer {
     slots: Vec<TerrainSlot>,
     control_scratch: Vec<u8>,
     evict_scratch: Vec<(i32, i32)>,
+    exclusions: Vec<TerrainExclusion>,
+    detail_scratch: Vec<FloraInstance>,
+    detail_matrices: [Vec<[f32; 16]>; 3],
+    detail_batches: Option<[InstanceBatchId; 3]>,
+    merged_detail_matrices: [Vec<[f32; 16]>; 3],
 }
 
 impl TerrainStreamer {
@@ -66,7 +90,23 @@ impl TerrainStreamer {
             slots: Vec::with_capacity(slot_count),
             control_scratch: vec![0; (CONTROL_PX * CONTROL_PX * 4) as usize],
             evict_scratch: Vec::with_capacity(slot_count),
+            exclusions: Vec::new(),
+            detail_scratch: Vec::with_capacity(256),
+            detail_matrices: core::array::from_fn(|_| {
+                Vec::with_capacity(DETAIL_CAPACITY_PER_KIND as usize)
+            }),
+            detail_batches: None,
+            merged_detail_matrices: core::array::from_fn(|_| {
+                Vec::with_capacity(slot_count * DETAIL_CAPACITY_PER_KIND as usize)
+            }),
         }
+    }
+    /// Replace the visual-ground flattening regions. Structure footprints use
+    /// these before chunks are baked so props remain seated and detail scatter
+    /// cannot invade buildable space.
+    pub fn set_exclusions(&mut self, exclusions: &[TerrainExclusion]) {
+        self.exclusions.clear();
+        self.exclusions.extend_from_slice(exclusions);
     }
 
     fn chunk_of(&self, world_x: f64, world_z: f64) -> (i32, i32) {
@@ -102,11 +142,20 @@ impl TerrainStreamer {
             Some(&tiles.nrma),
         );
         let size = self.chunk_cells as f32;
-        let (verts, indices) = chunk_quad(size);
+        let (verts, indices) = chunk_grid(size, GRID_SEGMENTS);
         let mesh = renderer.upload_mesh(gpu, &verts, &indices);
         let control_desc = control_texture_desc();
         let zeros = vec![0; self.control_scratch.len()];
         let slot_count = self.slots.capacity();
+        let (rock_vertices, rock_indices) = rock_mesh();
+        let (cover_vertices, cover_indices) = tuft_mesh();
+        let (shrub_vertices, shrub_indices) = shrub_mesh();
+        let detail_meshes = [
+            renderer.upload_mesh(gpu, &rock_vertices, &rock_indices),
+            renderer.upload_mesh(gpu, &cover_vertices, &cover_indices),
+            renderer.upload_mesh(gpu, &shrub_vertices, &shrub_indices),
+        ];
+        let detail_materials = detail_materials(renderer, self.biome);
         for _ in 0..slot_count {
             let control = gpu.create_texture(&control_desc, Some(&zeros));
             let material = renderer.add_material_desc(MaterialDesc {
@@ -118,17 +167,31 @@ impl TerrainStreamer {
                     nrma_tiles,
                     world_origin: [0.0, 0.0],
                     world_size: size,
-                    tile_scale: 2.0,
+                    tile_scale: TERRAIN_MATERIAL_METERS_PER_TILE,
                     normal_strength: 1.2,
+                    biome: biome_id(self.biome),
                 }),
                 ..MaterialDesc::default()
             });
             self.slots.push(TerrainSlot {
                 control,
                 material,
+                detail_matrices: core::array::from_fn(|_| {
+                    Vec::with_capacity(DETAIL_CAPACITY_PER_KIND as usize)
+                }),
                 entity: None,
             });
         }
+        self.detail_batches = Some(core::array::from_fn(|kind| {
+            renderer.add_instance_batch(
+                gpu,
+                detail_meshes[kind],
+                detail_materials[kind],
+                slot_count as u32 * DETAIL_CAPACITY_PER_KIND,
+                self.mask,
+                DETAIL_MAX_DISTANCE,
+            )
+        }));
         self.shared_mesh = Some(mesh);
         self.albedo_tiles = Some(albedo_tiles);
         self.nrma_tiles = Some(nrma_tiles);
@@ -159,6 +222,9 @@ impl TerrainStreamer {
                 if let Some(entity) = self.slots[slot_index].entity.take() {
                     world.destroy(entity);
                 }
+                for matrices in &mut self.slots[slot_index].detail_matrices {
+                    matrices.clear();
+                }
             }
         }
         world.flush();
@@ -172,6 +238,7 @@ impl TerrainStreamer {
             }
         }
         world.flush();
+        self.upload_detail_batches(renderer, gpu, center_x as f32, center_z as f32);
     }
 
     fn load_chunk<G: Gpu>(
@@ -189,6 +256,7 @@ impl TerrainStreamer {
         let origin_x = cx as f64 * self.chunk_cells;
         let origin_z = cz as f64 * self.chunk_cells;
         self.bake_control(origin_x, origin_z);
+        self.scatter_details(origin_x as f32, origin_z as f32);
         let slot = &mut self.slots[slot_index];
         gpu.update_texture(slot.control, &control_texture_desc(), &self.control_scratch);
         renderer.update_material_desc(
@@ -202,12 +270,20 @@ impl TerrainStreamer {
                     nrma_tiles: self.nrma_tiles.expect("terrain NRMA tiles"),
                     world_origin: [origin_x as f32, origin_z as f32],
                     world_size: self.chunk_cells as f32,
-                    tile_scale: 2.0,
+                    tile_scale: TERRAIN_MATERIAL_METERS_PER_TILE,
                     normal_strength: 1.2,
+                    biome: biome_id(self.biome),
                 }),
                 ..MaterialDesc::default()
             },
         );
+        for kind in 0..3 {
+            slot.detail_matrices[kind].clear();
+            core::mem::swap(
+                &mut slot.detail_matrices[kind],
+                &mut self.detail_matrices[kind],
+            );
+        }
         let entity = world.spawn();
         world.set_component(
             entity,
@@ -229,6 +305,68 @@ impl TerrainStreamer {
         self.loaded.insert((cx, cz), slot_index);
     }
 
+    fn upload_detail_batches<G: Gpu>(
+        &mut self,
+        renderer: &mut Renderer,
+        gpu: &mut G,
+        center_x: f32,
+        center_z: f32,
+    ) {
+        for matrices in &mut self.merged_detail_matrices {
+            matrices.clear();
+        }
+        for slot in &self.slots {
+            if slot.entity.is_none() {
+                continue;
+            }
+            for (merged, chunk) in self
+                .merged_detail_matrices
+                .iter_mut()
+                .zip(&slot.detail_matrices)
+            {
+                merged.extend_from_slice(chunk);
+            }
+        }
+        let batches = self.detail_batches.expect("terrain detail batches");
+        for (kind, batch) in batches.into_iter().enumerate() {
+            let updated = renderer.update_instance_batch(
+                gpu,
+                batch,
+                &self.merged_detail_matrices[kind],
+                [center_x, 0.0, center_z],
+            );
+            debug_assert!(updated, "terrain detail pool exceeded fixed capacity");
+        }
+    }
+
+    fn scatter_details(&mut self, origin_x: f32, origin_z: f32) {
+        let size = self.chunk_cells as f32;
+        let exclusions = &self.exclusions;
+        scatter_into(
+            &mut self.detail_scratch,
+            self.seed ^ 0x51a7_3e2d,
+            [origin_x, origin_z],
+            [origin_x + size, origin_z + size],
+            biome_density(self.biome) * (64.0 / size).powi(2),
+            |point| point_blocked(exclusions, point),
+        );
+        for matrices in &mut self.detail_matrices {
+            matrices.clear();
+        }
+        for instance in &mut self.detail_scratch {
+            instance.pos[1] = flattened_height(
+                self.seed,
+                self.biome,
+                exclusions,
+                instance.pos[0],
+                instance.pos[2],
+            );
+            let kind = DetailKind::from_hash(instance.kind);
+            self.detail_matrices[kind as usize]
+                .push(detail_instance_matrix(instance, kind, self.biome));
+        }
+    }
+
     fn bake_control(&mut self, origin_x: f64, origin_z: f64) {
         let step = self.chunk_cells / (CONTROL_INTERIOR_PX - 1) as f64;
         for y in 0..CONTROL_PX {
@@ -236,13 +374,19 @@ impl TerrainStreamer {
             for x in 0..CONTROL_PX {
                 let world_x = origin_x + (x as f64 - 1.0) * step;
                 let sample = sample_terrain(self.seed, world_x, world_z, self.biome);
+                let height = self.height_at(world_x as f32, world_z as f32);
                 let offset = ((y * CONTROL_PX + x) * 4) as usize;
                 self.control_scratch[offset] = unit_byte(sample.weights[0]);
                 self.control_scratch[offset + 1] = unit_byte(sample.weights[1]);
                 self.control_scratch[offset + 2] = unit_byte(sample.weights[2]);
-                self.control_scratch[offset + 3] = unit_byte((sample.macro_tint - 0.78) / 0.44);
+                self.control_scratch[offset + 3] =
+                    unit_byte((height + HEIGHT_RANGE) / (HEIGHT_RANGE * 2.0));
             }
         }
+    }
+
+    pub fn height_at(&self, world_x: f32, world_z: f32) -> f32 {
+        flattened_height(self.seed, self.biome, &self.exclusions, world_x, world_z)
     }
 
     #[cfg(test)]
@@ -272,17 +416,109 @@ fn unit_byte(value: f32) -> u8 {
     (value.clamp(0.0, 1.0) * 255.0 + 0.5) as u8
 }
 
-/// One ground quad on the XZ plane, `size` on a side, origin at its min corner
-/// (the entity `Transform` positions it), normal +Y, UV 0..1 mapping x→u z→v.
-fn chunk_quad(size: f32) -> (Vec<f32>, Vec<u32>) {
-    let n = [0.0f32, 1.0, 0.0];
-    // pos(3) normal(3) uv(2)
-    let v = vec![
-        0.0, 0.0, 0.0, n[0], n[1], n[2], 0.0, 0.0, size, 0.0, 0.0, n[0], n[1], n[2], 1.0, 0.0,
-        size, 0.0, size, n[0], n[1], n[2], 1.0, 1.0, 0.0, 0.0, size, n[0], n[1], n[2], 0.0, 1.0,
-    ];
-    // CCW as seen from +Y.
-    (v, vec![0, 2, 1, 0, 3, 2])
+fn biome_id(biome: Biome) -> i32 {
+    match biome {
+        Biome::Desert => 0,
+        Biome::Forest => 1,
+    }
+}
+
+fn detail_materials(renderer: &mut Renderer, biome: Biome) -> [MaterialId; 3] {
+    let colors = match biome {
+        Biome::Desert => [
+            [0.30, 0.23, 0.17, 1.0],
+            [0.23, 0.27, 0.10, 1.0],
+            [0.25, 0.18, 0.095, 1.0],
+        ],
+        Biome::Forest => [
+            [0.22, 0.25, 0.20, 1.0],
+            [0.10, 0.27, 0.055, 1.0],
+            [0.065, 0.19, 0.04, 1.0],
+        ],
+    };
+    core::array::from_fn(|kind| {
+        renderer.add_material_desc(MaterialDesc {
+            base_color: colors[kind],
+            metallic: 0.0,
+            roughness: if kind == DetailKind::Rock as usize {
+                0.76
+            } else {
+                0.91
+            },
+            double_sided: kind == DetailKind::GroundCover as usize,
+            ..MaterialDesc::default()
+        })
+    })
+}
+
+fn point_blocked(exclusions: &[TerrainExclusion], point: [f32; 2]) -> bool {
+    exclusions.iter().any(|exclusion| {
+        point[0] >= exclusion.min[0]
+            && point[0] <= exclusion.max[0]
+            && point[1] >= exclusion.min[1]
+            && point[1] <= exclusion.max[1]
+    })
+}
+
+fn flattened_height(
+    seed: i32,
+    biome: Biome,
+    exclusions: &[TerrainExclusion],
+    world_x: f32,
+    world_z: f32,
+) -> f32 {
+    let base = terrain_height(seed, world_x as f64, world_z as f64, biome);
+    let mut keep = 1.0f32;
+    for exclusion in exclusions {
+        let dx = if world_x < exclusion.min[0] {
+            exclusion.min[0] - world_x
+        } else if world_x > exclusion.max[0] {
+            world_x - exclusion.max[0]
+        } else {
+            0.0
+        };
+        let dz = if world_z < exclusion.min[1] {
+            exclusion.min[1] - world_z
+        } else if world_z > exclusion.max[1] {
+            world_z - exclusion.max[1]
+        } else {
+            0.0
+        };
+        let outside = (dx * dx + dz * dz).sqrt();
+        keep = keep.min(smoothstep01(outside / exclusion.feather.max(0.001)));
+    }
+    base * keep
+}
+
+fn smoothstep01(value: f32) -> f32 {
+    let value = value.clamp(0.0, 1.0);
+    value * value * (3.0 - 2.0 * value)
+}
+
+/// Shared tessellated patch. Displacement is sampled from each slot's control
+/// texture in the terrain vertex shader.
+fn chunk_grid(size: f32, segments: u32) -> (Vec<f32>, Vec<u32>) {
+    let segments = segments.max(1);
+    let side = segments + 1;
+    let mut vertices = Vec::with_capacity((side * side * 8) as usize);
+    let mut indices = Vec::with_capacity((segments * segments * 6) as usize);
+    for z in 0..=segments {
+        for x in 0..=segments {
+            let u = x as f32 / segments as f32;
+            let v = z as f32 / segments as f32;
+            vertices.extend_from_slice(&[u * size, 0.0, v * size, 0.0, 1.0, 0.0, u, v]);
+        }
+    }
+    for z in 0..segments {
+        for x in 0..segments {
+            let a = z * side + x;
+            let b = a + 1;
+            let c = a + side;
+            let d = c + 1;
+            indices.extend_from_slice(&[a, d, b, a, c, d]);
+        }
+    }
+    (vertices, indices)
 }
 
 /// A ready-to-render terrain scene for `--demo terrain`.
@@ -314,7 +550,13 @@ impl TerrainScene {
         let mut world = GameWorld::new();
 
         // Demo-scale streaming; production supplies the authoritative chunk size.
-        let mut streamer = TerrainStreamer::new(0x0d3d_071e, biome, 64.0, 2, 0b1);
+        let mut streamer = TerrainStreamer::new(
+            0x0d3d_071e,
+            biome,
+            64.0 * WORLD_UNITS_PER_CELL as f64,
+            2,
+            0b1,
+        );
         let center = vec3(0.0, 0.0, 0.0);
         renderer.gi_set_focus([center.x, center.y, center.z]);
         streamer.ensure_around(
@@ -371,13 +613,16 @@ impl TerrainScene {
 
     pub fn use_material_detail_view(&mut self) {
         self.fixed_camera = true;
-        self.orbit = 54.0;
+        let (eye, look) = match self.streamer.biome {
+            Biome::Desert => (vec3(40.0, 15.0, 33.0), vec3(0.0, 0.0, -10.0)),
+            Biome::Forest => (vec3(36.0, 13.0, 30.0), vec3(0.0, 0.0, -8.0)),
+        };
         if let Some(camera) = self
             .world
             .get_component::<successor_engine_render::components::Camera>(self.camera)
         {
-            camera.eye = self.center.add(vec3(42.0, 24.0, 36.0));
-            camera.look_at = self.center.add(vec3(0.0, 0.0, -8.0));
+            camera.eye = self.center.add(eye);
+            camera.look_at = self.center.add(look);
         }
     }
 
@@ -420,10 +665,14 @@ mod tests {
         let mut streamer = TerrainStreamer::new(7, Biome::Desert, 256.0, 1, 1);
         streamer.ensure_around(&mut world, &mut renderer, &mut gpu, 0.0, 0.0);
         let first = streamer.resident_resources();
+        let first_detail_batches = renderer.instance_batch_count();
         streamer.ensure_around(&mut world, &mut renderer, &mut gpu, 2560.0, -2560.0);
         let second = streamer.resident_resources();
+        let second_detail_batches = renderer.instance_batch_count();
         assert_eq!(first, (9, 9, 1));
         assert_eq!(second, first);
+        assert_eq!(first_detail_batches, 3);
+        assert_eq!(second_detail_batches, first_detail_batches);
         assert_eq!(
             gpu.log
                 .iter()
@@ -432,6 +681,58 @@ mod tests {
             2
         );
     }
+    #[test]
+    fn tessellated_patch_has_shared_edges_and_expected_topology() {
+        let (vertices, indices) = chunk_grid(64.0, 32);
+        assert_eq!(vertices.len(), 33 * 33 * 8);
+        assert_eq!(indices.len(), 32 * 32 * 6);
+        let first = &vertices[0..8];
+        let last = &vertices[(33 * 33 - 1) * 8..33 * 33 * 8];
+        assert_eq!(&first[0..3], &[0.0, 0.0, 0.0]);
+        assert_eq!(&last[0..3], &[64.0, 0.0, 64.0]);
+        assert!(indices.iter().all(|index| *index < 33 * 33));
+    }
+
+    #[test]
+    fn structure_exclusions_flatten_only_the_padded_footprint() {
+        let mut streamer = TerrainStreamer::new(7, Biome::Forest, 64.0, 1, 1);
+        streamer.set_exclusions(&[TerrainExclusion {
+            min: [10.0, 20.0],
+            max: [18.0, 28.0],
+            feather: 4.0,
+        }]);
+        assert_eq!(streamer.height_at(14.0, 24.0), 0.0);
+        assert_eq!(streamer.height_at(10.0, 20.0), 0.0);
+        let feathered = streamer.height_at(20.0, 24.0);
+        let base = terrain_height(7, 20.0, 24.0, Biome::Forest);
+        assert!((feathered - base * 0.5).abs() < 1.0e-5);
+        assert_eq!(
+            streamer.height_at(30.0, 24.0),
+            terrain_height(7, 30.0, 24.0, Biome::Forest)
+        );
+    }
+
+    #[test]
+    fn detail_scatter_respects_structure_exclusions_and_capacity() {
+        let mut streamer = TerrainStreamer::new(17, Biome::Forest, 64.0, 1, 1);
+        let exclusion = TerrainExclusion {
+            min: [8.0, 8.0],
+            max: [56.0, 56.0],
+            feather: 3.0,
+        };
+        streamer.set_exclusions(&[exclusion]);
+        streamer.scatter_details(0.0, 0.0);
+        let mut count = 0;
+        for matrices in &streamer.detail_matrices {
+            assert!(matrices.len() <= DETAIL_CAPACITY_PER_KIND as usize);
+            for matrix in matrices {
+                count += 1;
+                assert!(!point_blocked(&[exclusion], [matrix[12], matrix[14]]));
+            }
+        }
+        assert!(count > 0);
+    }
+
     #[test]
     fn terrain_scene_reaches_deferred_draws() {
         let mut gpu = MockGpu::default();
@@ -452,5 +753,9 @@ mod tests {
                 ..
             }
         )));
+        assert!(gpu
+            .log
+            .iter()
+            .any(|call| matches!(call, MockCall::DrawInstanced { instances } if *instances > 0)));
     }
 }

@@ -3,9 +3,8 @@
 //! flat ground plane. Map-bundle world geometry and GLB pawns are later parity
 //! waves; this is the barebones "see actors, watch them move" slice.
 //!
-//! Authority `(x, y)` are planar world coordinates; we place capsules at
-//! `(x, HERO_Y, y)` scaled by `WORLD_SCALE`. The player's own actor
-//! (`player_actor_id`) gets a distinct material and is the follow-camera focus.
+//! Authority `(x, y)` are planar metre/cell coordinates; capsules use the same
+//! world-unit contract as terrain, GLB props, and connected-mode pawns.
 
 use std::collections::BTreeMap;
 
@@ -14,10 +13,10 @@ use successor_engine_core::ecs::{Entity, WorldOps};
 use successor_engine_core::math::{vec3, Quat, Vec3};
 use successor_engine_render::components::{MaterialId, MeshId, MeshRenderer, Transform};
 
+use crate::world::{ADULT_PAWN_HEIGHT_METERS, WORLD_UNITS_PER_CELL};
 use crate::GameWorld;
 
-const WORLD_SCALE: f32 = 1.0;
-const HERO_Y: f32 = 0.9;
+const HERO_Y: f32 = ADULT_PAWN_HEIGHT_METERS * 0.5;
 /// All actors are visible in the main (0) and minimap (1) viewports.
 const ACTOR_MASK: u32 = 0b011;
 
@@ -99,7 +98,7 @@ impl WorldActors {
     }
 
     fn upsert(&mut self, world: &mut GameWorld, id: &str, x: f32, y: f32, direction: &str) {
-        let pos = vec3(x * WORLD_SCALE, HERO_Y, y * WORLD_SCALE);
+        let pos = vec3(x * WORLD_UNITS_PER_CELL, HERO_Y, y * WORLD_UNITS_PER_CELL);
         let rot = yaw_for_direction(direction);
         let is_player = self.player_actor_id.as_deref() == Some(id);
         if is_player {

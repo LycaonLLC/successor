@@ -1,4 +1,4 @@
-// Shadow depth pass. The renderer prepends SKINNED for animated meshes.
+// Shadow depth pass. The renderer prepends SKINNED or INSTANCED.
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec3 a_normal;
 layout(location = 2) in vec2 a_uv;
@@ -6,6 +6,12 @@ layout(location = 2) in vec2 a_uv;
 layout(location = 5) in vec4 a_joints;
 layout(location = 6) in vec4 a_weights;
 uniform mat4 u_joints[64];
+#endif
+#ifdef INSTANCED
+layout(location = 7) in vec4 a_instance0;
+layout(location = 8) in vec4 a_instance1;
+layout(location = 9) in vec4 a_instance2;
+layout(location = 10) in vec4 a_instance3;
 #endif
 
 uniform mat4 u_model;
@@ -22,5 +28,10 @@ void main() {
 #else
     vec4 local = vec4(a_pos, 1.0);
 #endif
+#ifdef INSTANCED
+    mat4 instanceModel = mat4(a_instance0, a_instance1, a_instance2, a_instance3);
+    gl_Position = u_lightViewProj * u_model * instanceModel * local;
+#else
     gl_Position = u_lightViewProj * u_model * local;
+#endif
 }

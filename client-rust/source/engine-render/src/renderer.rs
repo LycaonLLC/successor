@@ -19,8 +19,8 @@ use crate::gpu::{
     BufferId, BufferUsage, ClearSpec, Cull, Filter, ForwardLight, Gpu, GpuCaps, GpuError, MrtDesc,
     PassTarget, PipelineState, ProgramId, RectPx, RenderTargetDesc, RenderTargetId, TextureDesc,
     TextureFormat, Uniform, UniformValue, VertexLayout, GLTF_MESH_LAYOUT, GLTF_SKINNED_MESH_LAYOUT,
-    MESH_LAYOUT, PARTICLE_LAYOUT, POINT_LIGHT_INSTANCE_LAYOUT, QUAD_LAYOUT, SKINNED_MESH_LAYOUT,
-    UI_LAYOUT,
+    INSTANCE_MAT4_LAYOUT, MESH_LAYOUT, PARTICLE_LAYOUT, POINT_LIGHT_INSTANCE_LAYOUT, QUAD_LAYOUT,
+    SKINNED_MESH_LAYOUT, UI_LAYOUT,
 };
 use crate::text;
 
@@ -116,6 +116,24 @@ pub struct TerrainMaterialDesc {
     pub world_size: f32,
     pub tile_scale: f32,
     pub normal_strength: f32,
+    /// `0` desert, `1` forest. Kept explicit so both vertex displacement and
+    /// fragment material state use the same biome profile.
+    pub biome: i32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct InstanceBatchId(pub u32);
+
+#[derive(Clone, Copy)]
+struct InstanceBatch {
+    mesh: crate::components::MeshId,
+    material: crate::components::MaterialId,
+    buffer: BufferId,
+    count: u32,
+    capacity: u32,
+    viewport_mask: u32,
+    center: Vec3,
+    max_distance: f32,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -264,12 +282,15 @@ pub struct Renderer {
     mesh_skinned_prog: ProgramId,
     depth_prog: ProgramId,
     depth_skinned_prog: ProgramId,
+    terrain_depth_prog: ProgramId,
+    instance_depth_prog: ProgramId,
     composite_prog: ProgramId,
     text_prog: ProgramId,
     // Deferred programs.
     gbuffer_prog: ProgramId,
     gbuffer_skinned_prog: ProgramId,
     terrain_gbuffer_prog: ProgramId,
+    instance_gbuffer_prog: ProgramId,
     light_prog: ProgramId,
     tonemap_prog: ProgramId,
     bloom_extract_prog: ProgramId,
@@ -310,6 +331,7 @@ pub struct Renderer {
     gi: Option<GiVolume>,
     meshes: Vec<MeshGpu>,
     materials: Vec<Material>,
+    instance_batches: Vec<InstanceBatch>,
     ambient: f32,
     grade: Grade,
     bloom: BloomSettings,
@@ -364,6 +386,14 @@ impl Renderer {
             &depth_skin_src,
             include_str!("../../../assets/shaders/depth.frag"),
         );
+        let depth_instance_src = alloc::format!(
+            "#define INSTANCED 1\n{}",
+            include_str!("../../../assets/shaders/depth.vert")
+        );
+        let instance_depth_prog = gpu.create_program(
+            &depth_instance_src,
+            include_str!("../../../assets/shaders/depth.frag"),
+        );
         let composite_prog = gpu.create_program(
             include_str!("../../../assets/shaders/composite.vert"),
             include_str!("../../../assets/shaders/composite.frag"),
@@ -394,8 +424,20 @@ impl Renderer {
             &gb_skin_src,
             include_str!("../../../assets/shaders/gbuffer.frag"),
         );
+        let gb_instance_src = alloc::format!(
+            "#define INSTANCED 1\n{}",
+            include_str!("../../../assets/shaders/gbuffer.vert")
+        );
+        let instance_gbuffer_prog = gpu.create_program(
+            &gb_instance_src,
+            include_str!("../../../assets/shaders/gbuffer.frag"),
+        );
+        let terrain_depth_prog = gpu.create_program(
+            include_str!("../../../assets/shaders/terrain_depth.vert"),
+            include_str!("../../../assets/shaders/depth.frag"),
+        );
         let terrain_gbuffer_prog = gpu.create_program(
-            include_str!("../../../assets/shaders/gbuffer.vert"),
+            include_str!("../../../assets/shaders/terrain_gbuffer.vert"),
             include_str!("../../../assets/shaders/terrain_gbuffer.frag"),
         );
         let (taps, pcss, cones, spec) = match q {
@@ -494,11 +536,14 @@ impl Renderer {
             mesh_skinned_prog,
             depth_prog,
             depth_skinned_prog,
+            terrain_depth_prog,
+            instance_depth_prog,
             composite_prog,
             text_prog,
             gbuffer_prog,
             gbuffer_skinned_prog,
             terrain_gbuffer_prog,
+            instance_gbuffer_prog,
             light_prog,
             tonemap_prog,
             point_light_prog,
@@ -536,6 +581,7 @@ impl Renderer {
             gi,
             meshes: Vec::new(),
             materials: Vec::new(),
+            instance_batches: Vec::new(),
             ambient: 0.28,
             grade: Grade::default(),
             cameras: Vec::with_capacity(limits.max_cameras),
@@ -867,6 +913,63 @@ impl Renderer {
         }
     }
 
+    /// Allocate a fixed-capacity instanced mesh batch. Terrain streamers create
+    /// these once per pool slot and only replace matrix contents thereafter.
+    pub fn add_instance_batch<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        mesh: crate::components::MeshId,
+        material: crate::components::MaterialId,
+        capacity: u32,
+        viewport_mask: u32,
+        max_distance: f32,
+    ) -> InstanceBatchId {
+        assert!(capacity > 0, "instance batch capacity must be nonzero");
+        let seed = alloc::vec![0u8; capacity as usize * 64];
+        let buffer = gpu.create_buffer(&seed, BufferUsage::Dynamic);
+        self.instance_batches.push(InstanceBatch {
+            mesh,
+            material,
+            buffer,
+            count: 0,
+            capacity,
+            viewport_mask,
+            center: Vec3::ZERO,
+            max_distance,
+        });
+        InstanceBatchId((self.instance_batches.len() - 1) as u32)
+    }
+
+    /// Replace a batch without reallocating it. Returns `false` for a stale ID
+    /// or an over-capacity update, preserving the previous batch contents.
+    pub fn update_instance_batch<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        id: InstanceBatchId,
+        matrices: &[[f32; 16]],
+        center: [f32; 3],
+    ) -> bool {
+        let Some(batch) = self.instance_batches.get_mut(id.0 as usize) else {
+            return false;
+        };
+        if matrices.len() > batch.capacity as usize {
+            return false;
+        }
+        if !matrices.is_empty() {
+            gpu.update_buffer(batch.buffer, mat4_bytes(matrices));
+        }
+        batch.count = matrices.len() as u32;
+        batch.center = Vec3 {
+            x: center[0],
+            y: center[1],
+            z: center[2],
+        };
+        true
+    }
+
+    pub fn instance_batch_count(&self) -> usize {
+        self.instance_batches.len()
+    }
     pub fn set_ambient(&mut self, a: f32) {
         self.ambient = a;
     }
@@ -1009,6 +1112,7 @@ impl Renderer {
             });
             gpu.set_uniforms(&self.uniforms);
             self.draw_all_meshes(gpu, world, DrawMode::Depth, 0, None, Vec3::ZERO);
+            self.draw_instance_batches(gpu, DrawMode::Depth, 0, self.shadow_view_proj, Vec3::ZERO);
             gpu.end_pass();
         }
 
@@ -1236,6 +1340,7 @@ impl Renderer {
             None,
             cam.eye,
         );
+        self.draw_instance_batches(gpu, DrawMode::GBuffer, cam.viewport_id, view_proj, cam.eye);
         gpu.end_pass();
 
         // --- deferred sun light pass → HDR scene target ---
@@ -2046,7 +2151,9 @@ impl Renderer {
             let transparent = material_desc.blend || material_desc.transmission > 0.0;
             let program = match mode {
                 DrawMode::Depth => {
-                    if mesh.skinned {
+                    if material_desc.terrain.is_some() {
+                        self.terrain_depth_prog
+                    } else if mesh.skinned {
                         self.depth_skinned_prog
                     } else {
                         self.depth_prog
@@ -2118,7 +2225,23 @@ impl Renderer {
             });
             let mut albedo_tex = None;
             match mode {
-                DrawMode::Depth => {}
+                DrawMode::Depth => {
+                    if let Some(terrain) = material_desc.terrain {
+                        self.uniforms.push(Uniform {
+                            name: "u_terrainControl",
+                            value: UniformValue::Sampler(0),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_terrainOrigin",
+                            value: UniformValue::Vec2(terrain.world_origin),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_terrainWorldSize",
+                            value: UniformValue::Float(terrain.world_size),
+                        });
+                        gpu.bind_texture(0, terrain.control_texture);
+                    }
+                }
                 DrawMode::Forward | DrawMode::Transparent => {
                     self.uniforms.push(Uniform {
                         name: "u_transmission",
@@ -2190,6 +2313,10 @@ impl Renderer {
                         self.uniforms.push(Uniform {
                             name: "u_terrainWorldSize",
                             value: UniformValue::Float(terrain.world_size),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_terrainBiome",
+                            value: UniformValue::Int(terrain.biome),
                         });
                         self.uniforms.push(Uniform {
                             name: "u_terrainTileScale",
@@ -2329,6 +2456,118 @@ impl Renderer {
                 gpu.set_joints(&self.skin_arena[o..end]);
             }
             gpu.draw(mesh.vbo, Some(mesh.ebo), &mesh.layout, mesh.index_count);
+        }
+    }
+
+    fn draw_instance_batches<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        mode: DrawMode,
+        viewport_id: u8,
+        view_proj: [f32; 16],
+        camera_eye: Vec3,
+    ) {
+        if !matches!(mode, DrawMode::Depth | DrawMode::GBuffer) {
+            return;
+        }
+        for index in 0..self.instance_batches.len() {
+            let batch = self.instance_batches[index];
+            if batch.count == 0 || !visible_in(batch.viewport_mask, viewport_id) {
+                continue;
+            }
+            if matches!(mode, DrawMode::GBuffer) && batch.max_distance > 0.0 {
+                let delta = batch.center.sub(camera_eye);
+                if delta.dot(delta) > batch.max_distance * batch.max_distance {
+                    continue;
+                }
+            }
+            let Some(mesh) = self.meshes.get(batch.mesh.0 as usize).copied() else {
+                continue;
+            };
+            let Some(material) = self.materials.get(batch.material.0 as usize).copied() else {
+                continue;
+            };
+            let desc = material.desc;
+            let program = if matches!(mode, DrawMode::Depth) {
+                self.instance_depth_prog
+            } else {
+                self.instance_gbuffer_prog
+            };
+            gpu.set_pipeline(
+                program,
+                &PipelineState {
+                    depth_test: true,
+                    depth_write: true,
+                    cull: if desc.double_sided {
+                        Cull::None
+                    } else {
+                        Cull::Back
+                    },
+                    color_write: matches!(mode, DrawMode::GBuffer),
+                    blend: false,
+                    additive: false,
+                },
+            );
+            self.uniforms.clear();
+            self.uniforms.push(Uniform {
+                name: "u_model",
+                value: UniformValue::Mat4(Mat4::IDENTITY.to_cols_array()),
+            });
+            if matches!(mode, DrawMode::Depth) {
+                self.uniforms.push(Uniform {
+                    name: "u_lightViewProj",
+                    value: UniformValue::Mat4(view_proj),
+                });
+            } else {
+                self.uniforms.push(Uniform {
+                    name: "u_viewProj",
+                    value: UniformValue::Mat4(view_proj),
+                });
+                self.uniforms.push(Uniform {
+                    name: "u_hasVertexColor",
+                    value: UniformValue::Int(0),
+                });
+                self.uniforms.push(Uniform {
+                    name: "u_hasTangent",
+                    value: UniformValue::Int(0),
+                });
+                self.uniforms.push(Uniform {
+                    name: "u_color",
+                    value: UniformValue::Vec4(desc.base_color),
+                });
+                self.uniforms.push(Uniform {
+                    name: "u_metallic",
+                    value: UniformValue::Float(desc.metallic),
+                });
+                self.uniforms.push(Uniform {
+                    name: "u_roughness",
+                    value: UniformValue::Float(desc.roughness),
+                });
+                self.uniforms.push(Uniform {
+                    name: "u_clearcoat",
+                    value: UniformValue::Float(desc.clearcoat),
+                });
+                self.uniforms.push(Uniform {
+                    name: "u_clearcoatRoughness",
+                    value: UniformValue::Float(desc.clearcoat_roughness),
+                });
+                let ior = desc.ior.max(1.0);
+                let ratio = (ior - 1.0) / (ior + 1.0);
+                self.uniforms.push(Uniform {
+                    name: "u_dielectricF0",
+                    value: UniformValue::Float(ratio * ratio * desc.specular),
+                });
+            }
+            gpu.set_uniforms(&self.uniforms);
+            gpu.draw_instanced(
+                mesh.vbo,
+                Some(mesh.ebo),
+                &mesh.layout,
+                mesh.index_count,
+                batch.buffer,
+                &INSTANCE_MAT4_LAYOUT,
+                batch.count,
+            );
         }
     }
 
@@ -2577,6 +2816,17 @@ fn f32_bytes(s: &[f32]) -> &[u8] {
     // SAFETY: f32 has no padding/invalid bit patterns; reinterpreting as bytes
     // for GPU upload is sound and the lifetime is tied to `s`.
     unsafe { core::slice::from_raw_parts(s.as_ptr() as *const u8, core::mem::size_of_val(s)) }
+}
+
+fn mat4_bytes(matrices: &[[f32; 16]]) -> &[u8] {
+    // SAFETY: arrays of f32 are contiguous and have no padding or invalid bit
+    // patterns; the returned view cannot outlive `matrices`.
+    unsafe {
+        core::slice::from_raw_parts(
+            matrices.as_ptr() as *const u8,
+            core::mem::size_of_val(matrices),
+        )
+    }
 }
 
 fn u32_bytes(s: &[u32]) -> &[u8] {

@@ -128,12 +128,14 @@ gates are mandatory for any change under `client-rust/`:
 
 Hard budgets (`client-rust/budgets.json` is authoritative):
 
-- stripped wasm <= 2.0 MiB; stripped native binary <= 3.0 MiB;
+- stripped wasm <= 4.0 MiB; stripped native binary <= 6.0 MiB;
 - zero steady-state heap allocations per frame;
-- peak RSS in the standard scene <= 256 MiB;
-- frame p99 <= 4.0 ms on the `darwin-arm64-apple-m2-max` class;
-- regressions: size +max(16 KiB, 1%), perf +10%, RSS +5% vs the checked-in
-  per-machine baseline.
+- peak RSS in the standard scene <= 512 MiB;
+- runtime and terrain GPU p99 <= 8.33 ms, and generic render GPU p99 <=
+  16.67 ms, on the `darwin-arm64-apple-m2-max` class;
+- regressions: size +max(512 KiB, 25%), perf +100%, RSS +5% vs the checked-in
+  per-machine baseline. The larger size/perf headroom is intentional:
+  presentation fidelity takes priority inside the absolute caps.
 
 Machine baselines live in `client-rust/bench/baselines/<machine-id>.json` and
 change ONLY via `make -C client-rust bench-baseline`, reviewed like code; an

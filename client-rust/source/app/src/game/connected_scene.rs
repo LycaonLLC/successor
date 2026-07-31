@@ -4,8 +4,10 @@
 //! [`AuthorityStore`]. This replaces the placeholder ground-plane + capsule
 //! projection so the live client renders like `client-3d`.
 //!
-//! Coordinate contract (config): sim `(x, y)` → world `(x, 0, y)`; a pawn centre
-//! sits at `actor.x + 0.5`. Terrain/props are authored in world cells.
+//! Coordinate contract: one authority cell is one metre/world unit. Actor
+//! `(x, y)` addresses the cell whose world-space centre is `(x + 0.5, y + 0.5)`;
+//! terrain supplies elevation, props use fixture footprints, and pawn source
+//! geometry is normalized to the canonical adult height.
 
 use std::collections::HashMap;
 
@@ -27,8 +29,12 @@ use crate::pawn::animator::{PawnAnimator, WeaponLane};
 use crate::pawn::appearance::{faction_tinted, skin_tint};
 use crate::pawn::pack::PawnTemplate;
 use crate::world::chunks::TerrainStreamer;
-use crate::world::props::PropsLoader;
+use crate::world::props::{building_terrain_exclusions, PropsLoader};
 use crate::world::terrain::Biome;
+use crate::world::{
+    ADULT_PAWN_HEIGHT_METERS, FOLLOW_CAMERA_BACK_METERS, FOLLOW_CAMERA_HEIGHT_METERS,
+    WORLD_UNITS_PER_CELL,
+};
 use crate::GameWorld;
 
 /// A rendered pawn for one live actor: one entity per body part + its animator.
@@ -51,6 +57,8 @@ pub struct ConnectedScene {
     pub renderer: Renderer,
     pub store: AuthorityStore,
     template: PawnTemplate,
+    pawn_scale: f32,
+    terrain: TerrainStreamer,
     part_meshes: Vec<successor_engine_render::components::MeshId>,
     pawns: HashMap<String, ActorPawn>,
     follow: Entity,
@@ -70,6 +78,18 @@ pub struct ConnectedScene {
     muzzle_lights: Vec<(Entity, f32)>,
 }
 
+fn follow_focus(ground: Vec3) -> Vec3 {
+    ground.add(vec3(0.0, ADULT_PAWN_HEIGHT_METERS * 0.5, 0.0))
+}
+
+fn follow_eye(ground: Vec3) -> Vec3 {
+    follow_focus(ground).add(vec3(
+        0.0,
+        FOLLOW_CAMERA_HEIGHT_METERS,
+        FOLLOW_CAMERA_BACK_METERS,
+    ))
+}
+
 impl ConnectedScene {
     /// Build the world backdrop + pawn template + HUD from the checked-in slice
     /// fixture and pawn pack (same assets `client-3d` loads).
@@ -80,6 +100,8 @@ impl ConnectedScene {
         let slice_str =
             std::fs::read_to_string("../client/public/successor-slice/open-desert-slice.json")
                 .map_err(|e| format!("read slice: {e}"))?;
+        let slice = successor_engine_core::json::Json::parse(&slice_str)
+            .map_err(|_| "slice parse".to_string())?;
         let pawn_bytes = std::fs::read("../client-3d/public/assets/pawn-pack/pawn_male.glb")
             .map_err(|e| format!("read pawn pack: {e}"))?;
 
@@ -101,11 +123,23 @@ impl ConnectedScene {
             .map_err(|error| format!("invalid bloom settings: {error:?}"))?;
         let mut world = GameWorld::new();
 
-        let center = vec3(512.0, 0.0, 513.0);
+        let center = vec3(
+            512.0 * WORLD_UNITS_PER_CELL,
+            0.0,
+            513.0 * WORLD_UNITS_PER_CELL,
+        );
         renderer.gi_set_focus([center.x, center.y, center.z]);
 
         // Terrain under the slice.
-        let mut streamer = TerrainStreamer::new(0x0d3d_071e, Biome::Desert, 64.0, 3, 0b1);
+        let mut streamer = TerrainStreamer::new(
+            0x0d3d_071e,
+            Biome::Desert,
+            64.0 * WORLD_UNITS_PER_CELL as f64,
+            3,
+            0b1,
+        );
+        let exclusions = building_terrain_exclusions(&slice, 1.5);
+        streamer.set_exclusions(&exclusions);
         streamer.ensure_around(
             &mut world,
             &mut renderer,
@@ -115,16 +149,17 @@ impl ConnectedScene {
         );
 
         // Props from the slice fixture.
-        let slice = successor_engine_core::json::Json::parse(&slice_str)
-            .map_err(|_| "slice parse".to_string())?;
         let mut loader =
             PropsLoader::new(assets_dir, &mapping).map_err(|_| "props loader".to_string())?;
-        let placed = loader.load(&mut world, &mut renderer, gpu, &slice, 0b1);
+        let placed = loader.load(&mut world, &mut renderer, gpu, &slice, &streamer, 0b1);
         eprintln!("connected: terrain streamed, {placed} props placed");
 
         // Pawn template (uploaded once; per-actor materials are tinted).
         let template =
             PawnTemplate::from_bytes(&pawn_bytes).map_err(|_| "pawn parse".to_string())?;
+        let pawn_scale = template
+            .uniform_scale_for_height(ADULT_PAWN_HEIGHT_METERS)
+            .ok_or_else(|| "pawn has invalid authored height".to_string())?;
         let gpu_parts = template.upload(gpu, &mut renderer);
         let part_meshes: Vec<_> = gpu_parts.parts.iter().map(|(m, _)| *m).collect();
 
@@ -166,8 +201,8 @@ impl ConnectedScene {
                     color: Some([env.fog[0], env.fog[1], env.fog[2], 1.0]),
                     depth: Some(1.0),
                 },
-                eye: center.add(vec3(0.0, 9.0, 13.0)),
-                look_at: center,
+                eye: follow_eye(center),
+                look_at: follow_focus(center),
                 up: Vec3::Y,
             },
         );
@@ -246,6 +281,8 @@ impl ConnectedScene {
             renderer,
             store: AuthorityStore::new(),
             template,
+            pawn_scale,
+            terrain: streamer,
             part_meshes,
             pawns: HashMap::new(),
             follow,
@@ -331,14 +368,20 @@ impl ConnectedScene {
 
     /// The player's current world position (falls back to the slice centre).
     pub fn player_pos(&self) -> Vec3 {
-        if let Some(p) = self.pawns.get(&self.player_id) {
-            return vec3(p.render_pos.0 + 0.5, 0.0, p.render_pos.1 + 0.5);
-        }
-        self.store
-            .actors
-            .get(&self.player_id)
-            .map(|a| vec3(a.x + 0.5, 0.0, a.y + 0.5))
-            .unwrap_or(self.center)
+        let (x, z) = if let Some(p) = self.pawns.get(&self.player_id) {
+            (
+                (p.render_pos.0 + 0.5) * WORLD_UNITS_PER_CELL,
+                (p.render_pos.1 + 0.5) * WORLD_UNITS_PER_CELL,
+            )
+        } else if let Some(actor) = self.store.actors.get(&self.player_id) {
+            (
+                (actor.x + 0.5) * WORLD_UNITS_PER_CELL,
+                (actor.y + 0.5) * WORLD_UNITS_PER_CELL,
+            )
+        } else {
+            return self.center;
+        };
+        vec3(x, self.terrain.height_at(x, z), z)
     }
 
     /// The player's current smoothed gait speed (diagnostic: should be stable
@@ -379,7 +422,7 @@ impl ConnectedScene {
                 Transform {
                     pos: self.center,
                     rot: Quat::IDENTITY,
-                    scale: Vec3::ONE,
+                    scale: vec3(self.pawn_scale, self.pawn_scale, self.pawn_scale),
                 },
             );
             self.world.set_component(
@@ -461,7 +504,14 @@ impl ConnectedScene {
                         p.yaw = (tx - rx).atan2(ty - ry);
                     }
                     p.render_pos = (nx, ny);
-                    (true, p.speed, p.yaw, nx + 0.5, ny + 0.5, p.entities.clone())
+                    (
+                        true,
+                        p.speed,
+                        p.yaw,
+                        (nx + 0.5) * WORLD_UNITS_PER_CELL,
+                        (ny + 0.5) * WORLD_UNITS_PER_CELL,
+                        p.entities.clone(),
+                    )
                 }
             };
             if !present {
@@ -481,9 +531,10 @@ impl ConnectedScene {
             let count = palette.len() as u32;
             let offset = self.renderer.push_skin_palette(palette);
             let rot = Quat::from_axis_angle(Vec3::Y, yaw);
+            let ground_y = self.terrain.height_at(wx, wz);
             for e in &entities {
                 if let Some(tr) = self.world.get_component::<Transform>(*e) {
-                    tr.pos = vec3(wx, 0.0, wz);
+                    tr.pos = vec3(wx, ground_y, wz);
                     tr.rot = rot;
                 }
                 if let Some(mr) = self.world.get_component::<MeshRenderer>(*e) {
@@ -492,13 +543,14 @@ impl ConnectedScene {
             }
         }
 
-        // 3) Cameras track the player.
+        // 3) Cameras track the player's terrain elevation and eye-level focus.
         let p = self.player_pos();
+        let focus = follow_focus(p);
         self.center = p;
         self.renderer.gi_set_focus([p.x, p.y, p.z]);
         if let Some(cam) = self.world.get_component::<Camera>(self.follow) {
-            cam.look_at = p;
-            cam.eye = p.add(vec3(0.0, 9.0, 13.0));
+            cam.look_at = focus;
+            cam.eye = follow_eye(p);
         }
         if let Some(cam) = self.world.get_component::<Camera>(self.minimap) {
             cam.eye = p.add(vec3(0.0, 160.0, 0.0));
@@ -526,12 +578,12 @@ impl ConnectedScene {
             .emit_into(self.combat_fx.pool_mut(), [p.x, 0.0, p.z], 40.0);
         self.combat_fx.update(dt);
         self.decay_muzzle_lights(dt);
-        let eye = p.add(vec3(0.0, 9.0, 13.0));
-        let fwd = p.sub(eye).normalize();
+        let eye = follow_eye(p);
+        let fwd = focus.sub(eye).normalize();
         let right = fwd.cross(Vec3::Y).normalize();
         let up = right.cross(fwd);
         let vp = Mat4::perspective(0.9, w as f32 / h as f32, 0.2, 900.0)
-            .mul(Mat4::look_at(eye, p, Vec3::Y))
+            .mul(Mat4::look_at(eye, focus, Vec3::Y))
             .to_cols_array();
         let (r, u) = ([right.x, right.y, right.z], [up.x, up.y, up.z]);
         self.fx_buf.clear();
@@ -625,5 +677,21 @@ fn faction_rgb(faction: &str) -> [f32; 3] {
         f if f.contains("blue") || f.contains("law") => [0.3, 0.4, 0.8],
         f if f.contains("green") => [0.3, 0.6, 0.3],
         _ => [0.5, 0.5, 0.5],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn follow_camera_uses_metric_pawn_framing() {
+        let ground = vec3(10.0, 2.0, 20.0);
+        let focus = follow_focus(ground);
+        let eye = follow_eye(ground);
+        assert!((focus.y - 2.9).abs() < 1.0e-6);
+        assert!((eye.y - focus.y - FOLLOW_CAMERA_HEIGHT_METERS).abs() < 1.0e-6);
+        assert!((eye.z - focus.z - FOLLOW_CAMERA_BACK_METERS).abs() < 1.0e-6);
+        assert!(eye.sub(focus).length() > ADULT_PAWN_HEIGHT_METERS * 10.0);
     }
 }
