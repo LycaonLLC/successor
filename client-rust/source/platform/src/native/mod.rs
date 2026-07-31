@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod control;
 pub mod fs;
 pub mod gl;
 pub mod http;

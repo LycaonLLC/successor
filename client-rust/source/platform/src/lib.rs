@@ -15,12 +15,18 @@ pub fn create_gpu() -> GlGpu {
     GlGpu::new()
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub use native::control::{
+    configure as configure_control, shutdown as shutdown_control, ControlConfig, ControlStatus,
+    DEFAULT_CONTROL_PORT,
+};
+
 // target-specific re-exports of free-function surface
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::window::{
     begin_frame, deinit, end_frame, framebuffer_size, gl_error, init, is_key_down,
-    mouse_button_down, mouse_position, now_ms, poll_text_input, read_pixels_rgba,
-    set_cursor_visible, should_quit,
+    mouse_button_down, mouse_position, now_ms, poll_scroll_delta, poll_text_input,
+    read_pixels_rgba, set_cursor_visible, should_quit,
 };
 
 #[cfg(target_arch = "wasm32")]

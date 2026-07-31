@@ -20,6 +20,9 @@ fn main() {
         run_model_corpus();
         return;
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    configure_automation(&args);
+
     let mode = arg_value(&args, "--demo");
     let frames: u64 = arg_value(&args, "--frames")
         .and_then(|s| s.parse().ok())
@@ -1458,6 +1461,70 @@ fn arg_value(args: &[String], key: &str) -> Option<String> {
         }
     }
     None
+}
+#[cfg(not(target_arch = "wasm32"))]
+fn configure_automation(args: &[String]) {
+    let control_requested =
+        args.iter().any(|arg| arg == "--control") || environment_flag("SUCCESSOR_CONTROL");
+    let explicit_port = arg_value(args, "--control-port");
+    if args.iter().any(|arg| arg == "--control-port") && explicit_port.is_none() {
+        eprintln!("--control-port requires a port number");
+        std::process::exit(2);
+    }
+    let port = if let Some(value) = explicit_port {
+        Some(value.parse::<u16>().unwrap_or_else(|_| {
+            eprintln!("invalid --control-port: {value}");
+            std::process::exit(2);
+        }))
+    } else if control_requested {
+        Some(
+            std::env::var("SUCCESSOR_CONTROL_PORT")
+                .ok()
+                .map(|value| {
+                    value.parse::<u16>().unwrap_or_else(|_| {
+                        eprintln!("invalid SUCCESSOR_CONTROL_PORT: {value}");
+                        std::process::exit(2);
+                    })
+                })
+                .unwrap_or(successor_platform::DEFAULT_CONTROL_PORT),
+        )
+    } else {
+        None
+    };
+    let record_path = arg_value(args, "--record-input").map(std::path::PathBuf::from);
+    let replay_path = arg_value(args, "--replay-input").map(std::path::PathBuf::from);
+    if port.is_none() && record_path.is_none() && replay_path.is_none() {
+        return;
+    }
+
+    let status = successor_platform::configure_control(successor_platform::ControlConfig {
+        port,
+        record_path,
+        replay_path,
+    })
+    .unwrap_or_else(|error| {
+        eprintln!("control configuration failed: {error}");
+        std::process::exit(2);
+    });
+    if let Some(port) = status.listen_port {
+        println!("successor_control_server=127.0.0.1:{port}");
+    }
+    if status.recording {
+        println!("successor_input_recording=active");
+    }
+    if status.replaying {
+        println!("successor_input_replay=active");
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn environment_flag(name: &str) -> bool {
+    std::env::var(name).ok().is_some_and(|value| {
+        matches!(
+            value.to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "on"
+        )
+    })
 }
 
 /// Live playable slice: connect to a local authority, project actors, send

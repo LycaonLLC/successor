@@ -12,6 +12,10 @@ crate-type = ["cdylib", "rlib"]
 [[bin]]
 name = "successor"
 path = "src/main.rs"
+[[bin]]
+name = "successor-control"
+path = "src/bin/successor-control.rs"
+
 
 [dependencies]
 successor-engine-core.workspace = true

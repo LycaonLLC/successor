@@ -1,7 +1,7 @@
 # Successor Verification
 
 Status: current verification contract and latest source proof as of
-2026-07-30; latest public proof remains 2026-07-29.
+2026-07-31; latest public proof remains 2026-07-29.
 
 Run commands from the canonical Bunker checkout,
 `~/dev/games/successor`, unless a section says otherwise. A passing result
@@ -84,6 +84,13 @@ terrain GPU p99; and `nostd` builds both engine crates for
 `thumbv7em-none-eabihf`. Browser renderer changes additionally require the
 corresponding WebGL2 probe, a resize round trip, and the deterministic
 half-float-disabled fallback where applicable.
+
+Native agent-control changes additionally require a real loopback journey:
+launch a windowed demo or connected client with `--control-port N`, pipe
+multiple input commands through `out/bin/successor-control`, request and
+inspect a protocol screenshot, save `successor.input.v1`, relaunch with
+`--replay-input`, and prove the replayed UI or actor result in a second
+screenshot. A TCP acknowledgement alone is not visual or gameplay proof.
 
 `client-rust/budgets.json` is authoritative. Its fidelity-first caps are 6 MiB
 stripped native, 4 MiB stripped WebAssembly, 8.33 ms runtime/terrain p99,

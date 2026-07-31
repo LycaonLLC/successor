@@ -1,6 +1,6 @@
 # Successor Current Project State
 
-Status: current implementation inventory as of 2026-07-30, after the
+Status: current implementation inventory as of 2026-07-31, after the
 2026-07-29 public-alpha release. Exact public hashes and pointers live in
 `CURRENT_DEPLOYMENT.md`.
 
@@ -82,6 +82,17 @@ runtime/terrain p99, and 16.67 ms generic render p99 while retaining zero
 steady-state frame allocations. This remains source/local-build proof only:
 gameplay parity and product promotion are outstanding, and the Rust client is
 absent from the site and native download ledger.
+
+Native desktop development now also has an explicit loopback-only agent
+control path. `successor-control` accepts argv, command files, or piped text;
+remote input overrides local GLFW state while held, screenshot requests
+acknowledge only after a rendered BMP is written, and `successor.input.v1`
+recordings capture frame-indexed key, pointer, text, and scroll commands for
+fail-closed replay. A local live-authority proof moved an ordinary connected
+actor through the existing `SetMoveIntent` path and captured the resulting
+world frame. The server remains disabled by default, native-only, local
+developer tooling and changes no public download or deployment identity.
+
 
 Source assets and generated runtime assets have separate homes. PawnForge
 source work remains outside this repository; promoted GLBs, face atlases,

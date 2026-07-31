@@ -1,6 +1,8 @@
 //! Native windowing and input implementation via GLFW.
 #![allow(dead_code)]
 
+use crate::native::control;
+
 use parking_lot::Mutex;
 use std::os::raw::c_void;
 use successor_engine_core::input::Key;
@@ -49,6 +51,11 @@ extern "C" {
         window: *mut GLFWwindow,
         callback: Option<extern "C" fn(*mut GLFWwindow, u32)>,
     ) -> *mut c_void;
+    fn glfwSetScrollCallback(
+        window: *mut GLFWwindow,
+        callback: Option<extern "C" fn(*mut GLFWwindow, f64, f64)>,
+    ) -> *mut c_void;
+
 }
 
 struct NativeState {
@@ -65,11 +72,17 @@ static STATE: Mutex<NativeState> = Mutex::new(NativeState {
 });
 
 static TEXT_INPUT_QUEUE: Mutex<Vec<char>> = Mutex::new(Vec::new());
+static SCROLL_DELTA: Mutex<(f32, f32)> = Mutex::new((0.0, 0.0));
 
 extern "C" fn char_callback(_window: *mut GLFWwindow, codepoint: u32) {
     if let Some(ch) = std::char::from_u32(codepoint) {
         TEXT_INPUT_QUEUE.lock().push(ch);
     }
+}
+extern "C" fn scroll_callback(_window: *mut GLFWwindow, x: f64, y: f64) {
+    let mut delta = SCROLL_DELTA.lock();
+    delta.0 += x as f32;
+    delta.1 += y as f32;
 }
 
 fn native_log_sink(s: &str) {
@@ -126,6 +139,7 @@ pub fn init(title: &str, w: i32, h: i32) -> bool {
 
         // Set char callback for text input
         glfwSetCharCallback(win, Some(char_callback));
+        glfwSetScrollCallback(win, Some(scroll_callback));
 
         let mut state = STATE.lock();
         state.window = win;
@@ -136,6 +150,9 @@ pub fn init(title: &str, w: i32, h: i32) -> bool {
 }
 
 pub fn should_quit() -> bool {
+    if control::quit_requested() {
+        return true;
+    }
     let state = STATE.lock();
     if state.window.is_null() {
         true
@@ -148,15 +165,48 @@ pub fn begin_frame() {
     unsafe {
         glfwPollEvents();
     }
+    if !control::is_configured() {
+        return;
+    }
+
+    let mut snapshot = control::NativeInputSnapshot::default();
+    for index in 0..Key::COUNT {
+        let key = Key::from_u16(index as u16).expect("bounded key index");
+        snapshot.keys[index] = raw_key_down(key);
+    }
+    snapshot.mouse_position = raw_mouse_position();
+    for button in 0..3 {
+        snapshot.mouse_buttons[button] = raw_mouse_button_down(button as i32);
+    }
+    snapshot.text = TEXT_INPUT_QUEUE.lock().drain(..).collect();
+    {
+        let mut scroll = SCROLL_DELTA.lock();
+        snapshot.scroll = *scroll;
+        *scroll = (0.0, 0.0);
+    }
+    control::begin_frame(snapshot);
 }
 
 pub fn end_frame() {
+    if let Some(request) = control::take_screenshot_request() {
+        let (width, height) = framebuffer_size();
+        let result = if width <= 0 || height <= 0 {
+            Err("framebuffer is unavailable".to_string())
+        } else {
+            let rgba = read_pixels_rgba(width, height);
+            control::write_bmp(&request.path, &rgba, width as u32, height as u32)
+                .map(|()| (width as u32, height as u32))
+        };
+        control::finish_screenshot(request, result);
+    }
+
     let state = STATE.lock();
     if !state.window.is_null() {
         unsafe {
             glfwSwapBuffers(state.window);
         }
     }
+    control::flush();
 }
 
 pub fn deinit() {
@@ -168,6 +218,7 @@ pub fn deinit() {
         }
         glfwTerminate();
     }
+    control::shutdown();
 }
 
 pub fn framebuffer_size() -> (i32, i32) {
@@ -190,6 +241,10 @@ pub fn now_ms() -> f64 {
 }
 
 pub fn is_key_down(key: Key) -> bool {
+    control::key_down(key).unwrap_or_else(|| raw_key_down(key))
+}
+
+fn raw_key_down(key: Key) -> bool {
     let state = STATE.lock();
     if state.window.is_null() {
         return false;
@@ -233,6 +288,10 @@ pub fn set_cursor_visible(visible: bool) {
 /// coordinates; on HiDPI the framebuffer is scaled, so we rescale to match
 /// `framebuffer_size()`.
 pub fn mouse_position() -> (f32, f32) {
+    control::mouse_position().unwrap_or_else(raw_mouse_position)
+}
+
+fn raw_mouse_position() -> (f32, f32) {
     let state = STATE.lock();
     if state.window.is_null() {
         return (0.0, 0.0);
@@ -252,6 +311,10 @@ pub fn mouse_position() -> (f32, f32) {
 
 /// Whether the given mouse button (0 = left, 1 = right, 2 = middle) is pressed.
 pub fn mouse_button_down(button: i32) -> bool {
+    control::mouse_button_down(button as usize).unwrap_or_else(|| raw_mouse_button_down(button))
+}
+
+fn raw_mouse_button_down(button: i32) -> bool {
     let state = STATE.lock();
     if state.window.is_null() {
         return false;
@@ -260,11 +323,24 @@ pub fn mouse_button_down(button: i32) -> bool {
 }
 
 pub fn poll_text_input() -> Option<char> {
+    if control::is_configured() {
+        return control::poll_text_input();
+    }
     let mut queue = TEXT_INPUT_QUEUE.lock();
     if !queue.is_empty() {
         return Some(queue.remove(0));
     }
     None
+}
+
+pub fn poll_scroll_delta() -> Option<(f32, f32)> {
+    if control::is_configured() {
+        return control::poll_scroll_delta();
+    }
+    let mut delta = SCROLL_DELTA.lock();
+    let value = *delta;
+    *delta = (0.0, 0.0);
+    (value != (0.0, 0.0)).then_some(value)
 }
 
 /// Read the current framebuffer as RGBA8, bottom-up (GL row order).

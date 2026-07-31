@@ -1,6 +1,6 @@
 # Successor Canonical Context
 
-Status: current supported architecture as of 2026-07-30.
+Status: current supported architecture as of 2026-07-31.
 
 This is the repository's source of truth for product scope and ownership. Code
 and tests define exact behavior; when they change this contract, update this
@@ -29,6 +29,17 @@ render the same authoritative state.
 
 A third, in-development Rust client lives in `client-rust/`; it is not yet a
 supported player-facing client and ships nothing.
+
+The native client's desktop platform has one developer-only agent-control
+surface. Explicit opt-in starts a loopback-only text protocol; the companion
+`successor-control` CLI can override keyboard, pointer, text, and scroll input,
+request completed-frame screenshots, and drive or inspect a live connected
+client. The same platform boundary records effective input to the current-only
+`successor.input.v1` frame command format and replays it deterministically.
+This tooling is disabled by default, is absent from the web backend, and
+submits gameplay through the ordinary client/server command path; it is not a
+second gameplay authority or a public control endpoint.
+
 
 ## Public alpha topology
 

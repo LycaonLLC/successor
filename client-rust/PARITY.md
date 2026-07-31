@@ -39,6 +39,7 @@ not complete), **backlog** (not started — ordered wave).
 | Follow + minimap cameras (live) | camera rig | `connected::run` | done (compile+unit; live Bunker-gated) |
 | Chat UI (input + overlay) | `client/src/chat/chatClient.ts` HUD | `game/chat.rs` | partial (UI only) |
 | Platform abstraction (desktop/web) | Vite/Electron | `successor-platform` (GLFW/GL native, WebGL2 web) | done |
+| Agent input, screenshots, record/replay | headless automation + graphical journey tooling | loopback `successor-platform::native::control` + pipeable `successor-control`; `successor.input.v1` frame replay | done (native developer-only) |
 | Size / alloc / perf / RSS gates | n/a | `budgets.json` + `bench/compare.py` + Makefile | done |
 
 ## Backlog waves (ordered)

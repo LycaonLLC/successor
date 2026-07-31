@@ -67,13 +67,14 @@ command -v wasm-strip llvm-strip  # at least one must resolve
 Everything is driven by the `Makefile`; artifacts land in `out/`.
 
 ```sh
-make native   # release desktop binary -> out/bin/successor
-make web      # release wasm module    -> out/web/successor.wasm (+ shim)
+make native   # release desktop binaries -> out/bin/successor{,-control}
+make web      # release wasm module      -> out/web/successor.wasm (+ shim)
 make all      # native + web
 
-make run                                  # build native, then launch it
-./out/bin/successor --demo parity-basic --gl   # windowed visual QA
-./out/bin/successor --demo terrain --frames 5 --screenshot /tmp/shot.png
+make run                                      # build native, then launch it
+./out/bin/successor --demo parity-basic --gl # windowed visual QA
+./out/bin/successor --demo terrain --frames 5 --screenshot /tmp/shot.bmp
+
 make serve    # build web, serve out/web on http://localhost:8080
 ```
 
@@ -82,6 +83,65 @@ Headless entry points (no window, used by the gates):
 ```sh
 ./out/bin/successor --demo parity-basic --frames 600 --stats-json out/stats.json
 ```
+
+## Agent control, screenshots, and input replay
+
+The native client has a developer-only loopback control server. It is disabled
+by default and never listens on a non-loopback address. Enable it explicitly
+with `--control`, `--control-port N`, or `SUCCESSOR_CONTROL=1` (with optional
+`SUCCESSOR_CONTROL_PORT=N`). Port `0` requests an ephemeral port; the client
+prints `successor_control_server=127.0.0.1:<port>` after binding.
+
+`make native` also builds `out/bin/successor-control`. It accepts one command
+from argv, a script with `--file`, or commands from stdin while retaining one
+connection for the whole stream:
+
+```sh
+./out/bin/successor \
+  --endpoint ws://127.0.0.1:28093 --player-id agent-1 --actor-id agent-1 \
+  --control-port 47778
+
+printf '%s\n' \
+  'key down w' \
+  'wait 750' \
+  'key up w' \
+  'screenshot /tmp/agent-view.bmp' \
+  | ./out/bin/successor-control --port 47778
+```
+
+Requests are UTF-8 lines and responses are one JSON object per line. The CLI's
+`wait <milliseconds>` is local script timing; server commands are:
+
+```text
+key <down|up|tap> <key>
+mouse move <abs|rel> <x> <y>
+mouse <down|up> <left|right|middle>
+text <text>
+scroll <x> <y>
+screenshot <path.bmp>
+record start <path.input>
+record stop
+status
+quit
+```
+
+While a control connection is active, or a remote key/button remains held,
+remote state replaces local GLFW input. A screenshot is read from the rendered
+frame before swap and acknowledged only after the BMP is written. This makes
+the JSON response a completion boundary an agent can trust.
+
+Start a frame-indexed recording with `--record-input PATH` or the `record
+start` command. The current-only file begins with `successor.input.v1`; each
+following row is `frame<TAB>N<TAB>command`. Native and remote key transitions,
+pointer moves/buttons, text, and scroll are captured. Replay with
+`--replay-input PATH`; replay owns input for the run, rejects malformed or
+out-of-order files, and rejects live input mutation while still allowing
+`status`, `screenshot`, and `quit`.
+
+The server, recorder, replay loader, and screenshot writer are native
+developer tooling. They are not compiled into the web backend, do not bypass
+the Colyseus command path, and do not become gameplay authority.
+
 
 ## Gates (mandatory for changes under `client-rust/`)
 

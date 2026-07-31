@@ -11,6 +11,8 @@ RENDER_STATS_JSON := out/material-parity-gpu.json
 TERRAIN_STATS_JSON := out/terrain-material-gpu.json
 
 NATIVE_BIN := out/bin/successor
+CONTROL_BIN := out/bin/successor-control
+
 WASM_OUT := out/web/successor.wasm
 NATIVE_STRIPPED := /tmp/successor-port/successor
 WASM_STRIPPED := /tmp/successor-port/successor.wasm
@@ -21,9 +23,11 @@ WASM_STRIPPED := /tmp/successor-port/successor.wasm
 all: native web
 
 native:
-	$(CARGO) build --release -p successor-client --bin successor
+	$(CARGO) build --release -p successor-client --bin successor --bin successor-control
 	mkdir -p out/bin
 	cp target/release/successor $(NATIVE_BIN)
+	cp target/release/successor-control $(CONTROL_BIN)
+
 
 web:
 	$(CARGO) build --release --target $(WASM_TARGET) -p successor-client --lib
@@ -64,6 +68,7 @@ test-unit:
 	$(CARGO) test -p successor-engine-core --features std
 	$(CARGO) test -p successor-engine-render --features std
 	$(CARGO) test -p successor-client-proto
+	$(CARGO) test -p successor-platform
 
 # Criterion microbenches; `std` gates off the no_std runtime items so libtest links.
 bench:
