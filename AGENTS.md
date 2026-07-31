@@ -10,13 +10,16 @@ Read these files in order before making architecture or runtime claims:
 2. `docs/CURRENT_PROJECT_STATE.md`
 3. `docs/CURRENT_DEPLOYMENT.md`
 4. `docs/VERIFICATION.md`
+5. `docs/TOOLS_AVAILABLE.md`
 
 The canonical context owns architecture and scope. The state document is a
 dated implementation snapshot. The deployment document owns volatile public
 release identity. The verification document owns commands and runtime proof.
-Narrow design docs may add detail but cannot override those four files.
-Files under `docs/future/` are retained proposals, not current behavior. Verify
-their assumptions against the current source tree before implementing them.
+The tools guide documents repository-owned developer tooling agents should use
+for inspection and automation. Narrow design docs may add detail but cannot
+override those four authoritative project documents. Files under
+`docs/future/` are retained proposals, not current behavior. Verify their
+assumptions against the current source tree before implementing them.
 
 ## Credential authority
 
