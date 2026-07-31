@@ -23,11 +23,12 @@ not complete), **backlog** (not started — ordered wave).
 | PNG image decode | texture loads | `engine-core::image` (miniz_oxide inflate + unfilter) | done (Wave 1) |
 | Asset IO (fs + http) | Vite fetch | `platform::{fs_read, http_get}` + web `js_fetch_get` shim | done (Wave 1) |
 | Directional lighting | `client-3d/src/render/environment` | Cook-Torrance PBR (GGX + Smith + Schlick), metallic-roughness from GLB, deferred sun pass | done (PBR upgrade) |
-| Shadows | sun shadow | texel-snapped ortho map (1024/2048² by tier) + rotated-Poisson PCF (4/12 tap) + PCSS (High), evaluated in the deferred light pass | done (soft shadows) |
-| Deferred rendering | n/a (new) | G-buffer (2×RGBA8 + D24) → deferred sun + point-light volumes → HDR scene RT (RGBA16F/RGBA8) → ACES tonemap + grade; forward path kept for RTT cameras | done (PBR upgrade) |
+| Shadows | sun shadow | texel-snapped ortho map (512/1024/2048/4096² preset option) + rotated-Poisson PCF + High-tier PCSS, with live range/bias/normal-offset/penumbra controls | done (soft shadows + mastering) |
+| Deferred rendering | n/a (new) | G-buffer (2×RGBA8 + D24) → deferred sun + point-light volumes → HDR scene RT (RGBA16F/RGBA8) → ACES tonemap + environment/master grade + optional palette quantization; forward path kept for RTT cameras | done (PBR + mastering) |
 | Global illumination (VXGI) | n/a (new) | `engine-render::gi` CPU-voxelized albedo volume (64³) + GPU sun-radiance injection (layered `framebufferTextureLayer`) + 3D mipmaps + diffuse/specular cone tracing; amortized, `RenderQuality`-gated | done (PBR upgrade) |
 | Local/point lights | n/a (new) | `PointLight` component + instanced deferred light volumes (additive HDR); muzzle-flash flashes from `CombatFx` | done (PBR upgrade) |
 | Render quality tiers | n/a (new) | `RenderQuality {Low,Medium,High}` over one deferred path (shadow filter, GI cones, HDR target); `--quality` / `?quality=` | done (PBR upgrade) |
+| Graphics mastering | renderer/environment controls | Backquote overlay over existing `UiBuilder`; versioned Low/Medium/High presets in `assets/render/settings.json`; live sun/shadow/AO/emissive/bloom/FXAA/color/palette controls with atomic native save/reload/reset | done (native tooling; web applies embedded settings read-only) |
 | Transparency via dithering | dithered fades | 4×4 Bayer screen-door `discard` | done |
 | HUD / text overlay | `client-3d/src/overlay`, `ui/` | baked 5×7 font (`engine-render::font`) → per-pixel quads; immediate-mode `engine-render::ui::UiBuilder` (panels/borders/text/icons, alpha-blended) | done (Wave 5; readable text + panels) |
 | UI icon vocabulary | `client-3d/src/ui/icons.ts` (39 SVGs) | `tools/bake-assets` distance-field SVG stroker → committed A8 atlas (`app/assets/ui/icons.*`), sampled via `Renderer::render_ui` | done (Wave 5) |

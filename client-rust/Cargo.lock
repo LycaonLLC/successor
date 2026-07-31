@@ -1125,6 +1125,7 @@ name = "successor-client"
 version = "0.0.1"
 dependencies = [
  "rmp3",
+ "serde",
  "serde_json",
  "successor-client-proto",
  "successor-engine-core",

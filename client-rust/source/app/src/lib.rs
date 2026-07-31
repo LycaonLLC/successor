@@ -12,12 +12,15 @@ pub mod game;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod glb_scene;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod graphics_tuning;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod hud;
 pub mod material_parity;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod net;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod pawn;
+pub mod render_settings;
 pub mod rss;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod screens;
@@ -46,7 +49,8 @@ world! { pub struct GameWorld {
 
 // --- render quality selection (process-global; set from `--quality`/`?quality=`) ---
 use core::sync::atomic::{AtomicU8, Ordering};
-use successor_engine_render::renderer::{RenderQuality, RendererLimits};
+use successor_engine_render::gpu::Gpu;
+use successor_engine_render::renderer::{RenderQuality, Renderer, RendererLimits};
 
 static RENDER_QUALITY: AtomicU8 = AtomicU8::new(1); // 0=Low, 1=Medium, 2=High
 
@@ -78,13 +82,43 @@ pub fn render_quality() -> RenderQuality {
     }
 }
 
+pub fn initialize_render_settings() {
+    render_settings::initialize();
+    set_render_quality(render_settings::selected_preset().render_quality());
+}
+
+fn active_preset() -> render_settings::PresetSettings {
+    let preset = match render_quality() {
+        RenderQuality::Low => render_settings::QualityPreset::Low,
+        RenderQuality::Medium => render_settings::QualityPreset::Medium,
+        RenderQuality::High => render_settings::QualityPreset::High,
+    };
+    render_settings::document().preset(preset).clone()
+}
+
 /// Renderer limits at the current quality tier (tier-derived shadow size).
 pub fn quality_limits() -> RendererLimits {
     let quality = render_quality();
+    let preset = active_preset();
     RendererLimits {
         quality,
+        shadow_size: preset.shadows.map_size,
+        shadow_world_radius: preset.shadows.world_radius,
         ..RendererLimits::default()
     }
+}
+
+/// Construct a renderer with the active preset already applied. Scene-specific
+/// fog and time-of-day grading may layer on top; mastering controls remain
+/// process-global and data-driven.
+pub fn configured_renderer<G: Gpu>(gpu: &mut G) -> Result<Renderer, String> {
+    let preset = active_preset();
+    let mut renderer = Renderer::new(gpu, quality_limits())
+        .map_err(|error| format!("renderer initialization: {error:?}"))?;
+    renderer
+        .apply_settings(gpu, preset.renderer_settings())
+        .map_err(|error| format!("apply render settings: {error:?}"))?;
+    Ok(renderer)
 }
 
 // Allocation-counting global allocator: installed only under `alloc-count`, so
@@ -115,6 +149,7 @@ mod web_runtime {
 
     #[no_mangle]
     pub extern "C" fn init(demo_selector: u32) {
+        crate::initialize_render_settings();
         successor_platform::init("Successor", 1280, 720);
         let mut gpu = successor_platform::create_gpu();
         if demo_selector == 1 {

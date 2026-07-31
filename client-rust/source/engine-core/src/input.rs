@@ -20,10 +20,11 @@ pub enum Key {
     Escape = 10,
     Backspace = 11,
     LeftShift = 12,
+    Backquote = 13,
 }
 
 impl Key {
-    pub const COUNT: usize = 13;
+    pub const COUNT: usize = 14;
 
     pub fn from_u16(v: u16) -> Option<Key> {
         if (v as usize) < Key::COUNT {

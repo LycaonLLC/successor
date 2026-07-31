@@ -504,8 +504,7 @@ impl WorldScene {
         use successor_engine_render::gpu::ClearSpec;
 
         let slice = Json::parse(slice_json).map_err(|_| ())?;
-        let mut renderer =
-            Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
+        let mut renderer = crate::configured_renderer(gpu).expect("renderer initialization failed");
         renderer.set_ambient(0.5);
         renderer.set_fog([0.788, 0.678, 0.510], 140.0, 320.0);
         let mut world = GameWorld::new();

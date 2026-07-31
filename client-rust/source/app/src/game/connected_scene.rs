@@ -71,6 +71,7 @@ pub struct ConnectedScene {
     search: successor_engine_render::ui::TextField,
     wm: successor_engine_render::window::WindowManager,
     win_model: crate::windows::WindowModel,
+    graphics_tuner: crate::graphics_tuning::GraphicsTuner,
     weather: successor_engine_render::weather::Weather,
     player_id: String,
     center: Vec3,
@@ -105,12 +106,10 @@ impl ConnectedScene {
         let pawn_bytes = std::fs::read("../client-3d/public/assets/pawn-pack/pawn_male.glb")
             .map_err(|e| format!("read pawn pack: {e}"))?;
 
-        let mut renderer =
-            Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
-        // Environment: noon desert grade → ambient/fog/clear + sun. The grade now
-        // runs inside the deferred tonemap pass.
+        let mut renderer = crate::configured_renderer(gpu).expect("renderer initialization failed");
+        // Time-of-day owns fog and its authored base grade; the render settings
+        // asset owns ambient, sun, bloom, shadows, AA, AO, and mastering.
         let env = environment::sample(720.0);
-        renderer.set_ambient(0.5);
         renderer.set_fog(env.fog, 160.0, 340.0);
         renderer.set_grade(
             env.bone_tint,
@@ -118,9 +117,6 @@ impl ConnectedScene {
             env.scene_darken,
             env.black_lift,
         );
-        renderer
-            .set_bloom(1.0, env.bloom)
-            .map_err(|error| format!("invalid bloom settings: {error:?}"))?;
         let mut world = GameWorld::new();
 
         let center = vec3(
@@ -295,6 +291,7 @@ impl ConnectedScene {
             search: successor_engine_render::ui::TextField::new(48),
             wm,
             win_model: crate::windows::WindowModel::sample(),
+            graphics_tuner: crate::graphics_tuning::GraphicsTuner::new(),
             weather,
             player_id: player_id.to_string(),
             center,
@@ -310,6 +307,13 @@ impl ConnectedScene {
     }
     pub fn on_player_pos(&mut self, x: f32, y: f32) {
         self.store.apply_player_position(x, y);
+    }
+    pub fn handle_tuning_toggle(&mut self, down: bool) -> bool {
+        self.graphics_tuner.handle_toggle(down)
+    }
+
+    pub fn tuning_open(&self) -> bool {
+        self.graphics_tuner.is_open()
     }
     pub fn combat_fx_mut(&mut self) -> &mut CombatFx {
         &mut self.combat_fx
@@ -614,8 +618,12 @@ impl ConnectedScene {
         let down = successor_platform::mouse_button_down(0);
         self.ui.set_input(mx, my, down);
         self.ui.begin(w, h);
-        self.wm.update(&self.ui, w, h);
-        let captured = self.wm.pointer_captured();
+        let tuning_open = self.graphics_tuner.is_open();
+        self.ui.set_input_enabled(!tuning_open);
+        if !tuning_open {
+            self.wm.update(&self.ui, w, h);
+        }
+        let captured = tuning_open || self.wm.pointer_captured();
         if let Some(action) = hud::build_hud(
             &mut self.ui,
             &self.icons,
@@ -665,6 +673,9 @@ impl ConnectedScene {
                 }
             }
         }
+        self.ui.set_input_enabled(true);
+        self.graphics_tuner
+            .draw(&mut self.ui, &mut self.renderer, gpu, w, h);
         self.renderer
             .render_ui(gpu, &self.ui.buf, self.ui.quads, w, h);
     }

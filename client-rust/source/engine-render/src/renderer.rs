@@ -258,9 +258,180 @@ impl Default for BloomSettings {
     }
 }
 
+/// User-mastered directional sun controls. Azimuth rotates around world Y;
+/// elevation is the angle above the horizon.
+#[derive(Clone, Copy, Debug)]
+pub struct SunSettings {
+    pub azimuth_degrees: f32,
+    pub elevation_degrees: f32,
+    pub color: [f32; 3],
+    pub intensity: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct AaSettings {
+    pub enabled: bool,
+    pub edge_threshold_min: f32,
+    pub edge_threshold: f32,
+    pub subpixel_blend: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ShadowSettings {
+    pub map_size: u32,
+    pub world_radius: f32,
+    pub depth_bias: f32,
+    pub normal_bias: f32,
+    pub penumbra: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ColorGradeSettings {
+    pub saturation: f32,
+    pub contrast: f32,
+    pub gamma: f32,
+    pub temperature: f32,
+    pub tint: f32,
+    pub lift: [f32; 3],
+    pub color_gamma: [f32; 3],
+    pub gain: [f32; 3],
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PaletteSettings {
+    pub enabled: bool,
+    pub levels: u32,
+    pub strength: f32,
+    pub dither: f32,
+}
+
+/// Validated runtime controls. JSON ownership remains in the app shell so the
+/// no_std renderer stays independent of serialization and filesystem policy.
+#[derive(Clone, Copy, Debug)]
+pub struct RendererSettings {
+    pub ambient_intensity: f32,
+    pub emissive_scalar: f32,
+    pub exposure: f32,
+    pub ao_intensity: f32,
+    pub bloom_threshold: f32,
+    pub bloom_intensity: f32,
+    pub bloom_radius: f32,
+    pub sun: SunSettings,
+    pub aa: AaSettings,
+    pub shadows: ShadowSettings,
+    pub color_grade: ColorGradeSettings,
+    pub palette: PaletteSettings,
+}
+
+impl Default for RendererSettings {
+    fn default() -> Self {
+        Self {
+            ambient_intensity: 0.28,
+            emissive_scalar: 1.0,
+            exposure: 1.0,
+            ao_intensity: 1.0,
+            bloom_threshold: 1.0,
+            bloom_intensity: 0.0,
+            bloom_radius: 1.0,
+            sun: SunSettings {
+                azimuth_degrees: -45.0,
+                elevation_degrees: 55.0,
+                color: [1.0, 0.97, 0.9],
+                intensity: 1.0,
+            },
+            aa: AaSettings {
+                enabled: true,
+                edge_threshold_min: 0.0312,
+                edge_threshold: 0.125,
+                subpixel_blend: 0.75,
+            },
+            shadows: ShadowSettings {
+                map_size: 2048,
+                world_radius: 48.0,
+                depth_bias: 0.0015,
+                normal_bias: 1.5,
+                penumbra: 40.0,
+            },
+            color_grade: ColorGradeSettings {
+                saturation: 1.0,
+                contrast: 1.0,
+                gamma: 1.0,
+                temperature: 0.0,
+                tint: 0.0,
+                lift: [0.0; 3],
+                color_gamma: [1.0; 3],
+                gain: [1.0; 3],
+            },
+            palette: PaletteSettings {
+                enabled: false,
+                levels: 16,
+                strength: 0.0,
+                dither: 0.0,
+            },
+        }
+    }
+}
+
+impl RendererSettings {
+    fn valid(self) -> bool {
+        let finite3 = |v: [f32; 3]| v.into_iter().all(f32::is_finite);
+        matches!(self.shadows.map_size, 512 | 1024 | 2048 | 4096)
+            && self.ambient_intensity.is_finite()
+            && self.emissive_scalar.is_finite()
+            && self.exposure.is_finite()
+            && self.ao_intensity.is_finite()
+            && self.bloom_threshold.is_finite()
+            && self.bloom_intensity.is_finite()
+            && self.bloom_radius.is_finite()
+            && self.sun.azimuth_degrees.is_finite()
+            && self.sun.elevation_degrees.is_finite()
+            && finite3(self.sun.color)
+            && self.sun.intensity.is_finite()
+            && self.aa.edge_threshold_min.is_finite()
+            && self.aa.edge_threshold.is_finite()
+            && self.aa.subpixel_blend.is_finite()
+            && self.shadows.world_radius.is_finite()
+            && self.shadows.depth_bias.is_finite()
+            && self.shadows.normal_bias.is_finite()
+            && self.shadows.penumbra.is_finite()
+            && self.color_grade.saturation.is_finite()
+            && self.color_grade.contrast.is_finite()
+            && self.color_grade.gamma.is_finite()
+            && self.color_grade.temperature.is_finite()
+            && self.color_grade.tint.is_finite()
+            && finite3(self.color_grade.lift)
+            && finite3(self.color_grade.color_gamma)
+            && finite3(self.color_grade.gain)
+            && (2..=64).contains(&self.palette.levels)
+            && self.palette.strength.is_finite()
+            && self.palette.dither.is_finite()
+    }
+
+    fn sun_light(self) -> DirectionalLight {
+        let azimuth = self.sun.azimuth_degrees * core::f32::consts::PI / 180.0;
+        let elevation = self.sun.elevation_degrees * core::f32::consts::PI / 180.0;
+        let horizontal = libm::cosf(elevation);
+        DirectionalLight {
+            dir: Vec3 {
+                x: horizontal * libm::sinf(azimuth),
+                y: -libm::sinf(elevation),
+                z: horizontal * libm::cosf(azimuth),
+            },
+            color: [
+                self.sun.color[0] * self.sun.intensity,
+                self.sun.color[1] * self.sun.intensity,
+                self.sun.color[2] * self.sun.intensity,
+            ],
+            cast_shadows: true,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RenderConfigError {
     InvalidBloom,
+    InvalidSettings,
+    Gpu(GpuError),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -335,6 +506,7 @@ pub struct Renderer {
     ambient: f32,
     grade: Grade,
     bloom: BloomSettings,
+    settings: RendererSettings,
     // reused scratch
     cameras: Vec<Camera>,
     comp_quads: Vec<CompositeQuad>,
@@ -487,7 +659,11 @@ impl Renderer {
             include_str!("../../../assets/shaders/point_light.vert"),
             &point_fragment,
         );
-        let shadow_size = q.shadow_size();
+        let shadow_size = if matches!(limits.shadow_size, 512 | 1024 | 2048 | 4096) {
+            limits.shadow_size
+        } else {
+            q.shadow_size()
+        };
         let shadow_rt = gpu.create_render_target(&RenderTargetDesc {
             width: shadow_size,
             height: shadow_size,
@@ -531,6 +707,9 @@ impl Renderer {
         let white_tex = default_texture(gpu, [255, 255, 255, 255]);
         let normal_tex = default_texture(gpu, [128, 128, 255, 255]);
         let black_tex = default_texture(gpu, [0, 0, 0, 255]);
+        let mut settings = RendererSettings::default();
+        settings.shadows.map_size = shadow_size;
+        settings.shadows.world_radius = limits.shadow_world_radius;
         let renderer = Self {
             mesh_prog,
             mesh_skinned_prog,
@@ -582,7 +761,7 @@ impl Renderer {
             meshes: Vec::new(),
             materials: Vec::new(),
             instance_batches: Vec::new(),
-            ambient: 0.28,
+            ambient: settings.ambient_intensity,
             grade: Grade::default(),
             cameras: Vec::with_capacity(limits.max_cameras),
             comp_quads: Vec::with_capacity(limits.max_cameras),
@@ -591,7 +770,7 @@ impl Renderer {
             forward_lights: Vec::with_capacity(limits.max_forward_lights),
             max_forward_lights: limits.max_forward_lights.min(32),
             quad: Vec::with_capacity(limits.max_quad_floats),
-            uniforms: Vec::with_capacity(24),
+            uniforms: Vec::with_capacity(48),
             draw_scratch: Vec::with_capacity(limits.max_draws),
             scene_draws: Vec::with_capacity(limits.max_draws),
             shadow_view_proj: Mat4::IDENTITY.to_cols_array(),
@@ -600,6 +779,7 @@ impl Renderer {
             fog_near: 180.0,
             fog_far: 320.0,
             bloom: BloomSettings::default(),
+            settings,
         };
         if let Some(error) = gpu.take_error() {
             return Err(RendererInitError::Gpu(error));
@@ -786,6 +966,47 @@ impl Renderer {
             intensity,
         };
         Ok(())
+    }
+
+    /// Apply a complete validated tuning snapshot. Only a shadow-map size
+    /// change recreates GPU resources; all other controls become uniforms on
+    /// the next frame and allocate nothing in the steady-state render loop.
+    pub fn apply_settings<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        settings: RendererSettings,
+    ) -> Result<(), RenderConfigError> {
+        if !settings.valid() {
+            return Err(RenderConfigError::InvalidSettings);
+        }
+        if settings.shadows.map_size != self.shadow_size {
+            let next = gpu.create_render_target(&RenderTargetDesc {
+                width: settings.shadows.map_size,
+                height: settings.shadows.map_size,
+                color: false,
+                depth: true,
+                filter: Filter::Nearest,
+            });
+            if let Some(error) = gpu.take_error() {
+                gpu.delete_render_target(next);
+                return Err(RenderConfigError::Gpu(error));
+            }
+            let previous = core::mem::replace(&mut self.shadow_rt, next);
+            gpu.delete_render_target(previous);
+            self.shadow_size = settings.shadows.map_size;
+        }
+        self.shadow_world_radius = settings.shadows.world_radius;
+        self.ambient = settings.ambient_intensity;
+        self.bloom = BloomSettings {
+            threshold: settings.bloom_threshold,
+            intensity: settings.bloom_intensity,
+        };
+        self.settings = settings;
+        Ok(())
+    }
+
+    pub fn settings(&self) -> RendererSettings {
+        self.settings
     }
 
     /// Set the flat per-biome ground albedo the GI volume voxelizes (no-op below
@@ -1010,6 +1231,15 @@ impl Renderer {
                     shadow_light = Some(*l);
                 }
             }
+        }
+        // Authored light entities declare whether a scene has a sun and casts
+        // shadows; mastered settings own its direction and radiance.
+        let tuned_sun = self.settings.sun_light();
+        if main_light.is_some() {
+            main_light = Some(tuned_sun);
+        }
+        if shadow_light.is_some() {
+            shadow_light = Some(tuned_sun);
         }
 
         // --- gather + sort cameras (copy out; keeps queries non-overlapping) ---
@@ -1461,7 +1691,23 @@ impl Renderer {
         });
         self.uniforms.push(Uniform {
             name: "u_sunPenumbraScale",
-            value: UniformValue::Float(40.0),
+            value: UniformValue::Float(self.settings.shadows.penumbra),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_shadowDepthBias",
+            value: UniformValue::Float(self.settings.shadows.depth_bias),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_shadowNormalBias",
+            value: UniformValue::Float(self.settings.shadows.normal_bias),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_emissiveScalar",
+            value: UniformValue::Float(self.settings.emissive_scalar),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_aoIntensity",
+            value: UniformValue::Float(self.settings.ao_intensity),
         });
         self.uniforms.push(Uniform {
             name: "u_giReady",
@@ -1608,6 +1854,60 @@ impl Renderer {
             name: "u_bloomIntensity",
             value: UniformValue::Float(self.bloom.intensity * BLOOM_INTENSITY_GAIN),
         });
+        let master = self.settings.color_grade;
+        let palette = self.settings.palette;
+        self.uniforms.push(Uniform {
+            name: "u_masterExposure",
+            value: UniformValue::Float(self.settings.exposure),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_saturation",
+            value: UniformValue::Float(master.saturation),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_contrast",
+            value: UniformValue::Float(master.contrast),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_gamma",
+            value: UniformValue::Float(master.gamma),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_temperature",
+            value: UniformValue::Float(master.temperature),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_tint",
+            value: UniformValue::Float(master.tint),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_lift",
+            value: UniformValue::Vec3(master.lift),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_colorGamma",
+            value: UniformValue::Vec3(master.color_gamma),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_gain",
+            value: UniformValue::Vec3(master.gain),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_paletteEnabled",
+            value: UniformValue::Int(palette.enabled as i32),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_paletteLevels",
+            value: UniformValue::Float(palette.levels as f32),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_paletteStrength",
+            value: UniformValue::Float(palette.strength),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_paletteDither",
+            value: UniformValue::Float(palette.dither),
+        });
         gpu.set_uniforms(&self.uniforms);
         self.draw_fullscreen(gpu);
         gpu.end_pass();
@@ -1642,6 +1942,22 @@ impl Renderer {
         self.uniforms.push(Uniform {
             name: "u_invResolution",
             value: UniformValue::Vec2([1.0 / gw as f32, 1.0 / gh as f32]),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_enabled",
+            value: UniformValue::Int(self.settings.aa.enabled as i32),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_edgeThresholdMin",
+            value: UniformValue::Float(self.settings.aa.edge_threshold_min),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_edgeThreshold",
+            value: UniformValue::Float(self.settings.aa.edge_threshold),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_subpixelBlend",
+            value: UniformValue::Float(self.settings.aa.subpixel_blend),
         });
         gpu.set_uniforms(&self.uniforms);
         self.draw_fullscreen(gpu);
@@ -1694,9 +2010,10 @@ impl Renderer {
         self.draw_fullscreen(gpu);
         gpu.end_pass();
 
+        let radius = self.settings.bloom_radius;
         for (source, target, direction) in [
-            (extract, blur, [1.0 / width as f32, 0.0]),
-            (blur, extract, [0.0, 1.0 / height as f32]),
+            (extract, blur, [radius / width as f32, 0.0]),
+            (blur, extract, [0.0, radius / height as f32]),
         ] {
             gpu.begin_pass(
                 PassTarget::RenderTarget(target),
@@ -2287,6 +2604,44 @@ impl Renderer {
                         value: UniformValue::Int(if albedo_tex.is_some() { 1 } else { 0 }),
                     });
                     self.uniforms.push(Uniform {
+                        name: "u_aoTex",
+                        value: UniformValue::Sampler(2),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_emissiveTex",
+                        value: UniformValue::Sampler(3),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_hasAoTex",
+                        value: UniformValue::Int(material_desc.occlusion_texture.is_some() as i32),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_hasEmissiveTex",
+                        value: UniformValue::Int(material_desc.emissive_texture.is_some() as i32),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_aoStrength",
+                        value: UniformValue::Float(
+                            material_desc.occlusion_strength.clamp(0.0, 1.0),
+                        ),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_aoIntensity",
+                        value: UniformValue::Float(self.settings.ao_intensity),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_emissiveFactor",
+                        value: UniformValue::Vec3(material_desc.emissive_factor),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_emissiveStrength",
+                        value: UniformValue::Float(
+                            material_desc.emissive_strength * self.settings.emissive_scalar,
+                        ),
+                    });
+                    gpu.bind_texture(2, material_desc.occlusion_texture.unwrap_or(self.white_tex));
+                    gpu.bind_texture(3, material_desc.emissive_texture.unwrap_or(self.black_tex));
+                    self.uniforms.push(Uniform {
                         name: "u_pointCount",
                         value: UniformValue::Int(self.forward_lights.len() as i32),
                     });
@@ -2397,9 +2752,13 @@ impl Renderer {
                             name: "u_normalScale",
                             value: UniformValue::Float(desc.normal_scale),
                         });
+                        // Keep authored occlusion/emission in the G-buffer.
+                        // Their global mastering controls are applied once in
+                        // the deferred lighting pass, not baked into the
+                        // material and multiplied a second time.
                         self.uniforms.push(Uniform {
                             name: "u_aoStrength",
-                            value: UniformValue::Float(desc.occlusion_strength),
+                            value: UniformValue::Float(desc.occlusion_strength.clamp(0.0, 1.0)),
                         });
                         self.uniforms.push(Uniform {
                             name: "u_emissiveFactor",

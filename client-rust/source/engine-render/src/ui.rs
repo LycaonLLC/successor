@@ -44,6 +44,7 @@ pub struct UiBuilder {
     mpressed: bool,
     mreleased: bool,
     prev_down: bool,
+    input_enabled: bool,
 }
 
 impl UiBuilder {
@@ -60,6 +61,7 @@ impl UiBuilder {
             mpressed: false,
             mreleased: false,
             prev_down: false,
+            input_enabled: true,
         }
     }
 
@@ -77,6 +79,12 @@ impl UiBuilder {
 
     pub fn mouse(&self) -> (f32, f32) {
         (self.mx, self.my)
+    }
+
+    /// Temporarily suppress widget interaction while still drawing the same
+    /// immediate-mode layer. Hosts use this when a modal overlay owns input.
+    pub fn set_input_enabled(&mut self, enabled: bool) {
+        self.input_enabled = enabled;
     }
 
     /// Reset for a new frame at the given framebuffer size (pixels).
@@ -182,6 +190,9 @@ impl UiBuilder {
 
     /// Pointer hover/press/click state for a rect this frame.
     pub fn interact(&self, x: f32, y: f32, w: f32, h: f32) -> Response {
+        if !self.input_enabled {
+            return Response::default();
+        }
         let over = Self::hit(x, y, w, h, self.mx, self.my);
         Response {
             hovered: over,
@@ -259,6 +270,95 @@ impl UiBuilder {
             style.text,
         );
         r.clicked
+    }
+
+    /// A compact checkbox with a text label. Returns true when the value
+    /// changed this frame.
+    pub fn checkbox(&mut self, x: f32, y: f32, size: f32, label: &str, value: &mut bool) -> bool {
+        let label_w = Self::text_width(label, 1.5);
+        let response = self.interact(x, y, size + 8.0 + label_w, size);
+        let changed = response.clicked;
+        if changed {
+            *value = !*value;
+        }
+        self.rect(x, y, size, size, [18, 24, 34, 235]);
+        self.border(
+            x,
+            y,
+            size,
+            size,
+            1.0,
+            if response.hovered {
+                [240, 196, 96, 255]
+            } else {
+                [90, 112, 138, 255]
+            },
+        );
+        if *value {
+            let pad = (size * 0.24).max(2.0);
+            self.rect(
+                x + pad,
+                y + pad,
+                size - pad * 2.0,
+                size - pad * 2.0,
+                [240, 196, 96, 255],
+            );
+        }
+        let ty = y + (size - GLYPH_H as f32 * 1.5) * 0.5;
+        self.text(label, x + size + 8.0, ty, 1.5, [210, 222, 236, 255]);
+        changed
+    }
+
+    /// Horizontal floating-point slider. Clicking or dragging on the track
+    /// updates `value`; the caller owns labels and numeric formatting.
+    #[allow(clippy::too_many_arguments)]
+    pub fn slider(
+        &mut self,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        value: &mut f32,
+        min: f32,
+        max: f32,
+    ) -> bool {
+        let response = self.interact(x, y, w, h);
+        let mut changed = false;
+        if (response.pressed || response.held) && max > min {
+            let next = (min + ((self.mx - x) / w).clamp(0.0, 1.0) * (max - min)).clamp(min, max);
+            changed = (next - *value).abs() > f32::EPSILON;
+            *value = next;
+        }
+        let t = if max > min {
+            ((*value - min) / (max - min)).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        let track_y = y + h * 0.5 - 2.0;
+        self.rect(x, track_y, w, 4.0, [38, 50, 66, 255]);
+        self.rect(x, track_y, w * t, 4.0, [220, 170, 74, 255]);
+        let thumb = 10.0;
+        let thumb_x = x + w * t - thumb * 0.5;
+        self.rect(
+            thumb_x,
+            y + (h - thumb) * 0.5,
+            thumb,
+            thumb,
+            if response.held {
+                [255, 218, 122, 255]
+            } else {
+                [236, 192, 92, 255]
+            },
+        );
+        self.border(
+            thumb_x,
+            y + (h - thumb) * 0.5,
+            thumb,
+            thumb,
+            1.0,
+            [100, 78, 42, 255],
+        );
+        changed
     }
 }
 
@@ -490,5 +590,41 @@ mod tests {
             f.insert('x');
         }
         assert_eq!(f.text.chars().count(), 8);
+    }
+
+    #[test]
+    fn slider_tracks_pointer_and_clamps() {
+        let mut ui = UiBuilder::new(ATLAS);
+        let mut value = 0.0;
+        ui.set_input(75.0, 15.0, true);
+        ui.begin(200, 100);
+        assert!(ui.slider(0.0, 0.0, 100.0, 30.0, &mut value, -1.0, 1.0));
+        assert!((value - 0.5).abs() < 1.0e-6);
+        ui.set_input(150.0, 15.0, true);
+        ui.begin(200, 100);
+        assert!(!ui.slider(0.0, 0.0, 100.0, 30.0, &mut value, -1.0, 1.0));
+        assert!((value - 0.5).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn checkbox_changes_on_release_and_modal_capture_suppresses_it() {
+        let mut ui = UiBuilder::new(ATLAS);
+        let mut value = false;
+        ui.set_input(8.0, 8.0, true);
+        ui.begin(200, 100);
+        assert!(!ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value));
+        ui.set_input(8.0, 8.0, false);
+        ui.begin(200, 100);
+        assert!(ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value));
+        assert!(value);
+
+        ui.set_input_enabled(false);
+        ui.set_input(8.0, 8.0, true);
+        ui.begin(200, 100);
+        ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value);
+        ui.set_input(8.0, 8.0, false);
+        ui.begin(200, 100);
+        assert!(!ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value));
+        assert!(value);
     }
 }

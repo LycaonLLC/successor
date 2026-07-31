@@ -69,6 +69,7 @@ test-unit:
 	$(CARGO) test -p successor-engine-render --features std
 	$(CARGO) test -p successor-client-proto
 	$(CARGO) test -p successor-platform
+	$(CARGO) test -p successor-client
 
 # Criterion microbenches; `std` gates off the no_std runtime items so libtest links.
 bench:

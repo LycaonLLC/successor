@@ -48,6 +48,10 @@ uniform float u_shadowTexelUV;    // 1.0 / shadow map size
 uniform float u_shadowWorldTexel; // world units per shadow texel (normal offset)
 uniform float u_sunPenumbraScale; // PCSS penumbra gain
 uniform float u_exposure;
+uniform float u_shadowDepthBias;
+uniform float u_shadowNormalBias;
+uniform float u_emissiveScalar;
+uniform float u_aoIntensity;
 
 out vec4 frag;
 
@@ -84,11 +88,11 @@ float sampleShadow(vec2 uv, float compare) {
 }
 
 float softShadow(vec3 P, vec3 N, float NdotL) {
-    vec4 lp = u_lightViewProj * vec4(P + N * u_shadowWorldTexel * 1.5, 1.0);
+    vec4 lp = u_lightViewProj * vec4(P + N * u_shadowWorldTexel * u_shadowNormalBias, 1.0);
     vec3 proj = lp.xyz / lp.w;
     proj = proj * 0.5 + 0.5;
     if (proj.z > 1.0) return 1.0;
-    float bias = clamp(0.0015 * tan(acos(clamp(NdotL, 0.0, 1.0))), 0.0, 0.01);
+    float bias = clamp(u_shadowDepthBias * tan(acos(clamp(NdotL, 0.0, 1.0))), 0.0, 0.05);
     float zR = proj.z - bias;
     float ang = ign(gl_FragCoord.xy);
     float ca = cos(ang), sa = sin(ang);
@@ -186,7 +190,7 @@ void main() {
     vec4 g1 = texture(u_gb1, v_uv);
     vec4 g2 = texture(u_gb2, v_uv);
     vec4 g3 = texture(u_gb3, v_uv);
-    vec3 emission = g2.rgb * g2.a * 32.0;
+    vec3 emission = g2.rgb * g2.a * 32.0 * u_emissiveScalar;
     float materialAo = g1.a;
     float clearcoat = g3.r;
     float clearcoatRoughness = clamp(g3.g, 0.045, 1.0);
@@ -249,7 +253,7 @@ void main() {
     ambient = u_ambient * albedo;
 #endif
 
-    ambient *= materialAo;
+    ambient *= pow(clamp(materialAo * ao, 0.001, 1.0), u_aoIntensity);
     // Sun occlusion also attenuates broad indirect light enough for small,
     // animated casters to remain readable against bright gameplay terrain.
     ambient *= mix(0.60, 1.0, shadow);

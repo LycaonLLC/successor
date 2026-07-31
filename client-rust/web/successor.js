@@ -9,7 +9,7 @@ if (!gl) {
 }
 
 // Input state tracking
-const keyState = new Uint8Array(13);
+const keyState = new Uint8Array(14);
 const keyMap = {
     "KeyW": 0,
     "KeyA": 1,
@@ -23,7 +23,8 @@ const keyMap = {
     "Enter": 9,
     "Escape": 10,
     "Backspace": 11,
-    "ShiftLeft": 12
+    "ShiftLeft": 12,
+    "Backquote": 13
 };
 
 window.addEventListener("keydown", (e) => {

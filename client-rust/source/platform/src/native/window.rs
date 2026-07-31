@@ -263,6 +263,7 @@ fn raw_key_down(key: Key) -> bool {
         Key::Escape => 256,
         Key::Backspace => 259,
         Key::LeftShift => 340,
+        Key::Backquote => 96,
     };
     unsafe { glfwGetKey(state.window, glfw_key) == 1 }
 }

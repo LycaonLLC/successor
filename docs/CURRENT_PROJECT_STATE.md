@@ -83,6 +83,20 @@ steady-state frame allocations. This remains source/local-build proof only:
 gameplay parity and product promotion are outstanding, and the Rust client is
 absent from the site and native download ledger.
 
+The renderer now loads the versioned
+`client-rust/assets/render/settings.json` Low/Medium/High presets and exposes a
+Backquote graphics-mastering overlay through the existing immediate-mode UI.
+Lighting, shadow-map options, AO/emissive response, bloom radius/threshold,
+FXAA, exposure, lift/gamma/gain, white balance, saturation/contrast, and
+palette quantization with ordered dithering apply live. Native save is an
+atomic sibling-file replacement; reload validates completely, and startup
+falls back to built-in defaults. Web applies the embedded checked-in document
+without gaining filesystem imports. Remote screenshots proved the neutral
+baseline, the complete overlay, a visibly warm eight-level dithered grade,
+atomic save/reset, and deterministic Backquote input replay. This is
+source/local-build proof only and changes no public release identity.
+
+
 Native desktop development now also has an explicit loopback-only agent
 control path. `successor-control` accepts argv, command files, or piped text;
 remote input overrides local GLFW state while held, screenshot requests

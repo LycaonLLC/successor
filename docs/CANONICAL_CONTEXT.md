@@ -40,6 +40,16 @@ This tooling is disabled by default, is absent from the web backend, and
 submits gameplay through the ordinary client/server command path; it is not a
 second gameplay authority or a public control endpoint.
 
+The native renderer also has one developer graphics-mastering layer over the
+existing immediate-mode UI. Backquote toggles it; its validated Low, Medium,
+and High presets live at `client-rust/assets/render/settings.json`. Native
+development may tune and atomically save sun, shadows, ambient/AO/emissive,
+bloom, FXAA, exposure, color grade, and palette quantization. Web builds apply
+the checked-in settings read-only. Missing or invalid settings fall back to
+compiled defaults. This is presentation tooling only: it creates no gameplay
+authority, public surface, or alternate renderer.
+
+
 
 ## Public alpha topology
 

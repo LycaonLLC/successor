@@ -92,6 +92,14 @@ inspect a protocol screenshot, save `successor.input.v1`, relaunch with
 `--replay-input`, and prove the replayed UI or actor result in a second
 screenshot. A TCP acknowledgement alone is not visual or gameplay proof.
 
+Graphics-tuning changes additionally require: load the checked-in
+`assets/render/settings.json`, open the Backquote overlay through
+`successor-control`, inspect all three control pages, change both a lighting or
+post value and a palette/color value, capture the visible output difference,
+save and reload the document, then restore the intended checked-in preset.
+Verify a second launch consumes the saved/default document. Palette and grade
+proof must inspect pixels; JSON values or uniform logs alone are insufficient.
+
 `client-rust/budgets.json` is authoritative. Its fidelity-first caps are 6 MiB
 stripped native, 4 MiB stripped WebAssembly, 8.33 ms runtime/terrain p99,
 16.67 ms generic render p99, zero steady-state frame allocations, and 512 MiB

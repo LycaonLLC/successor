@@ -142,6 +142,30 @@ The server, recorder, replay loader, and screenshot writer are native
 developer tooling. They are not compiled into the web backend, do not bypass
 the Colyseus command path, and do not become gameplay authority.
 
+## Graphics mastering
+
+Press Backquote (`` ` ``) in the native connected client or the windowed
+`parity-basic` demo to toggle the developer graphics-mastering overlay. Its
+Lighting, Post / AA, and Color / Palette pages edit the active Low, Medium, or
+High preset live. Controls cover sun direction/color/intensity, ambient and
+material AO/emissive response, shadow resolution/range/bias/penumbra, bloom
+threshold/intensity/radius, exposure, FXAA thresholds, lift/gamma/gain,
+temperature/tint, saturation/contrast, and final-output palette quantization
+with ordered dithering.
+
+`SAVE` atomically replaces `assets/render/settings.json`; `RELOAD` validates
+and reapplies that file; `RESET PRESET` restores the selected built-in preset.
+Startup validates the current-only `successor.render-settings.v1` document and
+falls back to compiled defaults if the asset is missing or invalid. Browser
+builds embed and apply the checked-in settings but do not expose native file
+writes. Preset shader topology (HDR/GI/filter tier) is selected at startup;
+uniform and shadow-target controls apply immediately.
+
+The overlay uses ordinary platform input, including remote `key tap
+backquote`, so the loopback controller, screenshot completion boundary, and
+`successor.input.v1` replay can verify the same UI a developer uses.
+
+
 
 ## Gates (mandatory for changes under `client-rust/`)
 

@@ -126,8 +126,7 @@ pub struct Scene {
 }
 
 pub fn build<G: Gpu>(gpu: &mut G, assets: &[Vec<u8>; 6]) -> Result<Scene, String> {
-    let mut renderer = Renderer::new(gpu, crate::quality_limits())
-        .map_err(|error| format!("renderer initialization: {error:?}"))?;
+    let mut renderer = crate::configured_renderer(gpu)?;
     renderer.set_ambient(0.18);
     renderer.set_fog([0.01, 0.01, 0.015], 10_000.0, 20_000.0);
     renderer.set_grade([1.0; 3], 0.0, 1.0, 0.0);

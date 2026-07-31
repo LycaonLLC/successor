@@ -52,8 +52,7 @@ impl Stats {
 
 /// Build the standard scene, creating GPU resources through `gpu`.
 pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
-    let mut renderer =
-        Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
+    let mut renderer = crate::configured_renderer(gpu).expect("renderer initialization failed");
     let mut world = GameWorld::new();
     renderer.gi_set_focus([31.5, 0.0, 31.5]);
 

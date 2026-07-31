@@ -22,6 +22,7 @@ fn main() {
     }
     #[cfg(not(target_arch = "wasm32"))]
     configure_automation(&args);
+    successor_client::initialize_render_settings();
 
     let mode = arg_value(&args, "--demo");
     let frames: u64 = arg_value(&args, "--frames")
@@ -281,6 +282,7 @@ fn run_material_parity(
 
 #[cfg(not(target_arch = "wasm32"))]
 fn run_windowed(frames: u64, screenshot: Option<&str>, gpu_stats_json: Option<&str>) {
+    use successor_engine_core::input::Key;
     use successor_engine_render::gpu::Gpu;
     if !successor_platform::init(
         "Successor (Rust client)",
@@ -292,12 +294,19 @@ fn run_windowed(frames: u64, screenshot: Option<&str>, gpu_stats_json: Option<&s
     }
     let mut gpu = successor_platform::create_gpu();
     let mut scene = demo::build_scene(&mut gpu);
+    let icons = successor_client::hud::Icons::load();
+    scene
+        .renderer
+        .set_ui_atlas(&mut gpu, icons.meta.width, icons.meta.height, &icons.rgba);
+    let mut ui = successor_engine_render::ui::UiBuilder::new(icons.meta);
+    let mut graphics_tuner = successor_client::graphics_tuning::GraphicsTuner::new();
     let total = frames.max(1);
     let mut frame = 0u64;
     let mut gpu_times = Vec::with_capacity(total.saturating_sub(120) as usize);
     while !successor_platform::should_quit() && frame < total {
         successor_platform::begin_frame();
         scene.animate(frame);
+        graphics_tuner.handle_toggle(successor_platform::is_key_down(Key::Backquote));
         let (w, h) = successor_platform::framebuffer_size();
         let start = std::time::Instant::now();
         if w > 0 && h > 0 {
@@ -305,6 +314,15 @@ fn run_windowed(frames: u64, screenshot: Option<&str>, gpu_stats_json: Option<&s
                 .renderer
                 .render(&mut gpu, &mut scene.world, w as u32, h as u32)
                 .expect("render failed");
+        }
+        if w > 0 && h > 0 {
+            let (mx, my) = successor_platform::mouse_position();
+            ui.set_input(mx, my, successor_platform::mouse_button_down(0));
+            ui.begin(w as u32, h as u32);
+            graphics_tuner.draw(&mut ui, &mut scene.renderer, &mut gpu, w as u32, h as u32);
+            scene
+                .renderer
+                .render_ui(&mut gpu, &ui.buf, ui.quads, w as u32, h as u32);
         }
         if gpu_stats_json.is_some() {
             gpu.finish();
@@ -487,14 +505,13 @@ fn run_fx(frames: u64, screenshot: Option<&str>) {
     use successor_engine_core::math::{Mat4, Vec3};
     use successor_engine_render::fx::{glow_sprite, ParticlePool};
     use successor_engine_render::gpu::{ClearSpec, Gpu, PassTarget, RectPx};
-    use successor_engine_render::renderer::Renderer;
     if !successor_platform::init("Successor FX", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
         eprintln!("platform init failed (no display?)");
         std::process::exit(1);
     }
     let mut gpu = successor_platform::create_gpu();
-    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits())
-        .expect("renderer initialization failed");
+    let mut renderer =
+        successor_client::configured_renderer(&mut gpu).expect("renderer initialization failed");
     let sprite = glow_sprite(64);
     renderer.set_particle_atlas(&mut gpu, 64, 64, &sprite);
     let mut pool = ParticlePool::new(0x51ce_57ed);
@@ -586,7 +603,6 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
     use successor_engine_render::environment;
     use successor_engine_render::gpu::ClearSpec;
     use successor_engine_render::primitives;
-    use successor_engine_render::renderer::Renderer;
     if !successor_platform::init(
         "Successor env",
         demo::SCREEN_W as i32,
@@ -596,8 +612,8 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
         std::process::exit(1);
     }
     let mut gpu = successor_platform::create_gpu();
-    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits())
-        .expect("renderer initialization failed");
+    let mut renderer =
+        successor_client::configured_renderer(&mut gpu).expect("renderer initialization failed");
     let mut world = GameWorld::new();
 
     let env = environment::sample(minute);
@@ -742,15 +758,14 @@ fn run_gi(frames: u64, screenshot: Option<&str>, animate_camera: bool, assert_st
     use successor_engine_render::gi::GiOccluder;
     use successor_engine_render::gpu::ClearSpec;
     use successor_engine_render::primitives;
-    use successor_engine_render::renderer::Renderer;
 
     if !successor_platform::init("Successor GI", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
         eprintln!("platform init failed (no display?)");
         std::process::exit(1);
     }
     let mut gpu = successor_platform::create_gpu();
-    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits())
-        .expect("renderer initialization failed");
+    let mut renderer =
+        successor_client::configured_renderer(&mut gpu).expect("renderer initialization failed");
     renderer.set_ambient(0.12);
     renderer.set_fog([0.02, 0.02, 0.03], 400.0, 800.0); // effectively off at this scale
     let mut world = GameWorld::new();
@@ -1663,10 +1678,13 @@ mod connected {
                 }
                 view_sent = true;
             }
+            scene.handle_tuning_toggle(plat::is_key_down(Key::Backquote));
 
             // Movement (WASD or --auto-walk); resend a live intent periodically.
             if sess.state() == SessionState::Ready {
-                let intent = if auto_walk {
+                let intent = if scene.tuning_open() {
+                    (0, 0, false)
+                } else if auto_walk {
                     (0, -1, false)
                 } else {
                     movement::intent_from_keys(plat::is_key_down)

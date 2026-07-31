@@ -28,7 +28,9 @@ pub mod window;
 mod tests {
     use super::components::*;
     use super::gpu::{ClearSpec, Cull, Gpu, GpuCaps, GpuError, MockCall, MockGpu, PassTarget};
-    use super::renderer::{MaterialDesc, Renderer, RendererInitError, RendererLimits};
+    use super::renderer::{
+        MaterialDesc, RenderConfigError, Renderer, RendererInitError, RendererLimits,
+    };
     use successor_engine_core::ecs::WorldOps;
     use successor_engine_core::math::{vec3, Vec2, Vec3};
     use successor_engine_core::world;
@@ -85,6 +87,38 @@ mod tests {
             Renderer::new(&mut gpu, RendererLimits::default()),
             Err(RendererInitError::Gpu(GpuError::ShaderCompile))
         ));
+    }
+
+    #[test]
+    fn tuning_snapshot_resizes_shadow_target_and_rejects_nonfinite_values() {
+        let (mut gpu, mut renderer, _, _, _) = setup();
+        gpu.log.clear();
+        let mut settings = renderer.settings();
+        settings.shadows.map_size = 4096;
+        settings.bloom_radius = 1.75;
+        settings.palette.enabled = true;
+        settings.palette.levels = 8;
+        renderer
+            .apply_settings(&mut gpu, settings)
+            .expect("valid settings apply");
+        assert_eq!(renderer.settings().shadows.map_size, 4096);
+        assert_eq!(renderer.settings().palette.levels, 8);
+        assert_eq!(
+            gpu.log
+                .iter()
+                .filter(|call| matches!(call, MockCall::DeleteRenderTarget))
+                .count(),
+            1
+        );
+
+        let before = renderer.settings();
+        let mut invalid = before;
+        invalid.exposure = f32::NAN;
+        assert_eq!(
+            renderer.apply_settings(&mut gpu, invalid),
+            Err(RenderConfigError::InvalidSettings)
+        );
+        assert_eq!(renderer.settings().exposure, before.exposure);
     }
 
     #[test]
@@ -452,6 +486,75 @@ mod tests {
         );
         let _ = &mut gpu;
         (gpu, r, w, mesh, mat)
+    }
+
+    #[test]
+    fn mastered_shader_controls_are_emitted_as_runtime_uniforms() {
+        let (mut gpu, mut renderer, mut world, _, _) = deferred_scene();
+        let mut settings = renderer.settings();
+        settings.emissive_scalar = 2.25;
+        settings.ao_intensity = 1.75;
+        settings.exposure = 1.4;
+        settings.bloom_radius = 1.6;
+        settings.aa.edge_threshold = 0.08;
+        renderer
+            .apply_settings(&mut gpu, settings)
+            .expect("settings apply");
+        gpu.log.clear();
+        renderer
+            .render(&mut gpu, &mut world, 640, 480)
+            .expect("render");
+        let has = |name: &'static str, expected: f32| {
+            gpu.log.iter().any(|call| {
+                matches!(
+                    call,
+                    MockCall::UniformFloat { name: actual, value }
+                        if *actual == name && (*value - expected).abs() < 1.0e-6
+                )
+            })
+        };
+        assert!(has("u_emissiveScalar", 2.25));
+        assert!(has("u_aoIntensity", 1.75));
+        // Global mastering must not also be baked into material uniforms.
+        assert!(has("u_emissiveStrength", 1.0));
+        assert!(has("u_aoStrength", 1.0));
+        assert!(has("u_masterExposure", 1.4));
+        assert!(has("u_edgeThreshold", 0.08));
+    }
+
+    #[test]
+    fn forward_materials_apply_master_ao_and_emissive_once() {
+        let (mut gpu, mut renderer, mut world, _, material) = deferred_scene();
+        renderer.update_material_desc(
+            material,
+            MaterialDesc {
+                blend: true,
+                emissive_factor: [1.0, 0.5, 0.25],
+                emissive_strength: 2.0,
+                ..MaterialDesc::default()
+            },
+        );
+        let mut settings = renderer.settings();
+        settings.emissive_scalar = 3.0;
+        settings.ao_intensity = 1.75;
+        renderer
+            .apply_settings(&mut gpu, settings)
+            .expect("settings apply");
+        gpu.log.clear();
+        renderer
+            .render(&mut gpu, &mut world, 640, 480)
+            .expect("render");
+        let has = |name: &'static str, expected: f32| {
+            gpu.log.iter().any(|call| {
+                matches!(
+                    call,
+                    MockCall::UniformFloat { name: actual, value }
+                        if *actual == name && (*value - expected).abs() < 1.0e-6
+                )
+            })
+        };
+        assert!(has("u_emissiveStrength", 6.0));
+        assert!(has("u_aoIntensity", 1.75));
     }
 
     #[test]

@@ -539,8 +539,7 @@ impl TerrainScene {
         };
         use successor_engine_render::gpu::ClearSpec;
 
-        let mut renderer =
-            Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
+        let mut renderer = crate::configured_renderer(gpu).expect("renderer initialization failed");
         renderer.set_ambient(0.55);
         let fog = match biome {
             Biome::Forest => [0.615, 0.658, 0.408],

@@ -182,6 +182,6 @@ fn parse_port(value: &str) -> Result<u16, String> {
 
 fn print_usage() {
     eprintln!(
-        "usage:\n  successor-control [--port N] <command ...>\n  successor-control [--port N] --file commands.txt\n  printf 'key down w\\nwait 500\\nkey up w\\nscreenshot /tmp/game.bmp\\n' | successor-control [--port N]\n\nserver commands:\n  key <down|up|tap> <w|a|s|d|up|down|left|right|space|enter|escape|backspace|shift>\n  mouse move <abs|rel> <x> <y>\n  mouse <down|up> <left|right|middle>\n  text <text>\n  scroll <x> <y>\n  screenshot <path.bmp>\n  record start <path.input> | record stop\n  status | quit\n\nclient-only command:\n  wait <milliseconds>"
+        "usage:\n  successor-control [--port N] <command ...>\n  successor-control [--port N] --file commands.txt\n  printf 'key down w\\nwait 500\\nkey up w\\nscreenshot /tmp/game.bmp\\n' | successor-control [--port N]\n\nserver commands:\n  key <down|up|tap> <w|a|s|d|up|down|left|right|space|enter|escape|backspace|shift|backquote>\n  mouse move <abs|rel> <x> <y>\n  mouse <down|up> <left|right|middle>\n  text <text>\n  scroll <x> <y>\n  screenshot <path.bmp>\n  record start <path.input> | record stop\n  status | quit\n\nclient-only command:\n  wait <milliseconds>"
     );
 }

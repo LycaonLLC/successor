@@ -37,8 +37,7 @@ impl GlbScene {
         clip: Option<&str>,
     ) -> Result<GlbScene, glb::GlbError> {
         let doc = glb::parse(bytes)?;
-        let mut renderer =
-            Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
+        let mut renderer = crate::configured_renderer(gpu).expect("renderer initialization failed");
         renderer.set_ambient(0.35);
         let mut world = GameWorld::new();
 

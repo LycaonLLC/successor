@@ -3,12 +3,21 @@ in vec2 v_uv;
 uniform sampler2D u_ldr;
 uniform sampler2D u_depth;
 uniform vec2 u_invResolution;
+uniform int u_enabled;
+uniform float u_edgeThresholdMin;
+uniform float u_edgeThreshold;
+uniform float u_subpixelBlend;
 out vec4 frag;
 
 float luma(vec3 rgb) { return dot(rgb, vec3(0.299, 0.587, 0.114)); }
 
 void main() {
     vec3 rgbM = texture(u_ldr, v_uv).rgb;
+    if (u_enabled == 0) {
+        frag = vec4(rgbM, 1.0);
+        gl_FragDepth = texture(u_depth, v_uv).r;
+        return;
+    }
     float lumaM = luma(rgbM);
     float lumaN = luma(texture(u_ldr, v_uv + vec2(0.0, u_invResolution.y)).rgb);
     float lumaS = luma(texture(u_ldr, v_uv - vec2(0.0, u_invResolution.y)).rgb);
@@ -17,7 +26,7 @@ void main() {
     float rangeMin = min(lumaM, min(min(lumaN, lumaS), min(lumaE, lumaW)));
     float rangeMax = max(lumaM, max(max(lumaN, lumaS), max(lumaE, lumaW)));
     float range = rangeMax - rangeMin;
-    if (range < max(0.0312, rangeMax * 0.125)) {
+    if (range < max(u_edgeThresholdMin, rangeMax * u_edgeThreshold)) {
         frag = vec4(rgbM, 1.0);
         gl_FragDepth = texture(u_depth, v_uv).r;
         return;
@@ -49,6 +58,6 @@ void main() {
     vec3 aa = texture(u_ldr, v_uv + normal * offset).rgb;
     float subpixel = clamp((lumaN + lumaS + lumaE + lumaW) * 0.25 - lumaM, -range, range);
     float blend = clamp(abs(subpixel) / max(range, 1e-5), 0.0, 1.0);
-    frag = vec4(mix(aa, (rgbM + aa) * 0.5, blend * 0.75), 1.0);
+    frag = vec4(mix(aa, (rgbM + aa) * 0.5, blend * u_subpixelBlend), 1.0);
     gl_FragDepth = texture(u_depth, v_uv).r;
 }

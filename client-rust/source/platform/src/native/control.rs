@@ -847,6 +847,7 @@ fn parse_key(value: &str) -> Result<Key, String> {
         "escape" | "esc" => Ok(Key::Escape),
         "backspace" => Ok(Key::Backspace),
         "leftshift" | "shift" => Ok(Key::LeftShift),
+        "backquote" | "grave" | "`" => Ok(Key::Backquote),
         _ => Err(format!("unknown key: {value}")),
     }
 }
@@ -866,6 +867,7 @@ fn key_name(key: Key) -> &'static str {
         Key::Escape => "escape",
         Key::Backspace => "backspace",
         Key::LeftShift => "leftshift",
+        Key::Backquote => "backquote",
     }
 }
 

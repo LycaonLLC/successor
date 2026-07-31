@@ -12,6 +12,14 @@ uniform sampler2D u_shadowMap;
 uniform int u_useShadow;
 uniform sampler2D u_albedo;
 uniform int u_hasTex;
+uniform sampler2D u_aoTex;
+uniform sampler2D u_emissiveTex;
+uniform int u_hasAoTex;
+uniform int u_hasEmissiveTex;
+uniform float u_aoStrength;
+uniform float u_aoIntensity;
+uniform vec3 u_emissiveFactor;
+uniform float u_emissiveStrength;
 uniform vec3 u_camEye;
 uniform vec3 u_fogColor;
 uniform float u_fogNear;
@@ -65,6 +73,11 @@ void main() {
     float sh = (u_useShadow == 1) ? shadowFactor(v_lightPos) : 1.0;
     vec4 base = u_color;
     if (u_hasTex == 1) base *= texture(u_albedo, v_uv);
+    float aoSample = u_hasAoTex == 1 ? texture(u_aoTex, v_uv).r : 1.0;
+    float materialAo = 1.0 + clamp(u_aoStrength, 0.0, 1.0) * (aoSample - 1.0);
+    float ao = pow(clamp(materialAo, 0.001, 1.0), max(u_aoIntensity, 0.0));
+    vec3 emission = u_emissiveFactor * u_emissiveStrength;
+    if (u_hasEmissiveTex == 1) emission *= texture(u_emissiveTex, v_uv).rgb;
     vec3 fresnel;
     vec3 sunBrdf = pbrBaseLobe(
         base.rgb, u_metallic, u_roughness, u_dielectricF0,
@@ -74,7 +87,7 @@ void main() {
     vec3 coat = pbrClearcoatLobe(
         u_clearcoat, u_clearcoatRoughness, n, viewDir, sunDir, coatFresnel
     );
-    vec3 lit = base.rgb * u_ambient
+    vec3 lit = base.rgb * u_ambient * ao
         + (sunBrdf * (1.0 - coatFresnel * u_clearcoat) + coat)
             * u_lightColor * nDotSun * sh;
     for (int index = 0; index < 32; index++) {
@@ -99,6 +112,7 @@ void main() {
             * u_pointColors[index] * u_pointIntensities[index]
             * nDotPoint * attenuation;
     }
+    lit += emission;
     float fogD = distance(v_worldPos, u_camEye);
     float fogF = clamp((fogD - u_fogNear) / max(1.0, u_fogFar - u_fogNear), 0.0, 1.0);
     vec3 surface = mix(lit, u_fogColor, fogF);

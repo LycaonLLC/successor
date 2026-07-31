@@ -53,8 +53,7 @@ impl PawnScene {
         let pawn_scale = template
             .uniform_scale_for_height(crate::world::ADULT_PAWN_HEIGHT_METERS)
             .ok_or(())?;
-        let mut renderer =
-            Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
+        let mut renderer = crate::configured_renderer(gpu).expect("renderer initialization failed");
         renderer.set_ambient(0.45);
         renderer.set_fog([0.09, 0.10, 0.12], 40.0, 80.0);
         let mut world = GameWorld::new();

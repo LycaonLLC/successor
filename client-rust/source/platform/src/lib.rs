@@ -39,7 +39,7 @@ pub use web::{
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::audio::{AudioOutput, FillFn};
 #[cfg(not(target_arch = "wasm32"))]
-pub use native::fs::{fs_exists, fs_read};
+pub use native::fs::{fs_exists, fs_read, fs_write_atomic};
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::http::{http_get, http_post_json};
 #[cfg(not(target_arch = "wasm32"))]
