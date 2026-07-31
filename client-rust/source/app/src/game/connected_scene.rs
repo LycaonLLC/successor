@@ -13,7 +13,8 @@ use successor_client_proto::packets::{GameShardDelta, GameShardSnapshot};
 use successor_engine_core::ecs::{Entity, WorldOps};
 use successor_engine_core::math::{vec3, Mat4, Quat, Vec3};
 use successor_engine_render::components::{
-    CamTarget, Camera, CompositeQuad, DirectionalLight, MeshRenderer, Projection, RectNorm, SkinRef, Transform,
+    CamTarget, Camera, CompositeQuad, DirectionalLight, MeshRenderer, Projection, RectNorm,
+    SkinRef, Transform,
 };
 use successor_engine_render::gpu::{ClearSpec, Filter, Gpu, RenderTargetDesc};
 use successor_engine_render::renderer::Renderer;
@@ -76,8 +77,9 @@ impl ConnectedScene {
         let assets_dir = "../client-3d/public/assets";
         let mapping = std::fs::read_to_string("../client-3d/src/render/props-mapping.json")
             .map_err(|e| format!("read props-mapping: {e}"))?;
-        let slice_str = std::fs::read_to_string("../client/public/successor-slice/open-desert-slice.json")
-            .map_err(|e| format!("read slice: {e}"))?;
+        let slice_str =
+            std::fs::read_to_string("../client/public/successor-slice/open-desert-slice.json")
+                .map_err(|e| format!("read slice: {e}"))?;
         let pawn_bytes = std::fs::read("../client-3d/public/assets/pawn-pack/pawn_male.glb")
             .map_err(|e| format!("read pawn pack: {e}"))?;
 
@@ -87,7 +89,13 @@ impl ConnectedScene {
         let env = environment::sample(720.0);
         renderer.set_ambient(0.5);
         renderer.set_fog(env.fog, 160.0, 340.0);
-        renderer.set_grade(env.bone_tint, env.desaturate, env.scene_darken, env.black_lift, env.bloom);
+        renderer.set_grade(
+            env.bone_tint,
+            env.desaturate,
+            env.scene_darken,
+            env.black_lift,
+            env.bloom,
+        );
         let mut world = GameWorld::new();
 
         let center = vec3(512.0, 0.0, 513.0);
@@ -95,26 +103,39 @@ impl ConnectedScene {
 
         // Terrain under the slice.
         let mut streamer = TerrainStreamer::new(0x0d3d_071e, Biome::Desert, 64.0, 128, 3, 0b1);
-        streamer.ensure_around(&mut world, &mut renderer, gpu, center.x as f64, center.z as f64);
+        streamer.ensure_around(
+            &mut world,
+            &mut renderer,
+            gpu,
+            center.x as f64,
+            center.z as f64,
+        );
 
         // Props from the slice fixture.
-        let slice = successor_engine_core::json::Json::parse(&slice_str).map_err(|_| "slice parse".to_string())?;
-        let mut loader = PropsLoader::new(assets_dir, &mapping).map_err(|_| "props loader".to_string())?;
+        let slice = successor_engine_core::json::Json::parse(&slice_str)
+            .map_err(|_| "slice parse".to_string())?;
+        let mut loader =
+            PropsLoader::new(assets_dir, &mapping).map_err(|_| "props loader".to_string())?;
         let placed = loader.load(&mut world, &mut renderer, gpu, &slice, 0b1);
         eprintln!("connected: terrain streamed, {placed} props placed");
 
         // Pawn template (uploaded once; per-actor materials are tinted).
-        let template = PawnTemplate::from_bytes(&pawn_bytes).map_err(|_| "pawn parse".to_string())?;
+        let template =
+            PawnTemplate::from_bytes(&pawn_bytes).map_err(|_| "pawn parse".to_string())?;
         let gpu_parts = template.upload(gpu, &mut renderer);
         let part_meshes: Vec<_> = gpu_parts.parts.iter().map(|(m, _)| *m).collect();
 
-        // Sun from the environment sample.
-        let sun_turn = core::f32::consts::FRAC_1_SQRT_2;
+        // Rotate the environment sun azimuth forty-five degrees around world Y.
+        // Sine and cosine must remain independent: using one scalar for both
+        // makes normalization erase changes to that scalar.
+        let sun_angle = -45.0_f32.to_radians();
+        let (sun_sin, sun_cos) = sun_angle.sin_cos();
         let sun_dir = vec3(
-            env.sun_dir[0] * sun_turn + env.sun_dir[2] * sun_turn,
+            env.sun_dir[0] * sun_cos + env.sun_dir[2] * sun_sin,
             env.sun_dir[1],
-            -env.sun_dir[0] * sun_turn + env.sun_dir[2] * sun_turn,
-        ).normalize();
+            -env.sun_dir[0] * sun_sin + env.sun_dir[2] * sun_cos,
+        )
+        .normalize();
         let sun = world.spawn();
         world.set_component(
             sun,
@@ -132,31 +153,63 @@ impl ConnectedScene {
             Camera {
                 viewport_id: 0,
                 order: 0,
-                projection: Projection::Perspective { fovy: 0.9, near: 0.2, far: 900.0 },
+                projection: Projection::Perspective {
+                    fovy: 0.9,
+                    near: 0.2,
+                    far: 900.0,
+                },
                 target: CamTarget::Screen(RectNorm::FULL),
-                clear: ClearSpec { color: Some([env.fog[0], env.fog[1], env.fog[2], 1.0]), depth: Some(1.0) },
+                clear: ClearSpec {
+                    color: Some([env.fog[0], env.fog[1], env.fog[2], 1.0]),
+                    depth: Some(1.0),
+                },
                 eye: center.add(vec3(0.0, 9.0, 13.0)),
                 look_at: center,
                 up: Vec3::Y,
             },
         );
-        let rt = gpu.create_render_target(&RenderTargetDesc { width: 256, height: 256, color: true, depth: true, filter: Filter::Linear });
+        let rt = gpu.create_render_target(&RenderTargetDesc {
+            width: 256,
+            height: 256,
+            color: true,
+            depth: true,
+            filter: Filter::Linear,
+        });
         let minimap = world.spawn();
         world.set_component(
             minimap,
             Camera {
                 viewport_id: 1,
                 order: -1,
-                projection: Projection::Ortho { half_height: 40.0, near: 0.1, far: 400.0 },
+                projection: Projection::Ortho {
+                    half_height: 40.0,
+                    near: 0.1,
+                    far: 400.0,
+                },
                 target: CamTarget::Texture(rt),
-                clear: ClearSpec { color: Some([0.06, 0.07, 0.05, 1.0]), depth: Some(1.0) },
+                clear: ClearSpec {
+                    color: Some([0.06, 0.07, 0.05, 1.0]),
+                    depth: Some(1.0),
+                },
                 eye: center.add(vec3(0.0, 160.0, 0.0)),
                 look_at: center,
                 up: vec3(0.0, 0.0, -1.0),
             },
         );
         let cq = world.spawn();
-        world.set_component(cq, CompositeQuad { source: rt, rect: RectNorm { x: 0.76, y: 0.74, w: 0.23, h: 0.23 }, order: 0 });
+        world.set_component(
+            cq,
+            CompositeQuad {
+                source: rt,
+                rect: RectNorm {
+                    x: 0.76,
+                    y: 0.74,
+                    w: 0.23,
+                    h: 0.23,
+                },
+                order: 0,
+            },
+        );
 
         // Combat FX + HUD.
         let glow = glow_sprite(64);
@@ -170,10 +223,20 @@ impl ConnectedScene {
         for (i, (id, title, icon)) in crate::hud::DEMO_WINDOWS.iter().enumerate() {
             let ox = 360.0 + (i % 6) as f32 * 40.0;
             let oy = 120.0 + (i % 6) as f32 * 40.0;
-            wm.register(id, title, icons.cell(icon), [ox, oy, 380.0, 300.0], 220.0, 150.0);
+            wm.register(
+                id,
+                title,
+                icons.cell(icon),
+                [ox, oy, 380.0, 300.0],
+                220.0,
+                150.0,
+            );
         }
         let mut weather = successor_engine_render::weather::Weather::new(0x0d3d);
-        weather.set(successor_engine_render::weather::WeatherKind::DustStorm, 0.35);
+        weather.set(
+            successor_engine_render::weather::WeatherKind::DustStorm,
+            0.35,
+        );
 
         Ok(Self {
             world,
@@ -217,16 +280,22 @@ impl ConnectedScene {
     pub fn ingest_combat(&mut self, ev: &crate::game::combat_fx::CombatEvent) {
         if self.combat_fx.trigger(ev) {
             let e = self.world.spawn();
-            self.world.set_component(e, Transform {
-                pos: vec3(ev.origin[0], ev.origin[1], ev.origin[2]),
-                rot: successor_engine_core::math::Quat::IDENTITY,
-                scale: Vec3::ONE,
-            });
-            self.world.set_component(e, successor_engine_render::components::PointLight {
-                color: ev.color,
-                intensity: 6.0,
-                radius: 5.0,
-            });
+            self.world.set_component(
+                e,
+                Transform {
+                    pos: vec3(ev.origin[0], ev.origin[1], ev.origin[2]),
+                    rot: successor_engine_core::math::Quat::IDENTITY,
+                    scale: Vec3::ONE,
+                },
+            );
+            self.world.set_component(
+                e,
+                successor_engine_render::components::PointLight {
+                    color: ev.color,
+                    intensity: 6.0,
+                    radius: 5.0,
+                },
+            );
             self.muzzle_lights.push((e, 0.12));
             self.world.flush();
         }
@@ -243,7 +312,10 @@ impl ConnectedScene {
                 self.muzzle_lights.swap_remove(i);
             } else {
                 self.muzzle_lights[i].1 = ttl;
-                if let Some(pl) = self.world.get_component::<successor_engine_render::components::PointLight>(e) {
+                if let Some(pl) = self
+                    .world
+                    .get_component::<successor_engine_render::components::PointLight>(e)
+                {
                     let mut pl = *pl;
                     pl.intensity = 6.0 * (ttl / 0.12);
                     self.world.set_component(e, pl);
@@ -269,22 +341,47 @@ impl ConnectedScene {
     /// The player's current smoothed gait speed (diagnostic: should be stable
     /// while walking, not oscillating 0↔spike).
     pub fn player_speed(&self) -> f32 {
-        self.pawns.get(&self.player_id).map(|p| p.speed).unwrap_or(0.0)
+        self.pawns
+            .get(&self.player_id)
+            .map(|p| p.speed)
+            .unwrap_or(0.0)
     }
     pub fn actor_count(&self) -> usize {
         self.store.actors.len()
     }
 
     /// Spawn a pawn (one entity per body part) for a new actor.
-    fn spawn_pawn(&mut self, id: &str, x: f32, y: f32, skin_hex: Option<&str>, faction: Option<[f32; 3]>) {
+    fn spawn_pawn(
+        &mut self,
+        id: &str,
+        x: f32,
+        y: f32,
+        skin_hex: Option<&str>,
+        faction: Option<[f32; 3]>,
+    ) {
         let base = skin_tint(skin_hex);
         let color = faction_tinted(base, faction);
         let material = self.renderer.add_material(color);
         let mut entities = Vec::with_capacity(self.part_meshes.len());
         for &mesh in &self.part_meshes {
             let e = self.world.spawn();
-            self.world.set_component(e, Transform { pos: self.center, rot: Quat::IDENTITY, scale: Vec3::ONE });
-            self.world.set_component(e, MeshRenderer { mesh, material, viewport_mask: 0b11, skin: SkinRef::NONE });
+            self.world.set_component(
+                e,
+                Transform {
+                    pos: self.center,
+                    rot: Quat::IDENTITY,
+                    scale: Vec3::ONE,
+                },
+            );
+            self.world.set_component(
+                e,
+                MeshRenderer {
+                    mesh,
+                    material,
+                    viewport_mask: 0b11,
+                    skin: SkinRef::NONE,
+                },
+            );
             entities.push(e);
         }
         self.pawns.insert(
@@ -368,7 +465,8 @@ impl ConnectedScene {
             }
             let palette = {
                 let p = self.pawns.get_mut(&id).unwrap();
-                p.animator.update(&mut self.template, p.lane, speed, false, true, dt)
+                p.animator
+                    .update(&mut self.template, p.lane, speed, false, true, dt)
             };
             let count = palette.len() as u32;
             let offset = self.renderer.push_skin_palette(palette);
@@ -412,22 +510,39 @@ impl ConnectedScene {
 
         // 6) Weather (ambient dust) → the FX pool, then integrate + draw all
         //    billboards over the scene in the follow-camera frame.
-        self.weather.emit_into(self.combat_fx.pool_mut(), [p.x, 0.0, p.z], 40.0);
+        self.weather
+            .emit_into(self.combat_fx.pool_mut(), [p.x, 0.0, p.z], 40.0);
         self.combat_fx.update(dt);
         self.decay_muzzle_lights(dt);
         let eye = p.add(vec3(0.0, 9.0, 13.0));
         let fwd = p.sub(eye).normalize();
         let right = fwd.cross(Vec3::Y).normalize();
         let up = right.cross(fwd);
-        let vp = Mat4::perspective(0.9, w as f32 / h as f32, 0.2, 900.0).mul(Mat4::look_at(eye, p, Vec3::Y)).to_cols_array();
+        let vp = Mat4::perspective(0.9, w as f32 / h as f32, 0.2, 900.0)
+            .mul(Mat4::look_at(eye, p, Vec3::Y))
+            .to_cols_array();
         let (r, u) = ([right.x, right.y, right.z], [up.x, up.y, up.z]);
         self.fx_buf.clear();
-        let qa = self.combat_fx.pool().additive.fill_billboards(r, u, &mut self.fx_buf);
-        self.renderer.render_particles(gpu, &self.fx_buf, qa, &vp, true, w, h);
+        let qa = self
+            .combat_fx
+            .pool()
+            .additive
+            .fill_billboards(r, u, &mut self.fx_buf);
+        self.renderer
+            .render_particles(gpu, &self.fx_buf, qa, &vp, true, w, h);
         self.fx_buf.clear();
-        let mut qn = self.combat_fx.pool().normal.fill_billboards(r, u, &mut self.fx_buf);
-        qn += self.combat_fx.pool().residue.fill_billboards(r, u, &mut self.fx_buf);
-        self.renderer.render_particles(gpu, &self.fx_buf, qn, &vp, false, w, h);
+        let mut qn = self
+            .combat_fx
+            .pool()
+            .normal
+            .fill_billboards(r, u, &mut self.fx_buf);
+        qn += self
+            .combat_fx
+            .pool()
+            .residue
+            .fill_billboards(r, u, &mut self.fx_buf);
+        self.renderer
+            .render_particles(gpu, &self.fx_buf, qn, &vp, false, w, h);
 
         // 7) HUD chrome + interactive windows (mouse-routed; action bar toggles
         //    windows, exactly as `--demo ui`).
@@ -437,8 +552,19 @@ impl ConnectedScene {
         self.ui.begin(w, h);
         self.wm.update(&self.ui, w, h);
         let captured = self.wm.pointer_captured();
-        if let Some(action) = hud::build_hud(&mut self.ui, &self.icons, &self.hud_state, &mut self.search, captured, w, h) {
-            if crate::hud::DEMO_WINDOWS.iter().any(|(id, _, _)| *id == action) {
+        if let Some(action) = hud::build_hud(
+            &mut self.ui,
+            &self.icons,
+            &self.hud_state,
+            &mut self.search,
+            captured,
+            w,
+            h,
+        ) {
+            if crate::hud::DEMO_WINDOWS
+                .iter()
+                .any(|(id, _, _)| *id == action)
+            {
                 self.wm.toggle(action);
             }
         }
@@ -447,14 +573,27 @@ impl ConnectedScene {
             let rect = self.wm.draw_chrome(&mut self.ui, idx, style);
             let id = self.wm.window_id(idx).to_string();
             let mut actions = Vec::new();
-            crate::windows::content(&mut self.ui, &id, rect, &self.win_model, &self.icons, &mut actions);
+            crate::windows::content(
+                &mut self.ui,
+                &id,
+                rect,
+                &self.win_model,
+                &self.icons,
+                &mut actions,
+            );
             for a in actions {
                 match a {
                     crate::windows::WindowAction::Select(item) => {
                         self.win_model.inventory.selected = Some(item);
                     }
                     crate::windows::WindowAction::EquipItem(item) => {
-                        if let Some(it) = self.win_model.inventory.items.iter_mut().find(|i| i.id == item) {
+                        if let Some(it) = self
+                            .win_model
+                            .inventory
+                            .items
+                            .iter_mut()
+                            .find(|i| i.id == item)
+                        {
                             it.equipped = !it.equipped;
                         }
                     }
@@ -462,7 +601,8 @@ impl ConnectedScene {
                 }
             }
         }
-        self.renderer.render_ui(gpu, &self.ui.buf, self.ui.quads, w, h);
+        self.renderer
+            .render_ui(gpu, &self.ui.buf, self.ui.quads, w, h);
     }
 }
 
