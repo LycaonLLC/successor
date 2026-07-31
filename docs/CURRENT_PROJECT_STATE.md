@@ -1,7 +1,8 @@
 # Successor Current Project State
 
-Status: current implementation inventory after the 2026-07-29 public-alpha
-release. Exact public hashes and pointers live in `CURRENT_DEPLOYMENT.md`.
+Status: current implementation inventory as of 2026-07-30, after the
+2026-07-29 public-alpha release. Exact public hashes and pointers live in
+`CURRENT_DEPLOYMENT.md`.
 
 ## What is real now
 
@@ -55,12 +56,20 @@ registered Successor worktree. The supported components are:
 | `desktop/` | Electron packaging and isolated local-authority lifecycle |
 | `site/` | Marketing, account, launch, legal, roadmap, and download presentation |
 | `ops/deploy/` | AWS infrastructure and immutable release/operator scripts |
-| `client-rust/` | In-development native Rust client (no_std engine, GL renderer, Colyseus protocol) — pre-parity, unshipped, standalone workspace |
+| `client-rust/` | In-development native Rust client (no_std engine, desktop GL/WebGL2 renderer, Colyseus protocol) — graphical material parity implemented, unshipped, standalone workspace |
 
 There is no supported 2D game client. `client/` has one headless entry point and
 contains no visual runtime; graphical presentation belongs to `client-3d/`.
 The checked-in slice and map bundle are renderer-neutral authority inputs, not
 an old 2D game.
+
+The standalone Rust client now loads the complete checked-in GLB model corpus
+through one packed mesh/material path and renders deferred opaque PBR,
+shadowed sun and point lights, sorted transparent and transmissive surfaces,
+bloom, and FXAA on native GL and WebGL2. Its synthetic material-parity scene
+has native ROI assertions and browser readback probes. This is source and
+local build proof only: gameplay parity and product promotion remain
+outstanding, and the client is absent from the site and native download ledger.
 
 Source assets and generated runtime assets have separate homes. PawnForge
 source work remains outside this repository; promoted GLBs, face atlases,

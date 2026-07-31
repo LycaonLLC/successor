@@ -22,6 +22,11 @@ digest-pinned authority container runs on private EC2 behind the public ALB.
 The host has no public SSH ingress. Operators reach it through SSM from Bunker;
 Bunker is not the public game host.
 
+The `client-rust/` graphical material-parity work verified in source on
+2026-07-30 has not been published, promoted, allowlisted, linked from the site,
+or added to the native download ledger. It does not change any identity in
+this deployment ledger.
+
 ## Site
 
 The authenticated S3 site pointer contains:

@@ -1,6 +1,6 @@
 # Successor Canonical Context
 
-Status: current supported architecture as of 2026-07-28.
+Status: current supported architecture as of 2026-07-30.
 
 This is the repository's source of truth for product scope and ownership. Code
 and tests define exact behavior; when they change this contract, update this
@@ -21,7 +21,7 @@ focused design detail and cannot introduce another active runtime path.
 | Gameplay authority | `crates/successor-sim/` | Deterministic world simulation and gameplay mutations |
 | Shared Rust contracts | `crates/successor-{core,inventory,net,wasm}/` | Types, inventory primitives, wire commands, and platform bindings |
 | Public deployment | `ops/deploy/` | Immutable client/site publication, AWS infrastructure, and single-writer server operation |
-| Native client (in development) | `client-rust/` | no_std Rust engine + platform-abstracted renderer (desktop GL, web WebGL2; TUI/mobile later); reuses `successor-net` wire types; not yet a supported player surface |
+| Native client (in development) | `client-rust/` | no_std Rust engine + platform-abstracted deferred/forward PBR renderer (desktop GL, web WebGL2; TUI/mobile later); reuses `successor-net` wire types; not yet a supported player surface |
 
 There are two supported player-facing clients. `client/` is a shared package,
 not a third visual client. Both clients submit the same server commands and

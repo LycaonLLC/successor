@@ -1,7 +1,7 @@
 # Successor Verification
 
-Status: current verification contract and latest public proof as of
-2026-07-29.
+Status: current verification contract and latest source proof as of
+2026-07-30; latest public proof remains 2026-07-29.
 
 Run commands from the canonical Bunker checkout,
 `~/dev/games/successor`, unless a section says otherwise. A passing result
@@ -73,6 +73,16 @@ gates before handoff.
 | Desktop supervisor | `pnpm --dir desktop check && pnpm --dir desktop test && pnpm --dir desktop verify:key-ownership` |
 | Marketing and launch site | `pnpm site:test && pnpm site:build` |
 | Release tooling | `pnpm deploy:contract && pnpm --dir desktop release:manifest` |
+| Standalone Rust client | `make -C client-rust verify && make -C client-rust check-allocs && make -C client-rust runtime-check && make -C client-rust render-check && make -C client-rust nostd` |
+
+`client-rust/` is outside both root workspaces. Its own gates are mandatory:
+`verify` covers tests, corpus audit, and stripped native/wasm size budgets;
+`check-allocs` requires zero steady-state frame allocations; `runtime-check`
+checks frame time and RSS; `render-check` checks the native material-parity
+GPU p99; and `nostd` builds both engine crates for
+`thumbv7em-none-eabihf`. Browser renderer changes additionally require the
+material-parity WebGL2 probe, a resize round trip, and the deterministic
+half-float-disabled fallback.
 
 Changes under `client-3d/` or shared `client/src/` must also rebuild the
 packaged desktop:
