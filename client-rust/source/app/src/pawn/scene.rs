@@ -163,7 +163,8 @@ impl PawnScene {
         world.set_component(
             sun,
             DirectionalLight {
-                dir: vec3(-0.4, -1.0, -0.3).normalize(),
+                // Side-lit at a forty-five-degree elevation from the initial view.
+                dir: vec3(-1.0, -1.0, 0.0).normalize(),
                 color: [1.0, 0.98, 0.92],
                 cast_shadows: true,
             },

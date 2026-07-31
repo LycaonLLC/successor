@@ -241,6 +241,10 @@ void main() {
     ambient = u_ambient * albedo;
 #endif
 
+    // Sun occlusion also attenuates broad indirect light enough for small,
+    // animated casters to remain readable against bright gameplay terrain.
+    ambient *= mix(0.60, 1.0, shadow);
+
     vec3 color = direct + ambient;
 
     float fogD = distance(P, u_camEye);
