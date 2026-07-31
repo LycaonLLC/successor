@@ -24,27 +24,36 @@ impl DatapadModel {
             missions: vec![
                 DatapadEntry {
                     title: "COLLECT SCRAP METAL".into(),
-                    body: "RECOVER 10 UNITS OF SCRAP METAL FROM THE ABANDONED WASTELAND IN SECTOR 4.".into(),
+                    body:
+                        "RECOVER 10 UNITS OF SCRAP METAL FROM THE ABANDONED WASTELAND IN SECTOR 4."
+                            .into(),
                 },
                 DatapadEntry {
                     title: "CONTACT SPY".into(),
-                    body: "MEET AGENT KESTREL AT THE OUTPOST BAR AND RETRIEVE THE ENCRYPTED DATAPACK.".into(),
+                    body:
+                        "MEET AGENT KESTREL AT THE OUTPOST BAR AND RETRIEVE THE ENCRYPTED DATAPACK."
+                            .into(),
                 },
             ],
             map_entries: vec![
                 DatapadEntry {
                     title: "DUSTGATE OUTPOST".into(),
-                    body: "SECTOR 4 - GRID E5. SAFE ZONE WITH TRADERS, BANK, AND RECLAMATION STATION.".into(),
+                    body:
+                        "SECTOR 4 - GRID E5. SAFE ZONE WITH TRADERS, BANK, AND RECLAMATION STATION."
+                            .into(),
                 },
                 DatapadEntry {
                     title: "SCRAP YARD".into(),
-                    body: "SECTOR 2 - GRID B3. WARNING: FREQUENT PIRATE PATROLS AND HIGH RADIATION.".into(),
+                    body:
+                        "SECTOR 2 - GRID B3. WARNING: FREQUENT PIRATE PATROLS AND HIGH RADIATION."
+                            .into(),
                 },
             ],
             log_entries: vec![
                 DatapadEntry {
                     title: "SYSTEM BOOT".into(),
-                    body: "LOGICAL DRIVE CHECK OK. SECURE COMS READY. ENCRYPTED LINK SECURED.".into(),
+                    body: "LOGICAL DRIVE CHECK OK. SECURE COMS READY. ENCRYPTED LINK SECURED."
+                        .into(),
                 },
                 DatapadEntry {
                     title: "SIGNAL INTERCEPT".into(),
@@ -108,7 +117,10 @@ pub fn draw(
         }
 
         if ui.button(x + 10.0, tab_y, tab_w, tab_h, tab, style) {
-            out.push(WindowAction::Button(format!("datapad:tab:{}", tab.to_lowercase())));
+            out.push(WindowAction::Button(format!(
+                "datapad:tab:{}",
+                tab.to_lowercase()
+            )));
         }
         tab_y += tab_h + tab_gap;
     }
@@ -134,7 +146,13 @@ pub fn draw(
         }
 
         // Draw entry title
-        ui.text(&entry.title.to_uppercase(), content_x, cur_y, title_px, ACCENT);
+        ui.text(
+            &entry.title.to_uppercase(),
+            content_x,
+            cur_y,
+            title_px,
+            ACCENT,
+        );
         cur_y += title_px * 8.0 + 4.0;
 
         // Draw entry body (wrapped)
@@ -180,12 +198,24 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 500.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 500.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert!(out.contains(&WindowAction::Button("datapad:tab:map".into())));
     }

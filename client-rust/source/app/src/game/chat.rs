@@ -20,7 +20,12 @@ pub struct ChatState {
 
 impl ChatState {
     pub fn new(cap: usize) -> Self {
-        Self { open: false, input: String::new(), lines: Vec::with_capacity(cap), cap }
+        Self {
+            open: false,
+            input: String::new(),
+            lines: Vec::with_capacity(cap),
+            cap,
+        }
     }
 
     /// Enter toggles the editor open, or submits a non-empty line when open.
@@ -84,13 +89,20 @@ impl ChatState {
         for (i, line) in self.lines.iter().enumerate() {
             out.push(TextOverlay::new(
                 line,
-                Vec2 { x: 0.02, y: base_y + i as f32 * 0.03 },
+                Vec2 {
+                    x: 0.02,
+                    y: base_y + i as f32 * 0.03,
+                },
                 [200, 210, 220, 255],
             ));
         }
         if self.open {
             let s = format!("> {}", self.input);
-            out.push(TextOverlay::new(&s, Vec2 { x: 0.02, y: 0.96 }, [255, 240, 120, 255]));
+            out.push(TextOverlay::new(
+                &s,
+                Vec2 { x: 0.02, y: 0.96 },
+                [255, 240, 120, 255],
+            ));
         }
     }
 }

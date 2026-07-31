@@ -4,7 +4,13 @@ use super::{WindowAction, WindowModel, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &WindowModel, icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &WindowModel,
+    icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, h] = rect;
     let inv = &model.inventory;
 
@@ -26,9 +32,22 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &WindowModel, icons: &Ico
         }
         let resp = ui.interact(sx, sy, cell, cell);
         let selected = inv.selected == Some(item.id);
-        let fill = if selected { [46, 62, 86, 235] } else if resp.hovered { [36, 48, 64, 230] } else { SLOT };
+        let fill = if selected {
+            [46, 62, 86, 235]
+        } else if resp.hovered {
+            [36, 48, 64, 230]
+        } else {
+            SLOT
+        };
         ui.rect(sx, sy, cell, cell, fill);
-        ui.border(sx, sy, cell, cell, if selected { 1.5 } else { 1.0 }, if selected { ACCENT } else { SLOT_EDGE });
+        ui.border(
+            sx,
+            sy,
+            cell,
+            cell,
+            if selected { 1.5 } else { 1.0 },
+            if selected { ACCENT } else { SLOT_EDGE },
+        );
         if let Some((col, row)) = icons.cell(item.kind.icon()) {
             ui.icon(col, row, sx + 8.0, sy + 6.0, cell - 16.0, cell - 20.0, TEXT);
         }
@@ -36,7 +55,13 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &WindowModel, icons: &Ico
             let q = format!("{}", item.qty);
             let px = 1.5;
             let qw = UiBuilder::text_width(&q, px);
-            ui.text(&q, sx + cell - qw - 3.0, sy + cell - 7.0 * px - 2.0, px, TEXT);
+            ui.text(
+                &q,
+                sx + cell - qw - 3.0,
+                sy + cell - 7.0 * px - 2.0,
+                px,
+                TEXT,
+            );
         }
         if item.equipped {
             ui.rect(sx + cell - 8.0, sy + 3.0, 5.0, 5.0, ACCENT);
@@ -48,19 +73,41 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &WindowModel, icons: &Ico
 
     // ── Footer: capacity + credits ───────────────────────────────────────
     let fy = y + h - 18.0;
-    ui.text(&format!("{}/{}", inv.items.len(), inv.capacity), x, fy, 2.0, DIM);
+    ui.text(
+        &format!("{}/{}", inv.items.len(), inv.capacity),
+        x,
+        fy,
+        2.0,
+        DIM,
+    );
     let cr = format!("CR {}", inv.credits);
-    ui.text(&cr, x + grid_w - UiBuilder::text_width(&cr, 2.0), fy, 2.0, ACCENT);
+    ui.text(
+        &cr,
+        x + grid_w - UiBuilder::text_width(&cr, 2.0),
+        fy,
+        2.0,
+        ACCENT,
+    );
 
     // ── Examine sidebar ──────────────────────────────────────────────────
     let sx = x + grid_w + 8.0;
     ui.rect(sx, y, side_w, h, [10, 14, 20, 210]);
     ui.border(sx, y, side_w, h, 1.0, SLOT_EDGE);
-    let sel = inv.selected.and_then(|id| inv.items.iter().find(|it| it.id == id));
+    let sel = inv
+        .selected
+        .and_then(|id| inv.items.iter().find(|it| it.id == id));
     match sel {
         Some(item) => {
             if let Some((col, row)) = icons.cell(item.kind.icon()) {
-                ui.icon(col, row, sx + side_w * 0.5 - 24.0, y + 10.0, 48.0, 48.0, TEXT);
+                ui.icon(
+                    col,
+                    row,
+                    sx + side_w * 0.5 - 24.0,
+                    y + 10.0,
+                    48.0,
+                    48.0,
+                    TEXT,
+                );
             }
             ui.text(&item.name, sx + 8.0, y + 66.0, 2.2, ACCENT);
             ui.text(&format!("QTY {}", item.qty), sx + 8.0, y + 92.0, 2.0, TEXT);
@@ -104,12 +151,27 @@ mod tests {
         ui.set_input(bx + 20.0, by + 14.0, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 600.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
         ui.set_input(bx + 20.0, by + 14.0, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
-        assert!(out.contains(&WindowAction::UseItem(1)), "USE emitted for selected item, got {out:?}");
+        draw(
+            &mut ui,
+            [100.0, 100.0, 600.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
+        assert!(
+            out.contains(&WindowAction::UseItem(1)),
+            "USE emitted for selected item, got {out:?}"
+        );
     }
 
     #[test]
@@ -135,11 +197,23 @@ mod tests {
         ui.set_input(cx, cy, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 600.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
         ui.set_input(cx, cy, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 600.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
         assert!(
             out.contains(&WindowAction::Select(want)),
             "clicking slot {idx} should Select item {want}, got {out:?}"

@@ -12,6 +12,7 @@ const GLFW_OPENGL_PROFILE: i32 = 0x00022008;
 const GLFW_OPENGL_CORE_PROFILE: i32 = 0x00032001;
 const GLFW_OPENGL_FORWARD_COMPAT: i32 = 0x00022006;
 const GLFW_VISIBLE: i32 = 0x00020002;
+const GLFW_COCOA_RETINA_FRAMEBUFFER: i32 = 0x00023001;
 const GLFW_TRUE: i32 = 1;
 const GLFW_FALSE: i32 = 0;
 const GLFW_CURSOR: i32 = 0x00033001;
@@ -90,17 +91,22 @@ pub fn init(title: &str, w: i32, h: i32) -> bool {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+        // Verification and presentation budgets use physical 1280x720 pixels.
+        glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
 
         // Check for headless/hidden environment variable
         let hidden = std::env::var("SUCCESSOR_HEADLESS").is_ok()
-            || std::env::var("GLFW_VISIBLE").map(|v| v == "false").unwrap_or(false);
+            || std::env::var("GLFW_VISIBLE")
+                .map(|v| v == "false")
+                .unwrap_or(false);
 
         if hidden {
             glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         }
 
         // Null-terminate title string
-        let title_c = std::ffi::CString::new(title).unwrap_or_else(|_| std::ffi::CString::new("").unwrap());
+        let title_c =
+            std::ffi::CString::new(title).unwrap_or_else(|_| std::ffi::CString::new("").unwrap());
 
         let win = glfwCreateWindow(
             w,
@@ -180,9 +186,7 @@ pub fn framebuffer_size() -> (i32, i32) {
 
 pub fn now_ms() -> f64 {
     let state = STATE.lock();
-    unsafe {
-        (glfwGetTime() - state.start_time) * 1000.0
-    }
+    unsafe { (glfwGetTime() - state.start_time) * 1000.0 }
 }
 
 pub fn is_key_down(key: Key) -> bool {
@@ -205,9 +209,7 @@ pub fn is_key_down(key: Key) -> bool {
         Key::Backspace => 259,
         Key::LeftShift => 340,
     };
-    unsafe {
-        glfwGetKey(state.window, glfw_key) == 1
-    }
+    unsafe { glfwGetKey(state.window, glfw_key) == 1 }
 }
 
 pub fn set_cursor_visible(visible: bool) {
@@ -217,7 +219,11 @@ pub fn set_cursor_visible(visible: bool) {
             glfwSetInputMode(
                 state.window,
                 GLFW_CURSOR,
-                if visible { GLFW_CURSOR_NORMAL } else { GLFW_CURSOR_HIDDEN },
+                if visible {
+                    GLFW_CURSOR_NORMAL
+                } else {
+                    GLFW_CURSOR_HIDDEN
+                },
             );
         }
     }
@@ -264,7 +270,15 @@ pub fn poll_text_input() -> Option<char> {
 /// Read the current framebuffer as RGBA8, bottom-up (GL row order).
 pub fn read_pixels_rgba(w: i32, h: i32) -> Vec<u8> {
     let mut buf = vec![0u8; (w.max(0) * h.max(0) * 4) as usize];
-    crate::native::gl::read_pixels(0, 0, w, h, crate::native::gl::RGBA, crate::native::gl::UNSIGNED_BYTE, &mut buf);
+    crate::native::gl::read_pixels(
+        0,
+        0,
+        w,
+        h,
+        crate::native::gl::RGBA,
+        crate::native::gl::UNSIGNED_BYTE,
+        &mut buf,
+    );
     buf
 }
 

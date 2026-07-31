@@ -35,10 +35,16 @@ pub const REPEAT: i32 = 0x2901;
 
 pub const RGBA: u32 = 0x1908;
 pub const RGBA8: u32 = 0x8058;
+pub const SRGB8_ALPHA8: u32 = 0x8C43;
+pub const RED: u32 = 0x1903;
+pub const RG: u32 = 0x8227;
+pub const R8: u32 = 0x8229;
+pub const RG8: u32 = 0x822B;
 pub const DEPTH_COMPONENT: u32 = 0x1902;
 pub const DEPTH_COMPONENT24: u32 = 0x81A6;
 
 pub const UNSIGNED_BYTE: u32 = 0x1401;
+pub const UNSIGNED_SHORT: u32 = 0x1403;
 pub const UNSIGNED_INT: u32 = 0x1405;
 pub const FLOAT: u32 = 0x1406;
 
@@ -61,7 +67,10 @@ pub const HALF_FLOAT: u32 = 0x140B;
 pub const COLOR_ATTACHMENT1: u32 = 0x8CE1;
 pub const COLOR_ATTACHMENT2: u32 = 0x8CE2;
 pub const COLOR_ATTACHMENT3: u32 = 0x8CE3;
+pub const MAX_COLOR_ATTACHMENTS: u32 = 0x8CDF;
+pub const MAX_DRAW_BUFFERS: u32 = 0x8824;
 pub const LINEAR_MIPMAP_LINEAR: i32 = 0x2703;
+pub const NEAREST_MIPMAP_NEAREST: i32 = 0x2700;
 
 extern "C" {
     fn glClearColor(red: f32, green: f32, blue: f32, alpha: f32);
@@ -73,14 +82,10 @@ extern "C" {
     fn glDepthMask(flag: u8);
     fn glColorMask(red: u8, green: u8, blue: u8, alpha: u8);
     fn glBlendFunc(sfactor: u32, dfactor: u32);
+    fn glGetIntegerv(pname: u32, data: *mut i32);
 
     fn glCreateShader(type_: u32) -> u32;
-    fn glShaderSource(
-        shader: u32,
-        count: i32,
-        string: *const *const u8,
-        length: *const i32,
-    );
+    fn glShaderSource(shader: u32, count: i32, string: *const *const u8, length: *const i32);
     fn glCompileShader(shader: u32);
     fn glGetShaderiv(shader: u32, pname: u32, params: *mut i32);
     fn glGetShaderInfoLog(shader: u32, bufSize: i32, length: *mut i32, infoLog: *mut u8);
@@ -157,10 +162,25 @@ extern "C" {
     fn glDrawBuffers(n: i32, bufs: *const u32);
     fn glPixelStorei(pname: u32, param: i32);
     fn glDrawBuffer(mode: u32);
-    fn glReadPixels(x: i32, y: i32, width: i32, height: i32, format: u32, ty: u32, data: *mut c_void);
+    fn glReadPixels(
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        ty: u32,
+        data: *mut c_void,
+    );
     fn glGetError() -> u32;
+    fn glFinish();
     fn glVertexAttribDivisor(index: u32, divisor: u32);
-    fn glDrawElementsInstanced(mode: u32, count: i32, type_: u32, indices: *const c_void, primcount: i32);
+    fn glDrawElementsInstanced(
+        mode: u32,
+        count: i32,
+        type_: u32,
+        indices: *const c_void,
+        primcount: i32,
+    );
     fn glDrawArraysInstanced(mode: u32, first: i32, count: i32, primcount: i32);
     fn glTexImage3D(
         target: u32,
@@ -192,39 +212,61 @@ extern "C" {
 
 // Wrappers
 pub fn clear_color(r: f32, g: f32, b: f32, a: f32) {
-    unsafe { glClearColor(r, g, b, a); }
+    unsafe {
+        glClearColor(r, g, b, a);
+    }
 }
 
 pub fn read_pixels(x: i32, y: i32, w: i32, h: i32, format: u32, ty: u32, data: &mut [u8]) {
-    unsafe { glReadPixels(x, y, w, h, format, ty, data.as_mut_ptr() as *mut c_void); }
+    unsafe {
+        glReadPixels(x, y, w, h, format, ty, data.as_mut_ptr() as *mut c_void);
+    }
 }
 
 pub fn get_error() -> u32 {
     unsafe { glGetError() }
 }
 
+pub fn finish() {
+    unsafe {
+        glFinish();
+    }
+}
+
 pub fn clear(mask: u32) {
-    unsafe { glClear(mask); }
+    unsafe {
+        glClear(mask);
+    }
 }
 
 pub fn viewport(x: i32, y: i32, w: i32, h: i32) {
-    unsafe { glViewport(x, y, w, h); }
+    unsafe {
+        glViewport(x, y, w, h);
+    }
 }
 
 pub fn enable(cap: u32) {
-    unsafe { glEnable(cap); }
+    unsafe {
+        glEnable(cap);
+    }
 }
 
 pub fn disable(cap: u32) {
-    unsafe { glDisable(cap); }
+    unsafe {
+        glDisable(cap);
+    }
 }
 
 pub fn cull_face(mode: u32) {
-    unsafe { glCullFace(mode); }
+    unsafe {
+        glCullFace(mode);
+    }
 }
 
 pub fn depth_mask(flag: bool) {
-    unsafe { glDepthMask(if flag { 1 } else { 0 }); }
+    unsafe {
+        glDepthMask(if flag { 1 } else { 0 });
+    }
 }
 
 pub fn color_mask(r: bool, g: bool, b: bool, a: bool) {
@@ -239,7 +281,9 @@ pub fn color_mask(r: bool, g: bool, b: bool, a: bool) {
 }
 
 pub fn blend_func(sfactor: u32, dfactor: u32) {
-    unsafe { glBlendFunc(sfactor, dfactor); }
+    unsafe {
+        glBlendFunc(sfactor, dfactor);
+    }
 }
 
 pub fn create_shader(type_: u32) -> u32 {
@@ -249,16 +293,22 @@ pub fn create_shader(type_: u32) -> u32 {
 pub fn shader_source(shader: u32, src: &[u8]) {
     let ptr = src.as_ptr();
     let len = src.len() as i32;
-    unsafe { glShaderSource(shader, 1, &ptr, &len); }
+    unsafe {
+        glShaderSource(shader, 1, &ptr, &len);
+    }
 }
 
 pub fn compile_shader(shader: u32) {
-    unsafe { glCompileShader(shader); }
+    unsafe {
+        glCompileShader(shader);
+    }
 }
 
 pub fn get_shaderiv(shader: u32, pname: u32) -> i32 {
     let mut param = 0;
-    unsafe { glGetShaderiv(shader, pname, &mut param); }
+    unsafe {
+        glGetShaderiv(shader, pname, &mut param);
+    }
     param
 }
 
@@ -271,7 +321,9 @@ pub fn get_shader_info_log(shader: u32, buf: &mut [u8]) -> usize {
 }
 
 pub fn delete_shader(shader: u32) {
-    unsafe { glDeleteShader(shader); }
+    unsafe {
+        glDeleteShader(shader);
+    }
 }
 
 pub fn create_program() -> u32 {
@@ -279,16 +331,22 @@ pub fn create_program() -> u32 {
 }
 
 pub fn attach_shader(program: u32, shader: u32) {
-    unsafe { glAttachShader(program, shader); }
+    unsafe {
+        glAttachShader(program, shader);
+    }
 }
 
 pub fn link_program(program: u32) {
-    unsafe { glLinkProgram(program); }
+    unsafe {
+        glLinkProgram(program);
+    }
 }
 
 pub fn get_programiv(program: u32, pname: u32) -> i32 {
     let mut param = 0;
-    unsafe { glGetProgramiv(program, pname, &mut param); }
+    unsafe {
+        glGetProgramiv(program, pname, &mut param);
+    }
     param
 }
 
@@ -301,11 +359,15 @@ pub fn get_program_info_log(program: u32, buf: &mut [u8]) -> usize {
 }
 
 pub fn use_program(program: u32) {
-    unsafe { glUseProgram(program); }
+    unsafe {
+        glUseProgram(program);
+    }
 }
 
 pub fn delete_program(program: u32) {
-    unsafe { glDeleteProgram(program); }
+    unsafe {
+        glDeleteProgram(program);
+    }
 }
 
 pub fn get_uniform_location(program: u32, name: &str) -> i32 {
@@ -315,75 +377,116 @@ pub fn get_uniform_location(program: u32, name: &str) -> i32 {
 }
 
 pub fn uniform1i(location: i32, value: i32) {
-    unsafe { glUniform1i(location, value); }
+    unsafe {
+        glUniform1i(location, value);
+    }
 }
 
 pub fn uniform1f(location: i32, value: f32) {
-    unsafe { glUniform1f(location, value); }
+    unsafe {
+        glUniform1f(location, value);
+    }
 }
 
 pub fn uniform2f(location: i32, x: f32, y: f32) {
-    unsafe { glUniform2f(location, x, y); }
+    unsafe {
+        glUniform2f(location, x, y);
+    }
 }
 
 pub fn uniform3f(location: i32, x: f32, y: f32, z: f32) {
-    unsafe { glUniform3f(location, x, y, z); }
+    unsafe {
+        glUniform3f(location, x, y, z);
+    }
 }
 
 pub fn uniform4f(location: i32, x: f32, y: f32, z: f32, w: f32) {
-    unsafe { glUniform4f(location, x, y, z, w); }
+    unsafe {
+        glUniform4f(location, x, y, z, w);
+    }
 }
 
 pub fn uniform1fv(location: i32, values: &[f32]) {
-    unsafe { glUniform1fv(location, values.len() as i32, values.as_ptr()); }
+    unsafe {
+        glUniform1fv(location, values.len() as i32, values.as_ptr());
+    }
 }
 
 pub fn uniform3fv(location: i32, values: &[f32]) {
-    unsafe { glUniform3fv(location, (values.len() / 3) as i32, values.as_ptr()); }
+    unsafe {
+        glUniform3fv(location, (values.len() / 3) as i32, values.as_ptr());
+    }
 }
 
 pub fn uniform_matrix4fv(location: i32, transpose: bool, values: &[f32; 16]) {
-    unsafe { glUniformMatrix4fv(location, 1, if transpose { 1 } else { 0 }, values.as_ptr()); }
+    unsafe {
+        glUniformMatrix4fv(location, 1, if transpose { 1 } else { 0 }, values.as_ptr());
+    }
 }
 
 pub fn uniform_matrix4fv_array(location: i32, values: &[f32]) {
-    unsafe { glUniformMatrix4fv(location, (values.len() / 16) as i32, 0, values.as_ptr()); }
+    unsafe {
+        glUniformMatrix4fv(location, (values.len() / 16) as i32, 0, values.as_ptr());
+    }
 }
 
 pub fn vertex_attrib_divisor(index: u32, divisor: u32) {
-    unsafe { glVertexAttribDivisor(index, divisor); }
+    unsafe {
+        glVertexAttribDivisor(index, divisor);
+    }
 }
 
 pub fn draw_elements_instanced(mode: u32, count: i32, type_: u32, offset: u32, primcount: i32) {
-    unsafe { glDrawElementsInstanced(mode, count, type_, offset as usize as *const c_void, primcount); }
+    unsafe {
+        glDrawElementsInstanced(
+            mode,
+            count,
+            type_,
+            offset as usize as *const c_void,
+            primcount,
+        );
+    }
 }
 
 pub fn draw_arrays_instanced(mode: u32, first: i32, count: i32, primcount: i32) {
-    unsafe { glDrawArraysInstanced(mode, first, count, primcount); }
+    unsafe {
+        glDrawArraysInstanced(mode, first, count, primcount);
+    }
 }
 
 pub fn gen_texture() -> u32 {
     let mut tex = 0;
-    unsafe { glGenTextures(1, &mut tex); }
+    unsafe {
+        glGenTextures(1, &mut tex);
+    }
     tex
 }
 
 pub fn delete_texture(texture: u32) {
-    unsafe { glDeleteTextures(1, &texture); }
+    unsafe {
+        glDeleteTextures(1, &texture);
+    }
 }
 
 pub fn bind_texture(target: u32, texture: u32) {
-    unsafe { glBindTexture(target, texture); }
+    unsafe {
+        glBindTexture(target, texture);
+    }
 }
 
 pub fn active_texture(unit: u32) {
-    unsafe { glActiveTexture(unit); }
+    unsafe {
+        glActiveTexture(unit);
+    }
 }
 
 pub fn tex_parameteri(target: u32, pname: u32, param: i32) {
-    unsafe { glTexParameteri(target, pname, param); }
+    unsafe {
+        glTexParameteri(target, pname, param);
+    }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn tex_image_2d(
     target: u32,
     level: i32,
@@ -399,39 +502,70 @@ pub fn tex_image_2d(
         Some(d) => d.as_ptr() as *const c_void,
         None => std::ptr::null(),
     };
-    unsafe { glTexImage2D(target, level, internal_format, width, height, border, format, type_, ptr); }
+    unsafe {
+        glTexImage2D(
+            target,
+            level,
+            internal_format,
+            width,
+            height,
+            border,
+            format,
+            type_,
+            ptr,
+        );
+    }
 }
 
 pub fn gen_buffer() -> u32 {
     let mut buf = 0;
-    unsafe { glGenBuffers(1, &mut buf); }
+    unsafe {
+        glGenBuffers(1, &mut buf);
+    }
     buf
 }
 
 pub fn delete_buffer(buffer: u32) {
-    unsafe { glDeleteBuffers(1, &buffer); }
+    unsafe {
+        glDeleteBuffers(1, &buffer);
+    }
 }
 
 pub fn bind_buffer(target: u32, buffer: u32) {
-    unsafe { glBindBuffer(target, buffer); }
+    unsafe {
+        glBindBuffer(target, buffer);
+    }
 }
 
 pub fn buffer_data(target: u32, data: &[u8], usage: u32) {
-    unsafe { glBufferData(target, data.len() as isize, data.as_ptr() as *const c_void, usage); }
+    unsafe {
+        glBufferData(
+            target,
+            data.len() as isize,
+            data.as_ptr() as *const c_void,
+            usage,
+        );
+    }
 }
 
 pub fn gen_vertex_array() -> u32 {
     let mut vao = 0;
-    unsafe { glGenVertexArrays(1, &mut vao); }
+    unsafe {
+        glGenVertexArrays(1, &mut vao);
+    }
     vao
 }
 
 pub fn delete_vertex_array(vao: u32) {
-    unsafe { glDeleteVertexArrays(1, &vao); }
+    unsafe {
+        glDeleteVertexArrays(1, &vao);
+    }
 }
 
 pub fn bind_vertex_array(vao: u32) {
-    unsafe { glBindVertexArray(vao); }
+    unsafe {
+        glBindVertexArray(vao);
+    }
 }
 
 pub fn vertex_attrib_pointer(
@@ -455,33 +589,47 @@ pub fn vertex_attrib_pointer(
 }
 
 pub fn enable_vertex_attrib_array(index: u32) {
-    unsafe { glEnableVertexAttribArray(index); }
+    unsafe {
+        glEnableVertexAttribArray(index);
+    }
 }
 
 pub fn disable_vertex_attrib_array(index: u32) {
-    unsafe { glDisableVertexAttribArray(index); }
+    unsafe {
+        glDisableVertexAttribArray(index);
+    }
 }
 
 pub fn draw_arrays(mode: u32, first: i32, count: i32) {
-    unsafe { glDrawArrays(mode, first, count); }
+    unsafe {
+        glDrawArrays(mode, first, count);
+    }
 }
 
 pub fn draw_elements(mode: u32, count: i32, type_: u32, offset: u32) {
-    unsafe { glDrawElements(mode, count, type_, offset as usize as *const c_void); }
+    unsafe {
+        glDrawElements(mode, count, type_, offset as usize as *const c_void);
+    }
 }
 
 pub fn gen_framebuffer() -> u32 {
     let mut fbo = 0;
-    unsafe { glGenFramebuffers(1, &mut fbo); }
+    unsafe {
+        glGenFramebuffers(1, &mut fbo);
+    }
     fbo
 }
 
 pub fn delete_framebuffer(fbo: u32) {
-    unsafe { glDeleteFramebuffers(1, &fbo); }
+    unsafe {
+        glDeleteFramebuffers(1, &fbo);
+    }
 }
 
 pub fn bind_framebuffer(target: u32, framebuffer: u32) {
-    unsafe { glBindFramebuffer(target, framebuffer); }
+    unsafe {
+        glBindFramebuffer(target, framebuffer);
+    }
 }
 
 pub fn framebuffer_texture_2d(
@@ -491,7 +639,9 @@ pub fn framebuffer_texture_2d(
     texture: u32,
     level: i32,
 ) {
-    unsafe { glFramebufferTexture2D(target, attachment, textarget, texture, level); }
+    unsafe {
+        glFramebufferTexture2D(target, attachment, textarget, texture, level);
+    }
 }
 
 pub fn check_framebuffer_status(target: u32) -> u32 {
@@ -499,11 +649,15 @@ pub fn check_framebuffer_status(target: u32) -> u32 {
 }
 
 pub fn draw_buffers(buffers: &[u32]) {
-    unsafe { glDrawBuffers(buffers.len() as i32, buffers.as_ptr()); }
+    unsafe {
+        glDrawBuffers(buffers.len() as i32, buffers.as_ptr());
+    }
 }
 
 pub fn pixel_storei(pname: u32, param: i32) {
-    unsafe { glPixelStorei(pname, param); }
+    unsafe {
+        glPixelStorei(pname, param);
+    }
 }
 
 pub fn disable_draw_buffer() {
@@ -530,7 +684,18 @@ pub fn tex_image_3d(
         None => core::ptr::null(),
     };
     unsafe {
-        glTexImage3D(target, level, internal_format, width, height, depth, border, format, type_, ptr);
+        glTexImage3D(
+            target,
+            level,
+            internal_format,
+            width,
+            height,
+            depth,
+            border,
+            format,
+            type_,
+            ptr,
+        );
     }
 }
 
@@ -550,16 +715,34 @@ pub fn tex_sub_image_3d(
 ) {
     unsafe {
         glTexSubImage3D(
-            target, level, xoffset, yoffset, zoffset, width, height, depth, format, type_,
+            target,
+            level,
+            xoffset,
+            yoffset,
+            zoffset,
+            width,
+            height,
+            depth,
+            format,
+            type_,
             data.as_ptr() as *const c_void,
         );
     }
 }
 
 pub fn generate_mipmap(target: u32) {
-    unsafe { glGenerateMipmap(target); }
+    unsafe {
+        glGenerateMipmap(target);
+    }
 }
 
+pub fn get_integer(pname: u32) -> i32 {
+    let mut value = 0;
+    unsafe {
+        glGetIntegerv(pname, &mut value);
+    }
+    value
+}
 
 /// Native always supports RGBA16F color attachments (GL 3.3 core).
 pub fn cap_half_float_target() -> bool {

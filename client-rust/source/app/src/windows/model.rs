@@ -117,16 +117,63 @@ impl WindowModel {
     /// Representative sample state for demos + screenshot verification.
     pub fn sample() -> Self {
         let items = vec![
-            ItemStack { id: 1, name: "SLUGTHROWER".into(), kind: ItemKind::Weapon, qty: 1, equipped: true },
-            ItemStack { id: 2, name: "RIFLE AMMO".into(), kind: ItemKind::Ammo, qty: 240, equipped: false },
-            ItemStack { id: 3, name: "MEDKIT".into(), kind: ItemKind::Medical, qty: 4, equipped: false },
-            ItemStack { id: 4, name: "SCRAP ALLOY".into(), kind: ItemKind::Resource, qty: 58, equipped: false },
-            ItemStack { id: 5, name: "SURVEY TOOL".into(), kind: ItemKind::Tool, qty: 1, equipped: false },
-            ItemStack { id: 6, name: "FLAK VEST".into(), kind: ItemKind::Gear, qty: 1, equipped: true },
-            ItemStack { id: 7, name: "RATION".into(), kind: ItemKind::Item, qty: 12, equipped: false },
+            ItemStack {
+                id: 1,
+                name: "SLUGTHROWER".into(),
+                kind: ItemKind::Weapon,
+                qty: 1,
+                equipped: true,
+            },
+            ItemStack {
+                id: 2,
+                name: "RIFLE AMMO".into(),
+                kind: ItemKind::Ammo,
+                qty: 240,
+                equipped: false,
+            },
+            ItemStack {
+                id: 3,
+                name: "MEDKIT".into(),
+                kind: ItemKind::Medical,
+                qty: 4,
+                equipped: false,
+            },
+            ItemStack {
+                id: 4,
+                name: "SCRAP ALLOY".into(),
+                kind: ItemKind::Resource,
+                qty: 58,
+                equipped: false,
+            },
+            ItemStack {
+                id: 5,
+                name: "SURVEY TOOL".into(),
+                kind: ItemKind::Tool,
+                qty: 1,
+                equipped: false,
+            },
+            ItemStack {
+                id: 6,
+                name: "FLAK VEST".into(),
+                kind: ItemKind::Gear,
+                qty: 1,
+                equipped: true,
+            },
+            ItemStack {
+                id: 7,
+                name: "RATION".into(),
+                kind: ItemKind::Item,
+                qty: 12,
+                equipped: false,
+            },
         ];
         Self {
-            inventory: Inventory { items, credits: 1280, capacity: 24, selected: Some(1) },
+            inventory: Inventory {
+                items,
+                credits: 1280,
+                capacity: 24,
+                selected: Some(1),
+            },
             character: CharacterSheet {
                 name: "DRIFTER".into(),
                 health: 100.0,
@@ -137,28 +184,77 @@ impl WindowModel {
                 credits: 1280,
                 title: "MARKSMAN".into(),
                 professions: vec![
-                    Profession { label: "COMBAT".into(), level: 7 },
-                    Profession { label: "MEDICINE".into(), level: 3 },
-                    Profession { label: "SURVEY".into(), level: 5 },
+                    Profession {
+                        label: "COMBAT".into(),
+                        level: 7,
+                    },
+                    Profession {
+                        label: "MEDICINE".into(),
+                        level: 3,
+                    },
+                    Profession {
+                        label: "SURVEY".into(),
+                        level: 5,
+                    },
                 ],
                 title_options: vec!["MARKSMAN".into(), "MEDIC".into(), "SURVEYOR".into()],
             },
             skills: Skills {
                 nodes: vec![
-                    SkillNode { label: "RIFLES".into(), progress: 0.8, rank: 4, locked: false },
-                    SkillNode { label: "MEDICINE".into(), progress: 0.4, rank: 2, locked: false },
-                    SkillNode { label: "SURVEY".into(), progress: 0.6, rank: 3, locked: false },
-                    SkillNode { label: "CRAFTING".into(), progress: 0.2, rank: 1, locked: false },
-                    SkillNode { label: "PILOTING".into(), progress: 0.0, rank: 0, locked: true },
+                    SkillNode {
+                        label: "RIFLES".into(),
+                        progress: 0.8,
+                        rank: 4,
+                        locked: false,
+                    },
+                    SkillNode {
+                        label: "MEDICINE".into(),
+                        progress: 0.4,
+                        rank: 2,
+                        locked: false,
+                    },
+                    SkillNode {
+                        label: "SURVEY".into(),
+                        progress: 0.6,
+                        rank: 3,
+                        locked: false,
+                    },
+                    SkillNode {
+                        label: "CRAFTING".into(),
+                        progress: 0.2,
+                        rank: 1,
+                        locked: false,
+                    },
+                    SkillNode {
+                        label: "PILOTING".into(),
+                        progress: 0.0,
+                        rank: 0,
+                        locked: true,
+                    },
                 ],
             },
             options: Options {
                 rows: vec![
-                    OptionRow { label: "MASTER VOLUME".into(), kind: OptionKind::Slider(0.75) },
-                    OptionRow { label: "MUSIC VOLUME".into(), kind: OptionKind::Slider(0.5) },
-                    OptionRow { label: "FULLSCREEN".into(), kind: OptionKind::Toggle(true) },
-                    OptionRow { label: "INVERT Y".into(), kind: OptionKind::Toggle(false) },
-                    OptionRow { label: "SHOW FPS".into(), kind: OptionKind::Toggle(false) },
+                    OptionRow {
+                        label: "MASTER VOLUME".into(),
+                        kind: OptionKind::Slider(0.75),
+                    },
+                    OptionRow {
+                        label: "MUSIC VOLUME".into(),
+                        kind: OptionKind::Slider(0.5),
+                    },
+                    OptionRow {
+                        label: "FULLSCREEN".into(),
+                        kind: OptionKind::Toggle(true),
+                    },
+                    OptionRow {
+                        label: "INVERT Y".into(),
+                        kind: OptionKind::Toggle(false),
+                    },
+                    OptionRow {
+                        label: "SHOW FPS".into(),
+                        kind: OptionKind::Toggle(false),
+                    },
                 ],
             },
         }

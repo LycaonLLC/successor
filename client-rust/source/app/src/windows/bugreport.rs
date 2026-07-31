@@ -1,9 +1,9 @@
 //! BUGREPORT — bug report submission window UI.
 
-use super::{WindowAction, DIM, ACCENT};
+use super::{WindowAction, ACCENT, DIM};
 use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder, ButtonStyle, TextField};
 use std::cell::RefCell;
+use successor_engine_render::ui::{ButtonStyle, TextField, UiBuilder};
 
 thread_local! {
     static BUG_BODY: RefCell<TextField> = RefCell::new(TextField::new(256));
@@ -24,12 +24,18 @@ impl BugReportModel {
     }
 }
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &BugReportModel, icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &BugReportModel,
+    icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, h] = rect;
 
     // Header
     ui.text("SUBMIT BUG REPORT", x, y, 2.2, ACCENT);
-    
+
     // Draw icon if available
     if let Some((col, row)) = icons.cell("bug-report") {
         ui.icon(col, row, x + w - 32.0, y - 4.0, 24.0, 24.0, ACCENT);
@@ -38,7 +44,13 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &BugReportModel, icons: &
     let start_y = y + 26.0;
 
     // Help Intro
-    ui.text("TELL US WHAT BROKE, WHAT YOU EXPECTED,", x, start_y, 1.4, DIM);
+    ui.text(
+        "TELL US WHAT BROKE, WHAT YOU EXPECTED,",
+        x,
+        start_y,
+        1.4,
+        DIM,
+    );
     ui.text("AND HOW TO REPRODUCE IT.", x, start_y + 12.0, 1.4, DIM);
 
     // Category Selector
@@ -55,7 +67,7 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &BugReportModel, icons: &
 
     let cat_btn_w = (w - 12.0) / 3.0;
     let cat_btn_h = 22.0;
-    
+
     for (i, &(cat_id, label)) in categories.iter().enumerate() {
         let col = i % 3;
         let row = i / 3;
@@ -80,7 +92,7 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &BugReportModel, icons: &
 
     let body_field_y = body_label_y + 14.0;
     let body_field_h = h - (body_field_y - y) - 52.0; // leave space for diagnostics + submit button
-    
+
     BUG_BODY.with(|f| {
         let mut f = f.borrow_mut();
         ui.text_field(&mut f, x, body_field_y, w, body_field_h, 1.6, true);
@@ -88,7 +100,13 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &BugReportModel, icons: &
 
     // Diagnostics / Status Foot
     let foot_y = body_field_y + body_field_h + 8.0;
-    ui.text("SESSION DIAGNOSTICS WILL BE SENT AUTOMATICALLY.", x, foot_y, 1.2, DIM);
+    ui.text(
+        "SESSION DIAGNOSTICS WILL BE SENT AUTOMATICALLY.",
+        x,
+        foot_y,
+        1.2,
+        DIM,
+    );
 
     if let Some(status) = &model.status_text {
         ui.text(status, x, foot_y + 14.0, 1.4, ACCENT);
@@ -111,7 +129,7 @@ mod tests {
         let icons = Icons::load();
         let model = BugReportModel::sample();
         let mut ui = UiBuilder::new(icons.meta);
-        
+
         // rect = [10.0, 10.0, 300.0, 400.0]
         // Submit button is at bottom: btn_y = 10.0 + 400.0 - 30.0 = 380.0
         // Size = 300.0 x 26.0, x = 10.0
@@ -121,16 +139,29 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [10.0, 10.0, 300.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 300.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [10.0, 10.0, 300.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 300.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert!(
             out.contains(&WindowAction::Button("bug:submit".into())),
-            "Expected bug:submit action, got {:?}", out
+            "Expected bug:submit action, got {:?}",
+            out
         );
     }
 }

@@ -72,7 +72,7 @@ mod tests {
     fn hysteresis_holds_tier_at_boundary() {
         let mut lod = PawnLod::default();
         lod.update(20.0); // HiFi
-        // Between radius (40) and radius+hysteresis (44): stays HiFi.
+                          // Between radius (40) and radius+hysteresis (44): stays HiFi.
         assert_eq!(lod.update(42.0), LodTier::HiFi);
         // Past hysteresis: drops to Sim.
         assert_eq!(lod.update(45.0), LodTier::Sim);

@@ -1,7 +1,7 @@
 //! TRADE — Secure two-party item exchange content view.
-use super::{WindowAction, TEXT, DIM, ACCENT, SLOT, SLOT_EDGE};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder, ButtonStyle};
+use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
 #[derive(Clone, Debug)]
 pub struct ItemStack {
@@ -24,15 +24,31 @@ impl TradeModel {
     pub fn sample() -> Self {
         Self {
             my_inventory: vec![
-                ItemStack { id: 10, name: "MEDKIT".into(), kind: "item-medical".into(), qty: 2 },
-                ItemStack { id: 11, name: "SCRAP ALLOY".into(), kind: "item-resource".into(), qty: 100 },
+                ItemStack {
+                    id: 10,
+                    name: "MEDKIT".into(),
+                    kind: "item-medical".into(),
+                    qty: 2,
+                },
+                ItemStack {
+                    id: 11,
+                    name: "SCRAP ALLOY".into(),
+                    kind: "item-resource".into(),
+                    qty: 100,
+                },
             ],
-            my_offer: vec![
-                ItemStack { id: 12, name: "SLUGTHROWER".into(), kind: "item-weapon".into(), qty: 1 },
-            ],
-            their_offer: vec![
-                ItemStack { id: 20, name: "RIFLE AMMO".into(), kind: "item-ammo".into(), qty: 120 },
-            ],
+            my_offer: vec![ItemStack {
+                id: 12,
+                name: "SLUGTHROWER".into(),
+                kind: "item-weapon".into(),
+                qty: 1,
+            }],
+            their_offer: vec![ItemStack {
+                id: 20,
+                name: "RIFLE AMMO".into(),
+                kind: "item-ammo".into(),
+                qty: 120,
+            }],
             my_accepted: false,
             their_accepted: true,
         }
@@ -154,11 +170,19 @@ pub fn draw(
     let bottom_y = y + h - 50.0;
 
     // Lock states indicators
-    let my_status = if model.my_accepted { "YOU: LOCKED" } else { "YOU: UNLOCKED" };
+    let my_status = if model.my_accepted {
+        "YOU: LOCKED"
+    } else {
+        "YOU: UNLOCKED"
+    };
     let my_color = if model.my_accepted { ACCENT } else { DIM };
     ui.text(my_status, x + 8.0, bottom_y + 8.0, 1.8, my_color);
 
-    let their_status = if model.their_accepted { "PARTNER: LOCKED" } else { "PARTNER: UNLOCKED" };
+    let their_status = if model.their_accepted {
+        "PARTNER: LOCKED"
+    } else {
+        "PARTNER: UNLOCKED"
+    };
     let their_color = if model.their_accepted { ACCENT } else { DIM };
     ui.text(their_status, x + 8.0, bottom_y + 24.0, 1.8, their_color);
 
@@ -175,7 +199,11 @@ pub fn draw(
         accept_style.fill = [180, 130, 40, 210]; // warm accent-like color
     }
 
-    let accept_label = if model.my_accepted { "ACCEPTED" } else { "ACCEPT" };
+    let accept_label = if model.my_accepted {
+        "ACCEPTED"
+    } else {
+        "ACCEPT"
+    };
     if ui.button(btn_x, btn_y, btn_w, btn_h, accept_label, accept_style) {
         out.push(WindowAction::TradeAccept);
     }
@@ -205,12 +233,24 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 500.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 500.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert_eq!(out, vec![WindowAction::TradeOffer(10)]);
     }
@@ -232,12 +272,24 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 500.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 500.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert_eq!(out, vec![WindowAction::TradeAccept]);
     }

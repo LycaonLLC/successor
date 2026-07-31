@@ -34,13 +34,27 @@ pub const fn vec3(x: f32, y: f32, z: f32) -> Vec3 {
 }
 
 impl Vec3 {
-    pub const ZERO: Vec3 = Vec3 { x: 0.0, y: 0.0, z: 0.0 };
-    pub const ONE: Vec3 = Vec3 { x: 1.0, y: 1.0, z: 1.0 };
-    pub const Y: Vec3 = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
+    pub const ZERO: Vec3 = Vec3 {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+    };
+    pub const ONE: Vec3 = Vec3 {
+        x: 1.0,
+        y: 1.0,
+        z: 1.0,
+    };
+    pub const Y: Vec3 = Vec3 {
+        x: 0.0,
+        y: 1.0,
+        z: 0.0,
+    };
 
+    #[allow(clippy::should_implement_trait)]
     pub fn add(self, o: Vec3) -> Vec3 {
         vec3(self.x + o.x, self.y + o.y, self.z + o.z)
     }
+    #[allow(clippy::should_implement_trait)]
     pub fn sub(self, o: Vec3) -> Vec3 {
         vec3(self.x - o.x, self.y - o.y, self.z - o.z)
     }
@@ -98,7 +112,12 @@ impl Default for Quat {
 }
 
 impl Quat {
-    pub const IDENTITY: Quat = Quat { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
+    pub const IDENTITY: Quat = Quat {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        w: 1.0,
+    };
 
     pub fn from_axis_angle(axis: Vec3, radians: f32) -> Quat {
         let a = axis.normalize();
@@ -117,6 +136,7 @@ impl Quat {
         Quat::from_axis_angle(Vec3::Y, radians)
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn mul(self, o: Quat) -> Quat {
         Quat {
             w: self.w * o.w - self.x * o.x - self.y * o.y - self.z * o.z,
@@ -275,10 +295,22 @@ impl Mat4 {
         let u = s.cross(f);
         Mat4 {
             m: [
-                s.x, u.x, -f.x, 0.0, //
-                s.y, u.y, -f.y, 0.0, //
-                s.z, u.z, -f.z, 0.0, //
-                -s.dot(eye), -u.dot(eye), f.dot(eye), 1.0, //
+                s.x,
+                u.x,
+                -f.x,
+                0.0, //
+                s.y,
+                u.y,
+                -f.y,
+                0.0, //
+                s.z,
+                u.z,
+                -f.z,
+                0.0, //
+                -s.dot(eye),
+                -u.dot(eye),
+                f.dot(eye),
+                1.0, //
             ],
         }
     }
@@ -289,37 +321,69 @@ impl Mat4 {
         let m = &self.m;
         let mut inv = [0.0f32; 16];
         inv[0] = m[5] * m[10] * m[15] - m[5] * m[11] * m[14] - m[9] * m[6] * m[15]
-            + m[9] * m[7] * m[14] + m[13] * m[6] * m[11] - m[13] * m[7] * m[10];
+            + m[9] * m[7] * m[14]
+            + m[13] * m[6] * m[11]
+            - m[13] * m[7] * m[10];
         inv[4] = -m[4] * m[10] * m[15] + m[4] * m[11] * m[14] + m[8] * m[6] * m[15]
-            - m[8] * m[7] * m[14] - m[12] * m[6] * m[11] + m[12] * m[7] * m[10];
+            - m[8] * m[7] * m[14]
+            - m[12] * m[6] * m[11]
+            + m[12] * m[7] * m[10];
         inv[8] = m[4] * m[9] * m[15] - m[4] * m[11] * m[13] - m[8] * m[5] * m[15]
-            + m[8] * m[7] * m[13] + m[12] * m[5] * m[11] - m[12] * m[7] * m[9];
+            + m[8] * m[7] * m[13]
+            + m[12] * m[5] * m[11]
+            - m[12] * m[7] * m[9];
         inv[12] = -m[4] * m[9] * m[14] + m[4] * m[10] * m[13] + m[8] * m[5] * m[14]
-            - m[8] * m[6] * m[13] - m[12] * m[5] * m[10] + m[12] * m[6] * m[9];
+            - m[8] * m[6] * m[13]
+            - m[12] * m[5] * m[10]
+            + m[12] * m[6] * m[9];
         inv[1] = -m[1] * m[10] * m[15] + m[1] * m[11] * m[14] + m[9] * m[2] * m[15]
-            - m[9] * m[3] * m[14] - m[13] * m[2] * m[11] + m[13] * m[3] * m[10];
+            - m[9] * m[3] * m[14]
+            - m[13] * m[2] * m[11]
+            + m[13] * m[3] * m[10];
         inv[5] = m[0] * m[10] * m[15] - m[0] * m[11] * m[14] - m[8] * m[2] * m[15]
-            + m[8] * m[3] * m[14] + m[12] * m[2] * m[11] - m[12] * m[3] * m[10];
+            + m[8] * m[3] * m[14]
+            + m[12] * m[2] * m[11]
+            - m[12] * m[3] * m[10];
         inv[9] = -m[0] * m[9] * m[15] + m[0] * m[11] * m[13] + m[8] * m[1] * m[15]
-            - m[8] * m[3] * m[13] - m[12] * m[1] * m[11] + m[12] * m[3] * m[9];
+            - m[8] * m[3] * m[13]
+            - m[12] * m[1] * m[11]
+            + m[12] * m[3] * m[9];
         inv[13] = m[0] * m[9] * m[14] - m[0] * m[10] * m[13] - m[8] * m[1] * m[14]
-            + m[8] * m[2] * m[13] + m[12] * m[1] * m[10] - m[12] * m[2] * m[9];
+            + m[8] * m[2] * m[13]
+            + m[12] * m[1] * m[10]
+            - m[12] * m[2] * m[9];
         inv[2] = m[1] * m[6] * m[15] - m[1] * m[7] * m[14] - m[5] * m[2] * m[15]
-            + m[5] * m[3] * m[14] + m[13] * m[2] * m[7] - m[13] * m[3] * m[6];
+            + m[5] * m[3] * m[14]
+            + m[13] * m[2] * m[7]
+            - m[13] * m[3] * m[6];
         inv[6] = -m[0] * m[6] * m[15] + m[0] * m[7] * m[14] + m[4] * m[2] * m[15]
-            - m[4] * m[3] * m[14] - m[12] * m[2] * m[7] + m[12] * m[3] * m[6];
+            - m[4] * m[3] * m[14]
+            - m[12] * m[2] * m[7]
+            + m[12] * m[3] * m[6];
         inv[10] = m[0] * m[5] * m[15] - m[0] * m[7] * m[13] - m[4] * m[1] * m[15]
-            + m[4] * m[3] * m[13] + m[12] * m[1] * m[7] - m[12] * m[3] * m[5];
+            + m[4] * m[3] * m[13]
+            + m[12] * m[1] * m[7]
+            - m[12] * m[3] * m[5];
         inv[14] = -m[0] * m[5] * m[14] + m[0] * m[6] * m[13] + m[4] * m[1] * m[14]
-            - m[4] * m[2] * m[13] - m[12] * m[1] * m[6] + m[12] * m[2] * m[5];
+            - m[4] * m[2] * m[13]
+            - m[12] * m[1] * m[6]
+            + m[12] * m[2] * m[5];
         inv[3] = -m[1] * m[6] * m[11] + m[1] * m[7] * m[10] + m[5] * m[2] * m[11]
-            - m[5] * m[3] * m[10] - m[9] * m[2] * m[7] + m[9] * m[3] * m[6];
+            - m[5] * m[3] * m[10]
+            - m[9] * m[2] * m[7]
+            + m[9] * m[3] * m[6];
         inv[7] = m[0] * m[6] * m[11] - m[0] * m[7] * m[10] - m[4] * m[2] * m[11]
-            + m[4] * m[3] * m[10] + m[8] * m[2] * m[7] - m[8] * m[3] * m[6];
+            + m[4] * m[3] * m[10]
+            + m[8] * m[2] * m[7]
+            - m[8] * m[3] * m[6];
         inv[11] = -m[0] * m[5] * m[11] + m[0] * m[7] * m[9] + m[4] * m[1] * m[11]
-            - m[4] * m[3] * m[9] - m[8] * m[1] * m[7] + m[8] * m[3] * m[5];
+            - m[4] * m[3] * m[9]
+            - m[8] * m[1] * m[7]
+            + m[8] * m[3] * m[5];
         inv[15] = m[0] * m[5] * m[10] - m[0] * m[6] * m[9] - m[4] * m[1] * m[10]
-            + m[4] * m[2] * m[9] + m[8] * m[1] * m[6] - m[8] * m[2] * m[5];
+            + m[4] * m[2] * m[9]
+            + m[8] * m[1] * m[6]
+            - m[8] * m[2] * m[5];
         let det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
         if det.abs() < 1e-12 {
             return Mat4::IDENTITY;
@@ -358,16 +422,36 @@ impl Mat4 {
         let trace = r0.x + r1.y + r2.z;
         let q = if trace > 0.0 {
             let w4 = sqrtf(trace + 1.0) * 2.0;
-            Quat { w: 0.25 * w4, x: (r1.z - r2.y) / w4, y: (r2.x - r0.z) / w4, z: (r0.y - r1.x) / w4 }
+            Quat {
+                w: 0.25 * w4,
+                x: (r1.z - r2.y) / w4,
+                y: (r2.x - r0.z) / w4,
+                z: (r0.y - r1.x) / w4,
+            }
         } else if r0.x > r1.y && r0.x > r2.z {
             let s4 = sqrtf(1.0 + r0.x - r1.y - r2.z) * 2.0;
-            Quat { w: (r1.z - r2.y) / s4, x: 0.25 * s4, y: (r1.x + r0.y) / s4, z: (r2.x + r0.z) / s4 }
+            Quat {
+                w: (r1.z - r2.y) / s4,
+                x: 0.25 * s4,
+                y: (r1.x + r0.y) / s4,
+                z: (r2.x + r0.z) / s4,
+            }
         } else if r1.y > r2.z {
             let s4 = sqrtf(1.0 + r1.y - r0.x - r2.z) * 2.0;
-            Quat { w: (r2.x - r0.z) / s4, x: (r1.x + r0.y) / s4, y: 0.25 * s4, z: (r2.y + r1.z) / s4 }
+            Quat {
+                w: (r2.x - r0.z) / s4,
+                x: (r1.x + r0.y) / s4,
+                y: 0.25 * s4,
+                z: (r2.y + r1.z) / s4,
+            }
         } else {
             let s4 = sqrtf(1.0 + r2.z - r0.x - r1.y) * 2.0;
-            Quat { w: (r0.y - r1.x) / s4, x: (r2.x + r0.z) / s4, y: (r2.y + r1.z) / s4, z: 0.25 * s4 }
+            Quat {
+                w: (r0.y - r1.x) / s4,
+                x: (r2.x + r0.z) / s4,
+                y: (r2.y + r1.z) / s4,
+                z: 0.25 * s4,
+            }
         };
         (t, q.normalize(), s)
     }
@@ -399,7 +483,10 @@ mod tests {
     fn yaw_90_rotates_x_to_minus_z() {
         let q = Quat::from_yaw(core::f32::consts::FRAC_PI_2);
         let p = Mat4::from_quat(q).transform_point(vec3(1.0, 0.0, 0.0));
-        assert!(approx(p.x, 0.0) && approx(p.y, 0.0) && approx(p.z, -1.0), "{p:?}");
+        assert!(
+            approx(p.x, 0.0) && approx(p.y, 0.0) && approx(p.z, -1.0),
+            "{p:?}"
+        );
     }
 
     #[test]
@@ -419,6 +506,9 @@ mod tests {
             vec3(2.0, 2.0, 2.0),
         );
         let p = m.transform_point(vec3(1.0, 0.0, 0.0));
-        assert!(approx(p.x, 10.0) && approx(p.y, 0.0) && approx(p.z, -2.0), "{p:?}");
+        assert!(
+            approx(p.x, 10.0) && approx(p.y, 0.0) && approx(p.z, -2.0),
+            "{p:?}"
+        );
     }
 }

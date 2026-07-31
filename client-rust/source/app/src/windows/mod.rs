@@ -38,24 +38,24 @@ pub enum WindowAction {
     Button(String),
 }
 
-pub mod inventory;
-pub mod character;
-pub mod skills;
-pub mod options;
-pub mod loot;
-pub mod bank;
-pub mod trade;
-pub mod craft;
-pub mod survey;
-pub mod converse;
-pub mod travel;
-pub mod datapad;
-pub mod clone;
-pub mod pa;
-pub mod splice;
-pub mod macros;
 pub mod actions;
+pub mod bank;
 pub mod bugreport;
+pub mod character;
+pub mod clone;
+pub mod converse;
+pub mod craft;
+pub mod datapad;
+pub mod inventory;
+pub mod loot;
+pub mod macros;
+pub mod options;
+pub mod pa;
+pub mod skills;
+pub mod splice;
+pub mod survey;
+pub mod trade;
+pub mod travel;
 
 /// Dispatch content for the window `id` into `ui`. Unknown ids draw a stub.
 pub fn content(

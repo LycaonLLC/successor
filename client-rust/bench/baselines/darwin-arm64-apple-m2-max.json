@@ -20,13 +20,16 @@
     }
   },
   "sizes": {
-    "native_stripped": 1225896,
-    "wasm_stripped": 515409
+    "native_stripped": 1442216,
+    "wasm_stripped": 822432
   },
   "runtime": {
     "frame_p50_ms": 3.582,
     "frame_p99_ms": 3.9076,
-    "peak_rss_bytes": 8634368,
+    "peak_rss_bytes": 9207808,
     "frame_allocs_steady": 0
+  },
+  "render": {
+    "render_gpu_p99_ms": 4.317417
   }
 }

@@ -58,10 +58,24 @@ pub fn paint_terrain_pixel(seed: i32, world_x: f64, world_z: f64, biome: Biome) 
     let (wax, waz, wcx, wcz) = wind_axis();
 
     let macro_ = fbm(seed, world_x * 0.0045, world_z * 0.0045, 0x2b01);
-    let scrub_field = fbm(seed, world_x * 0.018 + 37.17, world_z * 0.018 - 19.31, 0x5107);
-    let salt_long = fbm(seed, world_x * 0.0075 + world_z * 0.0015, world_z * 0.052, 0x91af);
+    let scrub_field = fbm(
+        seed,
+        world_x * 0.018 + 37.17,
+        world_z * 0.018 - 19.31,
+        0x5107,
+    );
+    let salt_long = fbm(
+        seed,
+        world_x * 0.0075 + world_z * 0.0015,
+        world_z * 0.052,
+        0x91af,
+    );
     let salt_fine = value_noise(seed, world_x * 0.022, world_z * 0.19, 0xbad5);
-    let hardpan_w = smoothstep(0.54, 0.73, salt_long * 0.82 + salt_fine * 0.18 + (macro_ - 0.5) * 0.1);
+    let hardpan_w = smoothstep(
+        0.54,
+        0.73,
+        salt_long * 0.82 + salt_fine * 0.18 + (macro_ - 0.5) * 0.1,
+    );
     let scrub_w = (1.0 - hardpan_w) * smoothstep(0.56, 0.75, scrub_field + (0.53 - macro_) * 0.14);
     let desert_w = (1.0 - hardpan_w - scrub_w).max(0.0);
 
@@ -69,20 +83,27 @@ pub fn paint_terrain_pixel(seed: i32, world_x: f64, world_z: f64, biome: Biome) 
     let across = world_x * wcx + world_z * wcz;
     let fine = value_noise(seed, world_x * 0.92, world_z * 0.92, 0x7001) * 2.0 - 1.0;
     let gravel = gravel_speckle(seed, world_x, world_z) * (desert_w + scrub_w * 0.85);
-    let striation = wind_striation(seed, along, across) * (desert_w + scrub_w * 0.62 + hardpan_w * 0.25);
+    let striation =
+        wind_striation(seed, along, across) * (desert_w + scrub_w * 0.62 + hardpan_w * 0.25);
     let cracks = if hardpan_w > 0.34 {
         hardpan_crack(seed, world_x, world_z, hardpan_w)
     } else {
         0.0
     };
     let scrub_tuft = if scrub_w > 0.18
-        && hash_unit(seed, (world_x * 1.55).floor() as i32, (world_z * 1.55).floor() as i32, 0x7a11) > 0.82
+        && hash_unit(
+            seed,
+            (world_x * 1.55).floor() as i32,
+            (world_z * 1.55).floor() as i32,
+            0x7a11,
+        ) > 0.82
     {
         -10.0 * scrub_w
     } else {
         0.0
     };
-    let hardpan_mottle = (value_noise(seed, world_x * 0.045, world_z * 1.18, 0x55aa) - 0.5) * 5.5 * hardpan_w;
+    let hardpan_mottle =
+        (value_noise(seed, world_x * 0.045, world_z * 1.18, 0x55aa) - 0.5) * 5.5 * hardpan_w;
     let value_scale = 1.0 + (macro_ - 0.5) * 0.062 + fine * 0.026 + gravel + striation + cracks;
 
     let mut r = (DESERT[0] * desert_w + SCRUB[0] * scrub_w + HARDPAN[0] * hardpan_w) * value_scale;
@@ -119,7 +140,12 @@ fn paint_forest_terrain_pixel(seed: i32, world_x: f64, world_z: f64) -> Texel {
     let clearing = clearing_mask_at(seed, world_x, world_z);
     let clearing_blend = smoothstep(0.34, 0.78, clearing);
     let canopy = 1.0 - clearing_blend;
-    let macro_shade = fbm(seed, world_x * 0.0065 + 13.7, world_z * 0.0065 - 21.9, 0x4f31);
+    let macro_shade = fbm(
+        seed,
+        world_x * 0.0065 + 13.7,
+        world_z * 0.0065 - 21.9,
+        0x4f31,
+    );
     let moss_field = fbm(seed, world_x * 0.016 - 8.1, world_z * 0.016 + 5.4, 0x8d22);
     let duff_field = fbm(seed, world_x * 0.024 + 41.3, world_z * 0.024 - 15.8, 0xa907);
     let mut moss_w = 0.16 + moss_field * 0.24 + clearing_blend * 0.14;
@@ -138,10 +164,12 @@ fn paint_forest_terrain_pixel(seed: i32, world_x: f64, world_z: f64) -> Texel {
     let clearing_b = (MOSS[2] * 0.82 + LOAM[2] * 0.18) * 1.12;
     let clear_mix = clearing_blend * 0.78;
 
-    let leaf = (value_noise(seed, world_x * 0.075 + 3.7, world_z * 0.075 - 2.9, 0xd4f1) - 0.5) * 0.1;
+    let leaf =
+        (value_noise(seed, world_x * 0.075 + 3.7, world_z * 0.075 - 2.9, 0xd4f1) - 0.5) * 0.1;
     let speckle = forest_speckle(seed, world_x, world_z);
     let veins = root_vein_dark(seed, world_x, world_z, canopy);
-    let value_scale = 0.91 + (macro_shade - 0.5) * 0.07 + clearing_blend * 0.13 + leaf + speckle + veins;
+    let value_scale =
+        0.91 + (macro_shade - 0.5) * 0.07 + clearing_blend * 0.13 + leaf + speckle + veins;
 
     let r = lerp(canopy_r, clearing_r, clear_mix) * value_scale;
     let g = lerp(canopy_g, clearing_g, clear_mix) * value_scale;
@@ -167,11 +195,43 @@ fn forest_speckle(seed: i32, world_x: f64, world_z: f64) -> f64 {
 }
 
 fn root_vein_dark(seed: i32, world_x: f64, world_z: f64, canopy: f64) -> f64 {
-    worley_vein(seed, world_x * 0.112, world_z * 0.112, 0x6a31, 0x6a32, 0x6a33, 0.18, 0.82, 0.09, 0.078, 0.024, -0.08, 0.18, 0.92, canopy)
+    worley_vein(
+        seed,
+        world_x * 0.112,
+        world_z * 0.112,
+        0x6a31,
+        0x6a32,
+        0x6a33,
+        0.18,
+        0.82,
+        0.09,
+        0.078,
+        0.024,
+        -0.08,
+        0.18,
+        0.92,
+        canopy,
+    )
 }
 
 fn hardpan_crack(seed: i32, world_x: f64, world_z: f64, hardpan_w: f64) -> f64 {
-    worley_vein(seed, world_x * 0.064, world_z * 0.064, 0x9c21, 0xa17d, 0x4e11, 0.42, 0.74, 0.13, 0.072, 0.018, -0.1, 0.34, 0.78, hardpan_w)
+    worley_vein(
+        seed,
+        world_x * 0.064,
+        world_z * 0.064,
+        0x9c21,
+        0xa17d,
+        0x4e11,
+        0.42,
+        0.74,
+        0.13,
+        0.072,
+        0.018,
+        -0.1,
+        0.34,
+        0.78,
+        hardpan_w,
+    )
 }
 
 /// Shared Worley-edge vein used by both `root_vein_dark` and `hardpan_crack`.
@@ -233,10 +293,13 @@ fn wind_striation(seed: i32, along: f64, across: f64) -> f64 {
     let field = fbm(seed, along * 0.0031, across * 0.0031, 0x77aa);
     let field_mask = 0.18 + 0.82 * smoothstep(0.42, 0.66, field);
     let wavelength = 6.0 + value_noise(seed, along * 0.006, across * 0.022, 0x6d51) * 8.0;
-    let drift = (fbm(seed, along * 0.018 + 9.7, across * 0.006 - 4.3, 0x72a9) - 0.5) * wavelength * 1.35;
+    let drift =
+        (fbm(seed, along * 0.018 + 9.7, across * 0.006 - 4.3, 0x72a9) - 0.5) * wavelength * 1.35;
     let phase = ((across + drift) / wavelength) * TAU;
     let ridged = phase.cos() * 0.68 + (phase * 2.0 + drift * 0.19).cos() * 0.32;
-    let amplitude = (0.06 + value_noise(seed, along * 0.011 - 2.1, across * 0.011 + 5.8, 0x3217) * 0.03) * field_mask;
+    let amplitude = (0.06
+        + value_noise(seed, along * 0.011 - 2.1, across * 0.011 + 5.8, 0x3217) * 0.03)
+        * field_mask;
     ridged * amplitude
 }
 
@@ -268,7 +331,8 @@ fn value_noise(seed: i32, x: f64, y: f64, salt: i32) -> f64 {
 /// 32-bit integer hash → [0,1). Mirrors the JS `Math.imul`/`>>>` sequence
 /// exactly using wrapping i32 multiply and unsigned shifts.
 fn hash_unit(seed: i32, x: i32, y: i32, salt: i32) -> f64 {
-    let mut h: i32 = seed ^ x.wrapping_mul(0x27d4_eb2d_u32 as i32) ^ y.wrapping_mul(0x1656_67b1) ^ salt;
+    let mut h: i32 =
+        seed ^ x.wrapping_mul(0x27d4_eb2d_u32 as i32) ^ y.wrapping_mul(0x1656_67b1) ^ salt;
     h = (h ^ (((h as u32) >> 15) as i32)).wrapping_mul(0x2c1b_3c6d);
     h = (h ^ (((h as u32) >> 12) as i32)).wrapping_mul(0x297a_2d39);
     let hu = (h ^ (((h as u32) >> 15) as i32)) as u32;

@@ -85,3 +85,17 @@ pub fn mouse_button_down(_button: i32) -> bool {
 pub mod http {
     pub use super::net::http_post_json;
 }
+
+pub fn read_pixels_rgba(width: i32, height: i32) -> Vec<u8> {
+    let mut pixels = vec![0; (width.max(0) * height.max(0) * 4) as usize];
+    gl::read_pixels(
+        0,
+        0,
+        width,
+        height,
+        gl::RGBA,
+        gl::UNSIGNED_BYTE,
+        &mut pixels,
+    );
+    pixels
+}

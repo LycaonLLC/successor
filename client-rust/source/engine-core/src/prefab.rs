@@ -185,8 +185,12 @@ mod tests {
         const NAME: &'static str = "transform";
         fn from_json(v: &Json) -> Result<Self, PrefabError> {
             Ok(Transform {
-                x: v.get("x").and_then(Json::as_f32).ok_or(PrefabError::BadComponent)?,
-                y: v.get("y").and_then(Json::as_f32).ok_or(PrefabError::BadComponent)?,
+                x: v.get("x")
+                    .and_then(Json::as_f32)
+                    .ok_or(PrefabError::BadComponent)?,
+                y: v.get("y")
+                    .and_then(Json::as_f32)
+                    .ok_or(PrefabError::BadComponent)?,
             })
         }
         fn to_json(&self, w: &mut JsonWriter) {
@@ -219,18 +223,23 @@ mod tests {
         .unwrap();
         let mut w = GameWorld::new();
         let e = create_entity_from_json(&mut w, &prefab).unwrap();
-        assert_eq!(w.get_component::<Transform>(e), Some(&mut Transform { x: 1.5, y: -2.0 }));
+        assert_eq!(
+            w.get_component::<Transform>(e),
+            Some(&mut Transform { x: 1.5, y: -2.0 })
+        );
         assert_eq!(w.get_component::<Health>(e), Some(&mut Health(42)));
     }
 
     #[test]
     fn unknown_component_rejected() {
-        let prefab = Json::parse(
-            r#"{ "schema": "successor.prefab.v1", "components": { "bogus": {} } }"#,
-        )
-        .unwrap();
+        let prefab =
+            Json::parse(r#"{ "schema": "successor.prefab.v1", "components": { "bogus": {} } }"#)
+                .unwrap();
         let mut w = GameWorld::new();
-        assert_eq!(create_entity_from_json(&mut w, &prefab), Err(PrefabError::UnknownComponent));
+        assert_eq!(
+            create_entity_from_json(&mut w, &prefab),
+            Err(PrefabError::UnknownComponent)
+        );
         assert_eq!(w.entity_count(), 0, "failed prefab leaves no entity");
     }
 
@@ -238,7 +247,10 @@ mod tests {
     fn wrong_schema_rejected() {
         let prefab = Json::parse(r#"{ "schema": "other.v1", "components": {} }"#).unwrap();
         let mut w = GameWorld::new();
-        assert_eq!(create_entity_from_json(&mut w, &prefab), Err(PrefabError::WrongSchema));
+        assert_eq!(
+            create_entity_from_json(&mut w, &prefab),
+            Err(PrefabError::WrongSchema)
+        );
     }
 
     #[test]
@@ -252,10 +264,16 @@ mod tests {
 
         let prefab = Json::parse(&json_str).unwrap();
         // Scratch must NOT appear in the prefab.
-        assert!(prefab.get("components").and_then(|c| c.get("scratch")).is_none());
+        assert!(prefab
+            .get("components")
+            .and_then(|c| c.get("scratch"))
+            .is_none());
         let mut w2 = GameWorld::new();
         let e2 = create_entity_from_json(&mut w2, &prefab).unwrap();
-        assert_eq!(w2.get_component::<Transform>(e2), Some(&mut Transform { x: 3.25, y: 0.5 }));
+        assert_eq!(
+            w2.get_component::<Transform>(e2),
+            Some(&mut Transform { x: 3.25, y: 0.5 })
+        );
         assert_eq!(w2.get_component::<Health>(e2), Some(&mut Health(7)));
         assert!(!w2.has_component::<Scratch>(e2));
     }

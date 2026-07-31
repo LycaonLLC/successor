@@ -49,13 +49,23 @@ pub struct ReconnectPolicy {
 
 impl Default for ReconnectPolicy {
     fn default() -> Self {
-        Self { attempt: 0, max_attempts: 6, base_delay_ms: 500, max_delay_ms: 8_000 }
+        Self {
+            attempt: 0,
+            max_attempts: 6,
+            base_delay_ms: 500,
+            max_delay_ms: 8_000,
+        }
     }
 }
 
 impl ReconnectPolicy {
     pub fn new(max_attempts: u32, base_delay_ms: u32, max_delay_ms: u32) -> Self {
-        Self { attempt: 0, max_attempts, base_delay_ms, max_delay_ms }
+        Self {
+            attempt: 0,
+            max_attempts,
+            base_delay_ms,
+            max_delay_ms,
+        }
     }
 
     /// Record a failed connection; returns the delay (ms) to wait before the
@@ -91,7 +101,10 @@ mod tests {
 
     #[test]
     fn release_identity_is_unlisted_not_production() {
-        assert!(!CURRENT.is_production(), "Rust client must stay unallowlisted");
+        assert!(
+            !CURRENT.is_production(),
+            "Rust client must stay unallowlisted"
+        );
         assert_eq!(CURRENT.channel, "unlisted");
         let h = CURRENT.header();
         assert!(h.starts_with("successor-rust-client/"));

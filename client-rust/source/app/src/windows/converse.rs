@@ -65,8 +65,20 @@ pub fn draw(
     let [x, y, w, h] = rect;
 
     // Draw speaker name and role
-    ui.text(&model.speaker_name.to_uppercase(), x + 10.0, y + 10.0, 2.0, ACCENT);
-    ui.text(&model.speaker_role.to_uppercase(), x + 10.0, y + 30.0, 1.5, DIM);
+    ui.text(
+        &model.speaker_name.to_uppercase(),
+        x + 10.0,
+        y + 10.0,
+        2.0,
+        ACCENT,
+    );
+    ui.text(
+        &model.speaker_role.to_uppercase(),
+        x + 10.0,
+        y + 30.0,
+        1.5,
+        DIM,
+    );
 
     // Separator line
     ui.rect(x + 10.0, y + 48.0, w - 20.0, 1.0, SLOT_EDGE);
@@ -110,10 +122,8 @@ pub fn draw(
             style.text = [100, 105, 110, 255];
         }
         let label = format!("{}. {}", i + 1, choice.label.to_uppercase());
-        if ui.button(x + 20.0, cur_y, w - 40.0, button_h, &label, style) {
-            if choice.enabled {
-                out.push(WindowAction::DialogueChoice(i));
-            }
+        if ui.button(x + 20.0, cur_y, w - 40.0, button_h, &label, style) && choice.enabled {
+            out.push(WindowAction::DialogueChoice(i));
         }
         cur_y += button_h + button_gap;
     }
@@ -131,9 +141,10 @@ mod tests {
             speaker_name: "TEST".into(),
             speaker_role: "TESTER".into(),
             prompt: "HELLO".into(),
-            choices: vec![
-                DialogueChoice { label: "CHOICE 1".into(), enabled: true },
-            ],
+            choices: vec![DialogueChoice {
+                label: "CHOICE 1".into(),
+                enabled: true,
+            }],
         };
         let mut ui = UiBuilder::new(icons.meta);
 
@@ -144,12 +155,24 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 500.0, 600.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 600.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 500.0, 600.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 600.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert!(out.contains(&WindowAction::DialogueChoice(0)));
     }

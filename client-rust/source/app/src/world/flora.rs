@@ -1,7 +1,7 @@
 //! Deterministic flora and small world-object scatter over terrain.
 //! Produces instance transforms for the renderer's instanced mesh path.
 
-use successor_engine_core::math::{Mat4, Quat, vec3};
+use successor_engine_core::math::{vec3, Mat4, Quat};
 
 /// A single placed flora instance.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -83,24 +83,27 @@ pub fn scatter(
                 let pz = cz as f32 + dz;
 
                 // Check bounds and exclusion predicate
-                if px >= area_min[0] && px <= area_max[0] && pz >= area_min[1] && pz <= area_max[1] {
-                    if !is_blocked([px, pz]) {
-                        let yaw_roll = hash_to_float(seed, cx, cz, i, 3);
-                        let yaw = yaw_roll * 2.0 * std::f32::consts::PI;
+                if px >= area_min[0]
+                    && px <= area_max[0]
+                    && pz >= area_min[1]
+                    && pz <= area_max[1]
+                    && !is_blocked([px, pz])
+                {
+                    let yaw_roll = hash_to_float(seed, cx, cz, i, 3);
+                    let yaw = yaw_roll * 2.0 * std::f32::consts::PI;
 
-                        let scale_roll = hash_to_float(seed, cx, cz, i, 4);
-                        let scale = 0.5 + scale_roll * 1.0;
+                    let scale_roll = hash_to_float(seed, cx, cz, i, 4);
+                    let scale = 0.5 + scale_roll * 1.0;
 
-                        let kind_roll = hash_to_float(seed, cx, cz, i, 5);
-                        let kind = ((kind_roll * 256.0) as u32).min(255) as u8;
+                    let kind_roll = hash_to_float(seed, cx, cz, i, 5);
+                    let kind = ((kind_roll * 256.0) as u32).min(255) as u8;
 
-                        instances.push(FloraInstance {
-                            pos: [px, 0.0, pz],
-                            yaw,
-                            scale,
-                            kind,
-                        });
-                    }
+                    instances.push(FloraInstance {
+                        pos: [px, 0.0, pz],
+                        yaw,
+                        scale,
+                        kind,
+                    });
                 }
             }
         }
@@ -167,13 +170,20 @@ mod tests {
         assert!(!res.is_empty());
 
         for inst in &res {
-            assert!(inst.pos[0] <= 5.0, "Found inst in blocked region: {:?}", inst.pos);
+            assert!(
+                inst.pos[0] <= 5.0,
+                "Found inst in blocked region: {:?}",
+                inst.pos
+            );
         }
 
         // Without blocking, some elements should be in x > 5.0
         let res_unblocked = scatter(seed, area_min, area_max, density, |_| false);
         let has_some_above_5 = res_unblocked.iter().any(|inst| inst.pos[0] > 5.0);
-        assert!(has_some_above_5, "Expected some unblocked instances above x=5.0");
+        assert!(
+            has_some_above_5,
+            "Expected some unblocked instances above x=5.0"
+        );
     }
 
     #[test]

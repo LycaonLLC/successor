@@ -31,7 +31,14 @@ pub struct SpatialOpts {
 
 impl Default for SpatialOpts {
     fn default() -> Self {
-        Self { min_distance: 3.5, max_distance: 34.0, rolloff: 1.35, far_gain_floor: 0.0, max_pan: 0.85, pan_distance: 13.0 }
+        Self {
+            min_distance: 3.5,
+            max_distance: 34.0,
+            rolloff: 1.35,
+            far_gain_floor: 0.0,
+            max_pan: 0.85,
+            pan_distance: 13.0,
+        }
     }
 }
 
@@ -71,7 +78,11 @@ pub fn spatial_mix(listener: Point, position: Point, o: SpatialOpts) -> SpatialM
     let gain = clampf(shaped * cutoff_gain, 0.0, 1.0);
     let max_pan = clampf(o.max_pan, 0.0, 1.0);
     let pan = clampf(dx / o.pan_distance, -max_pan, max_pan);
-    SpatialMix { distance, gain, pan }
+    SpatialMix {
+        distance,
+        gain,
+        pan,
+    }
 }
 
 /// Hard polyphony ceiling for a clip (port of `hardPolyphonyLimit`).
@@ -90,7 +101,11 @@ pub fn voice_concurrency_gain(overload_voices: i32) -> f32 {
     if overload_voices <= 0 {
         return 1.0;
     }
-    clampf(1.0 / libm::sqrtf(1.0 + overload_voices as f32 * 0.72), 0.38, 1.0)
+    clampf(
+        1.0 / libm::sqrtf(1.0 + overload_voices as f32 * 0.72),
+        0.38,
+        1.0,
+    )
 }
 
 /// Mono PCM sample (normalized f32) at a given sample rate.
@@ -102,7 +117,10 @@ pub struct Pcm {
 
 impl Pcm {
     pub fn new(samples: Vec<f32>, sample_rate: u32) -> Self {
-        Self { samples, sample_rate }
+        Self {
+            samples,
+            sample_rate,
+        }
     }
     pub fn duration_secs(&self) -> f32 {
         if self.sample_rate == 0 {
@@ -115,14 +133,14 @@ impl Pcm {
 
 #[derive(Clone, Copy)]
 struct Voice {
-    clip: usize,      // index into the clip bank
-    cursor: f32,      // fractional read position (samples)
-    step: f32,        // per-output-sample advance (pitch × sr ratio)
+    clip: usize, // index into the clip bank
+    cursor: f32, // fractional read position (samples)
+    step: f32,   // per-output-sample advance (pitch × sr ratio)
     gain: f32,
-    pan: f32,         // -1..1
+    pan: f32, // -1..1
     looped: bool,
     active: bool,
-    key: u32,         // clip/source key for polyphony accounting
+    key: u32, // clip/source key for polyphony accounting
 }
 
 /// A fixed-voice CPU mixer producing interleaved stereo f32.
@@ -139,7 +157,16 @@ impl Mixer {
             out_rate,
             clips: Vec::new(),
             voices: vec![
-                Voice { clip: 0, cursor: 0.0, step: 0.0, gain: 0.0, pan: 0.0, looped: false, active: false, key: 0 };
+                Voice {
+                    clip: 0,
+                    cursor: 0.0,
+                    step: 0.0,
+                    gain: 0.0,
+                    pan: 0.0,
+                    looped: false,
+                    active: false,
+                    key: 0
+                };
                 max_voices
             ],
             master: 1.0,
@@ -161,13 +188,26 @@ impl Mixer {
     }
 
     fn voices_for_key(&self, key: u32) -> u32 {
-        self.voices.iter().filter(|v| v.active && v.key == key).count() as u32
+        self.voices
+            .iter()
+            .filter(|v| v.active && v.key == key)
+            .count() as u32
     }
 
     /// Start a voice. `pitch` scales playback speed (1.0 = native). Enforces
     /// `polyphony` per `key` (steals the oldest-cursor voice of that key when
     /// full). Returns false if the clip index is invalid.
-    pub fn play(&mut self, clip: usize, key: u32, gain: f32, pan: f32, pitch: f32, looped: bool, polyphony: u32) -> bool {
+    #[allow(clippy::too_many_arguments)]
+    pub fn play(
+        &mut self,
+        clip: usize,
+        key: u32,
+        gain: f32,
+        pan: f32,
+        pitch: f32,
+        looped: bool,
+        polyphony: u32,
+    ) -> bool {
         if clip >= self.clips.len() {
             return false;
         }
@@ -283,14 +323,22 @@ mod tests {
 
     #[test]
     fn spatial_close_is_loud_centered() {
-        let m = spatial_mix(Point { x: 0.0, y: 0.0 }, Point { x: 0.0, y: 0.0 }, SpatialOpts::default());
+        let m = spatial_mix(
+            Point { x: 0.0, y: 0.0 },
+            Point { x: 0.0, y: 0.0 },
+            SpatialOpts::default(),
+        );
         assert!(m.gain > 0.99, "at listener → full gain");
         assert!(m.pan.abs() < 1e-6, "centered");
     }
 
     #[test]
     fn spatial_far_is_silent() {
-        let m = spatial_mix(Point { x: 0.0, y: 0.0 }, Point { x: 0.0, y: 40.0 }, SpatialOpts::default());
+        let m = spatial_mix(
+            Point { x: 0.0, y: 0.0 },
+            Point { x: 0.0, y: 40.0 },
+            SpatialOpts::default(),
+        );
         assert_eq!(m.gain, 0.0, "beyond max distance → silent");
     }
 

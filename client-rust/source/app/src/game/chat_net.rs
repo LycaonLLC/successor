@@ -26,6 +26,7 @@ impl ChatChannel {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "all" => Some(ChatChannel::All),
@@ -63,16 +64,19 @@ pub fn encode_outgoing(msg: &ChatMessage) -> String {
 
 pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
     let v: serde_json::Value = serde_json::from_str(json).ok()?;
-    
+
     // Check type
     let packet_type = v.get("type").and_then(|t| t.as_str())?;
-    
+
     if packet_type == "chat.send" {
         let channel_str = v.get("channel").and_then(|c| c.as_str())?;
         let channel = ChatChannel::from_str(channel_str)?;
         let text = v.get("body").and_then(|b| b.as_str())?.to_string();
-        let whisper_to = v.get("targetId").and_then(|t| t.as_str()).map(|s| s.to_string());
-        
+        let whisper_to = v
+            .get("targetId")
+            .and_then(|t| t.as_str())
+            .map(|s| s.to_string());
+
         return Some(ChatMessage {
             channel,
             sender: String::new(),
@@ -80,17 +84,18 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
             whisper_to,
         });
     }
-    
+
     if packet_type == "chat.message" {
         let message = v.get("message")?;
         let channel_str = message.get("channel").and_then(|c| c.as_str())?;
         let channel = ChatChannel::from_str(channel_str)?;
-        
-        let text = message.get("body")
+
+        let text = message
+            .get("body")
             .or_else(|| message.get("text"))
             .and_then(|b| b.as_str())?
             .to_string();
-            
+
         let sender = if let Some(sender_val) = message.get("sender") {
             if let Some(display_name) = sender_val.get("displayName").and_then(|d| d.as_str()) {
                 display_name.to_string()
@@ -102,13 +107,14 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
         } else {
             String::new()
         };
-        
-        let whisper_to = message.get("targetId")
+
+        let whisper_to = message
+            .get("targetId")
             .or_else(|| message.get("target_id"))
             .or_else(|| message.get("whisper_to"))
             .and_then(|t| t.as_str())
             .map(|s| s.to_string());
-            
+
         return Some(ChatMessage {
             channel,
             sender,
@@ -116,15 +122,16 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
             whisper_to,
         });
     }
-    
+
     // Direct ChatMessage object
     if let Some(channel_str) = v.get("channel").and_then(|c| c.as_str()) {
         if let Some(channel) = ChatChannel::from_str(channel_str) {
-            let text = v.get("body")
+            let text = v
+                .get("body")
                 .or_else(|| v.get("text"))
                 .and_then(|b| b.as_str())?
                 .to_string();
-                
+
             let sender = if let Some(sender_val) = v.get("sender") {
                 if let Some(display_name) = sender_val.get("displayName").and_then(|d| d.as_str()) {
                     display_name.to_string()
@@ -136,13 +143,14 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
             } else {
                 String::new()
             };
-            
-            let whisper_to = v.get("targetId")
+
+            let whisper_to = v
+                .get("targetId")
                 .or_else(|| v.get("target_id"))
                 .or_else(|| v.get("whisper_to"))
                 .and_then(|t| t.as_str())
                 .map(|s| s.to_string());
-                
+
             return Some(ChatMessage {
                 channel,
                 sender,
@@ -151,7 +159,7 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
             });
         }
     }
-    
+
     None
 }
 
@@ -233,7 +241,7 @@ mod tests {
             ChatChannel::Guild,
             ChatChannel::Whisper,
         ];
-        
+
         for ch in channels {
             let text = "Hello, world!";
             let whisper = if ch == ChatChannel::Whisper {
@@ -241,7 +249,7 @@ mod tests {
             } else {
                 None
             };
-            
+
             let json = client.compose(ch, text, whisper.clone());
             let decoded = decode_incoming(&json).expect("Failed to decode outgoing frame");
             assert_eq!(decoded.channel, ch);
@@ -253,7 +261,7 @@ mod tests {
     #[test]
     fn history_bounds_cap() {
         let mut client = ChatClient::new(3);
-        
+
         // Pushing server-like chat message packets
         let packets = [
             r#"{"type":"chat.message","message":{"channel":"local","sender":{"id":"1","displayName":"Alice"},"body":"Msg 1"}}"#,
@@ -261,11 +269,11 @@ mod tests {
             r#"{"type":"chat.message","message":{"channel":"local","sender":{"id":"3","displayName":"Charlie"},"body":"Msg 3"}}"#,
             r#"{"type":"chat.message","message":{"channel":"local","sender":{"id":"4","displayName":"David"},"body":"Msg 4"}}"#,
         ];
-        
+
         for p in packets {
             client.on_incoming(p).expect("Should parse valid message");
         }
-        
+
         let recent = client.recent();
         assert_eq!(recent.len(), 3);
         assert_eq!(recent[0].text, "Msg 2");

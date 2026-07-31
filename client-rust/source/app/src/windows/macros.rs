@@ -1,14 +1,14 @@
 //! MACROS — macro/scripting bench UI.
 
-use super::{WindowAction, TEXT, DIM, ACCENT, SLOT, SLOT_EDGE};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder, ButtonStyle, TextField};
 use std::cell::RefCell;
+use successor_engine_render::ui::{ButtonStyle, TextField, UiBuilder};
 
 thread_local! {
     static NAME_FIELD: RefCell<TextField> = RefCell::new(TextField::new(48));
     static BODY_FIELD: RefCell<TextField> = RefCell::new(TextField::new(256));
-    static PREV_SEL_IDX: RefCell<Option<usize>> = RefCell::new(None);
+    static PREV_SEL_IDX: RefCell<Option<usize>> = const { RefCell::new(None) };
 }
 
 #[derive(Clone, Debug, Default)]
@@ -45,12 +45,18 @@ impl MacrosModel {
     }
 }
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &MacrosModel, icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &MacrosModel,
+    icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, h] = rect;
 
     // Header
     ui.text("MACRO SCRIPT BENCH", x, y, 2.2, ACCENT);
-    
+
     // Draw icon if available
     if let Some((col, row)) = icons.cell("macro") {
         ui.icon(col, row, x + w - 32.0, y - 4.0, 24.0, 24.0, ACCENT);
@@ -100,7 +106,7 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &MacrosModel, icons: &Ico
     ui.text("MACRO DIRECTORY", x, start_y, 1.8, DIM);
     let list_start_y = start_y + 18.0;
     let row_h = 36.0;
-    
+
     for (i, item) in model.macros.iter().enumerate() {
         let ry = list_start_y + i as f32 * row_h;
         if ry + row_h > y + h - 10.0 {
@@ -110,7 +116,14 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &MacrosModel, icons: &Ico
         let is_selected = model.selected_index == Some(i);
         let bg_color = if is_selected { [46, 62, 86, 235] } else { SLOT };
         ui.rect(x, ry, left_w, row_h - 4.0, bg_color);
-        ui.border(x, ry, left_w, row_h - 4.0, 1.0, if is_selected { ACCENT } else { SLOT_EDGE });
+        ui.border(
+            x,
+            ry,
+            left_w,
+            row_h - 4.0,
+            1.0,
+            if is_selected { ACCENT } else { SLOT_EDGE },
+        );
 
         // Name and first line preview
         ui.text(&item.name, x + 6.0, ry + 4.0, 1.6, TEXT);
@@ -121,7 +134,14 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &MacrosModel, icons: &Ico
         let run_btn_w = 40.0;
         let run_btn_x = x + left_w - run_btn_w - 6.0;
         let run_btn_y = ry + 4.0;
-        if ui.button(run_btn_x, run_btn_y, run_btn_w, 20.0, "RUN", ButtonStyle::default()) {
+        if ui.button(
+            run_btn_x,
+            run_btn_y,
+            run_btn_w,
+            20.0,
+            "RUN",
+            ButtonStyle::default(),
+        ) {
             out.push(WindowAction::Button(format!("macro:run:{}", i)));
         }
 
@@ -135,7 +155,7 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &MacrosModel, icons: &Ico
     // --- Right side: Editor panel ---
     let rx = x + left_w + 12.0;
     ui.text("EDITOR / PREVIEW", rx, start_y, 1.8, DIM);
-    
+
     // Designation Field
     let des_y = start_y + 18.0;
     ui.text("DESIGNATION", rx, des_y, 1.4, DIM);
@@ -155,10 +175,10 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &MacrosModel, icons: &Ico
     // Render static preview from text fields
     let preview_y = body_y + 62.0;
     ui.text("PREVIEW:", rx, preview_y, 1.4, DIM);
-    
+
     let name_str = NAME_FIELD.with(|f| f.borrow().text.clone());
     let body_str = BODY_FIELD.with(|f| f.borrow().text.clone());
-    
+
     let display_preview = if !name_str.is_empty() {
         format!("{}: {}", name_str, body_str.lines().next().unwrap_or(""))
     } else {
@@ -178,7 +198,14 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &MacrosModel, icons: &Ico
 
     // NEW macro button
     let new_style = ButtonStyle::default();
-    if ui.button(rx + right_btn_w + 8.0, btn_y, right_btn_w, 26.0, "NEW", new_style) {
+    if ui.button(
+        rx + right_btn_w + 8.0,
+        btn_y,
+        right_btn_w,
+        26.0,
+        "NEW",
+        new_style,
+    ) {
         out.push(WindowAction::Button("macro:new".into()));
     }
 }
@@ -192,7 +219,7 @@ mod tests {
         let icons = Icons::load();
         let model = MacrosModel::sample();
         let mut ui = UiBuilder::new(icons.meta);
-        
+
         // rect = [10.0, 10.0, 500.0, 400.0]
         // left_w = 500 * 0.58 = 290.0
         // list_start_y = 10.0 + 26.0 + 18.0 = 54.0
@@ -204,16 +231,29 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [10.0, 10.0, 500.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [10.0, 10.0, 500.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert!(
             out.contains(&WindowAction::Button("macro:run:0".into())),
-            "Expected macro:run:0 action, got {:?}", out
+            "Expected macro:run:0 action, got {:?}",
+            out
         );
     }
 }

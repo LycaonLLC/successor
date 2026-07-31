@@ -5,6 +5,7 @@
 
 use successor_engine_core::anim::{apply_animation, JointTransform, Skeleton};
 use successor_engine_core::glb::{self, GlbDocument, GlbError};
+use successor_engine_core::math::Mat4;
 use successor_engine_render::components::{MaterialId, MeshId};
 use successor_engine_render::gpu::Gpu;
 use successor_engine_render::renderer::Renderer;
@@ -37,7 +38,9 @@ impl PawnTemplate {
         let mut parts = Vec::new();
         for node in &doc.nodes {
             let Some(mi) = node.mesh else { continue };
-            let Some(mesh) = doc.meshes.get(mi) else { continue };
+            let Some(mesh) = doc.meshes.get(mi) else {
+                continue;
+            };
             for prim in &mesh.primitives {
                 if prim.positions.is_empty() || prim.joints.is_empty() {
                     continue; // skinned parts only
@@ -54,11 +57,19 @@ impl PawnTemplate {
                 });
             }
         }
-        Ok(PawnTemplate { skeleton, parts, doc })
+        Ok(PawnTemplate {
+            skeleton,
+            parts,
+            doc,
+        })
     }
 
     pub fn clip_names(&self) -> Vec<&str> {
-        self.doc.animations.iter().filter_map(|a| a.name.as_deref()).collect()
+        self.doc
+            .animations
+            .iter()
+            .filter_map(|a| a.name.as_deref())
+            .collect()
     }
 
     pub fn animation(&self, name: &str) -> Option<&glb::GlbAnimation> {
@@ -85,17 +96,20 @@ impl PawnTemplate {
 
     /// Upload the baked parts to the renderer (skinned meshes + materials).
     pub fn upload<G: Gpu>(&self, gpu: &mut G, renderer: &mut Renderer) -> PawnGpuParts {
-        let mut parts = Vec::with_capacity(self.parts.len());
-        for p in &self.parts {
-            let color = if p.color[0].max(p.color[1]).max(p.color[2]) < 0.15 {
-                [0.72, 0.70, 0.67, p.color[3]]
-            } else {
-                p.color
-            };
-            let mesh = renderer.upload_skinned_mesh(gpu, &p.vertices, &p.indices);
-            let material = renderer.add_material(color);
-            parts.push((mesh, material));
-        }
+        let uploaded = successor_engine_render::model::upload_glb(renderer, gpu, &self.doc)
+            .expect("parsed pawn document must upload");
+        let parts = uploaded
+            .primitives
+            .into_iter()
+            .filter(|part| {
+                self.doc
+                    .meshes
+                    .get(part.source_mesh)
+                    .and_then(|mesh| mesh.primitives.get(part.source_primitive))
+                    .is_some_and(|primitive| !primitive.joints.is_empty())
+            })
+            .map(|part| (part.mesh, part.material))
+            .collect();
         PawnGpuParts { parts }
     }
 }
@@ -111,12 +125,78 @@ fn bake_skinned(prim: &glb::GlbPrimitive) -> Vec<f32> {
         let j = prim.joints.get(i).copied().unwrap_or([0, 0, 0, 0]);
         let w = prim.weights.get(i).copied().unwrap_or([1.0, 0.0, 0.0, 0.0]);
         out.extend_from_slice(&[
-            p[0], p[1], p[2], nrm[0], nrm[1], nrm[2], uv[0], uv[1],
-            j[0] as f32, j[1] as f32, j[2] as f32, j[3] as f32,
-            w[0], w[1], w[2], w[3],
+            p[0],
+            p[1],
+            p[2],
+            nrm[0],
+            nrm[1],
+            nrm[2],
+            uv[0],
+            uv[1],
+            j[0] as f32,
+            j[1] as f32,
+            j[2] as f32,
+            j[3] as f32,
+            w[0],
+            w[1],
+            w[2],
+            w[3],
         ]);
     }
     out
+}
+
+/// Load a static GLB through the shared material/mesh uploader and retain each
+/// source node's global transform for socket composition.
+pub fn upload_static_parts<G: Gpu>(
+    gpu: &mut G,
+    renderer: &mut Renderer,
+    bytes: &[u8],
+) -> Result<Vec<(MeshId, MaterialId, Mat4)>, GlbError> {
+    let doc = glb::parse(bytes)?;
+    let count = doc.nodes.len();
+    let mut globals = vec![Mat4::IDENTITY; count];
+    let mut done = vec![false; count];
+    let mut roots = doc.scene_roots.clone();
+    if roots.is_empty() {
+        let mut has_parent = vec![false; count];
+        for node in &doc.nodes {
+            for &child in &node.children {
+                if child < count {
+                    has_parent[child] = true;
+                }
+            }
+        }
+        roots = (0..count).filter(|&index| !has_parent[index]).collect();
+    }
+    let mut stack: Vec<(usize, Mat4)> = roots.iter().map(|&root| (root, Mat4::IDENTITY)).collect();
+    while let Some((index, parent)) = stack.pop() {
+        if index >= count || done[index] {
+            continue;
+        }
+        done[index] = true;
+        let global = parent.mul(doc.nodes[index].local_matrix());
+        globals[index] = global;
+        for &child in &doc.nodes[index].children {
+            stack.push((child, global));
+        }
+    }
+    let uploaded = successor_engine_render::model::upload_glb(renderer, gpu, &doc)
+        .map_err(|_| GlbError::Unsupported("model upload"))?;
+    let mut parts = Vec::new();
+    for (node_index, node) in doc.nodes.iter().enumerate() {
+        let Some(mesh_index) = node.mesh else {
+            continue;
+        };
+        for primitive in uploaded
+            .primitives
+            .iter()
+            .filter(|primitive| primitive.source_mesh == mesh_index)
+        {
+            parts.push((primitive.mesh, primitive.material, globals[node_index]));
+        }
+    }
+    Ok(parts)
 }
 
 #[cfg(test)]
@@ -137,7 +217,10 @@ mod tests {
         assert!(!tpl.parts.is_empty(), "has skinned parts");
         let clips = tpl.clip_names();
         assert!(clips.contains(&"idle"), "idle clip present");
-        assert!(clips.contains(&"walk_f") || clips.iter().any(|c| c.contains("walk")), "a walk clip present");
+        assert!(
+            clips.contains(&"walk_f") || clips.iter().any(|c| c.contains("walk")),
+            "a walk clip present"
+        );
         // Skinned vertices are 16 floats each.
         assert_eq!(tpl.parts[0].vertices.len() % 16, 0);
     }
@@ -153,72 +236,4 @@ mod tests {
         tpl.pose_at("idle", 0.5, &mut pose);
         assert_eq!(pose.len(), len, "pose stays skeleton-sized");
     }
-}
-
-/// Load a static (non-skinned) GLB's parts, baking node-global transforms into
-/// vertices (no recentering). Used for socketed weapons attached to a bone.
-pub fn upload_static_parts<G: Gpu>(
-    gpu: &mut G,
-    renderer: &mut Renderer,
-    bytes: &[u8],
-) -> Result<Vec<(MeshId, MaterialId)>, GlbError> {
-    use successor_engine_core::math::{vec3, Mat4};
-    let doc = glb::parse(bytes)?;
-    // Node globals (roots outward).
-    let n = doc.nodes.len();
-    let mut globals = vec![Mat4::IDENTITY; n];
-    let mut done = vec![false; n];
-    let mut roots = doc.scene_roots.clone();
-    if roots.is_empty() {
-        let mut has_parent = vec![false; n];
-        for node in &doc.nodes {
-            for &c in &node.children {
-                if c < n {
-                    has_parent[c] = true;
-                }
-            }
-        }
-        roots = (0..n).filter(|&i| !has_parent[i]).collect();
-    }
-    let mut stack: Vec<(usize, Mat4)> = roots.iter().map(|&r| (r, Mat4::IDENTITY)).collect();
-    while let Some((idx, parent)) = stack.pop() {
-        if idx >= n || done[idx] {
-            continue;
-        }
-        done[idx] = true;
-        let g = parent.mul(doc.nodes[idx].local_matrix());
-        globals[idx] = g;
-        for &c in &doc.nodes[idx].children {
-            stack.push((c, g));
-        }
-    }
-    let mut parts = Vec::new();
-    for (ni, node) in doc.nodes.iter().enumerate() {
-        let Some(mi) = node.mesh else { continue };
-        let Some(mesh) = doc.meshes.get(mi) else { continue };
-        let g = globals[ni];
-        for prim in &mesh.primitives {
-            if prim.positions.is_empty() {
-                continue;
-            }
-            let mut verts = Vec::with_capacity(prim.positions.len() * 8);
-            for i in 0..prim.positions.len() {
-                let p = prim.positions[i];
-                let w = g.transform_point(vec3(p[0], p[1], p[2]));
-                let nrm = prim.normals.get(i).copied().unwrap_or([0.0, 1.0, 0.0]);
-                let uv = prim.uvs.get(i).copied().unwrap_or([0.0, 0.0]);
-                verts.extend_from_slice(&[w.x, w.y, w.z, nrm[0], nrm[1], nrm[2], uv[0], uv[1]]);
-            }
-            let color = prim
-                .material
-                .and_then(|i| doc.materials.get(i))
-                .map(|m| m.base_color)
-                .unwrap_or([0.4, 0.4, 0.42, 1.0]);
-            let color = if color[0].max(color[1]).max(color[2]) < 0.12 { [0.35, 0.35, 0.38, color[3]] } else { color };
-            let mesh_id = renderer.upload_mesh(gpu, &verts, &prim.indices);
-            let material = renderer.add_material(color);
-            parts.push((mesh_id, material));
-        }
-    }
-    Ok(parts)
 }

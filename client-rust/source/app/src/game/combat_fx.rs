@@ -33,13 +33,31 @@ impl CombatEvent {
     /// Project from a server event JSON object, reading fields defensively.
     /// Accepts `{x,y,z}` (world) or `{x,y}` (sim → world `(x, chest, y)`).
     pub fn from_json(v: &serde_json::Value) -> Option<Self> {
-        let id = v.get("id").or_else(|| v.get("eventId")).and_then(|x| x.as_i64())?;
+        let id = v
+            .get("id")
+            .or_else(|| v.get("eventId"))
+            .and_then(|x| x.as_i64())?;
         let origin = read_point(v.get("originPoint").or_else(|| v.get("origin"))?)?;
-        let hit = read_point(v.get("hitPoint").or_else(|| v.get("hit")).unwrap_or(&serde_json::Value::Null))
-            .unwrap_or(origin);
+        let hit = read_point(
+            v.get("hitPoint")
+                .or_else(|| v.get("hit"))
+                .unwrap_or(&serde_json::Value::Null),
+        )
+        .unwrap_or(origin);
         let outcome = v.get("outcome").and_then(|x| x.as_u64()).unwrap_or(0) as u8;
-        let magnitude = v.get("magnitude").or_else(|| v.get("mag")).and_then(|x| x.as_f64()).unwrap_or(1.0) as f32;
-        Some(Self { id, origin, hit, outcome, magnitude, color: [1.0, 0.79, 0.47] })
+        let magnitude = v
+            .get("magnitude")
+            .or_else(|| v.get("mag"))
+            .and_then(|x| x.as_f64())
+            .unwrap_or(1.0) as f32;
+        Some(Self {
+            id,
+            origin,
+            hit,
+            outcome,
+            magnitude,
+            color: [1.0, 0.79, 0.47],
+        })
     }
 }
 fn read_point(v: &serde_json::Value) -> Option<[f32; 3]> {
@@ -63,7 +81,11 @@ pub struct CombatFx {
 
 impl CombatFx {
     pub fn new(seed: u32) -> Self {
-        Self { pool: ParticlePool::new(seed), seen: [i64::MIN; 64], seen_cursor: 0 }
+        Self {
+            pool: ParticlePool::new(seed),
+            seen: [i64::MIN; 64],
+            seen_cursor: 0,
+        }
     }
 
     pub fn pool(&self) -> &ParticlePool {
@@ -91,20 +113,26 @@ impl CombatFx {
         if self.already_seen(ev.id) {
             return false;
         }
-        let mut dir = [ev.hit[0] - ev.origin[0], ev.hit[1] - ev.origin[1], ev.hit[2] - ev.origin[2]];
+        let mut dir = [
+            ev.hit[0] - ev.origin[0],
+            ev.hit[1] - ev.origin[1],
+            ev.hit[2] - ev.origin[2],
+        ];
         let len = (dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]).sqrt();
         if len > 1e-4 {
             dir = [dir[0] / len, dir[1] / len, dir[2] / len];
         } else {
             dir = [1.0, 0.0, 0.0];
         }
-        self.pool.emit_muzzle_flash(ev.origin, dir, ev.magnitude, ev.color);
+        self.pool
+            .emit_muzzle_flash(ev.origin, dir, ev.magnitude, ev.color);
         self.pool.emit_tracer(ev.origin, ev.hit, ev.magnitude);
         match ev.outcome {
             OUTCOME_BLOOD => self.pool.emit_blood_burst(ev.hit, dir, ev.magnitude),
             OUTCOME_SPARK | OUTCOME_DEFLECT => {
                 let normal = [-dir[0], -dir[1], -dir[2]];
-                self.pool.emit_spark_burst(ev.hit, normal, dir, ev.magnitude);
+                self.pool
+                    .emit_spark_burst(ev.hit, normal, dir, ev.magnitude);
             }
             _ => {}
         }
@@ -124,14 +152,24 @@ mod tests {
     use super::*;
 
     fn ev(id: i64, outcome: u8) -> CombatEvent {
-        CombatEvent { id, origin: [0.0, 1.3, 0.0], hit: [3.0, 1.1, 0.0], outcome, magnitude: 1.2, color: [1.0, 0.8, 0.5] }
+        CombatEvent {
+            id,
+            origin: [0.0, 1.3, 0.0],
+            hit: [3.0, 1.1, 0.0],
+            outcome,
+            magnitude: 1.2,
+            color: [1.0, 0.8, 0.5],
+        }
     }
 
     #[test]
     fn blood_event_emits_muzzle_tracer_and_blood() {
         let mut fx = CombatFx::new(1);
         assert!(fx.trigger(&ev(1, OUTCOME_BLOOD)));
-        assert!(fx.pool().additive.alive() > 0, "muzzle + tracer on additive layer");
+        assert!(
+            fx.pool().additive.alive() > 0,
+            "muzzle + tracer on additive layer"
+        );
         assert!(fx.pool().normal.alive() > 0, "blood on normal layer");
     }
 

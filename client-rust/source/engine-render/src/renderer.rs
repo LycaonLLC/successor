@@ -16,10 +16,11 @@ use crate::components::{
 };
 use crate::gi::{GiOccluder, GiVolume, GiWorkCounters};
 use crate::gpu::{
-    BufferId, BufferUsage, ClearSpec, Cull, Filter, Gpu, GpuCaps, MrtDesc, PassTarget,
-    PipelineState, ProgramId, RectPx, RenderTargetDesc, RenderTargetId, TextureDesc, TextureFormat,
-    Uniform, UniformValue, MESH_LAYOUT, PARTICLE_LAYOUT, POINT_LIGHT_INSTANCE_LAYOUT, QUAD_LAYOUT,
-    SKINNED_MESH_LAYOUT, UI_LAYOUT,
+    BufferId, BufferUsage, ClearSpec, Cull, Filter, ForwardLight, Gpu, GpuCaps, GpuError, MrtDesc,
+    PassTarget, PipelineState, ProgramId, RectPx, RenderTargetDesc, RenderTargetId, TextureDesc,
+    TextureFormat, Uniform, UniformValue, VertexLayout, GLTF_MESH_LAYOUT, GLTF_SKINNED_MESH_LAYOUT,
+    MESH_LAYOUT, PARTICLE_LAYOUT, POINT_LIGHT_INSTANCE_LAYOUT, QUAD_LAYOUT, SKINNED_MESH_LAYOUT,
+    UI_LAYOUT,
 };
 use crate::text;
 
@@ -81,17 +82,80 @@ struct MeshGpu {
     ebo: BufferId,
     index_count: u32,
     skinned: bool,
+    layout: VertexLayout,
+    has_vertex_color: bool,
+    has_tangent: bool,
 }
 
 #[derive(Clone, Copy)]
 struct Material {
-    /// rgb + alpha; alpha < 1 triggers dithered transparency in the shader.
-    color: [f32; 4],
-    /// Optional albedo texture (terrain/props). Replaces `color` when present.
-    tex: Option<crate::gpu::TextureId>,
-    /// PBR metallic-roughness factors (deferred G-buffer).
-    metallic: f32,
-    roughness: f32,
+    desc: MaterialDesc,
+}
+
+#[derive(Clone, Copy)]
+struct DrawRecord {
+    entity_index: u64,
+    entity_generation: u64,
+    mesh: MeshRenderer,
+    transform: Transform,
+}
+
+#[derive(Clone, Copy)]
+struct SceneLight {
+    entity_index: u64,
+    entity_generation: u64,
+    light: ForwardLight,
+    distance2: f32,
+}
+#[derive(Clone, Copy, Debug)]
+pub struct MaterialDesc {
+    pub base_color: [f32; 4],
+    pub base_color_texture: Option<crate::gpu::TextureId>,
+    pub metallic_roughness_texture: Option<crate::gpu::TextureId>,
+    pub normal_texture: Option<crate::gpu::TextureId>,
+    pub occlusion_texture: Option<crate::gpu::TextureId>,
+    pub emissive_texture: Option<crate::gpu::TextureId>,
+    pub metallic: f32,
+    pub roughness: f32,
+    pub normal_scale: f32,
+    pub occlusion_strength: f32,
+    pub emissive_factor: [f32; 3],
+    pub emissive_strength: f32,
+    pub clearcoat: f32,
+    pub clearcoat_roughness: f32,
+    pub specular: f32,
+    pub ior: f32,
+    pub transmission: f32,
+    pub alpha_cutoff: f32,
+    pub double_sided: bool,
+    pub blend: bool,
+}
+
+impl Default for MaterialDesc {
+    fn default() -> Self {
+        Self {
+            base_color: [1.0; 4],
+            base_color_texture: None,
+            metallic_roughness_texture: None,
+            normal_texture: None,
+            occlusion_texture: None,
+            emissive_texture: None,
+            metallic: 1.0,
+            roughness: 1.0,
+            normal_scale: 1.0,
+            occlusion_strength: 1.0,
+            emissive_factor: [0.0; 3],
+            emissive_strength: 1.0,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            specular: 1.0,
+            ior: 1.5,
+            transmission: 0.0,
+            alpha_cutoff: 0.5,
+            double_sided: false,
+            blend: false,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -106,6 +170,8 @@ pub struct RendererLimits {
     pub shadow_world_radius: f32,
     /// Quality tier (shadow filtering, GI cones, HDR target).
     pub quality: RenderQuality,
+    /// Maximum nearest point lights supplied to one transparent draw.
+    pub max_forward_lights: usize,
 }
 
 impl Default for RendererLimits {
@@ -118,6 +184,7 @@ impl Default for RendererLimits {
             shadow_size: RenderQuality::Medium.shadow_size(),
             shadow_world_radius: 48.0,
             quality: RenderQuality::Medium,
+            max_forward_lights: 32,
         }
     }
 }
@@ -129,7 +196,6 @@ struct Grade {
     desaturate: f32,
     scene_darken: f32,
     black_lift: f32,
-    bloom: f32,
 }
 
 impl Default for Grade {
@@ -139,9 +205,37 @@ impl Default for Grade {
             desaturate: 0.0,
             scene_darken: 1.0,
             black_lift: 0.0,
-            bloom: 0.0,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct BloomSettings {
+    pub threshold: f32,
+    pub intensity: f32,
+}
+
+/// Presentation gain applied after bloom extraction and blur.
+const BLOOM_INTENSITY_GAIN: f32 = 2.0;
+
+impl Default for BloomSettings {
+    fn default() -> Self {
+        Self {
+            threshold: 1.0,
+            intensity: 0.0,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RenderConfigError {
+    InvalidBloom,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RendererInitError {
+    InsufficientMrt,
+    Gpu(GpuError),
 }
 
 /// A screen-sized deferred render target plus the dimensions it was built for.
@@ -164,6 +258,10 @@ pub struct Renderer {
     gbuffer_skinned_prog: ProgramId,
     light_prog: ProgramId,
     tonemap_prog: ProgramId,
+    bloom_extract_prog: ProgramId,
+    bloom_blur_prog: ProgramId,
+    fxaa_prog: ProgramId,
+    copy_prog: ProgramId,
     point_light_prog: ProgramId,
     shadow_rt: RenderTargetId,
     ui_prog: ProgramId,
@@ -172,6 +270,9 @@ pub struct Renderer {
     particle_prog: ProgramId,
     particle_buf: BufferId,
     particle_tex: Option<crate::gpu::TextureId>,
+    white_tex: crate::gpu::TextureId,
+    normal_tex: crate::gpu::TextureId,
+    black_tex: crate::gpu::TextureId,
     shadow_size: u32,
     shadow_world_radius: f32,
     quality: RenderQuality,
@@ -180,6 +281,10 @@ pub struct Renderer {
     // Deferred screen targets (recreated on resize).
     gbuffer_rt: Option<SizedRt>,
     scene_rt: Option<SizedRt>,
+    bloom_extract_rt: Option<SizedRt>,
+    scene_copy_rt: Option<SizedRt>,
+    bloom_blur_rt: Option<SizedRt>,
+    ldr_rt: Option<SizedRt>,
     exposure: f32,
     // Point-light volume resources.
     pl_vbo: BufferId,
@@ -193,12 +298,18 @@ pub struct Renderer {
     materials: Vec<Material>,
     ambient: f32,
     grade: Grade,
+    bloom: BloomSettings,
     // reused scratch
     cameras: Vec<Camera>,
     comp_quads: Vec<CompositeQuad>,
     overlays: Vec<TextOverlay>,
     quad: Vec<f32>,
     uniforms: Vec<Uniform>,
+    draw_scratch: Vec<usize>,
+    scene_draws: Vec<DrawRecord>,
+    scene_lights: Vec<SceneLight>,
+    forward_lights: Vec<ForwardLight>,
+    max_forward_lights: usize,
     shadow_view_proj: [f32; 16],
     skin_arena: Vec<[f32; 16]>,
     fog_color: [f32; 3],
@@ -207,15 +318,25 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new<G: Gpu>(gpu: &mut G, limits: RendererLimits) -> Self {
+    pub fn new<G: Gpu>(gpu: &mut G, limits: RendererLimits) -> Result<Self, RendererInitError> {
+        let caps = gpu.caps();
+        if caps.max_color_attachments < 4 || caps.max_draw_buffers < 4 {
+            return Err(RendererInitError::InsufficientMrt);
+        }
         let q = limits.quality;
+        let pbr_common = include_str!("../../../assets/shaders/pbr_common.glsl");
+        let mesh_fragment = alloc::format!(
+            "{}\n{}",
+            pbr_common,
+            include_str!("../../../assets/shaders/mesh.frag")
+        );
         let mesh_prog = gpu.create_program(
             include_str!("../../../assets/shaders/mesh.vert"),
-            include_str!("../../../assets/shaders/mesh.frag"),
+            &mesh_fragment,
         );
         let mesh_skinned_prog = gpu.create_program(
             include_str!("../../../assets/shaders/mesh_skinned.vert"),
-            include_str!("../../../assets/shaders/mesh.frag"),
+            &mesh_fragment,
         );
         let depth_prog = gpu.create_program(
             include_str!("../../../assets/shaders/depth.vert"),
@@ -265,8 +386,12 @@ impl Renderer {
             RenderQuality::High => (16, 1, 6, 1),
         };
         let light_src = alloc::format!(
-            "#define SHADOW_TAPS {}\n#define PCSS {}\n#define GI_CONES {}\n#define GI_SPECULAR {}\n{}",
-            taps, pcss, cones, spec,
+            "#define SHADOW_TAPS {}\n#define PCSS {}\n#define GI_CONES {}\n#define GI_SPECULAR {}\n{}\n{}",
+            taps,
+            pcss,
+            cones,
+            spec,
+            pbr_common,
             include_str!("../../../assets/shaders/deferred_light.frag")
         );
         let light_prog = gpu.create_program(
@@ -277,9 +402,30 @@ impl Renderer {
             include_str!("../../../assets/shaders/post.vert"),
             include_str!("../../../assets/shaders/tonemap.frag"),
         );
+        let bloom_extract_prog = gpu.create_program(
+            include_str!("../../../assets/shaders/post.vert"),
+            include_str!("../../../assets/shaders/bloom_extract.frag"),
+        );
+        let bloom_blur_prog = gpu.create_program(
+            include_str!("../../../assets/shaders/post.vert"),
+            include_str!("../../../assets/shaders/bloom_blur.frag"),
+        );
+        let fxaa_prog = gpu.create_program(
+            include_str!("../../../assets/shaders/post.vert"),
+            include_str!("../../../assets/shaders/fxaa.frag"),
+        );
+        let copy_prog = gpu.create_program(
+            include_str!("../../../assets/shaders/post.vert"),
+            include_str!("../../../assets/shaders/copy.frag"),
+        );
+        let point_fragment = alloc::format!(
+            "{}\n{}",
+            pbr_common,
+            include_str!("../../../assets/shaders/point_light.frag")
+        );
         let point_light_prog = gpu.create_program(
             include_str!("../../../assets/shaders/point_light.vert"),
-            include_str!("../../../assets/shaders/point_light.frag"),
+            &point_fragment,
         );
         let shadow_size = q.shadow_size();
         let shadow_rt = gpu.create_render_target(&RenderTargetDesc {
@@ -307,8 +453,25 @@ impl Renderer {
         } else {
             None
         };
-        let caps = gpu.caps();
-        Self {
+        let default_texture = |gpu: &mut G, rgba: [u8; 4]| {
+            gpu.create_texture(
+                &TextureDesc {
+                    width: 1,
+                    height: 1,
+                    format: TextureFormat::Rgba8,
+                    mag_filter: Filter::Nearest,
+                    min_filter: crate::gpu::MinFilter::Nearest,
+                    wrap_s: crate::gpu::Wrap::ClampToEdge,
+                    wrap_t: crate::gpu::Wrap::ClampToEdge,
+                    mipmaps: false,
+                },
+                Some(&rgba),
+            )
+        };
+        let white_tex = default_texture(gpu, [255, 255, 255, 255]);
+        let normal_tex = default_texture(gpu, [128, 128, 255, 255]);
+        let black_tex = default_texture(gpu, [0, 0, 0, 255]);
+        let renderer = Self {
             mesh_prog,
             mesh_skinned_prog,
             depth_prog,
@@ -320,7 +483,11 @@ impl Renderer {
             light_prog,
             tonemap_prog,
             point_light_prog,
+            bloom_extract_prog,
+            bloom_blur_prog,
+            fxaa_prog,
             shadow_rt,
+            copy_prog,
             ui_prog,
             ui_buf,
             ui_atlas: None,
@@ -333,9 +500,16 @@ impl Renderer {
             caps,
             dyn_buf,
             gbuffer_rt: None,
+            white_tex,
+            normal_tex,
+            black_tex,
             scene_rt: None,
             exposure: 1.0,
             pl_vbo,
+            scene_copy_rt: None,
+            bloom_extract_rt: None,
+            bloom_blur_rt: None,
+            ldr_rt: None,
             pl_ebo,
             pl_index_count: pl_indices.len() as u32,
             pl_inst_buf,
@@ -348,14 +522,24 @@ impl Renderer {
             cameras: Vec::with_capacity(limits.max_cameras),
             comp_quads: Vec::with_capacity(limits.max_cameras),
             overlays: Vec::with_capacity(16),
+            scene_lights: Vec::with_capacity(limits.max_draws),
+            forward_lights: Vec::with_capacity(limits.max_forward_lights),
+            max_forward_lights: limits.max_forward_lights.min(32),
             quad: Vec::with_capacity(limits.max_quad_floats),
             uniforms: Vec::with_capacity(24),
+            draw_scratch: Vec::with_capacity(limits.max_draws),
+            scene_draws: Vec::with_capacity(limits.max_draws),
             shadow_view_proj: Mat4::IDENTITY.to_cols_array(),
             skin_arena: Vec::with_capacity(64 * 16),
             fog_color: [0.788, 0.678, 0.510],
             fog_near: 180.0,
             fog_far: 320.0,
+            bloom: BloomSettings::default(),
+        };
+        if let Some(error) = gpu.take_error() {
+            return Err(RendererInitError::Gpu(error));
         }
+        Ok(renderer)
     }
 
     /// Upload the baked icon atlas (RGBA8; coverage in the alpha channel) that
@@ -366,7 +550,11 @@ impl Renderer {
                 width,
                 height,
                 format: TextureFormat::Rgba8,
-                filter: Filter::Linear,
+                mag_filter: Filter::Linear,
+                min_filter: crate::gpu::MinFilter::Linear,
+                wrap_s: crate::gpu::Wrap::ClampToEdge,
+                wrap_t: crate::gpu::Wrap::ClampToEdge,
+                mipmaps: false,
             },
             Some(rgba),
         );
@@ -437,7 +625,11 @@ impl Renderer {
                 width,
                 height,
                 format: TextureFormat::Rgba8,
-                filter: Filter::Linear,
+                mag_filter: Filter::Linear,
+                min_filter: crate::gpu::MinFilter::Linear,
+                wrap_s: crate::gpu::Wrap::ClampToEdge,
+                wrap_t: crate::gpu::Wrap::ClampToEdge,
+                mipmaps: false,
             },
             Some(rgba),
         );
@@ -448,6 +640,7 @@ impl Renderer {
     /// current screen framebuffer, depth-testing against the scene but not
     /// writing depth. `additive` selects the blend mode. No-op until a sprite is
     /// uploaded. `buf` holds `quads * 6 * 9` floats.
+    #[allow(clippy::too_many_arguments)]
     pub fn render_particles<G: Gpu>(
         &mut self,
         gpu: &mut G,
@@ -510,15 +703,24 @@ impl Renderer {
         desaturate: f32,
         scene_darken: f32,
         black_lift: f32,
-        bloom: f32,
     ) {
         self.grade = Grade {
             bone_tint,
             desaturate,
             scene_darken,
             black_lift,
-            bloom,
         };
+    }
+
+    pub fn set_bloom(&mut self, threshold: f32, intensity: f32) -> Result<(), RenderConfigError> {
+        if !threshold.is_finite() || threshold < 0.0 || !intensity.is_finite() || intensity < 0.0 {
+            return Err(RenderConfigError::InvalidBloom);
+        }
+        self.bloom = BloomSettings {
+            threshold,
+            intensity,
+        };
+        Ok(())
     }
 
     /// Set the flat per-biome ground albedo the GI volume voxelizes (no-op below
@@ -541,6 +743,32 @@ impl Renderer {
         if let Some(gi) = self.gi.as_mut() {
             gi.set_focus(focus);
         }
+    }
+
+    pub fn upload_gltf_mesh<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        vertices: &[u8],
+        indices: &[u32],
+        skinned: bool,
+        has_vertex_color: bool,
+    ) -> crate::components::MeshId {
+        let vbo = gpu.create_buffer(vertices, BufferUsage::Static);
+        let ebo = gpu.create_index_buffer(u32_bytes(indices), BufferUsage::Static);
+        self.meshes.push(MeshGpu {
+            vbo,
+            ebo,
+            index_count: indices.len() as u32,
+            skinned,
+            layout: if skinned {
+                GLTF_SKINNED_MESH_LAYOUT
+            } else {
+                GLTF_MESH_LAYOUT
+            },
+            has_vertex_color,
+            has_tangent: true,
+        });
+        crate::components::MeshId((self.meshes.len() - 1) as u32)
     }
 
     pub fn gi_work_counters(&self) -> GiWorkCounters {
@@ -568,6 +796,9 @@ impl Renderer {
             ebo,
             index_count: indices.len() as u32,
             skinned: false,
+            layout: MESH_LAYOUT,
+            has_vertex_color: false,
+            has_tangent: false,
         });
         crate::components::MeshId((self.meshes.len() - 1) as u32)
     }
@@ -586,6 +817,9 @@ impl Renderer {
             ebo,
             index_count: indices.len() as u32,
             skinned: true,
+            layout: SKINNED_MESH_LAYOUT,
+            has_vertex_color: false,
+            has_tangent: false,
         });
         crate::components::MeshId((self.meshes.len() - 1) as u32)
     }
@@ -603,65 +837,8 @@ impl Renderer {
         offset
     }
 
-    pub fn add_material(&mut self, rgba: [f32; 4]) -> crate::components::MaterialId {
-        self.add_material_pbr(rgba, 0.0, 0.85)
-    }
-
-    /// Register a solid-color PBR material with explicit metallic/roughness.
-    pub fn add_material_pbr(
-        &mut self,
-        rgba: [f32; 4],
-        metallic: f32,
-        roughness: f32,
-    ) -> crate::components::MaterialId {
-        self.materials.push(Material {
-            color: rgba,
-            tex: None,
-            metallic,
-            roughness,
-        });
-        crate::components::MaterialId((self.materials.len() - 1) as u32)
-    }
-
-    /// Register an RGBA8 texture and a material sampling it (terrain/props).
-    pub fn add_textured_material<G: Gpu>(
-        &mut self,
-        gpu: &mut G,
-        width: u32,
-        height: u32,
-        rgba: &[u8],
-        filter: crate::gpu::Filter,
-    ) -> crate::components::MaterialId {
-        self.add_textured_material_pbr(gpu, width, height, rgba, filter, 0.0, 0.85)
-    }
-
-    /// Textured PBR material with explicit metallic/roughness factors.
-    #[allow(clippy::too_many_arguments)]
-    pub fn add_textured_material_pbr<G: Gpu>(
-        &mut self,
-        gpu: &mut G,
-        width: u32,
-        height: u32,
-        rgba: &[u8],
-        filter: crate::gpu::Filter,
-        metallic: f32,
-        roughness: f32,
-    ) -> crate::components::MaterialId {
-        let tex = gpu.create_texture(
-            &crate::gpu::TextureDesc {
-                width,
-                height,
-                format: crate::gpu::TextureFormat::Rgba8,
-                filter,
-            },
-            Some(rgba),
-        );
-        self.materials.push(Material {
-            color: [1.0, 1.0, 1.0, 1.0],
-            tex: Some(tex),
-            metallic,
-            roughness,
-        });
+    pub fn add_material_desc(&mut self, desc: MaterialDesc) -> crate::components::MaterialId {
+        self.materials.push(Material { desc });
         crate::components::MaterialId((self.materials.len() - 1) as u32)
     }
 
@@ -688,7 +865,10 @@ impl Renderer {
         world: &mut W,
         screen_w: u32,
         screen_h: u32,
-    ) {
+    ) -> Result<(), GpuError> {
+        if screen_w == 0 || screen_h == 0 {
+            return Ok(());
+        }
         // --- gather lights ---
         let mut main_light: Option<DirectionalLight> = None;
         let mut shadow_light: Option<DirectionalLight> = None;
@@ -705,6 +885,26 @@ impl Renderer {
         }
 
         // --- gather + sort cameras (copy out; keeps queries non-overlapping) ---
+        self.scene_lights.clear();
+        {
+            let mut query = world.query2::<PointLight, Transform>();
+            while let Some((entity, light, transform)) = query.next() {
+                if self.scene_lights.len() == self.scene_lights.capacity() {
+                    break;
+                }
+                self.scene_lights.push(SceneLight {
+                    entity_index: entity.index,
+                    entity_generation: entity.generation,
+                    light: ForwardLight {
+                        position: [transform.pos.x, transform.pos.y, transform.pos.z],
+                        radius: light.radius,
+                        color: light.color,
+                        intensity: light.intensity,
+                    },
+                    distance2: 0.0,
+                });
+            }
+        }
         self.cameras.clear();
         {
             let mut q = world.query1::<Camera>();
@@ -713,6 +913,21 @@ impl Renderer {
             }
         }
         self.cameras.sort_by_key(|c| c.order);
+        self.scene_draws.clear();
+        {
+            let mut query = world.query2::<MeshRenderer, Transform>();
+            while let Some((entity, mesh, transform)) = query.next() {
+                if self.scene_draws.len() == self.scene_draws.capacity() {
+                    break;
+                }
+                self.scene_draws.push(DrawRecord {
+                    entity_index: entity.index,
+                    entity_generation: entity.generation,
+                    mesh: *mesh,
+                    transform: *transform,
+                });
+            }
+        }
 
         // --- shadow pass (texel-snapped ortho fit) ---
         let use_shadow = shadow_light.is_some();
@@ -743,16 +958,16 @@ impl Renderer {
                 },
             );
             let depth_state = PipelineState {
-                    depth_test: true,
-                    depth_write: true,
-                    cull: Cull::Front,
-                    color_write: false,
-                    blend: false,
-                    additive: false,
+                depth_test: true,
+                depth_write: true,
+                cull: Cull::Front,
+                color_write: false,
+                blend: false,
+                additive: false,
             };
             let skinned_depth_state = PipelineState {
-                    cull: Cull::None,
-                    ..depth_state
+                cull: Cull::None,
+                ..depth_state
             };
             self.uniforms.clear();
             self.uniforms.push(Uniform {
@@ -761,7 +976,6 @@ impl Renderer {
             });
             gpu.set_pipeline(self.depth_prog, &depth_state);
             gpu.set_uniforms(&self.uniforms);
-            self.draw_all_meshes(gpu, world, DrawMode::Depth, 0, false);
             gpu.set_pipeline(self.depth_skinned_prog, &skinned_depth_state);
             self.uniforms.clear();
             self.uniforms.push(Uniform {
@@ -769,7 +983,7 @@ impl Renderer {
                 value: UniformValue::Mat4(self.shadow_view_proj),
             });
             gpu.set_uniforms(&self.uniforms);
-            self.draw_all_meshes(gpu, world, DrawMode::Depth, 0, true);
+            self.draw_all_meshes(gpu, world, DrawMode::Depth, 0, None, Vec3::ZERO);
             gpu.end_pass();
         }
 
@@ -780,12 +994,12 @@ impl Renderer {
             .position(|c| matches!(c.target, CamTarget::Screen(_)));
 
         if deferred_idx.is_some() {
-            self.ensure_screen_targets(gpu, screen_w, screen_h);
+            self.ensure_screen_targets(gpu, screen_w, screen_h)?;
             // GI update is driven only by explicit world focus and static scene
             // inputs. Camera/view changes cannot invalidate the volume.
-                    let ld = main_light.map(|l| l.dir).unwrap_or(DEFAULT_LIGHT_DIR);
-                    let lc = main_light.map(|l| l.color).unwrap_or([1.0, 1.0, 1.0]);
-                    if let Some(gi) = self.gi.as_mut() {
+            let ld = main_light.map(|l| l.dir).unwrap_or(DEFAULT_LIGHT_DIR);
+            let lc = main_light.map(|l| l.color).unwrap_or([1.0, 1.0, 1.0]);
+            if let Some(gi) = self.gi.as_mut() {
                 gi.step(gpu, [ld.x, ld.y, ld.z], lc);
             }
         }
@@ -804,44 +1018,109 @@ impl Renderer {
         // --- composite + text on screen ---
         self.composite_pass(gpu, world, screen_w, screen_h);
         self.text_pass(gpu, world, screen_w, screen_h);
+        match gpu.take_error() {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
     }
 
-    /// (Re)create the G-buffer and HDR scene targets when missing or resized.
-    fn ensure_screen_targets<G: Gpu>(&mut self, gpu: &mut G, w: u32, h: u32) {
+    /// (Re)create the G-buffer, scene, and half-resolution bloom targets.
+    fn ensure_screen_targets<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        w: u32,
+        h: u32,
+    ) -> Result<(), GpuError> {
         let need = self
             .gbuffer_rt
             .as_ref()
-            .map_or(true, |s| s.w != w || s.h != h);
+            .is_none_or(|s| s.w != w || s.h != h);
         if !need {
-            return;
+            return Ok(());
         }
-        if let Some(s) = self.gbuffer_rt.take() {
-            gpu.delete_render_target(s.rt);
-        }
-        if let Some(s) = self.scene_rt.take() {
-            gpu.delete_render_target(s.rt);
-        }
-        let gb = gpu.create_render_target_mrt(&MrtDesc {
-            width: w,
-            height: h,
-            colors: &GBUFFER_FORMATS,
-            depth: true,
-        });
         let hdr = self.caps.half_float_target && self.quality != RenderQuality::Low;
         let scene_fmt: &'static [TextureFormat] = if hdr {
             &SCENE_HDR_FORMATS
         } else {
             &SCENE_LDR_FORMATS
         };
+        let gb = gpu.create_render_target_mrt(&MrtDesc {
+            width: w,
+            height: h,
+            colors: &GBUFFER_FORMATS,
+            depth: true,
+        });
         let scene = gpu.create_render_target_mrt(&MrtDesc {
             width: w,
             height: h,
             colors: scene_fmt,
             depth: false,
         });
+        let scene_copy = gpu.create_render_target_mrt(&MrtDesc {
+            width: w,
+            height: h,
+            colors: scene_fmt,
+            depth: false,
+        });
+        let ldr = gpu.create_render_target_mrt(&MrtDesc {
+            width: w,
+            height: h,
+            colors: &SCENE_LDR_FORMATS,
+            depth: false,
+        });
+        let bloom_w = w.div_ceil(2).max(1);
+        let bloom_h = h.div_ceil(2).max(1);
+        let bloom_extract = gpu.create_render_target_mrt(&MrtDesc {
+            width: bloom_w,
+            height: bloom_h,
+            colors: scene_fmt,
+            depth: false,
+        });
+        let bloom_blur = gpu.create_render_target_mrt(&MrtDesc {
+            width: bloom_w,
+            height: bloom_h,
+            colors: scene_fmt,
+            depth: false,
+        });
+        if let Some(error) = gpu.take_error() {
+            for target in [gb, scene, scene_copy, ldr, bloom_extract, bloom_blur] {
+                gpu.delete_render_target(target);
+            }
+            return Err(error);
+        }
+        for target in [
+            self.gbuffer_rt.take(),
+            self.scene_rt.take(),
+            self.scene_copy_rt.take(),
+            self.ldr_rt.take(),
+            self.bloom_extract_rt.take(),
+            self.bloom_blur_rt.take(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            gpu.delete_render_target(target.rt);
+        }
         self.exposure = if hdr { 1.0 } else { 0.25 };
         self.gbuffer_rt = Some(SizedRt { rt: gb, w, h });
         self.scene_rt = Some(SizedRt { rt: scene, w, h });
+        self.scene_copy_rt = Some(SizedRt {
+            rt: scene_copy,
+            w,
+            h,
+        });
+        self.ldr_rt = Some(SizedRt { rt: ldr, w, h });
+        self.bloom_extract_rt = Some(SizedRt {
+            rt: bloom_extract,
+            w: bloom_w,
+            h: bloom_h,
+        });
+        self.bloom_blur_rt = Some(SizedRt {
+            rt: bloom_blur,
+            w: bloom_w,
+            h: bloom_h,
+        });
+        Ok(())
     }
 
     /// Deferred screen camera: G-buffer → sun light → point lights → tonemap.
@@ -854,16 +1133,17 @@ impl Renderer {
         screen_w: u32,
         screen_h: u32,
         main_light: Option<DirectionalLight>,
-        _use_shadow: bool,
+        use_shadow: bool,
     ) {
         let rect = match cam.target {
             CamTarget::Screen(r) => r,
             _ => return,
         };
-        let (gb_rt, scene_rt, gw, gh) = match (&self.gbuffer_rt, &self.scene_rt) {
-            (Some(g), Some(s)) => (g.rt, s.rt, g.w, g.h),
-            _ => return,
-        };
+        let (gb_rt, scene_rt, ldr_rt, gw, gh) =
+            match (&self.gbuffer_rt, &self.scene_rt, &self.ldr_rt) {
+                (Some(g), Some(s), Some(ldr)) => (g.rt, s.rt, ldr.rt, g.w, g.h),
+                _ => return,
+            };
         let vp = viewport_px(rect, screen_w, screen_h);
         let aspect = if vp.h != 0 {
             vp.w as f32 / vp.h as f32
@@ -905,7 +1185,6 @@ impl Renderer {
             value: UniformValue::Sampler(0),
         });
         gpu.set_uniforms(&self.uniforms);
-        self.draw_all_meshes(gpu, world, DrawMode::GBuffer, cam.viewport_id, false);
         gpu.set_pipeline(self.gbuffer_skinned_prog, &PipelineState::default());
         self.uniforms.clear();
         self.uniforms.push(Uniform {
@@ -917,7 +1196,14 @@ impl Renderer {
             value: UniformValue::Sampler(0),
         });
         gpu.set_uniforms(&self.uniforms);
-        self.draw_all_meshes(gpu, world, DrawMode::GBuffer, cam.viewport_id, true);
+        self.draw_all_meshes(
+            gpu,
+            world,
+            DrawMode::GBuffer,
+            cam.viewport_id,
+            None,
+            cam.eye,
+        );
         gpu.end_pass();
 
         // --- deferred sun light pass → HDR scene target ---
@@ -952,6 +1238,12 @@ impl Renderer {
         if let Some(t) = gpu.render_target_depth(self.shadow_rt) {
             gpu.bind_texture(3, t);
         }
+        if let Some(t) = gpu.render_target_color_n(gb_rt, 2) {
+            gpu.bind_texture(5, t);
+        }
+        if let Some(t) = gpu.render_target_color_n(gb_rt, 3) {
+            gpu.bind_texture(6, t);
+        }
         let gi_binding = self.gi.as_ref().and_then(GiVolume::binding);
         if let Some(gi) = self.gi.as_ref() {
             gpu.bind_texture_3d(4, gi.radiance_texture());
@@ -965,6 +1257,14 @@ impl Renderer {
         self.uniforms.push(Uniform {
             name: "u_gb1",
             value: UniformValue::Sampler(1),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_gb2",
+            value: UniformValue::Sampler(5),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_gb3",
+            value: UniformValue::Sampler(6),
         });
         self.uniforms.push(Uniform {
             name: "u_depth",
@@ -1074,14 +1374,46 @@ impl Renderer {
             gw,
             gh,
         );
+        let scene_copy_rt = self.scene_copy_rt.as_ref().expect("screen targets").rt;
+        gpu.begin_pass(
+            PassTarget::RenderTarget(scene_copy_rt),
+            full,
+            ClearSpec::default(),
+        );
+        gpu.set_pipeline(
+            self.copy_prog,
+            &PipelineState {
+                depth_test: false,
+                depth_write: false,
+                cull: Cull::None,
+                color_write: true,
+                blend: false,
+                additive: false,
+            },
+        );
+        if let Some(texture) = gpu.render_target_color(scene_rt) {
+            gpu.bind_texture(0, texture);
+        }
+        self.uniforms.clear();
+        self.uniforms.push(Uniform {
+            name: "u_source",
+            value: UniformValue::Sampler(0),
+        });
+        gpu.set_uniforms(&self.uniforms);
+        self.draw_fullscreen(gpu);
+        gpu.end_pass();
+        self.transparent_pass(
+            gpu, world, scene_rt, full, cam, view_proj, ld, lc, use_shadow,
+        );
+        self.bloom_passes(gpu, scene_rt);
 
-        // --- tonemap + grade → screen (restores scene depth for particles) ---
-        gpu.begin_pass(PassTarget::Screen, vp, ClearSpec::default());
+        // --- tonemap + grade → LDR target ---
+        gpu.begin_pass(PassTarget::RenderTarget(ldr_rt), full, ClearSpec::default());
         gpu.set_pipeline(
             self.tonemap_prog,
             &PipelineState {
                 depth_test: false,
-                depth_write: true,
+                depth_write: false,
                 cull: Cull::None,
                 color_write: true,
                 blend: false,
@@ -1094,6 +1426,13 @@ impl Renderer {
         if let Some(t) = gpu.render_target_depth(gb_rt) {
             gpu.bind_texture(1, t);
         }
+        if let Some(bloom) = self
+            .bloom_extract_rt
+            .as_ref()
+            .and_then(|target| gpu.render_target_color(target.rt))
+        {
+            gpu.bind_texture(2, bloom);
+        }
         let g = self.grade;
         self.uniforms.clear();
         self.uniforms.push(Uniform {
@@ -1103,6 +1442,10 @@ impl Renderer {
         self.uniforms.push(Uniform {
             name: "u_depth",
             value: UniformValue::Sampler(1),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_bloomTex",
+            value: UniformValue::Sampler(2),
         });
         self.uniforms.push(Uniform {
             name: "u_boneTint",
@@ -1121,16 +1464,138 @@ impl Renderer {
             value: UniformValue::Float(g.black_lift),
         });
         self.uniforms.push(Uniform {
-            name: "u_bloom",
-            value: UniformValue::Float(g.bloom),
-        });
-        self.uniforms.push(Uniform {
             name: "u_invExposure",
             value: UniformValue::Float(1.0 / self.exposure),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_bloomIntensity",
+            value: UniformValue::Float(self.bloom.intensity * BLOOM_INTENSITY_GAIN),
         });
         gpu.set_uniforms(&self.uniforms);
         self.draw_fullscreen(gpu);
         gpu.end_pass();
+        // --- FXAA 3.11 preset 12 → screen, restoring opaque depth ---
+        gpu.begin_pass(PassTarget::Screen, vp, ClearSpec::default());
+        gpu.set_pipeline(
+            self.fxaa_prog,
+            &PipelineState {
+                depth_test: false,
+                depth_write: true,
+                cull: Cull::None,
+                color_write: true,
+                blend: false,
+                additive: false,
+            },
+        );
+        if let Some(texture) = gpu.render_target_color(ldr_rt) {
+            gpu.bind_texture(0, texture);
+        }
+        if let Some(depth) = gpu.render_target_depth(gb_rt) {
+            gpu.bind_texture(1, depth);
+        }
+        self.uniforms.clear();
+        self.uniforms.push(Uniform {
+            name: "u_ldr",
+            value: UniformValue::Sampler(0),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_depth",
+            value: UniformValue::Sampler(1),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_invResolution",
+            value: UniformValue::Vec2([1.0 / gw as f32, 1.0 / gh as f32]),
+        });
+        gpu.set_uniforms(&self.uniforms);
+        self.draw_fullscreen(gpu);
+        gpu.end_pass();
+    }
+
+    fn bloom_passes<G: Gpu>(&mut self, gpu: &mut G, scene_rt: RenderTargetId) {
+        let (extract, blur, width, height) = match (&self.bloom_extract_rt, &self.bloom_blur_rt) {
+            (Some(extract), Some(blur)) => (extract.rt, blur.rt, extract.w, extract.h),
+            _ => return,
+        };
+        let viewport = RectPx {
+            x: 0,
+            y: 0,
+            w: width as i32,
+            h: height as i32,
+        };
+        gpu.begin_pass(
+            PassTarget::RenderTarget(extract),
+            viewport,
+            ClearSpec {
+                color: Some([0.0; 4]),
+                depth: None,
+            },
+        );
+        gpu.set_pipeline(
+            self.bloom_extract_prog,
+            &PipelineState {
+                depth_test: false,
+                depth_write: false,
+                cull: Cull::None,
+                color_write: true,
+                blend: false,
+                additive: false,
+            },
+        );
+        if let Some(scene) = gpu.render_target_color(scene_rt) {
+            gpu.bind_texture(0, scene);
+        }
+        self.uniforms.clear();
+        self.uniforms.push(Uniform {
+            name: "u_scene",
+            value: UniformValue::Sampler(0),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_threshold",
+            value: UniformValue::Float(self.bloom.threshold * self.exposure),
+        });
+        gpu.set_uniforms(&self.uniforms);
+        self.draw_fullscreen(gpu);
+        gpu.end_pass();
+
+        for (source, target, direction) in [
+            (extract, blur, [1.0 / width as f32, 0.0]),
+            (blur, extract, [0.0, 1.0 / height as f32]),
+        ] {
+            gpu.begin_pass(
+                PassTarget::RenderTarget(target),
+                viewport,
+                ClearSpec {
+                    color: Some([0.0; 4]),
+                    depth: None,
+                },
+            );
+            gpu.set_pipeline(
+                self.bloom_blur_prog,
+                &PipelineState {
+                    depth_test: false,
+                    depth_write: false,
+                    cull: Cull::None,
+                    color_write: true,
+                    blend: false,
+                    additive: false,
+                },
+            );
+            if let Some(texture) = gpu.render_target_color(source) {
+                gpu.bind_texture(0, texture);
+            }
+            self.uniforms.clear();
+            self.uniforms.push(Uniform {
+                name: "u_source",
+                value: UniformValue::Sampler(0),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_direction",
+                value: UniformValue::Vec2(direction),
+            });
+            gpu.set_uniforms(&self.uniforms);
+            self.draw_fullscreen(gpu);
+            gpu.end_pass();
+        }
     }
 
     /// Point-light volume pass: gather lights, additive PBR into `scene_rt`.
@@ -1196,6 +1661,9 @@ impl Renderer {
         if let Some(t) = gpu.render_target_depth(self.gbuffer_rt.as_ref().unwrap().rt) {
             gpu.bind_texture(2, t);
         }
+        if let Some(t) = gpu.render_target_color_n(self.gbuffer_rt.as_ref().unwrap().rt, 3) {
+            gpu.bind_texture(3, t);
+        }
         self.uniforms.clear();
         self.uniforms.push(Uniform {
             name: "u_viewProj",
@@ -1212,6 +1680,10 @@ impl Renderer {
         self.uniforms.push(Uniform {
             name: "u_gb1",
             value: UniformValue::Sampler(1),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_gb3",
+            value: UniformValue::Sampler(3),
         });
         self.uniforms.push(Uniform {
             name: "u_depth",
@@ -1239,6 +1711,117 @@ impl Renderer {
             self.pl_inst_buf,
             &POINT_LIGHT_INSTANCE_LAYOUT,
             count,
+        );
+        gpu.end_pass();
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn transparent_pass<G: Gpu, W: RenderWorld>(
+        &mut self,
+        gpu: &mut G,
+        world: &mut W,
+        scene_rt: RenderTargetId,
+        full: RectPx,
+        cam: Camera,
+        view_proj: [f32; 16],
+        light_dir: Vec3,
+        light_color: [f32; 3],
+        use_shadow: bool,
+    ) {
+        gpu.begin_pass(
+            PassTarget::RenderTarget(scene_rt),
+            full,
+            ClearSpec::default(),
+        );
+        for program in [self.mesh_prog, self.mesh_skinned_prog] {
+            gpu.set_pipeline(program, &PipelineState::default());
+            self.uniforms.clear();
+            self.uniforms.push(Uniform {
+                name: "u_viewProj",
+                value: UniformValue::Mat4(view_proj),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_lightViewProj",
+                value: UniformValue::Mat4(self.shadow_view_proj),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_lightDir",
+                value: UniformValue::Vec3([light_dir.x, light_dir.y, light_dir.z]),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_sceneCopy",
+                value: UniformValue::Sampler(6),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_opaqueDepth",
+                value: UniformValue::Sampler(7),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_screenSize",
+                value: UniformValue::Vec2([full.w as f32, full.h as f32]),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_transparentPass",
+                value: UniformValue::Int(1),
+            });
+            if let Some(copy) =
+                gpu.render_target_color(self.scene_copy_rt.as_ref().expect("screen targets").rt)
+            {
+                gpu.bind_texture(6, copy);
+            }
+            if let Some(depth) =
+                gpu.render_target_depth(self.gbuffer_rt.as_ref().expect("screen targets").rt)
+            {
+                gpu.bind_texture(7, depth);
+            }
+            self.uniforms.push(Uniform {
+                name: "u_lightColor",
+                value: UniformValue::Vec3(light_color),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_ambient",
+                value: UniformValue::Float(self.ambient),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_shadowMap",
+                value: UniformValue::Sampler(0),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_useShadow",
+                value: UniformValue::Int(use_shadow as i32),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_albedo",
+                value: UniformValue::Sampler(1),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_camEye",
+                value: UniformValue::Vec3([cam.eye.x, cam.eye.y, cam.eye.z]),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_fogColor",
+                value: UniformValue::Vec3(self.fog_color),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_fogNear",
+                value: UniformValue::Float(self.fog_near),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_fogFar",
+                value: UniformValue::Float(self.fog_far),
+            });
+            gpu.set_uniforms(&self.uniforms);
+            if let Some(depth_tex) = gpu.render_target_depth(self.shadow_rt) {
+                gpu.bind_texture(0, depth_tex);
+            }
+        }
+        self.draw_all_meshes(
+            gpu,
+            world,
+            DrawMode::Transparent,
+            cam.viewport_id,
+            None,
+            cam.eye,
         );
         gpu.end_pass();
     }
@@ -1279,7 +1862,7 @@ impl Renderer {
         let lc = main_light.map(|l| l.color).unwrap_or([1.0, 1.0, 1.0]);
 
         gpu.begin_pass(target, vp, cam.clear);
-        for (prog, skinned) in [(self.mesh_prog, false), (self.mesh_skinned_prog, true)] {
+        for prog in [self.mesh_prog, self.mesh_skinned_prog] {
             gpu.set_pipeline(prog, &PipelineState::default());
             self.uniforms.clear();
             self.uniforms.push(Uniform {
@@ -1319,6 +1902,14 @@ impl Renderer {
                 value: UniformValue::Vec3([cam.eye.x, cam.eye.y, cam.eye.z]),
             });
             self.uniforms.push(Uniform {
+                name: "u_screenSize",
+                value: UniformValue::Vec2([vp.w as f32, vp.h as f32]),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_transparentPass",
+                value: UniformValue::Int(0),
+            });
+            self.uniforms.push(Uniform {
                 name: "u_fogColor",
                 value: UniformValue::Vec3(self.fog_color),
             });
@@ -1334,8 +1925,15 @@ impl Renderer {
             if let Some(depth_tex) = gpu.render_target_depth(self.shadow_rt) {
                 gpu.bind_texture(0, depth_tex);
             }
-            self.draw_all_meshes(gpu, world, DrawMode::Forward, cam.viewport_id, skinned);
         }
+        self.draw_all_meshes(
+            gpu,
+            world,
+            DrawMode::Forward,
+            cam.viewport_id,
+            None,
+            cam.eye,
+        );
         gpu.end_pass();
     }
 
@@ -1350,37 +1948,179 @@ impl Renderer {
     fn draw_all_meshes<G: Gpu, W: RenderWorld>(
         &mut self,
         gpu: &mut G,
-        world: &mut W,
+        _world: &mut W,
         mode: DrawMode,
         viewport_id: u8,
-        want_skinned: bool,
+        _want_skinned: Option<bool>,
+        camera_eye: Vec3,
     ) {
         let visible_only = !matches!(mode, DrawMode::Depth);
-        let mut q = world.query2::<MeshRenderer, Transform>();
-        while let Some((_, mr, tr)) = q.next() {
+        self.draw_scratch.clear();
+        let meshes = &self.meshes;
+        let materials = &self.materials;
+        for (scene_index, record) in self.scene_draws.iter().enumerate() {
+            let mesh = record.mesh;
+            if meshes.get(mesh.mesh.0 as usize).is_none() {
+                continue;
+            }
+            if visible_only && (mesh.viewport_mask & (1u32 << viewport_id)) == 0 {
+                continue;
+            }
+            let material = materials.get(mesh.material.0 as usize).copied();
+            let desc = material.map(|value| value.desc).unwrap_or_default();
+            let transparent = desc.blend || desc.transmission > 0.0;
+            if (matches!(mode, DrawMode::Depth | DrawMode::GBuffer) && transparent)
+                || (matches!(mode, DrawMode::Transparent) && !transparent)
+            {
+                continue;
+            }
+            self.draw_scratch.push(scene_index);
+        }
+        if matches!(mode, DrawMode::Transparent) {
+            self.draw_scratch.sort_unstable_by(|left, right| {
+                let left_record = self.scene_draws[*left];
+                let right_record = self.scene_draws[*right];
+                let left_delta = left_record.transform.pos.sub(camera_eye);
+                let right_delta = right_record.transform.pos.sub(camera_eye);
+                right_delta
+                    .dot(right_delta)
+                    .total_cmp(&left_delta.dot(left_delta))
+                    .then_with(|| left_record.entity_index.cmp(&right_record.entity_index))
+                    .then_with(|| {
+                        left_record
+                            .entity_generation
+                            .cmp(&right_record.entity_generation)
+                    })
+                    .then_with(|| {
+                        left_record
+                            .mesh
+                            .material
+                            .0
+                            .cmp(&right_record.mesh.material.0)
+                    })
+            });
+        }
+        for draw_index in 0..self.draw_scratch.len() {
+            let record = self.scene_draws[self.draw_scratch[draw_index]];
+            let mr = record.mesh;
+            let tr = record.transform;
             let mesh = match self.meshes.get(mr.mesh.0 as usize) {
-                Some(m) => *m,
+                Some(mesh) => *mesh,
                 None => continue,
             };
-            if mesh.skinned != want_skinned {
-                continue;
-            }
-            if visible_only && (mr.viewport_mask & (1u32 << viewport_id)) == 0 {
-                continue;
-            }
             let model = Mat4::from_trs(tr.pos, tr.rot, tr.scale).to_cols_array();
+            let material = self.materials.get(mr.material.0 as usize).copied();
+            let material_desc = material.map(|value| value.desc).unwrap_or_default();
+            let transparent = material_desc.blend || material_desc.transmission > 0.0;
+            let program = match mode {
+                DrawMode::Depth => {
+                    if mesh.skinned {
+                        self.depth_skinned_prog
+                    } else {
+                        self.depth_prog
+                    }
+                }
+                DrawMode::Forward | DrawMode::Transparent => {
+                    if mesh.skinned {
+                        self.mesh_skinned_prog
+                    } else {
+                        self.mesh_prog
+                    }
+                }
+                DrawMode::GBuffer => {
+                    if mesh.skinned {
+                        self.gbuffer_skinned_prog
+                    } else {
+                        self.gbuffer_prog
+                    }
+                }
+            };
+            gpu.set_pipeline(
+                program,
+                &PipelineState {
+                    depth_test: !matches!(mode, DrawMode::Transparent),
+                    depth_write: !matches!(mode, DrawMode::Transparent) && !transparent,
+                    cull: if material_desc.double_sided {
+                        Cull::None
+                    } else {
+                        Cull::Back
+                    },
+                    color_write: true,
+                    blend: matches!(mode, DrawMode::Transparent) || material_desc.blend,
+                    additive: false,
+                },
+            );
             self.uniforms.clear();
             self.uniforms.push(Uniform {
                 name: "u_model",
                 value: UniformValue::Mat4(model),
             });
+            if matches!(mode, DrawMode::Forward | DrawMode::Transparent) {
+                for light in &mut self.scene_lights {
+                    let dx = light.light.position[0] - tr.pos.x;
+                    let dy = light.light.position[1] - tr.pos.y;
+                    let dz = light.light.position[2] - tr.pos.z;
+                    light.distance2 = dx * dx + dy * dy + dz * dz;
+                }
+                self.scene_lights.sort_unstable_by(|left, right| {
+                    left.distance2
+                        .total_cmp(&right.distance2)
+                        .then_with(|| left.entity_index.cmp(&right.entity_index))
+                        .then_with(|| left.entity_generation.cmp(&right.entity_generation))
+                });
+                self.forward_lights.clear();
+                for light in self.scene_lights.iter().take(self.max_forward_lights) {
+                    self.forward_lights.push(light.light);
+                }
+                gpu.set_forward_lights(&self.forward_lights);
+            }
+            self.uniforms.push(Uniform {
+                name: "u_hasVertexColor",
+                value: UniformValue::Int(mesh.has_vertex_color as i32),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_hasTangent",
+                value: UniformValue::Int(mesh.has_tangent as i32),
+            });
             let mut albedo_tex = None;
             match mode {
                 DrawMode::Depth => {}
-                DrawMode::Forward => {
+                DrawMode::Forward | DrawMode::Transparent => {
+                    self.uniforms.push(Uniform {
+                        name: "u_transmission",
+                        value: UniformValue::Float(material_desc.transmission),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_ior",
+                        value: UniformValue::Float(material_desc.ior),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_metallic",
+                        value: UniformValue::Float(material_desc.metallic),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_roughness",
+                        value: UniformValue::Float(material_desc.roughness),
+                    });
+                    let ior = material_desc.ior.max(1.0);
+                    let ratio = (ior - 1.0) / (ior + 1.0);
+                    self.uniforms.push(Uniform {
+                        name: "u_dielectricF0",
+                        value: UniformValue::Float(ratio * ratio * material_desc.specular),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_clearcoat",
+                        value: UniformValue::Float(material_desc.clearcoat),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_clearcoatRoughness",
+                        value: UniformValue::Float(material_desc.clearcoat_roughness),
+                    });
                     let mat = self.materials.get(mr.material.0 as usize).copied();
-                    let color = mat.map(|m| m.color).unwrap_or([0.8, 0.8, 0.8, 1.0]);
-                    albedo_tex = mat.and_then(|m| m.tex);
+                    let color = mat
+                        .map(|m| m.desc.base_color)
+                        .unwrap_or([0.8, 0.8, 0.8, 1.0]);
+                    albedo_tex = mat.and_then(|m| m.desc.base_color_texture);
                     self.uniforms.push(Uniform {
                         name: "u_color",
                         value: UniformValue::Vec4(color),
@@ -1389,13 +2129,19 @@ impl Renderer {
                         name: "u_hasTex",
                         value: UniformValue::Int(if albedo_tex.is_some() { 1 } else { 0 }),
                     });
+                    self.uniforms.push(Uniform {
+                        name: "u_pointCount",
+                        value: UniformValue::Int(self.forward_lights.len() as i32),
+                    });
                 }
                 DrawMode::GBuffer => {
                     let mat = self.materials.get(mr.material.0 as usize).copied();
-                    let color = mat.map(|m| m.color).unwrap_or([0.8, 0.8, 0.8, 1.0]);
-                    albedo_tex = mat.and_then(|m| m.tex);
-                    let metallic = mat.map(|m| m.metallic).unwrap_or(0.0);
-                    let roughness = mat.map(|m| m.roughness).unwrap_or(0.85);
+                    let color = mat
+                        .map(|m| m.desc.base_color)
+                        .unwrap_or([0.8, 0.8, 0.8, 1.0]);
+                    albedo_tex = mat.and_then(|m| m.desc.base_color_texture);
+                    let metallic = mat.map(|m| m.desc.metallic).unwrap_or(1.0);
+                    let roughness = mat.map(|m| m.desc.roughness).unwrap_or(1.0);
                     self.uniforms.push(Uniform {
                         name: "u_color",
                         value: UniformValue::Vec4(color),
@@ -1412,20 +2158,92 @@ impl Renderer {
                         name: "u_roughness",
                         value: UniformValue::Float(roughness),
                     });
+                    let desc = mat.map(|material| material.desc).unwrap_or_default();
+                    let texture_uniforms = [
+                        ("u_mrTex", desc.metallic_roughness_texture, 1),
+                        ("u_normalTex", desc.normal_texture, 2),
+                        ("u_aoTex", desc.occlusion_texture, 3),
+                        ("u_emissiveTex", desc.emissive_texture, 4),
+                    ];
+                    for (name, texture, slot) in texture_uniforms {
+                        self.uniforms.push(Uniform {
+                            name,
+                            value: UniformValue::Sampler(slot),
+                        });
+                        let fallback = match slot {
+                            2 => self.normal_tex,
+                            4 => self.black_tex,
+                            _ => self.white_tex,
+                        };
+                        gpu.bind_texture(slot as u32, texture.unwrap_or(fallback));
+                    }
+                    self.uniforms.push(Uniform {
+                        name: "u_hasMrTex",
+                        value: UniformValue::Int(desc.metallic_roughness_texture.is_some() as i32),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_hasNormalTex",
+                        value: UniformValue::Int(desc.normal_texture.is_some() as i32),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_hasAoTex",
+                        value: UniformValue::Int(desc.occlusion_texture.is_some() as i32),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_hasEmissiveTex",
+                        value: UniformValue::Int(desc.emissive_texture.is_some() as i32),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_normalScale",
+                        value: UniformValue::Float(desc.normal_scale),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_aoStrength",
+                        value: UniformValue::Float(desc.occlusion_strength),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_emissiveFactor",
+                        value: UniformValue::Vec3(desc.emissive_factor),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_emissiveStrength",
+                        value: UniformValue::Float(desc.emissive_strength),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_clearcoat",
+                        value: UniformValue::Float(desc.clearcoat),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_clearcoatRoughness",
+                        value: UniformValue::Float(desc.clearcoat_roughness),
+                    });
+                    let ior = desc.ior.max(1.0);
+                    let ratio = (ior - 1.0) / (ior + 1.0);
+                    self.uniforms.push(Uniform {
+                        name: "u_dielectricF0",
+                        value: UniformValue::Float(ratio * ratio * desc.specular),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_alphaCutoff",
+                        value: UniformValue::Float(if desc.blend {
+                            0.0
+                        } else {
+                            desc.alpha_cutoff
+                        }),
+                    });
                 }
             }
             gpu.set_uniforms(&self.uniforms);
-            if let Some(tex) = albedo_tex {
-                gpu.bind_texture(
-                    if matches!(mode, DrawMode::GBuffer) {
-                        0
-                    } else {
-                        1
-                    },
-                    tex,
-                );
-            }
-            if want_skinned {
+            let albedo = albedo_tex.unwrap_or(self.white_tex);
+            gpu.bind_texture(
+                if matches!(mode, DrawMode::GBuffer) {
+                    0
+                } else {
+                    1
+                },
+                albedo,
+            );
+            if mesh.skinned {
                 let o = mr.skin.offset as usize;
                 let c = mr.skin.count as usize;
                 let Some(end) = o.checked_add(c) else {
@@ -1435,15 +2253,8 @@ impl Renderer {
                     continue;
                 }
                 gpu.set_joints(&self.skin_arena[o..end]);
-                gpu.draw(
-                    mesh.vbo,
-                    Some(mesh.ebo),
-                    &SKINNED_MESH_LAYOUT,
-                    mesh.index_count,
-                );
-            } else {
-                gpu.draw(mesh.vbo, Some(mesh.ebo), &MESH_LAYOUT, mesh.index_count);
             }
+            gpu.draw(mesh.vbo, Some(mesh.ebo), &mesh.layout, mesh.index_count);
         }
     }
 
@@ -1581,13 +2392,20 @@ impl Renderer {
     }
 }
 
-/// Mesh draw variant: shadow depth-only, forward lit (RTT), or deferred G-buffer.
+/// Mesh draw variant: shadow depth, forward RTT, deferred G-buffer, or scene transparency.
 #[derive(Clone, Copy)]
 enum DrawMode {
     Depth,
     Forward,
     GBuffer,
+    Transparent,
 }
+static GBUFFER_FORMATS: [TextureFormat; 4] = [
+    TextureFormat::Rgba8,
+    TextureFormat::Rgba8,
+    TextureFormat::Rgba8,
+    TextureFormat::Rgba8,
+];
 
 const DEFAULT_LIGHT_DIR: Vec3 = Vec3 {
     x: -0.4,
@@ -1596,7 +2414,6 @@ const DEFAULT_LIGHT_DIR: Vec3 = Vec3 {
 };
 
 /// Deferred target attachment format tables (`'static` for `MrtDesc::colors`).
-static GBUFFER_FORMATS: [TextureFormat; 2] = [TextureFormat::Rgba8, TextureFormat::Rgba8];
 static SCENE_HDR_FORMATS: [TextureFormat; 1] = [TextureFormat::Rgba16F];
 static SCENE_LDR_FORMATS: [TextureFormat; 1] = [TextureFormat::Rgba8];
 

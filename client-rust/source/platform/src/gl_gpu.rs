@@ -2,9 +2,10 @@
 
 use std::collections::HashMap;
 use successor_engine_render::gpu::{
-    BufferId, BufferUsage, ClearSpec, Cull, Filter, Gpu, GpuCaps, MrtDesc, PassTarget,
-    PipelineState, ProgramId, RectPx, RenderTargetDesc, RenderTargetId, Texture3dDesc, TextureDesc,
-    TextureFormat, TextureId, Uniform, UniformValue, VertexLayout,
+    BufferId, BufferUsage, ClearSpec, Cull, Filter, ForwardLight, Gpu, GpuCaps, GpuError,
+    MinFilter, MrtDesc, PassTarget, PipelineState, ProgramId, RectPx, RenderTargetDesc,
+    RenderTargetId, Texture3dDesc, TextureDesc, TextureFormat, TextureId, Uniform, UniformValue,
+    VertexFormat, VertexLayout, Wrap,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -26,6 +27,13 @@ pub struct GlGpu {
     render_targets: Vec<RenderTarget>,
     active_program: u32,
     caps: successor_engine_render::gpu::GpuCaps,
+    error: Option<GpuError>,
+}
+
+impl Default for GlGpu {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl GlGpu {
@@ -40,7 +48,10 @@ impl GlGpu {
             active_program: 0,
             caps: successor_engine_render::gpu::GpuCaps {
                 half_float_target: gl::cap_half_float_target(),
+                max_color_attachments: gl::get_integer(gl::MAX_COLOR_ATTACHMENTS).max(0) as u32,
+                max_draw_buffers: gl::get_integer(gl::MAX_DRAW_BUFFERS).max(0) as u32,
             },
+            error: None,
         }
     }
 }
@@ -80,7 +91,7 @@ impl Gpu for GlGpu {
 
     fn create_program(&mut self, vert_src: &str, frag_src: &str) -> ProgramId {
         let header = if cfg!(target_arch = "wasm32") {
-            "#version 300 es\nprecision highp float;\nprecision highp sampler2D;\nprecision highp sampler3D;\n"
+            "#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp sampler3D;\n"
         } else {
             "#version 330 core\n"
         };
@@ -100,6 +111,7 @@ impl Gpu for GlGpu {
             successor_engine_core::rt::log::log_str("Vertex shader compile error:\n");
             successor_engine_core::rt::log::log_str(log_msg);
             successor_engine_core::rt::log::log_str("\n");
+            self.error.get_or_insert(GpuError::ShaderCompile);
         }
 
         let fs = gl::create_shader(gl::FRAGMENT_SHADER);
@@ -114,6 +126,7 @@ impl Gpu for GlGpu {
             successor_engine_core::rt::log::log_str("Fragment shader compile error:\n");
             successor_engine_core::rt::log::log_str(log_msg);
             successor_engine_core::rt::log::log_str("\n");
+            self.error.get_or_insert(GpuError::ShaderCompile);
         }
 
         let program = gl::create_program();
@@ -129,6 +142,7 @@ impl Gpu for GlGpu {
             successor_engine_core::rt::log::log_str("Program link error:\n");
             successor_engine_core::rt::log::log_str(log_msg);
             successor_engine_core::rt::log::log_str("\n");
+            self.error.get_or_insert(GpuError::ProgramLink);
         }
 
         gl::delete_shader(vs);
@@ -138,22 +152,37 @@ impl Gpu for GlGpu {
     }
 
     fn create_texture(&mut self, desc: &TextureDesc, data: Option<&[u8]>) -> TextureId {
+        if desc.width == 0 || desc.height == 0 {
+            self.error.get_or_insert(GpuError::InvalidResource);
+        }
         let handle = gl::gen_texture();
         gl::bind_texture(gl::TEXTURE_2D, handle);
         gl::pixel_storei(gl::UNPACK_ALIGNMENT, 1);
 
-        let filter = match desc.filter {
+        let mag_filter = match desc.mag_filter {
             Filter::Nearest => gl::NEAREST,
             Filter::Linear => gl::LINEAR,
         };
-
-        gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter);
-        gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter);
-        gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE);
-        gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE);
+        let min_filter = match desc.min_filter {
+            MinFilter::Nearest => gl::NEAREST,
+            MinFilter::Linear => gl::LINEAR,
+            MinFilter::NearestMipmapNearest => gl::NEAREST_MIPMAP_NEAREST,
+            MinFilter::LinearMipmapLinear => gl::LINEAR_MIPMAP_LINEAR,
+        };
+        let wrap = |mode| match mode {
+            Wrap::ClampToEdge => gl::CLAMP_TO_EDGE,
+            Wrap::Repeat => gl::REPEAT,
+        };
+        gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, min_filter);
+        gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, mag_filter);
+        gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, wrap(desc.wrap_s));
+        gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, wrap(desc.wrap_t));
 
         let (internal_format, format, ty) = match desc.format {
             TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
+            TextureFormat::Srgba8 => (gl::SRGB8_ALPHA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
+            TextureFormat::R8 => (gl::R8 as i32, gl::RED, gl::UNSIGNED_BYTE),
+            TextureFormat::Rg8 => (gl::RG8 as i32, gl::RG, gl::UNSIGNED_BYTE),
             TextureFormat::Rgba16F => (gl::RGBA16F as i32, gl::RGBA, gl::HALF_FLOAT),
             TextureFormat::Depth => (
                 gl::DEPTH_COMPONENT24 as i32,
@@ -173,6 +202,9 @@ impl Gpu for GlGpu {
             ty,
             data,
         );
+        if desc.mipmaps {
+            gl::generate_mipmap(gl::TEXTURE_2D);
+        }
 
         gl::bind_texture(gl::TEXTURE_2D, 0);
         TextureId(handle)
@@ -255,6 +287,7 @@ impl Gpu for GlGpu {
         if status != gl::FRAMEBUFFER_COMPLETE {
             successor_engine_core::rt::log::log1u("Framebuffer incomplete status: ", status as u64);
             successor_engine_core::rt::log::log_str("\n");
+            self.error.get_or_insert(GpuError::IncompleteFramebuffer);
         }
 
         gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
@@ -382,10 +415,7 @@ impl Gpu for GlGpu {
 
         if !has_key {
             // Allocate once during first frame or load
-            let cache = self
-                .uniform_cache
-                .entry(program)
-                .or_insert_with(HashMap::new);
+            let cache = self.uniform_cache.entry(program).or_default();
             for u in uniforms {
                 if !cache.contains_key(u.name) {
                     let loc = gl::get_uniform_location(program, u.name);
@@ -403,6 +433,7 @@ impl Gpu for GlGpu {
                 match u.value {
                     UniformValue::Float(v) => gl::uniform1f(loc, v),
                     UniformValue::Vec3(v) => gl::uniform3f(loc, v[0], v[1], v[2]),
+                    UniformValue::Vec2(v) => gl::uniform2f(loc, v[0], v[1]),
                     UniformValue::Vec4(v) => gl::uniform4f(loc, v[0], v[1], v[2], v[3]),
                     UniformValue::Mat4(v) => gl::uniform_matrix4fv(loc, false, &v),
                     UniformValue::Int(v) => gl::uniform1i(loc, v),
@@ -428,11 +459,17 @@ impl Gpu for GlGpu {
 
         for attr in layout.attrs {
             gl::enable_vertex_attrib_array(attr.location);
+            let (scalar, normalized) = match attr.format {
+                VertexFormat::F32 => (gl::FLOAT, false),
+                VertexFormat::U8 => (gl::UNSIGNED_BYTE, false),
+                VertexFormat::U8Norm => (gl::UNSIGNED_BYTE, true),
+                VertexFormat::U16Norm => (gl::UNSIGNED_SHORT, true),
+            };
             gl::vertex_attrib_pointer(
                 attr.location,
                 attr.components as i32,
-                gl::FLOAT,
-                false,
+                scalar,
+                normalized,
                 layout.stride as i32,
                 attr.offset,
             );
@@ -482,6 +519,55 @@ impl Gpu for GlGpu {
         gl::uniform_matrix4fv_array(loc, flat);
     }
 
+    fn set_forward_lights(&mut self, lights: &[ForwardLight]) {
+        let program = self.active_program;
+        if program == 0 {
+            return;
+        }
+        let count = lights.len().min(32);
+        if count == 0 {
+            return;
+        }
+        let mut positions = [0.0; 96];
+        let mut radii = [0.0; 32];
+        let mut colors = [0.0; 96];
+        let mut intensities = [0.0; 32];
+        for (index, light) in lights[..count].iter().enumerate() {
+            positions[index * 3..index * 3 + 3].copy_from_slice(&light.position);
+            radii[index] = light.radius;
+            colors[index * 3..index * 3 + 3].copy_from_slice(&light.color);
+            intensities[index] = light.intensity;
+        }
+        for (name, kind) in [
+            ("u_pointPositions[0]", 0u8),
+            ("u_pointRadii[0]", 1),
+            ("u_pointColors[0]", 2),
+            ("u_pointIntensities[0]", 3),
+        ] {
+            let location = self
+                .uniform_cache
+                .get(&program)
+                .and_then(|cache| cache.get(name).copied())
+                .unwrap_or_else(|| {
+                    let location = gl::get_uniform_location(program, name);
+                    self.uniform_cache
+                        .entry(program)
+                        .or_default()
+                        .insert(name, location);
+                    location
+                });
+            if location == -1 {
+                continue;
+            }
+            match kind {
+                0 => gl::uniform3fv(location, &positions[..count * 3]),
+                1 => gl::uniform1fv(location, &radii[..count]),
+                2 => gl::uniform3fv(location, &colors[..count * 3]),
+                _ => gl::uniform1fv(location, &intensities[..count]),
+            }
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn draw_instanced(
         &mut self,
@@ -496,11 +582,17 @@ impl Gpu for GlGpu {
         gl::bind_buffer(gl::ARRAY_BUFFER, vertices.0);
         for attr in layout.attrs {
             gl::enable_vertex_attrib_array(attr.location);
+            let (scalar, normalized) = match attr.format {
+                VertexFormat::F32 => (gl::FLOAT, false),
+                VertexFormat::U8 => (gl::UNSIGNED_BYTE, false),
+                VertexFormat::U8Norm => (gl::UNSIGNED_BYTE, true),
+                VertexFormat::U16Norm => (gl::UNSIGNED_SHORT, true),
+            };
             gl::vertex_attrib_pointer(
                 attr.location,
                 attr.components as i32,
-                gl::FLOAT,
-                false,
+                scalar,
+                normalized,
                 layout.stride as i32,
                 attr.offset,
             );
@@ -546,6 +638,10 @@ impl Gpu for GlGpu {
         self.caps
     }
 
+    fn take_error(&mut self) -> Option<GpuError> {
+        self.error.take()
+    }
+
     fn create_texture_3d(&mut self, desc: &Texture3dDesc, data: Option<&[u8]>) -> TextureId {
         let handle = gl::gen_texture();
         gl::bind_texture(gl::TEXTURE_3D, handle);
@@ -567,6 +663,9 @@ impl Gpu for GlGpu {
         gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, wrap_xz);
         let (internal_format, format, ty) = match desc.format {
             TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
+            TextureFormat::Srgba8 => (gl::SRGB8_ALPHA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
+            TextureFormat::R8 => (gl::R8 as i32, gl::RED, gl::UNSIGNED_BYTE),
+            TextureFormat::Rg8 => (gl::RG8 as i32, gl::RG, gl::UNSIGNED_BYTE),
             TextureFormat::Rgba16F => (gl::RGBA16F as i32, gl::RGBA, gl::HALF_FLOAT),
             TextureFormat::Depth => (
                 gl::DEPTH_COMPONENT24 as i32,
@@ -644,6 +743,9 @@ impl Gpu for GlGpu {
             gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE);
             let (internal_format, format, ty) = match fmt {
                 TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
+                TextureFormat::Srgba8 => (gl::SRGB8_ALPHA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
+                TextureFormat::R8 => (gl::R8 as i32, gl::RED, gl::UNSIGNED_BYTE),
+                TextureFormat::Rg8 => (gl::RG8 as i32, gl::RG, gl::UNSIGNED_BYTE),
                 TextureFormat::Rgba16F => (gl::RGBA16F as i32, gl::RGBA, gl::HALF_FLOAT),
                 TextureFormat::Depth => (
                     gl::DEPTH_COMPONENT24 as i32,
@@ -708,6 +810,7 @@ impl Gpu for GlGpu {
                 status as u64,
             );
             successor_engine_core::rt::log::log_str("\n");
+            self.error.get_or_insert(GpuError::IncompleteFramebuffer);
         }
         gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
         let rt_idx = self.render_targets.len() as u32 + 1;
@@ -738,6 +841,10 @@ impl Gpu for GlGpu {
             }
             t.fbo = 0;
         }
+    }
+
+    fn finish(&mut self) {
+        gl::finish();
     }
 
     fn end_pass(&mut self) {

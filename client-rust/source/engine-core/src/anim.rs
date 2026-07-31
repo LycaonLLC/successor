@@ -55,7 +55,11 @@ fn locate(input: &[f32], time: f32) -> (usize, usize, f32) {
     }
     let t0 = input[i];
     let t1 = input[i + 1];
-    let f = if t1 > t0 { (time - t0) / (t1 - t0) } else { 0.0 };
+    let f = if t1 > t0 {
+        (time - t0) / (t1 - t0)
+    } else {
+        0.0
+    };
     (i, i + 1, f)
 }
 
@@ -100,7 +104,12 @@ fn sample_quat(s: &GlbSampler, time: f32) -> Option<Quat> {
 pub fn nlerp(a: Quat, mut b: Quat, f: f32) -> Quat {
     let dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     if dot < 0.0 {
-        b = Quat { x: -b.x, y: -b.y, z: -b.z, w: -b.w };
+        b = Quat {
+            x: -b.x,
+            y: -b.y,
+            z: -b.z,
+            w: -b.w,
+        };
     }
     Quat {
         x: a.x + (b.x - a.x) * f,
@@ -303,7 +312,10 @@ mod tests {
     fn samples_translation_midpoint() {
         let anim = GlbAnimation {
             name: None,
-            samplers: alloc::vec![lin_sampler(alloc::vec![0.0, 1.0], alloc::vec![0.0, 0.0, 0.0, 4.0, 0.0, 0.0])],
+            samplers: alloc::vec![lin_sampler(
+                alloc::vec![0.0, 1.0],
+                alloc::vec![0.0, 0.0, 0.0, 4.0, 0.0, 0.0]
+            )],
             channels: alloc::vec![GlbChannel {
                 sampler: 0,
                 target_node: 0,
@@ -318,7 +330,10 @@ mod tests {
 
     #[test]
     fn step_holds_left_key() {
-        let mut s = lin_sampler(alloc::vec![0.0, 1.0], alloc::vec![0.0, 0.0, 0.0, 9.0, 0.0, 0.0]);
+        let mut s = lin_sampler(
+            alloc::vec![0.0, 1.0],
+            alloc::vec![0.0, 0.0, 0.0, 9.0, 0.0, 0.0],
+        );
         s.interp = Interp::Step;
         assert_eq!(sample_vec3(&s, 0.9).unwrap().x, 0.0);
         assert_eq!(sample_vec3(&s, 1.0).unwrap().x, 9.0);
@@ -342,8 +357,14 @@ mod tests {
     fn mask_gates_joints() {
         let mut base = alloc::vec![JointTransform::default(), JointTransform::default()];
         let overlay = alloc::vec![
-            JointTransform { t: vec3(5.0, 0.0, 0.0), ..Default::default() },
-            JointTransform { t: vec3(5.0, 0.0, 0.0), ..Default::default() },
+            JointTransform {
+                t: vec3(5.0, 0.0, 0.0),
+                ..Default::default()
+            },
+            JointTransform {
+                t: vec3(5.0, 0.0, 0.0),
+                ..Default::default()
+            },
         ];
         blend_into(&mut base, &overlay, 1.0, Some(&[true, false]));
         assert!((base[0].t.x - 5.0).abs() < 1e-5);

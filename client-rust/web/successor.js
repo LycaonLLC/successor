@@ -82,6 +82,7 @@ const importObject = {
         // --- WebGL2 Functions ---
         glClearColor: (r, g, b, a) => gl.clearColor(r, g, b, a),
         glClear: (mask) => gl.clear(mask),
+        glFinish: () => gl.finish(),
         glViewport: (x, y, w, h) => gl.viewport(x, y, w, h),
         glEnable: (cap) => gl.enable(cap),
         glDisable: (cap) => gl.disable(cap),
@@ -177,6 +178,11 @@ const importObject = {
             glResources[buf] = null;
         },
         glBindBuffer: (target, buf) => gl.bindBuffer(target, glGet(buf)),
+        glGetInteger: (pname) => gl.getParameter(pname) | 0,
+        glReadPixels: (x, y, width, height, format, type, ptr, len) => {
+            const pixels = new Uint8Array(wasmMemory.buffer, ptr, len);
+            gl.readPixels(x, y, width, height, format, type, pixels);
+        },
         glBufferData: (target, ptr, len, usage) => {
             const bytes = new Uint8Array(wasmMemory.buffer, ptr, len);
             gl.bufferData(target, bytes, usage);
@@ -224,7 +230,11 @@ const importObject = {
             gl.texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
         },
         glGenerateMipmap: (target) => gl.generateMipmap(target),
-        glCapHalfFloatTarget: () => (gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float')) ? 1 : 0,
+        glCapHalfFloatTarget: () => {
+            if (new URLSearchParams(location.search).has("disable-half-float")) return 0;
+            return (gl.getExtension("EXT_color_buffer_float") ||
+                gl.getExtension("EXT_color_buffer_half_float")) ? 1 : 0;
+        },
 
         // --- Window/Input/Time Functions ---
         js_init: (titlePtr, titleLen, w, h) => {
@@ -233,6 +243,8 @@ const importObject = {
         },
         js_log: (ptr, len) => {
             const str = getString(ptr, len);
+            if (!window.__successorRenderLog) window.__successorRenderLog = [];
+            window.__successorRenderLog.push(str);
             console.log(str);
         },
         js_get_canvas_size: (w_ptr, h_ptr) => {
@@ -392,14 +404,38 @@ let lastTime = performance.now();
 fetch("successor.wasm")
     .then(response => response.arrayBuffer())
     .then(bytes => WebAssembly.instantiate(bytes, importObject))
-    .then(results => {
+    .then(async results => {
         const instance = results.instance;
         wasmMemory = instance.exports.memory;
         wasmExports = instance.exports;
 
-        // Call init if present
+        const params = new URLSearchParams(window.location.search);
+        const demoSelector = params.get("demo") === "material-parity" ? 1 : 0;
+        window.__successorRenderReady = false;
+        window.__successorRenderError = null;
+        window.__successorRenderProbe = null;
+        if (demoSelector === 1) {
+            const parityAssets = [
+                "commerce_facility.glb",
+                "lightning_carbine.glb",
+                "mossmuff_adult.glb",
+                "successor_food_beer_mug.glb",
+                "field_cap.glb",
+                "megalith_brick_hex.glb"
+            ];
+            globalThis.__successorFetchCache = new Map();
+            await Promise.all(parityAssets.map(async name => {
+                const url = `parity-assets/${name}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`asset fetch ${response.status}: ${url}`);
+                globalThis.__successorFetchCache.set(
+                    url,
+                    new Uint8Array(await response.arrayBuffer())
+                );
+            }));
+        }
         if (typeof wasmExports.init === "function") {
-            wasmExports.init();
+            wasmExports.init(demoSelector);
         }
         // Kick the wasm networking runtime (optional export): connect once,
         // then poll each frame.
@@ -418,25 +454,43 @@ fetch("successor.wasm")
         window.addEventListener("resize", resizeCanvas);
         resizeCanvas();
 
-        // Animation / Frame loop
+        let renderedFrames = 0;
         function tick(time) {
             const dt = (time - lastTime) / 1000.0;
             lastTime = time;
-
-            if (typeof wasmExports.net_poll === "function") {
-                wasmExports.net_poll();
+            try {
+                if (typeof wasmExports.net_poll === "function" && demoSelector === 0) {
+                    wasmExports.net_poll();
+                }
+                if (typeof wasmExports.update === "function") {
+                    wasmExports.update(dt);
+                }
+                if (typeof wasmExports.render === "function") {
+                    wasmExports.render();
+                }
+                renderedFrames += 1;
+                if (demoSelector === 1 && renderedFrames === 120 && typeof wasmExports.probe_material_parity === "function") {
+                    const passed = wasmExports.probe_material_parity();
+                    window.__successorRenderProbe = {
+                        passed: passed === 1,
+                        frame: renderedFrames,
+                        width: canvas.width,
+                        height: canvas.height
+                    };
+                    window.__successorRenderReady = passed === 1;
+                    if (passed !== 1) window.__successorRenderError = "material parity probe failed";
+                }
+            } catch (error) {
+                window.__successorRenderError = String(error);
+                console.error("render loop failed:", error);
+                return;
             }
-            if (typeof wasmExports.update === "function") {
-                wasmExports.update(dt);
-            }
-            if (typeof wasmExports.render === "function") {
-                wasmExports.render();
-            }
-
             requestAnimationFrame(tick);
         }
         requestAnimationFrame(tick);
     })
     .catch(err => {
         console.error("WASM instantiation failed:", err);
+        window.__successorRenderReady = false;
+        window.__successorRenderError = String(err);
     });

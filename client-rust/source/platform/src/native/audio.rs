@@ -61,8 +61,17 @@ mod coreaudio {
             inFlags: u32,
             outAQ: *mut AudioQueueRef,
         ) -> i32;
-        pub fn AudioQueueAllocateBuffer(inAQ: AudioQueueRef, inBufferByteSize: u32, outBuffer: *mut AudioQueueBufferRef) -> i32;
-        pub fn AudioQueueEnqueueBuffer(inAQ: AudioQueueRef, inBuffer: AudioQueueBufferRef, inNumPacketDescs: u32, inPacketDescs: *const c_void) -> i32;
+        pub fn AudioQueueAllocateBuffer(
+            inAQ: AudioQueueRef,
+            inBufferByteSize: u32,
+            outBuffer: *mut AudioQueueBufferRef,
+        ) -> i32;
+        pub fn AudioQueueEnqueueBuffer(
+            inAQ: AudioQueueRef,
+            inBuffer: AudioQueueBufferRef,
+            inNumPacketDescs: u32,
+            inPacketDescs: *const c_void,
+        ) -> i32;
         pub fn AudioQueueStart(inAQ: AudioQueueRef, inStartTime: *const c_void) -> i32;
         pub fn AudioQueueStop(inAQ: AudioQueueRef, inImmediate: u8) -> i32;
         pub fn AudioQueueDispose(inAQ: AudioQueueRef, inImmediate: u8) -> i32;
@@ -76,7 +85,11 @@ struct FillState {
 }
 
 #[cfg(target_os = "macos")]
-extern "C" fn render_cb(user: *mut c_void, queue: coreaudio::AudioQueueRef, buf: coreaudio::AudioQueueBufferRef) {
+extern "C" fn render_cb(
+    user: *mut c_void,
+    queue: coreaudio::AudioQueueRef,
+    buf: coreaudio::AudioQueueBufferRef,
+) {
     use coreaudio::*;
     unsafe {
         let state = &mut *(user as *mut FillState);
@@ -87,7 +100,11 @@ extern "C" fn render_cb(user: *mut c_void, queue: coreaudio::AudioQueueRef, buf:
         }
         let slice = &mut state.scratch[..floats];
         (state.fill)(slice);
-        core::ptr::copy_nonoverlapping(slice.as_ptr() as *const u8, (*buf).mAudioData as *mut u8, floats * 4);
+        core::ptr::copy_nonoverlapping(
+            slice.as_ptr() as *const u8,
+            (*buf).mAudioData as *mut u8,
+            floats * 4,
+        );
         (*buf).mAudioDataByteSize = (floats * 4) as u32;
         AudioQueueEnqueueBuffer(queue, buf, 0, core::ptr::null());
     }
@@ -106,7 +123,10 @@ impl AudioOutput {
     /// Open a stereo f32 output at `sample_rate` and start pulling `fill`.
     /// Returns `None` if the OS has no output device / the queue fails.
     pub fn start(sample_rate: u32, fill: FillFn) -> Option<Self> {
-        let mut state = Box::new(FillState { fill, scratch: Vec::new() });
+        let mut state = Box::new(FillState {
+            fill,
+            scratch: Vec::new(),
+        });
         #[cfg(target_os = "macos")]
         {
             use coreaudio::*;
@@ -124,7 +144,15 @@ impl AudioOutput {
             let mut queue: AudioQueueRef = core::ptr::null_mut();
             let user = &mut *state as *mut FillState as *mut c_void;
             let rc = unsafe {
-                AudioQueueNewOutput(&fmt, render_cb, user, core::ptr::null_mut(), core::ptr::null(), 0, &mut queue)
+                AudioQueueNewOutput(
+                    &fmt,
+                    render_cb,
+                    user,
+                    core::ptr::null_mut(),
+                    core::ptr::null(),
+                    0,
+                    &mut queue,
+                )
             };
             if rc != 0 || queue.is_null() {
                 return None;
@@ -143,13 +171,20 @@ impl AudioOutput {
                 unsafe { AudioQueueDispose(queue, 1) };
                 return None;
             }
-            return Some(Self { queue, _state: state, started: true });
+            Some(Self {
+                queue,
+                _state: state,
+                started: true,
+            })
         }
         #[cfg(not(target_os = "macos"))]
         {
             let _ = sample_rate;
             // No device backend for this target; a headless no-op sink.
-            Some(Self { _state: state, started: false })
+            Some(Self {
+                _state: state,
+                started: false,
+            })
         }
     }
 

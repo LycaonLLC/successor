@@ -158,7 +158,7 @@ mod tests {
         let mut c = IsoCamera::default();
         c.update_focus(10.0, 20.0, 0.016);
         assert_eq!(c.center(), vec3(10.0, 0.0, 20.0)); // first call snaps
-        // Move target; center should approach but not overshoot.
+                                                       // Move target; center should approach but not overshoot.
         for _ in 0..200 {
             c.update_focus(30.0, 20.0, 0.016);
         }

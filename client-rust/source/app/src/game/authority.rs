@@ -140,7 +140,9 @@ impl AuthorityStore {
                 return;
             }
         }
-        let Some(a) = self.actors.get_mut(id) else { return };
+        let Some(a) = self.actors.get_mut(id) else {
+            return;
+        };
         if let Some(v) = &patch.area_id {
             a.area_id = v.clone();
         }
@@ -188,7 +190,10 @@ impl AuthorityStore {
     /// An update for `id` is stale if it carries a lower `lifecycleSeq` than the
     /// actor we already hold (a late packet from a previous life).
     fn actor_is_stale(&self, id: &str, incoming_seq: i64) -> bool {
-        self.actors.get(id).map(|a| incoming_seq < a.lifecycle_seq).unwrap_or(false)
+        self.actors
+            .get(id)
+            .map(|a| incoming_seq < a.lifecycle_seq)
+            .unwrap_or(false)
     }
 
     /// De-duplicate a command receipt over a bounded window. Returns true if the
@@ -219,7 +224,9 @@ impl AuthorityStore {
 
     /// Actors that should be rendered: alive/downed, excluding `respawning`.
     pub fn render_actors(&self) -> impl Iterator<Item = (&String, &GameActorSnapshot)> {
-        self.actors.iter().filter(|(_, a)| a.life_state != "respawning")
+        self.actors
+            .iter()
+            .filter(|(_, a)| a.life_state != "respawning")
     }
 }
 
@@ -245,13 +252,21 @@ mod tests {
             y,
             life_state: "alive".into(),
             lifecycle_seq: seq,
-            vitals: GameActorVitals { health: 100.0, action: 100.0, spirit: 100.0 },
+            vitals: GameActorVitals {
+                health: 100.0,
+                action: 100.0,
+                spirit: 100.0,
+            },
             ..Default::default()
         }
     }
 
     fn snap_with(actors: Vec<GameActorSnapshot>) -> GameShardSnapshot {
-        let mut s = GameShardSnapshot { tick: 1, player_actor_id: "me".into(), ..Default::default() };
+        let mut s = GameShardSnapshot {
+            tick: 1,
+            player_actor_id: "me".into(),
+            ..Default::default()
+        };
         for a in actors {
             s.actors.insert(a.id.clone(), a);
         }
@@ -261,14 +276,27 @@ mod tests {
     #[test]
     fn snapshot_then_delta_patch_and_remove() {
         let mut store = AuthorityStore::new();
-        store.apply_snapshot(&snap_with(vec![actor("me", 0.0, 0.0, 1), actor("bob", 5.0, 5.0, 1)]));
+        store.apply_snapshot(&snap_with(vec![
+            actor("me", 0.0, 0.0, 1),
+            actor("bob", 5.0, 5.0, 1),
+        ]));
         assert_eq!(store.actors.len(), 2);
 
-        let mut d = GameShardDelta { tick: 2, ..Default::default() };
-        d.actor_patches.insert("bob".into(), GameActorPatch { id: "bob".into(), x: Some(9.0), ..Default::default() });
+        let mut d = GameShardDelta {
+            tick: 2,
+            ..Default::default()
+        };
+        d.actor_patches.insert(
+            "bob".into(),
+            GameActorPatch {
+                id: "bob".into(),
+                x: Some(9.0),
+                ..Default::default()
+            },
+        );
         d.actor_removals.push("me".into());
         store.apply_delta(&d);
-        assert!(store.actors.get("me").is_none());
+        assert!(!store.actors.contains_key("me"));
         assert_eq!(store.actors.get("bob").unwrap().x, 9.0);
         assert_eq!(store.tick, 2);
     }
@@ -277,9 +305,13 @@ mod tests {
     fn compact_move_resolves_netid() {
         let mut store = AuthorityStore::new();
         store.apply_snapshot(&snap_with(vec![actor("bob", 0.0, 0.0, 1)]));
-        let mut d = GameShardDelta { tick: 2, ..Default::default() };
+        let mut d = GameShardDelta {
+            tick: 2,
+            ..Default::default()
+        };
         d.actor_refs.push(GameActorNetRef(7, "bob".into()));
-        d.compact_actor_moves.push(GameCompactActorMove(7, 51200, 50300, 2));
+        d.compact_actor_moves
+            .push(GameCompactActorMove(7, 51200, 50300, 2));
         store.apply_delta(&d);
         let bob = store.actors.get("bob").unwrap();
         assert!((bob.x - 512.0).abs() < 1e-3);
@@ -291,9 +323,20 @@ mod tests {
     fn stale_generation_ignored() {
         let mut store = AuthorityStore::new();
         store.apply_snapshot(&snap_with(vec![actor("bob", 0.0, 0.0, 5)]));
-        let mut d = GameShardDelta { tick: 2, ..Default::default() };
+        let mut d = GameShardDelta {
+            tick: 2,
+            ..Default::default()
+        };
         // Late patch from a previous life (seq 3 < current 5): ignored.
-        d.actor_patches.insert("bob".into(), GameActorPatch { id: "bob".into(), x: Some(99.0), lifecycle_seq: Some(3), ..Default::default() });
+        d.actor_patches.insert(
+            "bob".into(),
+            GameActorPatch {
+                id: "bob".into(),
+                x: Some(99.0),
+                lifecycle_seq: Some(3),
+                ..Default::default()
+            },
+        );
         store.apply_delta(&d);
         assert_eq!(store.actors.get("bob").unwrap().x, 0.0);
     }
@@ -306,10 +349,16 @@ mod tests {
         store.apply_snapshot(&s);
         assert!(store.bank.is_some());
         // Delta without bank retains it.
-        store.apply_delta(&GameShardDelta { tick: 2, ..Default::default() });
+        store.apply_delta(&GameShardDelta {
+            tick: 2,
+            ..Default::default()
+        });
         assert!(store.bank.is_some());
         // Delta with bank replaces it.
-        let mut d = GameShardDelta { tick: 3, ..Default::default() };
+        let mut d = GameShardDelta {
+            tick: 3,
+            ..Default::default()
+        };
         d.bank = Some(serde_json::json!({"credits": 250}));
         store.apply_delta(&d);
         assert_eq!(store.bank.as_ref().unwrap()["credits"], 250);

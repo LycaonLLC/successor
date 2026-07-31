@@ -70,7 +70,10 @@ fn parses_static_triangle_with_material() {
     assert_eq!(doc.nodes[0].mesh, Some(0));
 
     let prim = &doc.meshes[0].primitives[0];
-    assert_eq!(prim.positions, vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]);
+    assert_eq!(
+        prim.positions,
+        vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
+    );
     assert_eq!(prim.indices, vec![0, 1, 2]);
     assert_eq!(prim.material, Some(0));
 
@@ -89,7 +92,7 @@ fn reads_skin_joints_weights_and_ibm() {
     let mut bin = f32s(&[0.0, 0.0, 0.0]); // POSITION, offset 0, 12 bytes
     bin.extend_from_slice(&[0u8, 1, 0, 0]); // JOINTS_0 u8x4, offset 12, 4 bytes
     bin.extend_from_slice(&f32s(&[0.5, 0.5, 0.0, 0.0])); // WEIGHTS_0, offset 16, 16 bytes
-    // IBM: two identity mat4s, offset 32, 128 bytes
+                                                         // IBM: two identity mat4s, offset 32, 128 bytes
     for _ in 0..2 {
         let id = Mat4::IDENTITY;
         bin.extend_from_slice(&f32s(&id.m));
@@ -154,4 +157,102 @@ fn reads_animation_channels() {
 fn rejects_bad_magic() {
     let bytes = [0u8; 20];
     assert!(matches!(parse(&bytes), Err(GlbError::BadMagic)));
+}
+
+#[test]
+fn material_defaults_and_observed_extensions_are_exact() {
+    let json = Json::parse(
+        r#"{"materials":[
+            {"pbrMetallicRoughness":{}},
+            {
+                "doubleSided":true,
+                "alphaMode":"BLEND",
+                "pbrMetallicRoughness":{
+                    "baseColorFactor":[0.2,0.3,0.4,0.5],
+                    "metallicFactor":0.6,
+                    "roughnessFactor":0.7,
+                    "baseColorTexture":{"index":2,"texCoord":0},
+                    "metallicRoughnessTexture":{"index":3}
+                },
+                "normalTexture":{"index":4,"scale":0.25},
+                "occlusionTexture":{"index":5,"strength":0.75},
+                "emissiveTexture":{"index":6},
+                "emissiveFactor":[0.1,0.2,0.3],
+                "extensions":{
+                    "KHR_materials_emissive_strength":{"emissiveStrength":18.0},
+                    "KHR_materials_clearcoat":{"clearcoatFactor":0.8,"clearcoatRoughnessFactor":0.15},
+                    "KHR_materials_ior":{"ior":1.3},
+                    "KHR_materials_specular":{"specularFactor":0.4},
+                    "KHR_materials_transmission":{"transmissionFactor":0.9}
+                }
+            }
+        ]}"#,
+    )
+    .expect("fixture JSON");
+    let materials = parse_materials(&json).expect("materials");
+    assert_eq!(materials[0].base_color, [1.0; 4]);
+    assert_eq!(materials[0].metallic, 1.0);
+    assert_eq!(materials[0].roughness, 1.0);
+    let material = &materials[1];
+    assert_eq!(material.base_color, [0.2, 0.3, 0.4, 0.5]);
+    assert_eq!(material.normal_scale, 0.25);
+    assert_eq!(material.occlusion_strength, 0.75);
+    assert_eq!(material.emissive_strength, 18.0);
+    assert_eq!(material.clearcoat, 0.8);
+    assert_eq!(material.clearcoat_roughness, 0.15);
+    assert_eq!(material.ior, 1.3);
+    assert_eq!(material.specular, 0.4);
+    assert_eq!(material.transmission, 0.9);
+    assert!(material.double_sided);
+    assert_eq!(material.alpha_mode, AlphaMode::Blend);
+}
+
+#[test]
+fn texture_coordinates_outside_supported_sets_fail_closed() {
+    let json = Json::parse(
+        r#"{"materials":[{"pbrMetallicRoughness":{"baseColorTexture":{"index":0,"texCoord":2}}}]}"#,
+    )
+    .expect("fixture JSON");
+    assert!(matches!(
+        parse_materials(&json),
+        Err(GlbError::Unsupported("texture texCoord > 1"))
+    ));
+}
+
+#[test]
+fn generated_tangents_preserve_one_result_per_triangle_corner() {
+    let positions = [
+        [0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [1.0, 1.0, 0.0],
+        [0.0, 1.0, 0.0],
+    ];
+    let normals = [[0.0, 0.0, 1.0]; 4];
+    let uvs = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
+    let indices = [0, 1, 2, 0, 2, 3];
+    let tangents = generate_mikktspace_corner_tangents(&positions, &normals, &uvs, &indices)
+        .expect("tangents");
+    assert_eq!(tangents.len(), indices.len());
+    for tangent in tangents {
+        assert!(tangent.into_iter().all(f32::is_finite));
+        assert!(tangent[3].abs() == 1.0);
+    }
+}
+
+#[test]
+fn animated_morph_weights_are_rejected() {
+    let json = Json::parse(
+        r#"{
+            "accessors":[],
+            "animations":[{
+                "samplers":[],
+                "channels":[{"sampler":0,"target":{"node":0,"path":"weights"}}]
+            }]
+        }"#,
+    )
+    .expect("fixture JSON");
+    assert!(matches!(
+        parse_animations(&json, &[]),
+        Err(GlbError::Unsupported("animated morph weights"))
+    ));
 }

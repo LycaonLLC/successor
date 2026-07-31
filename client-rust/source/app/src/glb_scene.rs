@@ -31,9 +31,14 @@ pub struct GlbScene {
 impl GlbScene {
     /// Parse `bytes` and build a scene. `clip` names the animation to play
     /// (falls back to the first animation, or none for static meshes).
-    pub fn build<G: Gpu>(gpu: &mut G, bytes: &[u8], clip: Option<&str>) -> Result<GlbScene, glb::GlbError> {
+    pub fn build<G: Gpu>(
+        gpu: &mut G,
+        bytes: &[u8],
+        clip: Option<&str>,
+    ) -> Result<GlbScene, glb::GlbError> {
         let doc = glb::parse(bytes)?;
-        let mut renderer = Renderer::new(gpu, crate::quality_limits());
+        let mut renderer =
+            Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
         renderer.set_ambient(0.35);
         let mut world = GameWorld::new();
 
@@ -45,21 +50,8 @@ impl GlbScene {
             None
         };
 
-        // Material palette → renderer materials (index-aligned with doc order).
-        let mut material_ids = Vec::with_capacity(doc.materials.len().max(1));
-        for m in &doc.materials {
-            // Viewer aid: matcap-shaded assets (e.g. pawns) carry a near-black
-            // baseColorFactor. Substitute a neutral tone so the geometry reads
-            // in this QA tool. The real matcap shading lands in a later wave.
-            let c = m.base_color;
-            let color = if c[0].max(c[1]).max(c[2]) < 0.15 {
-                [0.72, 0.70, 0.67, c[3]]
-            } else {
-                c
-            };
-            material_ids.push(renderer.add_material(color));
-        }
-        let default_mat = renderer.add_material([0.75, 0.75, 0.78, 1.0]);
+        let uploaded = successor_engine_render::model::upload_glb(&mut renderer, gpu, &doc)
+            .map_err(|_| glb::GlbError::Unsupported("model upload"))?;
 
         let mut aabb_min = vec3(f32::MAX, f32::MAX, f32::MAX);
         let mut aabb_max = vec3(f32::MIN, f32::MIN, f32::MIN);
@@ -67,48 +59,52 @@ impl GlbScene {
 
         for (node_idx, node) in doc.nodes.iter().enumerate() {
             let Some(mesh_idx) = node.mesh else { continue };
-            let Some(mesh) = doc.meshes.get(mesh_idx) else { continue };
+            let Some(mesh) = doc.meshes.get(mesh_idx) else {
+                continue;
+            };
             let g = globals[node_idx];
-            for prim in &mesh.primitives {
+            for (primitive_idx, prim) in mesh.primitives.iter().enumerate() {
                 if prim.positions.is_empty() {
                     continue;
                 }
                 let is_skinned = skinned && !prim.joints.is_empty() && !prim.weights.is_empty();
-                let (verts, layout_skinned) = if is_skinned {
-                    (build_skinned_vertices(prim), true)
-                } else {
-                    (build_static_vertices(prim, &g), false)
-                };
-                // AABB over final (baked) positions for framing.
-                let stride = if layout_skinned { 16 } else { 8 };
-                let mut i = 0;
-                while i < verts.len() {
-                    let p = vec3(verts[i], verts[i + 1], verts[i + 2]);
+                let uploaded_primitive = uploaded
+                    .primitives
+                    .iter()
+                    .find(|item| {
+                        item.source_mesh == mesh_idx && item.source_primitive == primitive_idx
+                    })
+                    .ok_or(glb::GlbError::Unsupported("missing uploaded primitive"))?;
+                for position in &prim.positions {
+                    let p = if is_skinned {
+                        vec3(position[0], position[1], position[2])
+                    } else {
+                        g.transform_point(vec3(position[0], position[1], position[2]))
+                    };
                     aabb_min = min3(aabb_min, p);
                     aabb_max = max3(aabb_max, p);
-                    i += stride;
                 }
-                let mesh_id = if layout_skinned {
-                    renderer.upload_skinned_mesh(gpu, &verts, &prim.indices)
-                } else {
-                    renderer.upload_mesh(gpu, &verts, &prim.indices)
-                };
-                let material = prim
-                    .material
-                    .and_then(|mi| material_ids.get(mi).copied())
-                    .unwrap_or(default_mat);
                 let e = world.spawn();
-                world.set_component(e, Transform::default());
+                let (pos, rot, scale) = if is_skinned {
+                    (
+                        Vec3::ZERO,
+                        successor_engine_core::math::Quat::IDENTITY,
+                        Vec3::ONE,
+                    )
+                } else {
+                    g.to_trs()
+                };
+                world.set_component(e, Transform { pos, rot, scale });
                 world.set_component(
                     e,
                     MeshRenderer {
-                        mesh: mesh_id,
-                        material,
+                        mesh: uploaded_primitive.mesh,
+                        material: uploaded_primitive.material,
                         viewport_mask: 0b1,
                         skin: SkinRef::NONE,
                     },
                 );
-                if layout_skinned {
+                if is_skinned {
                     skinned_entities.push(e);
                 }
             }
@@ -141,7 +137,11 @@ impl GlbScene {
             Camera {
                 viewport_id: 0,
                 order: 0,
-                projection: Projection::Perspective { fovy: 45.0_f32.to_radians(), near: 0.05, far: 500.0 },
+                projection: Projection::Perspective {
+                    fovy: 45.0_f32.to_radians(),
+                    near: 0.05,
+                    far: 500.0,
+                },
                 target: CamTarget::Screen(successor_engine_render::components::RectNorm::FULL),
                 clear: successor_engine_render::gpu::ClearSpec {
                     color: Some([0.08, 0.09, 0.11, 1.0]),
@@ -238,50 +238,6 @@ fn node_globals(doc: &GlbDocument) -> Vec<Mat4> {
 
 fn alloc_vec_identity(n: usize) -> Vec<Mat4> {
     vec![Mat4::IDENTITY; n]
-}
-
-/// Interleave `pos:3, normal:3, uv:2`, baking the node's world matrix in.
-fn build_static_vertices(prim: &glb::GlbPrimitive, g: &Mat4) -> Vec<f32> {
-    let n = prim.positions.len();
-    let mut out = Vec::with_capacity(n * 8);
-    for i in 0..n {
-        let p = prim.positions[i];
-        let wp = g.transform_point(vec3(p[0], p[1], p[2]));
-        let nrm = prim.normals.get(i).copied().unwrap_or([0.0, 1.0, 0.0]);
-        // Rotate normal by the matrix's upper 3x3 (assumes ~uniform scale).
-        let wn = transform_dir(g, vec3(nrm[0], nrm[1], nrm[2])).normalize();
-        let uv = prim.uvs.get(i).copied().unwrap_or([0.0, 0.0]);
-        out.extend_from_slice(&[wp.x, wp.y, wp.z, wn.x, wn.y, wn.z, uv[0], uv[1]]);
-    }
-    out
-}
-
-/// Interleave `pos:3, normal:3, uv:2, joints:4(f32), weights:4` (skin space).
-fn build_skinned_vertices(prim: &glb::GlbPrimitive) -> Vec<f32> {
-    let n = prim.positions.len();
-    let mut out = Vec::with_capacity(n * 16);
-    for i in 0..n {
-        let p = prim.positions[i];
-        let nrm = prim.normals.get(i).copied().unwrap_or([0.0, 1.0, 0.0]);
-        let uv = prim.uvs.get(i).copied().unwrap_or([0.0, 0.0]);
-        let j = prim.joints.get(i).copied().unwrap_or([0, 0, 0, 0]);
-        let w = prim.weights.get(i).copied().unwrap_or([1.0, 0.0, 0.0, 0.0]);
-        out.extend_from_slice(&[
-            p[0], p[1], p[2], nrm[0], nrm[1], nrm[2], uv[0], uv[1],
-            j[0] as f32, j[1] as f32, j[2] as f32, j[3] as f32,
-            w[0], w[1], w[2], w[3],
-        ]);
-    }
-    out
-}
-
-fn transform_dir(g: &Mat4, v: Vec3) -> Vec3 {
-    let m = &g.m;
-    vec3(
-        m[0] * v.x + m[4] * v.y + m[8] * v.z,
-        m[1] * v.x + m[5] * v.y + m[9] * v.z,
-        m[2] * v.x + m[6] * v.y + m[10] * v.z,
-    )
 }
 
 fn min3(a: Vec3, b: Vec3) -> Vec3 {

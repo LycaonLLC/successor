@@ -13,7 +13,13 @@ fn bar(ui: &mut UiBuilder, x: f32, y: f32, w: f32, frac: f32, fill: [u8; 4], lab
     ui.text(label, x + 4.0, y + 2.0, 1.6, TEXT);
 }
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &WindowModel, _icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &WindowModel,
+    _icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, _h] = rect;
     let c = &model.character;
 
@@ -22,10 +28,24 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &WindowModel, _icons: &Ic
 
     // Vitals.
     let bw = w - 4.0;
-    bar(ui, x, y + 58.0, bw, c.health / c.health_max.max(1.0), [196, 72, 68, 235],
-        &format!("HEALTH {}/{}", c.health as i32, c.health_max as i32));
-    bar(ui, x, y + 80.0, bw, c.action / c.action_max.max(1.0), [86, 156, 210, 235],
-        &format!("ACTION {}/{}", c.action as i32, c.action_max as i32));
+    bar(
+        ui,
+        x,
+        y + 58.0,
+        bw,
+        c.health / c.health_max.max(1.0),
+        [196, 72, 68, 235],
+        &format!("HEALTH {}/{}", c.health as i32, c.health_max as i32),
+    );
+    bar(
+        ui,
+        x,
+        y + 80.0,
+        bw,
+        c.action / c.action_max.max(1.0),
+        [86, 156, 210, 235],
+        &format!("ACTION {}/{}", c.action as i32, c.action_max as i32),
+    );
 
     // Ledger.
     ui.text(&format!("ARMOR   {}", c.armor), x, y + 108.0, 2.0, TEXT);
@@ -72,11 +92,23 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 900);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 600.0, 700.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 600.0, 700.0],
+            &model,
+            &icons,
+            &mut out,
+        );
         ui.set_input(bx, by, false);
         ui.begin(1280, 900);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 600.0, 700.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 600.0, 700.0],
+            &model,
+            &icons,
+            &mut out,
+        );
         assert!(
             matches!(out.first(), Some(WindowAction::SetProfessionTitle(t)) if t == "MARKSMAN"),
             "first title selected, got {out:?}"

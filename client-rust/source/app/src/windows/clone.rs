@@ -1,8 +1,8 @@
 //! CLONING — clone facility bind / respawn UI.
 
-use super::{WindowAction, TEXT, DIM, ACCENT, SLOT, SLOT_EDGE};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder, ButtonStyle};
+use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
 #[derive(Clone, Debug, Default)]
 pub struct CloneFacility {
@@ -54,12 +54,18 @@ impl CloneModel {
     }
 }
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CloneModel, icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &CloneModel,
+    icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, h] = rect;
 
     // Header / Facility Info
     ui.text("CLONE TERMINAL", x, y, 2.2, ACCENT);
-    
+
     // Draw clone icon if available
     if let Some((col, row)) = icons.cell("clone") {
         ui.icon(col, row, x + w - 32.0, y - 4.0, 24.0, 24.0, ACCENT);
@@ -76,7 +82,10 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CloneModel, icons: &Icon
     // Balances
     let bal_y = status_y + 18.0;
     ui.text(
-        &format!("VAULT: {} CR  WALLET: {} CR", model.credits_vault, model.credits_wallet),
+        &format!(
+            "VAULT: {} CR  WALLET: {} CR",
+            model.credits_vault, model.credits_wallet
+        ),
         x,
         bal_y,
         1.6,
@@ -95,14 +104,17 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CloneModel, icons: &Icon
     for (i, fac) in model.facilities.iter().take(max_rows).enumerate() {
         let ry = start_y + i as f32 * row_h;
         let is_selected = model.selected_facility_id.as_ref() == Some(&fac.id);
-        
-        let bg_color = if is_selected {
-            [46, 62, 86, 235]
-        } else {
-            SLOT
-        };
+
+        let bg_color = if is_selected { [46, 62, 86, 235] } else { SLOT };
         ui.rect(x, ry, w, row_h - 4.0, bg_color);
-        ui.border(x, ry, w, row_h - 4.0, 1.0, if is_selected { ACCENT } else { SLOT_EDGE });
+        ui.border(
+            x,
+            ry,
+            w,
+            row_h - 4.0,
+            1.0,
+            if is_selected { ACCENT } else { SLOT_EDGE },
+        );
 
         // Name and zone
         ui.text(&fac.name, x + 8.0, ry + 6.0, 1.8, TEXT);
@@ -128,7 +140,7 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CloneModel, icons: &Icon
     if !has_selection {
         bind_style.text = DIM;
     }
-    
+
     // BIND button
     if ui.button(x, btn_y, btn_w, 26.0, "BIND", bind_style) && has_selection {
         if let Some(sel_id) = &model.selected_facility_id {
@@ -138,7 +150,14 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CloneModel, icons: &Icon
 
     // RESPAWN button
     let respawn_style = ButtonStyle::default();
-    if ui.button(x + btn_w + 10.0, btn_y, btn_w, 26.0, "RESPAWN", respawn_style) {
+    if ui.button(
+        x + btn_w + 10.0,
+        btn_y,
+        btn_w,
+        26.0,
+        "RESPAWN",
+        respawn_style,
+    ) {
         out.push(WindowAction::Button("clone:respawn".into()));
     }
 }
@@ -152,7 +171,7 @@ mod tests {
         let icons = Icons::load();
         let model = CloneModel::sample();
         let mut ui = UiBuilder::new(icons.meta);
-        
+
         // rect = [10.0, 10.0, 300.0, 400.0]
         // btn_y = 10.0 + 400.0 - 30.0 = 380.0
         // btn_w = (300.0 - 10.0) / 2.0 = 145.0
@@ -163,16 +182,29 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [10.0, 10.0, 300.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 300.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [10.0, 10.0, 300.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 300.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert!(
             out.contains(&WindowAction::Button("clone:respawn".into())),
-            "Expected clone:respawn action, got {:?}", out
+            "Expected clone:respawn action, got {:?}",
+            out
         );
     }
 }

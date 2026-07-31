@@ -49,11 +49,21 @@ pub fn faction_tinted(base: [f32; 4], faction: Option<[f32; 3]>) -> [f32; 4] {
 /// (slugthrower / rifle / gun) → Rifle; blade-class (sword / vibro / blade /
 /// melee) → Melee; otherwise Unarmed.
 pub fn weapon_lane(weapon_id: Option<&str>) -> WeaponLane {
-    let Some(id) = weapon_id else { return WeaponLane::Unarmed };
+    let Some(id) = weapon_id else {
+        return WeaponLane::Unarmed;
+    };
     let id = id.to_ascii_lowercase();
-    if id.contains("slug") || id.contains("rifle") || id.contains("gun") || id.contains("scrap_rifle") {
+    if id.contains("slug")
+        || id.contains("rifle")
+        || id.contains("gun")
+        || id.contains("scrap_rifle")
+    {
         WeaponLane::Rifle
-    } else if id.contains("sword") || id.contains("vibro") || id.contains("blade") || id.contains("melee") {
+    } else if id.contains("sword")
+        || id.contains("vibro")
+        || id.contains("blade")
+        || id.contains("melee")
+    {
         WeaponLane::Melee
     } else {
         WeaponLane::Unarmed
@@ -72,21 +82,32 @@ mod tests {
     #[test]
     fn parses_skin_hex() {
         let t = skin_tint(Some("#cc9978"));
-        assert!((t[0] - 0.8).abs() < 0.01 && (t[1] - 0.6).abs() < 0.01 && (t[2] - 0.47).abs() < 0.02);
+        assert!(
+            (t[0] - 0.8).abs() < 0.01 && (t[1] - 0.6).abs() < 0.01 && (t[2] - 0.47).abs() < 0.02
+        );
         assert_eq!(t[3], 1.0);
     }
 
     #[test]
     fn invalid_skin_falls_back() {
-        assert_eq!(skin_tint(Some("not-a-color")), [DEFAULT_SKIN[0], DEFAULT_SKIN[1], DEFAULT_SKIN[2], 1.0]);
-        assert_eq!(skin_tint(None), [DEFAULT_SKIN[0], DEFAULT_SKIN[1], DEFAULT_SKIN[2], 1.0]);
+        assert_eq!(
+            skin_tint(Some("not-a-color")),
+            [DEFAULT_SKIN[0], DEFAULT_SKIN[1], DEFAULT_SKIN[2], 1.0]
+        );
+        assert_eq!(
+            skin_tint(None),
+            [DEFAULT_SKIN[0], DEFAULT_SKIN[1], DEFAULT_SKIN[2], 1.0]
+        );
     }
 
     #[test]
     fn faction_tint_lerps_30_percent() {
         let out = faction_tinted([0.0, 0.0, 0.0, 1.0], Some([1.0, 1.0, 1.0]));
         assert!((out[0] - 0.3).abs() < 1e-6);
-        assert_eq!(faction_tinted([0.5, 0.5, 0.5, 1.0], None), [0.5, 0.5, 0.5, 1.0]);
+        assert_eq!(
+            faction_tinted([0.5, 0.5, 0.5, 1.0], None),
+            [0.5, 0.5, 0.5, 1.0]
+        );
     }
 
     #[test]

@@ -10,8 +10,8 @@ use std::collections::HashMap;
 use successor_engine_core::ecs::{Entity, WorldOps};
 use successor_engine_core::math::{vec3, Vec3};
 use successor_engine_render::components::{MeshRenderer, SkinRef, Transform};
-use successor_engine_render::gpu::{Filter, Gpu};
-use successor_engine_render::renderer::Renderer;
+use successor_engine_render::gpu::{Filter, Gpu, MinFilter, TextureDesc, TextureFormat, Wrap};
+use successor_engine_render::renderer::{MaterialDesc, Renderer};
 
 use super::terrain::{paint_terrain_pixel, Biome};
 use crate::GameWorld;
@@ -39,7 +39,14 @@ pub struct TerrainStreamer {
 }
 
 impl TerrainStreamer {
-    pub fn new(seed: i32, biome: Biome, chunk_cells: f64, tex_px: u32, radius: i32, viewport_mask: u32) -> Self {
+    pub fn new(
+        seed: i32,
+        biome: Biome,
+        chunk_cells: f64,
+        tex_px: u32,
+        radius: i32,
+        viewport_mask: u32,
+    ) -> Self {
         Self {
             seed,
             biome,
@@ -107,7 +114,25 @@ impl TerrainStreamer {
         let origin_x = cx as f64 * self.chunk_cells;
         let origin_z = cz as f64 * self.chunk_cells;
         let rgba = self.bake(origin_x, origin_z);
-        let material = renderer.add_textured_material_pbr(gpu, self.tex_px, self.tex_px, &rgba, Filter::Linear, 0.0, 1.0);
+        let texture = gpu.create_texture(
+            &TextureDesc {
+                width: self.tex_px,
+                height: self.tex_px,
+                format: TextureFormat::Srgba8,
+                mag_filter: Filter::Linear,
+                min_filter: MinFilter::Linear,
+                wrap_s: Wrap::Repeat,
+                wrap_t: Wrap::Repeat,
+                mipmaps: false,
+            },
+            Some(&rgba),
+        );
+        let material = renderer.add_material_desc(MaterialDesc {
+            base_color_texture: Some(texture),
+            metallic: 0.0,
+            roughness: 1.0,
+            ..MaterialDesc::default()
+        });
         let size = self.chunk_cells as f32;
         let (verts, indices) = chunk_quad(size);
         let mesh = renderer.upload_mesh(gpu, &verts, &indices);
@@ -158,10 +183,8 @@ fn chunk_quad(size: f32) -> (Vec<f32>, Vec<u32>) {
     let n = [0.0f32, 1.0, 0.0];
     // pos(3) normal(3) uv(2)
     let v = vec![
-        0.0, 0.0, 0.0, n[0], n[1], n[2], 0.0, 0.0,
-        size, 0.0, 0.0, n[0], n[1], n[2], 1.0, 0.0,
-        size, 0.0, size, n[0], n[1], n[2], 1.0, 1.0,
-        0.0, 0.0, size, n[0], n[1], n[2], 0.0, 1.0,
+        0.0, 0.0, 0.0, n[0], n[1], n[2], 0.0, 0.0, size, 0.0, 0.0, n[0], n[1], n[2], 1.0, 0.0,
+        size, 0.0, size, n[0], n[1], n[2], 1.0, 1.0, 0.0, 0.0, size, n[0], n[1], n[2], 0.0, 1.0,
     ];
     // CCW as seen from +Y.
     (v, vec![0, 2, 1, 0, 3, 2])
@@ -179,10 +202,13 @@ pub struct TerrainScene {
 
 impl TerrainScene {
     pub fn build<G: Gpu>(gpu: &mut G, biome: Biome) -> TerrainScene {
-        use successor_engine_render::components::{CamTarget, Camera, DirectionalLight, Projection, RectNorm};
+        use successor_engine_render::components::{
+            CamTarget, Camera, DirectionalLight, Projection, RectNorm,
+        };
         use successor_engine_render::gpu::ClearSpec;
 
-        let mut renderer = Renderer::new(gpu, crate::quality_limits());
+        let mut renderer =
+            Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
         renderer.set_ambient(0.55);
         let fog = match biome {
             Biome::Forest => [0.615, 0.658, 0.408],
@@ -195,7 +221,13 @@ impl TerrainScene {
         let mut streamer = TerrainStreamer::new(0x0d3d_071e, biome, 64.0, 128, 2, 0b1);
         let center = vec3(0.0, 0.0, 0.0);
         renderer.gi_set_focus([center.x, center.y, center.z]);
-        streamer.ensure_around(&mut world, &mut renderer, gpu, center.x as f64, center.z as f64);
+        streamer.ensure_around(
+            &mut world,
+            &mut renderer,
+            gpu,
+            center.x as f64,
+            center.z as f64,
+        );
 
         let sun = world.spawn();
         world.set_component(
@@ -214,16 +246,30 @@ impl TerrainScene {
             Camera {
                 viewport_id: 0,
                 order: 0,
-                projection: Projection::Perspective { fovy: 50.0_f32.to_radians(), near: 0.5, far: 2000.0 },
+                projection: Projection::Perspective {
+                    fovy: 50.0_f32.to_radians(),
+                    near: 0.5,
+                    far: 2000.0,
+                },
                 target: CamTarget::Screen(RectNorm::FULL),
-                clear: ClearSpec { color: Some([fog[0], fog[1], fog[2], 1.0]), depth: Some(1.0) },
+                clear: ClearSpec {
+                    color: Some([fog[0], fog[1], fog[2], 1.0]),
+                    depth: Some(1.0),
+                },
                 eye: center.add(vec3(orbit, orbit * 0.9, orbit)),
                 look_at: center,
                 up: Vec3::Y,
             },
         );
 
-        TerrainScene { world, renderer, streamer, camera, center, orbit }
+        TerrainScene {
+            world,
+            renderer,
+            streamer,
+            camera,
+            center,
+            orbit,
+        }
     }
 
     pub fn animate(&mut self, frame: u64) {

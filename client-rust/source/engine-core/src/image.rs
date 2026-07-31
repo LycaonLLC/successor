@@ -1,10 +1,8 @@
-//! Minimal PNG decoder → RGBA8. `no_std` + `alloc`.
+//! Embedded PNG/JPEG decoder → RGBA8. `no_std` + `alloc`.
 //!
-//! Supports the 8-bit, non-interlaced PNGs the asset pipeline emits:
-//! grayscale, gray+alpha, RGB, RGBA, and palette (with optional `tRNS`).
-//! Inflate is delegated to `miniz_oxide`. Anything else (16-bit, interlaced,
-//! other bit depths) fails closed with [`ImageError`]. No JPEG (the only JPGs
-//! in the repo are offline contact sheets, never loaded at runtime).
+//! PNG supports the 8-bit, non-interlaced forms emitted by the asset pipeline.
+//! JPEG decoding uses `zune-jpeg`. Both paths enforce the same bounded image
+//! dimensions before returning uploadable pixels.
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -16,8 +14,11 @@ pub enum ImageError {
     BadChunk,
     UnsupportedBitDepth,
     UnsupportedColorType,
+    UnsupportedMime,
+    DimensionsTooLarge,
     Interlaced,
     Inflate,
+    Jpeg,
     BadFilter,
     MissingPalette,
 }
@@ -30,6 +31,55 @@ pub struct RgbaImage {
     pub pixels: Vec<u8>,
 }
 
+const MAX_DIMENSION: u32 = 8_192;
+const MAX_PIXELS: u64 = 67_108_864;
+
+fn validate_dimensions(width: u32, height: u32) -> Result<usize, ImageError> {
+    if width == 0
+        || height == 0
+        || width > MAX_DIMENSION
+        || height > MAX_DIMENSION
+        || u64::from(width) * u64::from(height) > MAX_PIXELS
+    {
+        return Err(ImageError::DimensionsTooLarge);
+    }
+    (width as usize)
+        .checked_mul(height as usize)
+        .and_then(|pixels| pixels.checked_mul(4))
+        .ok_or(ImageError::DimensionsTooLarge)
+}
+
+pub fn decode_image(mime: &str, bytes: &[u8]) -> Result<RgbaImage, ImageError> {
+    match mime {
+        "image/png" => decode_png(bytes),
+        "image/jpeg" => decode_jpeg(bytes),
+        _ => Err(ImageError::UnsupportedMime),
+    }
+}
+
+pub fn decode_jpeg(bytes: &[u8]) -> Result<RgbaImage, ImageError> {
+    use zune_core::bytestream::ZCursor;
+    use zune_core::colorspace::ColorSpace;
+    use zune_core::options::DecoderOptions;
+    use zune_jpeg::JpegDecoder;
+
+    let options = DecoderOptions::default().jpeg_set_out_colorspace(ColorSpace::RGBA);
+    let mut decoder = JpegDecoder::new_with_options(ZCursor::new(bytes), options);
+    decoder.decode_headers().map_err(|_| ImageError::Jpeg)?;
+    let (width, height) = decoder.dimensions().ok_or(ImageError::Jpeg)?;
+    let width = u32::try_from(width).map_err(|_| ImageError::DimensionsTooLarge)?;
+    let height = u32::try_from(height).map_err(|_| ImageError::DimensionsTooLarge)?;
+    let expected = validate_dimensions(width, height)?;
+    let pixels = decoder.decode().map_err(|_| ImageError::Jpeg)?;
+    if pixels.len() != expected {
+        return Err(ImageError::Jpeg);
+    }
+    Ok(RgbaImage {
+        width,
+        height,
+        pixels,
+    })
+}
 const SIG: [u8; 8] = [0x89, b'P', b'N', b'G', b'\r', b'\n', 0x1a, b'\n'];
 
 fn be_u32(b: &[u8], o: usize) -> Result<u32, ImageError> {
@@ -81,6 +131,7 @@ pub fn decode_png(bytes: &[u8]) -> Result<RgbaImage, ImageError> {
                     return Err(ImageError::UnsupportedColorType);
                 }
                 seen_ihdr = true;
+                validate_dimensions(width, height)?;
             }
             b"PLTE" => {
                 for c in data.chunks_exact(3) {
@@ -106,16 +157,18 @@ pub fn decode_png(bytes: &[u8]) -> Result<RgbaImage, ImageError> {
         6 => 4,
         _ => return Err(ImageError::UnsupportedColorType),
     };
-    let raw = miniz_oxide::inflate::decompress_to_vec_zlib(&idat)
-        .map_err(|_| ImageError::Inflate)?;
+    let raw =
+        miniz_oxide::inflate::decompress_to_vec_zlib(&idat).map_err(|_| ImageError::Inflate)?;
 
     let w = width as usize;
     let h = height as usize;
-    let stride = w * channels;
+    let stride = w
+        .checked_mul(channels)
+        .ok_or(ImageError::DimensionsTooLarge)?;
     let unfiltered = unfilter(&raw, w, h, channels, stride)?;
 
     // Expand to RGBA8.
-    let mut pixels = vec![0u8; w * h * 4];
+    let mut pixels = vec![0u8; validate_dimensions(width, height)?];
     for i in 0..(w * h) {
         let src = i * channels;
         let dst = i * 4;
@@ -154,12 +207,22 @@ pub fn decode_png(bytes: &[u8]) -> Result<RgbaImage, ImageError> {
             _ => unreachable!(),
         }
     }
-    Ok(RgbaImage { width, height, pixels })
+    Ok(RgbaImage {
+        width,
+        height,
+        pixels,
+    })
 }
 
 /// Reverse PNG scanline filtering in place, returning the raw pixel bytes
 /// (filter bytes stripped).
-fn unfilter(raw: &[u8], _w: usize, h: usize, channels: usize, stride: usize) -> Result<Vec<u8>, ImageError> {
+fn unfilter(
+    raw: &[u8],
+    _w: usize,
+    h: usize,
+    channels: usize,
+    stride: usize,
+) -> Result<Vec<u8>, ImageError> {
     let bpp = channels; // 8-bit → bytes-per-pixel == channels
     let expected = h * (stride + 1);
     if raw.len() < expected {
@@ -174,7 +237,11 @@ fn unfilter(raw: &[u8], _w: usize, h: usize, channels: usize, stride: usize) -> 
             let cur = raw[src + x];
             let a = if x >= bpp { out[dst + x - bpp] } else { 0 };
             let b = if y > 0 { out[dst - stride + x] } else { 0 };
-            let c = if y > 0 && x >= bpp { out[dst - stride + x - bpp] } else { 0 };
+            let c = if y > 0 && x >= bpp {
+                out[dst - stride + x - bpp]
+            } else {
+                0
+            };
             let recon = match filter {
                 0 => cur,
                 1 => cur.wrapping_add(a),
@@ -250,6 +317,43 @@ mod tests {
         assert_eq!(img.width, 2);
         assert_eq!(img.height, 2);
         assert_eq!(img.pixels, src);
+    }
+
+    #[test]
+    fn dispatches_png_and_rejects_unknown_mime() {
+        let src = [7, 11, 13, 255];
+        let png = build_rgba_png(1, 1, &src);
+        assert_eq!(decode_image("image/png", &png).expect("PNG").pixels, src);
+        assert_eq!(
+            decode_image("image/webp", &png),
+            Err(ImageError::UnsupportedMime)
+        );
+    }
+
+    #[test]
+    fn dispatches_embedded_corpus_jpeg_as_rgba() {
+        let bytes = include_bytes!(
+            "../../../../client-3d/public/assets/items/custom/accessories/field_cap.glb"
+        );
+        let document = crate::glb::parse(bytes).expect("field-cap GLB");
+        let image = document
+            .images
+            .iter()
+            .find(|image| image.mime_type == "image/jpeg")
+            .expect("embedded JPEG");
+        let decoded = decode_image(&image.mime_type, &image.bytes).expect("JPEG");
+        assert_eq!(
+            decoded.pixels.len(),
+            decoded.width as usize * decoded.height as usize * 4
+        );
+        assert!(decoded.width <= MAX_DIMENSION && decoded.height <= MAX_DIMENSION);
+    }
+
+    #[test]
+    fn rejects_oversized_png_before_inflate() {
+        let mut png = build_rgba_png(1, 1, &[0, 0, 0, 255]);
+        png[16..20].copy_from_slice(&(MAX_DIMENSION + 1).to_be_bytes());
+        assert_eq!(decode_png(&png), Err(ImageError::DimensionsTooLarge));
     }
 
     #[test]

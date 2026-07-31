@@ -58,7 +58,12 @@ pub struct SfxPlayer {
 
 impl SfxPlayer {
     pub fn new() -> Self {
-        Self { mixer: Mixer::new(OUT_RATE, 64), clips: Vec::new(), buses: Vec::new(), listener: Point { x: 0.0, y: 0.0 } }
+        Self {
+            mixer: Mixer::new(OUT_RATE, 64),
+            clips: Vec::new(),
+            buses: Vec::new(),
+            listener: Point { x: 0.0, y: 0.0 },
+        }
     }
 
     pub fn mixer_mut(&mut self) -> &mut Mixer {
@@ -106,7 +111,11 @@ impl SfxPlayer {
                     bank,
                     volume: c.get("volume").and_then(|x| x.as_f64()).unwrap_or(1.0) as f32,
                     polyphony: c.get("polyphony").and_then(|x| x.as_u64()).unwrap_or(4) as u32,
-                    bus: c.get("bus").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+                    bus: c
+                        .get("bus")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .to_string(),
                 });
                 loaded += 1;
             }
@@ -118,7 +127,11 @@ impl SfxPlayer {
         self.clips.iter().find(|c| c.id == id)
     }
     fn bus_volume(&self, bus: &str) -> f32 {
-        self.buses.iter().find(|(n, _)| n == bus).map(|(_, v)| *v).unwrap_or(1.0)
+        self.buses
+            .iter()
+            .find(|(n, _)| n == bus)
+            .map(|(_, v)| *v)
+            .unwrap_or(1.0)
     }
 
     /// A stable per-clip voice key (FNV-1a of the id) for polyphony accounting.
@@ -137,14 +150,20 @@ impl SfxPlayer {
         let (bank, base_gain, poly, pan) = match self.clip(id) {
             Some(c) => {
                 let mix = successor_engine_core::audio::spatial_mix(self.listener, at, opts);
-                (c.bank, c.volume * self.bus_volume(&c.bus) * mix.gain, c.polyphony, mix.pan)
+                (
+                    c.bank,
+                    c.volume * self.bus_volume(&c.bus) * mix.gain,
+                    c.polyphony,
+                    mix.pan,
+                )
             }
             None => return false,
         };
         if base_gain <= 0.0 {
             return true; // culled by distance — nothing to play
         }
-        self.mixer.play(bank, Self::key(id), base_gain, pan, 1.0, false, poly)
+        self.mixer
+            .play(bank, Self::key(id), base_gain, pan, 1.0, false, poly)
     }
 
     /// Play a non-spatial (UI) clip at full listener-relative gain.
@@ -153,7 +172,8 @@ impl SfxPlayer {
             Some(c) => (c.bank, c.volume * self.bus_volume(&c.bus), c.polyphony),
             None => return false,
         };
-        self.mixer.play(bank, Self::key(id), gain, 0.0, 1.0, false, poly)
+        self.mixer
+            .play(bank, Self::key(id), gain, 0.0, 1.0, false, poly)
     }
 
     pub fn clip_count(&self) -> usize {
@@ -196,7 +216,11 @@ mod tests {
         assert!(!pcm.samples.is_empty(), "decoded PCM non-empty");
         assert_eq!(pcm.sample_rate, 44_100, "44.1 kHz source");
         // Manifest says ~0.522s; allow slack for encoder padding.
-        assert!(pcm.duration_secs() > 0.3 && pcm.duration_secs() < 1.0, "≈0.5s, got {}", pcm.duration_secs());
+        assert!(
+            pcm.duration_secs() > 0.3 && pcm.duration_secs() < 1.0,
+            "≈0.5s, got {}",
+            pcm.duration_secs()
+        );
     }
 
     #[test]

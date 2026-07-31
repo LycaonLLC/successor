@@ -58,7 +58,7 @@ pub fn build_ws_url(endpoint: &str, seat_res: &SeatReservation) -> String {
         base = base.replacen("https://", "wss://", 1);
     }
     let base = base.trim_end_matches('/');
-    
+
     if let Some(proc_id) = &seat_res.process_id {
         if !proc_id.is_empty() {
             return format!(
@@ -132,7 +132,7 @@ pub fn decode_inbound_frame(bytes: &[u8]) -> Result<InboundFrame, String> {
             }
             let token = String::from_utf8_lossy(&bytes[offset..offset + token_len]).into_owned();
             offset += token_len;
-            
+
             if bytes.len() <= offset {
                 return Err("Malformed JOIN_ROOM frame trailing".to_string());
             }
@@ -141,8 +141,9 @@ pub fn decode_inbound_frame(bytes: &[u8]) -> Result<InboundFrame, String> {
             if bytes.len() < offset + serializer_len {
                 return Err("Malformed JOIN_ROOM serializer".to_string());
             }
-            let serializer = String::from_utf8_lossy(&bytes[offset..offset + serializer_len]).into_owned();
-            
+            let serializer =
+                String::from_utf8_lossy(&bytes[offset..offset + serializer_len]).into_owned();
+
             Ok(InboundFrame::JoinRoom {
                 reconnection_token: token,
                 serializer_id: serializer,
@@ -158,12 +159,8 @@ pub fn decode_inbound_frame(bytes: &[u8]) -> Result<InboundFrame, String> {
             Ok(InboundFrame::Error { code, message })
         }
         opcodes::LEAVE_ROOM => Ok(InboundFrame::LeaveRoom),
-        opcodes::ROOM_STATE => {
-            Ok(InboundFrame::RoomState(bytes[1..].to_vec()))
-        }
-        opcodes::ROOM_STATE_PATCH => {
-            Ok(InboundFrame::RoomStatePatch(bytes[1..].to_vec()))
-        }
+        opcodes::ROOM_STATE => Ok(InboundFrame::RoomState(bytes[1..].to_vec())),
+        opcodes::ROOM_STATE_PATCH => Ok(InboundFrame::RoomStatePatch(bytes[1..].to_vec())),
         opcodes::ROOM_DATA => {
             let mut cursor = std::io::Cursor::new(&bytes[1..]);
             let mut de = rmp_serde::Deserializer::new(&mut cursor);
@@ -171,14 +168,14 @@ pub fn decode_inbound_frame(bytes: &[u8]) -> Result<InboundFrame, String> {
                 .map_err(|e| format!("Failed to decode message type: {}", e))?;
             let current_pos = cursor.position() as usize;
             let payload_bytes = &bytes[1 + current_pos..];
-            
+
             let payload = if !payload_bytes.is_empty() {
                 rmp_serde::from_slice(payload_bytes)
                     .map_err(|e| format!("Failed to decode payload: {}", e))?
             } else {
                 Value::Null
             };
-            
+
             Ok(InboundFrame::RoomData { msg_type, payload })
         }
         opcodes::ROOM_DATA_BYTES => {

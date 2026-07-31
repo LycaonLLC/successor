@@ -8,6 +8,9 @@ description = "no_std ECS, math, and runtime for the Successor Rust client."
 [dependencies]
 libm.workspace = true
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
+bevy_mikktspace = { version = "=1.0.0", default-features = false }
+zune-core = { version = "=0.5.0", default-features = false }
+zune-jpeg = { version = "=0.5.4", default-features = false }
 
 [features]
 default = []

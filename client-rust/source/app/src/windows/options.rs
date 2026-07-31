@@ -5,7 +5,13 @@ use super::{WindowAction, WindowModel, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::UiBuilder;
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &WindowModel, _icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &WindowModel,
+    _icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, _h] = rect;
     let ctrl_x = x + 220.0;
     let ctrl_w = (w - 230.0).max(80.0);
@@ -17,11 +23,23 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &WindowModel, _icons: &Ic
                 // Track + fill + knob.
                 let ty = ry + 8.0;
                 ui.rect(ctrl_x, ty, ctrl_w, 8.0, SLOT);
-                ui.rect(ctrl_x, ty, ctrl_w * v.clamp(0.0, 1.0), 8.0, [120, 170, 220, 235]);
+                ui.rect(
+                    ctrl_x,
+                    ty,
+                    ctrl_w * v.clamp(0.0, 1.0),
+                    8.0,
+                    [120, 170, 220, 235],
+                );
                 let kx = ctrl_x + ctrl_w * v.clamp(0.0, 1.0) - 5.0;
                 ui.rect(kx, ty - 4.0, 10.0, 16.0, ACCENT);
                 ui.border(ctrl_x, ty, ctrl_w, 8.0, 1.0, SLOT_EDGE);
-                ui.text(&format!("{}", (v * 100.0) as i32), ctrl_x + ctrl_w + 8.0, ry + 4.0, 1.8, DIM);
+                ui.text(
+                    &format!("{}", (v * 100.0) as i32),
+                    ctrl_x + ctrl_w + 8.0,
+                    ry + 4.0,
+                    1.8,
+                    DIM,
+                );
                 // Drag/click on the track sets a new value.
                 let resp = ui.interact(ctrl_x, ty - 4.0, ctrl_w, 16.0);
                 if resp.held {
@@ -61,11 +79,23 @@ mod tests {
         ui.set_input(340.0, 186.0, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 500.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
         ui.set_input(340.0, 186.0, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 500.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
         assert_eq!(out, vec![WindowAction::Toggle("FULLSCREEN".into())]);
     }
 
@@ -79,7 +109,18 @@ mod tests {
         ui.set_input(320.0 + 135.0, 110.0, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 500.0, 400.0], &model, &icons, &mut out);
-        assert!(out.iter().any(|a| matches!(a, WindowAction::Button(s) if s.starts_with("opt:MASTER VOLUME="))), "slider emits value, got {out:?}");
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
+        assert!(
+            out.iter().any(
+                |a| matches!(a, WindowAction::Button(s) if s.starts_with("opt:MASTER VOLUME="))
+            ),
+            "slider emits value, got {out:?}"
+        );
     }
 }

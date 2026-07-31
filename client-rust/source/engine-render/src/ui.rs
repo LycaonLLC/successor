@@ -111,7 +111,8 @@ impl UiBuilder {
         ];
         // v flips: uv.v0 is the top of the cell → maps to y1 (screen top).
         let mut push = |px: f32, py: f32, u: f32, v: f32| {
-            self.buf.extend_from_slice(&[px, py, u, v, col[0], col[1], col[2], col[3]]);
+            self.buf
+                .extend_from_slice(&[px, py, u, v, col[0], col[1], col[2], col[3]]);
         };
         push(x0, y0, u0, v1);
         push(x1, y0, u1, v1);
@@ -168,6 +169,7 @@ impl UiBuilder {
     }
 
     /// An icon from the baked atlas, scaled into `w`×`h` at `(x, y)`, tinted.
+    #[allow(clippy::too_many_arguments)]
     pub fn icon(&mut self, col: u32, row: u32, x: f32, y: f32, w: f32, h: f32, rgba: [u8; 4]) {
         let uv = self.atlas.uv(col, row);
         self.push_quad(x, y, w, h, uv, rgba);
@@ -192,9 +194,23 @@ impl UiBuilder {
 
     /// A labeled button. Draws a hover/press-tinted body + border + centered
     /// text and returns whether it was clicked (released inside) this frame.
-    pub fn button(&mut self, x: f32, y: f32, w: f32, h: f32, label: &str, style: ButtonStyle) -> bool {
+    pub fn button(
+        &mut self,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        label: &str,
+        style: ButtonStyle,
+    ) -> bool {
         let r = self.interact(x, y, w, h);
-        let fill = if r.held { style.active } else if r.hovered { style.hover } else { style.fill };
+        let fill = if r.held {
+            style.active
+        } else if r.hovered {
+            style.hover
+        } else {
+            style.fill
+        };
         self.rect(x, y, w, h, fill);
         self.border(x, y, w, h, 1.0, style.edge);
         // Size the 5×7 label so it fits the button: glyph height = 7·px must fit
@@ -213,13 +229,35 @@ impl UiBuilder {
 
     /// An icon button (atlas glyph centered in a hover-tinted slot). Returns
     /// whether it was clicked this frame.
-    pub fn icon_button(&mut self, col: u32, row: u32, x: f32, y: f32, size: f32, style: ButtonStyle) -> bool {
+    pub fn icon_button(
+        &mut self,
+        col: u32,
+        row: u32,
+        x: f32,
+        y: f32,
+        size: f32,
+        style: ButtonStyle,
+    ) -> bool {
         let r = self.interact(x, y, size, size);
-        let fill = if r.held { style.active } else if r.hovered { style.hover } else { style.fill };
+        let fill = if r.held {
+            style.active
+        } else if r.hovered {
+            style.hover
+        } else {
+            style.fill
+        };
         self.rect(x, y, size, size, fill);
         self.border(x, y, size, size, 1.0, style.edge);
         let pad = size * 0.18;
-        self.icon(col, row, x + pad, y + pad, size - 2.0 * pad, size - 2.0 * pad, style.text);
+        self.icon(
+            col,
+            row,
+            x + pad,
+            y + pad,
+            size - 2.0 * pad,
+            size - 2.0 * pad,
+            style.text,
+        );
         r.clicked
     }
 }
@@ -269,7 +307,12 @@ pub struct TextField {
 
 impl TextField {
     pub fn new(max_len: usize) -> Self {
-        Self { text: alloc::string::String::new(), focused: false, caret: 0, max_len }
+        Self {
+            text: alloc::string::String::new(),
+            focused: false,
+            caret: 0,
+            max_len,
+        }
     }
 
     /// Insert a printable character at the caret (bounded by `max_len`).
@@ -310,21 +353,39 @@ impl TextField {
 
     /// Byte offset of the `n`-th char (for insert/delete on UTF-8 text).
     fn byte_at(&self, n: usize) -> usize {
-        self.text.char_indices().nth(n).map(|(b, _)| b).unwrap_or(self.text.len())
+        self.text
+            .char_indices()
+            .nth(n)
+            .map(|(b, _)| b)
+            .unwrap_or(self.text.len())
     }
 }
 
 impl UiBuilder {
     /// Draw a text-field box; clicking toggles focus. Renders the buffer and,
     /// when focused, a caret. Returns the field's interaction response.
-    pub fn text_field(&mut self, field: &mut TextField, x: f32, y: f32, w: f32, h: f32, px: f32, show_caret: bool) -> Response {
+    #[allow(clippy::too_many_arguments)]
+    pub fn text_field(
+        &mut self,
+        field: &mut TextField,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        px: f32,
+        show_caret: bool,
+    ) -> Response {
         let r = self.interact(x, y, w, h);
         if r.clicked {
             field.focused = true;
         } else if self.mpressed && !r.hovered {
             field.focused = false;
         }
-        let edge = if field.focused { [240, 196, 96, 255] } else { [80, 100, 122, 255] };
+        let edge = if field.focused {
+            [240, 196, 96, 255]
+        } else {
+            [80, 100, 122, 255]
+        };
         self.rect(x, y, w, h, [18, 24, 34, 220]);
         self.border(x, y, w, h, 1.0, edge);
         let ty = y + (h - GLYPH_H as f32 * px) * 0.5;
@@ -340,7 +401,12 @@ impl UiBuilder {
 mod tests {
     use super::*;
 
-    const ATLAS: AtlasMeta = AtlasMeta { cell: 32, cols: 8, width: 256, height: 160 };
+    const ATLAS: AtlasMeta = AtlasMeta {
+        cell: 32,
+        cols: 8,
+        width: 256,
+        height: 160,
+    };
 
     #[test]
     fn rect_emits_one_quad_solid() {

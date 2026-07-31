@@ -1,7 +1,7 @@
 //! LOOT — Lootable container/corpse content view.
-use super::{WindowAction, TEXT, DIM, ACCENT, SLOT, SLOT_EDGE};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder, ButtonStyle};
+use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
 #[derive(Clone, Debug)]
 pub struct ItemStack {
@@ -22,9 +22,24 @@ impl LootModel {
         Self {
             source_name: "CORPSE OF DUSTGATE SCOUT".into(),
             items: vec![
-                ItemStack { id: 101, name: "SLUGTHROWER".into(), kind: "item-weapon".into(), qty: 1 },
-                ItemStack { id: 102, name: "RIFLE AMMO".into(), kind: "item-ammo".into(), qty: 120 },
-                ItemStack { id: 103, name: "MEDKIT".into(), kind: "item-medical".into(), qty: 2 },
+                ItemStack {
+                    id: 101,
+                    name: "SLUGTHROWER".into(),
+                    kind: "item-weapon".into(),
+                    qty: 1,
+                },
+                ItemStack {
+                    id: 102,
+                    name: "RIFLE AMMO".into(),
+                    kind: "item-ammo".into(),
+                    qty: 120,
+                },
+                ItemStack {
+                    id: 103,
+                    name: "MEDKIT".into(),
+                    kind: "item-medical".into(),
+                    qty: 2,
+                },
             ],
         }
     }
@@ -85,8 +100,10 @@ pub fn draw(
 
     // LOOT ALL button at the bottom
     let lay_y = y + h - 36.0;
-    let mut loot_all_style = ButtonStyle::default();
-    loot_all_style.fill = [180, 130, 40, 210]; // Warm accent-like color
+    let loot_all_style = ButtonStyle {
+        fill: [180, 130, 40, 210], // Warm accent-like color
+        ..Default::default()
+    };
     if ui.button(x + 8.0, lay_y, w - 16.0, 28.0, "LOOT ALL", loot_all_style) {
         out.push(WindowAction::LootAll);
     }
@@ -113,12 +130,24 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 400.0, 300.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 400.0, 300.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 400.0, 300.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 400.0, 300.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert_eq!(out, vec![WindowAction::LootItem(101)]);
     }
@@ -139,12 +168,24 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 400.0, 300.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 400.0, 300.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 400.0, 300.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 400.0, 300.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert_eq!(out, vec![WindowAction::LootAll]);
     }

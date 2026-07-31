@@ -1,3 +1,5 @@
+#![allow(clippy::same_item_push, clippy::unnecessary_unwrap)]
+
 //! Successor Rust client — native entry point.
 //!
 //! Modes:
@@ -14,6 +16,10 @@ use successor_client::demo;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|arg| arg == "--model-corpus") {
+        run_model_corpus();
+        return;
+    }
     let mode = arg_value(&args, "--demo");
     let frames: u64 = arg_value(&args, "--frames")
         .and_then(|s| s.parse().ok())
@@ -109,10 +115,23 @@ fn main() {
         return;
     }
 
+    if mode.as_deref() == Some("material-parity") {
+        let screenshot = arg_value(&args, "--screenshot");
+        let gpu_stats = arg_value(&args, "--gpu-stats-json");
+        let assert_parity = args.iter().any(|arg| arg == "--assert-material-parity");
+        run_material_parity(
+            frames,
+            screenshot.as_deref(),
+            gpu_stats.as_deref(),
+            assert_parity,
+        );
+        return;
+    }
+
     if mode.is_some() || stats_json.is_some() || assert_zero {
         if gl {
             let screenshot = arg_value(&args, "--screenshot");
-            run_windowed(frames, screenshot.as_deref());
+            run_windowed(frames, screenshot.as_deref(), None);
         } else {
             run_headless(frames, stats_json.as_deref(), assert_zero);
         }
@@ -150,47 +169,171 @@ fn run_headless(frames: u64, stats_json: Option<&str>, assert_zero: bool) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn run_windowed(frames: u64, screenshot: Option<&str>) {
+fn run_material_parity(
+    frames: u64,
+    screenshot: Option<&str>,
+    gpu_stats_json: Option<&str>,
+    assert_parity: bool,
+) {
+    use successor_client::material_parity;
+    use successor_engine_render::gpu::Gpu;
+    if !successor_platform::init(
+        "Successor Material Parity",
+        material_parity::WIDTH as i32,
+        material_parity::HEIGHT as i32,
+    ) {
+        eprintln!("platform init failed (no display?)");
+        std::process::exit(1);
+    }
+    let assets: [Vec<u8>; 6] = material_parity::ASSET_PATHS.map(|path| {
+        std::fs::read(path).unwrap_or_else(|error| {
+            eprintln!("failed to read parity asset {path}: {error}");
+            std::process::exit(1);
+        })
+    });
+    let mut gpu = successor_platform::create_gpu();
+    let mut scene = material_parity::build(&mut gpu, &assets).unwrap_or_else(|error| {
+        eprintln!("failed to build material parity scene: {error}");
+        std::process::exit(1);
+    });
+    let total = frames.max(1);
+    let mut gpu_times = Vec::with_capacity(total.saturating_sub(120) as usize);
+    let mut final_rgba = None;
+    for frame in 0..total {
+        successor_platform::begin_frame();
+        let (width, height) = successor_platform::framebuffer_size();
+        let start = std::time::Instant::now();
+        if width > 0 && height > 0 {
+            scene
+                .renderer
+                .render(&mut gpu, &mut scene.world, width as u32, height as u32)
+                .expect("material parity render");
+        }
+        if gpu_stats_json.is_some() {
+            gpu.finish();
+            if frame >= 120 {
+                gpu_times.push(start.elapsed().as_secs_f64() * 1_000.0);
+            }
+        }
+        if frame + 1 == total && width > 0 && height > 0 && (screenshot.is_some() || assert_parity)
+        {
+            final_rgba = Some((
+                successor_platform::read_pixels_rgba(width, height),
+                width as u32,
+                height as u32,
+            ));
+        }
+        successor_platform::end_frame();
+        if successor_platform::should_quit() {
+            break;
+        }
+    }
+    if let Some((rgba, width, height)) = final_rgba {
+        if let Some(path) = screenshot {
+            write_bmp(path, &rgba, width, height).unwrap_or_else(|error| {
+                eprintln!("screenshot failed: {error}");
+                std::process::exit(1);
+            });
+            println!("screenshot written: {path} ({width}x{height})");
+        }
+        if assert_parity {
+            material_parity::probe_rgba_top_left(&rgba, width, height).unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(1);
+            });
+        }
+    }
+    if let Some(path) = gpu_stats_json {
+        if gpu_times.is_empty() {
+            eprintln!("GPU stats require more than 120 rendered frames");
+            std::process::exit(1);
+        }
+        gpu_times.sort_by(f64::total_cmp);
+        let index = ((gpu_times.len() - 1) as f64 * 0.99).ceil() as usize;
+        let p99 = gpu_times[index];
+        let json = format!(
+            "{{\"demo\":\"material-parity\",\"width\":{},\"height\":{},\"warmup_frames\":120,\"measured_frames\":{},\"render_gpu_p99_ms\":{:.6}}}\n",
+            material_parity::WIDTH,
+            material_parity::HEIGHT,
+            gpu_times.len(),
+            p99
+        );
+        std::fs::write(path, json).unwrap_or_else(|error| {
+            eprintln!("failed to write GPU stats {path}: {error}");
+            std::process::exit(1);
+        });
+        println!("material-parity render_gpu_p99_ms={p99:.3}");
+    }
+    successor_platform::deinit();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn run_windowed(frames: u64, screenshot: Option<&str>, gpu_stats_json: Option<&str>) {
     use successor_engine_render::gpu::Gpu;
     if !successor_platform::init(
         "Successor (Rust client)",
         demo::SCREEN_W as i32,
         demo::SCREEN_H as i32,
     ) {
-        eprintln!("platform init failed (no display?). Falling back to headless.");
-        run_headless(frames, None, false);
-        return;
+        eprintln!("platform init failed (no display?)");
+        std::process::exit(1);
     }
     let mut gpu = successor_platform::create_gpu();
-    let _ = &mut gpu as &mut dyn Gpu; // ensure trait is in scope
     let mut scene = demo::build_scene(&mut gpu);
     let total = frames.max(1);
     let mut frame = 0u64;
+    let mut gpu_times = Vec::with_capacity(total.saturating_sub(120) as usize);
     while !successor_platform::should_quit() && frame < total {
         successor_platform::begin_frame();
         scene.animate(frame);
         let (w, h) = successor_platform::framebuffer_size();
+        let start = std::time::Instant::now();
         if w > 0 && h > 0 {
             scene
                 .renderer
-                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32)
+                .expect("render failed");
         }
-        // Capture the final rendered frame from the back buffer before swap.
-        if screenshot.is_some() && frame + 1 == total {
-            if w > 0 && h > 0 {
-                let err = successor_platform::gl_error();
-                if err != 0 {
-                    eprintln!("GL error before readback: 0x{err:04x}");
-                }
-                let rgba = successor_platform::read_pixels_rgba(w, h);
-                match write_bmp(screenshot.unwrap(), &rgba, w as u32, h as u32) {
-                    Ok(()) => println!("screenshot written: {} ({}x{})", screenshot.unwrap(), w, h),
-                    Err(e) => eprintln!("screenshot failed: {e}"),
-                }
+        if gpu_stats_json.is_some() {
+            gpu.finish();
+            if frame >= 120 {
+                gpu_times.push(start.elapsed().as_secs_f64() * 1_000.0);
+            }
+        }
+        if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
+            let err = successor_platform::gl_error();
+            if err != 0 {
+                eprintln!("GL error before readback: 0x{err:04x}");
+            }
+            let rgba = successor_platform::read_pixels_rgba(w, h);
+            match write_bmp(screenshot.unwrap(), &rgba, w as u32, h as u32) {
+                Ok(()) => println!("screenshot written: {} ({}x{})", screenshot.unwrap(), w, h),
+                Err(e) => eprintln!("screenshot failed: {e}"),
             }
         }
         successor_platform::end_frame();
         frame += 1;
+    }
+    if let Some(path) = gpu_stats_json {
+        if gpu_times.is_empty() {
+            eprintln!("GPU stats require more than 120 rendered frames");
+            std::process::exit(1);
+        }
+        gpu_times.sort_by(f64::total_cmp);
+        let index = ((gpu_times.len() - 1) as f64 * 0.99).ceil() as usize;
+        let p99 = gpu_times[index];
+        let json = format!(
+            "{{\"demo\":\"material-parity\",\"width\":{},\"height\":{},\"warmup_frames\":120,\"measured_frames\":{},\"render_gpu_p99_ms\":{:.6}}}\n",
+            demo::SCREEN_W,
+            demo::SCREEN_H,
+            gpu_times.len(),
+            p99
+        );
+        if let Err(error) = std::fs::write(path, json) {
+            eprintln!("failed to write GPU stats {path}: {error}");
+            std::process::exit(1);
+        }
+        println!("material-parity render_gpu_p99_ms={p99:.3}");
     }
     successor_platform::deinit();
 }
@@ -268,7 +411,8 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
         if w > 0 && h > 0 {
             scene
                 .renderer
-                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32)
+                .expect("render failed");
             ui.begin(w as u32, h as u32);
             // Windows resolve pointer first (topmost consumes drag/close/focus).
             wm.update(&ui, w as u32, h as u32);
@@ -337,7 +481,8 @@ fn run_fx(frames: u64, screenshot: Option<&str>) {
         std::process::exit(1);
     }
     let mut gpu = successor_platform::create_gpu();
-    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits());
+    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits())
+        .expect("renderer initialization failed");
     let sprite = glow_sprite(64);
     renderer.set_particle_atlas(&mut gpu, 64, 64, &sprite);
     let mut pool = ParticlePool::new(0x51ce_57ed);
@@ -377,7 +522,7 @@ fn run_fx(frames: u64, screenshot: Option<&str>) {
                 .mul(Mat4::look_at(eye, center, Vec3::Y))
                 .to_cols_array();
             // Sustained fire: a spark + blood burst every few frames.
-            if frame % 6 == 0 {
+            if frame.is_multiple_of(6) {
                 pool.emit_spark_burst([0.0, 1.1, 0.0], [0.0, 1.0, 0.0], [1.0, -0.2, 0.3], 1.6);
                 pool.emit_blood_burst([0.0, 1.1, 0.0], [1.0, 0.0, 0.3], 1.2);
             }
@@ -439,7 +584,8 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
         std::process::exit(1);
     }
     let mut gpu = successor_platform::create_gpu();
-    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits());
+    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits())
+        .expect("renderer initialization failed");
     let mut world = GameWorld::new();
 
     let env = environment::sample(minute);
@@ -449,13 +595,19 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
         env.desaturate,
         env.scene_darken,
         env.black_lift,
-        env.bloom,
     );
+    renderer
+        .set_bloom(1.0, env.bloom)
+        .expect("sampled bloom settings are valid");
     renderer.set_fog(env.fog, 180.0, 340.0);
 
     let (gv, gi) = primitives::plane(200.0);
     let ground = renderer.upload_mesh(&mut gpu, &gv, &gi);
-    let ground_mat = renderer.add_material([0.42, 0.36, 0.24, 1.0]);
+    let ground_mat = renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+        base_color: [0.42, 0.36, 0.24, 1.0],
+        blend: false,
+        ..successor_engine_render::renderer::MaterialDesc::default()
+    });
     let g = world.spawn();
     world.set_component(
         g,
@@ -479,16 +631,20 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
     // rendered as a small shrub cube (verifies placement + density).
     let (cv, ci) = primitives::cube();
     let shrub = renderer.upload_mesh(&mut gpu, &cv, &ci);
-    let shrub_mat = renderer.add_material([0.28, 0.42, 0.20, 1.0]);
+    let shrub_mat = renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+        base_color: [0.28, 0.42, 0.20, 1.0],
+        blend: false,
+        ..successor_engine_render::renderer::MaterialDesc::default()
+    });
     let instances = flora::scatter(0x0d3d, [-20.0, -20.0], [20.0, 20.0], 0.5, |_p| false);
     for f in instances.iter().take(400) {
         let e = world.spawn();
         world.set_component(
             e,
             Transform {
-            pos: vec3(f.pos[0], f.scale * 0.5, f.pos[2]),
-            rot: Quat::from_axis_angle(Vec3::Y, f.yaw),
-            scale: vec3(f.scale * 0.5, f.scale, f.scale * 0.5),
+                pos: vec3(f.pos[0], f.scale * 0.5, f.pos[2]),
+                rot: Quat::from_axis_angle(Vec3::Y, f.yaw),
+                scale: vec3(f.scale * 0.5, f.scale, f.scale * 0.5),
             },
         );
         world.set_component(
@@ -523,7 +679,7 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
                 near: 0.1,
                 far: 400.0,
             },
-        target: CamTarget::Screen(RectNorm::FULL),
+            target: CamTarget::Screen(RectNorm::FULL),
             clear: ClearSpec {
                 color: Some([env.fog[0], env.fog[1], env.fog[2], 1.0]),
                 depth: Some(1.0),
@@ -540,7 +696,9 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
         successor_platform::begin_frame();
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
-            renderer.render(&mut gpu, &mut world, w as u32, h as u32);
+            renderer
+                .render(&mut gpu, &mut world, w as u32, h as u32)
+                .expect("render failed");
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
@@ -579,7 +737,8 @@ fn run_gi(frames: u64, screenshot: Option<&str>, animate_camera: bool, assert_st
         std::process::exit(1);
     }
     let mut gpu = successor_platform::create_gpu();
-    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits());
+    let mut renderer = Renderer::new(&mut gpu, successor_client::quality_limits())
+        .expect("renderer initialization failed");
     renderer.set_ambient(0.12);
     renderer.set_fog([0.02, 0.02, 0.03], 400.0, 800.0); // effectively off at this scale
     let mut world = GameWorld::new();
@@ -588,7 +747,12 @@ fn run_gi(frames: u64, screenshot: Option<&str>, animate_camera: bool, assert_st
     let unit = renderer.upload_mesh(&mut gpu, &cv, &ci);
 
     // White ground: a thin scaled cube (outward-wound top face, unlike plane()).
-    let ground_mat = renderer.add_material_pbr([1.0, 1.0, 1.0, 1.0], 0.0, 0.9);
+    let ground_mat = renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+        base_color: [1.0, 1.0, 1.0, 1.0],
+        metallic: 0.0,
+        roughness: 0.9,
+        ..successor_engine_render::renderer::MaterialDesc::default()
+    });
     let g = world.spawn();
     world.set_component(
         g,
@@ -609,7 +773,12 @@ fn run_gi(frames: u64, screenshot: Option<&str>, animate_camera: bool, assert_st
     );
 
     // Tall red wall at z=0 spanning x, front face (+z) toward the camera/floor.
-    let wall_mat = renderer.add_material_pbr([0.85, 0.05, 0.05, 1.0], 0.0, 0.9);
+    let wall_mat = renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+        base_color: [0.85, 0.05, 0.05, 1.0],
+        metallic: 0.0,
+        roughness: 0.9,
+        ..successor_engine_render::renderer::MaterialDesc::default()
+    });
     let wall_c = vec3(0.0, 3.0, 0.0);
     let wall_h = vec3(8.0, 3.0, 0.4);
     let wall = world.spawn();
@@ -632,7 +801,12 @@ fn run_gi(frames: u64, screenshot: Option<&str>, animate_camera: bool, assert_st
     );
 
     // White cube on the visible floor (casts a soft shadow toward the camera).
-    let cube_mat = renderer.add_material_pbr([0.95, 0.95, 0.95, 1.0], 0.0, 0.9);
+    let cube_mat = renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+        base_color: [0.95, 0.95, 0.95, 1.0],
+        metallic: 0.0,
+        roughness: 0.9,
+        ..successor_engine_render::renderer::MaterialDesc::default()
+    });
     let cube_c = vec3(3.0, 1.0, 8.0);
     let cube = world.spawn();
     world.set_component(
@@ -701,7 +875,7 @@ fn run_gi(frames: u64, screenshot: Option<&str>, animate_camera: bool, assert_st
                 near: 0.1,
                 far: 400.0,
             },
-        target: CamTarget::Screen(RectNorm::FULL),
+            target: CamTarget::Screen(RectNorm::FULL),
             clear: ClearSpec {
                 color: Some([0.02, 0.02, 0.03, 1.0]),
                 depth: Some(1.0),
@@ -737,7 +911,9 @@ fn run_gi(frames: u64, screenshot: Option<&str>, animate_camera: bool, assert_st
         successor_platform::begin_frame();
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
-            renderer.render(&mut gpu, &mut world, w as u32, h as u32);
+            renderer
+                .render(&mut gpu, &mut world, w as u32, h as u32)
+                .expect("render failed");
         }
         let render_ms = render_started.elapsed().as_secs_f64() * 1000.0;
         if animate_camera {
@@ -965,7 +1141,8 @@ fn run_glb_view(glb_path: &str, clip: Option<&str>, frames: u64, screenshot: Opt
         if w > 0 && h > 0 {
             scene
                 .renderer
-                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32)
+                .expect("render failed");
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let err = successor_platform::gl_error();
@@ -1013,7 +1190,8 @@ fn run_terrain(biome: Option<&str>, frames: u64, screenshot: Option<&str>) {
         if w > 0 && h > 0 {
             scene
                 .renderer
-                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32)
+                .expect("render failed");
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
@@ -1042,12 +1220,12 @@ fn run_props(frames: u64, screenshot: Option<&str>) {
     };
     let slice =
         match std::fs::read_to_string("../client/public/successor-slice/open-desert-slice.json") {
-        Ok(s) => s,
+            Ok(s) => s,
             Err(e) => {
                 eprintln!("read slice: {e}");
                 std::process::exit(1);
             }
-    };
+        };
     if !successor_platform::init(
         "Successor world",
         demo::SCREEN_W as i32,
@@ -1075,7 +1253,8 @@ fn run_props(frames: u64, screenshot: Option<&str>) {
         if w > 0 && h > 0 {
             scene
                 .renderer
-                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32)
+                .expect("render failed");
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
@@ -1129,7 +1308,8 @@ fn run_pawns(frames: u64, screenshot: Option<&str>) {
         if w > 0 && h > 0 {
             scene
                 .renderer
-                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32)
+                .expect("render failed");
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
@@ -1284,7 +1464,7 @@ mod connected {
         let mut view_sent = false;
         let mut frame: u64 = 0;
 
-        while !plat::should_quit() && max_frames.map_or(true, |m| frame < m) {
+        while !plat::should_quit() && max_frames.is_none_or(|m| frame < m) {
             plat::begin_frame();
 
             // Drain socket → session; feed packets into the scene + combat FX.
@@ -1336,10 +1516,10 @@ mod connected {
                 let intent = if auto_walk {
                     (0, -1, false)
                 } else {
-                    movement::intent_from_keys(|k| plat::is_key_down(k))
+                    movement::intent_from_keys(plat::is_key_down)
                 };
                 let moving = intent != (0, 0, false);
-                if intent != last_intent || (moving && frame % 6 == 0) {
+                if intent != last_intent || (moving && frame.is_multiple_of(6)) {
                     last_intent = intent;
                     cmd_id += 1;
                     let env = movement::move_envelope(
@@ -1362,7 +1542,7 @@ mod connected {
             if w > 0 && h > 0 {
                 scene.frame(&mut gpu, w as u32, h as u32, 1.0 / 60.0);
             }
-            if let (Some(path), true) = (screenshot, max_frames.map_or(false, |m| frame + 1 == m)) {
+            if let (Some(path), true) = (screenshot, max_frames.is_some_and(|m| frame + 1 == m)) {
                 if w > 0 && h > 0 {
                     let rgba = plat::read_pixels_rgba(w, h);
                     match crate::write_bmp(path, &rgba, w as u32, h as u32) {
@@ -1431,5 +1611,127 @@ mod connected {
                 scene.ingest_combat(&ce);
             }
         }
+    }
+}
+
+fn run_model_corpus() {
+    use std::io::Read;
+
+    let mut input = Vec::new();
+    if let Err(error) = std::io::stdin().read_to_end(&mut input) {
+        eprintln!("failed to read model list: {error}");
+        std::process::exit(1);
+    }
+    let mut models = 0usize;
+    let mut primitives = 0usize;
+    let mut materials = 0usize;
+    let mut images = 0usize;
+    let mut decode_errors = 0usize;
+    let mut transform_errors = 0usize;
+    let mut unsupported = 0usize;
+    let mut skipped = 0usize;
+    for path_bytes in input
+        .split(|byte| *byte == 0)
+        .filter(|path| !path.is_empty())
+    {
+        let Ok(path) = std::str::from_utf8(path_bytes) else {
+            skipped += 1;
+            continue;
+        };
+        if !path.ends_with(".glb") {
+            eprintln!("unsupported tracked model: {path}");
+            unsupported += 1;
+            continue;
+        }
+        let full_path = std::path::Path::new("..").join(path);
+        let bytes = match std::fs::read(&full_path) {
+            Ok(bytes) => bytes,
+            Err(error) => {
+                eprintln!("failed to read {}: {error}", full_path.display());
+                skipped += 1;
+                continue;
+            }
+        };
+        let document = match successor_engine_core::glb::parse(&bytes) {
+            Ok(document) => document,
+            Err(error) => {
+                eprintln!("failed to parse {path}: {error:?}");
+                unsupported += 1;
+                continue;
+            }
+        };
+        models += 1;
+        primitives += document
+            .meshes
+            .iter()
+            .map(|mesh| mesh.primitives.len())
+            .sum::<usize>();
+        materials += document.materials.len();
+        images += document.images.len();
+        for image in &document.images {
+            if successor_engine_core::image::decode_image(&image.mime_type, &image.bytes).is_err() {
+                eprintln!("failed to decode embedded image in {path}");
+                decode_errors += 1;
+            }
+        }
+        let rest_pose: Vec<successor_engine_core::anim::JointTransform> = document
+            .nodes
+            .iter()
+            .map(|node| successor_engine_core::anim::JointTransform {
+                t: node.translation,
+                r: node.rotation,
+                s: node.scale,
+            })
+            .collect();
+        if rest_pose
+            .iter()
+            .any(|transform| transform.matrix().m.iter().any(|value| !value.is_finite()))
+        {
+            transform_errors += 1;
+        }
+        for animation in &document.animations {
+            if animation.samplers.iter().any(|sampler| {
+                sampler
+                    .input
+                    .iter()
+                    .chain(sampler.output.iter())
+                    .any(|value| !value.is_finite())
+            }) {
+                transform_errors += 1;
+                continue;
+            }
+            for time in [0.0, animation.duration * 0.5, animation.duration] {
+                let mut pose = rest_pose.clone();
+                successor_engine_core::anim::apply_animation(animation, time, &mut pose);
+                if pose
+                    .iter()
+                    .any(|transform| transform.matrix().m.iter().any(|value| !value.is_finite()))
+                {
+                    transform_errors += 1;
+                }
+                for skin_index in 0..document.skins.len() {
+                    let Some(mut skeleton) =
+                        successor_engine_core::anim::Skeleton::from_document(&document, skin_index)
+                    else {
+                        transform_errors += 1;
+                        continue;
+                    };
+                    let mut palette = Vec::with_capacity(skeleton.joint_count());
+                    skeleton.compute_palette(&pose, &mut palette);
+                    if palette.iter().flatten().any(|value| !value.is_finite()) {
+                        transform_errors += 1;
+                    }
+                }
+            }
+        }
+        if document.skins.iter().any(|skin| skin.joints.len() > 64) {
+            unsupported += 1;
+        }
+    }
+    println!(
+        "{{\"models\":{models},\"primitives\":{primitives},\"materials\":{materials},\"images\":{images},\"unsupported\":{unsupported},\"decode_errors\":{decode_errors},\"transform_errors\":{transform_errors},\"skipped\":{skipped}}}"
+    );
+    if unsupported + decode_errors + transform_errors + skipped != 0 {
+        std::process::exit(1);
     }
 }

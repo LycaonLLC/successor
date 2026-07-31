@@ -20,6 +20,8 @@ in vec2 v_uv;
 
 uniform sampler2D u_gb0;
 uniform sampler2D u_gb1;
+uniform sampler2D u_gb2;
+uniform sampler2D u_gb3;
 uniform sampler2D u_depth;
 uniform sampler2D u_shadowMap;
 #if GI_CONES > 0
@@ -49,9 +51,15 @@ uniform float u_exposure;
 
 out vec4 frag;
 
-const float PI = 3.14159265359;
 const float GI_SIZE = 64.0;
 
+vec3 decodeOctahedral(vec2 encoded) {
+    vec2 f = encoded * 2.0 - 1.0;
+    vec3 normal = vec3(f, 1.0 - abs(f.x) - abs(f.y));
+    float fold = clamp(-normal.z, 0.0, 1.0);
+    normal.xy += vec2(normal.x >= 0.0 ? -fold : fold, normal.y >= 0.0 ? -fold : fold);
+    return normalize(normal);
+}
 // 16-entry Poisson disk (unit radius).
 const vec2 POISSON[16] = vec2[16](
     vec2(-0.94201624, -0.39906216), vec2(0.94558609, -0.76890725),
@@ -69,22 +77,6 @@ float ign(vec2 p) {
     return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))) * 6.2831853;
 }
 
-float distGGX(float NdotH, float rough) {
-    float a = rough * rough;
-    float a2 = a * a;
-    float d = NdotH * NdotH * (a2 - 1.0) + 1.0;
-    return a2 / max(PI * d * d, 1e-5);
-}
-
-float geomSchlick(float NdotV, float rough) {
-    float k = (rough + 1.0);
-    k = k * k / 8.0;
-    return NdotV / (NdotV * (1.0 - k) + k);
-}
-
-vec3 fresnel(float ct, vec3 f0) {
-    return f0 + (1.0 - f0) * pow(clamp(1.0 - ct, 0.0, 1.0), 5.0);
-}
 
 float sampleShadow(vec2 uv, float compare) {
     float d = texture(u_shadowMap, uv).r;
@@ -192,29 +184,45 @@ void main() {
 
     vec4 g0 = texture(u_gb0, v_uv);
     vec4 g1 = texture(u_gb1, v_uv);
+    vec4 g2 = texture(u_gb2, v_uv);
+    vec4 g3 = texture(u_gb3, v_uv);
+    vec3 emission = g2.rgb * g2.a * 32.0;
+    float materialAo = g1.a;
+    float clearcoat = g3.r;
+    float clearcoatRoughness = clamp(g3.g, 0.045, 1.0);
+    float dielectricF0 = g3.b;
     vec3 albedo = g0.rgb;
     float metallic = g0.a;
-    vec3 N = normalize(g1.xyz * 2.0 - 1.0);
-    float roughness = clamp(g1.a, 0.045, 1.0);
-
+    vec3 N = decodeOctahedral(g1.rg);
+    float roughness = clamp(g1.b, 0.045, 1.0);
     vec3 V = normalize(u_camEye - P);
     vec3 L = normalize(-u_lightDir);
-    vec3 H = normalize(V + L);
     float NdotL = max(dot(N, L), 0.0);
-    float NdotV = max(dot(N, V), 1e-4);
-    float NdotH = max(dot(N, H), 0.0);
-    float VdotH = max(dot(V, H), 0.0);
-
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
-    float D = distGGX(NdotH, roughness);
-    float G = geomSchlick(NdotV, roughness) * geomSchlick(NdotL, roughness);
-    vec3 F = fresnel(VdotH, F0);
-    vec3 spec = (D * G) * F / max(4.0 * NdotV * NdotL, 1e-4);
-    vec3 kd = (vec3(1.0) - F) * (1.0 - metallic);
-    vec3 diff = kd * albedo / PI;
-
+    vec3 F;
+    vec3 baseLobe = pbrBaseLobe(
+        albedo,
+        metallic,
+        roughness,
+        dielectricF0,
+        N,
+        V,
+        L,
+        F
+    );
+    float clearcoatFresnel = 0.0;
+    vec3 clearcoatLobe = pbrClearcoatLobe(
+        clearcoat,
+        clearcoatRoughness,
+        N,
+        V,
+        L,
+        clearcoatFresnel
+    );
     float shadow = (NdotL > 0.0) ? softShadow(P, N, NdotL) : 1.0;
-    vec3 direct = (diff + spec) * u_lightColor * NdotL * shadow;
+    vec3 direct = (
+        baseLobe * (1.0 - clearcoat * clearcoatFresnel)
+        + clearcoatLobe
+    ) * u_lightColor * NdotL * shadow;
 
     // Ambient / GI.
     float ao = 1.0;
@@ -241,11 +249,12 @@ void main() {
     ambient = u_ambient * albedo;
 #endif
 
+    ambient *= materialAo;
     // Sun occlusion also attenuates broad indirect light enough for small,
     // animated casters to remain readable against bright gameplay terrain.
     ambient *= mix(0.60, 1.0, shadow);
 
-    vec3 color = direct + ambient;
+    vec3 color = direct + ambient + emission;
 
     float fogD = distance(P, u_camEye);
     float fogF = clamp((fogD - u_fogNear) / max(1.0, u_fogFar - u_fogNear), 0.0, 1.0);

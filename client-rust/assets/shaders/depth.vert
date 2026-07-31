@@ -3,8 +3,8 @@ layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec3 a_normal;
 layout(location = 2) in vec2 a_uv;
 #ifdef SKINNED
-layout(location = 3) in vec4 a_joints;
-layout(location = 4) in vec4 a_weights;
+layout(location = 5) in vec4 a_joints;
+layout(location = 6) in vec4 a_weights;
 uniform mat4 u_joints[64];
 #endif
 
