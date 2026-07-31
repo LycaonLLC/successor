@@ -109,11 +109,17 @@ impl ConnectedScene {
         let part_meshes: Vec<_> = gpu_parts.parts.iter().map(|(m, _)| *m).collect();
 
         // Sun from the environment sample.
+        let sun_turn = core::f32::consts::FRAC_1_SQRT_2;
+        let sun_dir = vec3(
+            env.sun_dir[0] * sun_turn + env.sun_dir[2] * sun_turn,
+            env.sun_dir[1],
+            -env.sun_dir[0] * sun_turn + env.sun_dir[2] * sun_turn,
+        ).normalize();
         let sun = world.spawn();
         world.set_component(
             sun,
             DirectionalLight {
-                dir: vec3(env.sun_dir[0], env.sun_dir[1], env.sun_dir[2]),
+                dir: sun_dir,
                 color: env.sun_color,
                 cast_shadows: true,
             },

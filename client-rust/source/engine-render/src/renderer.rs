@@ -750,6 +750,10 @@ impl Renderer {
                     blend: false,
                     additive: false,
             };
+            let skinned_depth_state = PipelineState {
+                    cull: Cull::None,
+                    ..depth_state
+            };
             self.uniforms.clear();
             self.uniforms.push(Uniform {
                 name: "u_lightViewProj",
@@ -758,7 +762,12 @@ impl Renderer {
             gpu.set_pipeline(self.depth_prog, &depth_state);
             gpu.set_uniforms(&self.uniforms);
             self.draw_all_meshes(gpu, world, DrawMode::Depth, 0, false);
-            gpu.set_pipeline(self.depth_skinned_prog, &depth_state);
+            gpu.set_pipeline(self.depth_skinned_prog, &skinned_depth_state);
+            self.uniforms.clear();
+            self.uniforms.push(Uniform {
+                name: "u_lightViewProj",
+                value: UniformValue::Mat4(self.shadow_view_proj),
+            });
             gpu.set_uniforms(&self.uniforms);
             self.draw_all_meshes(gpu, world, DrawMode::Depth, 0, true);
             gpu.end_pass();
