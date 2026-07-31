@@ -61,6 +61,7 @@ pub const COLOR_ATTACHMENT2: u32 = 0x8CE2;
 pub const COLOR_ATTACHMENT3: u32 = 0x8CE3;
 pub const LINEAR_MIPMAP_LINEAR: i32 = 0x2703;
 
+#[link(wasm_import_module = "env")]
 extern "C" {
     fn glClearColor(r: f32, g: f32, b: f32, a: f32);
     fn glClear(mask: u32);
