@@ -64,6 +64,29 @@ impl PawnTemplate {
         })
     }
 
+    /// Height of the skinned source geometry in its authored units.
+    pub fn authored_height(&self) -> Option<f32> {
+        let mut min_y = f32::MAX;
+        let mut max_y = f32::MIN;
+        for part in &self.parts {
+            for vertex in part.vertices.chunks_exact(16) {
+                min_y = min_y.min(vertex[1]);
+                max_y = max_y.max(vertex[1]);
+            }
+        }
+        let height = max_y - min_y;
+        (height.is_finite() && height > 1.0e-4).then_some(height)
+    }
+
+    /// Uniform conversion from authored units to a canonical world-space
+    /// height. Invalid or empty source geometry fails closed.
+    pub fn uniform_scale_for_height(&self, target_height: f32) -> Option<f32> {
+        if !target_height.is_finite() || target_height <= 0.0 {
+            return None;
+        }
+        Some(target_height / self.authored_height()?)
+    }
+
     pub fn clip_names(&self) -> Vec<&str> {
         self.doc
             .animations
@@ -223,6 +246,12 @@ mod tests {
         );
         // Skinned vertices are 16 floats each.
         assert_eq!(tpl.parts[0].vertices.len() % 16, 0);
+        let authored_height = tpl.authored_height().expect("finite pawn height");
+        let scale = tpl
+            .uniform_scale_for_height(crate::world::ADULT_PAWN_HEIGHT_METERS)
+            .expect("pawn can normalize to world units");
+        assert!(authored_height > 0.0);
+        assert!((authored_height * scale - crate::world::ADULT_PAWN_HEIGHT_METERS).abs() < 1.0e-5);
     }
 
     #[test]

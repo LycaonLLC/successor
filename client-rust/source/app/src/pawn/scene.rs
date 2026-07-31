@@ -38,6 +38,7 @@ pub struct PawnScene {
     pub world: GameWorld,
     pub renderer: Renderer,
     template: PawnTemplate,
+    pawn_scale: f32,
     actors: Vec<PawnActor>,
     weapon: Option<WeaponRig>,
     camera: Entity,
@@ -49,6 +50,9 @@ impl PawnScene {
     #[allow(clippy::result_unit_err)]
     pub fn build<G: Gpu>(gpu: &mut G, bytes: &[u8]) -> Result<PawnScene, ()> {
         let template = PawnTemplate::from_bytes(bytes).map_err(|_| ())?;
+        let pawn_scale = template
+            .uniform_scale_for_height(crate::world::ADULT_PAWN_HEIGHT_METERS)
+            .ok_or(())?;
         let mut renderer =
             Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
         renderer.set_ambient(0.45);
@@ -90,7 +94,7 @@ impl PawnScene {
                     Transform {
                         pos: vec3(x, 0.0, 0.0),
                         rot: Quat::IDENTITY,
-                        scale: Vec3::ONE,
+                        scale: vec3(pawn_scale, pawn_scale, pawn_scale),
                     },
                 );
                 world.set_component(
@@ -220,6 +224,7 @@ impl PawnScene {
             world,
             renderer,
             template,
+            pawn_scale,
             actors,
             weapon,
             camera,
@@ -261,11 +266,11 @@ impl PawnScene {
             if let Some(rig) = &self.weapon {
                 if rig.actor_index == idx {
                     let bone = self.template.skeleton.bone_global(rig.hand);
-                    let world_mat = successor_engine_core::math::Mat4::from_translation(vec3(
-                        actor.pos_x,
-                        0.0,
-                        0.0,
-                    ))
+                    let world_mat = successor_engine_core::math::Mat4::from_trs(
+                        vec3(actor.pos_x, 0.0, 0.0),
+                        Quat::IDENTITY,
+                        vec3(self.pawn_scale, self.pawn_scale, self.pawn_scale),
+                    )
                     .mul(bone);
                     for &(entity, local) in &rig.entities {
                         let (t, r, s) = world_mat.mul(local).to_trs();

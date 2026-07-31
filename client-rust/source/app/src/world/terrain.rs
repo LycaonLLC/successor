@@ -205,6 +205,27 @@ pub fn sample_terrain(seed: i32, world_x: f64, world_z: f64, biome: Biome) -> Te
     }
 }
 
+/// Continuous visual ground height in world units. The field is sampled in
+/// world space so independently streamed chunks share identical edge heights.
+pub fn terrain_height(seed: i32, world_x: f64, world_z: f64, biome: Biome) -> f32 {
+    let height = match biome {
+        Biome::Desert => {
+            let dunes = fbm(seed, world_x * 0.0075, world_z * 0.0075, 0xd017);
+            let ridge_source = fbm(seed, world_x * 0.021 + 17.0, world_z * 0.021 - 31.0, 0xd018);
+            let ridges = 1.0 - (ridge_source * 2.0 - 1.0).abs();
+            let grit = fbm(seed, world_x * 0.052 - 9.0, world_z * 0.052 + 14.0, 0xd019);
+            (dunes - 0.5) * 3.8 + (ridges - 0.5) * 1.15 + (grit - 0.5) * 0.28
+        }
+        Biome::Forest => {
+            let rolling = fbm(seed, world_x * 0.006 + 23.0, world_z * 0.006 - 7.0, 0xf017);
+            let hummocks = fbm(seed, world_x * 0.027 - 15.0, world_z * 0.027 + 19.0, 0xf018);
+            let roots = fbm(seed, world_x * 0.071 + 3.0, world_z * 0.071 - 11.0, 0xf019);
+            (rolling - 0.5) * 2.6 + (hummocks - 0.5) * 0.75 + (roots - 0.5) * 0.16
+        }
+    };
+    height.clamp(-3.75, 3.75) as f32
+}
+
 pub fn clearing_mask_at(seed: i32, world_x: f64, world_z: f64) -> f64 {
     let (wax, waz, wcx, wcz) = wind_axis();
     let along = world_x * wax + world_z * waz;
@@ -484,6 +505,20 @@ mod tests {
         let p = paint_terrain_pixel(seed, 256.0, 100.0, Biome::Desert);
         let q = paint_terrain_pixel(seed, 256.0, 100.0, Biome::Desert);
         assert_eq!(p.rgba, q.rgba);
+    }
+
+    #[test]
+    fn height_field_is_deterministic_bounded_and_cross_chunk_continuous() {
+        for biome in [Biome::Desert, Biome::Forest] {
+            let first = terrain_height(42, 256.0, -31.25, biome);
+            let second = terrain_height(42, 256.0, -31.25, biome);
+            assert_eq!(first, second);
+            assert!((-3.75..=3.75).contains(&first));
+            let epsilon = 0.001;
+            let left = terrain_height(42, 256.0 - epsilon, -31.25, biome);
+            let right = terrain_height(42, 256.0 + epsilon, -31.25, biome);
+            assert!((left - right).abs() < 0.01, "{biome:?}: {left} vs {right}");
+        }
     }
 
     #[test]

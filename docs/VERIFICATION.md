@@ -85,6 +85,12 @@ terrain GPU p99; and `nostd` builds both engine crates for
 corresponding WebGL2 probe, a resize round trip, and the deterministic
 half-float-disabled fallback where applicable.
 
+`client-rust/budgets.json` is authoritative. Its fidelity-first caps are 6 MiB
+stripped native, 4 MiB stripped WebAssembly, 8.33 ms runtime/terrain p99,
+16.67 ms generic render p99, zero steady-state frame allocations, and 512 MiB
+peak RSS. Relative headroom is `max(512 KiB, 25%)` for size, 100% for
+performance, and 5% for RSS; absolute caps still apply.
+
 Changes under `client-3d/` or shared `client/src/` must also rebuild the
 packaged desktop:
 

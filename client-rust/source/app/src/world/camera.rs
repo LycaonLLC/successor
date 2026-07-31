@@ -4,6 +4,7 @@
 //! follow, and exposes zoom clamping. Ground-ray unprojection for picking lives
 //! in `picking.rs`.
 
+use super::WORLD_UNITS_PER_CELL;
 use successor_engine_core::math::{vec3, Vec3};
 use successor_engine_render::components::{Camera, Projection};
 
@@ -22,12 +23,13 @@ pub fn clamp_zoom_percent(pct: f32) -> f32 {
     pct.clamp(MIN_ZOOM_PERCENT, MAX_ZOOM_PERCENT)
 }
 
-/// Fixed camera offset from the focus point (yaw 0, pitch 60°, distance 96).
+/// Fixed camera offset from the focus point (yaw 0, pitch 60°, 96 metres).
 pub fn camera_offset() -> Vec3 {
     let yaw = YAW_DEG.to_radians();
     let pitch = PITCH_DEG.to_radians();
-    let horizontal = pitch.cos() * DISTANCE_CELLS;
-    let height = pitch.sin() * DISTANCE_CELLS;
+    let distance = DISTANCE_CELLS * WORLD_UNITS_PER_CELL;
+    let horizontal = pitch.cos() * distance;
+    let height = pitch.sin() * distance;
     vec3(yaw.sin() * horizontal, height, yaw.cos() * horizontal)
 }
 
@@ -62,7 +64,7 @@ impl IsoCamera {
 
     /// Ortho half-height in world units at the current zoom.
     pub fn half_height(&self) -> f32 {
-        (BASE_FRUSTUM_HEIGHT_CELLS / (self.zoom_percent / 100.0)) * 0.5
+        (BASE_FRUSTUM_HEIGHT_CELLS * WORLD_UNITS_PER_CELL / (self.zoom_percent / 100.0)) * 0.5
     }
 
     /// Smoothly follow `(x, z)` on the ground plane (exponential lerp; snaps on

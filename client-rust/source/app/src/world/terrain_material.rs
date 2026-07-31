@@ -175,6 +175,9 @@ pub struct TerrainProbe {
     pub luma_mean: f64,
     pub luma_stddev: f64,
     pub neighbor_delta: f64,
+    /// Mean luma difference at a quarter-frame offset. Near-zero means a
+    /// screen-space macro pattern visibly repeats.
+    pub repeat_delta: f64,
 }
 
 pub fn probe_rgba(rgba: &[u8], width: u32, height: u32) -> Result<TerrainProbe, String> {
@@ -187,6 +190,9 @@ pub fn probe_rgba(rgba: &[u8], width: u32, height: u32) -> Result<TerrainProbe, 
     let mut sum2 = 0.0f64;
     let mut neighbor_delta = 0.0f64;
     let mut neighbor_count = 0.0f64;
+    let repeat_offset = (width / 4).max(1);
+    let mut repeat_delta = 0.0f64;
+    let mut repeat_count = 0.0f64;
     for y in y_start..height {
         for x in 0..width {
             let offset = ((y * width + x) * 4) as usize;
@@ -198,6 +204,11 @@ pub fn probe_rgba(rgba: &[u8], width: u32, height: u32) -> Result<TerrainProbe, 
                 neighbor_delta += (luma - pixel_luma(rgba, offset - 4)).abs();
                 neighbor_count += 1.0;
             }
+            if x + repeat_offset < width {
+                let repeat = pixel_luma(rgba, offset + repeat_offset as usize * 4);
+                repeat_delta += (luma - repeat).abs();
+                repeat_count += 1.0;
+            }
         }
     }
     let mean = sum / count;
@@ -205,6 +216,7 @@ pub fn probe_rgba(rgba: &[u8], width: u32, height: u32) -> Result<TerrainProbe, 
         luma_mean: mean,
         luma_stddev: (sum2 / count - mean * mean).max(0.0).sqrt(),
         neighbor_delta: neighbor_delta / neighbor_count,
+        repeat_delta: repeat_delta / repeat_count.max(1.0),
     };
     if probe.luma_stddev < 0.025 {
         return Err("terrain lacks macro/material variation".to_string());
@@ -214,6 +226,9 @@ pub fn probe_rgba(rgba: &[u8], width: u32, height: u32) -> Result<TerrainProbe, 
     }
     if probe.neighbor_delta > 0.08 {
         return Err("terrain detail aliases excessively".to_string());
+    }
+    if probe.repeat_delta < 0.01 {
+        return Err("terrain contains visible macro repetition".to_string());
     }
     Ok(probe)
 }
@@ -257,6 +272,47 @@ mod tests {
             assert!((90..=252).contains(&texel[2]));
             assert!((158..=255).contains(&texel[3]));
         }
+    }
+
+    #[test]
+    fn biome_profiles_cover_distinct_rough_and_smooth_surfaces() {
+        for surfaces in [&DESERT, &FOREST] {
+            let min = surfaces
+                .iter()
+                .map(|surface| surface.roughness[0])
+                .fold(1.0f32, f32::min);
+            let max = surfaces
+                .iter()
+                .map(|surface| surface.roughness[1])
+                .fold(0.0f32, f32::max);
+            assert!(min >= 0.35 && max <= 1.0);
+            assert!(max - min >= 0.45);
+            assert!(surfaces.iter().all(|surface| {
+                surface
+                    .color
+                    .iter()
+                    .all(|channel| (0.0..=1.0).contains(channel))
+                    && surface.relief > 0.0
+                    && surface.grain > 0.0
+            }));
+        }
+        assert_ne!(DESERT[0].color, FOREST[0].color);
+    }
+
+    #[test]
+    fn probe_rejects_quarter_frame_macro_repetition() {
+        let (width, height) = (64u32, 32u32);
+        let mut rgba = vec![0u8; (width * height * 4) as usize];
+        for y in 0..height {
+            for x in 0..width {
+                let wave = ((x % 16) as f32 / 16.0 * core::f32::consts::TAU).sin();
+                let value = (128.0 + wave * 45.0) as u8;
+                let offset = ((y * width + x) * 4) as usize;
+                rgba[offset..offset + 4].copy_from_slice(&[value, value, value, 255]);
+            }
+        }
+        let error = probe_rgba(&rgba, width, height).expect_err("repeating terrain must fail");
+        assert_eq!(error, "terrain contains visible macro repetition");
     }
 
     #[test]

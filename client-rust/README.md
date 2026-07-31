@@ -89,11 +89,21 @@ Headless entry points (no window, used by the gates):
 make verify         # unit tests + perf gate + stripped-size gate  -> "VERIFY: PASS"
 make check-allocs   # steady-state frame loop must report frame-allocs 0
 make runtime-check  # frame p50/p99, peak RSS, allocs vs baseline + ceilings
+make render-check   # material-parity GPU p99
+make terrain-check  # biome probes, non-repetition, and terrain GPU p99
 make nostd          # engine crates still build for thumbv7em-none-eabihf
 ```
 
 Authoritative budgets live in `budgets.json`; regression thresholds are checked
 against a **per-machine baseline** in `bench/baselines/<machine-id>.json`.
+
+The fidelity-first absolute caps are 6 MiB stripped native, 4 MiB stripped
+WebAssembly, 8.33 ms runtime/terrain p99, 16.67 ms generic render p99, zero
+steady-state frame allocations, and 512 MiB peak RSS. Baseline headroom is
+`max(512 KiB, 25%)` for size and 100% for performance; absolute caps still
+bound the result. This deliberately leaves room for full multi-surface PBR
+terrain, displacement, and living detail instead of optimizing presentation
+features away.
 
 ### First run on a new machine
 

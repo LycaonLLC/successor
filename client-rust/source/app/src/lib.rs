@@ -135,11 +135,13 @@ mod web_runtime {
             let scene =
                 crate::material_parity::build(&mut gpu, &assets).expect("material parity scene");
             PARITY_SCENE.set(scene);
-        } else if demo_selector == 2 {
-            let mut scene = crate::world::chunks::TerrainScene::build(
-                &mut gpu,
-                crate::world::terrain::Biome::Desert,
-            );
+        } else if matches!(demo_selector, 2 | 3) {
+            let biome = if demo_selector == 3 {
+                crate::world::terrain::Biome::Forest
+            } else {
+                crate::world::terrain::Biome::Desert
+            };
+            let mut scene = crate::world::chunks::TerrainScene::build(&mut gpu, biome);
             scene.use_material_detail_view();
             TERRAIN_SCENE.set(scene);
         } else {
@@ -183,7 +185,7 @@ mod web_runtime {
                         .render(gpu, &mut scene.world, w, h)
                         .expect("render failed");
                 }
-            } else if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) == 2 {
+            } else if matches!(DEMO_SELECTOR.get_mut().copied().unwrap_or(0), 2 | 3) {
                 if let Some(scene) = TERRAIN_SCENE.get_mut() {
                     scene
                         .renderer
@@ -217,7 +219,7 @@ mod web_runtime {
 
     #[no_mangle]
     pub extern "C" fn probe_terrain_material() -> u32 {
-        if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) != 2 {
+        if !matches!(DEMO_SELECTOR.get_mut().copied().unwrap_or(0), 2 | 3) {
             return 0;
         }
         let (width, height) = SIZE.get_mut().copied().unwrap_or((0, 0));
@@ -225,8 +227,8 @@ mod web_runtime {
         match crate::world::terrain_material::probe_rgba(&pixels, width, height) {
             Ok(probe) => {
                 successor_engine_core::rt::log::log_str(&format!(
-                    "terrain probe stddev={:.5} neighbor={:.5}\n",
-                    probe.luma_stddev, probe.neighbor_delta
+                    "terrain probe stddev={:.5} neighbor={:.5} repeat={:.5}\n",
+                    probe.luma_stddev, probe.neighbor_delta, probe.repeat_delta
                 ));
                 1
             }

@@ -73,6 +73,7 @@ impl<'a> PropsLoader<'a> {
         renderer: &mut Renderer,
         gpu: &mut G,
         slice: &Json,
+        terrain: &TerrainStreamer,
         mask: u32,
     ) -> usize {
         let Some(props) = slice.get("props").and_then(Json::as_array) else {
@@ -95,19 +96,19 @@ impl<'a> PropsLoader<'a> {
             let id = prop.get("id").and_then(Json::as_str).unwrap_or("");
             let (cx, cy) = prop
                 .get("cell")
-                .map(|c| {
+                .map(|cell| {
                     (
-                        c.get("x").and_then(Json::as_f32).unwrap_or(0.0),
-                        c.get("y").and_then(Json::as_f32).unwrap_or(0.0),
+                        cell.get("x").and_then(Json::as_f32).unwrap_or(0.0) * WORLD_UNITS_PER_CELL,
+                        cell.get("y").and_then(Json::as_f32).unwrap_or(0.0) * WORLD_UNITS_PER_CELL,
                     )
                 })
                 .unwrap_or((0.0, 0.0));
             let (sw, sh) = prop
                 .get("size")
-                .map(|s| {
+                .map(|size| {
                     (
-                        s.get("w").and_then(Json::as_f32).unwrap_or(1.0),
-                        s.get("h").and_then(Json::as_f32).unwrap_or(1.0),
+                        size.get("w").and_then(Json::as_f32).unwrap_or(1.0) * WORLD_UNITS_PER_CELL,
+                        size.get("h").and_then(Json::as_f32).unwrap_or(1.0) * WORLD_UNITS_PER_CELL,
                     )
                 })
                 .unwrap_or((1.0, 1.0));
@@ -142,7 +143,9 @@ impl<'a> PropsLoader<'a> {
                     model.footprint_x,
                     model.footprint_z,
                 );
-                let pos = vec3(cx + sw / 2.0, 0.0, cy + sh / 2.0);
+                let ground_x = cx + sw / 2.0;
+                let ground_z = cy + sh / 2.0;
+                let pos = vec3(ground_x, terrain.height_at(ground_x, ground_z), ground_z);
                 let parts = model.parts.clone();
                 let placement = Mat4::from_trs(pos, Quat::from_yaw(yaw), vec3(scale, scale, scale));
                 for part in parts {
@@ -167,7 +170,7 @@ impl<'a> PropsLoader<'a> {
                     );
                 }
                 occ.push(GiOccluder {
-                    center: [pos.x, hy * scale * 0.5, pos.z],
+                    center: [pos.x, pos.y + hy * scale * 0.5, pos.z],
                     half_extents: [fx * scale * 0.5, hy * scale * 0.5, fz * scale * 0.5],
                     yaw,
                     albedo: alb,
@@ -181,6 +184,9 @@ impl<'a> PropsLoader<'a> {
                     .map(parse_hex)
                     .unwrap_or([0.43, 0.4, 0.34, 1.0]);
                 let (yaw, _) = placement(rotation, random_yaw, id, sw, sh, 1.0, 1.0);
+                let ground_x = cx + sw / 2.0;
+                let ground_z = cy + sh / 2.0;
+                let ground_y = terrain.height_at(ground_x, ground_z);
                 let mesh = placeholder_cube(renderer, gpu);
                 let material =
                     renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
@@ -192,7 +198,7 @@ impl<'a> PropsLoader<'a> {
                 world.set_component(
                     e,
                     Transform {
-                        pos: vec3(cx + sw / 2.0, height / 2.0, cy + sh / 2.0),
+                        pos: vec3(ground_x, ground_y + height / 2.0, ground_z),
                         rot: Quat::from_yaw(yaw),
                         scale: vec3(sw.max(0.5), height, sh.max(0.5)),
                     },
@@ -207,7 +213,7 @@ impl<'a> PropsLoader<'a> {
                     },
                 );
                 occ.push(GiOccluder {
-                    center: [cx + sw / 2.0, height * 0.5, cy + sh / 2.0],
+                    center: [ground_x, ground_y + height * 0.5, ground_z],
                     half_extents: [sw.max(0.5) * 0.5, height * 0.5, sh.max(0.5) * 0.5],
                     yaw,
                     albedo: [tint[0], tint[1], tint[2]],
@@ -245,6 +251,44 @@ impl<'a> PropsLoader<'a> {
         self.cache.insert(glb_ref.to_string(), model);
         Some(())
     }
+}
+
+/// Build visual-ground and detail-scatter exclusions from authoritative
+/// building cells. Small props do not flatten the landscape; only structures
+/// whose placement contract owns a footprint do.
+pub fn building_terrain_exclusions(slice: &Json, padding: f32) -> Vec<TerrainExclusion> {
+    let Some(props) = slice.get("props").and_then(Json::as_array) else {
+        return Vec::new();
+    };
+    let padding = padding.max(0.0);
+    let mut exclusions = Vec::new();
+    for prop in props {
+        if prop.get("visible").and_then(Json::as_bool) == Some(false)
+            || prop.get("kind").and_then(Json::as_str) != Some("building")
+        {
+            continue;
+        }
+        let Some(cell) = prop.get("cell") else {
+            continue;
+        };
+        let cx = cell.get("x").and_then(Json::as_f32).unwrap_or(0.0) * WORLD_UNITS_PER_CELL;
+        let cz = cell.get("y").and_then(Json::as_f32).unwrap_or(0.0) * WORLD_UNITS_PER_CELL;
+        let (width, depth) = prop
+            .get("size")
+            .map(|size| {
+                (
+                    size.get("w").and_then(Json::as_f32).unwrap_or(1.0) * WORLD_UNITS_PER_CELL,
+                    size.get("h").and_then(Json::as_f32).unwrap_or(1.0) * WORLD_UNITS_PER_CELL,
+                )
+            })
+            .unwrap_or((1.0, 1.0));
+        exclusions.push(TerrainExclusion {
+            min: [cx - padding, cz - padding],
+            max: [cx + width + padding, cz + depth + padding],
+            feather: 3.0,
+        });
+    }
+    exclusions
 }
 
 /// composePlacement: yaw + uniform fit scale.
@@ -433,8 +477,9 @@ fn parse_hex(s: &str) -> [f32; 4] {
 // Combined world scene: terrain + props + orbiting camera (`--demo props`).
 // ---------------------------------------------------------------------------
 
-use super::chunks::TerrainStreamer;
+use super::chunks::{TerrainExclusion, TerrainStreamer};
 use super::terrain::Biome;
+use super::WORLD_UNITS_PER_CELL;
 
 pub struct WorldScene {
     pub world: GameWorld,
@@ -470,8 +515,8 @@ impl WorldScene {
         if let Some(props) = slice.get("props").and_then(Json::as_array) {
             for p in props {
                 if let Some(c) = p.get("cell") {
-                    sx += c.get("x").and_then(Json::as_f32).unwrap_or(0.0);
-                    sz += c.get("y").and_then(Json::as_f32).unwrap_or(0.0);
+                    sx += c.get("x").and_then(Json::as_f32).unwrap_or(0.0) * WORLD_UNITS_PER_CELL;
+                    sz += c.get("y").and_then(Json::as_f32).unwrap_or(0.0) * WORLD_UNITS_PER_CELL;
                     n += 1.0;
                 }
             }
@@ -479,12 +524,24 @@ impl WorldScene {
         let center = if n > 0.0 {
             vec3(sx / n, 0.0, sz / n)
         } else {
-            vec3(512.0, 0.0, 512.0)
+            vec3(
+                512.0 * WORLD_UNITS_PER_CELL,
+                0.0,
+                512.0 * WORLD_UNITS_PER_CELL,
+            )
         };
         renderer.gi_set_focus([center.x, center.y, center.z]);
 
         // Terrain ground under the props.
-        let mut streamer = TerrainStreamer::new(0x0d3d_071e, Biome::Desert, 64.0, 3, 0b1);
+        let mut streamer = TerrainStreamer::new(
+            0x0d3d_071e,
+            Biome::Desert,
+            64.0 * WORLD_UNITS_PER_CELL as f64,
+            3,
+            0b1,
+        );
+        let exclusions = building_terrain_exclusions(&slice, 1.5);
+        streamer.set_exclusions(&exclusions);
         streamer.ensure_around(
             &mut world,
             &mut renderer,
@@ -495,7 +552,7 @@ impl WorldScene {
 
         // Props.
         let mut loader = PropsLoader::new(assets_dir, mapping_json)?;
-        let placed = loader.load(&mut world, &mut renderer, gpu, &slice, 0b1);
+        let placed = loader.load(&mut world, &mut renderer, gpu, &slice, &streamer, 0b1);
         eprintln!("props: placed {placed} instances");
 
         let sun = world.spawn();
@@ -579,6 +636,27 @@ mod tests {
     fn rotation_90_yaw() {
         let (yaw, _) = placement(90.0, false, "x", 2.0, 4.0, 2.0, 4.0);
         assert!((yaw - (-90.0f32).to_radians()).abs() < 1e-4);
+    }
+
+    #[test]
+    fn only_visible_buildings_reserve_terrain_footprints() {
+        let slice = Json::parse(
+            r#"{"props":[
+                {"kind":"building","cell":{"x":10,"y":20},"size":{"w":4,"h":3}},
+                {"kind":"prop","cell":{"x":30,"y":40},"size":{"w":8,"h":8}},
+                {"kind":"building","visible":false,"cell":{"x":50,"y":60}}
+            ]}"#,
+        )
+        .expect("slice");
+        let exclusions = building_terrain_exclusions(&slice, 1.5);
+        assert_eq!(
+            exclusions,
+            vec![TerrainExclusion {
+                min: [8.5, 18.5],
+                max: [15.5, 24.5],
+                feather: 3.0,
+            }]
+        );
     }
 
     #[test]

@@ -1287,8 +1287,8 @@ fn assert_terrain_material_pixels(rgba: &[u8], width: u32, height: u32) {
     let probe = successor_client::world::terrain_material::probe_rgba(rgba, width, height)
         .unwrap_or_else(|error| panic!("{error}"));
     println!(
-        "terrain-material luma_mean={:.5} luma_stddev={:.5} neighbor_delta={:.5}",
-        probe.luma_mean, probe.luma_stddev, probe.neighbor_delta
+        "terrain-material luma_mean={:.5} luma_stddev={:.5} neighbor_delta={:.5} repeat_delta={:.5}",
+        probe.luma_mean, probe.luma_stddev, probe.neighbor_delta, probe.repeat_delta
     );
 }
 

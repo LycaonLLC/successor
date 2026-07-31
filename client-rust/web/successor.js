@@ -411,7 +411,11 @@ fetch("successor.wasm")
 
         const params = new URLSearchParams(window.location.search);
         const demoName = params.get("demo");
-        const demoSelector = demoName === "material-parity" ? 1 : demoName === "terrain-material" ? 2 : 0;
+        const demoSelector = demoName === "material-parity"
+            ? 1
+            : demoName === "terrain-material"
+                ? (params.get("biome") === "forest" ? 3 : 2)
+                : 0;
         window.__successorRenderReady = false;
         window.__successorRenderError = null;
         window.__successorRenderProbe = null;
@@ -481,7 +485,7 @@ fetch("successor.wasm")
                     window.__successorRenderReady = passed === 1;
                     if (passed !== 1) window.__successorRenderError = "material parity probe failed";
                 }
-                if (demoSelector === 2 && renderedFrames === 120 && typeof wasmExports.probe_terrain_material === "function") {
+                if ((demoSelector === 2 || demoSelector === 3) && renderedFrames === 120 && typeof wasmExports.probe_terrain_material === "function") {
                     const passed = wasmExports.probe_terrain_material();
                     if (passed !== 1) {
                         throw new Error("terrain material probe failed");
