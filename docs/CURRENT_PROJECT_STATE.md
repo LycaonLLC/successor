@@ -36,14 +36,9 @@ characters.
 
 ## Supported repository shape
 
-There is one canonical checkout:
-
-```text
-~/dev/games/successor
-```
-
-It is on `main`, which is the only local long-lived branch and the only
-registered Successor worktree. The supported components are:
+The supported repository shape is defined by project-relative paths and does
+not depend on a checkout location, branch name, workstation, or worktree
+layout. The supported components are:
 
 | Path | Role |
 | --- | --- |
@@ -268,21 +263,17 @@ There is no public TUI archive yet.
 
 ## Repository recovery and retained plans
 
-The 2026-07-28 cleanup reduced 210 registered worktrees to the one canonical
-checkout. Every old ref, worktree tip, dirty patch, non-reproducible payload,
-and the corrupt-checkout raw tree was preserved before removal at:
-
-```text
-~/dev/releases/successor-preconsolidation-20260728T1811-MDT
-```
-
-The verified `successor-all-refs.bundle` and `SHA256SUMS` are the recovery
-boundary. Do not recreate the full worktree farm; extract one named item into a
-temporary worktree and reevaluate it against `main`.
+The 2026-07-28 repository cleanup preserved old refs, dirty patches,
+non-reproducible payloads, and a corrupt-checkout raw tree in an external
+pre-consolidation archive. The verified `successor-all-refs.bundle` and
+`SHA256SUMS` identify that recovery boundary. Its storage location is
+environment-specific and must be supplied explicitly when recovery is needed.
+Do not recreate the former worktree farm; extract one named item into an
+isolated checkout and reevaluate it against the current source tree.
 
 Eleven useful Creative Wave briefs remain under `docs/future/` with explicit
 non-current status. They were not deleted. The unfinished property/farming
-iteration remains excluded from `main` as archive commit
+iteration remains excluded from the current source as archive commit
 `fa7a9977200f1e668e26a04a08a24e4e654eca94` and
 `property-farm-wip.patch` in the recovery archive. It contains partial
 land-claim, parcel, starter-seed, server projection, and farm-HUD work; it is
@@ -305,6 +296,6 @@ The next work should be chosen from these actual gaps:
 6. Continue real game content, balance, onboarding, performance budgets, and
    focused visual gates. The systems breadth is ahead of the playable content.
 
-`main` may contain documentation or site changes newer than the deployed
+The development source may contain documentation or site changes newer than the deployed
 authority. Built, published, promoted, and player-verified states must always
 be reported separately.

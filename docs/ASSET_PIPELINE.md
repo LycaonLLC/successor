@@ -21,7 +21,7 @@ Do not call a file integrated because it sits under `public/`.
 
 | Kind | Source | Runtime |
 | --- | --- | --- |
-| Humanoids, rigged equipment, animations, weapons | Bunker `~/dev/games/pawn-forge/pawnforgev2/` | `client-3d/public/assets/pawn-pack/` |
+| Humanoids, rigged equipment, animations, weapons | neighboring `pawn-forge/pawnforgev2/` source checkout | `client-3d/public/assets/pawn-pack/` |
 | Creatures | Blender/build recipes in the active media/source workspace | `client-3d/public/assets/creatures/` |
 | Items, crops, food, tools, medical and gene-lab models | deterministic builders or `.blend` sources | `client-3d/public/assets/items/` |
 | Curated world props | deterministic builders or source models | `client-3d/public/assets/world-items/` |

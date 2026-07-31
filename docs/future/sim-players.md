@@ -2,13 +2,13 @@
 
 > Preserved on 2026-07-28. This is design source, not current runtime
 > documentation. Recheck every code path, hash, and implementation-status claim
-> against `main` before using it. Current truth lives in
+> against the current source tree before using it. Current truth lives in
 > `docs/CANONICAL_CONTEXT.md`, `docs/CURRENT_PROJECT_STATE.md`, and
 > `docs/VERIFICATION.md`.
 
 Status: DESIGN + working prototype landed in this lane. Prototype:
 `tools/verification/simplayer/`; entry `pnpm sim:players -- --minutes 20 --population 4`.
-Base tip validated: main `797ee63` (also green on `796fd25`).
+Base revision validated: `797ee63` (also green on `796fd25`).
 
 ## Mandate
 
@@ -221,5 +221,5 @@ they are honest, expected outcomes of contested/again-later play.
   torn down and asserted inactive after the run.
 - **LootTables.** kills/hour telemetry shape agreed on IRC; `loottables_telemetry`
   ships per-hunter + pooled mob-only rates for the AFK calibration anchor.
-- **Landing.** New directory + one `package.json` script line — near-zero conflict
-  surface; lands late in the queue on main's live tip with a re-run there.
+- **Landing.** New directory + one `package.json` script line — near-zero
+  conflict surface; re-run against the exact integration revision before landing.

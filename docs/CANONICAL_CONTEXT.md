@@ -70,8 +70,8 @@ www.successorgame.com
 The marketing site and browser-client pointer are separately promotable. A site
 release does not deploy gameplay, and a game release does not imply a site or
 native-download promotion. The public EC2 authority remains single-writer and
-has no public SSH ingress. SSM is the operator path. S3/CloudFront owns the
-site, browser client, and native archives; the ALB owns public game/chat
+has no public remote-shell ingress. The provider session service is the
+operator path. S3/CloudFront owns the site, browser client, and native archives; the ALB owns public game/chat
 ingress.
 
 `CURRENT_DEPLOYMENT.md` owns the exact current site release, client manifest,
@@ -464,9 +464,8 @@ emitted `index.html`, keeps Three.js on the eager vendor path while the emitted
 index has no static `feature-*` JS/CSS, and loads features dynamically.
 
 The public browser release, authority image, native manifest, and site release
-are recorded in `CURRENT_DEPLOYMENT.md`. The primary development branch is
-`main` and may be ahead of the production game source; integrated does not mean
-promoted.
+are recorded in `CURRENT_DEPLOYMENT.md`. The current development source may be
+ahead of the production game source; integrated does not mean promoted.
 
 Use these maturity labels when discussing content:
 
@@ -538,6 +537,6 @@ fixture for end-to-end proof. Add a new product surface only through an explicit
 decision recorded here.
 
 `docs/future/` contains retained design briefs, not current contracts or
-implementation claims. Revalidate a brief against `main` before using it, then
-move any implemented contract into the canonical docs or a focused current
-specification in the same change.
+implementation claims. Revalidate a brief against the current source tree
+before using it, then move any implemented contract into the canonical docs or
+a focused current specification in the same change.

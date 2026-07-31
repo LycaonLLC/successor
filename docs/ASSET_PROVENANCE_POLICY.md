@@ -29,7 +29,7 @@ The audit scope includes:
 - `client-3d/public/assets/`
 - `client/public/successor-audio/`
 - `client/public/successor-slice/`
-- Bunker `~/dev/games/pawn-forge/pawnforgev2/` for source recipes
+- neighboring `pawn-forge/pawnforgev2/` checkout for source recipes
 
 Purchased trial packs may stay as a cataloged selection library when their
 license permits it. Promotion into the world requires a stable Successor id,

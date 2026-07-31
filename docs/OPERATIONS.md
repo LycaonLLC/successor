@@ -6,8 +6,8 @@ This runbook covers the stateful maintenance path. It does not replace
 
 ## Current public boundary
 
-The public alpha is not hosted on Bunker. Bunker is the trusted build and
-operator host. AWS owns:
+The public alpha runs in AWS. Any trusted workstation with the required
+provider tooling and authorized credentials may perform operator actions. AWS owns:
 
 - `www.successorgame.com`: S3/CloudFront site, client pointer, and downloads;
 - `world.successorgame.com`: ALB ingress to the private single-writer EC2
@@ -25,13 +25,13 @@ curl -fsS https://world.successorgame.com/healthz | jq .
 curl -fsS https://world.successorgame.com/readyz | jq .
 ```
 
-The approved AWS environment is
-`~/.config/provider-ops/aws.env` on Bunker. Load it only inside the
-trusted subprocess that needs it. Never print, copy to another host, commit, or
-place its values in session output. A possible credential exposure in a
-transcript or session JSON is a reportable concern, not permission to rotate a
-key. Do not rotate or revoke provider credentials unless Michael explicitly
-authorizes that action.
+Provide the approved AWS environment to the trusted subprocess through the
+operator's secret-management mechanism. Do not encode a workstation path in
+this runbook, print credentials, copy them between hosts, commit them, or place
+their values in session output. A possible credential exposure in a transcript
+or session JSON is a reportable concern, not permission to rotate a key. Do not
+rotate or revoke provider credentials without explicit authorization naming
+that credential scope.
 
 Hosted release ids are not interchangeable. The immutable browser build and
 every launch ticket must agree on `SUCCESSOR_CLIENT_RELEASE_ID` and the
@@ -49,8 +49,8 @@ reports are identity-bound by the authenticated game room and stored in the
 is already part of the application-consistent backup archive. Do not copy it
 out merely to inspect reports.
 
-From an SSM operator session, list the open queue through the read-only command
-shipped in the running immutable image:
+From an authorized provider operator session, list the open queue through the
+read-only command shipped in the running immutable image:
 
 ```bash
 sudo docker exec \
@@ -78,8 +78,8 @@ cookies, chat text, and inventory contents are intentionally not collected.
 
 ## Marketing-site publication
 
-Site publication is independent of gameplay deployment. From the exact tested
-site worktree:
+Site publication is independent of gameplay deployment. From the repository
+root containing the exact tested site build:
 
 ```bash
 node ops/deploy/scripts/publish-site.mjs \
@@ -260,7 +260,7 @@ state payload, and writes a rehearsal record. It never calls `systemctl`,
 SUCCESSOR_STATE_DIR=/var/lib/successor \
   /usr/local/libexec/successor-restore-rehearsal.sh \
   /var/backups/successor/successor-YYYYmmddTHHMMSSZ.tar.gz \
-  ~/.cache/successor-restore-rehearsals/manual-YYYYmmdd
+  "${SUCCESSOR_RESTORE_TARGET:?set isolated restore target}"
 ```
 
 This proves restore extraction only. An isolated authority/client smoke is

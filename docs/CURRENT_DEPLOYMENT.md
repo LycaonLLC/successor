@@ -19,11 +19,10 @@ operator procedures live in `OPERATIONS.md`.
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
 | Public source | `https://github.com/LycaonLLC/successor` | site release commit `0acf4e2e449ca830192a487e6daa7e06711abb45` |
 
-The site, browser client, and native archives are versioned S3 objects behind
-CloudFront. One digest-pinned authority container runs on private EC2 behind
-the public ALB. The host has no public SSH ingress. Operators reach it through
-SSM from Bunker; Bunker is a build, test, and operations host, not the public
-game host.
+The site and immutable browser assets are in S3 behind CloudFront. One
+digest-pinned authority container runs on private EC2 behind the public ALB.
+The host has no public remote-shell ingress. Operators use the documented
+provider session path; development workstations are not public game hosts.
 
 The `client-rust/` graphical material-parity, PBR terrain, and native
 developer-only agent-control work verified in source through 2026-07-31 has
@@ -42,8 +41,8 @@ The authenticated S3 pointer contains:
 - release prefix: `site/releases/site-0acf4e2e-20260730`
 - inventory: 48 files, 35,577,370 bytes
 
-The site suite passed 173/173 tests on Bunker, then its TypeScript/Vite build
-and all seven transfer-budget checks passed. The publisher excluded the
+The site suite passed 173/173 tests, followed by its TypeScript/Vite build
+and all seven transfer-budget checks. The publisher excluded the
 independently managed `downloads/manifest.json` as required.
 
 After promotion, an isolated headless Chrome session loaded the public
@@ -112,14 +111,10 @@ hash was identical:
 f52af9c24ca696a304f4f1f9a98d91d9baf7ed08931be071c75f516ccde2899b
 ```
 
-The final backup is:
-
-```text
-s3://successor-backups-5a537a77/state/successor-20260730T031511Z.tar.gz
-```
-
-Its SHA-256 is
+The final backup is identified by SHA-256
 `75fb0ae57e4d2f8ae50393ee5b93817ec8190b6701d3035e7b3a31da15f41a3`.
+Its storage location is environment-specific and is not part of this
+deployment ledger.
 The live state then advanced normally as the browser and native proof
 characters entered the world. The mutable `persistence.stateHash` is therefore
 an observation, not a deployment identity.

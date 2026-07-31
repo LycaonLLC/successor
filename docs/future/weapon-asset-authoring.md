@@ -2,7 +2,7 @@
 
 > Preserved on 2026-07-28. This is design source, not current runtime
 > documentation. Recheck every code path, hash, and implementation-status claim
-> against `main` before using it. Current truth lives in
+> against the current source tree before using it. Current truth lives in
 > `docs/CANONICAL_CONTEXT.md`, `docs/CURRENT_PROJECT_STATE.md`, and
 > `docs/VERIFICATION.md`.
 
@@ -149,7 +149,7 @@ in-game matcap+post is authoritative.
 ```bash
 cd pawn-forge/pawnforgev2/_bakeoff/synty_weapons_20260708
 FBX=stage/sw__SM_Wep_XXX.fbx; ID=wpn_xxx; CLS=rifle
-SLUGTHROWER=/home/lycaon/dev/games/successor/client-3d/public/assets/pawn-pack/slugthrower_attach.json
+SLUGTHROWER="${SUCCESSOR_REPO_ROOT:?set Successor repository root}/client-3d/public/assets/pawn-pack/slugthrower_attach.json"
 # 1) dark GLB (palette map + tint)
 blender -b --factory-startup -P scripts/convert_weapon.py -- --input $FBX --output glb/${ID}_dark.glb --id $ID --report qa/${ID}.json
 # 2) attach spec (grip formula, mount-transfer vs pawn rig)

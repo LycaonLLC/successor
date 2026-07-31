@@ -1,8 +1,8 @@
 # Successor Agent Notes
 
-Treat `~/dev/games/successor` on Bunker as the sole canonical checkout. Its
-branch is `main`. Inspect current code, processes, fixture identity, and Git
-status before broad changes. Preserve unrelated local work.
+Work from the repository checkout provided by the current environment. Inspect
+the current source tree, processes, fixture identity, and Git status before
+broad changes. Preserve unrelated local work.
 
 Read these files in order before making architecture or runtime claims:
 
@@ -16,7 +16,7 @@ dated implementation snapshot. The deployment document owns volatile public
 release identity. The verification document owns commands and runtime proof.
 Narrow design docs may add detail but cannot override those four files.
 Files under `docs/future/` are retained proposals, not current behavior. Verify
-their assumptions against `main` before implementing them.
+their assumptions against the current source tree before implementing them.
 
 ## Credential authority
 
@@ -50,19 +50,19 @@ release may use the backed-up reset path instead of compatibility work. Record
 the backup identity, reset scope, new generation, exact release identities, and
 post-reset player journey in `docs/CURRENT_DEPLOYMENT.md`.
 
-## Host, source, and service ownership
+## Source, service, and tooling ownership
 
-| Use | Host and path | Agent rule |
+| Use | Location | Agent rule |
 | --- | --- | --- |
-| Canonical integrated source | Bunker: `~/dev/games/successor`, branch `main` | Inspect HEAD, dirt, and `docs/CURRENT_DEPLOYMENT.md` before using it. Canonical checkout HEAD is development truth, not automatically production truth. |
-| Temporary isolated work | Bunker disposable worktree | Start from `main` or the exact requested source commit. Merge or archive intentional work, then remove the worktree and its task branch before handoff. |
-| PawnForge authoring | Bunker: `~/dev/games/pawn-forge/pawnforgev2` | Use for humanoid, rig, socket, and GLB source work. |
-| Interactive cockpit | Michael's Mac | Use for interactive review and macOS-specific package proof. Do not assume a Mac checkout matches Bunker. |
-| Public alpha | AWS | Site/client/downloads are S3/CloudFront; the single-writer authority is private EC2 behind the ALB. Bunker is not the public game host. |
+| Integrated source | Current repository checkout | Inspect source identity, local changes, and `docs/CURRENT_DEPLOYMENT.md` before using it. The checked-out source is development truth, not automatically production truth. |
+| Temporary isolated work | Disposable local checkout or worktree | Start from the requested source revision. Preserve or integrate intentional work, then remove temporary state before handoff. |
+| PawnForge authoring | Neighboring `pawn-forge/pawnforgev2` checkout | Use for humanoid, rig, socket, and GLB source work; resolve its location from the environment rather than a fixed host path. |
+| Interactive review | Any supported workstation with the required display and platform tools | Bind proof to the exact source and built artifact rather than the workstation name. |
+| Public alpha | AWS | Site/client/downloads are S3/CloudFront; the single-writer authority is private EC2 behind the ALB. Local development hosts are not public game hosts. |
 
 The public surfaces are `https://www.successorgame.com` and
-`https://world.successorgame.com`. The AWS instance has no public SSH ingress;
-use the documented SSM/operator route. Local listeners and disposable
+`https://world.successorgame.com`. The AWS instance has no public remote-shell
+ingress; use the documented provider operator route. Local listeners and disposable
 verification shards remain loopback-only. A Vite page, screenshot, listener,
 temporary pod, or Rust process does not become the public alpha merely because
 it is reachable from a test client.
@@ -73,21 +73,16 @@ Never infer production identity from the current branch name or newest commit.
 
 ## Repository discipline
 
-`main` is the only long-lived branch in both the canonical checkout and the
-local Bunker hub. A temporary task worktree is allowed when isolation is
-useful, but it is not another source of truth. Before handoff:
+Do not infer source authority from a branch name, checkout path, workstation,
+or local worktree layout. Preserve unrelated local changes and bind every
+verification result to the exact source revision and working tree that produced
+it. Temporary isolation is allowed when useful, but it is not another source of
+truth. Before handoff, integrate or preserve intentional work and remove any
+temporary checkout state created for the task.
 
-1. merge verified work into `main`, or preserve unfinished work in a named
-   recovery bundle or patch;
-2. remove the temporary worktree;
-3. delete its task branch; and
-4. confirm `git worktree list` normally shows only
-   `~/dev/games/successor`.
-
-Do not accumulate verification-farm, cache-root, or detached worktrees. Do not
-launch a new task from another task worktree. Production release identities
-remain independent of `main` and must still come from
-`docs/CURRENT_DEPLOYMENT.md`.
+Do not accumulate verification-farm, cache-root, or detached worktrees.
+Production release identities remain independent of local source-control layout
+and must come from `docs/CURRENT_DEPLOYMENT.md`.
 
 ## Supported product surfaces
 
@@ -117,8 +112,8 @@ It is a standalone Cargo workspace, deliberately outside the root Rust
 workspace and the pnpm workspace. Root repo gates do not cover it; its own
 gates are mandatory for any change under `client-rust/`:
 
-- `make -C client-rust verify` — unit tests, perf regression vs machine
-  baseline, stripped-size regression vs machine baseline and absolute ceilings.
+- `make -C client-rust verify` — unit tests, performance regression against the
+  matching checked-in environment baseline, size regression, and absolute ceilings.
 - `make -C client-rust check-allocs` — steady-state frame loop must report
   `frame-allocs 0`; any per-frame heap allocation is a gate failure.
 - `make -C client-rust runtime-check` — frame-time p50/p99, peak RSS, and
@@ -132,15 +127,14 @@ Hard budgets (`client-rust/budgets.json` is authoritative):
 - zero steady-state heap allocations per frame;
 - peak RSS in the standard scene <= 512 MiB;
 - runtime and terrain GPU p99 <= 8.33 ms, and generic render GPU p99 <=
-  16.67 ms, on the `darwin-arm64-apple-m2-max` class;
-- regressions: size +max(512 KiB, 25%), perf +100%, RSS +5% vs the checked-in
-  per-machine baseline. The larger size/perf headroom is intentional:
+  16.67 ms on a supported baseline environment;
+- regressions: size +max(512 KiB, 25%), perf +100%, RSS +5% versus the matching
+  checked-in baseline. The larger size/perf headroom is intentional:
   presentation fidelity takes priority inside the absolute caps.
 
-Machine baselines live in `client-rust/bench/baselines/<machine-id>.json` and
-change ONLY via `make -C client-rust bench-baseline`, reviewed like code; an
-intentional regression ships the new baseline in the same change with a
-written justification. No baseline for your machine means capture one first.
+Environment baselines live in `client-rust/bench/baselines/` and change ONLY
+via `make -C client-rust bench-baseline`, reviewed like code. An intentional
+regression ships the matching baseline update with a written justification.
 
 Engine rules: `successor-engine-core` and `successor-engine-render` are
 `#![no_std]` + `alloc`; no `core::fmt` in shipped paths; platform access only
@@ -176,7 +170,7 @@ The active presentation library is rooted at:
 - `client-3d/public/assets/`
 - `client/public/successor-audio/`
 - `client/public/successor-slice/`
-- `~/dev/games/pawn-forge/pawnforgev2/` on Bunker (source checkout)
+- neighboring `pawn-forge/pawnforgev2/` source checkout
 
 Keep GLB source provenance, manifests, sockets, material rules, and runtime
 loaders aligned. Preserve authored shaders, effects, weather, crop/flora work,

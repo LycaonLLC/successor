@@ -3,11 +3,10 @@
 Status: current verification contract and latest source proof as of
 2026-07-31; latest public proof remains 2026-07-29.
 
-Run commands from the canonical Bunker checkout,
-`~/dev/games/successor`, unless a section says otherwise. A passing result
-belongs to the exact source tree that produced it. Historical screenshots,
-migration reports, another worktree, or a public release cannot prove current
-`main`.
+Run commands from the repository root in the checkout being verified. A passing
+result belongs to the exact source revision and working tree that produced it.
+Historical screenshots, migration reports, another checkout, or a public
+release cannot prove the current development source.
 
 Architecture and scope live in `CANONICAL_CONTEXT.md`. Current implementation
 inventory lives in `CURRENT_PROJECT_STATE.md`. Volatile public identities and
@@ -16,17 +15,15 @@ release debt live in `CURRENT_DEPLOYMENT.md`.
 ## Install and source identity
 
 ```bash
-cd ~/dev/games/successor
 git status --short
-git branch --show-current
-git worktree list --porcelain
+git rev-parse HEAD
 pnpm install --frozen-lockfile
 pnpm verify:successor-context
 ```
 
-Normal development expects a clean `main` checkout and one registered
-Successor worktree. Temporary task worktrees are acceptable while active, but
-must be merged or archived and removed before handoff.
+Development may use any branch or checkout layout. Bind proof to the exact
+revision and working tree, preserve unrelated changes, and remove temporary
+isolation created for the task before handoff.
 
 ## Required source gates
 
@@ -243,7 +240,7 @@ pnpm verify:full --dry-run --pretty
 pnpm verify:full
 ```
 
-The full run executes fresh against the canonical source hash. Generated
+The full run executes fresh against the identified source revision. Generated
 ledgers, screenshots, and build output are evidence artifacts, not committed
 source.
 
@@ -293,11 +290,10 @@ The sealed amd64 image is:
 595529182031.dkr.ecr.us-east-1.amazonaws.com/successor-staging-1/server@sha256:0e7d1055fba3787c35c9c367d0d3b07136f95d47decb919cb0c873bd1d994040
 ```
 
-The release evidence is under:
-
-```text
-~/dev/releases/successor-alpha-b9262b21-20260729
-```
+The release evidence is identified by public-journey digest
+`7df2b5fbd681bda99d0eadf664d1b631517f4b9bdd8961aa4bb7daaecd405cc6`;
+its storage location is environment-specific and is not part of the
+verification contract.
 
 The final authenticated public journey passed 25 checks. It proved:
 
@@ -358,28 +354,22 @@ authority restart, repaired public launch, or authenticated world entry.
 
 ## Repository recovery
 
-The pre-consolidation archive is:
-
-```text
-~/dev/releases/successor-preconsolidation-20260728T1811-MDT
-```
-
-It contains the verified all-refs bundle for the former 210 worktrees, dirty
-patches and untracked payloads, the corrupt-checkout raw archive, and the
-unfinished property/farming patch. Read-only integrity checks are:
+The pre-consolidation archive contains the verified all-refs bundle for the
+former worktrees, dirty patches and untracked payloads, the corrupt-checkout
+raw archive, and the unfinished property/farming patch. Its storage location is
+environment-specific and must be supplied explicitly:
 
 ```bash
-archive=~/dev/releases/successor-preconsolidation-20260728T1811-MDT
+archive="${SUCCESSOR_RECOVERY_ARCHIVE:?set recovery archive path}"
+repo="${SUCCESSOR_REPO_ROOT:-$PWD}"
 sha256sum --check "$archive/SHA256SUMS"
-git -C ~/dev/games/successor bundle verify \
-  "$archive/successor-all-refs.bundle"
-git -C ~/dev/games/successor bundle list-heads \
-  "$archive/successor-all-refs.bundle"
+git -C "$repo" bundle verify "$archive/successor-all-refs.bundle"
+git -C "$repo" bundle list-heads "$archive/successor-all-refs.bundle"
 ```
 
-Do not restore the whole worktree farm. Extract one named commit, patch, or
-payload into an isolated disposable worktree, revalidate it against `main`,
-then either integrate it or remove the worktree.
+Do not restore the former worktree farm. Extract one named commit, patch, or
+payload into an isolated checkout, revalidate it against the current source
+tree, then either integrate it or remove the temporary checkout.
 
 ## Before committing
 
@@ -390,7 +380,8 @@ then either integrate it or remove the worktree.
    presented as shipped behavior.
 3. Run focused checks, `pnpm run ci`, and `pnpm hygiene:rust`.
 4. Rebuild and smoke the desktop package when its inputs changed.
-5. Commit and push only the intended files to `main`.
+5. Commit or otherwise preserve only the intended files in the requested
+   source destination.
 6. Report source, built, published, promoted, and player-verified states
    separately.
 
