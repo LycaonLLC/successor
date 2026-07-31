@@ -25,6 +25,10 @@ uniform sampler2D u_shadowMap;
 #if GI_CONES > 0
 uniform sampler3D u_gi;
 uniform vec3 u_giOrigin;
+uniform int u_giReady;
+uniform vec3 u_giValidMin;
+uniform vec3 u_giValidMax;
+uniform float u_giBlend;
 uniform float u_giCell;
 uniform float u_giStrength;
 #endif
@@ -124,13 +128,18 @@ float softShadow(vec3 P, vec3 N, float NdotL) {
 #if GI_CONES > 0
 vec4 coneTrace(vec3 origin, vec3 dir, float aperture) {
     vec4 acc = vec4(0.0);
-    float t = 2.0 * u_giCell;
+    float t = u_giCell;
     for (int i = 0; i < 5; i++) {
         float d = max(aperture * t, u_giCell);
         float mip = max(log2(d / u_giCell), 0.0);
         vec3 pos = origin + dir * t;
-        vec3 uvw = (pos - u_giOrigin) / (GI_SIZE * u_giCell);
-        if (any(lessThan(uvw, vec3(0.0))) || any(greaterThan(uvw, vec3(1.0)))) break;
+        if (u_giReady == 0 || any(lessThan(pos, u_giValidMin)) || any(greaterThan(pos, u_giValidMax))) break;
+        vec3 uvw = vec3(
+            fract(pos.x / (GI_SIZE * u_giCell)),
+            (pos.y - u_giOrigin.y) / (GI_SIZE * u_giCell),
+            fract(pos.z / (GI_SIZE * u_giCell))
+        );
+        if (uvw.y < 0.0 || uvw.y > 1.0) break;
         vec4 s = textureLod(u_gi, uvw, mip);
         acc.rgb += (1.0 - acc.a) * s.a * s.rgb;
         acc.a += (1.0 - acc.a) * s.a;
@@ -140,10 +149,10 @@ vec4 coneTrace(vec3 origin, vec3 dir, float aperture) {
     return acc;
 }
 
-// Distance (world units) from P to the nearest volume face.
+// Distance (world units) from P to the nearest currently valid face.
 float volumeBorderDist(vec3 P) {
-    vec3 lo = P - u_giOrigin;
-    vec3 hi = (u_giOrigin + vec3(GI_SIZE * u_giCell)) - P;
+    vec3 lo = P - u_giValidMin;
+    vec3 hi = u_giValidMax - P;
     return min(min(min(lo.x, lo.y), lo.z), min(min(hi.x, hi.y), hi.z));
 }
 
@@ -151,7 +160,7 @@ vec3 diffuseGI(vec3 P, vec3 N, out float ao) {
     vec3 up = abs(N.y) < 0.95 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
     vec3 T = normalize(cross(up, N));
     vec3 B = cross(N, T);
-    vec3 origin = P + N * (2.0 * u_giCell);
+    vec3 origin = P + N * (0.5 * u_giCell);
     vec3 irr = vec3(0.0);
     float occ = 0.0;
     // Central cone along the normal.
@@ -211,18 +220,23 @@ void main() {
     float ao = 1.0;
     vec3 ambient;
 #if GI_CONES > 0
+    vec3 hemi = u_ambient * albedo;
+    if (u_giReady != 0) {
     float gao;
     vec3 irr = diffuseGI(P, N, gao);
     ao = gao;
     vec3 giAmbient = irr * albedo * u_giStrength + u_ambient * albedo * ao * 0.3;
     float border = clamp(volumeBorderDist(P) / (4.0 * u_giCell), 0.0, 1.0);
-    vec3 hemi = u_ambient * albedo;
-    ambient = mix(hemi, giAmbient, border);
+        float giWeight = border * u_giBlend;
+        ambient = mix(hemi, giAmbient, giWeight);
 #if GI_SPECULAR
     vec3 R = reflect(-V, N);
-    vec4 sgi = coneTrace(P + N * (2.0 * u_giCell), R, mix(0.05, 0.6, roughness));
-    ambient += sgi.rgb * F * u_giStrength * border;
+        vec4 sgi = coneTrace(P + N * (0.5 * u_giCell), R, mix(0.05, 0.6, roughness));
+        ambient += sgi.rgb * F * u_giStrength * giWeight;
 #endif
+    } else {
+        ambient = hemi;
+    }
 #else
     ambient = u_ambient * albedo;
 #endif

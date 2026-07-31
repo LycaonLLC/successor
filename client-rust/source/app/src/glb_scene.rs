@@ -119,6 +119,7 @@ impl GlbScene {
             aabb_max = vec3(1.0, 1.0, 1.0);
         }
         let center = aabb_min.add(aabb_max).scale(0.5);
+        renderer.gi_set_focus([center.x, center.y, center.z]);
         let extent = aabb_max.sub(aabb_min);
         let orbit_radius = (extent.length() * 0.5).max(0.5) * 2.4;
 

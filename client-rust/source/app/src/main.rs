@@ -15,7 +15,9 @@ use successor_client::demo;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let mode = arg_value(&args, "--demo");
-    let frames: u64 = arg_value(&args, "--frames").and_then(|s| s.parse().ok()).unwrap_or(600);
+    let frames: u64 = arg_value(&args, "--frames")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(600);
     let stats_json = arg_value(&args, "--stats-json");
     let assert_zero = args.iter().any(|a| a == "--assert-zero-allocs");
     let gl = args.iter().any(|a| a == "--gl");
@@ -32,7 +34,14 @@ fn main() {
             let max_frames = arg_value(&args, "--frames").and_then(|s| s.parse::<u64>().ok());
             let screenshot = arg_value(&args, "--screenshot");
             let auto_walk = args.iter().any(|a| a == "--auto-walk");
-            std::process::exit(connected::run(&endpoint, &player_id, &actor_id, max_frames, screenshot.as_deref(), auto_walk));
+            std::process::exit(connected::run(
+                &endpoint,
+                &player_id,
+                &actor_id,
+                max_frames,
+                screenshot.as_deref(),
+                auto_walk,
+            ));
         }
     }
 
@@ -62,7 +71,14 @@ fn main() {
 
     if mode.as_deref() == Some("gi") {
         let screenshot = arg_value(&args, "--screenshot");
-        run_gi(frames, screenshot.as_deref());
+        let animate_camera = args.iter().any(|arg| arg == "--animate-camera");
+        let assert_stable_gi = args.iter().any(|arg| arg == "--assert-stable-gi");
+        run_gi(
+            frames,
+            screenshot.as_deref(),
+            animate_camera,
+            assert_stable_gi,
+        );
         return;
     }
 
@@ -86,7 +102,9 @@ fn main() {
 
     if mode.as_deref() == Some("env") {
         let screenshot = arg_value(&args, "--screenshot");
-        let minute = arg_value(&args, "--minute").and_then(|s| s.parse::<f32>().ok()).unwrap_or(720.0);
+        let minute = arg_value(&args, "--minute")
+            .and_then(|s| s.parse::<f32>().ok())
+            .unwrap_or(720.0);
         run_env(minute, frames, screenshot.as_deref());
         return;
     }
@@ -109,7 +127,11 @@ fn run_headless(frames: u64, stats_json: Option<&str>, assert_zero: bool) {
     let stats = demo::run_headless(frames);
     println!(
         "parity-basic headless: {} frames | p50={:.3}ms p99={:.3}ms peak_rss={}B frame-allocs {}",
-        frames, stats.frame_p50_ms, stats.frame_p99_ms, stats.peak_rss_bytes, stats.frame_allocs_steady
+        frames,
+        stats.frame_p50_ms,
+        stats.frame_p99_ms,
+        stats.peak_rss_bytes,
+        stats.frame_allocs_steady
     );
     if let Some(path) = stats_json {
         if let Err(e) = std::fs::write(path, stats.to_json()) {
@@ -130,7 +152,11 @@ fn run_headless(frames: u64, stats_json: Option<&str>, assert_zero: bool) {
 #[cfg(not(target_arch = "wasm32"))]
 fn run_windowed(frames: u64, screenshot: Option<&str>) {
     use successor_engine_render::gpu::Gpu;
-    if !successor_platform::init("Successor (Rust client)", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
+    if !successor_platform::init(
+        "Successor (Rust client)",
+        demo::SCREEN_W as i32,
+        demo::SCREEN_H as i32,
+    ) {
         eprintln!("platform init failed (no display?). Falling back to headless.");
         run_headless(frames, None, false);
         return;
@@ -145,7 +171,9 @@ fn run_windowed(frames: u64, screenshot: Option<&str>) {
         scene.animate(frame);
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
-            scene.renderer.render(&mut gpu, &mut scene.world, w as u32, h as u32);
+            scene
+                .renderer
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
         }
         // Capture the final rendered frame from the back buffer before swap.
         if screenshot.is_some() && frame + 1 == total {
@@ -170,10 +198,10 @@ fn run_windowed(frames: u64, screenshot: Option<&str>) {
 #[cfg(not(target_arch = "wasm32"))]
 fn run_ui(frames: u64, screenshot: Option<&str>) {
     use successor_client::hud;
+    use successor_engine_core::input::Key;
     use successor_engine_render::gpu::Gpu;
     use successor_engine_render::ui::{TextField, UiBuilder};
     use successor_engine_render::window::{WindowManager, WindowStyle};
-    use successor_engine_core::input::Key;
     if !successor_platform::init("Successor UI", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
         eprintln!("platform init failed (no display?)");
         std::process::exit(1);
@@ -182,7 +210,9 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
     let _ = &mut gpu as &mut dyn Gpu;
     let mut scene = demo::build_scene(&mut gpu);
     let icons = hud::Icons::load();
-    scene.renderer.set_ui_atlas(&mut gpu, icons.meta.width, icons.meta.height, &icons.rgba);
+    scene
+        .renderer
+        .set_ui_atlas(&mut gpu, icons.meta.width, icons.meta.height, &icons.rgba);
     let mut ui = UiBuilder::new(icons.meta);
     let mut search = TextField::new(48);
     let mut hud_state = hud::HudState::default();
@@ -192,7 +222,14 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
     for (i, (id, title, icon)) in hud::DEMO_WINDOWS.iter().enumerate() {
         let ox = 360.0 + (i % 6) as f32 * 40.0;
         let oy = 140.0 + (i % 6) as f32 * 40.0;
-        wm.register(id, title, icons.cell(icon), [ox, oy, 380.0, 300.0], 220.0, 150.0);
+        wm.register(
+            id,
+            title,
+            icons.cell(icon),
+            [ox, oy, 380.0, 300.0],
+            220.0,
+            150.0,
+        );
     }
     // A screenshot run is pointer-less, so seed some open state so the chrome +
     // content + focused text edit are captured; a live run drives them for real.
@@ -229,12 +266,22 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
         prev_backspace = bk;
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
-            scene.renderer.render(&mut gpu, &mut scene.world, w as u32, h as u32);
+            scene
+                .renderer
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
             ui.begin(w as u32, h as u32);
             // Windows resolve pointer first (topmost consumes drag/close/focus).
             wm.update(&ui, w as u32, h as u32);
             let captured = wm.pointer_captured();
-            if let Some(action) = hud::build_hud(&mut ui, &icons, &hud_state, &mut search, captured, w as u32, h as u32) {
+            if let Some(action) = hud::build_hud(
+                &mut ui,
+                &icons,
+                &hud_state,
+                &mut search,
+                captured,
+                w as u32,
+                h as u32,
+            ) {
                 // Toolbar buttons that name a window toggle it; others are actions.
                 if hud::DEMO_WINDOWS.iter().any(|(id, _, _)| *id == action) {
                     wm.toggle(action);
@@ -248,14 +295,23 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
                 let rect = wm.draw_chrome(&mut ui, idx, style);
                 let id = wm.window_id(idx).to_string();
                 let mut actions = Vec::new();
-                successor_client::windows::content(&mut ui, &id, rect, &win_model, &icons, &mut actions);
+                successor_client::windows::content(
+                    &mut ui,
+                    &id,
+                    rect,
+                    &win_model,
+                    &icons,
+                    &mut actions,
+                );
                 for a in actions {
                     if let successor_client::windows::WindowAction::Select(item) = a {
                         win_model.inventory.selected = Some(item);
                     }
                 }
             }
-            scene.renderer.render_ui(&mut gpu, &ui.buf, ui.quads, w as u32, h as u32);
+            scene
+                .renderer
+                .render_ui(&mut gpu, &ui.buf, ui.quads, w as u32, h as u32);
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
@@ -285,8 +341,16 @@ fn run_fx(frames: u64, screenshot: Option<&str>) {
     let sprite = glow_sprite(64);
     renderer.set_particle_atlas(&mut gpu, 64, 64, &sprite);
     let mut pool = ParticlePool::new(0x51ce_57ed);
-    let eye = Vec3 { x: 5.0, y: 4.0, z: 5.0 };
-    let center = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
+    let eye = Vec3 {
+        x: 5.0,
+        y: 4.0,
+        z: 5.0,
+    };
+    let center = Vec3 {
+        x: 0.0,
+        y: 1.0,
+        z: 0.0,
+    };
     // Billboard basis from the camera frame.
     let fwd = center.sub(eye).normalize();
     let right = fwd.cross(Vec3::Y).normalize();
@@ -302,11 +366,16 @@ fn run_fx(frames: u64, screenshot: Option<&str>) {
             gpu.begin_pass(
                 PassTarget::Screen,
                 RectPx { x: 0, y: 0, w, h },
-                ClearSpec { color: Some([0.06, 0.07, 0.10, 1.0]), depth: Some(1.0) },
+                ClearSpec {
+                    color: Some([0.06, 0.07, 0.10, 1.0]),
+                    depth: Some(1.0),
+                },
             );
             gpu.end_pass();
             let aspect = w as f32 / h as f32;
-            let vp = Mat4::perspective(0.9, aspect, 0.1, 100.0).mul(Mat4::look_at(eye, center, Vec3::Y)).to_cols_array();
+            let vp = Mat4::perspective(0.9, aspect, 0.1, 100.0)
+                .mul(Mat4::look_at(eye, center, Vec3::Y))
+                .to_cols_array();
             // Sustained fire: a spark + blood burst every few frames.
             if frame % 6 == 0 {
                 pool.emit_spark_burst([0.0, 1.1, 0.0], [0.0, 1.0, 0.0], [1.0, -0.2, 0.3], 1.6);
@@ -315,12 +384,24 @@ fn run_fx(frames: u64, screenshot: Option<&str>) {
             pool.update(1.0 / 60.0);
             // Additive layer.
             buf.clear();
-            let qa = pool.additive.fill_billboards([right.x, right.y, right.z], [up.x, up.y, up.z], &mut buf);
+            let qa = pool.additive.fill_billboards(
+                [right.x, right.y, right.z],
+                [up.x, up.y, up.z],
+                &mut buf,
+            );
             renderer.render_particles(&mut gpu, &buf, qa, &vp, true, w as u32, h as u32);
             // Normal-blend layers (blood + residue).
             buf.clear();
-            let mut qn = pool.normal.fill_billboards([right.x, right.y, right.z], [up.x, up.y, up.z], &mut buf);
-            qn += pool.residue.fill_billboards([right.x, right.y, right.z], [up.x, up.y, up.z], &mut buf);
+            let mut qn = pool.normal.fill_billboards(
+                [right.x, right.y, right.z],
+                [up.x, up.y, up.z],
+                &mut buf,
+            );
+            qn += pool.residue.fill_billboards(
+                [right.x, right.y, right.z],
+                [up.x, up.y, up.z],
+                &mut buf,
+            );
             renderer.render_particles(&mut gpu, &buf, qn, &vp, false, w as u32, h as u32);
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
@@ -339,6 +420,7 @@ fn run_fx(frames: u64, screenshot: Option<&str>) {
 #[cfg(not(target_arch = "wasm32"))]
 fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
     use successor_client::world::flora;
+    use successor_client::GameWorld;
     use successor_engine_core::ecs::WorldOps;
     use successor_engine_core::math::{vec3, Quat, Vec3};
     use successor_engine_render::components::{
@@ -348,8 +430,11 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
     use successor_engine_render::gpu::ClearSpec;
     use successor_engine_render::primitives;
     use successor_engine_render::renderer::Renderer;
-    use successor_client::GameWorld;
-    if !successor_platform::init("Successor env", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
+    if !successor_platform::init(
+        "Successor env",
+        demo::SCREEN_W as i32,
+        demo::SCREEN_H as i32,
+    ) {
         eprintln!("platform init failed (no display?)");
         std::process::exit(1);
     }
@@ -359,15 +444,36 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
 
     let env = environment::sample(minute);
     // Grade + fog now run inside the deferred tonemap pass.
-    renderer.set_grade(env.bone_tint, env.desaturate, env.scene_darken, env.black_lift, env.bloom);
+    renderer.set_grade(
+        env.bone_tint,
+        env.desaturate,
+        env.scene_darken,
+        env.black_lift,
+        env.bloom,
+    );
     renderer.set_fog(env.fog, 180.0, 340.0);
 
     let (gv, gi) = primitives::plane(200.0);
     let ground = renderer.upload_mesh(&mut gpu, &gv, &gi);
     let ground_mat = renderer.add_material([0.42, 0.36, 0.24, 1.0]);
     let g = world.spawn();
-    world.set_component(g, Transform { pos: Vec3::ZERO, rot: Quat::IDENTITY, scale: Vec3::ONE });
-    world.set_component(g, MeshRenderer { mesh: ground, material: ground_mat, viewport_mask: 0b1, ..Default::default() });
+    world.set_component(
+        g,
+        Transform {
+            pos: Vec3::ZERO,
+            rot: Quat::IDENTITY,
+            scale: Vec3::ONE,
+        },
+    );
+    world.set_component(
+        g,
+        MeshRenderer {
+            mesh: ground,
+            material: ground_mat,
+            viewport_mask: 0b1,
+            ..Default::default()
+        },
+    );
 
     // Flora / world objects scattered deterministically over the ground, each
     // rendered as a small shrub cube (verifies placement + density).
@@ -377,25 +483,56 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
     let instances = flora::scatter(0x0d3d, [-20.0, -20.0], [20.0, 20.0], 0.5, |_p| false);
     for f in instances.iter().take(400) {
         let e = world.spawn();
-        world.set_component(e, Transform {
+        world.set_component(
+            e,
+            Transform {
             pos: vec3(f.pos[0], f.scale * 0.5, f.pos[2]),
             rot: Quat::from_axis_angle(Vec3::Y, f.yaw),
             scale: vec3(f.scale * 0.5, f.scale, f.scale * 0.5),
-        });
-        world.set_component(e, MeshRenderer { mesh: shrub, material: shrub_mat, viewport_mask: 0b1, ..Default::default() });
+            },
+        );
+        world.set_component(
+            e,
+            MeshRenderer {
+                mesh: shrub,
+                material: shrub_mat,
+                viewport_mask: 0b1,
+                ..Default::default()
+            },
+        );
     }
 
     let sun = world.spawn();
-    world.set_component(sun, DirectionalLight { dir: vec3(env.sun_dir[0], env.sun_dir[1], env.sun_dir[2]), color: env.sun_color, cast_shadows: true });
+    world.set_component(
+        sun,
+        DirectionalLight {
+            dir: vec3(env.sun_dir[0], env.sun_dir[1], env.sun_dir[2]),
+            color: env.sun_color,
+            cast_shadows: true,
+        },
+    );
 
     let cam = world.spawn();
-    world.set_component(cam, Camera {
-        viewport_id: 0, order: 0,
-        projection: Projection::Perspective { fovy: 0.9, near: 0.1, far: 400.0 },
+    world.set_component(
+        cam,
+        Camera {
+            viewport_id: 0,
+            order: 0,
+            projection: Projection::Perspective {
+                fovy: 0.9,
+                near: 0.1,
+                far: 400.0,
+            },
         target: CamTarget::Screen(RectNorm::FULL),
-        clear: ClearSpec { color: Some([env.fog[0], env.fog[1], env.fog[2], 1.0]), depth: Some(1.0) },
-        eye: vec3(24.0, 20.0, 28.0), look_at: Vec3::ZERO, up: Vec3::Y,
-    });
+            clear: ClearSpec {
+                color: Some([env.fog[0], env.fog[1], env.fog[2], 1.0]),
+                depth: Some(1.0),
+            },
+            eye: vec3(24.0, 20.0, 28.0),
+            look_at: Vec3::ZERO,
+            up: Vec3::Y,
+        },
+    );
 
     let total = frames.max(1);
     let mut frame = 0u64;
@@ -408,7 +545,13 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
             match write_bmp(screenshot.unwrap(), &rgba, w as u32, h as u32) {
-                Ok(()) => println!("screenshot written: {} ({}x{}) minute={}", screenshot.unwrap(), w, h, minute),
+                Ok(()) => println!(
+                    "screenshot written: {} ({}x{}) minute={}",
+                    screenshot.unwrap(),
+                    w,
+                    h,
+                    minute
+                ),
                 Err(e) => eprintln!("screenshot failed: {e}"),
             }
         }
@@ -419,7 +562,8 @@ fn run_env(minute: f32, frames: u64, screenshot: Option<&str>) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn run_gi(frames: u64, screenshot: Option<&str>) {
+fn run_gi(frames: u64, screenshot: Option<&str>, animate_camera: bool, assert_stable_gi: bool) {
+    use successor_client::GameWorld;
     use successor_engine_core::ecs::WorldOps;
     use successor_engine_core::math::{vec3, Mat4, Quat, Vec3};
     use successor_engine_render::components::{
@@ -429,7 +573,6 @@ fn run_gi(frames: u64, screenshot: Option<&str>) {
     use successor_engine_render::gpu::ClearSpec;
     use successor_engine_render::primitives;
     use successor_engine_render::renderer::Renderer;
-    use successor_client::GameWorld;
 
     if !successor_platform::init("Successor GI", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
         eprintln!("platform init failed (no display?)");
@@ -447,54 +590,217 @@ fn run_gi(frames: u64, screenshot: Option<&str>) {
     // White ground: a thin scaled cube (outward-wound top face, unlike plane()).
     let ground_mat = renderer.add_material_pbr([1.0, 1.0, 1.0, 1.0], 0.0, 0.9);
     let g = world.spawn();
-    world.set_component(g, Transform { pos: vec3(0.0, -0.1, 6.0), rot: Quat::IDENTITY, scale: vec3(120.0, 0.2, 120.0) });
-    world.set_component(g, MeshRenderer { mesh: unit, material: ground_mat, viewport_mask: 0b1, ..Default::default() });
+    world.set_component(
+        g,
+        Transform {
+            pos: vec3(0.0, -0.1, 6.0),
+            rot: Quat::IDENTITY,
+            scale: vec3(120.0, 0.2, 120.0),
+        },
+    );
+    world.set_component(
+        g,
+        MeshRenderer {
+            mesh: unit,
+            material: ground_mat,
+            viewport_mask: 0b1,
+            ..Default::default()
+        },
+    );
 
     // Tall red wall at z=0 spanning x, front face (+z) toward the camera/floor.
     let wall_mat = renderer.add_material_pbr([0.85, 0.05, 0.05, 1.0], 0.0, 0.9);
     let wall_c = vec3(0.0, 3.0, 0.0);
     let wall_h = vec3(8.0, 3.0, 0.4);
     let wall = world.spawn();
-    world.set_component(wall, Transform { pos: wall_c, rot: Quat::IDENTITY, scale: vec3(wall_h.x * 2.0, wall_h.y * 2.0, wall_h.z * 2.0) });
-    world.set_component(wall, MeshRenderer { mesh: unit, material: wall_mat, viewport_mask: 0b1, ..Default::default() });
+    world.set_component(
+        wall,
+        Transform {
+            pos: wall_c,
+            rot: Quat::IDENTITY,
+            scale: vec3(wall_h.x * 2.0, wall_h.y * 2.0, wall_h.z * 2.0),
+        },
+    );
+    world.set_component(
+        wall,
+        MeshRenderer {
+            mesh: unit,
+            material: wall_mat,
+            viewport_mask: 0b1,
+            ..Default::default()
+        },
+    );
 
     // White cube on the visible floor (casts a soft shadow toward the camera).
     let cube_mat = renderer.add_material_pbr([0.95, 0.95, 0.95, 1.0], 0.0, 0.9);
     let cube_c = vec3(3.0, 1.0, 8.0);
     let cube = world.spawn();
-    world.set_component(cube, Transform { pos: cube_c, rot: Quat::IDENTITY, scale: vec3(2.0, 2.0, 2.0) });
-    world.set_component(cube, MeshRenderer { mesh: unit, material: cube_mat, viewport_mask: 0b1, ..Default::default() });
+    world.set_component(
+        cube,
+        Transform {
+            pos: cube_c,
+            rot: Quat::IDENTITY,
+            scale: vec3(2.0, 2.0, 2.0),
+        },
+    );
+    world.set_component(
+        cube,
+        MeshRenderer {
+            mesh: unit,
+            material: cube_mat,
+            viewport_mask: 0b1,
+            ..Default::default()
+        },
+    );
 
     // Static GI occluder proxies.
     renderer.gi_set_ground_albedo([1.0, 1.0, 1.0]);
     renderer.gi_set_occluders(&[
-        GiOccluder { center: [wall_c.x, wall_c.y, wall_c.z], half_extents: [wall_h.x, wall_h.y, wall_h.z], yaw: 0.0, albedo: [0.85, 0.05, 0.05] },
-        GiOccluder { center: [cube_c.x, cube_c.y, cube_c.z], half_extents: [1.0, 1.0, 1.0], yaw: 0.0, albedo: [0.95, 0.95, 0.95] },
+        GiOccluder {
+            center: [wall_c.x, wall_c.y, wall_c.z],
+            half_extents: [wall_h.x, wall_h.y, wall_h.z],
+            yaw: 0.0,
+            albedo: [0.85, 0.05, 0.05],
+        },
+        GiOccluder {
+            center: [cube_c.x, cube_c.y, cube_c.z],
+            half_extents: [1.0, 1.0, 1.0],
+            yaw: 0.0,
+            albedo: [0.95, 0.95, 0.95],
+        },
     ]);
 
     // Sun raking from +z and above onto the wall's front face.
     let sun = world.spawn();
-    let sd = Vec3 { x: 0.0, y: -1.0, z: -1.0 }.normalize();
-    world.set_component(sun, DirectionalLight { dir: sd, color: [1.0, 1.0, 1.0], cast_shadows: true });
+    let sd = Vec3 {
+        x: 0.0,
+        y: -1.0,
+        z: -1.0,
+    }
+    .normalize();
+    world.set_component(
+        sun,
+        DirectionalLight {
+            dir: sd,
+            color: [1.0, 1.0, 1.0],
+            cast_shadows: true,
+        },
+    );
 
     let eye = vec3(0.0, 12.0, 24.0);
     let look = vec3(0.0, 1.0, 6.0);
+    renderer.gi_set_focus([look.x, look.y, look.z]);
     let cam = world.spawn();
-    world.set_component(cam, Camera {
-        viewport_id: 0, order: 0,
-        projection: Projection::Perspective { fovy: 0.7, near: 0.1, far: 400.0 },
+    world.set_component(
+        cam,
+        Camera {
+            viewport_id: 0,
+            order: 0,
+            projection: Projection::Perspective {
+                fovy: 0.7,
+                near: 0.1,
+                far: 400.0,
+            },
         target: CamTarget::Screen(RectNorm::FULL),
-        clear: ClearSpec { color: Some([0.02, 0.02, 0.03, 1.0]), depth: Some(1.0) },
-        eye, look_at: look, up: Vec3::Y,
-    });
+            clear: ClearSpec {
+                color: Some([0.02, 0.02, 0.03, 1.0]),
+                depth: Some(1.0),
+            },
+            eye,
+            look_at: look,
+            up: Vec3::Y,
+        },
+    );
 
-    let total = frames.max(1);
+    let mut stability_before = None;
+    let mut scroll_before = None;
+    let mut stability_frames = 0u64;
+    let mut stability_samples = Vec::with_capacity(600);
+    let mut scroll_samples = Vec::with_capacity(256);
+    let mut diagnostic_complete = !animate_camera;
+
+    let total = if animate_camera {
+        frames.max(900)
+    } else {
+        frames.max(1)
+    };
     let mut frame = 0u64;
     while !successor_platform::should_quit() && frame < total {
+        if animate_camera && stability_before.is_some() && stability_frames < 600 {
+            let angle = stability_frames as f32 * core::f32::consts::TAU / 600.0;
+            if let Some(camera) = world.get_component::<Camera>(cam) {
+                camera.eye = eye.add(vec3(angle.sin() * 8.0, 0.0, angle.cos() * 8.0));
+                camera.look_at = look.add(vec3(angle.cos() * 8.0, 0.0, angle.sin() * 8.0));
+            }
+        }
+        let render_started = std::time::Instant::now();
         successor_platform::begin_frame();
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
             renderer.render(&mut gpu, &mut world, w as u32, h as u32);
+        }
+        let render_ms = render_started.elapsed().as_secs_f64() * 1000.0;
+        if animate_camera {
+            if stability_before.is_none() && renderer.gi_is_idle() {
+                stability_before = Some(renderer.gi_work_counters());
+            } else if stability_before.is_some() && stability_frames < 600 {
+                stability_samples.push(render_ms);
+                stability_frames += 1;
+                if stability_frames == 600 {
+                    let before = stability_before.expect("GI stability baseline");
+                    let after = renderer.gi_work_counters();
+                    let delta = gi_counter_delta(after, before);
+                    let (p50, p99) = percentiles(&mut stability_samples);
+                    println!(
+                        "gi-stability albedo_builds={} radiance_builds={} resident_uploads={} mipmap_rebuilds={} full_rebuilds={} p50_ms={:.3} p99_ms={:.3}",
+                        delta.albedo_builds,
+                        delta.radiance_builds,
+                        delta.resident_uploads,
+                        delta.mipmap_rebuilds,
+                        delta.full_rebuilds,
+                        p50,
+                        p99
+                    );
+                    if assert_stable_gi && delta != Default::default() {
+                        eprintln!("camera motion scheduled GI work");
+                        std::process::exit(1);
+                    }
+                    scroll_before = Some(after);
+                    renderer.gi_set_focus([look.x + 6.0, look.y, look.z]);
+                }
+            } else if let Some(before) = scroll_before {
+                scroll_samples.push(render_ms);
+                if renderer.gi_is_idle() && !diagnostic_complete {
+                    let delta = gi_counter_delta(renderer.gi_work_counters(), before);
+                    let (p50, p99) = percentiles(&mut scroll_samples);
+                    println!(
+                        "gi-scroll albedo_builds={} radiance_builds={} resident_uploads={} mipmap_rebuilds={} full_rebuilds={} p50_ms={:.3} p99_ms={:.3}",
+                        delta.albedo_builds,
+                        delta.radiance_builds,
+                        delta.resident_uploads,
+                        delta.mipmap_rebuilds,
+                        delta.full_rebuilds,
+                        p50,
+                        p99
+                    );
+                    let expected = successor_engine_render::gi::GiWorkCounters {
+                        albedo_builds: 8,
+                        radiance_builds: 8,
+                        resident_uploads: 8,
+                        mipmap_rebuilds: 1,
+                        full_rebuilds: 0,
+                    };
+                    if assert_stable_gi && delta != expected {
+                        eprintln!("GI scroll work was not bounded: {delta:?}");
+                        std::process::exit(1);
+                    }
+                    if let Some(camera) = world.get_component::<Camera>(cam) {
+                        camera.eye = eye;
+                        camera.look_at = look;
+                    }
+                    diagnostic_complete = true;
+                }
+            }
         }
         if frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
@@ -511,7 +817,10 @@ fn run_gi(frames: u64, screenshot: Option<&str>) {
                 let cw = vp[3] * p[0] + vp[7] * p[1] + vp[11] * p[2] + vp[15];
                 let ndx = cx / cw;
                 let ndy = cy / cw;
-                (((ndx * 0.5 + 0.5) * wf) as i32, ((ndy * 0.5 + 0.5) * hf) as i32)
+                (
+                    ((ndx * 0.5 + 0.5) * wf) as i32,
+                    ((ndy * 0.5 + 0.5) * hf) as i32,
+                )
             };
             let win = 10i32;
             let sample = |px: i32, py: i32| -> (f32, f32, f32) {
@@ -530,7 +839,11 @@ fn run_gi(frames: u64, screenshot: Option<&str>) {
                         n += 1.0;
                     }
                 }
-                if n > 0.0 { (r / n, gg / n, b / n) } else { (0.0, 0.0, 0.0) }
+                if n > 0.0 {
+                    (r / n, gg / n, b / n)
+                } else {
+                    (0.0, 0.0, 0.0)
+                }
             };
             // Floor probes: near the red wall vs far from it.
             let (nx, ny) = project([0.0, 0.02, 1.0]);
@@ -559,7 +872,9 @@ fn run_gi(frames: u64, screenshot: Option<&str>) {
                     continue;
                 }
                 let i = ((row as u32 * w as u32 + x as u32) * 4) as usize;
-                let l = 0.299 * rgba[i] as f32 + 0.587 * rgba[i + 1] as f32 + 0.114 * rgba[i + 2] as f32;
+                let l = 0.299 * rgba[i] as f32
+                    + 0.587 * rgba[i + 1] as f32
+                    + 0.114 * rgba[i + 2] as f32;
                 let t = (l - shadow_lum) / (lit_lum - shadow_lum).max(1.0);
                 if t > 0.2 && t < 0.8 {
                     penumbra += 1;
@@ -567,7 +882,10 @@ fn run_gi(frames: u64, screenshot: Option<&str>) {
             }
             println!(
                 "shadow-check quality={:?} lit_lum={:.1} shadow_lum={:.1} penumbra_px={}",
-                successor_client::render_quality(), lit_lum, shadow_lum, penumbra
+                successor_client::render_quality(),
+                lit_lum,
+                shadow_lum,
+                penumbra
             );
             if let Some(path) = screenshot {
                 match write_bmp(path, &rgba, w as u32, h as u32) {
@@ -583,6 +901,33 @@ fn run_gi(frames: u64, screenshot: Option<&str>) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+fn gi_counter_delta(
+    after: successor_engine_render::gi::GiWorkCounters,
+    before: successor_engine_render::gi::GiWorkCounters,
+) -> successor_engine_render::gi::GiWorkCounters {
+    successor_engine_render::gi::GiWorkCounters {
+        albedo_builds: after.albedo_builds - before.albedo_builds,
+        radiance_builds: after.radiance_builds - before.radiance_builds,
+        resident_uploads: after.resident_uploads - before.resident_uploads,
+        mipmap_rebuilds: after.mipmap_rebuilds - before.mipmap_rebuilds,
+        full_rebuilds: after.full_rebuilds - before.full_rebuilds,
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn percentiles(samples: &mut [f64]) -> (f64, f64) {
+    if samples.is_empty() {
+        return (0.0, 0.0);
+    }
+    samples.sort_by(f64::total_cmp);
+    let at = |quantile: f64| {
+        let index = ((samples.len() - 1) as f64 * quantile).round() as usize;
+        samples[index]
+    };
+    (at(0.50), at(0.99))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn run_glb_view(glb_path: &str, clip: Option<&str>, frames: u64, screenshot: Option<&str>) {
     use successor_client::glb_scene::GlbScene;
     use successor_engine_render::gpu::Gpu;
@@ -593,7 +938,11 @@ fn run_glb_view(glb_path: &str, clip: Option<&str>, frames: u64, screenshot: Opt
             std::process::exit(1);
         }
     };
-    if !successor_platform::init("Successor GLB viewer", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
+    if !successor_platform::init(
+        "Successor GLB viewer",
+        demo::SCREEN_W as i32,
+        demo::SCREEN_H as i32,
+    ) {
         eprintln!("platform init failed (no display?)");
         std::process::exit(1);
     }
@@ -614,7 +963,9 @@ fn run_glb_view(glb_path: &str, clip: Option<&str>, frames: u64, screenshot: Opt
         scene.animate(frame);
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
-            scene.renderer.render(&mut gpu, &mut scene.world, w as u32, h as u32);
+            scene
+                .renderer
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let err = successor_platform::gl_error();
@@ -642,7 +993,11 @@ fn run_terrain(biome: Option<&str>, frames: u64, screenshot: Option<&str>) {
         Some("forest") => Biome::Forest,
         _ => Biome::Desert,
     };
-    if !successor_platform::init("Successor terrain", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
+    if !successor_platform::init(
+        "Successor terrain",
+        demo::SCREEN_W as i32,
+        demo::SCREEN_H as i32,
+    ) {
         eprintln!("platform init failed (no display?)");
         std::process::exit(1);
     }
@@ -656,7 +1011,9 @@ fn run_terrain(biome: Option<&str>, frames: u64, screenshot: Option<&str>) {
         scene.animate(frame);
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
-            scene.renderer.render(&mut gpu, &mut scene.world, w as u32, h as u32);
+            scene
+                .renderer
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
@@ -678,13 +1035,24 @@ fn run_props(frames: u64, screenshot: Option<&str>) {
     let assets_dir = "../client-3d/public/assets";
     let mapping = match std::fs::read_to_string("../client-3d/src/render/props-mapping.json") {
         Ok(s) => s,
-        Err(e) => { eprintln!("read props-mapping: {e}"); std::process::exit(1); }
+        Err(e) => {
+            eprintln!("read props-mapping: {e}");
+            std::process::exit(1);
+        }
     };
-    let slice = match std::fs::read_to_string("../client/public/successor-slice/open-desert-slice.json") {
+    let slice =
+        match std::fs::read_to_string("../client/public/successor-slice/open-desert-slice.json") {
         Ok(s) => s,
-        Err(e) => { eprintln!("read slice: {e}"); std::process::exit(1); }
+            Err(e) => {
+                eprintln!("read slice: {e}");
+                std::process::exit(1);
+            }
     };
-    if !successor_platform::init("Successor world", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
+    if !successor_platform::init(
+        "Successor world",
+        demo::SCREEN_W as i32,
+        demo::SCREEN_H as i32,
+    ) {
         eprintln!("platform init failed (no display?)");
         std::process::exit(1);
     }
@@ -692,7 +1060,11 @@ fn run_props(frames: u64, screenshot: Option<&str>) {
     let _ = &mut gpu as &mut dyn Gpu;
     let mut scene = match WorldScene::build(&mut gpu, assets_dir, &mapping, &slice) {
         Ok(s) => s,
-        Err(()) => { eprintln!("world scene build failed"); successor_platform::deinit(); std::process::exit(1); }
+        Err(()) => {
+            eprintln!("world scene build failed");
+            successor_platform::deinit();
+            std::process::exit(1);
+        }
     };
     let total = frames.max(1);
     let mut frame = 0u64;
@@ -701,7 +1073,9 @@ fn run_props(frames: u64, screenshot: Option<&str>) {
         scene.animate(frame);
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
-            scene.renderer.render(&mut gpu, &mut scene.world, w as u32, h as u32);
+            scene
+                .renderer
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
@@ -723,9 +1097,16 @@ fn run_pawns(frames: u64, screenshot: Option<&str>) {
     let path = "../client-3d/public/assets/pawn-pack/pawn_male.glb";
     let bytes = match std::fs::read(path) {
         Ok(b) => b,
-        Err(e) => { eprintln!("read {path}: {e}"); std::process::exit(1); }
+        Err(e) => {
+            eprintln!("read {path}: {e}");
+            std::process::exit(1);
+        }
     };
-    if !successor_platform::init("Successor pawns", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
+    if !successor_platform::init(
+        "Successor pawns",
+        demo::SCREEN_W as i32,
+        demo::SCREEN_H as i32,
+    ) {
         eprintln!("platform init failed (no display?)");
         std::process::exit(1);
     }
@@ -733,7 +1114,11 @@ fn run_pawns(frames: u64, screenshot: Option<&str>) {
     let _ = &mut gpu as &mut dyn Gpu;
     let mut scene = match PawnScene::build(&mut gpu, &bytes) {
         Ok(s) => s,
-        Err(()) => { eprintln!("pawn scene build failed"); successor_platform::deinit(); std::process::exit(1); }
+        Err(()) => {
+            eprintln!("pawn scene build failed");
+            successor_platform::deinit();
+            std::process::exit(1);
+        }
     };
     let total = frames.max(1);
     let mut frame = 0u64;
@@ -742,7 +1127,9 @@ fn run_pawns(frames: u64, screenshot: Option<&str>) {
         scene.animate(frame);
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
-            scene.renderer.render(&mut gpu, &mut scene.world, w as u32, h as u32);
+            scene
+                .renderer
+                .render(&mut gpu, &mut scene.world, w as u32, h as u32);
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);
@@ -819,27 +1206,47 @@ mod connected {
     use successor_client::game::movement;
     use successor_client_proto::colyseus;
     use successor_client_proto::packets::GameServerPacket;
-    use successor_client_proto::session::{Session, SessionEvent, SessionOut, SessionState, WsInput};
+    use successor_client_proto::session::{
+        Session, SessionEvent, SessionOut, SessionState, WsInput,
+    };
     use successor_engine_core::input::Key;
     use successor_engine_render::gpu::Gpu;
     use successor_platform as plat;
 
-    pub fn run(endpoint: &str, player_id: &str, actor_id: &str, max_frames: Option<u64>, screenshot: Option<&str>, auto_walk: bool) -> i32 {
+    pub fn run(
+        endpoint: &str,
+        player_id: &str,
+        actor_id: &str,
+        max_frames: Option<u64>,
+        screenshot: Option<&str>,
+        auto_walk: bool,
+    ) -> i32 {
         // 1) Colyseus matchmake over HTTP (dev identity; server gates on
         //    GAME_ALLOW_DEV_IDENTITY=1).
-        let http_endpoint = endpoint.replacen("wss://", "https://", 1).replacen("ws://", "http://", 1);
+        let http_endpoint = endpoint
+            .replacen("wss://", "https://", 1)
+            .replacen("ws://", "http://", 1);
         let opts = json!({ "playerId": player_id, "actorId": actor_id });
         let (url, body) = match colyseus::build_matchmake_request(&http_endpoint, &opts) {
             Ok(v) => v,
-            Err(e) => { eprintln!("matchmake request build failed: {e}"); return 1; }
+            Err(e) => {
+                eprintln!("matchmake request build failed: {e}");
+                return 1;
+            }
         };
         let resp = match plat::http_post_json(&url, &body) {
             Ok(r) => r,
-            Err(e) => { eprintln!("matchmake POST failed: {e}"); return 1; }
+            Err(e) => {
+                eprintln!("matchmake POST failed: {e}");
+                return 1;
+            }
         };
         let seat = match colyseus::parse_seat_reservation(&resp) {
             Ok(s) => s,
-            Err(e) => { eprintln!("seat reservation parse failed: {e}"); return 1; }
+            Err(e) => {
+                eprintln!("seat reservation parse failed: {e}");
+                return 1;
+            }
         };
         let ws_url = colyseus::build_ws_url(endpoint, &seat);
 
@@ -853,13 +1260,21 @@ mod connected {
         let _ = &mut gpu as &mut dyn Gpu;
         let mut scene = match ConnectedScene::build(&mut gpu, player_id) {
             Ok(s) => s,
-            Err(e) => { eprintln!("connected scene build failed: {e}"); plat::deinit(); return 1; }
+            Err(e) => {
+                eprintln!("connected scene build failed: {e}");
+                plat::deinit();
+                return 1;
+            }
         };
 
         // 3) Connect + drive.
         let mut ws = match plat::ws_connect(&ws_url) {
             Ok(w) => w,
-            Err(e) => { eprintln!("ws connect failed: {e}"); plat::deinit(); return 1; }
+            Err(e) => {
+                eprintln!("ws connect failed: {e}");
+                plat::deinit();
+                return 1;
+            }
         };
         let mut sess = Session::new();
         sess.start_connecting();
@@ -886,11 +1301,18 @@ mod connected {
                 for out in outs {
                     match out {
                         SessionOut::SendFrame(f) => plat::ws_send(&mut ws, &f),
-                        SessionOut::Emit(SessionEvent::Hello(hello)) => scene.on_snapshot(&hello.snapshot),
-                        SessionOut::Emit(SessionEvent::Packet(pkt)) => apply_packet(pkt, &mut scene),
+                        SessionOut::Emit(SessionEvent::Hello(hello)) => {
+                            scene.on_snapshot(&hello.snapshot)
+                        }
+                        SessionOut::Emit(SessionEvent::Packet(pkt)) => {
+                            apply_packet(pkt, &mut scene)
+                        }
                         SessionOut::Emit(SessionEvent::Error(m)) => eprintln!("session error: {m}"),
                         SessionOut::Emit(SessionEvent::Closed) => eprintln!("session closed"),
-                        SessionOut::Emit(SessionEvent::ReconnectAttempt { attempt, max_attempts }) => {
+                        SessionOut::Emit(SessionEvent::ReconnectAttempt {
+                            attempt,
+                            max_attempts,
+                        }) => {
                             eprintln!("reconnect {attempt}/{max_attempts}");
                         }
                     }
@@ -911,12 +1333,24 @@ mod connected {
 
             // Movement (WASD or --auto-walk); resend a live intent periodically.
             if sess.state() == SessionState::Ready {
-                let intent = if auto_walk { (0, -1, false) } else { movement::intent_from_keys(|k| plat::is_key_down(k)) };
+                let intent = if auto_walk {
+                    (0, -1, false)
+                } else {
+                    movement::intent_from_keys(|k| plat::is_key_down(k))
+                };
                 let moving = intent != (0, 0, false);
                 if intent != last_intent || (moving && frame % 6 == 0) {
                     last_intent = intent;
                     cmd_id += 1;
-                    let env = movement::move_envelope(0, 0, cmd_id, scene.store.tick, intent.0, intent.1, intent.2);
+                    let env = movement::move_envelope(
+                        0,
+                        0,
+                        cmd_id,
+                        scene.store.tick,
+                        intent.0,
+                        intent.1,
+                        intent.2,
+                    );
                     if let Ok(SessionOut::SendFrame(f)) = sess.send_command(&env) {
                         plat::ws_send(&mut ws, &f);
                     }
@@ -944,7 +1378,11 @@ mod connected {
         let p = scene.player_pos();
         println!(
             "connected summary: actors={} player_pos=({:.2},{:.2},{:.2}) session_state={:?}",
-            scene.actor_count(), p.x, p.y, p.z, sess.state()
+            scene.actor_count(),
+            p.x,
+            p.y,
+            p.z,
+            sess.state()
         );
         if let Ok(SessionOut::SendFrame(f)) = sess.exit_world() {
             plat::ws_send(&mut ws, &f);
@@ -956,7 +1394,9 @@ mod connected {
     /// Route a decoded packet into the scene's authority store + combat FX.
     fn apply_packet(pkt: GameServerPacket, scene: &mut ConnectedScene) {
         match pkt {
-            GameServerPacket::Snapshot { snapshot, events, .. } => {
+            GameServerPacket::Snapshot {
+                snapshot, events, ..
+            } => {
                 scene.on_snapshot(&snapshot);
                 fire_events(scene, &events);
             }
@@ -965,7 +1405,12 @@ mod connected {
                 fire_events(scene, &events);
             }
             GameServerPacket::Receipts { events, .. } => fire_events(scene, &events),
-            GameServerPacket::Acks { player_actor, player_position, events, .. } => {
+            GameServerPacket::Acks {
+                player_actor,
+                player_position,
+                events,
+                ..
+            } => {
                 if let Some(pa) = player_actor {
                     scene.on_player_pos(pa.x, pa.y);
                 } else if let Some(pos) = player_position {

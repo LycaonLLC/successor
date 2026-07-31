@@ -7,7 +7,9 @@ use successor_engine_core::math::{vec3, Quat, Vec3};
 use successor_engine_render::components::{
     CamTarget, Camera, DirectionalLight, MeshRenderer, Projection, RectNorm, SkinRef, Transform,
 };
+use successor_engine_render::gi::GiOccluder;
 use successor_engine_render::gpu::{ClearSpec, Gpu};
+use successor_engine_render::primitives;
 use successor_engine_render::renderer::Renderer;
 
 use super::animator::{PawnAnimator, WeaponLane};
@@ -56,7 +58,13 @@ impl PawnScene {
         let specs: [(f32, WeaponLane, bool, Option<[f32; 3]>, Option<&str>); 5] = [
             (0.0, WeaponLane::Unarmed, false, None, Some("#cc9978")),
             (1.0, WeaponLane::Unarmed, false, None, Some("#8d5a3c")),
-            (3.0, WeaponLane::Rifle, false, Some([0.8, 0.2, 0.2]), Some("#e0b48a")),
+            (
+                3.0,
+                WeaponLane::Rifle,
+                false,
+                Some([0.8, 0.2, 0.2]),
+                Some("#e0b48a"),
+            ),
             (1.0, WeaponLane::Unarmed, true, None, Some("#5b3a29")),
             (0.0, WeaponLane::Unarmed, false, None, None),
         ];
@@ -69,8 +77,23 @@ impl PawnScene {
             let mut entities = Vec::new();
             for (mesh, _mat) in &gpu_parts.parts {
                 let e = world.spawn();
-                world.set_component(e, Transform { pos: vec3(x, 0.0, 0.0), rot: Quat::IDENTITY, scale: Vec3::ONE });
-                world.set_component(e, MeshRenderer { mesh: *mesh, material, viewport_mask: 0b1, skin: SkinRef::NONE });
+                world.set_component(
+                    e,
+                    Transform {
+                        pos: vec3(x, 0.0, 0.0),
+                        rot: Quat::IDENTITY,
+                        scale: Vec3::ONE,
+                    },
+                );
+                world.set_component(
+                    e,
+                    MeshRenderer {
+                        mesh: *mesh,
+                        material,
+                        viewport_mask: 0b1,
+                        skin: SkinRef::NONE,
+                    },
+                );
                 entities.push(e);
             }
             actors.push(PawnActor {
@@ -84,13 +107,68 @@ impl PawnScene {
             });
         }
 
+        let center = vec3(0.0, 1.0, 0.0);
+        renderer.gi_set_focus([center.x, center.y, center.z]);
+        renderer.gi_set_ground_albedo([0.38, 0.40, 0.44]);
+        let (cube_vertices, cube_indices) = primitives::cube();
+        let cube = renderer.upload_mesh(gpu, &cube_vertices, &cube_indices);
+        let ground_material = renderer.add_material_pbr([0.38, 0.40, 0.44, 1.0], 0.0, 0.92);
+        let ground = world.spawn();
+        world.set_component(
+            ground,
+            Transform {
+                pos: vec3(0.0, -0.1, 0.0),
+                rot: Quat::IDENTITY,
+                scale: vec3(18.0, 0.2, 14.0),
+            },
+        );
+        world.set_component(
+            ground,
+            MeshRenderer {
+                mesh: cube,
+                material: ground_material,
+                viewport_mask: 0b1,
+                ..Default::default()
+            },
+        );
+        let wall_center = vec3(-4.5, 1.5, -1.5);
+        let wall_half = vec3(0.35, 1.5, 2.5);
+        let wall_material = renderer.add_material_pbr([0.16, 0.38, 0.78, 1.0], 0.0, 0.82);
+        let wall = world.spawn();
+        world.set_component(
+            wall,
+            Transform {
+                pos: wall_center,
+                rot: Quat::IDENTITY,
+                scale: vec3(wall_half.x * 2.0, wall_half.y * 2.0, wall_half.z * 2.0),
+            },
+        );
+        world.set_component(
+            wall,
+            MeshRenderer {
+                mesh: cube,
+                material: wall_material,
+                viewport_mask: 0b1,
+                ..Default::default()
+            },
+        );
+        renderer.gi_set_occluders(&[GiOccluder {
+            center: [wall_center.x, wall_center.y, wall_center.z],
+            half_extents: [wall_half.x, wall_half.y, wall_half.z],
+            yaw: 0.0,
+            albedo: [0.16, 0.38, 0.78],
+        }]);
+
         let sun = world.spawn();
         world.set_component(
             sun,
-            DirectionalLight { dir: vec3(-0.4, -1.0, -0.3).normalize(), color: [1.0, 0.98, 0.92], cast_shadows: false },
+            DirectionalLight {
+                dir: vec3(-0.4, -1.0, -0.3).normalize(),
+                color: [1.0, 0.98, 0.92],
+                cast_shadows: true,
+            },
         );
 
-        let center = vec3(0.0, 1.0, 0.0);
         let orbit = 6.0f32;
         let camera = world.spawn();
         world.set_component(
@@ -98,9 +176,16 @@ impl PawnScene {
             Camera {
                 viewport_id: 0,
                 order: 0,
-                projection: Projection::Perspective { fovy: 45.0_f32.to_radians(), near: 0.05, far: 200.0 },
+                projection: Projection::Perspective {
+                    fovy: 45.0_f32.to_radians(),
+                    near: 0.05,
+                    far: 200.0,
+                },
                 target: CamTarget::Screen(RectNorm::FULL),
-                clear: ClearSpec { color: Some([0.09, 0.10, 0.12, 1.0]), depth: Some(1.0) },
+                clear: ClearSpec {
+                    color: Some([0.09, 0.10, 0.12, 1.0]),
+                    depth: Some(1.0),
+                },
                 eye: center.add(vec3(0.0, 1.5, orbit)),
                 look_at: center,
                 up: Vec3::Y,
@@ -110,14 +195,27 @@ impl PawnScene {
         // Socket a slugthrower to the rifle pawn's hand (best-effort).
         let weapon = load_weapon(gpu, &mut renderer, &mut world, &template, &actors);
 
-        Ok(PawnScene { world, renderer, template, actors, weapon, camera, center, orbit })
+        Ok(PawnScene {
+            world,
+            renderer,
+            template,
+            actors,
+            weapon,
+            camera,
+            center,
+            orbit,
+        })
     }
 
     pub fn animate(&mut self, frame: u64) {
         let dt = 1.0 / 60.0;
         // Slow orbit.
         let angle = frame as f32 * 0.01;
-        let eye = self.center.add(vec3(angle.sin() * self.orbit, 1.5, angle.cos() * self.orbit));
+        let eye = self.center.add(vec3(
+            angle.sin() * self.orbit,
+            1.5,
+            angle.cos() * self.orbit,
+        ));
         if let Some(cam) = self.world.get_component::<Camera>(self.camera) {
             cam.eye = eye;
         }
@@ -142,7 +240,12 @@ impl PawnScene {
             if let Some(rig) = &self.weapon {
                 if rig.actor_index == idx {
                     let bone = self.template.skeleton.bone_global(rig.hand);
-                    let world_mat = successor_engine_core::math::Mat4::from_translation(vec3(actor.pos_x, 0.0, 0.0)).mul(bone);
+                    let world_mat = successor_engine_core::math::Mat4::from_translation(vec3(
+                        actor.pos_x,
+                        0.0,
+                        0.0,
+                    ))
+                    .mul(bone);
                     let (t, r, s) = world_mat.to_trs();
                     for &e in &rig.entities {
                         if let Some(tr) = self.world.get_component::<Transform>(e) {
@@ -179,8 +282,20 @@ fn load_weapon<G: Gpu>(
     for (mesh, material) in parts {
         let e = world.spawn();
         world.set_component(e, Transform::default());
-        world.set_component(e, MeshRenderer { mesh, material, viewport_mask: 0b1, skin: SkinRef::NONE });
+        world.set_component(
+            e,
+            MeshRenderer {
+                mesh,
+                material,
+                viewport_mask: 0b1,
+                skin: SkinRef::NONE,
+            },
+        );
         entities.push(e);
     }
-    Some(WeaponRig { entities, actor_index, hand })
+    Some(WeaponRig {
+        entities,
+        actor_index,
+        hand,
+    })
 }

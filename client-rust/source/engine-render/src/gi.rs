@@ -1,35 +1,26 @@
-//! Voxel global illumination (VXGI-lite) for a mostly-static world.
+//! Camera-independent, world-aligned voxel GI for a mostly-static world.
 //!
-//! Two cubic volumes track the camera:
-//! - an **albedo volume** (RGBA8: rgb mean albedo, a occupancy) voxelized on the
-//!   CPU from lightweight proxies (a flat ground plane + yaw-rotated prop boxes),
-//!   rebuilt amortized only when the volume recenters or the occluder set changes;
-//! - a **radiance volume** (RGBA8) filled on the GPU by layered sun-injection
-//!   passes sampling the albedo volume + the shadow map, then mipmapped for cone
-//!   tracing in the deferred light shader.
-//!
-//! No compute / image-store: injection uses `framebufferTextureLayer` fullscreen
-//! passes, legal on GL 3.3 core and WebGL2. Work is amortized across frames.
+//! A 64³ toroidal volume is updated in 8×64×8 bricks. X/Z physical slots are
+//! derived from world coordinates with Euclidean modulo, so scrolling preserves
+//! overlapping data and only uploads newly exposed bricks. Animated meshes are
+//! intentionally excluded: they receive GI but contribute through direct shadows.
 
 use alloc::vec;
 use alloc::vec::Vec;
-use libm::{cosf, floorf, sinf};
+use libm::{cosf, floorf, sinf, sqrtf};
 
-use crate::gpu::{
-    BufferId, BufferUsage, ClearSpec, Cull, Gpu, PipelineState, ProgramId, RectPx, Texture3dDesc,
-    TextureFormat, TextureId, Uniform, UniformValue, QUAD_LAYOUT,
-};
+use crate::gpu::{Gpu, Texture3dDesc, TextureFormat, TextureId};
 
-/// Cells per axis.
 pub const GI_SIZE: u32 = 64;
-/// Meters per cell (48 m span).
 pub const GI_CELL: f32 = 0.75;
-/// Fixed volume floor (world Y of the min corner); the world is flat at y=0, so
-/// this keeps the ground band (cell y = 1) just below the surface.
+pub const GI_BRICK_SIZE: u32 = 8;
+pub const GI_BRICKS_PER_FRAME: usize = 4;
+const GI_BRICKS: i32 = (GI_SIZE / GI_BRICK_SIZE) as i32;
 const GI_ORIGIN_Y: f32 = -2.0 * GI_CELL;
+const BRICK_VOXELS: usize = (GI_BRICK_SIZE * GI_SIZE * GI_BRICK_SIZE) as usize;
+const FADE_FRAMES: f32 = 8.0;
 
-/// A yaw-rotated box occluder proxy (static geometry) contributing bounce color.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GiOccluder {
     pub center: [f32; 3],
     pub half_extents: [f32; 3],
@@ -37,353 +28,677 @@ pub struct GiOccluder {
     pub albedo: [f32; 3],
 }
 
-/// CPU voxelization of one Z layer's XY grid into `out` (RGBA8, `GI_SIZE^2 * 4`
-/// bytes). Ground fills the cell y-band overlapping `[-GI_CELL, 0)`; occluder
-/// boxes fill cells whose center lies inside them. Pure — unit-testable.
-pub fn fill_albedo_slice(
-    out: &mut [u8],
-    z_layer: u32,
-    origin: [f32; 3],
-    ground: [f32; 3],
-    occ: &[GiOccluder],
-) {
-    let cell = GI_CELL;
-    let cz = origin[2] + (z_layer as f32 + 0.5) * cell;
-    for y in 0..GI_SIZE {
-        let band_lo = origin[1] + y as f32 * cell;
-        let band_hi = band_lo + cell;
-        let is_ground_band = band_lo < 0.0 && band_hi > -cell;
-        let cy = band_lo + 0.5 * cell;
-        for x in 0..GI_SIZE {
-            let cx = origin[0] + (x as f32 + 0.5) * cell;
-            let idx = ((y * GI_SIZE + x) * 4) as usize;
-            let mut rgb = [0.0f32; 3];
-            let mut solid = false;
-            if is_ground_band {
-                rgb = ground;
-                solid = true;
-            }
-            if !solid {
-                for o in occ {
-                    let dx = cx - o.center[0];
-                    let dy = cy - o.center[1];
-                    let dz = cz - o.center[2];
-                    // Rotate into box space by -yaw around Y.
-                    let c = cosf(-o.yaw);
-                    let s = sinf(-o.yaw);
-                    let lx = dx * c - dz * s;
-                    let lz = dx * s + dz * c;
-                    if lx.abs() <= o.half_extents[0]
-                        && dy.abs() <= o.half_extents[1]
-                        && lz.abs() <= o.half_extents[2]
-                    {
-                        rgb = o.albedo;
-                        solid = true;
-                        break;
-                    }
+#[derive(Clone, Copy, Debug)]
+struct PreparedGiOccluder {
+    source: GiOccluder,
+    sin_yaw: f32,
+    cos_yaw: f32,
+    min: [f32; 3],
+    max: [f32; 3],
+}
+
+impl PreparedGiOccluder {
+    fn new(source: GiOccluder) -> Self {
+        let sin_yaw = sinf(source.yaw);
+        let cos_yaw = cosf(source.yaw);
+        let ex = cos_yaw.abs() * source.half_extents[0] + sin_yaw.abs() * source.half_extents[2];
+        let ez = sin_yaw.abs() * source.half_extents[0] + cos_yaw.abs() * source.half_extents[2];
+        Self {
+            source,
+            sin_yaw,
+            cos_yaw,
+            min: [
+                source.center[0] - ex,
+                source.center[1] - source.half_extents[1],
+                source.center[2] - ez,
+            ],
+            max: [
+                source.center[0] + ex,
+                source.center[1] + source.half_extents[1],
+                source.center[2] + ez,
+            ],
+        }
+    }
+
+    fn contains(&self, p: [f32; 3]) -> bool {
+        let dx = p[0] - self.source.center[0];
+        let dz = p[2] - self.source.center[2];
+        let lx = dx * self.cos_yaw + dz * self.sin_yaw;
+        let lz = -dx * self.sin_yaw + dz * self.cos_yaw;
+        lx.abs() <= self.source.half_extents[0]
+            && (p[1] - self.source.center[1]).abs() <= self.source.half_extents[1]
+            && lz.abs() <= self.source.half_extents[2]
+    }
+
+    fn ray_hit(&self, origin: [f32; 3], dir: [f32; 3]) -> bool {
+        let ox = origin[0] - self.source.center[0];
+        let oz = origin[2] - self.source.center[2];
+        let local_o = [
+            ox * self.cos_yaw + oz * self.sin_yaw,
+            origin[1] - self.source.center[1],
+            -ox * self.sin_yaw + oz * self.cos_yaw,
+        ];
+        let local_d = [
+            dir[0] * self.cos_yaw + dir[2] * self.sin_yaw,
+            dir[1],
+            -dir[0] * self.sin_yaw + dir[2] * self.cos_yaw,
+        ];
+        let mut t_min: f32 = 0.001;
+        let mut t_max = f32::MAX;
+        for axis in 0..3 {
+            let extent = self.source.half_extents[axis];
+            if local_d[axis].abs() < 1.0e-6 {
+                if local_o[axis].abs() > extent {
+                    return false;
+                }
+            } else {
+                let inv = 1.0 / local_d[axis];
+                let mut a = (-extent - local_o[axis]) * inv;
+                let mut b = (extent - local_o[axis]) * inv;
+                if a > b {
+                    core::mem::swap(&mut a, &mut b);
+                }
+                t_min = t_min.max(a);
+                t_max = t_max.min(b);
+                if t_max < t_min {
+                    return false;
                 }
             }
-            if solid {
-                out[idx] = (rgb[0].clamp(0.0, 1.0) * 255.0) as u8;
-                out[idx + 1] = (rgb[1].clamp(0.0, 1.0) * 255.0) as u8;
-                out[idx + 2] = (rgb[2].clamp(0.0, 1.0) * 255.0) as u8;
-                out[idx + 3] = 255;
-            } else {
-                out[idx] = 0;
-                out[idx + 1] = 0;
-                out[idx + 2] = 0;
-                out[idx + 3] = 0;
-            }
         }
+        t_max >= t_min
     }
 }
 
-fn sun_key(dir: [f32; 3], color: [f32; 3]) -> i32 {
-    let q = |v: f32| (v * 32.0) as i32;
-    q(dir[0]).wrapping_mul(73856093)
-        ^ q(dir[1]).wrapping_mul(19349663)
-        ^ q(dir[2]).wrapping_mul(83492791)
-        ^ q(color[0]).wrapping_mul(2654435761u32 as i32)
-        ^ q(color[1]).wrapping_mul(40503)
-        ^ q(color[2]).wrapping_mul(51787)
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct GiWorkCounters {
+    pub albedo_builds: u64,
+    pub radiance_builds: u64,
+    pub resident_uploads: u64,
+    pub mipmap_rebuilds: u64,
+    pub full_rebuilds: u64,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct GiBinding {
+    pub radiance: TextureId,
+    pub origin: [f32; 3],
+    pub valid_min: [f32; 3],
+    pub valid_max: [f32; 3],
+    pub blend: f32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum WorkKind {
+    None,
+    Geometry,
+    Radiance,
+    Scroll,
 }
 
 pub struct GiVolume {
-    origin: [f32; 3],
+    committed_origin: [i32; 2],
+    requested_origin: [i32; 2],
+    active_origin: [i32; 2],
+    valid_min: [i32; 2],
+    valid_max: [i32; 2],
+    focus: [f32; 3],
     occluders: Vec<GiOccluder>,
+    prepared: Vec<PreparedGiOccluder>,
     ground_albedo: [f32; 3],
     albedo_tex: TextureId,
     radiance_tex: TextureId,
-    quad_buf: BufferId,
-    slice_scratch: Vec<u8>,
-    dirty_slice: u32, // next albedo Z slice to rebuild (GI_SIZE = clean)
-    inject_slice: u32, // next radiance Z layer to inject (GI_SIZE = idle)
-    needs_inject: bool,
+    albedo_scratch: Vec<u8>,
+    radiance_scratch: Vec<u8>,
+    owner_scratch: Vec<u32>,
+    dirty_bricks: Vec<[i32; 2]>,
+    dirty_index: usize,
+    work: WorkKind,
+    geometry_dirty: bool,
+    light_dirty: bool,
+    ready: bool,
+    blend: f32,
+    fade: i8,
+    sun_dir: [f32; 3],
+    sun_color: [f32; 3],
     last_sun: i32,
+    counters: GiWorkCounters,
 }
 
 impl GiVolume {
     pub fn new<G: Gpu>(gpu: &mut G) -> Self {
         let albedo_tex = gpu.create_texture_3d(
-            &Texture3dDesc { size: GI_SIZE, format: TextureFormat::Rgba8, mips: false },
+            &Texture3dDesc {
+                size: GI_SIZE,
+                format: TextureFormat::Rgba8,
+                mips: false,
+                wrap_xz: true,
+            },
             None,
         );
         let radiance_tex = gpu.create_texture_3d(
-            &Texture3dDesc { size: GI_SIZE, format: TextureFormat::Rgba8, mips: true },
+            &Texture3dDesc {
+                size: GI_SIZE,
+                format: TextureFormat::Rgba8,
+                mips: true,
+                wrap_xz: true,
+            },
             None,
         );
-        // Fullscreen NDC quad (pos2, uv2) for the injection layer passes.
-        let quad: [f32; 24] = [
-            -1.0, -1.0, 0.0, 0.0, 1.0, -1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 0.0, 0.0,
-            1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 0.0, 1.0,
-        ];
-        let quad_buf = gpu.create_buffer(bytes(&quad), BufferUsage::Static);
-        Self {
-            origin: [0.0, GI_ORIGIN_Y, 0.0],
+        let mut volume = Self {
+            committed_origin: [-(GI_SIZE as i32) / 2, -(GI_SIZE as i32) / 2],
+            requested_origin: [-(GI_SIZE as i32) / 2, -(GI_SIZE as i32) / 2],
+            active_origin: [-(GI_SIZE as i32) / 2, -(GI_SIZE as i32) / 2],
+            valid_min: [-(GI_SIZE as i32) / 2, -(GI_SIZE as i32) / 2],
+            valid_max: [GI_SIZE as i32 / 2, GI_SIZE as i32 / 2],
+            focus: [0.0, 0.0, 0.0],
             occluders: Vec::with_capacity(512),
+            prepared: Vec::with_capacity(512),
             ground_albedo: [0.5, 0.5, 0.5],
             albedo_tex,
             radiance_tex,
-            quad_buf,
-            slice_scratch: vec![0u8; (GI_SIZE * GI_SIZE * 4) as usize],
-            dirty_slice: GI_SIZE,
-            inject_slice: GI_SIZE,
-            needs_inject: false,
+            albedo_scratch: vec![0; BRICK_VOXELS * 4],
+            radiance_scratch: vec![0; BRICK_VOXELS * 4],
+            owner_scratch: vec![0; BRICK_VOXELS],
+            dirty_bricks: Vec::with_capacity((GI_BRICKS * GI_BRICKS) as usize),
+            dirty_index: 0,
+            work: WorkKind::None,
+            geometry_dirty: false,
+            light_dirty: false,
+            ready: false,
+            blend: 0.0,
+            fade: 0,
+            sun_dir: [0.0, -1.0, 0.0],
+            sun_color: [1.0, 1.0, 1.0],
             last_sun: 0,
-        }
+            counters: GiWorkCounters::default(),
+        };
+        volume.start_full(WorkKind::Geometry, volume.requested_origin);
+        volume
     }
 
-    pub fn radiance(&self) -> TextureId {
+    pub(crate) fn radiance_texture(&self) -> TextureId {
         self.radiance_tex
     }
-    pub fn origin(&self) -> [f32; 3] {
-        self.origin
+
+    pub fn binding(&self) -> Option<GiBinding> {
+        if !self.ready {
+            return None;
+        }
+        Some(GiBinding {
+            radiance: self.radiance_tex,
+            origin: [
+                self.committed_origin[0] as f32 * GI_CELL,
+                GI_ORIGIN_Y,
+                self.committed_origin[1] as f32 * GI_CELL,
+            ],
+            valid_min: [
+                self.valid_min[0] as f32 * GI_CELL,
+                GI_ORIGIN_Y,
+                self.valid_min[1] as f32 * GI_CELL,
+            ],
+            valid_max: [
+                self.valid_max[0] as f32 * GI_CELL,
+                GI_ORIGIN_Y + GI_SIZE as f32 * GI_CELL,
+                self.valid_max[1] as f32 * GI_CELL,
+            ],
+            blend: self.blend,
+        })
+    }
+
+    pub fn counters(&self) -> GiWorkCounters {
+        self.counters
+    }
+
+    pub fn is_idle(&self) -> bool {
+        self.work == WorkKind::None && self.fade == 0 && !self.geometry_dirty && !self.light_dirty
+    }
+
+    pub fn set_focus(&mut self, focus: [f32; 3]) {
+        self.focus = focus;
+        let brick_cells = GI_BRICK_SIZE as i32;
+        let center_brick_x = floorf(focus[0] / (GI_CELL * GI_BRICK_SIZE as f32)) as i32;
+        let center_brick_z = floorf(focus[2] / (GI_CELL * GI_BRICK_SIZE as f32)) as i32;
+        self.requested_origin = [
+            (center_brick_x - GI_BRICKS / 2) * brick_cells,
+            (center_brick_z - GI_BRICKS / 2) * brick_cells,
+        ];
     }
 
     pub fn set_ground_albedo(&mut self, rgb: [f32; 3]) {
         if self.ground_albedo != rgb {
             self.ground_albedo = rgb;
-            self.dirty_slice = 0;
+            self.geometry_dirty = true;
+            self.begin_fade_out();
         }
     }
 
     pub fn set_occluders(&mut self, occ: &[GiOccluder]) {
+        if self.occluders == occ {
+            return;
+        }
         self.occluders.clear();
         self.occluders.extend_from_slice(occ);
-        self.dirty_slice = 0;
+        self.prepared.clear();
+        self.prepared
+            .extend(occ.iter().copied().map(PreparedGiOccluder::new));
+        self.geometry_dirty = true;
+        self.begin_fade_out();
     }
 
-    /// Snap the volume min corner so the camera `look_at` sits near its center;
-    /// a moved origin marks every slice dirty.
-    pub fn recenter(&mut self, look_at: [f32; 3]) {
-        let half = GI_SIZE as f32 * GI_CELL * 0.5;
-        let snap = |v: f32| floorf((v - half) / GI_CELL) * GI_CELL;
-        let nx = snap(look_at[0]);
-        let nz = snap(look_at[2]);
-        if (nx - self.origin[0]).abs() > 1e-3 || (nz - self.origin[2]).abs() > 1e-3 {
-            self.origin[0] = nx;
-            self.origin[2] = nz;
-            self.origin[1] = GI_ORIGIN_Y;
-            self.dirty_slice = 0;
-        }
-    }
-
-    /// Rebuild up to `budget` dirty albedo slices on the CPU and upload them.
-    pub fn step_voxelize<G: Gpu>(&mut self, gpu: &mut G, budget: u32) {
-        if self.dirty_slice >= GI_SIZE {
-            return;
-        }
-        let end = (self.dirty_slice + budget).min(GI_SIZE);
-        for z in self.dirty_slice..end {
-            fill_albedo_slice(&mut self.slice_scratch, z, self.origin, self.ground_albedo, &self.occluders);
-            gpu.update_texture_3d(self.albedo_tex, GI_SIZE, z, &self.slice_scratch);
-        }
-        self.dirty_slice = end;
-        if self.dirty_slice >= GI_SIZE {
-            // Albedo fully rebuilt → re-arm injection.
-            self.needs_inject = true;
-        }
-    }
-
-    /// Run up to `budget` radiance injection layer passes; regenerate the
-    /// radiance mip chain once a full round completes.
-    #[allow(clippy::too_many_arguments)]
-    pub fn step_inject<G: Gpu>(
-        &mut self,
-        gpu: &mut G,
-        inject_prog: ProgramId,
-        shadow_depth: TextureId,
-        light_view_proj: &[f32; 16],
-        sun_dir: [f32; 3],
-        sun_color: [f32; 3],
-        budget: u32,
-    ) {
-        // Re-arm a full round when the sun changed or albedo was rebuilt.
+    pub fn step<G: Gpu>(&mut self, gpu: &mut G, sun_dir: [f32; 3], sun_color: [f32; 3]) {
         let key = sun_key(sun_dir, sun_color);
-        if key != self.last_sun {
-            self.last_sun = key;
-            self.needs_inject = true;
+        self.sun_dir = sun_dir;
+        self.sun_color = sun_color;
+        if self.last_sun != 0 && key != self.last_sun {
+            self.light_dirty = true;
+            self.begin_fade_out();
         }
-        if self.needs_inject && self.inject_slice >= GI_SIZE {
-            self.inject_slice = 0;
-            self.needs_inject = false;
+        self.last_sun = key;
+
+        if self.fade < 0 {
+            self.blend = (self.blend - 1.0 / FADE_FRAMES).max(0.0);
+            if self.blend > 0.0 {
+                return;
+            }
+            self.fade = 0;
+            if self.geometry_dirty {
+                self.geometry_dirty = false;
+                self.light_dirty = false;
+                self.start_full(WorkKind::Geometry, self.requested_origin);
+            } else if self.light_dirty {
+                self.light_dirty = false;
+                self.start_full(WorkKind::Radiance, self.committed_origin);
+            }
         }
-        if self.inject_slice >= GI_SIZE {
+
+        if self.work == WorkKind::None {
+            if self.geometry_dirty {
+                self.begin_fade_out();
+                return;
+            }
+            if self.requested_origin != self.committed_origin {
+                self.start_scroll();
+            } else if self.light_dirty {
+                self.begin_fade_out();
+                return;
+            } else if self.fade > 0 {
+                self.blend = (self.blend + 1.0 / FADE_FRAMES).min(1.0);
+                if self.blend >= 1.0 {
+                    self.fade = 0;
+                }
+                return;
+            } else {
+                return;
+            }
+        }
+
+        let end = (self.dirty_index + GI_BRICKS_PER_FRAME).min(self.dirty_bricks.len());
+        while self.dirty_index < end {
+            let world_brick = self.dirty_bricks[self.dirty_index];
+            fill_albedo_brick(
+                &mut self.albedo_scratch,
+                &mut self.owner_scratch,
+                world_brick,
+                self.ground_albedo,
+                &self.prepared,
+            );
+            if self.work != WorkKind::Radiance {
+                self.counters.albedo_builds += 1;
+                let offset = brick_offset(world_brick);
+                gpu.update_texture_3d_region(
+                    self.albedo_tex,
+                    offset,
+                    [GI_BRICK_SIZE, GI_SIZE, GI_BRICK_SIZE],
+                    &self.albedo_scratch,
+                );
+            }
+            fill_radiance_brick(
+                &mut self.radiance_scratch,
+                &self.albedo_scratch,
+                &self.owner_scratch,
+                world_brick,
+                self.sun_dir,
+                self.sun_color,
+                &self.prepared,
+            );
+            self.counters.radiance_builds += 1;
+            gpu.update_texture_3d_region(
+                self.radiance_tex,
+                brick_offset(world_brick),
+                [GI_BRICK_SIZE, GI_SIZE, GI_BRICK_SIZE],
+                &self.radiance_scratch,
+            );
+            self.counters.resident_uploads += 1;
+            self.dirty_index += 1;
+        }
+
+        if self.dirty_index == self.dirty_bricks.len() {
+            gpu.generate_mipmaps_3d(self.radiance_tex);
+            self.counters.mipmap_rebuilds += 1;
+            let completed = self.work;
+            self.work = WorkKind::None;
+            if completed == WorkKind::Scroll || completed == WorkKind::Geometry {
+                self.committed_origin = self.active_origin;
+            }
+            self.valid_min = self.committed_origin;
+            self.valid_max = [
+                self.committed_origin[0] + GI_SIZE as i32,
+                self.committed_origin[1] + GI_SIZE as i32,
+            ];
+            self.ready = true;
+            if completed != WorkKind::Scroll || self.blend < 1.0 {
+                self.fade = 1;
+            }
+        }
+    }
+
+    fn begin_fade_out(&mut self) {
+        if self.ready && self.work == WorkKind::None && self.fade >= 0 {
+            self.fade = -1;
+        }
+    }
+
+    fn start_full(&mut self, kind: WorkKind, origin: [i32; 2]) {
+        self.dirty_bricks.clear();
+        let bx0 = origin[0].div_euclid(GI_BRICK_SIZE as i32);
+        let bz0 = origin[1].div_euclid(GI_BRICK_SIZE as i32);
+        for z in 0..GI_BRICKS {
+            for x in 0..GI_BRICKS {
+                self.dirty_bricks.push([bx0 + x, bz0 + z]);
+            }
+        }
+        self.dirty_index = 0;
+        self.work = kind;
+        self.active_origin = origin;
+        self.counters.full_rebuilds += 1;
+    }
+
+    fn start_scroll(&mut self) {
+        let dx = self.requested_origin[0] - self.committed_origin[0];
+        let dz = self.requested_origin[1] - self.committed_origin[1];
+        if dx.abs() >= GI_SIZE as i32 || dz.abs() >= GI_SIZE as i32 {
+            self.start_full(WorkKind::Geometry, self.requested_origin);
             return;
         }
-        let end = (self.inject_slice + budget).min(GI_SIZE);
-        for z in self.inject_slice..end {
-            gpu.begin_layer_pass(
-                self.radiance_tex,
-                z,
-                RectPx { x: 0, y: 0, w: GI_SIZE as i32, h: GI_SIZE as i32 },
-                ClearSpec { color: Some([0.0, 0.0, 0.0, 0.0]), depth: None },
-            );
-            gpu.set_pipeline(
-                inject_prog,
-                &PipelineState {
-                    depth_test: false,
-                    depth_write: false,
-                    cull: Cull::None,
-                    color_write: true,
-                    blend: false,
-                    additive: false,
-                },
-            );
-            gpu.bind_texture_3d(0, self.albedo_tex);
-            gpu.bind_texture(1, shadow_depth);
-            let uniforms = [
-                Uniform { name: "u_albedoVol", value: UniformValue::Sampler(0) },
-                Uniform { name: "u_shadowMap", value: UniformValue::Sampler(1) },
-                Uniform { name: "u_layer", value: UniformValue::Float(z as f32) },
-                Uniform { name: "u_giOrigin", value: UniformValue::Vec3(self.origin) },
-                Uniform { name: "u_giCell", value: UniformValue::Float(GI_CELL) },
-                Uniform { name: "u_lightViewProj", value: UniformValue::Mat4(*light_view_proj) },
-                Uniform { name: "u_lightDir", value: UniformValue::Vec3(sun_dir) },
-                Uniform { name: "u_lightColor", value: UniformValue::Vec3(sun_color) },
-            ];
-            gpu.set_uniforms(&uniforms);
-            gpu.draw(self.quad_buf, None, &QUAD_LAYOUT, 6);
-            gpu.end_pass();
+        self.dirty_bricks.clear();
+        let old_min = [
+            self.committed_origin[0].div_euclid(GI_BRICK_SIZE as i32),
+            self.committed_origin[1].div_euclid(GI_BRICK_SIZE as i32),
+        ];
+        let new_min = [
+            self.requested_origin[0].div_euclid(GI_BRICK_SIZE as i32),
+            self.requested_origin[1].div_euclid(GI_BRICK_SIZE as i32),
+        ];
+        for z in 0..GI_BRICKS {
+            for x in 0..GI_BRICKS {
+                let b = [new_min[0] + x, new_min[1] + z];
+                if b[0] < old_min[0]
+                    || b[0] >= old_min[0] + GI_BRICKS
+                    || b[1] < old_min[1]
+                    || b[1] >= old_min[1] + GI_BRICKS
+                {
+                    self.dirty_bricks.push(b);
+                }
+            }
         }
-        self.inject_slice = end;
-        if self.inject_slice >= GI_SIZE {
-            gpu.generate_mipmaps_3d(self.radiance_tex);
+        self.dirty_index = 0;
+        self.work = WorkKind::Scroll;
+        self.active_origin = self.requested_origin;
+        self.valid_min = [
+            self.committed_origin[0].max(self.requested_origin[0]),
+            self.committed_origin[1].max(self.requested_origin[1]),
+        ];
+        self.valid_max = [
+            (self.committed_origin[0] + GI_SIZE as i32)
+                .min(self.requested_origin[0] + GI_SIZE as i32),
+            (self.committed_origin[1] + GI_SIZE as i32)
+                .min(self.requested_origin[1] + GI_SIZE as i32),
+        ];
+    }
+}
+
+fn fill_albedo_brick(
+    out: &mut [u8],
+    owners: &mut [u32],
+    world_brick: [i32; 2],
+    ground: [f32; 3],
+    occluders: &[PreparedGiOccluder],
+) {
+    out.fill(0);
+    owners.fill(u32::MAX);
+    let world_min_x = world_brick[0] as f32 * GI_BRICK_SIZE as f32 * GI_CELL;
+    let world_min_z = world_brick[1] as f32 * GI_BRICK_SIZE as f32 * GI_CELL;
+    let world_max_x = world_min_x + GI_BRICK_SIZE as f32 * GI_CELL;
+    let world_max_z = world_min_z + GI_BRICK_SIZE as f32 * GI_CELL;
+
+    for z in 0..GI_BRICK_SIZE {
+        for y in 0..GI_SIZE {
+            let band_lo = GI_ORIGIN_Y + y as f32 * GI_CELL;
+            let band_hi = band_lo + GI_CELL;
+            if band_lo < 0.0 && band_hi > -GI_CELL {
+                for x in 0..GI_BRICK_SIZE {
+                    write_voxel(out, brick_index(x, y, z), ground);
+                }
+            }
+        }
+    }
+
+    for (owner, occ) in occluders.iter().enumerate() {
+        if occ.max[0] < world_min_x
+            || occ.min[0] > world_max_x
+            || occ.max[2] < world_min_z
+            || occ.min[2] > world_max_z
+        {
+            continue;
+        }
+        let x0 = floorf((occ.min[0] - world_min_x) / GI_CELL).max(0.0) as u32;
+        let x1 = (floorf((occ.max[0] - world_min_x) / GI_CELL) as i32 + 1)
+            .clamp(0, GI_BRICK_SIZE as i32) as u32;
+        let z0 = floorf((occ.min[2] - world_min_z) / GI_CELL).max(0.0) as u32;
+        let z1 = (floorf((occ.max[2] - world_min_z) / GI_CELL) as i32 + 1)
+            .clamp(0, GI_BRICK_SIZE as i32) as u32;
+        let y0 = floorf((occ.min[1] - GI_ORIGIN_Y) / GI_CELL).max(0.0) as u32;
+        let y1 = (floorf((occ.max[1] - GI_ORIGIN_Y) / GI_CELL) as i32 + 1).clamp(0, GI_SIZE as i32)
+            as u32;
+        for z in z0..z1 {
+            for y in y0..y1 {
+                for x in x0..x1 {
+                    let idx = brick_index(x, y, z);
+                    if out[idx * 4 + 3] != 0 {
+                        continue;
+                    }
+                    let p = [
+                        world_min_x + (x as f32 + 0.5) * GI_CELL,
+                        GI_ORIGIN_Y + (y as f32 + 0.5) * GI_CELL,
+                        world_min_z + (z as f32 + 0.5) * GI_CELL,
+                    ];
+                    if occ.contains(p) {
+                        write_voxel(out, idx, occ.source.albedo);
+                        owners[idx] = owner as u32;
+                    }
+                }
+            }
         }
     }
 }
 
-fn bytes(s: &[f32]) -> &[u8] {
-    // SAFETY: f32 has no invalid bit patterns; reinterpreting for GPU upload.
-    unsafe { core::slice::from_raw_parts(s.as_ptr() as *const u8, core::mem::size_of_val(s)) }
+fn fill_radiance_brick(
+    out: &mut [u8],
+    albedo: &[u8],
+    owners: &[u32],
+    world_brick: [i32; 2],
+    sun_dir: [f32; 3],
+    sun_color: [f32; 3],
+    occluders: &[PreparedGiOccluder],
+) {
+    out.fill(0);
+    let length = sqrtf(sun_dir[0] * sun_dir[0] + sun_dir[1] * sun_dir[1] + sun_dir[2] * sun_dir[2])
+        .max(1.0e-6);
+    let ray = [
+        -sun_dir[0] / length,
+        -sun_dir[1] / length,
+        -sun_dir[2] / length,
+    ];
+    let min_x = world_brick[0] as f32 * GI_BRICK_SIZE as f32 * GI_CELL;
+    let min_z = world_brick[1] as f32 * GI_BRICK_SIZE as f32 * GI_CELL;
+    for z in 0..GI_BRICK_SIZE {
+        for y in 0..GI_SIZE {
+            for x in 0..GI_BRICK_SIZE {
+                let idx = brick_index(x, y, z);
+                if albedo[idx * 4 + 3] == 0 {
+                    continue;
+                }
+                let p = [
+                    min_x + (x as f32 + 0.5) * GI_CELL,
+                    GI_ORIGIN_Y + (y as f32 + 0.5) * GI_CELL,
+                    min_z + (z as f32 + 0.5) * GI_CELL,
+                ];
+                let source = owners[idx];
+                let shadowed = occluders
+                    .iter()
+                    .enumerate()
+                    .any(|(i, occ)| i as u32 != source && occ.ray_hit(p, ray));
+                let visibility = if shadowed { 0.0 } else { 0.75 };
+                out[idx * 4] =
+                    (albedo[idx * 4] as f32 * sun_color[0].max(0.0) * visibility).min(255.0) as u8;
+                out[idx * 4 + 1] = (albedo[idx * 4 + 1] as f32 * sun_color[1].max(0.0) * visibility)
+                    .min(255.0) as u8;
+                out[idx * 4 + 2] = (albedo[idx * 4 + 2] as f32 * sun_color[2].max(0.0) * visibility)
+                    .min(255.0) as u8;
+                out[idx * 4 + 3] = 255;
+            }
+        }
+    }
+}
+
+fn write_voxel(out: &mut [u8], idx: usize, rgb: [f32; 3]) {
+    out[idx * 4] = (rgb[0].clamp(0.0, 1.0) * 255.0) as u8;
+    out[idx * 4 + 1] = (rgb[1].clamp(0.0, 1.0) * 255.0) as u8;
+    out[idx * 4 + 2] = (rgb[2].clamp(0.0, 1.0) * 255.0) as u8;
+    out[idx * 4 + 3] = 255;
+}
+
+fn brick_index(x: u32, y: u32, z: u32) -> usize {
+    ((z * GI_SIZE + y) * GI_BRICK_SIZE + x) as usize
+}
+
+fn brick_offset(world_brick: [i32; 2]) -> [u32; 3] {
+    [
+        (world_brick[0].rem_euclid(GI_BRICKS) as u32) * GI_BRICK_SIZE,
+        0,
+        (world_brick[1].rem_euclid(GI_BRICKS) as u32) * GI_BRICK_SIZE,
+    ]
+}
+
+fn sun_key(dir: [f32; 3], color: [f32; 3]) -> i32 {
+    let q = |v: f32| (v * 32.0) as i32;
+    q(dir[0]).wrapping_mul(73_856_093)
+        ^ q(dir[1]).wrapping_mul(19_349_663)
+        ^ q(dir[2]).wrapping_mul(83_492_791)
+        ^ q(color[0]).wrapping_mul(2_654_435_761u32 as i32)
+        ^ q(color[1]).wrapping_mul(40_503)
+        ^ q(color[2]).wrapping_mul(51_787)
 }
 
 #[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
-    use crate::gpu::MockGpu;
+    use crate::gpu::{MockCall, MockGpu};
 
-    fn cell_at(out: &[u8], x: u32, y: u32) -> [u8; 4] {
-        let i = ((y * GI_SIZE + x) * 4) as usize;
-        [out[i], out[i + 1], out[i + 2], out[i + 3]]
+    fn settle(vol: &mut GiVolume, gpu: &mut MockGpu) {
+        for _ in 0..256 {
+            vol.step(gpu, [0.2, -1.0, 0.1], [1.0, 0.9, 0.8]);
+            if vol.is_idle() {
+                return;
+            }
+        }
+        panic!("GI did not settle");
     }
 
     #[test]
-    fn ground_band_only_on_expected_layer() {
-        let origin = [0.0, GI_ORIGIN_Y, 0.0];
-        let mut out = vec![0u8; (GI_SIZE * GI_SIZE * 4) as usize];
-        // Ground band is cell y = 1 (band [-0.75, 0)).
-        fill_albedo_slice(&mut out, 0, origin, [0.4, 0.3, 0.2], &[]);
-        assert_eq!(cell_at(&out, 10, 0)[3], 0, "y=0 band is below ground, empty");
-        assert_eq!(cell_at(&out, 10, 1)[3], 255, "y=1 band is the ground");
-        assert_eq!(cell_at(&out, 10, 2)[3], 0, "y=2 band is above ground, empty");
+    fn focus_scroll_updates_entering_bricks_only() {
+        let mut gpu = MockGpu::default();
+        let mut vol = GiVolume::new(&mut gpu);
+        settle(&mut vol, &mut gpu);
+        let before = vol.counters();
+        vol.set_focus([GI_BRICK_SIZE as f32 * GI_CELL, 0.0, 0.0]);
+        settle(&mut vol, &mut gpu);
+        let after = vol.counters();
+        assert_eq!(after.albedo_builds - before.albedo_builds, 8);
+        assert_eq!(after.radiance_builds - before.radiance_builds, 8);
+        assert_eq!(after.resident_uploads - before.resident_uploads, 8);
+        assert_eq!(after.mipmap_rebuilds - before.mipmap_rebuilds, 1);
+        assert_eq!(after.full_rebuilds - before.full_rebuilds, 0);
     }
 
     #[test]
-    fn box_occluder_marks_center_cells() {
-        // A box centered near the volume center at world y ~ 2m.
-        let origin = [0.0, GI_ORIGIN_Y, 0.0];
-        let half = GI_SIZE as f32 * GI_CELL * 0.5; // 24
-        let bx = origin[0] + half;
-        let bz = origin[2] + half;
-        let occ = [GiOccluder {
-            center: [bx, 2.0, bz],
-            half_extents: [1.5, 1.5, 1.5],
+    fn identical_inputs_are_noops() {
+        let mut gpu = MockGpu::default();
+        let mut vol = GiVolume::new(&mut gpu);
+        settle(&mut vol, &mut gpu);
+        let before = vol.counters();
+        vol.set_focus([0.0, 0.0, 0.0]);
+        vol.set_ground_albedo([0.5, 0.5, 0.5]);
+        vol.set_occluders(&[]);
+        settle(&mut vol, &mut gpu);
+        assert_eq!(vol.counters(), before);
+    }
+
+    #[test]
+    fn geometry_and_light_invalidation_are_separate() {
+        let mut gpu = MockGpu::default();
+        let mut vol = GiVolume::new(&mut gpu);
+        settle(&mut vol, &mut gpu);
+        let before = vol.counters();
+        vol.set_ground_albedo([0.4, 0.3, 0.2]);
+        settle(&mut vol, &mut gpu);
+        let geometry = vol.counters();
+        assert_eq!(geometry.albedo_builds - before.albedo_builds, 64);
+        assert_eq!(geometry.radiance_builds - before.radiance_builds, 64);
+        vol.step(&mut gpu, [0.4, -1.0, 0.1], [1.0, 0.9, 0.8]);
+        settle(&mut vol, &mut gpu);
+        let light = vol.counters();
+        assert_eq!(light.albedo_builds - geometry.albedo_builds, 0);
+        assert_eq!(light.radiance_builds - geometry.radiance_builds, 64);
+    }
+
+    #[test]
+    fn static_proxy_radiance_shadows_ground() {
+        let occ = PreparedGiOccluder::new(GiOccluder {
+            center: [2.5, 1.0, 2.5],
+            half_extents: [0.75, 1.0, 0.75],
             yaw: 0.0,
-            albedo: [0.9, 0.1, 0.1],
-        }];
-        // Z layer through the box center.
-        let z = ((2.0f32 /* placeholder */).max(0.0)) as u32; // not used; compute below
-        let _ = z;
-        let zc = (((bz - origin[2]) / GI_CELL) as u32).min(GI_SIZE - 1);
-        let mut out = vec![0u8; (GI_SIZE * GI_SIZE * 4) as usize];
-        fill_albedo_slice(&mut out, zc, origin, [0.4, 0.3, 0.2], &occ);
-        let xc = (((bx - origin[0]) / GI_CELL) as u32).min(GI_SIZE - 1);
-        // World y=2 → cell y = (2 - origin.y)/cell = (2+1.5)/0.75 = 4.67 → 4.
-        let yc = (((2.0 - origin[1]) / GI_CELL) as u32).min(GI_SIZE - 1);
-        let c = cell_at(&out, xc, yc);
-        assert_eq!(c[3], 255, "box center cell is solid");
-        assert!(c[0] > c[2], "box albedo is reddish");
+            albedo: [1.0, 0.1, 0.1],
+        });
+        let mut albedo = vec![0; BRICK_VOXELS * 4];
+        let mut owners = vec![0; BRICK_VOXELS];
+        fill_albedo_brick(&mut albedo, &mut owners, [0, 0], [0.5; 3], &[occ]);
+        let mut radiance = vec![0; BRICK_VOXELS * 4];
+        fill_radiance_brick(
+            &mut radiance,
+            &albedo,
+            &owners,
+            [0, 0],
+            [-1.0, -1.0, 0.0],
+            [1.0; 3],
+            &[occ],
+        );
+        let open = brick_index(7, 1, 0) * 4;
+        let behind = brick_index(1, 1, 3) * 4;
+        assert!(radiance[open] > radiance[behind]);
     }
 
     #[test]
-    fn recenter_is_idempotent_and_dirties() {
+    fn regional_uploads_are_bounded() {
         let mut gpu = MockGpu::default();
         let mut vol = GiVolume::new(&mut gpu);
-        vol.dirty_slice = GI_SIZE; // clean
-        vol.recenter([100.0, 0.0, 200.0]);
-        assert_eq!(vol.dirty_slice, 0, "moving the origin dirties all slices");
-        // Fully voxelize, then a same-target recenter must not re-dirty.
-        vol.step_voxelize(&mut gpu, GI_SIZE);
-        assert_eq!(vol.dirty_slice, GI_SIZE);
-        vol.recenter([100.0, 0.0, 200.0]);
-        assert_eq!(vol.dirty_slice, GI_SIZE, "same origin does not re-dirty");
-    }
-
-    #[test]
-    fn voxelize_amortizes_to_full_upload() {
-        let mut gpu = MockGpu::default();
-        let mut vol = GiVolume::new(&mut gpu);
-        vol.recenter([10.0, 0.0, 10.0]);
-        gpu.log.clear();
-        let budget = 8;
-        let rounds = GI_SIZE.div_ceil(budget);
-        for _ in 0..rounds {
-            vol.step_voxelize(&mut gpu, budget);
-        }
-        let uploads = gpu
-            .log
-            .iter()
-            .filter(|c| matches!(c, crate::gpu::MockCall::UpdateTexture3d { .. }))
-            .count();
-        assert_eq!(uploads, GI_SIZE as usize, "every slice uploaded exactly once");
-    }
-
-    #[test]
-    fn inject_round_then_single_mipgen() {
-        let mut gpu = MockGpu::default();
-        let mut vol = GiVolume::new(&mut gpu);
-        vol.recenter([10.0, 0.0, 10.0]);
-        vol.step_voxelize(&mut gpu, GI_SIZE); // arms injection
-        gpu.log.clear();
-        let prog = ProgramId(1);
-        let lvp = [0.0f32; 16];
-        let budget = 16;
-        let rounds = GI_SIZE.div_ceil(budget);
-        for _ in 0..rounds {
-            vol.step_inject(&mut gpu, prog, TextureId(2), &lvp, [0.0, -1.0, 0.0], [1.0, 1.0, 1.0], budget);
-        }
-        let layer_passes = gpu
-            .log
-            .iter()
-            .filter(|c| matches!(c, crate::gpu::MockCall::BeginLayerPass { .. }))
-            .count();
-        let mipgens = gpu
-            .log
-            .iter()
-            .filter(|c| matches!(c, crate::gpu::MockCall::GenMips3d))
-            .count();
-        assert_eq!(layer_passes, GI_SIZE as usize, "one pass per layer");
-        assert_eq!(mipgens, 1, "mips regenerated once per completed round");
+        settle(&mut vol, &mut gpu);
+        assert!(gpu.log.iter().any(|call| matches!(
+            call,
+            MockCall::UpdateTexture3dRegion {
+                extent: [8, 64, 8],
+                ..
+            }
+        )));
     }
 }

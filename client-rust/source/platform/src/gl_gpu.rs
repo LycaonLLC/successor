@@ -2,9 +2,9 @@
 
 use std::collections::HashMap;
 use successor_engine_render::gpu::{
-    Gpu, BufferId, ProgramId, TextureId, RenderTargetId, BufferUsage, TextureDesc,
-    RenderTargetDesc, PassTarget, RectPx, ClearSpec, PipelineState, Cull, Uniform,
-    UniformValue, VertexLayout, TextureFormat, Filter, GpuCaps, Texture3dDesc, MrtDesc,
+    BufferId, BufferUsage, ClearSpec, Cull, Filter, Gpu, GpuCaps, MrtDesc, PassTarget,
+    PipelineState, ProgramId, RectPx, RenderTargetDesc, RenderTargetId, Texture3dDesc, TextureDesc,
+    TextureFormat, TextureId, Uniform, UniformValue, VertexLayout,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -25,8 +25,6 @@ pub struct GlGpu {
     uniform_cache: HashMap<u32, HashMap<&'static str, i32>>,
     render_targets: Vec<RenderTarget>,
     active_program: u32,
-    /// Scratch FBO reused for `begin_layer_pass` (3D-texture layer rendering).
-    layer_fbo: u32,
     caps: successor_engine_render::gpu::GpuCaps,
 }
 
@@ -40,7 +38,6 @@ impl GlGpu {
             uniform_cache: HashMap::new(),
             render_targets: Vec::new(),
             active_program: 0,
-            layer_fbo: 0,
             caps: successor_engine_render::gpu::GpuCaps {
                 half_float_target: gl::cap_half_float_target(),
             },
@@ -158,7 +155,11 @@ impl Gpu for GlGpu {
         let (internal_format, format, ty) = match desc.format {
             TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
             TextureFormat::Rgba16F => (gl::RGBA16F as i32, gl::RGBA, gl::HALF_FLOAT),
-            TextureFormat::Depth => (gl::DEPTH_COMPONENT24 as i32, gl::DEPTH_COMPONENT, gl::UNSIGNED_INT),
+            TextureFormat::Depth => (
+                gl::DEPTH_COMPONENT24 as i32,
+                gl::DEPTH_COMPONENT,
+                gl::UNSIGNED_INT,
+            ),
         };
 
         gl::tex_image_2d(
@@ -381,7 +382,10 @@ impl Gpu for GlGpu {
 
         if !has_key {
             // Allocate once during first frame or load
-            let cache = self.uniform_cache.entry(program).or_insert_with(HashMap::new);
+            let cache = self
+                .uniform_cache
+                .entry(program)
+                .or_insert_with(HashMap::new);
             for u in uniforms {
                 if !cache.contains_key(u.name) {
                     let loc = gl::get_uniform_location(program, u.name);
@@ -455,18 +459,26 @@ impl Gpu for GlGpu {
             return;
         }
         let name = "u_joints";
-        let loc = match self.uniform_cache.get(&program).and_then(|c| c.get(name).copied()) {
+        let loc = match self
+            .uniform_cache
+            .get(&program)
+            .and_then(|c| c.get(name).copied())
+        {
             Some(l) => l,
             None => {
                 let l = gl::get_uniform_location(program, name);
-                self.uniform_cache.entry(program).or_default().insert(name, l);
+                self.uniform_cache
+                    .entry(program)
+                    .or_default()
+                    .insert(name, l);
                 l
             }
         };
         if loc == -1 {
             return;
         }
-        let flat = unsafe { std::slice::from_raw_parts(mats.as_ptr() as *const f32, mats.len() * 16) };
+        let flat =
+            unsafe { std::slice::from_raw_parts(mats.as_ptr() as *const f32, mats.len() * 16) };
         gl::uniform_matrix4fv_array(loc, flat);
     }
 
@@ -509,7 +521,13 @@ impl Gpu for GlGpu {
         }
         if let Some(ebo) = indices {
             gl::bind_buffer(gl::ELEMENT_ARRAY_BUFFER, ebo.0);
-            gl::draw_elements_instanced(gl::TRIANGLES, index_count as i32, gl::UNSIGNED_INT, 0, instances as i32);
+            gl::draw_elements_instanced(
+                gl::TRIANGLES,
+                index_count as i32,
+                gl::UNSIGNED_INT,
+                0,
+                instances as i32,
+            );
             gl::bind_buffer(gl::ELEMENT_ARRAY_BUFFER, 0);
         } else {
             gl::draw_arrays_instanced(gl::TRIANGLES, 0, index_count as i32, instances as i32);
@@ -532,19 +550,43 @@ impl Gpu for GlGpu {
         let handle = gl::gen_texture();
         gl::bind_texture(gl::TEXTURE_3D, handle);
         gl::pixel_storei(gl::UNPACK_ALIGNMENT, 1);
-        let min_filter = if desc.mips { gl::LINEAR_MIPMAP_LINEAR } else { gl::LINEAR };
+        let min_filter = if desc.mips {
+            gl::LINEAR_MIPMAP_LINEAR
+        } else {
+            gl::LINEAR
+        };
         gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_MIN_FILTER, min_filter);
         gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_MAG_FILTER, gl::LINEAR);
-        gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE);
+        let wrap_xz = if desc.wrap_xz {
+            gl::REPEAT
+        } else {
+            gl::CLAMP_TO_EDGE
+        };
+        gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, wrap_xz);
         gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE);
-        gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE);
+        gl::tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, wrap_xz);
         let (internal_format, format, ty) = match desc.format {
             TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
             TextureFormat::Rgba16F => (gl::RGBA16F as i32, gl::RGBA, gl::HALF_FLOAT),
-            TextureFormat::Depth => (gl::DEPTH_COMPONENT24 as i32, gl::DEPTH_COMPONENT, gl::UNSIGNED_INT),
+            TextureFormat::Depth => (
+                gl::DEPTH_COMPONENT24 as i32,
+                gl::DEPTH_COMPONENT,
+                gl::UNSIGNED_INT,
+            ),
         };
         let s = desc.size as i32;
-        gl::tex_image_3d(gl::TEXTURE_3D, 0, internal_format, s, s, s, 0, format, ty, data);
+        gl::tex_image_3d(
+            gl::TEXTURE_3D,
+            0,
+            internal_format,
+            s,
+            s,
+            s,
+            0,
+            format,
+            ty,
+            data,
+        );
         if desc.mips {
             gl::generate_mipmap(gl::TEXTURE_3D);
         }
@@ -552,12 +594,27 @@ impl Gpu for GlGpu {
         TextureId(handle)
     }
 
-    fn update_texture_3d(&mut self, id: TextureId, size: u32, z: u32, data: &[u8]) {
+    fn update_texture_3d_region(
+        &mut self,
+        id: TextureId,
+        offset: [u32; 3],
+        extent: [u32; 3],
+        data: &[u8],
+    ) {
         gl::bind_texture(gl::TEXTURE_3D, id.0);
         gl::pixel_storei(gl::UNPACK_ALIGNMENT, 1);
         gl::tex_sub_image_3d(
-            gl::TEXTURE_3D, 0, 0, 0, z as i32, size as i32, size as i32, 1,
-            gl::RGBA, gl::UNSIGNED_BYTE, data,
+            gl::TEXTURE_3D,
+            0,
+            offset[0] as i32,
+            offset[1] as i32,
+            offset[2] as i32,
+            extent[0] as i32,
+            extent[1] as i32,
+            extent[2] as i32,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            data,
         );
         gl::bind_texture(gl::TEXTURE_3D, 0);
     }
@@ -588,11 +645,22 @@ impl Gpu for GlGpu {
             let (internal_format, format, ty) = match fmt {
                 TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA, gl::UNSIGNED_BYTE),
                 TextureFormat::Rgba16F => (gl::RGBA16F as i32, gl::RGBA, gl::HALF_FLOAT),
-                TextureFormat::Depth => (gl::DEPTH_COMPONENT24 as i32, gl::DEPTH_COMPONENT, gl::UNSIGNED_INT),
+                TextureFormat::Depth => (
+                    gl::DEPTH_COMPONENT24 as i32,
+                    gl::DEPTH_COMPONENT,
+                    gl::UNSIGNED_INT,
+                ),
             };
             gl::tex_image_2d(
-                gl::TEXTURE_2D, 0, internal_format, desc.width as i32, desc.height as i32, 0,
-                format, ty, None,
+                gl::TEXTURE_2D,
+                0,
+                internal_format,
+                desc.width as i32,
+                desc.height as i32,
+                0,
+                format,
+                ty,
+                None,
             );
             let attach = gl::COLOR_ATTACHMENT0 + i as u32;
             gl::framebuffer_texture_2d(gl::FRAMEBUFFER, attach, gl::TEXTURE_2D, handle, 0);
@@ -607,10 +675,23 @@ impl Gpu for GlGpu {
             gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE);
             gl::tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE);
             gl::tex_image_2d(
-                gl::TEXTURE_2D, 0, gl::DEPTH_COMPONENT24 as i32, desc.width as i32, desc.height as i32, 0,
-                gl::DEPTH_COMPONENT, gl::UNSIGNED_INT, None,
+                gl::TEXTURE_2D,
+                0,
+                gl::DEPTH_COMPONENT24 as i32,
+                desc.width as i32,
+                desc.height as i32,
+                0,
+                gl::DEPTH_COMPONENT,
+                gl::UNSIGNED_INT,
+                None,
             );
-            gl::framebuffer_texture_2d(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::TEXTURE_2D, handle, 0);
+            gl::framebuffer_texture_2d(
+                gl::FRAMEBUFFER,
+                gl::DEPTH_ATTACHMENT,
+                gl::TEXTURE_2D,
+                handle,
+                0,
+            );
             Some(TextureId(handle))
         } else {
             None
@@ -622,36 +703,27 @@ impl Gpu for GlGpu {
         }
         let status = gl::check_framebuffer_status(gl::FRAMEBUFFER);
         if status != gl::FRAMEBUFFER_COMPLETE {
-            successor_engine_core::rt::log::log1u("MRT framebuffer incomplete status: ", status as u64);
+            successor_engine_core::rt::log::log1u(
+                "MRT framebuffer incomplete status: ",
+                status as u64,
+            );
             successor_engine_core::rt::log::log_str("\n");
         }
         gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
         let rt_idx = self.render_targets.len() as u32 + 1;
-        self.render_targets.push(RenderTarget { fbo, colors, depth_tex });
+        self.render_targets.push(RenderTarget {
+            fbo,
+            colors,
+            depth_tex,
+        });
         RenderTargetId(rt_idx)
     }
 
     fn render_target_color_n(&self, rt: RenderTargetId, index: usize) -> Option<TextureId> {
         let idx = rt.0 as usize - 1;
-        self.render_targets.get(idx).and_then(|t| t.colors.get(index).copied())
-    }
-
-    fn begin_layer_pass(&mut self, tex: TextureId, layer: u32, viewport: RectPx, clear: ClearSpec) {
-        if self.layer_fbo == 0 {
-            self.layer_fbo = gl::gen_framebuffer();
-        }
-        gl::bind_framebuffer(gl::FRAMEBUFFER, self.layer_fbo);
-        gl::framebuffer_texture_layer(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, tex.0, 0, layer as i32);
-        gl::draw_buffers(&[gl::COLOR_ATTACHMENT0]);
-        gl::viewport(viewport.x, viewport.y, viewport.w, viewport.h);
-        let mut mask = 0;
-        if let Some(color) = clear.color {
-            gl::clear_color(color[0], color[1], color[2], color[3]);
-            mask |= gl::COLOR_BUFFER_BIT;
-        }
-        if mask != 0 {
-            gl::clear(mask);
-        }
+        self.render_targets
+            .get(idx)
+            .and_then(|t| t.colors.get(index).copied())
     }
 
     fn delete_render_target(&mut self, rt: RenderTargetId) {

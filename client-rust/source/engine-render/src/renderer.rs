@@ -14,13 +14,13 @@ use crate::components::{
     CamTarget, Camera, CompositeQuad, DirectionalLight, MeshRenderer, PointLight, Projection,
     RectNorm, TextOverlay, Transform,
 };
+use crate::gi::{GiOccluder, GiVolume, GiWorkCounters};
 use crate::gpu::{
-    BufferId, BufferUsage, ClearSpec, Cull, Filter, GpuCaps, Gpu, MrtDesc, PassTarget,
-    PipelineState, ProgramId, RectPx, RenderTargetDesc, RenderTargetId, TextureDesc,
-    TextureFormat, Uniform, UniformValue, MESH_LAYOUT, PARTICLE_LAYOUT,
-    POINT_LIGHT_INSTANCE_LAYOUT, QUAD_LAYOUT, SKINNED_MESH_LAYOUT, UI_LAYOUT,
+    BufferId, BufferUsage, ClearSpec, Cull, Filter, Gpu, GpuCaps, MrtDesc, PassTarget,
+    PipelineState, ProgramId, RectPx, RenderTargetDesc, RenderTargetId, TextureDesc, TextureFormat,
+    Uniform, UniformValue, MESH_LAYOUT, PARTICLE_LAYOUT, POINT_LIGHT_INSTANCE_LAYOUT, QUAD_LAYOUT,
+    SKINNED_MESH_LAYOUT, UI_LAYOUT,
 };
-use crate::gi::{GiOccluder, GiVolume};
 use crate::text;
 
 /// Render quality tier. Presets over ONE deferred code path (shadow filtering,
@@ -134,7 +134,13 @@ struct Grade {
 
 impl Default for Grade {
     fn default() -> Self {
-        Self { bone_tint: [1.0, 1.0, 1.0], desaturate: 0.0, scene_darken: 1.0, black_lift: 0.0, bloom: 0.0 }
+        Self {
+            bone_tint: [1.0, 1.0, 1.0],
+            desaturate: 0.0,
+            scene_darken: 1.0,
+            black_lift: 0.0,
+            bloom: 0.0,
+        }
     }
 }
 
@@ -150,6 +156,7 @@ pub struct Renderer {
     mesh_prog: ProgramId,
     mesh_skinned_prog: ProgramId,
     depth_prog: ProgramId,
+    depth_skinned_prog: ProgramId,
     composite_prog: ProgramId,
     text_prog: ProgramId,
     // Deferred programs.
@@ -158,7 +165,6 @@ pub struct Renderer {
     light_prog: ProgramId,
     tonemap_prog: ProgramId,
     point_light_prog: ProgramId,
-    inject_prog: ProgramId,
     shadow_rt: RenderTargetId,
     ui_prog: ProgramId,
     ui_buf: BufferId,
@@ -215,6 +221,14 @@ impl Renderer {
             include_str!("../../../assets/shaders/depth.vert"),
             include_str!("../../../assets/shaders/depth.frag"),
         );
+        let depth_skin_src = alloc::format!(
+            "#define SKINNED 1\n{}",
+            include_str!("../../../assets/shaders/depth.vert")
+        );
+        let depth_skinned_prog = gpu.create_program(
+            &depth_skin_src,
+            include_str!("../../../assets/shaders/depth.frag"),
+        );
         let composite_prog = gpu.create_program(
             include_str!("../../../assets/shaders/composite.vert"),
             include_str!("../../../assets/shaders/composite.frag"),
@@ -267,10 +281,6 @@ impl Renderer {
             include_str!("../../../assets/shaders/point_light.vert"),
             include_str!("../../../assets/shaders/point_light.frag"),
         );
-        let inject_prog = gpu.create_program(
-            include_str!("../../../assets/shaders/post.vert"),
-            include_str!("../../../assets/shaders/voxel_inject.frag"),
-        );
         let shadow_size = q.shadow_size();
         let shadow_rt = gpu.create_render_target(&RenderTargetDesc {
             width: shadow_size,
@@ -292,12 +302,17 @@ impl Renderer {
         let pl_ebo = gpu.create_index_buffer(u32_bytes(&pl_indices), BufferUsage::Static);
         let pl_inst_seed = alloc::vec![0u8; 256 * 8 * 4];
         let pl_inst_buf = gpu.create_buffer(&pl_inst_seed, BufferUsage::Dynamic);
-        let gi = if q.gi_cones() > 0 { Some(GiVolume::new(gpu)) } else { None };
+        let gi = if q.gi_cones() > 0 {
+            Some(GiVolume::new(gpu))
+        } else {
+            None
+        };
         let caps = gpu.caps();
         Self {
             mesh_prog,
             mesh_skinned_prog,
             depth_prog,
+            depth_skinned_prog,
             composite_prog,
             text_prog,
             gbuffer_prog,
@@ -305,7 +320,6 @@ impl Renderer {
             light_prog,
             tonemap_prog,
             point_light_prog,
-            inject_prog,
             shadow_rt,
             ui_prog,
             ui_buf,
@@ -348,7 +362,12 @@ impl Renderer {
     /// the UI pass samples. Call once at load.
     pub fn set_ui_atlas<G: Gpu>(&mut self, gpu: &mut G, width: u32, height: u32, rgba: &[u8]) {
         let tex = gpu.create_texture(
-            &TextureDesc { width, height, format: TextureFormat::Rgba8, filter: Filter::Linear },
+            &TextureDesc {
+                width,
+                height,
+                format: TextureFormat::Rgba8,
+                filter: Filter::Linear,
+            },
             Some(rgba),
         );
         self.ui_atlas = Some(tex);
@@ -357,7 +376,14 @@ impl Renderer {
     /// Draw an immediate-mode UI vertex buffer (`UI_LAYOUT`, NDC) over the
     /// current framebuffer with alpha blending. `quads` is the quad count
     /// (`buf` holds `quads * 6 * 8` floats). No-op until an atlas is uploaded.
-    pub fn render_ui<G: Gpu>(&mut self, gpu: &mut G, buf: &[f32], quads: u32, screen_w: u32, screen_h: u32) {
+    pub fn render_ui<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        buf: &[f32],
+        quads: u32,
+        screen_w: u32,
+        screen_h: u32,
+    ) {
         if quads == 0 {
             return;
         }
@@ -367,7 +393,12 @@ impl Renderer {
         };
         gpu.begin_pass(
             PassTarget::Screen,
-            RectPx { x: 0, y: 0, w: screen_w as i32, h: screen_h as i32 },
+            RectPx {
+                x: 0,
+                y: 0,
+                w: screen_w as i32,
+                h: screen_h as i32,
+            },
             ClearSpec::default(),
         );
         gpu.set_pipeline(
@@ -383,7 +414,10 @@ impl Renderer {
         );
         gpu.bind_texture(0, atlas);
         self.uniforms.clear();
-        self.uniforms.push(Uniform { name: "u_atlas", value: UniformValue::Sampler(0) });
+        self.uniforms.push(Uniform {
+            name: "u_atlas",
+            value: UniformValue::Sampler(0),
+        });
         gpu.set_uniforms(&self.uniforms);
         gpu.update_buffer(self.ui_buf, f32_bytes(buf));
         gpu.draw(self.ui_buf, None, &UI_LAYOUT, quads * 6);
@@ -391,9 +425,20 @@ impl Renderer {
     }
 
     /// Upload the shared glow sprite (RGBA8) the particle pass samples.
-    pub fn set_particle_atlas<G: Gpu>(&mut self, gpu: &mut G, width: u32, height: u32, rgba: &[u8]) {
+    pub fn set_particle_atlas<G: Gpu>(
+        &mut self,
+        gpu: &mut G,
+        width: u32,
+        height: u32,
+        rgba: &[u8],
+    ) {
         let tex = gpu.create_texture(
-            &TextureDesc { width, height, format: TextureFormat::Rgba8, filter: Filter::Linear },
+            &TextureDesc {
+                width,
+                height,
+                format: TextureFormat::Rgba8,
+                filter: Filter::Linear,
+            },
             Some(rgba),
         );
         self.particle_tex = Some(tex);
@@ -422,7 +467,12 @@ impl Renderer {
         };
         gpu.begin_pass(
             PassTarget::Screen,
-            RectPx { x: 0, y: 0, w: screen_w as i32, h: screen_h as i32 },
+            RectPx {
+                x: 0,
+                y: 0,
+                w: screen_w as i32,
+                h: screen_h as i32,
+            },
             ClearSpec::default(),
         );
         gpu.set_pipeline(
@@ -438,8 +488,14 @@ impl Renderer {
         );
         gpu.bind_texture(0, tex);
         self.uniforms.clear();
-        self.uniforms.push(Uniform { name: "u_tex", value: UniformValue::Sampler(0) });
-        self.uniforms.push(Uniform { name: "u_viewProj", value: UniformValue::Mat4(*view_proj) });
+        self.uniforms.push(Uniform {
+            name: "u_tex",
+            value: UniformValue::Sampler(0),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_viewProj",
+            value: UniformValue::Mat4(*view_proj),
+        });
         gpu.set_uniforms(&self.uniforms);
         gpu.update_buffer(self.particle_buf, f32_bytes(buf));
         gpu.draw(self.particle_buf, None, &PARTICLE_LAYOUT, quads * 6);
@@ -456,7 +512,13 @@ impl Renderer {
         black_lift: f32,
         bloom: f32,
     ) {
-        self.grade = Grade { bone_tint, desaturate, scene_darken, black_lift, bloom };
+        self.grade = Grade {
+            bone_tint,
+            desaturate,
+            scene_darken,
+            black_lift,
+            bloom,
+        };
     }
 
     /// Set the flat per-biome ground albedo the GI volume voxelizes (no-op below
@@ -472,6 +534,23 @@ impl Renderer {
         if let Some(gi) = self.gi.as_mut() {
             gi.set_occluders(occ);
         }
+    }
+
+    /// Set world-space GI coverage focus. Render cameras never imply GI focus.
+    pub fn gi_set_focus(&mut self, focus: [f32; 3]) {
+        if let Some(gi) = self.gi.as_mut() {
+            gi.set_focus(focus);
+        }
+    }
+
+    pub fn gi_work_counters(&self) -> GiWorkCounters {
+        self.gi
+            .as_ref()
+            .map_or_else(GiWorkCounters::default, GiVolume::counters)
+    }
+
+    pub fn gi_is_idle(&self) -> bool {
+        self.gi.as_ref().is_none_or(GiVolume::is_idle)
     }
 
     /// Upload an indexed mesh (vertex format `MESH_LAYOUT`). Returns a handle
@@ -535,7 +614,12 @@ impl Renderer {
         metallic: f32,
         roughness: f32,
     ) -> crate::components::MaterialId {
-        self.materials.push(Material { color: rgba, tex: None, metallic, roughness });
+        self.materials.push(Material {
+            color: rgba,
+            tex: None,
+            metallic,
+            roughness,
+        });
         crate::components::MaterialId((self.materials.len() - 1) as u32)
     }
 
@@ -564,10 +648,20 @@ impl Renderer {
         roughness: f32,
     ) -> crate::components::MaterialId {
         let tex = gpu.create_texture(
-            &crate::gpu::TextureDesc { width, height, format: crate::gpu::TextureFormat::Rgba8, filter },
+            &crate::gpu::TextureDesc {
+                width,
+                height,
+                format: crate::gpu::TextureFormat::Rgba8,
+                filter,
+            },
             Some(rgba),
         );
-        self.materials.push(Material { color: [1.0, 1.0, 1.0, 1.0], tex: Some(tex), metallic, roughness });
+        self.materials.push(Material {
+            color: [1.0, 1.0, 1.0, 1.0],
+            tex: Some(tex),
+            metallic,
+            roughness,
+        });
         crate::components::MaterialId((self.materials.len() - 1) as u32)
     }
 
@@ -629,31 +723,44 @@ impl Renderer {
                 .find(|c| matches!(c.target, CamTarget::Screen(_)))
                 .map(|c| c.look_at)
                 .unwrap_or(Vec3::ZERO);
-            self.shadow_view_proj =
-                light_view_proj(light.dir, center, self.shadow_world_radius, self.shadow_size);
+            self.shadow_view_proj = light_view_proj(
+                light.dir,
+                center,
+                self.shadow_world_radius,
+                self.shadow_size,
+            );
             gpu.begin_pass(
                 PassTarget::RenderTarget(self.shadow_rt),
-                RectPx { x: 0, y: 0, w: self.shadow_size as i32, h: self.shadow_size as i32 },
-                ClearSpec { color: None, depth: Some(1.0) },
+                RectPx {
+                    x: 0,
+                    y: 0,
+                    w: self.shadow_size as i32,
+                    h: self.shadow_size as i32,
+                },
+                ClearSpec {
+                    color: None,
+                    depth: Some(1.0),
+                },
             );
-            gpu.set_pipeline(
-                self.depth_prog,
-                &PipelineState {
+            let depth_state = PipelineState {
                     depth_test: true,
                     depth_write: true,
                     cull: Cull::Front,
                     color_write: false,
                     blend: false,
                     additive: false,
-                },
-            );
+            };
             self.uniforms.clear();
             self.uniforms.push(Uniform {
                 name: "u_lightViewProj",
                 value: UniformValue::Mat4(self.shadow_view_proj),
             });
+            gpu.set_pipeline(self.depth_prog, &depth_state);
             gpu.set_uniforms(&self.uniforms);
             self.draw_all_meshes(gpu, world, DrawMode::Depth, 0, false);
+            gpu.set_pipeline(self.depth_skinned_prog, &depth_state);
+            gpu.set_uniforms(&self.uniforms);
+            self.draw_all_meshes(gpu, world, DrawMode::Depth, 0, true);
             gpu.end_pass();
         }
 
@@ -663,22 +770,14 @@ impl Renderer {
             .iter()
             .position(|c| matches!(c.target, CamTarget::Screen(_)));
 
-        if let Some(di) = deferred_idx {
+        if deferred_idx.is_some() {
             self.ensure_screen_targets(gpu, screen_w, screen_h);
-            // --- VXGI update: recenter + amortized voxelize + sun injection ---
-            if self.gi.is_some() {
-                if let Some(depth_tex) = gpu.render_target_depth(self.shadow_rt) {
-                    let look = self.cameras[di].look_at;
+            // GI update is driven only by explicit world focus and static scene
+            // inputs. Camera/view changes cannot invalidate the volume.
                     let ld = main_light.map(|l| l.dir).unwrap_or(DEFAULT_LIGHT_DIR);
                     let lc = main_light.map(|l| l.color).unwrap_or([1.0, 1.0, 1.0]);
-                    let lvp = self.shadow_view_proj;
-                    let inj = self.inject_prog;
                     if let Some(gi) = self.gi.as_mut() {
-                        gi.recenter([look.x, look.y, look.z]);
-                        gi.step_voxelize(gpu, 8);
-                        gi.step_inject(gpu, inj, depth_tex, &lvp, [ld.x, ld.y, ld.z], lc, 16);
-                    }
-                }
+                gi.step(gpu, [ld.x, ld.y, ld.z], lc);
             }
         }
 
@@ -700,7 +799,10 @@ impl Renderer {
 
     /// (Re)create the G-buffer and HDR scene targets when missing or resized.
     fn ensure_screen_targets<G: Gpu>(&mut self, gpu: &mut G, w: u32, h: u32) {
-        let need = self.gbuffer_rt.as_ref().map_or(true, |s| s.w != w || s.h != h);
+        let need = self
+            .gbuffer_rt
+            .as_ref()
+            .map_or(true, |s| s.w != w || s.h != h);
         if !need {
             return;
         }
@@ -717,7 +819,11 @@ impl Renderer {
             depth: true,
         });
         let hdr = self.caps.half_float_target && self.quality != RenderQuality::Low;
-        let scene_fmt: &'static [TextureFormat] = if hdr { &SCENE_HDR_FORMATS } else { &SCENE_LDR_FORMATS };
+        let scene_fmt: &'static [TextureFormat] = if hdr {
+            &SCENE_HDR_FORMATS
+        } else {
+            &SCENE_LDR_FORMATS
+        };
         let scene = gpu.create_render_target_mrt(&MrtDesc {
             width: w,
             height: h,
@@ -750,13 +856,22 @@ impl Renderer {
             _ => return,
         };
         let vp = viewport_px(rect, screen_w, screen_h);
-        let aspect = if vp.h != 0 { vp.w as f32 / vp.h as f32 } else { 1.0 };
+        let aspect = if vp.h != 0 {
+            vp.w as f32 / vp.h as f32
+        } else {
+            1.0
+        };
         let view = Mat4::look_at(cam.eye, cam.look_at, cam.up);
         let proj = projection_matrix(cam.projection, aspect);
         let vp_mat = proj.mul(view);
         let view_proj = vp_mat.to_cols_array();
         let inv_view_proj = vp_mat.inverse().to_cols_array();
-        let full = RectPx { x: 0, y: 0, w: gw as i32, h: gh as i32 };
+        let full = RectPx {
+            x: 0,
+            y: 0,
+            w: gw as i32,
+            h: gh as i32,
+        };
         let ld = main_light.map(|l| l.dir).unwrap_or(DEFAULT_LIGHT_DIR);
         let lc = main_light.map(|l| l.color).unwrap_or([1.0, 1.0, 1.0]);
 
@@ -765,18 +880,33 @@ impl Renderer {
         gpu.begin_pass(
             PassTarget::RenderTarget(gb_rt),
             full,
-            ClearSpec { color: Some(clear_color), depth: Some(1.0) },
+            ClearSpec {
+                color: Some(clear_color),
+                depth: Some(1.0),
+            },
         );
         gpu.set_pipeline(self.gbuffer_prog, &PipelineState::default());
         self.uniforms.clear();
-        self.uniforms.push(Uniform { name: "u_viewProj", value: UniformValue::Mat4(view_proj) });
-        self.uniforms.push(Uniform { name: "u_albedo", value: UniformValue::Sampler(0) });
+        self.uniforms.push(Uniform {
+            name: "u_viewProj",
+            value: UniformValue::Mat4(view_proj),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_albedo",
+            value: UniformValue::Sampler(0),
+        });
         gpu.set_uniforms(&self.uniforms);
         self.draw_all_meshes(gpu, world, DrawMode::GBuffer, cam.viewport_id, false);
         gpu.set_pipeline(self.gbuffer_skinned_prog, &PipelineState::default());
         self.uniforms.clear();
-        self.uniforms.push(Uniform { name: "u_viewProj", value: UniformValue::Mat4(view_proj) });
-        self.uniforms.push(Uniform { name: "u_albedo", value: UniformValue::Sampler(0) });
+        self.uniforms.push(Uniform {
+            name: "u_viewProj",
+            value: UniformValue::Mat4(view_proj),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_albedo",
+            value: UniformValue::Sampler(0),
+        });
         gpu.set_uniforms(&self.uniforms);
         self.draw_all_meshes(gpu, world, DrawMode::GBuffer, cam.viewport_id, true);
         gpu.end_pass();
@@ -785,68 +915,210 @@ impl Renderer {
         gpu.begin_pass(
             PassTarget::RenderTarget(scene_rt),
             full,
-            ClearSpec { color: Some([0.0, 0.0, 0.0, 1.0]), depth: None },
+            ClearSpec {
+                color: Some([0.0, 0.0, 0.0, 1.0]),
+                depth: None,
+            },
         );
         gpu.set_pipeline(
             self.light_prog,
-            &PipelineState { depth_test: false, depth_write: false, cull: Cull::None, color_write: true, blend: false, additive: false },
+            &PipelineState {
+                depth_test: false,
+                depth_write: false,
+                cull: Cull::None,
+                color_write: true,
+                blend: false,
+                additive: false,
+            },
         );
-        if let Some(t) = gpu.render_target_color_n(gb_rt, 0) { gpu.bind_texture(0, t); }
-        if let Some(t) = gpu.render_target_color_n(gb_rt, 1) { gpu.bind_texture(1, t); }
-        if let Some(t) = gpu.render_target_depth(gb_rt) { gpu.bind_texture(2, t); }
-        if let Some(t) = gpu.render_target_depth(self.shadow_rt) { gpu.bind_texture(3, t); }
-        let gi_origin = self.gi.as_ref().map(|g| g.origin()).unwrap_or([0.0, 0.0, 0.0]);
+        if let Some(t) = gpu.render_target_color_n(gb_rt, 0) {
+            gpu.bind_texture(0, t);
+        }
+        if let Some(t) = gpu.render_target_color_n(gb_rt, 1) {
+            gpu.bind_texture(1, t);
+        }
+        if let Some(t) = gpu.render_target_depth(gb_rt) {
+            gpu.bind_texture(2, t);
+        }
+        if let Some(t) = gpu.render_target_depth(self.shadow_rt) {
+            gpu.bind_texture(3, t);
+        }
+        let gi_binding = self.gi.as_ref().and_then(GiVolume::binding);
         if let Some(gi) = self.gi.as_ref() {
-            gpu.bind_texture_3d(4, gi.radiance());
+            gpu.bind_texture_3d(4, gi.radiance_texture());
         }
         let world_texel = 2.0 * self.shadow_world_radius / self.shadow_size as f32;
         self.uniforms.clear();
-        self.uniforms.push(Uniform { name: "u_gb0", value: UniformValue::Sampler(0) });
-        self.uniforms.push(Uniform { name: "u_gb1", value: UniformValue::Sampler(1) });
-        self.uniforms.push(Uniform { name: "u_depth", value: UniformValue::Sampler(2) });
-        self.uniforms.push(Uniform { name: "u_shadowMap", value: UniformValue::Sampler(3) });
-        self.uniforms.push(Uniform { name: "u_gi", value: UniformValue::Sampler(4) });
-        self.uniforms.push(Uniform { name: "u_invViewProj", value: UniformValue::Mat4(inv_view_proj) });
-        self.uniforms.push(Uniform { name: "u_lightViewProj", value: UniformValue::Mat4(self.shadow_view_proj) });
-        self.uniforms.push(Uniform { name: "u_lightDir", value: UniformValue::Vec3([ld.x, ld.y, ld.z]) });
-        self.uniforms.push(Uniform { name: "u_lightColor", value: UniformValue::Vec3(lc) });
-        self.uniforms.push(Uniform { name: "u_camEye", value: UniformValue::Vec3([cam.eye.x, cam.eye.y, cam.eye.z]) });
-        self.uniforms.push(Uniform { name: "u_ambient", value: UniformValue::Float(self.ambient) });
-        self.uniforms.push(Uniform { name: "u_fogColor", value: UniformValue::Vec3(self.fog_color) });
-        self.uniforms.push(Uniform { name: "u_fogNear", value: UniformValue::Float(self.fog_near) });
-        self.uniforms.push(Uniform { name: "u_fogFar", value: UniformValue::Float(self.fog_far) });
-        self.uniforms.push(Uniform { name: "u_shadowTexelUV", value: UniformValue::Float(1.0 / self.shadow_size as f32) });
-        self.uniforms.push(Uniform { name: "u_shadowWorldTexel", value: UniformValue::Float(world_texel) });
-        self.uniforms.push(Uniform { name: "u_sunPenumbraScale", value: UniformValue::Float(40.0) });
-        self.uniforms.push(Uniform { name: "u_giOrigin", value: UniformValue::Vec3(gi_origin) });
-        self.uniforms.push(Uniform { name: "u_giCell", value: UniformValue::Float(crate::gi::GI_CELL) });
-        self.uniforms.push(Uniform { name: "u_giStrength", value: UniformValue::Float(1.4) });
-        self.uniforms.push(Uniform { name: "u_exposure", value: UniformValue::Float(self.exposure) });
+        self.uniforms.push(Uniform {
+            name: "u_gb0",
+            value: UniformValue::Sampler(0),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_gb1",
+            value: UniformValue::Sampler(1),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_depth",
+            value: UniformValue::Sampler(2),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_shadowMap",
+            value: UniformValue::Sampler(3),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_gi",
+            value: UniformValue::Sampler(4),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_invViewProj",
+            value: UniformValue::Mat4(inv_view_proj),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_lightViewProj",
+            value: UniformValue::Mat4(self.shadow_view_proj),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_lightDir",
+            value: UniformValue::Vec3([ld.x, ld.y, ld.z]),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_lightColor",
+            value: UniformValue::Vec3(lc),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_camEye",
+            value: UniformValue::Vec3([cam.eye.x, cam.eye.y, cam.eye.z]),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_ambient",
+            value: UniformValue::Float(self.ambient),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_fogColor",
+            value: UniformValue::Vec3(self.fog_color),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_fogNear",
+            value: UniformValue::Float(self.fog_near),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_fogFar",
+            value: UniformValue::Float(self.fog_far),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_shadowTexelUV",
+            value: UniformValue::Float(1.0 / self.shadow_size as f32),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_shadowWorldTexel",
+            value: UniformValue::Float(world_texel),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_sunPenumbraScale",
+            value: UniformValue::Float(40.0),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_giReady",
+            value: UniformValue::Int(if gi_binding.is_some() { 1 } else { 0 }),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_giOrigin",
+            value: UniformValue::Vec3(gi_binding.map_or([0.0; 3], |b| b.origin)),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_giValidMin",
+            value: UniformValue::Vec3(gi_binding.map_or([0.0; 3], |b| b.valid_min)),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_giValidMax",
+            value: UniformValue::Vec3(gi_binding.map_or([0.0; 3], |b| b.valid_max)),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_giBlend",
+            value: UniformValue::Float(gi_binding.map_or(0.0, |b| b.blend)),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_giCell",
+            value: UniformValue::Float(crate::gi::GI_CELL),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_giStrength",
+            value: UniformValue::Float(1.4),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_exposure",
+            value: UniformValue::Float(self.exposure),
+        });
         gpu.set_uniforms(&self.uniforms);
         self.draw_fullscreen(gpu);
         gpu.end_pass();
 
         // --- point-light volumes (additive into the HDR scene target) ---
-        self.point_light_pass(gpu, world, scene_rt, full, &view_proj, &inv_view_proj, cam.eye, gw, gh);
+        self.point_light_pass(
+            gpu,
+            world,
+            scene_rt,
+            full,
+            &view_proj,
+            &inv_view_proj,
+            cam.eye,
+            gw,
+            gh,
+        );
 
         // --- tonemap + grade → screen (restores scene depth for particles) ---
         gpu.begin_pass(PassTarget::Screen, vp, ClearSpec::default());
         gpu.set_pipeline(
             self.tonemap_prog,
-            &PipelineState { depth_test: false, depth_write: true, cull: Cull::None, color_write: true, blend: false, additive: false },
+            &PipelineState {
+                depth_test: false,
+                depth_write: true,
+                cull: Cull::None,
+                color_write: true,
+                blend: false,
+                additive: false,
+            },
         );
-        if let Some(t) = gpu.render_target_color(scene_rt) { gpu.bind_texture(0, t); }
-        if let Some(t) = gpu.render_target_depth(gb_rt) { gpu.bind_texture(1, t); }
+        if let Some(t) = gpu.render_target_color(scene_rt) {
+            gpu.bind_texture(0, t);
+        }
+        if let Some(t) = gpu.render_target_depth(gb_rt) {
+            gpu.bind_texture(1, t);
+        }
         let g = self.grade;
         self.uniforms.clear();
-        self.uniforms.push(Uniform { name: "u_scene", value: UniformValue::Sampler(0) });
-        self.uniforms.push(Uniform { name: "u_depth", value: UniformValue::Sampler(1) });
-        self.uniforms.push(Uniform { name: "u_boneTint", value: UniformValue::Vec3(g.bone_tint) });
-        self.uniforms.push(Uniform { name: "u_desaturate", value: UniformValue::Float(g.desaturate) });
-        self.uniforms.push(Uniform { name: "u_sceneDarken", value: UniformValue::Float(g.scene_darken) });
-        self.uniforms.push(Uniform { name: "u_blackLift", value: UniformValue::Float(g.black_lift) });
-        self.uniforms.push(Uniform { name: "u_bloom", value: UniformValue::Float(g.bloom) });
-        self.uniforms.push(Uniform { name: "u_invExposure", value: UniformValue::Float(1.0 / self.exposure) });
+        self.uniforms.push(Uniform {
+            name: "u_scene",
+            value: UniformValue::Sampler(0),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_depth",
+            value: UniformValue::Sampler(1),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_boneTint",
+            value: UniformValue::Vec3(g.bone_tint),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_desaturate",
+            value: UniformValue::Float(g.desaturate),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_sceneDarken",
+            value: UniformValue::Float(g.scene_darken),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_blackLift",
+            value: UniformValue::Float(g.black_lift),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_bloom",
+            value: UniformValue::Float(g.bloom),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_invExposure",
+            value: UniformValue::Float(1.0 / self.exposure),
+        });
         gpu.set_uniforms(&self.uniforms);
         self.draw_fullscreen(gpu);
         gpu.end_pass();
@@ -875,8 +1147,14 @@ impl Renderer {
                     break;
                 }
                 self.pl_scratch.extend_from_slice(&[
-                    tr.pos.x, tr.pos.y, tr.pos.z, pl.radius,
-                    pl.color[0], pl.color[1], pl.color[2], pl.intensity,
+                    tr.pos.x,
+                    tr.pos.y,
+                    tr.pos.z,
+                    pl.radius,
+                    pl.color[0],
+                    pl.color[1],
+                    pl.color[2],
+                    pl.intensity,
                 ]);
                 count += 1;
             }
@@ -884,23 +1162,64 @@ impl Renderer {
         if count == 0 {
             return;
         }
-        gpu.begin_pass(PassTarget::RenderTarget(scene_rt), full, ClearSpec::default());
+        gpu.begin_pass(
+            PassTarget::RenderTarget(scene_rt),
+            full,
+            ClearSpec::default(),
+        );
         gpu.set_pipeline(
             self.point_light_prog,
-            &PipelineState { depth_test: false, depth_write: false, cull: Cull::Front, color_write: true, blend: true, additive: true },
+            &PipelineState {
+                depth_test: false,
+                depth_write: false,
+                cull: Cull::Front,
+                color_write: true,
+                blend: true,
+                additive: true,
+            },
         );
-        if let Some(t) = gpu.render_target_color_n(self.gbuffer_rt.as_ref().unwrap().rt, 0) { gpu.bind_texture(0, t); }
-        if let Some(t) = gpu.render_target_color_n(self.gbuffer_rt.as_ref().unwrap().rt, 1) { gpu.bind_texture(1, t); }
-        if let Some(t) = gpu.render_target_depth(self.gbuffer_rt.as_ref().unwrap().rt) { gpu.bind_texture(2, t); }
+        if let Some(t) = gpu.render_target_color_n(self.gbuffer_rt.as_ref().unwrap().rt, 0) {
+            gpu.bind_texture(0, t);
+        }
+        if let Some(t) = gpu.render_target_color_n(self.gbuffer_rt.as_ref().unwrap().rt, 1) {
+            gpu.bind_texture(1, t);
+        }
+        if let Some(t) = gpu.render_target_depth(self.gbuffer_rt.as_ref().unwrap().rt) {
+            gpu.bind_texture(2, t);
+        }
         self.uniforms.clear();
-        self.uniforms.push(Uniform { name: "u_viewProj", value: UniformValue::Mat4(*view_proj) });
-        self.uniforms.push(Uniform { name: "u_invViewProj", value: UniformValue::Mat4(*inv_view_proj) });
-        self.uniforms.push(Uniform { name: "u_gb0", value: UniformValue::Sampler(0) });
-        self.uniforms.push(Uniform { name: "u_gb1", value: UniformValue::Sampler(1) });
-        self.uniforms.push(Uniform { name: "u_depth", value: UniformValue::Sampler(2) });
-        self.uniforms.push(Uniform { name: "u_camEye", value: UniformValue::Vec3([cam_eye.x, cam_eye.y, cam_eye.z]) });
-        self.uniforms.push(Uniform { name: "u_screenSize", value: UniformValue::Vec4([gw as f32, gh as f32, 0.0, 0.0]) });
-        self.uniforms.push(Uniform { name: "u_exposure", value: UniformValue::Float(self.exposure) });
+        self.uniforms.push(Uniform {
+            name: "u_viewProj",
+            value: UniformValue::Mat4(*view_proj),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_invViewProj",
+            value: UniformValue::Mat4(*inv_view_proj),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_gb0",
+            value: UniformValue::Sampler(0),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_gb1",
+            value: UniformValue::Sampler(1),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_depth",
+            value: UniformValue::Sampler(2),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_camEye",
+            value: UniformValue::Vec3([cam_eye.x, cam_eye.y, cam_eye.z]),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_screenSize",
+            value: UniformValue::Vec4([gw as f32, gh as f32, 0.0, 0.0]),
+        });
+        self.uniforms.push(Uniform {
+            name: "u_exposure",
+            value: UniformValue::Float(self.exposure),
+        });
         gpu.set_uniforms(&self.uniforms);
         gpu.update_buffer(self.pl_inst_buf, f32_bytes(&self.pl_scratch));
         gpu.draw_instanced(
@@ -931,10 +1250,19 @@ impl Renderer {
             CamTarget::Screen(rect) => (PassTarget::Screen, viewport_px(rect, screen_w, screen_h)),
             CamTarget::Texture(rt) => (
                 PassTarget::RenderTarget(rt),
-                RectPx { x: 0, y: 0, w: rt_side(screen_w), h: rt_side(screen_w) },
+                RectPx {
+                    x: 0,
+                    y: 0,
+                    w: rt_side(screen_w),
+                    h: rt_side(screen_w),
+                },
             ),
         };
-        let aspect = if vp.h != 0 { vp.w as f32 / vp.h as f32 } else { 1.0 };
+        let aspect = if vp.h != 0 {
+            vp.w as f32 / vp.h as f32
+        } else {
+            1.0
+        };
         let view = Mat4::look_at(cam.eye, cam.look_at, cam.up);
         let proj = projection_matrix(cam.projection, aspect);
         let view_proj = proj.mul(view).to_cols_array();
@@ -945,18 +1273,54 @@ impl Renderer {
         for (prog, skinned) in [(self.mesh_prog, false), (self.mesh_skinned_prog, true)] {
             gpu.set_pipeline(prog, &PipelineState::default());
             self.uniforms.clear();
-            self.uniforms.push(Uniform { name: "u_viewProj", value: UniformValue::Mat4(view_proj) });
-            self.uniforms.push(Uniform { name: "u_lightViewProj", value: UniformValue::Mat4(self.shadow_view_proj) });
-            self.uniforms.push(Uniform { name: "u_lightDir", value: UniformValue::Vec3([ld.x, ld.y, ld.z]) });
-            self.uniforms.push(Uniform { name: "u_lightColor", value: UniformValue::Vec3(lc) });
-            self.uniforms.push(Uniform { name: "u_ambient", value: UniformValue::Float(self.ambient) });
-            self.uniforms.push(Uniform { name: "u_shadowMap", value: UniformValue::Sampler(0) });
-            self.uniforms.push(Uniform { name: "u_useShadow", value: UniformValue::Int(if use_shadow { 1 } else { 0 }) });
-            self.uniforms.push(Uniform { name: "u_albedo", value: UniformValue::Sampler(1) });
-            self.uniforms.push(Uniform { name: "u_camEye", value: UniformValue::Vec3([cam.eye.x, cam.eye.y, cam.eye.z]) });
-            self.uniforms.push(Uniform { name: "u_fogColor", value: UniformValue::Vec3(self.fog_color) });
-            self.uniforms.push(Uniform { name: "u_fogNear", value: UniformValue::Float(self.fog_near) });
-            self.uniforms.push(Uniform { name: "u_fogFar", value: UniformValue::Float(self.fog_far) });
+            self.uniforms.push(Uniform {
+                name: "u_viewProj",
+                value: UniformValue::Mat4(view_proj),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_lightViewProj",
+                value: UniformValue::Mat4(self.shadow_view_proj),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_lightDir",
+                value: UniformValue::Vec3([ld.x, ld.y, ld.z]),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_lightColor",
+                value: UniformValue::Vec3(lc),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_ambient",
+                value: UniformValue::Float(self.ambient),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_shadowMap",
+                value: UniformValue::Sampler(0),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_useShadow",
+                value: UniformValue::Int(if use_shadow { 1 } else { 0 }),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_albedo",
+                value: UniformValue::Sampler(1),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_camEye",
+                value: UniformValue::Vec3([cam.eye.x, cam.eye.y, cam.eye.z]),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_fogColor",
+                value: UniformValue::Vec3(self.fog_color),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_fogNear",
+                value: UniformValue::Float(self.fog_near),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_fogFar",
+                value: UniformValue::Float(self.fog_far),
+            });
             gpu.set_uniforms(&self.uniforms);
             if let Some(depth_tex) = gpu.render_target_depth(self.shadow_rt) {
                 gpu.bind_texture(0, depth_tex);
@@ -997,7 +1361,10 @@ impl Renderer {
             }
             let model = Mat4::from_trs(tr.pos, tr.rot, tr.scale).to_cols_array();
             self.uniforms.clear();
-            self.uniforms.push(Uniform { name: "u_model", value: UniformValue::Mat4(model) });
+            self.uniforms.push(Uniform {
+                name: "u_model",
+                value: UniformValue::Mat4(model),
+            });
             let mut albedo_tex = None;
             match mode {
                 DrawMode::Depth => {}
@@ -1005,7 +1372,10 @@ impl Renderer {
                     let mat = self.materials.get(mr.material.0 as usize).copied();
                     let color = mat.map(|m| m.color).unwrap_or([0.8, 0.8, 0.8, 1.0]);
                     albedo_tex = mat.and_then(|m| m.tex);
-                    self.uniforms.push(Uniform { name: "u_color", value: UniformValue::Vec4(color) });
+                    self.uniforms.push(Uniform {
+                        name: "u_color",
+                        value: UniformValue::Vec4(color),
+                    });
                     self.uniforms.push(Uniform {
                         name: "u_hasTex",
                         value: UniformValue::Int(if albedo_tex.is_some() { 1 } else { 0 }),
@@ -1017,26 +1387,51 @@ impl Renderer {
                     albedo_tex = mat.and_then(|m| m.tex);
                     let metallic = mat.map(|m| m.metallic).unwrap_or(0.0);
                     let roughness = mat.map(|m| m.roughness).unwrap_or(0.85);
-                    self.uniforms.push(Uniform { name: "u_color", value: UniformValue::Vec4(color) });
+                    self.uniforms.push(Uniform {
+                        name: "u_color",
+                        value: UniformValue::Vec4(color),
+                    });
                     self.uniforms.push(Uniform {
                         name: "u_hasTex",
                         value: UniformValue::Int(if albedo_tex.is_some() { 1 } else { 0 }),
                     });
-                    self.uniforms.push(Uniform { name: "u_metallic", value: UniformValue::Float(metallic) });
-                    self.uniforms.push(Uniform { name: "u_roughness", value: UniformValue::Float(roughness) });
+                    self.uniforms.push(Uniform {
+                        name: "u_metallic",
+                        value: UniformValue::Float(metallic),
+                    });
+                    self.uniforms.push(Uniform {
+                        name: "u_roughness",
+                        value: UniformValue::Float(roughness),
+                    });
                 }
             }
             gpu.set_uniforms(&self.uniforms);
             if let Some(tex) = albedo_tex {
-                gpu.bind_texture(if matches!(mode, DrawMode::GBuffer) { 0 } else { 1 }, tex);
+                gpu.bind_texture(
+                    if matches!(mode, DrawMode::GBuffer) {
+                        0
+                    } else {
+                        1
+                    },
+                    tex,
+                );
             }
             if want_skinned {
                 let o = mr.skin.offset as usize;
                 let c = mr.skin.count as usize;
-                if c > 0 && o + c <= self.skin_arena.len() {
-                    gpu.set_joints(&self.skin_arena[o..o + c]);
+                let Some(end) = o.checked_add(c) else {
+                    continue;
+                };
+                if c == 0 || end > self.skin_arena.len() {
+                    continue;
                 }
-                gpu.draw(mesh.vbo, Some(mesh.ebo), &SKINNED_MESH_LAYOUT, mesh.index_count);
+                gpu.set_joints(&self.skin_arena[o..end]);
+                gpu.draw(
+                    mesh.vbo,
+                    Some(mesh.ebo),
+                    &SKINNED_MESH_LAYOUT,
+                    mesh.index_count,
+                );
             } else {
                 gpu.draw(mesh.vbo, Some(mesh.ebo), &MESH_LAYOUT, mesh.index_count);
             }
@@ -1063,12 +1458,24 @@ impl Renderer {
         self.comp_quads.sort_by_key(|q| q.order);
         gpu.begin_pass(
             PassTarget::Screen,
-            RectPx { x: 0, y: 0, w: screen_w as i32, h: screen_h as i32 },
+            RectPx {
+                x: 0,
+                y: 0,
+                w: screen_w as i32,
+                h: screen_h as i32,
+            },
             ClearSpec::default(),
         );
         gpu.set_pipeline(
             self.composite_prog,
-            &PipelineState { depth_test: false, depth_write: false, cull: Cull::None, color_write: true, blend: false, additive: false },
+            &PipelineState {
+                depth_test: false,
+                depth_write: false,
+                cull: Cull::None,
+                color_write: true,
+                blend: false,
+                additive: false,
+            },
         );
         for i in 0..self.comp_quads.len() {
             let cq = self.comp_quads[i];
@@ -1079,7 +1486,10 @@ impl Renderer {
                 gpu.bind_texture(0, tex);
             }
             self.uniforms.clear();
-            self.uniforms.push(Uniform { name: "u_tex", value: UniformValue::Sampler(0) });
+            self.uniforms.push(Uniform {
+                name: "u_tex",
+                value: UniformValue::Sampler(0),
+            });
             gpu.set_uniforms(&self.uniforms);
             gpu.draw(self.dyn_buf, None, &QUAD_LAYOUT, 6);
         }
@@ -1112,19 +1522,32 @@ impl Renderer {
             self.quad.clear();
             let x_ndc = ov.pos.x * 2.0 - 1.0;
             let y_ndc = 1.0 - ov.pos.y * 2.0;
-            let n = text::push_text_quads(ov.as_str(), x_ndc, y_ndc, cell_w, cell_h, &mut self.quad);
+            let n =
+                text::push_text_quads(ov.as_str(), x_ndc, y_ndc, cell_w, cell_h, &mut self.quad);
             if n == 0 {
                 continue;
             }
             if !any {
                 gpu.begin_pass(
                     PassTarget::Screen,
-                    RectPx { x: 0, y: 0, w: screen_w as i32, h: screen_h as i32 },
+                    RectPx {
+                        x: 0,
+                        y: 0,
+                        w: screen_w as i32,
+                        h: screen_h as i32,
+                    },
                     ClearSpec::default(),
                 );
                 gpu.set_pipeline(
                     self.text_prog,
-                    &PipelineState { depth_test: false, depth_write: false, cull: Cull::None, color_write: true, blend: false, additive: false },
+                    &PipelineState {
+                        depth_test: false,
+                        depth_write: false,
+                        cull: Cull::None,
+                        color_write: true,
+                        blend: false,
+                        additive: false,
+                    },
                 );
                 any = true;
             }
@@ -1157,7 +1580,11 @@ enum DrawMode {
     GBuffer,
 }
 
-const DEFAULT_LIGHT_DIR: Vec3 = Vec3 { x: -0.4, y: -1.0, z: -0.3 };
+const DEFAULT_LIGHT_DIR: Vec3 = Vec3 {
+    x: -0.4,
+    y: -1.0,
+    z: -0.3,
+};
 
 /// Deferred target attachment format tables (`'static` for `MrtDesc::colors`).
 static GBUFFER_FORMATS: [TextureFormat; 2] = [TextureFormat::Rgba8, TextureFormat::Rgba8];
@@ -1173,7 +1600,11 @@ const FS_QUAD: [f32; 24] = [
 fn projection_matrix(p: Projection, aspect: f32) -> Mat4 {
     match p {
         Projection::Perspective { fovy, near, far } => Mat4::perspective(fovy, aspect, near, far),
-        Projection::Ortho { half_height, near, far } => {
+        Projection::Ortho {
+            half_height,
+            near,
+            far,
+        } => {
             let hw = half_height * aspect;
             Mat4::ortho(-hw, hw, -half_height, half_height, near, far)
         }
@@ -1183,7 +1614,15 @@ fn projection_matrix(p: Projection, aspect: f32) -> Mat4 {
 fn light_view_proj(dir: Vec3, center: Vec3, radius: f32, shadow_size: u32) -> [f32; 16] {
     let d = dir.normalize();
     let distance = radius * 2.0;
-    let up_ref = if d.y.abs() > 0.99 { Vec3 { x: 0.0, y: 0.0, z: 1.0 } } else { Vec3::Y };
+    let up_ref = if d.y.abs() > 0.99 {
+        Vec3 {
+            x: 0.0,
+            y: 0.0,
+            z: 1.0,
+        }
+    } else {
+        Vec3::Y
+    };
     // Texel-snap the center along the light's right/up axes to stabilize the map
     // (kills shadow shimmer as the camera moves).
     let right = d.cross(up_ref).normalize();
@@ -1196,7 +1635,14 @@ fn light_view_proj(dir: Vec3, center: Vec3, radius: f32, shadow_size: u32) -> [f
     let center = center.add(right.scale(sr - cr)).add(up.scale(su - cu));
     let eye = center.sub(d.scale(distance));
     let view = Mat4::look_at(eye, center, up);
-    let proj = Mat4::ortho(-radius, radius, -radius, radius, 0.1, distance + radius * 2.0);
+    let proj = Mat4::ortho(
+        -radius,
+        radius,
+        -radius,
+        radius,
+        0.1,
+        distance + radius * 2.0,
+    );
     proj.mul(view).to_cols_array()
 }
 

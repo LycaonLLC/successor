@@ -194,6 +194,7 @@ impl TerrainScene {
         // Demo-scale streaming (fast bake); production plugs config.terrain values.
         let mut streamer = TerrainStreamer::new(0x0d3d_071e, biome, 64.0, 128, 2, 0b1);
         let center = vec3(0.0, 0.0, 0.0);
+        renderer.gi_set_focus([center.x, center.y, center.z]);
         streamer.ensure_around(&mut world, &mut renderer, gpu, center.x as f64, center.z as f64);
 
         let sun = world.spawn();
