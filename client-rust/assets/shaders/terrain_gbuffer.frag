@@ -63,12 +63,13 @@ vec2 variantNormal(vec2 normalXy, float variant) {
 
 void sampleVariant(float surface, vec2 worldUv, vec2 cell, out vec3 albedo, out vec4 nrma) {
     vec2 random = hash2(cell + vec2(surface * 19.19, surface * 7.73));
-    float variant = min(floor(random.x * 4.0), 3.0);
-    vec2 uv = variantUv(worldUv + random.yx * 13.0, variant);
-    float layer = surface * 4.0 + variant;
+    float variant = min(floor(random.x * 8.0), 7.0);
+    float orientation = mod(variant, 4.0);
+    vec2 uv = variantUv(worldUv + random.yx * 23.0, orientation);
+    float layer = surface * 8.0 + variant;
     albedo = texture(u_terrainAlbedo, vec3(uv, layer)).rgb;
     nrma = texture(u_terrainNrma, vec3(uv, layer));
-    vec2 normalXy = variantNormal(nrma.rg * 2.0 - 1.0, variant);
+    vec2 normalXy = variantNormal(nrma.rg * 2.0 - 1.0, orientation);
     nrma.rg = normalXy * 0.5 + 0.5;
 }
 
@@ -113,16 +114,15 @@ void sampleSurface(float surface, vec2 worldUv, out vec3 albedo, out vec4 nrma) 
 }
 
 void main() {
-    // Renderer-global macro variation stays in world space. It cannot inherit
-    // chunk texture boundaries, while the streamed control map remains bound
-    // for classification/probes rather than final-color modulation.
-    float macroA = sin(dot(v_worldPos.xz, vec2(0.017, 0.011)) + 1.7);
-    float macroB = sin(dot(v_worldPos.xz, vec2(-0.009, 0.023)) - 0.8);
-    float macroC = sin(dot(v_worldPos.xz, vec2(0.031, -0.007)) + 2.9);
+    // Low-frequency nonperiodic world fields vary surface coverage without
+    // inheriting chunk boundaries or introducing a visible repeat interval.
+    float macroA = worldNoise(v_worldPos.xz * 0.025 + vec2(13.7, -5.1)) * 2.0 - 1.0;
+    float macroB = worldNoise(v_worldPos.xz * 0.055 + vec2(-8.3, 21.4)) * 2.0 - 1.0;
+    float macroC = worldNoise(v_worldPos.xz * 0.11 + vec2(37.1, 4.6)) * 2.0 - 1.0;
     vec3 weights = vec3(
-        0.62 + macroA * 0.18,
-        0.24 + macroB * 0.13,
-        0.14 + macroC * 0.10
+        0.45 + macroA * 0.40,
+        0.30 + macroB * 0.35,
+        0.25 + macroC * 0.30
     );
     weights = max(weights, vec3(0.03));
     weights /= dot(weights, vec3(1.0));
@@ -145,7 +145,7 @@ void main() {
     float microFade = 1.0 - smoothstep(35.0, 120.0, distance(v_worldPos, u_camEye));
     albedo *= 1.0 + microDetail * 0.16 * microFade;
 
-    float macroTint = 0.98 + (macroA + macroB * 0.6) * 0.025;
+    float macroTint = 1.0 + (macroA * 0.55 + macroB * 0.30 + macroC * 0.15) * 0.18;
     float detailFade = 1.0 - smoothstep(45.0, 150.0, distance(v_worldPos, u_camEye));
     vec2 normalXz = (nrma.rg * 2.0 - 1.0) * u_terrainNormalStrength * detailFade;
     vec3 worldNormal = normalize(vec3(normalXz.x, 1.0, normalXz.y));
