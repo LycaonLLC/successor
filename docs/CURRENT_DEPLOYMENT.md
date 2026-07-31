@@ -25,10 +25,10 @@ the public ALB. The host has no public SSH ingress. Operators reach it through
 SSM from Bunker; Bunker is a build, test, and operations host, not the public
 game host.
 
-The `client-rust/` graphical material-parity work verified in source on
-2026-07-30 has not been published, promoted, allowlisted, linked from the site,
-or added to the native download ledger. It does not change any identity in
-this deployment ledger.
+The `client-rust/` graphical material-parity and PBR terrain work verified in
+source on 2026-07-30 has not been published, promoted, allowlisted, linked from
+the site, or added to the native download ledger. It does not change any
+identity in this deployment ledger.
 
 ## Site
 

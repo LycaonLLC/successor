@@ -108,6 +108,17 @@ struct SceneLight {
     distance2: f32,
 }
 #[derive(Clone, Copy, Debug)]
+pub struct TerrainMaterialDesc {
+    pub control_texture: crate::gpu::TextureId,
+    pub albedo_tiles: crate::gpu::TextureId,
+    pub nrma_tiles: crate::gpu::TextureId,
+    pub world_origin: [f32; 2],
+    pub world_size: f32,
+    pub tile_scale: f32,
+    pub normal_strength: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct MaterialDesc {
     pub base_color: [f32; 4],
     pub base_color_texture: Option<crate::gpu::TextureId>,
@@ -129,6 +140,7 @@ pub struct MaterialDesc {
     pub alpha_cutoff: f32,
     pub double_sided: bool,
     pub blend: bool,
+    pub terrain: Option<TerrainMaterialDesc>,
 }
 
 impl Default for MaterialDesc {
@@ -154,6 +166,7 @@ impl Default for MaterialDesc {
             alpha_cutoff: 0.5,
             double_sided: false,
             blend: false,
+            terrain: None,
         }
     }
 }
@@ -256,6 +269,7 @@ pub struct Renderer {
     // Deferred programs.
     gbuffer_prog: ProgramId,
     gbuffer_skinned_prog: ProgramId,
+    terrain_gbuffer_prog: ProgramId,
     light_prog: ProgramId,
     tonemap_prog: ProgramId,
     bloom_extract_prog: ProgramId,
@@ -380,6 +394,10 @@ impl Renderer {
             &gb_skin_src,
             include_str!("../../../assets/shaders/gbuffer.frag"),
         );
+        let terrain_gbuffer_prog = gpu.create_program(
+            include_str!("../../../assets/shaders/gbuffer.vert"),
+            include_str!("../../../assets/shaders/terrain_gbuffer.frag"),
+        );
         let (taps, pcss, cones, spec) = match q {
             RenderQuality::Low => (4, 0, 0, 0),
             RenderQuality::Medium => (12, 0, 4, 0),
@@ -480,6 +498,7 @@ impl Renderer {
             text_prog,
             gbuffer_prog,
             gbuffer_skinned_prog,
+            terrain_gbuffer_prog,
             light_prog,
             tonemap_prog,
             point_light_prog,
@@ -842,6 +861,12 @@ impl Renderer {
         crate::components::MaterialId((self.materials.len() - 1) as u32)
     }
 
+    pub fn update_material_desc(&mut self, id: crate::components::MaterialId, desc: MaterialDesc) {
+        if let Some(material) = self.materials.get_mut(id.0 as usize) {
+            material.desc = desc;
+        }
+    }
+
     pub fn set_ambient(&mut self, a: f32) {
         self.ambient = a;
     }
@@ -1194,6 +1219,13 @@ impl Renderer {
         self.uniforms.push(Uniform {
             name: "u_albedo",
             value: UniformValue::Sampler(0),
+        });
+        gpu.set_uniforms(&self.uniforms);
+        gpu.set_pipeline(self.terrain_gbuffer_prog, &PipelineState::default());
+        self.uniforms.clear();
+        self.uniforms.push(Uniform {
+            name: "u_viewProj",
+            value: UniformValue::Mat4(view_proj),
         });
         gpu.set_uniforms(&self.uniforms);
         self.draw_all_meshes(
@@ -2028,7 +2060,9 @@ impl Renderer {
                     }
                 }
                 DrawMode::GBuffer => {
-                    if mesh.skinned {
+                    if material_desc.terrain.is_some() {
+                        self.terrain_gbuffer_prog
+                    } else if mesh.skinned {
                         self.gbuffer_skinned_prog
                     } else {
                         self.gbuffer_prog
@@ -2135,102 +2169,142 @@ impl Renderer {
                     });
                 }
                 DrawMode::GBuffer => {
-                    let mat = self.materials.get(mr.material.0 as usize).copied();
-                    let color = mat
-                        .map(|m| m.desc.base_color)
-                        .unwrap_or([0.8, 0.8, 0.8, 1.0]);
-                    albedo_tex = mat.and_then(|m| m.desc.base_color_texture);
-                    let metallic = mat.map(|m| m.desc.metallic).unwrap_or(1.0);
-                    let roughness = mat.map(|m| m.desc.roughness).unwrap_or(1.0);
-                    self.uniforms.push(Uniform {
-                        name: "u_color",
-                        value: UniformValue::Vec4(color),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_hasTex",
-                        value: UniformValue::Int(if albedo_tex.is_some() { 1 } else { 0 }),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_metallic",
-                        value: UniformValue::Float(metallic),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_roughness",
-                        value: UniformValue::Float(roughness),
-                    });
-                    let desc = mat.map(|material| material.desc).unwrap_or_default();
-                    let texture_uniforms = [
-                        ("u_mrTex", desc.metallic_roughness_texture, 1),
-                        ("u_normalTex", desc.normal_texture, 2),
-                        ("u_aoTex", desc.occlusion_texture, 3),
-                        ("u_emissiveTex", desc.emissive_texture, 4),
-                    ];
-                    for (name, texture, slot) in texture_uniforms {
+                    if let Some(terrain) = material_desc.terrain {
+                        albedo_tex = Some(terrain.control_texture);
                         self.uniforms.push(Uniform {
-                            name,
-                            value: UniformValue::Sampler(slot),
+                            name: "u_terrainControl",
+                            value: UniformValue::Sampler(0),
                         });
-                        let fallback = match slot {
-                            2 => self.normal_tex,
-                            4 => self.black_tex,
-                            _ => self.white_tex,
-                        };
-                        gpu.bind_texture(slot as u32, texture.unwrap_or(fallback));
+                        self.uniforms.push(Uniform {
+                            name: "u_terrainAlbedo",
+                            value: UniformValue::Sampler(1),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_terrainNrma",
+                            value: UniformValue::Sampler(2),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_terrainOrigin",
+                            value: UniformValue::Vec2(terrain.world_origin),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_terrainWorldSize",
+                            value: UniformValue::Float(terrain.world_size),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_terrainTileScale",
+                            value: UniformValue::Float(terrain.tile_scale),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_terrainNormalStrength",
+                            value: UniformValue::Float(terrain.normal_strength),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_camEye",
+                            value: UniformValue::Vec3([camera_eye.x, camera_eye.y, camera_eye.z]),
+                        });
+                        gpu.bind_texture_array(1, terrain.albedo_tiles);
+                        gpu.bind_texture_array(2, terrain.nrma_tiles);
+                    } else {
+                        let mat = self.materials.get(mr.material.0 as usize).copied();
+                        let color = mat
+                            .map(|m| m.desc.base_color)
+                            .unwrap_or([0.8, 0.8, 0.8, 1.0]);
+                        albedo_tex = mat.and_then(|m| m.desc.base_color_texture);
+                        let metallic = mat.map(|m| m.desc.metallic).unwrap_or(1.0);
+                        let roughness = mat.map(|m| m.desc.roughness).unwrap_or(1.0);
+                        self.uniforms.push(Uniform {
+                            name: "u_color",
+                            value: UniformValue::Vec4(color),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_hasTex",
+                            value: UniformValue::Int(if albedo_tex.is_some() { 1 } else { 0 }),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_metallic",
+                            value: UniformValue::Float(metallic),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_roughness",
+                            value: UniformValue::Float(roughness),
+                        });
+                        let desc = mat.map(|material| material.desc).unwrap_or_default();
+                        let texture_uniforms = [
+                            ("u_mrTex", desc.metallic_roughness_texture, 1),
+                            ("u_normalTex", desc.normal_texture, 2),
+                            ("u_aoTex", desc.occlusion_texture, 3),
+                            ("u_emissiveTex", desc.emissive_texture, 4),
+                        ];
+                        for (name, texture, slot) in texture_uniforms {
+                            self.uniforms.push(Uniform {
+                                name,
+                                value: UniformValue::Sampler(slot),
+                            });
+                            let fallback = match slot {
+                                2 => self.normal_tex,
+                                4 => self.black_tex,
+                                _ => self.white_tex,
+                            };
+                            gpu.bind_texture(slot as u32, texture.unwrap_or(fallback));
+                        }
+                        self.uniforms.push(Uniform {
+                            name: "u_hasMrTex",
+                            value: UniformValue::Int(
+                                desc.metallic_roughness_texture.is_some() as i32
+                            ),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_hasNormalTex",
+                            value: UniformValue::Int(desc.normal_texture.is_some() as i32),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_hasAoTex",
+                            value: UniformValue::Int(desc.occlusion_texture.is_some() as i32),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_hasEmissiveTex",
+                            value: UniformValue::Int(desc.emissive_texture.is_some() as i32),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_normalScale",
+                            value: UniformValue::Float(desc.normal_scale),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_aoStrength",
+                            value: UniformValue::Float(desc.occlusion_strength),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_emissiveFactor",
+                            value: UniformValue::Vec3(desc.emissive_factor),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_emissiveStrength",
+                            value: UniformValue::Float(desc.emissive_strength),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_clearcoat",
+                            value: UniformValue::Float(desc.clearcoat),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_clearcoatRoughness",
+                            value: UniformValue::Float(desc.clearcoat_roughness),
+                        });
+                        let ior = desc.ior.max(1.0);
+                        let ratio = (ior - 1.0) / (ior + 1.0);
+                        self.uniforms.push(Uniform {
+                            name: "u_dielectricF0",
+                            value: UniformValue::Float(ratio * ratio * desc.specular),
+                        });
+                        self.uniforms.push(Uniform {
+                            name: "u_alphaCutoff",
+                            value: UniformValue::Float(if desc.blend {
+                                0.0
+                            } else {
+                                desc.alpha_cutoff
+                            }),
+                        });
                     }
-                    self.uniforms.push(Uniform {
-                        name: "u_hasMrTex",
-                        value: UniformValue::Int(desc.metallic_roughness_texture.is_some() as i32),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_hasNormalTex",
-                        value: UniformValue::Int(desc.normal_texture.is_some() as i32),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_hasAoTex",
-                        value: UniformValue::Int(desc.occlusion_texture.is_some() as i32),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_hasEmissiveTex",
-                        value: UniformValue::Int(desc.emissive_texture.is_some() as i32),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_normalScale",
-                        value: UniformValue::Float(desc.normal_scale),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_aoStrength",
-                        value: UniformValue::Float(desc.occlusion_strength),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_emissiveFactor",
-                        value: UniformValue::Vec3(desc.emissive_factor),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_emissiveStrength",
-                        value: UniformValue::Float(desc.emissive_strength),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_clearcoat",
-                        value: UniformValue::Float(desc.clearcoat),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_clearcoatRoughness",
-                        value: UniformValue::Float(desc.clearcoat_roughness),
-                    });
-                    let ior = desc.ior.max(1.0);
-                    let ratio = (ior - 1.0) / (ior + 1.0);
-                    self.uniforms.push(Uniform {
-                        name: "u_dielectricF0",
-                        value: UniformValue::Float(ratio * ratio * desc.specular),
-                    });
-                    self.uniforms.push(Uniform {
-                        name: "u_alphaCutoff",
-                        value: UniformValue::Float(if desc.blend {
-                            0.0
-                        } else {
-                            desc.alpha_cutoff
-                        }),
-                    });
                 }
             }
             gpu.set_uniforms(&self.uniforms);

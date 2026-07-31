@@ -8,6 +8,7 @@ PYTHON ?= python3
 WASM_STRIP := $(shell command -v wasm-strip || command -v llvm-strip || echo /opt/homebrew/opt/llvm/bin/llvm-strip)
 STATS_JSON := out/stats.json
 RENDER_STATS_JSON := out/material-parity-gpu.json
+TERRAIN_STATS_JSON := out/terrain-material-gpu.json
 
 NATIVE_BIN := out/bin/successor
 WASM_OUT := out/web/successor.wasm
@@ -15,7 +16,7 @@ NATIVE_STRIPPED := /tmp/successor-port/successor
 WASM_STRIPPED := /tmp/successor-port/successor.wasm
 
 .PHONY: all native web run serve strip-port size-check bench bench-check \
-        bench-baseline check-allocs runtime-check render-check model-check test-unit nostd verify clean
+        bench-baseline check-allocs runtime-check render-check terrain-check model-check test-unit nostd verify clean
 
 all: native web
 
@@ -92,13 +93,22 @@ render-check: native
 	./$(NATIVE_BIN) --demo material-parity --quality high --frames 840 --gpu-stats-json $(RENDER_STATS_JSON)
 	$(PYTHON) bench/compare.py check --render $(RENDER_STATS_JSON)
 
+# Deterministic terrain material probes plus GPU p99 after 120 warmup frames.
+terrain-check: native
+	mkdir -p out
+	./$(NATIVE_BIN) --demo terrain-material --biome desert --quality high --frames 120 --assert-terrain-material
+	./$(NATIVE_BIN) --demo terrain-material --biome forest --quality high --frames 120 --assert-terrain-material
+	./$(NATIVE_BIN) --demo terrain-material --biome desert --quality high --frames 840 --gpu-stats-json $(TERRAIN_STATS_JSON)
+	$(PYTHON) bench/compare.py check --terrain $(TERRAIN_STATS_JSON)
+
 # Rewrites this machine's baseline (perf medians, stripped sizes, runtime, and render stats).
 # The resulting bench/baselines diff is reviewed and committed like code.
 bench-baseline: strip-port bench
 	mkdir -p out
 	./$(NATIVE_BIN) --demo parity-basic --frames 600 --stats-json $(STATS_JSON)
 	./$(NATIVE_BIN) --demo material-parity --quality high --frames 840 --gpu-stats-json $(RENDER_STATS_JSON)
-	$(PYTHON) bench/compare.py capture --native $(NATIVE_STRIPPED) --wasm $(WASM_STRIPPED) --runtime $(STATS_JSON) --render $(RENDER_STATS_JSON)
+	./$(NATIVE_BIN) --demo terrain-material --biome desert --quality high --frames 840 --gpu-stats-json $(TERRAIN_STATS_JSON)
+	$(PYTHON) bench/compare.py capture --native $(NATIVE_STRIPPED) --wasm $(WASM_STRIPPED) --runtime $(STATS_JSON) --render $(RENDER_STATS_JSON) --terrain $(TERRAIN_STATS_JSON)
 
 # Pre-acceptance gate: unit tests + perf gate + size gate.
 # (check-allocs and runtime-check open no window but still run the demo headless-timed;

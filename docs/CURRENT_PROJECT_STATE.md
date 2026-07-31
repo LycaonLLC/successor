@@ -66,10 +66,16 @@ an old 2D game.
 The standalone Rust client now loads the complete checked-in GLB model corpus
 through one packed mesh/material path and renders deferred opaque PBR,
 shadowed sun and point lights, sorted transparent and transmissive surfaces,
-bloom, and FXAA on native GL and WebGL2. Its synthetic material-parity scene
-has native ROI assertions and browser readback probes. This is source and
-local build proof only: gameplay parity and product promotion remain
-outstanding, and the client is absent from the site and native download ledger.
+bloom, and FXAA on native GL and WebGL2. Its streamed terrain uses continuous
+world-space material controls, pooled chunk textures, and shared deterministic
+albedo/normal/roughness/AO texture arrays for desert and forest surfaces rather
+than per-chunk final-color baking. Synthetic material-parity and fixed terrain
+scenes have native ROI assertions, GPU p99 gates, and browser readback/resize
+proof. This is source and local build proof only: gameplay parity and product
+promotion remain outstanding, and the client is absent from the site and
+native download ledger. The accepted M2 Max baseline records the terrain
+descriptor's 13.3% draw-list cost and the WebGL terrain path's 62,681-byte
+stripped-wasm increase; both remain below absolute performance and size caps.
 
 Source assets and generated runtime assets have separate homes. PawnForge
 source work remains outside this repository; promoted GLBs, face atlases,

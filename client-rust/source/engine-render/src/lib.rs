@@ -275,7 +275,7 @@ mod tests {
 
         // Draw-call sanity: shadow (2 casters) + gbuffer main (2) + minimap (1)
         // + light fullscreen (1) + tonemap (1) + composite (1) + text (1).
-        assert!(gpu.draw_calls() >= 2 + 2 + 1 + 1 + 1 + 1 + 1);
+        assert!(gpu.draw_calls() > 2 + 2 + 1 + 1 + 1 + 1);
     }
 
     #[test]

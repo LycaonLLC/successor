@@ -62,10 +62,19 @@ fn main() {
         return;
     }
 
-    if mode.as_deref() == Some("terrain") {
+    if matches!(mode.as_deref(), Some("terrain" | "terrain-material")) {
         let biome = arg_value(&args, "--biome");
         let screenshot = arg_value(&args, "--screenshot");
-        run_terrain(biome.as_deref(), frames, screenshot.as_deref());
+        let gpu_stats = arg_value(&args, "--gpu-stats-json");
+        let assert_material = args.iter().any(|arg| arg == "--assert-terrain-material");
+        run_terrain(
+            biome.as_deref(),
+            frames,
+            screenshot.as_deref(),
+            gpu_stats.as_deref(),
+            assert_material,
+            mode.as_deref() == Some("terrain-material"),
+        );
         return;
     }
 
@@ -1162,7 +1171,14 @@ fn run_glb_view(glb_path: &str, clip: Option<&str>, frames: u64, screenshot: Opt
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn run_terrain(biome: Option<&str>, frames: u64, screenshot: Option<&str>) {
+fn run_terrain(
+    biome: Option<&str>,
+    frames: u64,
+    screenshot: Option<&str>,
+    gpu_stats_json: Option<&str>,
+    assert_material: bool,
+    detail_view: bool,
+) {
     use successor_client::world::chunks::TerrainScene;
     use successor_client::world::terrain::Biome;
     use successor_engine_render::gpu::Gpu;
@@ -1171,7 +1187,7 @@ fn run_terrain(biome: Option<&str>, frames: u64, screenshot: Option<&str>) {
         _ => Biome::Desert,
     };
     if !successor_platform::init(
-        "Successor terrain",
+        "Successor terrain material",
         demo::SCREEN_W as i32,
         demo::SCREEN_H as i32,
     ) {
@@ -1181,29 +1197,99 @@ fn run_terrain(biome: Option<&str>, frames: u64, screenshot: Option<&str>) {
     let mut gpu = successor_platform::create_gpu();
     let _ = &mut gpu as &mut dyn Gpu;
     let mut scene = TerrainScene::build(&mut gpu, biome);
+    if detail_view {
+        scene.use_material_detail_view();
+    }
+    assert_eq!(
+        successor_platform::gl_error(),
+        0,
+        "terrain GPU resource initialization failed"
+    );
     let total = frames.max(1);
-    let mut frame = 0u64;
-    while !successor_platform::should_quit() && frame < total {
+    let mut gpu_times = Vec::with_capacity(total.saturating_sub(120) as usize);
+    let mut final_rgba = None;
+    for frame in 0..total {
         successor_platform::begin_frame();
         scene.animate(frame);
-        let (w, h) = successor_platform::framebuffer_size();
-        if w > 0 && h > 0 {
+        let (width, height) = successor_platform::framebuffer_size();
+        let start = std::time::Instant::now();
+        if width > 0 && height > 0 {
             scene
                 .renderer
-                .render(&mut gpu, &mut scene.world, w as u32, h as u32)
-                .expect("render failed");
-        }
-        if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
-            let rgba = successor_platform::read_pixels_rgba(w, h);
-            match write_bmp(screenshot.unwrap(), &rgba, w as u32, h as u32) {
-                Ok(()) => println!("screenshot written: {} ({}x{})", screenshot.unwrap(), w, h),
-                Err(e) => eprintln!("screenshot failed: {e}"),
+                .render(&mut gpu, &mut scene.world, width as u32, height as u32)
+                .expect("terrain render failed");
+            if gpu_stats_json.is_some() {
+                gpu.finish();
+                if frame >= 120 {
+                    gpu_times.push(start.elapsed().as_secs_f64() * 1_000.0);
+                }
             }
+            assert_eq!(
+                successor_platform::gl_error(),
+                0,
+                "terrain render produced an OpenGL error"
+            );
+        }
+        if frame + 1 == total
+            && width > 0
+            && height > 0
+            && (screenshot.is_some() || assert_material)
+        {
+            final_rgba = Some((
+                successor_platform::read_pixels_rgba(width, height),
+                width as u32,
+                height as u32,
+            ));
         }
         successor_platform::end_frame();
-        frame += 1;
+        if successor_platform::should_quit() {
+            break;
+        }
+    }
+    if let Some((rgba, width, height)) = final_rgba {
+        if let Some(path) = screenshot {
+            write_bmp(path, &rgba, width, height).unwrap_or_else(|error| {
+                eprintln!("screenshot failed: {error}");
+                std::process::exit(1);
+            });
+            println!("screenshot written: {path} ({width}x{height})");
+        }
+        if assert_material {
+            assert_terrain_material_pixels(&rgba, width, height);
+        }
+    }
+    if let Some(path) = gpu_stats_json {
+        if gpu_times.is_empty() {
+            eprintln!("terrain GPU stats require more than 120 rendered frames");
+            std::process::exit(1);
+        }
+        gpu_times.sort_by(f64::total_cmp);
+        let index = ((gpu_times.len() - 1) as f64 * 0.99).ceil() as usize;
+        let p99 = gpu_times[index];
+        let json = format!(
+            "{{\"demo\":\"terrain-material\",\"width\":{},\"height\":{},\"warmup_frames\":120,\"measured_frames\":{},\"render_gpu_p99_ms\":{:.6}}}\n",
+            demo::SCREEN_W,
+            demo::SCREEN_H,
+            gpu_times.len(),
+            p99
+        );
+        std::fs::write(path, json).unwrap_or_else(|error| {
+            eprintln!("failed to write terrain GPU stats {path}: {error}");
+            std::process::exit(1);
+        });
+        println!("terrain-material render_gpu_p99_ms={p99:.3}");
     }
     successor_platform::deinit();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn assert_terrain_material_pixels(rgba: &[u8], width: u32, height: u32) {
+    let probe = successor_client::world::terrain_material::probe_rgba(rgba, width, height)
+        .unwrap_or_else(|error| panic!("{error}"));
+    println!(
+        "terrain-material luma_mean={:.5} luma_stddev={:.5} neighbor_delta={:.5}",
+        probe.luma_mean, probe.luma_stddev, probe.neighbor_delta
+    );
 }
 
 #[cfg(not(target_arch = "wasm32"))]

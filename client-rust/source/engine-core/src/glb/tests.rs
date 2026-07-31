@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 /// 4-byte chunk padding (JSON padded with spaces, BIN with zeros).
 fn build_glb(json: &str, bin: &[u8]) -> Vec<u8> {
     fn pad4(v: &mut Vec<u8>, fill: u8) {
-        while v.len() % 4 != 0 {
+        while !v.len().is_multiple_of(4) {
             v.push(fill);
         }
     }

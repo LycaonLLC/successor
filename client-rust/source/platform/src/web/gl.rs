@@ -59,6 +59,7 @@ pub const DEPTH_ATTACHMENT: u32 = 0x8D00;
 pub const FRAMEBUFFER_COMPLETE: u32 = 0x8CD5;
 pub const UNPACK_ALIGNMENT: u32 = 0x0CF5;
 pub const TEXTURE_3D: u32 = 0x806F;
+pub const TEXTURE_2D_ARRAY: u32 = 0x8C1A;
 pub const TEXTURE_WRAP_R: u32 = 0x8072;
 pub const RGBA16F: u32 = 0x881A;
 pub const HALF_FLOAT: u32 = 0x140B;

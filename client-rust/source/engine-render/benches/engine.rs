@@ -101,7 +101,7 @@ fn bench_render(c: &mut Criterion) {
     let mesh = r.upload_mesh(&mut gpu, &v, &i);
     let mat = r.add_material_desc(successor_engine_render::renderer::MaterialDesc {
         base_color: [0.7, 0.7, 0.7, 1.0],
-        blend: ([0.7, 0.7, 0.7, 1.0])[3] < 1.0,
+        blend: false,
         ..successor_engine_render::renderer::MaterialDesc::default()
     });
 

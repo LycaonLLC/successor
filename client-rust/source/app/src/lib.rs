@@ -23,7 +23,6 @@ pub mod rss;
 pub mod screens;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod windows;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod world;
 
 use successor_engine_core::world;
@@ -109,6 +108,7 @@ mod web_runtime {
     static GPU: GlobalCell<GlGpu> = GlobalCell::new();
     static SCENE: GlobalCell<Scene> = GlobalCell::new();
     static PARITY_SCENE: GlobalCell<crate::material_parity::Scene> = GlobalCell::new();
+    static TERRAIN_SCENE: GlobalCell<crate::world::chunks::TerrainScene> = GlobalCell::new();
     static DEMO_SELECTOR: GlobalCell<u32> = GlobalCell::new();
     static FRAME: GlobalCell<u64> = GlobalCell::new();
     static SIZE: GlobalCell<(u32, u32)> = GlobalCell::new();
@@ -135,6 +135,13 @@ mod web_runtime {
             let scene =
                 crate::material_parity::build(&mut gpu, &assets).expect("material parity scene");
             PARITY_SCENE.set(scene);
+        } else if demo_selector == 2 {
+            let mut scene = crate::world::chunks::TerrainScene::build(
+                &mut gpu,
+                crate::world::terrain::Biome::Desert,
+            );
+            scene.use_material_detail_view();
+            TERRAIN_SCENE.set(scene);
         } else {
             SCENE.set(build_scene(&mut gpu));
         }
@@ -176,6 +183,13 @@ mod web_runtime {
                         .render(gpu, &mut scene.world, w, h)
                         .expect("render failed");
                 }
+            } else if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) == 2 {
+                if let Some(scene) = TERRAIN_SCENE.get_mut() {
+                    scene
+                        .renderer
+                        .render(gpu, &mut scene.world, w, h)
+                        .expect("terrain render failed");
+                }
             } else if let Some(scene) = SCENE.get_mut() {
                 scene
                     .renderer
@@ -194,6 +208,28 @@ mod web_runtime {
         let pixels = successor_platform::read_pixels_rgba(width as i32, height as i32);
         match crate::material_parity::probe_rgba_top_left(&pixels, width, height) {
             Ok(_) => 1,
+            Err(error) => {
+                successor_engine_core::rt::log::log_str(&error);
+                0
+            }
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn probe_terrain_material() -> u32 {
+        if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) != 2 {
+            return 0;
+        }
+        let (width, height) = SIZE.get_mut().copied().unwrap_or((0, 0));
+        let pixels = successor_platform::read_pixels_rgba(width as i32, height as i32);
+        match crate::world::terrain_material::probe_rgba(&pixels, width, height) {
+            Ok(probe) => {
+                successor_engine_core::rt::log::log_str(&format!(
+                    "terrain probe stddev={:.5} neighbor={:.5}\n",
+                    probe.luma_stddev, probe.neighbor_delta
+                ));
+                1
+            }
             Err(error) => {
                 successor_engine_core::rt::log::log_str(&error);
                 0
