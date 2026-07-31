@@ -2,9 +2,9 @@
 
 use super::terrain::Biome;
 
-pub const TILE_SIZE: u32 = 256;
+pub const TILE_SIZE: u32 = 512;
 pub const SURFACE_COUNT: u32 = 3;
-pub const VARIANTS_PER_SURFACE: u32 = 4;
+pub const VARIANTS_PER_SURFACE: u32 = 8;
 pub const TILE_LAYERS: u32 = SURFACE_COUNT * VARIANTS_PER_SURFACE;
 
 #[derive(Debug)]
@@ -31,13 +31,13 @@ const DESERT: [Surface; 3] = [
         grain: 0.55,
     },
     Surface {
-        color: [0.64, 0.44, 0.20],
+        color: [0.52, 0.34, 0.14],
         roughness: [0.66, 0.90],
         relief: 1.10,
         grain: 0.95,
     },
     Surface {
-        color: [0.76, 0.56, 0.31],
+        color: [0.80, 0.62, 0.36],
         roughness: [0.48, 0.82],
         relief: 1.30,
         grain: 0.34,
@@ -52,13 +52,13 @@ const FOREST: [Surface; 3] = [
         grain: 0.80,
     },
     Surface {
-        color: [0.45, 0.38, 0.20],
+        color: [0.55, 0.36, 0.14],
         roughness: [0.72, 0.94],
         relief: 1.20,
         grain: 0.92,
     },
     Surface {
-        color: [0.39, 0.31, 0.18],
+        color: [0.30, 0.22, 0.11],
         roughness: [0.38, 0.70],
         relief: 0.95,
         grain: 0.46,
