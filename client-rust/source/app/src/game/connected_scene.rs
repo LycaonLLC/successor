@@ -83,7 +83,8 @@ impl ConnectedScene {
         let pawn_bytes = std::fs::read("../client-3d/public/assets/pawn-pack/pawn_male.glb")
             .map_err(|e| format!("read pawn pack: {e}"))?;
 
-        let mut renderer = Renderer::new(gpu, crate::quality_limits());
+        let mut renderer =
+            Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
         // Environment: noon desert grade → ambient/fog/clear + sun. The grade now
         // runs inside the deferred tonemap pass.
         let env = environment::sample(720.0);
@@ -94,8 +95,10 @@ impl ConnectedScene {
             env.desaturate,
             env.scene_darken,
             env.black_lift,
-            env.bloom,
         );
+        renderer
+            .set_bloom(1.0, env.bloom)
+            .map_err(|error| format!("invalid bloom settings: {error:?}"))?;
         let mut world = GameWorld::new();
 
         let center = vec3(512.0, 0.0, 513.0);
@@ -361,7 +364,13 @@ impl ConnectedScene {
     ) {
         let base = skin_tint(skin_hex);
         let color = faction_tinted(base, faction);
-        let material = self.renderer.add_material(color);
+        let material =
+            self.renderer
+                .add_material_desc(successor_engine_render::renderer::MaterialDesc {
+                    base_color: color,
+                    blend: (color)[3] < 1.0,
+                    ..successor_engine_render::renderer::MaterialDesc::default()
+                });
         let mut entities = Vec::with_capacity(self.part_meshes.len());
         for &mesh in &self.part_meshes {
             let e = self.world.spawn();
@@ -407,6 +416,7 @@ impl ConnectedScene {
             p.present = false;
         }
         // Collect (id, x, y, skin, faction) to avoid borrow conflicts.
+        #[allow(clippy::type_complexity)]
         let live: Vec<(String, f32, f32, Option<String>, Option<String>)> = self
             .store
             .render_actors()
@@ -506,7 +516,9 @@ impl ConnectedScene {
         }
 
         // 5) Render scene → screen (+ minimap composite).
-        self.renderer.render(gpu, &mut self.world, w, h);
+        self.renderer
+            .render(gpu, &mut self.world, w, h)
+            .expect("render failed");
 
         // 6) Weather (ambient dust) → the FX pool, then integrate + draw all
         //    billboards over the scene in the follow-camera frame.

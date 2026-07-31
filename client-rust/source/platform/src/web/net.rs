@@ -20,7 +20,7 @@ extern "C" {
     fn js_ws_poll(id: u32, buf_ptr: *mut u8, max_len: u32) -> i32;
     #[allow(dead_code)]
     fn js_ws_close(id: u32);
-    
+
     fn js_fetch_post_json(
         url_ptr: *const u8,
         url_len: u32,
@@ -62,10 +62,10 @@ pub fn ws_poll(handle: &mut WsHandle, out_buf: &mut Vec<u8>) -> WsEvent {
     if capacity < 65536 {
         out_buf.reserve(65536 - capacity);
     }
-    
+
     let spare_ptr = out_buf.as_mut_ptr();
     let res = unsafe { js_ws_poll(handle.id, spare_ptr, 65536) };
-    
+
     match res {
         0 => WsEvent::None,
         -1 => WsEvent::Closed,
@@ -104,7 +104,12 @@ pub fn http_post_json(url_str: &str, body: &[u8]) -> Result<Vec<u8>, String> {
 /// HTTP GET returning the raw response body via the two-phase shim protocol.
 pub fn http_get(url_str: &str) -> Result<Vec<u8>, String> {
     let total = unsafe {
-        js_fetch_get(url_str.as_ptr(), url_str.len() as u32, core::ptr::null_mut(), 0)
+        js_fetch_get(
+            url_str.as_ptr(),
+            url_str.len() as u32,
+            core::ptr::null_mut(),
+            0,
+        )
     };
     if total < 0 {
         return Err(format!("fetch_get failed for {url_str}"));

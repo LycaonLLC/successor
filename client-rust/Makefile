@@ -7,6 +7,7 @@ NO_STD_TARGET := thumbv7em-none-eabihf
 PYTHON ?= python3
 WASM_STRIP := $(shell command -v wasm-strip || command -v llvm-strip || echo /opt/homebrew/opt/llvm/bin/llvm-strip)
 STATS_JSON := out/stats.json
+RENDER_STATS_JSON := out/material-parity-gpu.json
 
 NATIVE_BIN := out/bin/successor
 WASM_OUT := out/web/successor.wasm
@@ -14,7 +15,7 @@ NATIVE_STRIPPED := /tmp/successor-port/successor
 WASM_STRIPPED := /tmp/successor-port/successor.wasm
 
 .PHONY: all native web run serve strip-port size-check bench bench-check \
-        bench-baseline check-allocs runtime-check test-unit nostd verify clean
+        bench-baseline check-allocs runtime-check render-check model-check test-unit nostd verify clean
 
 all: native web
 
@@ -28,6 +29,13 @@ web:
 	mkdir -p out/web
 	cp target/$(WASM_TARGET)/release/successor_client.wasm $(WASM_OUT)
 	cp web/index.html web/successor.js out/web/
+	mkdir -p out/web/parity-assets
+	cp ../client-3d/public/assets/world-items/commerce_facility.glb out/web/parity-assets/
+	cp ../client-3d/public/assets/pawn-pack/weapons/custom/lightning_carbine.glb out/web/parity-assets/
+	cp ../client-3d/public/assets/creatures/mossmuff_adult.glb out/web/parity-assets/
+	cp ../client-3d/public/assets/wave-props/everyday-wave-20260719/prepared-foods/successor_food_beer_mug.glb out/web/parity-assets/
+	cp ../client-3d/public/assets/items/custom/accessories/field_cap.glb out/web/parity-assets/
+	cp ../client-3d/public/assets/world-items/megalith_brick_hex.glb out/web/parity-assets/
 
 run: native
 	./$(NATIVE_BIN) $(ARGS)
@@ -47,6 +55,9 @@ strip-port: all
 	cp $(WASM_OUT) $(WASM_STRIPPED)
 	strip -x $(NATIVE_STRIPPED) 2>/dev/null || strip $(NATIVE_STRIPPED)
 	$(WASM_STRIP) --strip-all $(WASM_STRIPPED) 2>/dev/null || wasm-strip $(WASM_STRIPPED)
+
+model-check: native
+	git -C .. ls-files -z -- '*.glb' '*.gltf' '*.obj' '*.fbx' '*.blend' | ./$(NATIVE_BIN) --model-corpus
 
 test-unit:
 	$(CARGO) test -p successor-engine-core --features std
@@ -75,17 +86,24 @@ runtime-check: native
 	./$(NATIVE_BIN) --demo parity-basic --frames 600 --stats-json $(STATS_JSON)
 	$(PYTHON) bench/compare.py check --runtime $(STATS_JSON)
 
-# Rewrites this machine's baseline (perf medians + stripped sizes + runtime stats).
+# Material parity GPU p99, measured after 120 warmup frames.
+render-check: native
+	mkdir -p out
+	./$(NATIVE_BIN) --demo material-parity --quality high --frames 840 --gpu-stats-json $(RENDER_STATS_JSON)
+	$(PYTHON) bench/compare.py check --render $(RENDER_STATS_JSON)
+
+# Rewrites this machine's baseline (perf medians, stripped sizes, runtime, and render stats).
 # The resulting bench/baselines diff is reviewed and committed like code.
 bench-baseline: strip-port bench
 	mkdir -p out
 	./$(NATIVE_BIN) --demo parity-basic --frames 600 --stats-json $(STATS_JSON)
-	$(PYTHON) bench/compare.py capture --native $(NATIVE_STRIPPED) --wasm $(WASM_STRIPPED) --runtime $(STATS_JSON)
+	./$(NATIVE_BIN) --demo material-parity --quality high --frames 840 --gpu-stats-json $(RENDER_STATS_JSON)
+	$(PYTHON) bench/compare.py capture --native $(NATIVE_STRIPPED) --wasm $(WASM_STRIPPED) --runtime $(STATS_JSON) --render $(RENDER_STATS_JSON)
 
 # Pre-acceptance gate: unit tests + perf gate + size gate.
 # (check-allocs and runtime-check open no window but still run the demo headless-timed;
 #  they are separate targets so `verify` stays fast and display-independent.)
-verify: test-unit bench-check size-check
+verify: model-check test-unit bench-check size-check
 	@echo "VERIFY: PASS"
 
 clean:

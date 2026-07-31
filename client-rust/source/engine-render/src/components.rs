@@ -62,7 +62,10 @@ pub struct SkinRef {
 }
 
 impl SkinRef {
-    pub const NONE: SkinRef = SkinRef { offset: 0, count: 0 };
+    pub const NONE: SkinRef = SkinRef {
+        offset: 0,
+        count: 0,
+    };
     pub fn is_skinned(&self) -> bool {
         self.count > 0
     }
@@ -81,9 +84,17 @@ pub struct MeshRenderer {
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Projection {
-    Perspective { fovy: f32, near: f32, far: f32 },
+    Perspective {
+        fovy: f32,
+        near: f32,
+        far: f32,
+    },
     /// Orthographic half-height in world units (width derived from aspect).
-    Ortho { half_height: f32, near: f32, far: f32 },
+    Ortho {
+        half_height: f32,
+        near: f32,
+        far: f32,
+    },
 }
 
 /// Normalized screen rectangle in [0,1], origin bottom-left.
@@ -96,7 +107,12 @@ pub struct RectNorm {
 }
 
 impl RectNorm {
-    pub const FULL: RectNorm = RectNorm { x: 0.0, y: 0.0, w: 1.0, h: 1.0 };
+    pub const FULL: RectNorm = RectNorm {
+        x: 0.0,
+        y: 0.0,
+        w: 1.0,
+        h: 1.0,
+    };
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -211,8 +227,14 @@ impl PrefabComponent for Transform {
     const NAME: &'static str = "transform";
 
     fn from_json(v: &Json) -> Result<Self, PrefabError> {
-        let pos = v.get("pos").map(|p| read_vec3(p, Vec3::ZERO)).unwrap_or(Vec3::ZERO);
-        let scale = v.get("scale").map(|s| read_vec3(s, Vec3::ONE)).unwrap_or(Vec3::ONE);
+        let pos = v
+            .get("pos")
+            .map(|p| read_vec3(p, Vec3::ZERO))
+            .unwrap_or(Vec3::ZERO);
+        let scale = v
+            .get("scale")
+            .map(|s| read_vec3(s, Vec3::ONE))
+            .unwrap_or(Vec3::ONE);
         let rot = match v.get("rot").and_then(Json::as_array) {
             Some(a) if a.len() == 4 => Quat {
                 x: a[0].as_f32().unwrap_or(0.0),

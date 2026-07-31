@@ -3,7 +3,7 @@
 //! template + animator + appearance integration end-to-end. Native visual QA.
 
 use successor_engine_core::ecs::{Entity, WorldOps};
-use successor_engine_core::math::{vec3, Quat, Vec3};
+use successor_engine_core::math::{vec3, Mat4, Quat, Vec3};
 use successor_engine_render::components::{
     CamTarget, Camera, DirectionalLight, MeshRenderer, Projection, RectNorm, SkinRef, Transform,
 };
@@ -29,7 +29,7 @@ struct PawnActor {
 
 /// A weapon mesh socketed to a pawn's hand bone.
 struct WeaponRig {
-    entities: Vec<Entity>,
+    entities: Vec<(Entity, Mat4)>,
     actor_index: usize,
     hand: usize,
 }
@@ -46,15 +46,18 @@ pub struct PawnScene {
 }
 
 impl PawnScene {
+    #[allow(clippy::result_unit_err)]
     pub fn build<G: Gpu>(gpu: &mut G, bytes: &[u8]) -> Result<PawnScene, ()> {
         let template = PawnTemplate::from_bytes(bytes).map_err(|_| ())?;
-        let mut renderer = Renderer::new(gpu, crate::quality_limits());
+        let mut renderer =
+            Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
         renderer.set_ambient(0.45);
         renderer.set_fog([0.09, 0.10, 0.12], 40.0, 80.0);
         let mut world = GameWorld::new();
         let gpu_parts: PawnGpuParts = template.upload(gpu, &mut renderer);
 
         // A row of pawns, each with a gait + tint.
+        #[allow(clippy::type_complexity)]
         let specs: [(f32, WeaponLane, bool, Option<[f32; 3]>, Option<&str>); 5] = [
             (0.0, WeaponLane::Unarmed, false, None, Some("#cc9978")),
             (1.0, WeaponLane::Unarmed, false, None, Some("#8d5a3c")),
@@ -72,7 +75,12 @@ impl PawnScene {
         for (i, (speed, lane, against, faction, skin)) in specs.iter().enumerate() {
             let base = skin_tint(*skin);
             let color = faction_tinted(base, *faction);
-            let material = renderer.add_material(color);
+            let material =
+                renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+                    base_color: color,
+                    blend: (color)[3] < 1.0,
+                    ..successor_engine_render::renderer::MaterialDesc::default()
+                });
             let x = i as f32 * 1.6 - (specs.len() as f32 - 1.0) * 0.8;
             let mut entities = Vec::new();
             for (mesh, _mat) in &gpu_parts.parts {
@@ -112,7 +120,13 @@ impl PawnScene {
         renderer.gi_set_ground_albedo([0.38, 0.40, 0.44]);
         let (cube_vertices, cube_indices) = primitives::cube();
         let cube = renderer.upload_mesh(gpu, &cube_vertices, &cube_indices);
-        let ground_material = renderer.add_material_pbr([0.38, 0.40, 0.44, 1.0], 0.0, 0.92);
+        let ground_material =
+            renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+                base_color: [0.38, 0.40, 0.44, 1.0],
+                metallic: 0.0,
+                roughness: 0.92,
+                ..successor_engine_render::renderer::MaterialDesc::default()
+            });
         let ground = world.spawn();
         world.set_component(
             ground,
@@ -133,7 +147,13 @@ impl PawnScene {
         );
         let wall_center = vec3(-4.5, 1.5, -1.5);
         let wall_half = vec3(0.35, 1.5, 2.5);
-        let wall_material = renderer.add_material_pbr([0.16, 0.38, 0.78, 1.0], 0.0, 0.82);
+        let wall_material =
+            renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+                base_color: [0.16, 0.38, 0.78, 1.0],
+                metallic: 0.0,
+                roughness: 0.82,
+                ..successor_engine_render::renderer::MaterialDesc::default()
+            });
         let wall = world.spawn();
         world.set_component(
             wall,
@@ -247,9 +267,9 @@ impl PawnScene {
                         0.0,
                     ))
                     .mul(bone);
-                    let (t, r, s) = world_mat.to_trs();
-                    for &e in &rig.entities {
-                        if let Some(tr) = self.world.get_component::<Transform>(e) {
+                    for &(entity, local) in &rig.entities {
+                        let (t, r, s) = world_mat.mul(local).to_trs();
+                        if let Some(tr) = self.world.get_component::<Transform>(entity) {
                             tr.pos = t;
                             tr.rot = r;
                             tr.scale = s;
@@ -280,9 +300,10 @@ fn load_weapon<G: Gpu>(
     let bytes = std::fs::read("../client-3d/public/assets/pawn-pack/slugthrower.glb").ok()?;
     let parts = super::pack::upload_static_parts(gpu, renderer, &bytes).ok()?;
     let mut entities = Vec::new();
-    for (mesh, material) in parts {
+    for (mesh, material, local) in parts {
         let e = world.spawn();
-        world.set_component(e, Transform::default());
+        let (pos, rot, scale) = local.to_trs();
+        world.set_component(e, Transform { pos, rot, scale });
         world.set_component(
             e,
             MeshRenderer {
@@ -292,7 +313,7 @@ fn load_weapon<G: Gpu>(
                 skin: SkinRef::NONE,
             },
         );
-        entities.push(e);
+        entities.push((e, local));
     }
     Some(WeaponRig {
         entities,

@@ -1,7 +1,7 @@
 //! Native WebSocket transport implementation using tungstenite.
 
 use std::net::TcpStream;
-use tungstenite::{WebSocket, Message, stream::MaybeTlsStream};
+use tungstenite::{stream::MaybeTlsStream, Message, WebSocket};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WsEvent {
@@ -26,7 +26,9 @@ pub fn ws_connect(url_str: &str) -> Result<WsHandle, String> {
             s.set_nonblocking(true).map_err(|e| e.to_string())?;
         }
         MaybeTlsStream::NativeTls(s) => {
-            s.get_mut().set_nonblocking(true).map_err(|e| e.to_string())?;
+            s.get_mut()
+                .set_nonblocking(true)
+                .map_err(|e| e.to_string())?;
         }
         _ => {}
     }
@@ -59,27 +61,17 @@ pub fn ws_poll(handle: &mut WsHandle, out_buf: &mut Vec<u8>) -> WsEvent {
             out_buf.extend_from_slice(txt.as_bytes());
             WsEvent::Frame(txt.len())
         }
-        Ok(Message::Close(_)) => {
-            WsEvent::Closed
-        }
+        Ok(Message::Close(_)) => WsEvent::Closed,
         Ok(Message::Ping(_)) => {
             // tungstenite handles responder automatically, return None to continue
             WsEvent::None
         }
-        Ok(Message::Pong(_)) => {
-            WsEvent::None
-        }
-        Ok(Message::Frame(_)) => {
-            WsEvent::None
-        }
+        Ok(Message::Pong(_)) => WsEvent::None,
+        Ok(Message::Frame(_)) => WsEvent::None,
         Err(tungstenite::Error::Io(e)) if e.kind() == std::io::ErrorKind::WouldBlock => {
             WsEvent::None
         }
-        Err(tungstenite::Error::ConnectionClosed) => {
-            WsEvent::Closed
-        }
-        Err(_) => {
-            WsEvent::Error
-        }
+        Err(tungstenite::Error::ConnectionClosed) => WsEvent::Closed,
+        Err(_) => WsEvent::Error,
     }
 }

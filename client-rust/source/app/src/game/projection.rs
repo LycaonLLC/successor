@@ -113,10 +113,26 @@ impl WorldActors {
             return;
         }
         let e = world.spawn();
-        world.set_component(e, Transform { pos, rot, scale: Vec3::ONE });
         world.set_component(
             e,
-            MeshRenderer { mesh: self.capsule, material: if is_player { self.mat_player } else { self.mat_other }, viewport_mask: ACTOR_MASK, ..Default::default() },
+            Transform {
+                pos,
+                rot,
+                scale: Vec3::ONE,
+            },
+        );
+        world.set_component(
+            e,
+            MeshRenderer {
+                mesh: self.capsule,
+                material: if is_player {
+                    self.mat_player
+                } else {
+                    self.mat_other
+                },
+                viewport_mask: ACTOR_MASK,
+                ..Default::default()
+            },
         );
         self.entities.insert(id.to_string(), e);
     }
@@ -155,7 +171,11 @@ mod tests {
             x,
             y,
             direction: "north".into(),
-            vitals: GameActorVitals { health: 100.0, action: 100.0, spirit: 100.0 },
+            vitals: GameActorVitals {
+                health: 100.0,
+                action: 100.0,
+                spirit: 100.0,
+            },
             life_state: "alive".into(),
             ..Default::default()
         }
@@ -164,17 +184,28 @@ mod tests {
     #[test]
     fn hello_then_delta_spawns_moves_and_removes() {
         let mut gpu = NullGpu::default();
-        let mut r = Renderer::new(&mut gpu, RendererLimits::default());
+        let mut r = Renderer::new(&mut gpu, RendererLimits::default())
+            .expect("renderer initialization failed");
         let (v, i) = primitives::capsule(0.4, 1.8, 8, 4);
         let capsule = r.upload_mesh(&mut gpu, &v, &i);
-        let mp = r.add_material([0.9, 0.8, 0.2, 1.0]);
-        let mo = r.add_material([0.5, 0.6, 0.7, 1.0]);
+        let mp = r.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+            base_color: [0.9, 0.8, 0.2, 1.0],
+            blend: ([0.9, 0.8, 0.2, 1.0])[3] < 1.0,
+            ..successor_engine_render::renderer::MaterialDesc::default()
+        });
+        let mo = r.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+            base_color: [0.5, 0.6, 0.7, 1.0],
+            blend: ([0.5, 0.6, 0.7, 1.0])[3] < 1.0,
+            ..successor_engine_render::renderer::MaterialDesc::default()
+        });
         let mut wa = WorldActors::new(capsule, mp, mo);
         let mut world = GameWorld::new();
 
         // Hello: player + one other actor.
-        let mut snap = GameShardSnapshot::default();
-        snap.player_actor_id = "me".into();
+        let mut snap = GameShardSnapshot {
+            player_actor_id: "me".into(),
+            ..Default::default()
+        };
         snap.actors.insert("me".into(), actor("me", 10.0, 20.0));
         snap.actors.insert("bob".into(), actor("bob", 5.0, 5.0));
         let hello = GameHello {
@@ -203,6 +234,10 @@ mod tests {
         delta.actor_removals.push("bob".into());
         wa.apply_delta(&mut world, &delta);
         assert_eq!(wa.actor_count(), 1, "bob removed");
-        assert_eq!(wa.player_pos(), vec3(12.0, HERO_Y, 22.0), "player moved by authority");
+        assert_eq!(
+            wa.player_pos(),
+            vec3(12.0, HERO_Y, 22.0),
+            "player moved by authority"
+        );
     }
 }

@@ -19,7 +19,12 @@ impl Icons {
     pub fn load() -> Self {
         let v: serde_json::Value = serde_json::from_str(ICONS_JSON).expect("icons.json parse");
         let u = |k: &str| v[k].as_u64().unwrap_or(0) as u32;
-        let meta = AtlasMeta { cell: u("cell"), cols: u("cols"), width: u("width"), height: u("height") };
+        let meta = AtlasMeta {
+            cell: u("cell"),
+            cols: u("cols"),
+            width: u("width"),
+            height: u("height"),
+        };
         let mut map = Vec::new();
         if let Some(arr) = v["icons"].as_array() {
             for ic in arr {
@@ -94,6 +99,7 @@ impl Default for HudState {
 }
 
 /// A labeled filled bar: track + proportional fill + `label` overlay.
+#[allow(clippy::too_many_arguments)]
 fn bar(ui: &mut UiBuilder, x: f32, y: f32, w: f32, h: f32, frac: f32, fill: [u8; 4], label: &str) {
     ui.rect(x, y, w, h, [26, 32, 42, 220]);
     let f = frac.clamp(0.0, 1.0);
@@ -126,23 +132,71 @@ pub fn build_hud<'a>(
     ui.text(&state.name, 30.0, 26.0, 2.6, ACCENT);
     let bx = 30.0;
     let bw = 292.0;
-    bar(ui, bx, 52.0, bw, 18.0, state.hp / state.hp_max.max(1.0), [196, 72, 68, 235],
-        &format!("HP {}/{}", state.hp as i32, state.hp_max as i32));
-    bar(ui, bx, 74.0, bw, 18.0, state.ap / state.ap_max.max(1.0), [86, 156, 210, 235],
-        &format!("AP {}/{}", state.ap as i32, state.ap_max as i32));
-    bar(ui, bx, 96.0, bw, 18.0, state.shield / state.shield_max.max(1.0), [120, 200, 150, 235],
-        &format!("SHIELD {}", state.shield as i32));
+    bar(
+        ui,
+        bx,
+        52.0,
+        bw,
+        18.0,
+        state.hp / state.hp_max.max(1.0),
+        [196, 72, 68, 235],
+        &format!("HP {}/{}", state.hp as i32, state.hp_max as i32),
+    );
+    bar(
+        ui,
+        bx,
+        74.0,
+        bw,
+        18.0,
+        state.ap / state.ap_max.max(1.0),
+        [86, 156, 210, 235],
+        &format!("AP {}/{}", state.ap as i32, state.ap_max as i32),
+    );
+    bar(
+        ui,
+        bx,
+        96.0,
+        bw,
+        18.0,
+        state.shield / state.shield_max.max(1.0),
+        [120, 200, 150, 235],
+        &format!("SHIELD {}", state.shield as i32),
+    );
 
     // ── Minimap frame (top-right) with sector + coordinates ──────────────
     let mm = 180.0;
     let mmx = sw - mm - 16.0;
     ui.panel(mmx, 16.0, mm, mm, PANEL, EDGE);
     // Player blip at center + a couple of contacts.
-    ui.rect(mmx + mm * 0.5 - 3.0, 16.0 + mm * 0.5 - 3.0, 6.0, 6.0, ACCENT);
-    ui.rect(mmx + mm * 0.32, 16.0 + mm * 0.4, 4.0, 4.0, [196, 72, 68, 255]);
-    ui.rect(mmx + mm * 0.66, 16.0 + mm * 0.62, 4.0, 4.0, [120, 200, 150, 255]);
+    ui.rect(
+        mmx + mm * 0.5 - 3.0,
+        16.0 + mm * 0.5 - 3.0,
+        6.0,
+        6.0,
+        ACCENT,
+    );
+    ui.rect(
+        mmx + mm * 0.32,
+        16.0 + mm * 0.4,
+        4.0,
+        4.0,
+        [196, 72, 68, 255],
+    );
+    ui.rect(
+        mmx + mm * 0.66,
+        16.0 + mm * 0.62,
+        4.0,
+        4.0,
+        [120, 200, 150, 255],
+    );
     ui.text(&state.sector, mmx + 6.0, 16.0 + mm + 6.0, 2.0, TEXT);
-    ui.text(&format!("{} {}", state.coord.0, state.coord.1), mmx + 6.0, 16.0 + mm + 30.0, 2.0, ACCENT);
+    ui.text(
+        &format!("{} {}", state.coord.0, state.coord.1),
+        mmx + 6.0,
+        16.0 + mm + 30.0,
+        2.0,
+        ACCENT,
+    );
 
     // ── Target frame (top-center) ────────────────────────────────────────
     if let Some((name, frac)) = &state.target {
@@ -150,7 +204,16 @@ pub fn build_hud<'a>(
         let tx = (sw - tw) * 0.5;
         ui.panel(tx, 20.0, tw, 56.0, PANEL, [196, 96, 90, 255]);
         ui.text(name, tx + 10.0, 28.0, 2.4, TEXT);
-        bar(ui, tx + 10.0, 52.0, tw - 20.0, 16.0, *frac, [196, 72, 68, 235], "");
+        bar(
+            ui,
+            tx + 10.0,
+            52.0,
+            tw - 20.0,
+            16.0,
+            *frac,
+            [196, 72, 68, 235],
+            "",
+        );
     }
 
     // ── Search / command field (focusable, typed input) ──────────────────
@@ -159,8 +222,18 @@ pub fn build_hud<'a>(
 
     // ── Bottom action bar (icon buttons) ─────────────────────────────────
     const BAR: [&str; 12] = [
-        "inventory", "character", "skills", "crosshair", "reload", "kneel", "converse", "craft",
-        "trade", "survey", "datapad", "options",
+        "inventory",
+        "character",
+        "skills",
+        "crosshair",
+        "reload",
+        "kneel",
+        "converse",
+        "craft",
+        "trade",
+        "survey",
+        "datapad",
+        "options",
     ];
     let n = BAR.len() as f32;
     let slot = 56.0;
@@ -170,7 +243,10 @@ pub fn build_hud<'a>(
     let bx = (sw - bar_w) * 0.5;
     let by = sh - bar_h - 20.0;
     ui.panel(bx, by, bar_w, bar_h, PANEL, EDGE);
-    let style = ButtonStyle { text: ICON, ..ButtonStyle::default() };
+    let style = ButtonStyle {
+        text: ICON,
+        ..ButtonStyle::default()
+    };
     for (i, id) in BAR.iter().enumerate() {
         let cx = bx + pad + i as f32 * (slot + pad);
         let cy = by + pad;

@@ -1,8 +1,8 @@
 //! SPLICE — gene/crop splice bench UI.
 
-use super::{WindowAction, TEXT, DIM, ACCENT, SLOT, SLOT_EDGE};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder, ButtonStyle};
+use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
 #[derive(Clone, Debug, Default)]
 pub struct SpliceModel {
@@ -23,12 +23,18 @@ impl SpliceModel {
     }
 }
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &SpliceModel, icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &SpliceModel,
+    icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, h] = rect;
 
     // Header
     ui.text("GENE SPLICE BENCH", x, y, 2.2, ACCENT);
-    
+
     // Draw icon if available
     if let Some((col, row)) = icons.cell("splice") {
         ui.icon(col, row, x + w - 32.0, y - 4.0, 24.0, 24.0, ACCENT);
@@ -45,7 +51,13 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &SpliceModel, icons: &Ico
     if let Some(name) = &model.parent_a {
         ui.text(name, x + 10.0, slot_a_y + 12.0, 1.8, TEXT);
     } else {
-        ui.text("EMPTY SLOT - INSERT GENE", x + 10.0, slot_a_y + 12.0, 1.8, DIM);
+        ui.text(
+            "EMPTY SLOT - INSERT GENE",
+            x + 10.0,
+            slot_a_y + 12.0,
+            1.8,
+            DIM,
+        );
     }
 
     // Parent B Slot
@@ -57,7 +69,13 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &SpliceModel, icons: &Ico
     if let Some(name) = &model.parent_b {
         ui.text(name, x + 10.0, slot_b_y + 12.0, 1.8, TEXT);
     } else {
-        ui.text("EMPTY SLOT - INSERT GENE", x + 10.0, slot_b_y + 12.0, 1.8, DIM);
+        ui.text(
+            "EMPTY SLOT - INSERT GENE",
+            x + 10.0,
+            slot_b_y + 12.0,
+            1.8,
+            DIM,
+        );
     }
 
     // Preview Slot
@@ -78,7 +96,7 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &SpliceModel, icons: &Ico
     if !model.can_combine {
         btn_style.text = DIM;
     }
-    
+
     if ui.button(x, btn_y, w, 26.0, "COMBINE GENES", btn_style) && model.can_combine {
         out.push(WindowAction::Button("splice:combine".into()));
     }
@@ -93,7 +111,7 @@ mod tests {
         let icons = Icons::load();
         let model = SpliceModel::sample();
         let mut ui = UiBuilder::new(icons.meta);
-        
+
         // rect = [10.0, 10.0, 300.0, 400.0]
         // COMBINE button is at bottom: btn_y = 10.0 + 400.0 - 30.0 = 380.0
         // Size = 300.0 x 26.0, x = 10.0
@@ -103,16 +121,29 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [10.0, 10.0, 300.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 300.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [10.0, 10.0, 300.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 300.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert!(
             out.contains(&WindowAction::Button("splice:combine".into())),
-            "Expected splice:combine action, got {:?}", out
+            "Expected splice:combine action, got {:?}",
+            out
         );
     }
 }

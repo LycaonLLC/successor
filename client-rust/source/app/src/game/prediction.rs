@@ -34,7 +34,12 @@ pub struct MovePredictor {
 
 impl MovePredictor {
     pub fn new(x: f32, y: f32) -> Self {
-        MovePredictor { auth_x: x, auth_y: y, pred_x: x, pred_y: y }
+        MovePredictor {
+            auth_x: x,
+            auth_y: y,
+            pred_x: x,
+            pred_y: y,
+        }
     }
 
     pub fn render_pos(&self) -> (f32, f32) {
@@ -71,7 +76,11 @@ impl MovePredictor {
             self.pred_y = auth_y;
             return;
         }
-        let lead = if sprint { SPRINT_CORRECTION_LEAD } else { WALK_CORRECTION_LEAD };
+        let lead = if sprint {
+            SPRINT_CORRECTION_LEAD
+        } else {
+            WALK_CORRECTION_LEAD
+        };
         self.clamp_to_lead(lead);
     }
 
@@ -136,6 +145,9 @@ mod tests {
         }
         p.reconcile(0.0, 0.0, true, false);
         let (x, _) = p.render_pos();
-        assert!(x <= WALK_CORRECTION_LEAD + 1e-3, "clamped to correction lead, got {x}");
+        assert!(
+            x <= WALK_CORRECTION_LEAD + 1e-3,
+            "clamped to correction lead, got {x}"
+        );
     }
 }

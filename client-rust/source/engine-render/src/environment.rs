@@ -27,13 +27,69 @@ const fn rgb(r: u8, g: u8, b: u8) -> [f32; 3] {
 
 /// The authored day grade (config `environment.grade.anchors`).
 pub const GRADE: [GradeAnchor; 7] = [
-    GradeAnchor { minute: 0.0, fog: rgb(0x2b, 0x30, 0x40), bone_tint: [0.86, 0.92, 1.14], desaturate: 0.34, scene_darken: 0.38, black_lift: 0.05, bloom: 0.65 },
-    GradeAnchor { minute: 360.0, fog: rgb(0xb9, 0x7d, 0x58), bone_tint: [1.1, 0.95, 0.82], desaturate: 0.16, scene_darken: 0.85, black_lift: 0.04, bloom: 0.5 },
-    GradeAnchor { minute: 480.0, fog: rgb(0xc9, 0xa9, 0x7e), bone_tint: [1.06, 0.99, 0.88], desaturate: 0.18, scene_darken: 0.96, black_lift: 0.015, bloom: 0.18 },
-    GradeAnchor { minute: 720.0, fog: rgb(0xc9, 0xad, 0x82), bone_tint: [1.04, 1.0, 0.9], desaturate: 0.2, scene_darken: 1.0, black_lift: 0.03, bloom: 0.35 },
-    GradeAnchor { minute: 1080.0, fog: rgb(0xc9, 0x9a, 0x6e), bone_tint: [1.07, 0.97, 0.86], desaturate: 0.17, scene_darken: 0.9, black_lift: 0.025, bloom: 0.32 },
-    GradeAnchor { minute: 1140.0, fog: rgb(0xb0, 0x6a, 0x4a), bone_tint: [1.12, 0.92, 0.85], desaturate: 0.14, scene_darken: 0.8, black_lift: 0.04, bloom: 0.55 },
-    GradeAnchor { minute: 1260.0, fog: rgb(0x33, 0x3a, 0x52), bone_tint: [0.88, 0.94, 1.12], desaturate: 0.32, scene_darken: 0.42, black_lift: 0.05, bloom: 0.6 },
+    GradeAnchor {
+        minute: 0.0,
+        fog: rgb(0x2b, 0x30, 0x40),
+        bone_tint: [0.86, 0.92, 1.14],
+        desaturate: 0.34,
+        scene_darken: 0.38,
+        black_lift: 0.05,
+        bloom: 0.65,
+    },
+    GradeAnchor {
+        minute: 360.0,
+        fog: rgb(0xb9, 0x7d, 0x58),
+        bone_tint: [1.1, 0.95, 0.82],
+        desaturate: 0.16,
+        scene_darken: 0.85,
+        black_lift: 0.04,
+        bloom: 0.5,
+    },
+    GradeAnchor {
+        minute: 480.0,
+        fog: rgb(0xc9, 0xa9, 0x7e),
+        bone_tint: [1.06, 0.99, 0.88],
+        desaturate: 0.18,
+        scene_darken: 0.96,
+        black_lift: 0.015,
+        bloom: 0.18,
+    },
+    GradeAnchor {
+        minute: 720.0,
+        fog: rgb(0xc9, 0xad, 0x82),
+        bone_tint: [1.04, 1.0, 0.9],
+        desaturate: 0.2,
+        scene_darken: 1.0,
+        black_lift: 0.03,
+        bloom: 0.35,
+    },
+    GradeAnchor {
+        minute: 1080.0,
+        fog: rgb(0xc9, 0x9a, 0x6e),
+        bone_tint: [1.07, 0.97, 0.86],
+        desaturate: 0.17,
+        scene_darken: 0.9,
+        black_lift: 0.025,
+        bloom: 0.32,
+    },
+    GradeAnchor {
+        minute: 1140.0,
+        fog: rgb(0xb0, 0x6a, 0x4a),
+        bone_tint: [1.12, 0.92, 0.85],
+        desaturate: 0.14,
+        scene_darken: 0.8,
+        black_lift: 0.04,
+        bloom: 0.55,
+    },
+    GradeAnchor {
+        minute: 1260.0,
+        fog: rgb(0x33, 0x3a, 0x52),
+        bone_tint: [0.88, 0.94, 1.12],
+        desaturate: 0.32,
+        scene_darken: 0.42,
+        black_lift: 0.05,
+        bloom: 0.6,
+    },
 ];
 
 /// Sun light tints (config `environment.sun.tints`).
@@ -66,7 +122,11 @@ fn lerp(a: f32, b: f32, t: f32) -> f32 {
 }
 #[inline]
 fn lerp3(a: [f32; 3], b: [f32; 3], t: f32) -> [f32; 3] {
-    [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]
+    [
+        lerp(a[0], b[0], t),
+        lerp(a[1], b[1], t),
+        lerp(a[2], b[2], t),
+    ]
 }
 
 /// Interpolate the grade anchors at `minute` (wrapping across midnight).
@@ -77,10 +137,18 @@ pub fn sample_grade(minute: f32) -> GradeAnchor {
     for i in 0..n {
         let a = GRADE[i];
         let b = GRADE[(i + 1) % n];
-        let bm = if b.minute <= a.minute { b.minute + DAY_MINUTES } else { b.minute };
+        let bm = if b.minute <= a.minute {
+            b.minute + DAY_MINUTES
+        } else {
+            b.minute
+        };
         let mm = if m < a.minute { m + DAY_MINUTES } else { m };
         if mm >= a.minute && mm <= bm {
-            let t = if bm > a.minute { (mm - a.minute) / (bm - a.minute) } else { 0.0 };
+            let t = if bm > a.minute {
+                (mm - a.minute) / (bm - a.minute)
+            } else {
+                0.0
+            };
             return GradeAnchor {
                 minute: m,
                 fog: lerp3(a.fog, b.fog, t),
@@ -106,7 +174,7 @@ pub fn sample(minute: f32) -> EnvSample {
         let p = (m - 360.0) / 720.0; // 0..1
         let a = p * core::f32::consts::PI;
         let elev = sinf(a).max(0.0); // 0 at horizon, 1 at noon
-        // Light travels downward + along the horizontal azimuth.
+                                     // Light travels downward + along the horizontal azimuth.
         let hx = -cosf(a);
         let hz = -sinf(a);
         let mut dir = [hx, -(0.2 + 0.8 * elev), hz];
@@ -162,7 +230,10 @@ mod tests {
     fn noon_is_bright_desert() {
         let e = sample(720.0);
         assert!(e.is_day);
-        assert!((e.scene_darken - 1.0).abs() < 1e-3, "peak brightness at noon");
+        assert!(
+            (e.scene_darken - 1.0).abs() < 1e-3,
+            "peak brightness at noon"
+        );
         // Fog ≈ #c9ad82 (warm sand): red channel high.
         assert!(e.fog[0] > 0.7 && e.fog[0] > e.fog[2], "warm noon fog");
         assert!(e.sun_elevation01 > 0.98, "sun near zenith at noon");
@@ -172,7 +243,10 @@ mod tests {
     fn sun_climbs_from_dawn_to_noon() {
         let dawn = sample(420.0);
         let noon = sample(720.0);
-        assert!(noon.sun_elevation01 > dawn.sun_elevation01, "sun higher at noon");
+        assert!(
+            noon.sun_elevation01 > dawn.sun_elevation01,
+            "sun higher at noon"
+        );
         // Dawn light is warmer (more red vs blue) than noon.
         assert!(dawn.sun_color[0] - dawn.sun_color[2] >= noon.sun_color[0] - noon.sun_color[2]);
     }
@@ -190,7 +264,11 @@ mod tests {
         // 1350 sits between anchor 1260 and wrapped 0(=1440).
         let g = sample_grade(1350.0);
         // Between #333a52 and #2b3040 → dark.
-        assert!(g.scene_darken < 0.45, "late night is dim, got {}", g.scene_darken);
+        assert!(
+            g.scene_darken < 0.45,
+            "late night is dim, got {}",
+            g.scene_darken
+        );
     }
 
     #[test]

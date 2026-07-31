@@ -13,9 +13,9 @@
 
 extern crate alloc;
 
+pub mod anim;
 pub mod assets;
 pub mod audio;
-pub mod anim;
 pub mod ecs;
 pub mod glb;
 pub mod image;

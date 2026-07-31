@@ -20,10 +20,30 @@ impl TravelModel {
     pub fn sample() -> Self {
         Self {
             destinations: vec![
-                Destination { id: "dustgate".into(), name: "DUSTGATE OUTPOST".into(), cost: 50, distance: 120 },
-                Destination { id: "outpost_9".into(), name: "OUTPOST 9".into(), cost: 120, distance: 340 },
-                Destination { id: "nexus_prime".into(), name: "NEXUS PRIME".into(), cost: 350, distance: 980 },
-                Destination { id: "wreckage_site".into(), name: "WRECKAGE SITE".into(), cost: 80, distance: 200 },
+                Destination {
+                    id: "dustgate".into(),
+                    name: "DUSTGATE OUTPOST".into(),
+                    cost: 50,
+                    distance: 120,
+                },
+                Destination {
+                    id: "outpost_9".into(),
+                    name: "OUTPOST 9".into(),
+                    cost: 120,
+                    distance: 340,
+                },
+                Destination {
+                    id: "nexus_prime".into(),
+                    name: "NEXUS PRIME".into(),
+                    cost: 350,
+                    distance: 980,
+                },
+                Destination {
+                    id: "wreckage_site".into(),
+                    name: "WRECKAGE SITE".into(),
+                    cost: 80,
+                    distance: 200,
+                },
             ],
         }
     }
@@ -93,9 +113,12 @@ mod tests {
     fn travel_select_emits_travel_to() {
         let icons = Icons::load();
         let model = TravelModel {
-            destinations: vec![
-                Destination { id: "test_dest".into(), name: "TEST DESTINATION".into(), cost: 10, distance: 50 },
-            ],
+            destinations: vec![Destination {
+                id: "test_dest".into(),
+                name: "TEST DESTINATION".into(),
+                cost: 10,
+                distance: 50,
+            }],
         };
         let mut ui = UiBuilder::new(icons.meta);
 
@@ -106,12 +129,24 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 400.0, 500.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 400.0, 500.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 400.0, 500.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 400.0, 500.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert!(out.contains(&WindowAction::TravelTo("test_dest".into())));
     }

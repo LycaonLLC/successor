@@ -59,15 +59,25 @@ fn region_contains(region: &RegionMilli, x: f64, z: f64, margin: f64) -> bool {
 }
 
 pub fn inside_inner(regions: &[RegionMilli], x: f64, z: f64) -> bool {
-    regions.iter().any(|r| region_contains(r, x, z, -INNER_INSET_MILLI))
+    regions
+        .iter()
+        .any(|r| region_contains(r, x, z, -INNER_INSET_MILLI))
 }
 
 pub fn inside_outer(regions: &[RegionMilli], x: f64, z: f64) -> bool {
-    regions.iter().any(|r| region_contains(r, x, z, OUTER_EXPAND_MILLI))
+    regions
+        .iter()
+        .any(|r| region_contains(r, x, z, OUTER_EXPAND_MILLI))
 }
 
 /// Advance the enter/exit decision — ONLY on a new snapshot tick.
-pub fn sample(state: &mut CutawayState, snapshot_tick: f64, regions: &[RegionMilli], x: f64, z: f64) {
+pub fn sample(
+    state: &mut CutawayState,
+    snapshot_tick: f64,
+    regions: &[RegionMilli],
+    x: f64,
+    z: f64,
+) {
     if snapshot_tick == state.last_sampled_tick {
         return;
     }
@@ -104,7 +114,12 @@ pub fn phase(state: &CutawayState) -> CutawayPhase {
 
 /// Advance the fade toward the current decision; returns the eased hide amount
 /// (0 = walls visible, 1 = hidden). Reduced motion snaps after the same decision.
-pub fn advance_fade(state: &mut CutawayState, dt_seconds: f64, fade_seconds: f64, reduced_motion: bool) -> f64 {
+pub fn advance_fade(
+    state: &mut CutawayState,
+    dt_seconds: f64,
+    fade_seconds: f64,
+    reduced_motion: bool,
+) -> f64 {
     let target = if state.inside { 1.0 } else { 0.0 };
     if reduced_motion {
         state.t = target;
@@ -130,7 +145,12 @@ mod tests {
 
     fn region() -> Vec<RegionMilli> {
         // A 4000×4000 milli-cell (4×4 cell) room at origin.
-        vec![RegionMilli { x_milli: 0.0, y_milli: 0.0, w_milli: 4000.0, h_milli: 4000.0 }]
+        vec![RegionMilli {
+            x_milli: 0.0,
+            y_milli: 0.0,
+            w_milli: 4000.0,
+            h_milli: 4000.0,
+        }]
     }
 
     #[test]
@@ -158,7 +178,10 @@ mod tests {
     #[test]
     fn holds_between_thresholds() {
         let regs = region();
-        let mut s = CutawayState { inside: true, ..Default::default() };
+        let mut s = CutawayState {
+            inside: true,
+            ..Default::default()
+        };
         // Point just outside the room but within the outer-expand band: inside
         // actor should NOT want to flip out.
         sample(&mut s, 1.0, &regs, 4100.0, 2000.0);
@@ -168,7 +191,10 @@ mod tests {
     #[test]
     fn exits_after_leaving_outer() {
         let regs = region();
-        let mut s = CutawayState { inside: true, ..Default::default() };
+        let mut s = CutawayState {
+            inside: true,
+            ..Default::default()
+        };
         // Far outside the outer band.
         sample(&mut s, 1.0, &regs, 100000.0, 100000.0);
         sample(&mut s, 2.0, &regs, 100000.0, 100000.0);
@@ -177,11 +203,17 @@ mod tests {
 
     #[test]
     fn fade_tween_and_snap() {
-        let mut s = CutawayState { inside: true, ..Default::default() };
+        let mut s = CutawayState {
+            inside: true,
+            ..Default::default()
+        };
         let a = advance_fade(&mut s, 0.05, 0.2, false);
         assert!(a > 0.0 && s.t > 0.0 && s.t < 1.0);
         // Reduced motion snaps to the target.
-        let mut s2 = CutawayState { inside: true, ..Default::default() };
+        let mut s2 = CutawayState {
+            inside: true,
+            ..Default::default()
+        };
         advance_fade(&mut s2, 0.0, 0.2, true);
         assert_eq!(s2.t, 1.0);
     }

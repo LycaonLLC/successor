@@ -1,8 +1,8 @@
 //! PERSONAL ARMOR — status/energy readout + ability grid.
 
-use super::{WindowAction, TEXT, DIM, ACCENT, SLOT, SLOT_EDGE};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder, ButtonStyle};
+use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
 #[derive(Clone, Debug, Default)]
 pub struct PaAbility {
@@ -54,12 +54,18 @@ impl PaModel {
     }
 }
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &PaModel, icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &PaModel,
+    icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, h] = rect;
 
     // Header
     ui.text("PERSONAL ARMOR SYSTEM", x, y, 2.2, ACCENT);
-    
+
     // Draw icon if available (maybe 'pa' icon doesn't exist, we can check or fall back to none)
     if let Some((col, row)) = icons.cell("pa") {
         ui.icon(col, row, x + w - 32.0, y - 4.0, 24.0, 24.0, ACCENT);
@@ -74,8 +80,11 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &PaModel, icons: &Icons, 
         ui.rect(x, bar_y, fill_w, 20.0, [86, 156, 210, 235]);
     }
     ui.border(x, bar_y, bar_w, 20.0, 1.0, SLOT_EDGE);
-    
-    let energy_text = format!("ENERGY: {}/{}", model.energy as i32, model.energy_max as i32);
+
+    let energy_text = format!(
+        "ENERGY: {}/{}",
+        model.energy as i32, model.energy_max as i32
+    );
     ui.text(&energy_text, x + 8.0, bar_y + 4.0, 1.8, TEXT);
 
     // Abilities Grid
@@ -84,17 +93,17 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &PaModel, icons: &Icons, 
 
     let start_y = grid_title_y + 20.0;
     let _grid_h = h - (start_y - y);
-    
+
     // 2 columns, N rows
     let col_w = (w - 10.0) / 2.0;
     let row_h = 50.0;
-    
+
     for (i, ability) in model.abilities.iter().enumerate() {
         let col = i % 2;
         let row = i / 2;
         let ax = x + col as f32 * (col_w + 10.0);
         let ay = start_y + row as f32 * (row_h + 10.0);
-        
+
         if ay + row_h > y + h {
             break; // Clip to window height
         }
@@ -103,7 +112,7 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &PaModel, icons: &Icons, 
         let mut style = ButtonStyle::default();
         let is_cooldown = ability.cooldown_pct > 0.0;
         let affordable = model.energy >= ability.cost;
-        
+
         if is_cooldown {
             style.fill = [40, 40, 40, 200];
             style.text = DIM;
@@ -134,7 +143,7 @@ mod tests {
         let icons = Icons::load();
         let model = PaModel::sample();
         let mut ui = UiBuilder::new(icons.meta);
-        
+
         // Let's click the first ability: row 0, col 0
         // rect = [10.0, 10.0, 300.0, 400.0]
         // grid_title_y = y + 26.0 + 32.0 = 68.0
@@ -147,16 +156,29 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [10.0, 10.0, 300.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 300.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [10.0, 10.0, 300.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 300.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert!(
             out.contains(&WindowAction::Button("pa:activate:shield-overload".into())),
-            "Expected pa:activate:shield-overload action, got {:?}", out
+            "Expected pa:activate:shield-overload action, got {:?}",
+            out
         );
     }
 }

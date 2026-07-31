@@ -71,7 +71,11 @@ mod tests {
         }
         p.set_listener(Point { x: 0.0, y: 0.0 });
         p.play_ui("ui_panel_open");
-        p.play_at("slugthrower_fire", Point { x: 1.0, y: 1.0 }, Default::default());
+        p.play_at(
+            "slugthrower_fire",
+            Point { x: 1.0, y: 1.0 },
+            Default::default(),
+        );
         let out = std::env::temp_dir().join("successor_sfx_test.wav");
         let path = out.to_string_lossy().to_string();
         let frames = render_to_wav(&mut p, 0.5, &path).expect("render");
@@ -90,8 +94,16 @@ mod tests {
         let pcm = vec![0u8; 400];
         let w = write_wav_bytes(&pcm, 44_100, 2);
         assert_eq!(&w[0..4], b"RIFF");
-        assert_eq!(u32::from_le_bytes([w[40], w[41], w[42], w[43]]), 400, "data chunk length");
+        assert_eq!(
+            u32::from_le_bytes([w[40], w[41], w[42], w[43]]),
+            400,
+            "data chunk length"
+        );
         assert_eq!(u16::from_le_bytes([w[22], w[23]]), 2, "stereo");
-        assert_eq!(u32::from_le_bytes([w[24], w[25], w[26], w[27]]), 44_100, "sample rate");
+        assert_eq!(
+            u32::from_le_bytes([w[24], w[25], w[26], w[27]]),
+            44_100,
+            "sample rate"
+        );
     }
 }

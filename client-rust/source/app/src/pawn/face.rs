@@ -17,7 +17,9 @@ const BG_KEY: [u8; 3] = [202, 136, 97];
 const BG_TOLERANCE: i32 = 10;
 
 /// The eight atlas style cells in grid order.
-pub const CELL_ORDER: [&str; 8] = ["stoic", "rogue", "youth", "ghost", "sharp", "feral", "regal", "veteran"];
+pub const CELL_ORDER: [&str; 8] = [
+    "stoic", "rogue", "youth", "ghost", "sharp", "feral", "regal", "veteran",
+];
 
 /// Decoded feature sheets.
 pub struct FaceKit {
@@ -88,7 +90,12 @@ fn composite_cell(out: &mut RgbaImage, sheet: &RgbaImage, style: usize) {
         for ox in 0..out.width {
             let sx = src_x0 + ox * cell_w / out.width;
             let si = ((sy * sheet.width + sx) * 4) as usize;
-            let (r, g, b, a) = (sheet.pixels[si], sheet.pixels[si + 1], sheet.pixels[si + 2], sheet.pixels[si + 3]);
+            let (r, g, b, a) = (
+                sheet.pixels[si],
+                sheet.pixels[si + 1],
+                sheet.pixels[si + 2],
+                sheet.pixels[si + 3],
+            );
             if a < 8 || is_bg_key(r, g, b) {
                 continue;
             }

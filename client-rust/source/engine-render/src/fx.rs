@@ -198,7 +198,12 @@ impl ParticleLayer {
             let i3 = i * 3;
             let (cx, cy, cz) = (self.pos[i3], self.pos[i3 + 1], self.pos[i3 + 2]);
             let hs = self.size[i] * 0.5;
-            let (r, g, b, a) = (self.col[i3], self.col[i3 + 1], self.col[i3 + 2], self.alpha[i]);
+            let (r, g, b, a) = (
+                self.col[i3],
+                self.col[i3 + 1],
+                self.col[i3 + 2],
+                self.alpha[i],
+            );
             let rx = right[0] * hs;
             let ry = right[1] * hs;
             let rz = right[2] * hs;
@@ -257,7 +262,13 @@ impl ParticlePool {
     }
 
     /// Ricochet spark burst (additive) — port of `emitSparkBurst`.
-    pub fn emit_spark_burst(&mut self, point: [f32; 3], normal: [f32; 3], incoming: [f32; 3], mag: f32) {
+    pub fn emit_spark_burst(
+        &mut self,
+        point: [f32; 3],
+        normal: [f32; 3],
+        incoming: [f32; 3],
+        mag: f32,
+    ) {
         let sm = 0.84 + 0.16 * mag;
         let vm = 0.84 + 0.16 * mag;
         let cnt = |base: f32| (libm::roundf(base * mag) as i32).max(1);
@@ -268,25 +279,55 @@ impl ParticlePool {
             incoming[1] - 2.0 * dn * normal[1],
             incoming[2] - 2.0 * dn * normal[2],
         ];
-        let base = [r[0] * 0.7 + normal[0] * 0.4, r[1] * 0.7 + normal[1] * 0.4, r[2] * 0.7 + normal[2] * 0.4];
+        let base = [
+            r[0] * 0.7 + normal[0] * 0.4,
+            r[1] * 0.7 + normal[1] * 0.4,
+            r[2] * 0.7 + normal[2] * 0.4,
+        ];
         let streaks = cnt(6.0);
         for _ in 0..streaks {
-            let mut e = [base[0] + self.rng.jit() * 0.7, base[1] + self.rng.jit() * 0.7 + 0.15, base[2] + self.rng.jit() * 0.7];
+            let mut e = [
+                base[0] + self.rng.jit() * 0.7,
+                base[1] + self.rng.jit() * 0.7 + 0.15,
+                base[2] + self.rng.jit() * 0.7,
+            ];
             normalize3(&mut e);
             let sp = (2.6 + self.rng.unit() * 4.5) * vm;
             let life = 0.16 + self.rng.unit() * 0.3;
             let sz = (0.013 + self.rng.unit() * 0.022) * sm;
-            self.additive.push(point, [e[0] * sp, e[1] * sp, e[2] * sp], life, sz, sz * 0.2, 1.0, 9.5,
-                [1.0, 0.95, 0.62], [1.0, 0.32, 0.06]);
+            self.additive.push(
+                point,
+                [e[0] * sp, e[1] * sp, e[2] * sp],
+                life,
+                sz,
+                sz * 0.2,
+                1.0,
+                9.5,
+                [1.0, 0.95, 0.62],
+                [1.0, 0.32, 0.06],
+            );
         }
         let flashes = cnt(3.0);
         for _ in 0..flashes {
-            let mut e = [normal[0] + self.rng.jit() * 0.5, normal[1] + self.rng.jit() * 0.5, normal[2] + self.rng.jit() * 0.5];
+            let mut e = [
+                normal[0] + self.rng.jit() * 0.5,
+                normal[1] + self.rng.jit() * 0.5,
+                normal[2] + self.rng.jit() * 0.5,
+            ];
             normalize3(&mut e);
             let life = 0.05 + self.rng.unit() * 0.05;
             let sz = (0.05 + self.rng.unit() * 0.035) * sm;
-            self.additive.push(point, [e[0] * 0.6, e[1] * 0.6, e[2] * 0.6], life, sz, sz * 0.4, 1.0, 0.0,
-                [1.0, 0.92, 0.7], [1.0, 0.6, 0.3]);
+            self.additive.push(
+                point,
+                [e[0] * 0.6, e[1] * 0.6, e[2] * 0.6],
+                life,
+                sz,
+                sz * 0.4,
+                1.0,
+                0.0,
+                [1.0, 0.92, 0.7],
+                [1.0, 0.6, 0.3],
+            );
         }
     }
 
@@ -305,8 +346,17 @@ impl ParticlePool {
             let sp = (1.4 + self.rng.unit() * 2.2) * (0.9 + 0.1 * mag);
             let life = 0.3 + self.rng.unit() * 0.5;
             let sz = 0.03 + self.rng.unit() * 0.03;
-            self.normal.push(point, [e[0] * sp, e[1] * sp, e[2] * sp], life, sz, sz * 0.6, 0.95, 6.5,
-                spray, drip);
+            self.normal.push(
+                point,
+                [e[0] * sp, e[1] * sp, e[2] * sp],
+                life,
+                sz,
+                sz * 0.6,
+                0.95,
+                6.5,
+                spray,
+                drip,
+            );
         }
     }
 
@@ -324,9 +374,17 @@ impl ParticlePool {
         for _ in 0..cnt(1.0) {
             let sz = (0.05 + self.rng.unit() * 0.03) * (0.8 + 0.2 * mag);
             self.additive.push(
-                [point[0] + d[0] * 0.02, point[1] + d[1] * 0.02, point[2] + d[2] * 0.02],
+                [
+                    point[0] + d[0] * 0.02,
+                    point[1] + d[1] * 0.02,
+                    point[2] + d[2] * 0.02,
+                ],
                 [d[0] * 0.6, d[1] * 0.6, d[2] * 0.6],
-                0.045 + self.rng.unit() * 0.03, sz, sz * 0.35, 1.0, 0.0,
+                0.045 + self.rng.unit() * 0.03,
+                sz,
+                sz * 0.35,
+                1.0,
+                0.0,
                 [(r + 0.2).min(1.0), (g + 0.2).min(1.0), (b + 0.2).min(1.0)],
                 [r * 0.8, g * 0.6, b * 0.6],
             );
@@ -345,20 +403,41 @@ impl ParticlePool {
             let sp = (5.5 + self.rng.unit() * 7.0) * (0.85 + 0.15 * mag);
             let life = 0.05 + self.rng.unit() * 0.1;
             let sz = (0.022 + self.rng.unit() * 0.028) * (0.85 + 0.15 * mag);
-            self.additive.push(point, [t[0] * sp, t[1] * sp, t[2] * sp], life, sz, sz * 0.18, 1.0, 6.0,
-                [r, g, b], [r * 0.5, g * 0.3, b * 0.3]);
+            self.additive.push(
+                point,
+                [t[0] * sp, t[1] * sp, t[2] * sp],
+                life,
+                sz,
+                sz * 0.18,
+                1.0,
+                6.0,
+                [r, g, b],
+                [r * 0.5, g * 0.3, b * 0.3],
+            );
         }
         // 3) lazy embers
         for _ in 0..cnt(2.0) {
             let ju = self.rng.jit() * 0.5;
             let jw = self.rng.jit() * 0.5 + 0.1;
-            let mut t = [d[0] + u[0] * ju + w[0] * jw, d[1] + u[1] * ju + w[1] * jw, d[2] + u[2] * ju + w[2] * jw];
+            let mut t = [
+                d[0] + u[0] * ju + w[0] * jw,
+                d[1] + u[1] * ju + w[1] * jw,
+                d[2] + u[2] * ju + w[2] * jw,
+            ];
             normalize3(&mut t);
             let sp = 0.8 + self.rng.unit() * 1.8;
             let sz = 0.02 + self.rng.unit() * 0.02;
-            self.additive.push(point, [t[0] * sp, t[1] * sp, t[2] * sp],
-                0.18 + self.rng.unit() * 0.22, sz, sz * 0.4, 0.9, 7.0,
-                [r * 0.8, g * 0.6, b * 0.4], [r * 0.3, g * 0.1, b * 0.05]);
+            self.additive.push(
+                point,
+                [t[0] * sp, t[1] * sp, t[2] * sp],
+                0.18 + self.rng.unit() * 0.22,
+                sz,
+                sz * 0.4,
+                0.9,
+                7.0,
+                [r * 0.8, g * 0.6, b * 0.4],
+                [r * 0.3, g * 0.1, b * 0.05],
+            );
         }
     }
 
@@ -375,9 +454,22 @@ impl ParticlePool {
         let sz = (0.026 + 0.004 * mag).max(0.02);
         for k in 0..=steps {
             let f = k as f32 / steps as f32;
-            let p = [from[0] + seg[0] * f, from[1] + seg[1] * f, from[2] + seg[2] * f];
-            self.additive.push(p, [0.0, 0.0, 0.0], 0.08 + self.rng.unit() * 0.04, sz, sz * 0.4, 0.9, 0.0,
-                [1.0, 0.89, 0.60], [1.0, 0.60, 0.20]);
+            let p = [
+                from[0] + seg[0] * f,
+                from[1] + seg[1] * f,
+                from[2] + seg[2] * f,
+            ];
+            self.additive.push(
+                p,
+                [0.0, 0.0, 0.0],
+                0.08 + self.rng.unit() * 0.04,
+                sz,
+                sz * 0.4,
+                0.9,
+                0.0,
+                [1.0, 0.89, 0.60],
+                [1.0, 0.60, 0.20],
+            );
         }
     }
 }
@@ -392,7 +484,7 @@ pub fn glow_sprite(size: usize) -> Vec<u8> {
             let dx = (x as f32 + 0.5) - half;
             let dy = (y as f32 + 0.5) - half;
             let r = libm::sqrtf(dx * dx + dy * dy) / half; // 0..~1
-            // Piecewise gradient matching the canvas stops.
+                                                           // Piecewise gradient matching the canvas stops.
             let a: f32 = if r >= 1.0 {
                 0.0
             } else if r <= 0.3 {
@@ -436,7 +528,11 @@ fn basis_perp(dir: [f32; 3]) -> ([f32; 3], [f32; 3]) {
 }
 
 fn cross(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
-    [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+    [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    ]
 }
 
 #[cfg(all(test, feature = "std"))]
@@ -446,7 +542,17 @@ mod tests {
     #[test]
     fn push_makes_particle_alive_then_expires() {
         let mut l = ParticleLayer::new(16, 1.0);
-        l.push([0.0, 1.0, 0.0], [0.0, 0.0, 0.0], 0.10, 0.05, 0.0, 1.0, 0.0, [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]);
+        l.push(
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0],
+            0.10,
+            0.05,
+            0.0,
+            1.0,
+            0.0,
+            [1.0, 1.0, 1.0],
+            [0.0, 0.0, 0.0],
+        );
         assert_eq!(l.alive(), 1);
         l.step(0.05, GROUND_Y);
         assert_eq!(l.alive(), 1, "still alive at half life");
@@ -458,7 +564,17 @@ mod tests {
     fn ring_buffer_evicts_oldest_and_never_grows() {
         let mut l = ParticleLayer::new(4, 0.0);
         for _ in 0..10 {
-            l.push([0.0, 1.0, 0.0], [0.0, 0.0, 0.0], 1.0, 0.05, 0.0, 1.0, 0.0, [1.0; 3], [0.0; 3]);
+            l.push(
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0],
+                1.0,
+                0.05,
+                0.0,
+                1.0,
+                0.0,
+                [1.0; 3],
+                [0.0; 3],
+            );
         }
         assert!(l.alive() <= 4, "capacity bounded to max");
         assert_eq!(l.pos.len(), 4 * 3, "storage fixed");
@@ -468,20 +584,51 @@ mod tests {
     fn gravity_pulls_down_and_ground_splats() {
         let mut l = ParticleLayer::new(4, 0.0);
         // Start just above ground, moving down, heavy gravity.
-        l.push([0.0, GROUND_Y + 0.01, 0.0], [0.0, -1.0, 0.0], 1.0, 0.05, 0.05, 1.0, 20.0, [1.0; 3], [1.0; 3]);
+        l.push(
+            [0.0, GROUND_Y + 0.01, 0.0],
+            [0.0, -1.0, 0.0],
+            1.0,
+            0.05,
+            0.05,
+            1.0,
+            20.0,
+            [1.0; 3],
+            [1.0; 3],
+        );
         l.step(0.1, GROUND_Y);
         // Clamped to ground and vy reflected (damped).
-        assert!(l.pos[1] >= GROUND_Y - 1e-4, "settled at/above ground: {}", l.pos[1]);
+        assert!(
+            l.pos[1] >= GROUND_Y - 1e-4,
+            "settled at/above ground: {}",
+            l.pos[1]
+        );
     }
 
     #[test]
     fn size_and_alpha_lerp_over_life() {
         let mut l = ParticleLayer::new(4, 0.0);
-        l.push([0.0, 1.0, 0.0], [0.0, 0.0, 0.0], 1.0, 0.10, 0.02, 1.0, 0.0, [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]);
+        l.push(
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0],
+            1.0,
+            0.10,
+            0.02,
+            1.0,
+            0.0,
+            [1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+        );
         l.step(0.5, GROUND_Y); // frac ~ 0.5
-        assert!(l.size[0] > 0.02 && l.size[0] < 0.10, "size between s1 and s0");
+        assert!(
+            l.size[0] > 0.02 && l.size[0] < 0.10,
+            "size between s1 and s0"
+        );
         // color lerps from c1(blue) toward c0(red) as frac->1; at 0.5 mixed.
-        assert!(l.col[0] > 0.4 && l.col[0] < 0.6, "red channel ~0.5, got {}", l.col[0]);
+        assert!(
+            l.col[0] > 0.4 && l.col[0] < 0.6,
+            "red channel ~0.5, got {}",
+            l.col[0]
+        );
     }
 
     #[test]
@@ -492,13 +639,27 @@ mod tests {
         assert!(n > 0, "sparks emitted");
         let mut b = ParticlePool::new(1234);
         b.emit_spark_burst([0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0], 1.0);
-        assert_eq!(a.additive.alive(), b.additive.alive(), "deterministic with same seed");
+        assert_eq!(
+            a.additive.alive(),
+            b.additive.alive(),
+            "deterministic with same seed"
+        );
     }
 
     #[test]
     fn billboards_emit_six_verts_per_alive_particle() {
         let mut l = ParticleLayer::new(8, 0.0);
-        l.push([0.0, 1.0, 0.0], [0.0, 0.0, 0.0], 1.0, 0.1, 0.1, 1.0, 0.0, [1.0; 3], [1.0; 3]);
+        l.push(
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0],
+            1.0,
+            0.1,
+            0.1,
+            1.0,
+            0.0,
+            [1.0; 3],
+            [1.0; 3],
+        );
         l.step(0.01, GROUND_Y);
         let mut out = Vec::new();
         let q = l.fill_billboards([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], &mut out);
@@ -520,7 +681,11 @@ mod tests {
         let mut p = ParticlePool::new(99);
         p.emit_muzzle_flash([0.0, 1.3, 0.0], [1.0, 0.0, 0.0], 1.0, [1.0, 0.7, 0.3]);
         // core(>=1) + cone(6) + embers(2) at mag 1.
-        assert!(p.additive.alive() >= 8, "flash particles emitted, got {}", p.additive.alive());
+        assert!(
+            p.additive.alive() >= 8,
+            "flash particles emitted, got {}",
+            p.additive.alive()
+        );
     }
 
     #[test]
@@ -528,7 +693,11 @@ mod tests {
         let mut p = ParticlePool::new(7);
         p.emit_tracer([0.0, 1.0, 0.0], [3.6, 1.0, 0.0], 1.0);
         // length 3.6 / 0.18 = 20 steps + 1.
-        assert!(p.additive.alive() >= 20, "tracer points laid, got {}", p.additive.alive());
+        assert!(
+            p.additive.alive() >= 20,
+            "tracer points laid, got {}",
+            p.additive.alive()
+        );
     }
 
     #[test]

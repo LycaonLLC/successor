@@ -1,7 +1,7 @@
 //! Presentation weather system (rain / dust / storm) that drives the particle pool.
 
-use libm::{cosf, sinf};
 use crate::fx::ParticlePool;
+use libm::{cosf, sinf};
 
 /// Deterministic xorshift RNG for weather particle emission.
 #[derive(Clone, Copy, Debug)]
@@ -67,7 +67,7 @@ impl Weather {
 
     pub fn set(&mut self, kind: WeatherKind, intensity: f32) {
         self.kind = kind;
-        self.intensity = intensity.max(0.0).min(1.0);
+        self.intensity = intensity.clamp(0.0, 1.0);
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -103,8 +103,9 @@ impl Weather {
         let dir_x = cosf(dir_rad);
         let dir_z = sinf(dir_rad);
         let gust_phase = (t * pi * 2.0) / 7.5;
-        let gust01 = (0.5 + 0.55 * sinf(gust_phase) + 0.25 * sinf(gust_phase * 2.7 + 1.3)).max(0.0).min(1.0);
-        let strength01 = (0.3 + gust01 * 0.45).max(0.0).min(1.0);
+        let gust01 =
+            (0.5 + 0.55 * sinf(gust_phase) + 0.25 * sinf(gust_phase * 2.7 + 1.3)).clamp(0.0, 1.0);
+        let strength01 = (0.3 + gust01 * 0.45).clamp(0.0, 1.0);
         self.wind = [dir_x * strength01, dir_z * strength01];
     }
 
@@ -266,7 +267,12 @@ mod tests {
         weather2.emit_into(&mut pool2, [0.0, 0.0, 0.0], 10.0);
         let count_1_0 = pool2.normal.alive();
 
-        assert!(count_1_0 > count_0_3, "Emission must scale with intensity: 1.0 count ({}) > 0.3 count ({})", count_1_0, count_0_3);
+        assert!(
+            count_1_0 > count_0_3,
+            "Emission must scale with intensity: 1.0 count ({}) > 0.3 count ({})",
+            count_1_0,
+            count_0_3
+        );
     }
 
     #[test]
@@ -295,7 +301,11 @@ mod tests {
             if dir_deg < 0.0 {
                 dir_deg += 360.0;
             }
-            assert!(dir_deg >= 42.9 && dir_deg <= 187.1, "Wind direction degrees out of bounds: {}", dir_deg);
+            assert!(
+                dir_deg >= 42.9 && dir_deg <= 187.1,
+                "Wind direction degrees out of bounds: {}",
+                dir_deg
+            );
         }
     }
 }

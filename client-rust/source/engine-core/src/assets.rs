@@ -155,7 +155,10 @@ fn entry_from(key: String, val: &Json) -> AssetEntry {
         .and_then(Json::as_str)
         .unwrap_or("")
         .to_string();
-    let kind = val.get("kind").and_then(Json::as_str).map(|s| s.to_string());
+    let kind = val
+        .get("kind")
+        .and_then(Json::as_str)
+        .map(|s| s.to_string());
     AssetEntry {
         key,
         glb,
@@ -255,9 +258,13 @@ mod tests {
         assert_eq!(m.len(), 2);
         let e = m.get("chest").unwrap();
         assert_eq!(e.glb, "supply_cache.glb");
-        assert_eq!(e.extra.get("interactable").and_then(Json::as_bool), Some(true));
         assert_eq!(
-            m.resolve_url("road_barrier", &PublicPathResolver::root()).as_deref(),
+            e.extra.get("interactable").and_then(Json::as_bool),
+            Some(true)
+        );
+        assert_eq!(
+            m.resolve_url("road_barrier", &PublicPathResolver::root())
+                .as_deref(),
             Some("/assets/world-items/barricade_concrete.glb")
         );
     }
@@ -273,7 +280,8 @@ mod tests {
         let e = m.get("ammo_001").unwrap();
         assert_eq!(e.kind.as_deref(), Some("ammo"));
         assert_eq!(
-            m.resolve_url("ammo_001", &PublicPathResolver::root()).as_deref(),
+            m.resolve_url("ammo_001", &PublicPathResolver::root())
+                .as_deref(),
             Some("/assets/wave-props/a/ammo_001.glb")
         );
     }
@@ -295,8 +303,14 @@ mod tests {
     #[test]
     fn release_dir_prefixing() {
         let r = PublicPathResolver::new("/releases/abc/");
-        assert_eq!(r.resolve("/assets/x.glb").as_deref(), Some("/releases/abc/assets/x.glb"));
-        assert_eq!(r.resolve("/releases/abc/assets/x.glb").as_deref(), Some("/releases/abc/assets/x.glb"));
+        assert_eq!(
+            r.resolve("/assets/x.glb").as_deref(),
+            Some("/releases/abc/assets/x.glb")
+        );
+        assert_eq!(
+            r.resolve("/releases/abc/assets/x.glb").as_deref(),
+            Some("/releases/abc/assets/x.glb")
+        );
     }
 
     #[test]
@@ -305,6 +319,9 @@ mod tests {
         assert_eq!(r.resolve("//evil.example/x"), None);
         assert_eq!(r.resolve("https://evil/x"), None);
         assert_eq!(r.resolve("/a/../../etc/passwd"), None);
-        assert_eq!(r.resolve("relative/x.glb").as_deref(), Some("relative/x.glb"));
+        assert_eq!(
+            r.resolve("relative/x.glb").as_deref(),
+            Some("relative/x.glb")
+        );
     }
 }

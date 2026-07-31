@@ -396,7 +396,8 @@ impl<A: Component, W: WorldCore + HasStorage<A>> Query1<A, W> {
         // invariant). We reborrow per step and never alias the yielded ref.
         unsafe {
             loop {
-                let (ei, ptr) = HasStorage::<A>::storage(&mut *self.world).drive(&mut self.cursor)?;
+                let (ei, ptr) =
+                    HasStorage::<A>::storage(&mut *self.world).drive(&mut self.cursor)?;
                 let i = ei as usize;
                 if !(*self.world).pool().alive[i] {
                     continue;
@@ -567,7 +568,13 @@ mod tests {
     #[test]
     fn dense_swap_remove_preserves_others() {
         let mut w = W::new();
-        let e: Vec<_> = (0..4).map(|i| { let x = w.spawn(); w.set_component(x, Pos(i)); x }).collect();
+        let e: Vec<_> = (0..4)
+            .map(|i| {
+                let x = w.spawn();
+                w.set_component(x, Pos(i));
+                x
+            })
+            .collect();
         w.destroy(e[1]);
         w.flush();
         assert!(!w.has_component::<Pos>(e[1]));
@@ -600,12 +607,20 @@ mod tests {
         // The documented capability: inserting a DIFFERENT-typed component while
         // iterating the driving storage is sound.
         let mut w = W::new();
-        let ids: Vec<_> = (0..3).map(|i| { let x = w.spawn(); w.set_component(x, Pos(i)); x }).collect();
+        let ids: Vec<_> = (0..3)
+            .map(|i| {
+                let x = w.spawn();
+                w.set_component(x, Pos(i));
+                x
+            })
+            .collect();
         let mut seen = 0;
         let mut q = w.query1::<Pos>();
         while let Some((e, _)) = q.next() {
             // Insert Vel into a component storage that is NOT the driver.
-            unsafe { (*(&mut w as *mut W)).set_component(e, Vel(7)); }
+            unsafe {
+                (*(&mut w as *mut W)).set_component(e, Vel(7));
+            }
             seen += 1;
         }
         assert_eq!(seen, 3);

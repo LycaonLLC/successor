@@ -43,8 +43,14 @@ pub fn play_ui(player: &mut SfxPlayer, cue: UiCue) -> bool {
 /// Footstep clip id for a step index (round-robins the grass variants).
 pub fn footstep_id(step: u32) -> &'static str {
     const STEPS: [&str; 8] = [
-        "footstep_grass_01", "footstep_grass_02", "footstep_grass_03", "footstep_grass_04",
-        "footstep_grass_05", "footstep_grass_06", "footstep_grass_07", "footstep_grass_08",
+        "footstep_grass_01",
+        "footstep_grass_02",
+        "footstep_grass_03",
+        "footstep_grass_04",
+        "footstep_grass_05",
+        "footstep_grass_06",
+        "footstep_grass_07",
+        "footstep_grass_08",
     ];
     STEPS[(step as usize) % STEPS.len()]
 }
@@ -69,8 +75,14 @@ pub fn impact_id(outcome: u8) -> &'static str {
 pub fn play_combat(player: &mut SfxPlayer, ev: &CombatEvent) {
     // Origin/hit points are world (x,y,z); the mixer spatializes in the sim
     // plane (x,z) — collapse to that plane.
-    let origin = Point { x: ev.origin[0], y: ev.origin[2] };
-    let hit = Point { x: ev.hit[0], y: ev.hit[2] };
+    let origin = Point {
+        x: ev.origin[0],
+        y: ev.origin[2],
+    };
+    let hit = Point {
+        x: ev.hit[0],
+        y: ev.hit[2],
+    };
     let opts = SpatialOpts::default();
     player.play_at(weapon_fire_id(None), origin, opts);
     player.play_at(impact_id(ev.outcome), hit, opts);
@@ -97,7 +109,10 @@ mod tests {
             eprintln!("skip: assets absent");
             return;
         };
-        assert!(play_ui(&mut p, UiCue::PanelOpen), "panel-open cue exists + plays");
+        assert!(
+            play_ui(&mut p, UiCue::PanelOpen),
+            "panel-open cue exists + plays"
+        );
         assert!(play_ui(&mut p, UiCue::ButtonTick));
         assert!(p.active_voices() >= 2);
     }
@@ -118,7 +133,11 @@ mod tests {
         };
         play_combat(&mut p, &ev);
         // Close range → both weapon report + body hit audible.
-        assert!(p.active_voices() >= 1, "combat audio fired, voices={}", p.active_voices());
+        assert!(
+            p.active_voices() >= 1,
+            "combat audio fired, voices={}",
+            p.active_voices()
+        );
     }
 
     #[test]

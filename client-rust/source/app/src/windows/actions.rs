@@ -1,6 +1,6 @@
 //! ACTIONS — action/ability browser UI.
 
-use super::{WindowAction, TEXT, DIM, ACCENT, SLOT, SLOT_EDGE};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::UiBuilder;
 
@@ -62,19 +62,25 @@ impl ActionsModel {
     }
 }
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &ActionsModel, icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &ActionsModel,
+    icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, h] = rect;
 
     // Header
     ui.text("ACTION BROWSER", x, y, 2.2, ACCENT);
-    
+
     // Draw default actions icon if available
     if let Some((col, row)) = icons.cell("actions") {
         ui.icon(col, row, x + w - 32.0, y - 4.0, 24.0, 24.0, ACCENT);
     }
 
     let start_y = y + 26.0;
-    
+
     // 2 columns, N rows
     let col_w = (w - 10.0) / 2.0;
     let row_h = 44.0;
@@ -92,17 +98,13 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &ActionsModel, icons: &Ic
 
         // Interaction for hover/click
         let resp = ui.interact(ax, ay, col_w, row_h);
-        
+
         let bg_color = if resp.hovered {
             [36, 48, 64, 230]
         } else {
             SLOT
         };
-        let border_color = if resp.hovered {
-            ACCENT
-        } else {
-            SLOT_EDGE
-        };
+        let border_color = if resp.hovered { ACCENT } else { SLOT_EDGE };
 
         ui.rect(ax, ay, col_w, row_h, bg_color);
         ui.border(ax, ay, col_w, row_h, 1.0, border_color);
@@ -131,7 +133,7 @@ mod tests {
         let icons = Icons::load();
         let model = ActionsModel::sample();
         let mut ui = UiBuilder::new(icons.meta);
-        
+
         // rect = [10.0, 10.0, 300.0, 400.0]
         // start_y = 10.0 + 26.0 = 36.0
         // col_w = (300.0 - 10.0) / 2.0 = 145.0
@@ -142,16 +144,29 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [10.0, 10.0, 300.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 300.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [10.0, 10.0, 300.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [10.0, 10.0, 300.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert!(
             out.contains(&WindowAction::Button("action:shoot".into())),
-            "Expected action:shoot action, got {:?}", out
+            "Expected action:shoot action, got {:?}",
+            out
         );
     }
 }

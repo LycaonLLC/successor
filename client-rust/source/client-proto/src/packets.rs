@@ -287,14 +287,17 @@ impl<'de> Deserialize<'de> for GameCompactReceipt {
             where
                 A: serde::de::SeqAccess<'de>,
             {
-                let command_id = seq.next_element()?
+                let command_id = seq
+                    .next_element()?
                     .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
-                let accepted = seq.next_element()?
+                let accepted = seq
+                    .next_element()?
                     .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
-                let tick = seq.next_element()?
+                let tick = seq
+                    .next_element()?
                     .ok_or_else(|| serde::de::Error::invalid_length(2, &self))?;
                 let reason_code = seq.next_element()?;
-                
+
                 Ok(GameCompactReceipt(command_id, accepted, tick, reason_code))
             }
         }
@@ -326,7 +329,6 @@ impl Serialize for GameCompactReceipt {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GamePlayerPositionAck(pub f32, pub f32);
 
@@ -335,7 +337,7 @@ pub struct GamePlayerPositionAck(pub f32, pub f32);
 pub enum GameServerPacket {
     #[serde(rename = "game.hello")]
     Hello(GameHello),
-    
+
     #[serde(rename = "game.snapshot")]
     Snapshot {
         snapshot: GameShardSnapshot,
@@ -345,7 +347,7 @@ pub enum GameServerPacket {
         #[serde(rename = "compactEvents")]
         compact_events: Option<Vec<serde_json::Value>>,
     },
-    
+
     #[serde(rename = "game.delta")]
     Delta {
         delta: GameShardDelta,
@@ -355,7 +357,7 @@ pub enum GameServerPacket {
         #[serde(rename = "compactEvents")]
         compact_events: Option<Vec<serde_json::Value>>,
     },
-    
+
     #[serde(rename = "game.receipts")]
     Receipts {
         receipts: Vec<GameCommandReceipt>,
@@ -364,7 +366,7 @@ pub enum GameServerPacket {
         #[serde(rename = "compactEvents")]
         compact_events: Option<Vec<serde_json::Value>>,
     },
-    
+
     #[serde(rename = "game.acks")]
     Acks {
         acks: Vec<GameCompactReceipt>,
@@ -380,13 +382,10 @@ pub enum GameServerPacket {
         #[serde(rename = "compactEvents")]
         compact_events: Option<Vec<serde_json::Value>>,
     },
-    
+
     #[serde(rename = "game.error")]
-    Error {
-        code: String,
-        message: String,
-    },
-    
+    Error { code: String, message: String },
+
     #[serde(rename = "pong")]
     Pong {
         #[serde(default)]
@@ -423,11 +422,20 @@ mod actor_tests {
         }"##;
         let a: GameActorSnapshot = serde_json::from_str(json).expect("decode");
         assert_eq!(a.role.as_deref(), Some("player"));
-        assert_eq!(a.appearance.as_ref().unwrap().skin_tone.as_deref(), Some("#cc9978"));
-        assert_eq!(a.appearance.as_ref().unwrap().hair.as_deref(), Some("hair_short"));
+        assert_eq!(
+            a.appearance.as_ref().unwrap().skin_tone.as_deref(),
+            Some("#cc9978")
+        );
+        assert_eq!(
+            a.appearance.as_ref().unwrap().hair.as_deref(),
+            Some("hair_short")
+        );
         assert_eq!(a.worn.len(), 1);
         assert_eq!(a.worn[0].item_id.as_deref(), Some("jacket_1"));
-        assert_eq!(a.weapon.as_ref().unwrap().weapon_id.as_deref(), Some("slugthrower"));
+        assert_eq!(
+            a.weapon.as_ref().unwrap().weapon_id.as_deref(),
+            Some("slugthrower")
+        );
         assert_eq!(a.max_vitals.health, 100.0);
         assert_eq!(a.credits, Some(250));
         assert_eq!(a.pvp_status.as_deref(), Some("overt"));

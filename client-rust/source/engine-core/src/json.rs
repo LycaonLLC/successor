@@ -294,8 +294,8 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        let s = core::str::from_utf8(&self.bytes[start..self.pos])
-            .map_err(|_| JsonError::BadNumber)?;
+        let s =
+            core::str::from_utf8(&self.bytes[start..self.pos]).map_err(|_| JsonError::BadNumber)?;
         parse_f64(s).map(Json::Num).ok_or(JsonError::BadNumber)
     }
 }
@@ -718,7 +718,6 @@ pub fn to_json_string(v: &Json) -> String {
     v.to_string_compact()
 }
 
-
 #[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
@@ -735,7 +734,10 @@ mod tests {
     fn parse_object_and_get() {
         let j = Json::parse(r#"{ "a": 1, "b": [true, "x"], "c": { "d": 2.5 } }"#).unwrap();
         assert_eq!(j.get("a").and_then(Json::as_i64), Some(1));
-        assert_eq!(j.get("b").and_then(Json::as_array).map(|a| a.len()), Some(2));
+        assert_eq!(
+            j.get("b").and_then(Json::as_array).map(|a| a.len()),
+            Some(2)
+        );
         assert_eq!(
             j.get("c").and_then(|c| c.get("d")).and_then(Json::as_f64),
             Some(2.5)
@@ -751,7 +753,16 @@ mod tests {
 
     #[test]
     fn writer_roundtrips_f32() {
-        for v in [0.0f32, 1.0, -2.5, 0.021, 1024.0, 0.5, 89.0 / 255.0, 3.1415927] {
+        for v in [
+            0.0f32,
+            1.0,
+            -2.5,
+            0.021,
+            1024.0,
+            0.5,
+            89.0 / 255.0,
+            3.1415927,
+        ] {
             let mut w = JsonWriter::new();
             w.value_f32(v);
             let s = w.into_string();
@@ -774,8 +785,14 @@ mod tests {
         w.end_obj();
         let s = w.into_string();
         let j = Json::parse(&s).unwrap();
-        assert_eq!(j.get("schema").and_then(Json::as_str), Some("successor.prefab.v1"));
+        assert_eq!(
+            j.get("schema").and_then(Json::as_str),
+            Some("successor.prefab.v1")
+        );
         assert_eq!(j.get("flag").and_then(Json::as_bool), Some(true));
-        assert_eq!(j.get("pos").and_then(Json::as_array).map(|a| a.len()), Some(2));
+        assert_eq!(
+            j.get("pos").and_then(Json::as_array).map(|a| a.len()),
+            Some(2)
+        );
     }
 }

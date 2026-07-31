@@ -122,14 +122,19 @@ mod tests {
     fn iso_center_screen_hits_focus() {
         let mut cam = IsoCamera::default();
         cam.update_focus(0.0, 0.0, 0.016);
-        let hit = cam.ground_pick(16.0 / 9.0, 0.0, 0.0).expect("center hits ground");
+        let hit = cam
+            .ground_pick(16.0 / 9.0, 0.0, 0.0)
+            .expect("center hits ground");
         assert!(hit.x.abs() < 0.5, "x≈0 got {}", hit.x);
         assert!(hit.z.abs() < 0.5, "z≈0 got {}", hit.z);
     }
 
     #[test]
     fn ray_aabb_hit_and_miss() {
-        let b = Aabb { min: vec3(-1.0, -1.0, -1.0), max: vec3(1.0, 1.0, 1.0) };
+        let b = Aabb {
+            min: vec3(-1.0, -1.0, -1.0),
+            max: vec3(1.0, 1.0, 1.0),
+        };
         assert!(ray_aabb(vec3(0.0, 0.0, -5.0), vec3(0.0, 0.0, 1.0), &b).is_some());
         assert!(ray_aabb(vec3(5.0, 5.0, -5.0), vec3(0.0, 0.0, 1.0), &b).is_none());
     }

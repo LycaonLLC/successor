@@ -18,28 +18,28 @@ pub fn create_gpu() -> GlGpu {
 // target-specific re-exports of free-function surface
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::window::{
-    init, should_quit, begin_frame, end_frame, deinit, framebuffer_size, now_ms,
-    is_key_down, set_cursor_visible, poll_text_input, read_pixels_rgba, gl_error,
-    mouse_position, mouse_button_down,
+    begin_frame, deinit, end_frame, framebuffer_size, gl_error, init, is_key_down,
+    mouse_button_down, mouse_position, now_ms, poll_text_input, read_pixels_rgba,
+    set_cursor_visible, should_quit,
 };
 
 #[cfg(target_arch = "wasm32")]
 pub use web::{
-    init, should_quit, begin_frame, end_frame, deinit, framebuffer_size, now_ms,
-    is_key_down, set_cursor_visible, poll_text_input, mouse_position, mouse_button_down,
+    begin_frame, deinit, end_frame, framebuffer_size, init, is_key_down, mouse_button_down,
+    mouse_position, now_ms, poll_text_input, read_pixels_rgba, set_cursor_visible, should_quit,
 };
 
 // Network transport re-exports
 #[cfg(not(target_arch = "wasm32"))]
-pub use native::net::{ws_connect, ws_send, ws_poll, WsHandle, WsEvent};
-#[cfg(not(target_arch = "wasm32"))]
-pub use native::http::{http_post_json, http_get};
-#[cfg(not(target_arch = "wasm32"))]
-pub use native::fs::{fs_read, fs_exists};
-#[cfg(not(target_arch = "wasm32"))]
 pub use native::audio::{AudioOutput, FillFn};
+#[cfg(not(target_arch = "wasm32"))]
+pub use native::fs::{fs_exists, fs_read};
+#[cfg(not(target_arch = "wasm32"))]
+pub use native::http::{http_get, http_post_json};
+#[cfg(not(target_arch = "wasm32"))]
+pub use native::net::{ws_connect, ws_poll, ws_send, WsEvent, WsHandle};
 
 #[cfg(target_arch = "wasm32")]
-pub use web::net::{ws_connect, ws_send, ws_poll, WsHandle, WsEvent};
+pub use web::net::{http_get, http_post_json};
 #[cfg(target_arch = "wasm32")]
-pub use web::net::{http_post_json, http_get};
+pub use web::net::{ws_connect, ws_poll, ws_send, WsEvent, WsHandle};

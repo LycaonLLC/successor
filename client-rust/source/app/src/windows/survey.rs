@@ -1,8 +1,8 @@
 //! SURVEY — resource survey tool with concentrations readout.
 
-use super::{WindowAction, TEXT, DIM, ACCENT, SLOT, SLOT_EDGE};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder, ButtonStyle};
+use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
 #[derive(Clone, Debug, Default)]
 pub struct SurveyResource {
@@ -42,7 +42,13 @@ impl SurveyModel {
     }
 }
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &SurveyModel, icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &SurveyModel,
+    icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, h] = rect;
 
     // ── Header (radar-style) ─────────────────────────────────────────────
@@ -82,7 +88,13 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &SurveyModel, icons: &Ico
         ui.rect(bar_x, ry + 2.0, bar_w, 14.0, SLOT);
         if res.concentration > 0.0 {
             let fill_color = [70, 120, 180, 235]; // Nice blue/cyan
-            ui.rect(bar_x, ry + 2.0, bar_w * res.concentration.clamp(0.0, 1.0), 14.0, fill_color);
+            ui.rect(
+                bar_x,
+                ry + 2.0,
+                bar_w * res.concentration.clamp(0.0, 1.0),
+                14.0,
+                fill_color,
+            );
         }
         ui.border(bar_x, ry + 2.0, bar_w, 14.0, 1.0, SLOT_EDGE);
 
@@ -115,12 +127,24 @@ mod tests {
         ui.set_input(250.0, 327.0, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 300.0, 250.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 300.0, 250.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(250.0, 327.0, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 300.0, 250.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 300.0, 250.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert_eq!(out, vec![WindowAction::Survey]);
     }

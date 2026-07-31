@@ -26,8 +26,8 @@ pub fn next_command_id_floor(now_ms: u64, seq: &mut u64) -> u64 {
 pub fn command_priority(command: &ClientCommand) -> u8 {
     match command_kind(command).as_str() {
         "CloneRespawn" | "ReviveActor" | "UseConsumable" | "RefillAmmo" | "ApplyServiceBuff"
-        | "SampleResource" | "HarvestCorpse" | "TakeLootItem" | "CraftItem" | "PurchaseSkillBox"
-        | "SetProfessionTitle" | "SetCareerGoal" => 0,
+        | "SampleResource" | "HarvestCorpse" | "TakeLootItem" | "CraftItem"
+        | "PurchaseSkillBox" | "SetProfessionTitle" | "SetCareerGoal" => 0,
         "Move" => 2,
         _ => 3,
     }
@@ -97,8 +97,14 @@ impl CommandQueue {
         // Pick the flush-order head.
         let mut best = 0usize;
         for i in 1..self.pending.len() {
-            let (pi, ci) = (command_priority(&self.pending[i].command), self.pending[i].command_id);
-            let (pb, cb) = (command_priority(&self.pending[best].command), self.pending[best].command_id);
+            let (pi, ci) = (
+                command_priority(&self.pending[i].command),
+                self.pending[i].command_id,
+            );
+            let (pb, cb) = (
+                command_priority(&self.pending[best].command),
+                self.pending[best].command_id,
+            );
             if pi < pb || (pi == pb && ci < cb) {
                 best = i;
             }
@@ -164,7 +170,10 @@ mod tests {
 
     #[test]
     fn priority_classes() {
-        assert_eq!(command_priority(&ClientCommand::CloneRespawn { facility_id: None }), 0);
+        assert_eq!(
+            command_priority(&ClientCommand::CloneRespawn { facility_id: None }),
+            0
+        );
         assert_eq!(command_priority(&ClientCommand::Peace {}), 3);
     }
 
@@ -185,7 +194,10 @@ mod tests {
         q.enqueue(ClientCommand::Peace {}, 1); // id 1000, priority 3
         q.enqueue(ClientCommand::CloneRespawn { facility_id: None }, 1); // id 1001, priority 0
         let order = q.flush_order();
-        assert_eq!(order[0].command_id, 1001, "high-priority CloneRespawn first");
+        assert_eq!(
+            order[0].command_id, 1001,
+            "high-priority CloneRespawn first"
+        );
         assert_eq!(order[1].command_id, 1000);
     }
 
@@ -194,7 +206,7 @@ mod tests {
         let mut q = q();
         q.enqueue(ClientCommand::Peace {}, 1); // 1000
         let cr = q.enqueue(ClientCommand::CloneRespawn { facility_id: None }, 1); // 1001
-        // take_next picks the high-priority one.
+                                                                                  // take_next picks the high-priority one.
         let taken = q.take_next().unwrap();
         assert_eq!(taken.command_id, cr);
         // While one is in flight, take_next yields nothing.

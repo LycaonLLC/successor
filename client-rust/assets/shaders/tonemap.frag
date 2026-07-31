@@ -5,11 +5,12 @@
 in vec2 v_uv;
 uniform sampler2D u_scene;
 uniform sampler2D u_depth;
+uniform sampler2D u_bloomTex;
 uniform vec3 u_boneTint;
 uniform float u_desaturate;
 uniform float u_sceneDarken;
 uniform float u_blackLift;
-uniform float u_bloom;
+uniform float u_bloomIntensity;
 uniform float u_invExposure;
 out vec4 frag;
 
@@ -20,14 +21,13 @@ vec3 aces(vec3 x) {
 
 void main() {
     vec3 hdr = texture(u_scene, v_uv).rgb * u_invExposure;
+    hdr += texture(u_bloomTex, v_uv).rgb * u_invExposure * u_bloomIntensity;
     vec3 c = aces(hdr);
     float l = dot(c, vec3(0.299, 0.587, 0.114));
     c = mix(c, vec3(l), clamp(u_desaturate, 0.0, 1.0));
     c *= u_boneTint;
     c *= u_sceneDarken;
     c = c + u_blackLift * (1.0 - c);
-    float hi = max(l - 0.72, 0.0);
-    c += hi * u_bloom * u_boneTint;
     frag = vec4(clamp(c, 0.0, 1.0), 1.0);
     gl_FragDepth = texture(u_depth, v_uv).r;
 }

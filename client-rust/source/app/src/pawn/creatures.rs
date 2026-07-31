@@ -24,12 +24,48 @@ pub struct CreatureSpecies {
 /// Exact sprite key → species (the only creature routing table).
 pub fn species_for_sprite(sprite: &str) -> Option<CreatureSpecies> {
     Some(match sprite {
-        "creature-bellback-adult" => CreatureSpecies { species_id: "bellback", asset_path: "/assets/creatures/bellback_adult.glb", mesh_scale: 1.0, shadow_x: 0.5, shadow_z: 2.2 },
-        "creature-pebblehorn-adult" => CreatureSpecies { species_id: "pebblehorn", asset_path: "/assets/creatures/pebblehorn_adult.glb", mesh_scale: 1.0, shadow_x: 1.45, shadow_z: 1.19 },
-        "creature-snufflefin-adult" => CreatureSpecies { species_id: "snufflefin", asset_path: "/assets/creatures/snufflefin_adult.glb", mesh_scale: 2.4, shadow_x: 0.72, shadow_z: 3.29 },
-        "creature-pocketclod-adult" => CreatureSpecies { species_id: "pocketclod", asset_path: "/assets/creatures/pocketclod_adult.glb", mesh_scale: 1.5, shadow_x: 0.95, shadow_z: 0.96 },
-        "creature-mossmuff-adult" => CreatureSpecies { species_id: "mossmuff", asset_path: "/assets/creatures/mossmuff_adult.glb", mesh_scale: 1.0, shadow_x: 1.84, shadow_z: 1.56 },
-        "creature-dapplepod-adult" => CreatureSpecies { species_id: "dapplepod", asset_path: "/assets/creatures/dapplepod_adult.glb", mesh_scale: 1.3, shadow_x: 0.68, shadow_z: 1.81 },
+        "creature-bellback-adult" => CreatureSpecies {
+            species_id: "bellback",
+            asset_path: "/assets/creatures/bellback_adult.glb",
+            mesh_scale: 1.0,
+            shadow_x: 0.5,
+            shadow_z: 2.2,
+        },
+        "creature-pebblehorn-adult" => CreatureSpecies {
+            species_id: "pebblehorn",
+            asset_path: "/assets/creatures/pebblehorn_adult.glb",
+            mesh_scale: 1.0,
+            shadow_x: 1.45,
+            shadow_z: 1.19,
+        },
+        "creature-snufflefin-adult" => CreatureSpecies {
+            species_id: "snufflefin",
+            asset_path: "/assets/creatures/snufflefin_adult.glb",
+            mesh_scale: 2.4,
+            shadow_x: 0.72,
+            shadow_z: 3.29,
+        },
+        "creature-pocketclod-adult" => CreatureSpecies {
+            species_id: "pocketclod",
+            asset_path: "/assets/creatures/pocketclod_adult.glb",
+            mesh_scale: 1.5,
+            shadow_x: 0.95,
+            shadow_z: 0.96,
+        },
+        "creature-mossmuff-adult" => CreatureSpecies {
+            species_id: "mossmuff",
+            asset_path: "/assets/creatures/mossmuff_adult.glb",
+            mesh_scale: 1.0,
+            shadow_x: 1.84,
+            shadow_z: 1.56,
+        },
+        "creature-dapplepod-adult" => CreatureSpecies {
+            species_id: "dapplepod",
+            asset_path: "/assets/creatures/dapplepod_adult.glb",
+            mesh_scale: 1.3,
+            shadow_x: 0.68,
+            shadow_z: 1.81,
+        },
         _ => return None,
     })
 }
@@ -86,14 +122,29 @@ impl CreatureAnimator {
         }
     }
 
-    pub fn update(&mut self, template: &mut PawnTemplate, speed_cells: f32, alive: bool, dt: f32) -> &[[f32; 16]] {
+    pub fn update(
+        &mut self,
+        template: &mut PawnTemplate,
+        speed_cells: f32,
+        alive: bool,
+        dt: f32,
+    ) -> &[[f32; 16]] {
         self.clip = resolve_creature_clip(speed_cells, alive);
         let name = self.clip.name();
-        let ts = if self.clip == CreatureClip::Walk { walk_timescale(speed_cells) } else { 1.0 };
-        let duration = template.animation(name).map(|a| a.duration.max(0.001)).unwrap_or(1.0);
+        let ts = if self.clip == CreatureClip::Walk {
+            walk_timescale(speed_cells)
+        } else {
+            1.0
+        };
+        let duration = template
+            .animation(name)
+            .map(|a| a.duration.max(0.001))
+            .unwrap_or(1.0);
         self.time = (self.time + dt * ts) % duration;
         template.pose_at(name, self.time, &mut self.pose);
-        template.skeleton.compute_palette(&self.pose, &mut self.palette);
+        template
+            .skeleton
+            .compute_palette(&self.pose, &mut self.palette);
         &self.palette
     }
 
@@ -110,7 +161,12 @@ mod tests {
     fn registry_lookup() {
         let b = species_for_sprite("creature-bellback-adult").unwrap();
         assert_eq!(b.species_id, "bellback");
-        assert_eq!(species_for_sprite("creature-snufflefin-adult").unwrap().mesh_scale, 2.4);
+        assert_eq!(
+            species_for_sprite("creature-snufflefin-adult")
+                .unwrap()
+                .mesh_scale,
+            2.4
+        );
         assert!(species_for_sprite("player").is_none());
     }
 

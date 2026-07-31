@@ -32,28 +32,54 @@ impl EntryLayout {
 
     pub fn endpoint_rect(w: f32, h: f32) -> (f32, f32, f32, f32) {
         let (px, py, _, _) = Self::panel_rect(w, h);
-        (px + Self::PADDING, py + Self::ENDPOINT_Y, Self::PANEL_W - Self::PADDING * 2.0, Self::FIELD_H)
+        (
+            px + Self::PADDING,
+            py + Self::ENDPOINT_Y,
+            Self::PANEL_W - Self::PADDING * 2.0,
+            Self::FIELD_H,
+        )
     }
 
     pub fn player_rect(w: f32, h: f32) -> (f32, f32, f32, f32) {
         let (px, py, _, _) = Self::panel_rect(w, h);
-        (px + Self::PADDING, py + Self::PLAYER_Y, Self::PANEL_W - Self::PADDING * 2.0, Self::FIELD_H)
+        (
+            px + Self::PADDING,
+            py + Self::PLAYER_Y,
+            Self::PANEL_W - Self::PADDING * 2.0,
+            Self::FIELD_H,
+        )
     }
 
     pub fn play_rect(w: f32, h: f32) -> (f32, f32, f32, f32) {
         let (px, py, _, _) = Self::panel_rect(w, h);
-        (px + Self::PADDING, py + Self::PLAY_Y, Self::PANEL_W - Self::PADDING * 2.0, Self::BUTTON_H)
+        (
+            px + Self::PADDING,
+            py + Self::PLAY_Y,
+            Self::PANEL_W - Self::PADDING * 2.0,
+            Self::BUTTON_H,
+        )
     }
 
     pub fn quit_rect(w: f32, h: f32) -> (f32, f32, f32, f32) {
         let (px, py, _, _) = Self::panel_rect(w, h);
-        (px + Self::PADDING, py + Self::QUIT_Y, Self::PANEL_W - Self::PADDING * 2.0, Self::BUTTON_H)
+        (
+            px + Self::PADDING,
+            py + Self::QUIT_Y,
+            Self::PANEL_W - Self::PADDING * 2.0,
+            Self::BUTTON_H,
+        )
     }
 }
 
 pub struct EntryScreen {
     pub endpoint: TextField,
     pub player: TextField,
+}
+
+impl Default for EntryScreen {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl EntryScreen {
@@ -81,18 +107,37 @@ impl EntryScreen {
         ui.text(title, tx, ty, title_size, [240, 196, 96, 255]);
 
         let label_color = [150, 170, 190, 255];
-        ui.text("ENDPOINT", px + EntryLayout::PADDING, py + EntryLayout::ENDPOINT_Y - 15.0, 1.5, label_color);
+        ui.text(
+            "ENDPOINT",
+            px + EntryLayout::PADDING,
+            py + EntryLayout::ENDPOINT_Y - 15.0,
+            1.5,
+            label_color,
+        );
         let (ex, ey, ew, eh) = EntryLayout::endpoint_rect(w, h);
         let ep_focused = self.endpoint.focused;
         ui.text_field(&mut self.endpoint, ex, ey, ew, eh, 2.0, ep_focused);
 
-        ui.text("PLAYER ID", px + EntryLayout::PADDING, py + EntryLayout::PLAYER_Y - 15.0, 1.5, label_color);
+        ui.text(
+            "PLAYER ID",
+            px + EntryLayout::PADDING,
+            py + EntryLayout::PLAYER_Y - 15.0,
+            1.5,
+            label_color,
+        );
         let (rx, ry, rw, rh) = EntryLayout::player_rect(w, h);
         let pl_focused = self.player.focused;
         ui.text_field(&mut self.player, rx, ry, rw, rh, 2.0, pl_focused);
 
         let (play_x, play_y, play_w, play_h) = EntryLayout::play_rect(w, h);
-        if ui.button(play_x, play_y, play_w, play_h, "PLAY", ButtonStyle::default()) {
+        if ui.button(
+            play_x,
+            play_y,
+            play_w,
+            play_h,
+            "PLAY",
+            ButtonStyle::default(),
+        ) {
             return Some(ScreenAction::Connect(JoinOptions {
                 endpoint: self.endpoint.text.clone(),
                 player_id: self.player.text.clone(),
@@ -103,7 +148,14 @@ impl EntryScreen {
         }
 
         let (quit_x, quit_y, quit_w, quit_h) = EntryLayout::quit_rect(w, h);
-        if ui.button(quit_x, quit_y, quit_w, quit_h, "QUIT", ButtonStyle::default()) {
+        if ui.button(
+            quit_x,
+            quit_y,
+            quit_w,
+            quit_h,
+            "QUIT",
+            ButtonStyle::default(),
+        ) {
             return Some(ScreenAction::Quit);
         }
 
@@ -143,17 +195,32 @@ impl CharacterLayout {
 
     pub fn name_field_rect(w: f32, h: f32) -> (f32, f32, f32, f32) {
         let (px, py, _, _) = Self::panel_rect(w, h);
-        (px + Self::PADDING, py + Self::NAME_FIELD_Y, Self::PANEL_W - Self::PADDING * 2.0, Self::FIELD_H)
+        (
+            px + Self::PADDING,
+            py + Self::NAME_FIELD_Y,
+            Self::PANEL_W - Self::PADDING * 2.0,
+            Self::FIELD_H,
+        )
     }
 
     pub fn create_rect(w: f32, h: f32) -> (f32, f32, f32, f32) {
         let (px, py, _, _) = Self::panel_rect(w, h);
-        (px + Self::PADDING, py + Self::CREATE_Y, Self::PANEL_W - Self::PADDING * 2.0, Self::BUTTON_H)
+        (
+            px + Self::PADDING,
+            py + Self::CREATE_Y,
+            Self::PANEL_W - Self::PADDING * 2.0,
+            Self::BUTTON_H,
+        )
     }
 
     pub fn back_rect(w: f32, h: f32) -> (f32, f32, f32, f32) {
         let (px, py, _, _) = Self::panel_rect(w, h);
-        (px + Self::PADDING, py + Self::BACK_Y, Self::PANEL_W - Self::PADDING * 2.0, Self::BUTTON_H)
+        (
+            px + Self::PADDING,
+            py + Self::BACK_Y,
+            Self::PANEL_W - Self::PADDING * 2.0,
+            Self::BUTTON_H,
+        )
     }
 }
 
@@ -180,7 +247,13 @@ impl CharacterScreen {
         ui.text(title, tx, ty, title_size, [240, 196, 96, 255]);
 
         let label_color = [150, 170, 190, 255];
-        ui.text("CHARACTER ROSTER", px + CharacterLayout::PADDING, py + CharacterLayout::ROSTER_Y - 15.0, 1.5, label_color);
+        ui.text(
+            "CHARACTER ROSTER",
+            px + CharacterLayout::PADDING,
+            py + CharacterLayout::ROSTER_Y - 15.0,
+            1.5,
+            label_color,
+        );
 
         for (i, name) in self.roster.iter().enumerate() {
             let (rx, ry, rw, rh) = CharacterLayout::roster_row_rect(w, h, i);
@@ -189,7 +262,13 @@ impl CharacterScreen {
             }
         }
 
-        ui.text("NEW CHARACTER NAME", px + CharacterLayout::PADDING, py + CharacterLayout::NAME_LABEL_Y - 15.0, 1.5, label_color);
+        ui.text(
+            "NEW CHARACTER NAME",
+            px + CharacterLayout::PADDING,
+            py + CharacterLayout::NAME_LABEL_Y - 15.0,
+            1.5,
+            label_color,
+        );
         let (nx, ny, nw, nh) = CharacterLayout::name_field_rect(w, h);
         let name_focused = self.name_input.focused;
         ui.text_field(&mut self.name_input, nx, ny, nw, nh, 2.0, name_focused);
@@ -334,6 +413,9 @@ mod tests {
         ui.set_input(click_x, click_y, false);
         ui.begin(w as u32, h as u32);
         let res2 = screen.draw(&mut ui, w, h);
-        assert_eq!(res2, Some(ScreenAction::CreateCharacter("CHARLIE".to_string())));
+        assert_eq!(
+            res2,
+            Some(ScreenAction::CreateCharacter("CHARLIE".to_string()))
+        );
     }
 }

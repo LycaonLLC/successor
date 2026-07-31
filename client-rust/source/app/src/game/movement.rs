@@ -41,7 +41,12 @@ pub fn move_envelope(
         player: PlayerId(player),
         command_id,
         issued_at_tick: tick,
-        command: ClientCommand::SetMoveIntent { dx, dy, facing: None, sprint },
+        command: ClientCommand::SetMoveIntent {
+            dx,
+            dy,
+            facing: None,
+            sprint,
+        },
     }
 }
 
@@ -66,8 +71,16 @@ mod tests {
         let e = move_envelope(7, 3, 1, 42, 1, 0, true);
         assert!(matches!(
             e.command,
-            ClientCommand::SetMoveIntent { dx: 1, dy: 0, sprint: true, .. }
+            ClientCommand::SetMoveIntent {
+                dx: 1,
+                dy: 0,
+                sprint: true,
+                ..
+            }
         ));
-        assert_eq!((e.session.0, e.player.0, e.command_id, e.issued_at_tick), (7, 3, 1, 42));
+        assert_eq!(
+            (e.session.0, e.player.0, e.command_id, e.issued_at_tick),
+            (7, 3, 1, 42)
+        );
     }
 }

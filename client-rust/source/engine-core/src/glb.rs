@@ -1,17 +1,8 @@
-//! Hand-rolled binary glTF (`.glb`) reader — the subset the Successor asset
-//! corpus actually uses.
+//! Hand-rolled binary glTF (`.glb`) reader for the checked-in Successor corpus.
 //!
-//! Probed against the shipped assets: `extensionsUsed` is absent everywhere,
-//! there are no embedded images (materials are `baseColorFactor` only), and the
-//! single buffer is the GLB `BIN` chunk. So this reader supports exactly:
-//! nodes (TRS or matrix), meshes with `POSITION`/`NORMAL`/`TEXCOORD_0`/
-//! `JOINTS_0`/`WEIGHTS_0` and `u8`/`u16`/`u32` indices, `pbrMetallicRoughness.
-//! baseColorFactor` + `doubleSided` + `alphaMode`/`alphaCutoff`, skins
-//! (joints + inverse bind matrices), and animations with `LINEAR`/`STEP`
-//! T/R/S channels. Everything else (sparse accessors, external/data-URI
-//! buffers, Draco, `CUBICSPLINE`, interleaved-into-multiple-buffers) fails
-//! closed with a typed [`GlbError`].
-//!
+//! The reader is intentionally fail-closed: unsupported compression, sparse
+//! accessors, external buffers/images, non-triangle primitives, cubic splines,
+//! and animated morph weights are rejected instead of rendered incorrectly.
 //! `no_std` + `alloc`, no `core::fmt`.
 
 use alloc::string::String;
@@ -49,6 +40,51 @@ pub enum AlphaMode {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MagFilter {
+    Nearest,
+    Linear,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MinFilter {
+    NearestMipmapNearest,
+    LinearMipmapLinear,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum WrapMode {
+    ClampToEdge,
+    Repeat,
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct TextureRef {
+    pub texture: usize,
+    pub tex_coord: u8,
+    pub scale: f32,
+}
+
+#[derive(Clone, Debug)]
+pub struct GlbImage {
+    pub name: Option<String>,
+    pub mime_type: String,
+    pub bytes: Vec<u8>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct GlbTexture {
+    pub source: usize,
+    pub sampler: Option<usize>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct GlbTextureSampler {
+    pub mag_filter: MagFilter,
+    pub min_filter: MinFilter,
+    pub wrap_s: WrapMode,
+    pub wrap_t: WrapMode,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Interp {
     Linear,
     Step,
@@ -70,6 +106,7 @@ pub struct GlbNode {
     pub children: Vec<usize>,
     pub mesh: Option<usize>,
     pub skin: Option<usize>,
+    pub weights: Vec<f32>,
 }
 
 impl GlbNode {
@@ -86,14 +123,28 @@ pub struct GlbPrimitive {
     pub uvs: Vec<[f32; 2]>,
     pub joints: Vec<[u16; 4]>,
     pub weights: Vec<[f32; 4]>,
+    pub tangents: Vec<[f32; 4]>,
+    pub colors: Vec<[u8; 4]>,
+    pub uvs1: Vec<[f32; 2]>,
+    pub color1: Vec<[u8; 4]>,
+    pub morph_targets: Vec<GlbMorphTarget>,
+    pub morph_weights: Vec<f32>,
     pub indices: Vec<u32>,
     pub material: Option<usize>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct GlbMorphTarget {
+    pub positions: Vec<[f32; 3]>,
+    pub normals: Vec<[f32; 3]>,
+    pub tangents: Vec<[f32; 3]>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct GlbMesh {
     pub name: Option<String>,
     pub primitives: Vec<GlbPrimitive>,
+    pub weights: Vec<f32>,
 }
 
 #[derive(Clone, Debug)]
@@ -105,6 +156,20 @@ pub struct GlbMaterial {
     pub double_sided: bool,
     pub alpha_mode: AlphaMode,
     pub alpha_cutoff: f32,
+    pub base_color_texture: Option<TextureRef>,
+    pub metallic_roughness_texture: Option<TextureRef>,
+    pub normal_texture: Option<TextureRef>,
+    pub occlusion_texture: Option<TextureRef>,
+    pub emissive_texture: Option<TextureRef>,
+    pub normal_scale: f32,
+    pub occlusion_strength: f32,
+    pub emissive_factor: [f32; 3],
+    pub emissive_strength: f32,
+    pub clearcoat: f32,
+    pub clearcoat_roughness: f32,
+    pub ior: f32,
+    pub specular: f32,
+    pub transmission: f32,
 }
 
 impl Default for GlbMaterial {
@@ -112,15 +177,25 @@ impl Default for GlbMaterial {
         GlbMaterial {
             name: None,
             base_color: [1.0, 1.0, 1.0, 1.0],
-            // Deliberate deviation from the glTF spec default (metallic=1,
-            // roughness=1): shipped assets author only baseColorFactor, and a
-            // metallic default of 1 would render them near-black. Non-metal,
-            // fairly rough stylized surfaces are the correct fallback here.
-            metallic: 0.0,
-            roughness: 0.85,
+            metallic: 1.0,
+            roughness: 1.0,
             double_sided: false,
             alpha_mode: AlphaMode::Opaque,
             alpha_cutoff: 0.5,
+            base_color_texture: None,
+            metallic_roughness_texture: None,
+            normal_texture: None,
+            occlusion_texture: None,
+            emissive_texture: None,
+            normal_scale: 1.0,
+            occlusion_strength: 1.0,
+            emissive_factor: [0.0; 3],
+            emissive_strength: 1.0,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            ior: 1.5,
+            specular: 1.0,
+            transmission: 0.0,
         }
     }
 }
@@ -163,6 +238,9 @@ pub struct GlbDocument {
     pub materials: Vec<GlbMaterial>,
     pub skins: Vec<GlbSkin>,
     pub animations: Vec<GlbAnimation>,
+    pub images: Vec<GlbImage>,
+    pub textures: Vec<GlbTexture>,
+    pub texture_samplers: Vec<GlbTextureSampler>,
     /// Root node indices of the default scene (falls back to scene 0).
     pub scene_roots: Vec<usize>,
 }
@@ -235,6 +313,7 @@ struct AccessorView {
     count: usize,
     comp_type: u32,
     num_comps: usize,
+    normalized: bool,
 }
 
 fn u(v: &Json, key: &str) -> Option<usize> {
@@ -252,10 +331,19 @@ fn resolve_accessor(gltf: &Json, idx: usize, bin_len: usize) -> Result<AccessorV
     }
     let comp_type = u(acc, "componentType").ok_or(GlbError::BadAccessor)? as u32;
     let count = u(acc, "count").ok_or(GlbError::BadAccessor)?;
-    let num_comps = type_comps(acc.get("type").and_then(Json::as_str).ok_or(GlbError::BadAccessor)?)?;
+    let num_comps = type_comps(
+        acc.get("type")
+            .and_then(Json::as_str)
+            .ok_or(GlbError::BadAccessor)?,
+    )?;
+    let normalized = acc
+        .get("normalized")
+        .and_then(Json::as_bool)
+        .unwrap_or(false);
     let acc_off = u(acc, "byteOffset").unwrap_or(0);
 
-    let bv_idx = u(acc, "bufferView").ok_or(GlbError::Unsupported("accessor without bufferView"))?;
+    let bv_idx =
+        u(acc, "bufferView").ok_or(GlbError::Unsupported("accessor without bufferView"))?;
     let views = gltf
         .get("bufferViews")
         .and_then(Json::as_array)
@@ -278,6 +366,7 @@ fn resolve_accessor(gltf: &Json, idx: usize, bin_len: usize) -> Result<AccessorV
         count,
         comp_type,
         num_comps,
+        normalized,
     })
 }
 
@@ -303,7 +392,32 @@ fn chunk2(flat: &[f32]) -> Vec<[f32; 2]> {
     flat.chunks_exact(2).map(|c| [c[0], c[1]]).collect()
 }
 fn chunk4(flat: &[f32]) -> Vec<[f32; 4]> {
-    flat.chunks_exact(4).map(|c| [c[0], c[1], c[2], c[3]]).collect()
+    flat.chunks_exact(4)
+        .map(|c| [c[0], c[1], c[2], c[3]])
+        .collect()
+}
+
+fn read_colors(bin: &[u8], av: &AccessorView) -> Result<Vec<[u8; 4]>, GlbError> {
+    if !av.normalized || !matches!(av.num_comps, 3 | 4) {
+        return Err(GlbError::BadAccessor);
+    }
+    let mut out = Vec::with_capacity(av.count);
+    for i in 0..av.count {
+        let base = av.offset + i * av.stride;
+        let mut color = [255u8; 4];
+        for (component, slot) in color.iter_mut().enumerate().take(av.num_comps) {
+            *slot = match av.comp_type {
+                CT_U8 => *bin.get(base + component).ok_or(GlbError::OutOfRange)?,
+                CT_U16 => {
+                    let value = rd_u16(bin, base + component * 2)?;
+                    ((u32::from(value) * 255 + 32_767) / 65_535) as u8
+                }
+                _ => return Err(GlbError::BadAccessor),
+            };
+        }
+        out.push(color);
+    }
+    Ok(out)
 }
 
 fn read_indices(bin: &[u8], av: &AccessorView) -> Result<Vec<u32>, GlbError> {
@@ -405,9 +519,12 @@ pub fn parse(bytes: &[u8]) -> Result<GlbDocument, GlbError> {
     Ok(GlbDocument {
         nodes: parse_nodes(&gltf)?,
         meshes: parse_meshes(&gltf, bin)?,
-        materials: parse_materials(&gltf),
+        materials: parse_materials(&gltf)?,
         skins: parse_skins(&gltf, bin)?,
         animations: parse_animations(&gltf, bin)?,
+        images: parse_images(&gltf, bin)?,
+        textures: parse_textures(&gltf)?,
+        texture_samplers: parse_texture_samplers(&gltf)?,
         scene_roots: parse_scene_roots(&gltf),
     })
 }
@@ -429,7 +546,11 @@ fn parse_nodes(gltf: &Json) -> Result<Vec<GlbNode>, GlbError> {
         let children = n
             .get("children")
             .and_then(Json::as_array)
-            .map(|a| a.iter().filter_map(|c| c.as_i64().map(|x| x as usize)).collect())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|c| c.as_i64().map(|x| x as usize))
+                    .collect()
+            })
             .unwrap_or_default();
         out.push(GlbNode {
             name: n.get("name").and_then(Json::as_str).map(String::from),
@@ -439,9 +560,16 @@ fn parse_nodes(gltf: &Json) -> Result<Vec<GlbNode>, GlbError> {
             children,
             mesh: u(n, "mesh"),
             skin: u(n, "skin"),
+            weights: read_f32_array(n.get("weights")),
         });
     }
     Ok(out)
+}
+
+fn read_f32_array(v: Option<&Json>) -> Vec<f32> {
+    v.and_then(Json::as_array)
+        .map(|values| values.iter().filter_map(Json::as_f32).collect())
+        .unwrap_or_default()
 }
 
 fn read_vec3(v: Option<&Json>, fallback: Vec3) -> Vec3 {
@@ -474,7 +602,9 @@ fn decompose_matrix(m: &[Json]) -> Result<(Vec3, Quat, Vec3), GlbError> {
     }
     let mut a = [0.0f32; 16];
     for (i, slot) in a.iter_mut().enumerate() {
-        *slot = m[i].as_f32().ok_or(GlbError::Unsupported("bad node.matrix"))?;
+        *slot = m[i]
+            .as_f32()
+            .ok_or(GlbError::Unsupported("bad node.matrix"))?;
     }
     let t = vec3(a[12], a[13], a[14]);
     // Column basis vectors.
@@ -534,9 +664,11 @@ fn parse_meshes(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbMesh>, GlbError> {
         return Ok(out);
     };
     for m in meshes {
+        let mesh_weights = read_f32_array(m.get("weights"));
         let mut mesh = GlbMesh {
             name: m.get("name").and_then(Json::as_str).map(String::from),
             primitives: Vec::new(),
+            weights: mesh_weights.clone(),
         };
         let prims = m.get("primitives").and_then(Json::as_array).unwrap_or(&[]);
         for p in prims {
@@ -559,6 +691,18 @@ fn parse_meshes(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbMesh>, GlbError> {
             if let Some(i) = u(attrs, "TEXCOORD_0") {
                 prim.uvs = chunk2(&read_floats(bin, &resolve_accessor(gltf, i, bin.len())?)?);
             }
+            if let Some(i) = u(attrs, "TEXCOORD_1") {
+                prim.uvs1 = chunk2(&read_floats(bin, &resolve_accessor(gltf, i, bin.len())?)?);
+            }
+            if let Some(i) = u(attrs, "TANGENT") {
+                prim.tangents = chunk4(&read_floats(bin, &resolve_accessor(gltf, i, bin.len())?)?);
+            }
+            if let Some(i) = u(attrs, "COLOR_0") {
+                prim.colors = read_colors(bin, &resolve_accessor(gltf, i, bin.len())?)?;
+            }
+            if let Some(i) = u(attrs, "COLOR_1") {
+                prim.color1 = read_colors(bin, &resolve_accessor(gltf, i, bin.len())?)?;
+            }
             if let Some(i) = u(attrs, "JOINTS_0") {
                 prim.joints = read_joints(bin, &resolve_accessor(gltf, i, bin.len())?)?;
             }
@@ -571,6 +715,23 @@ fn parse_meshes(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbMesh>, GlbError> {
                 // Non-indexed: synthesize a trivial index list.
                 prim.indices = (0..prim.positions.len() as u32).collect();
             }
+            for target in p.get("targets").and_then(Json::as_array).unwrap_or(&[]) {
+                let mut morph = GlbMorphTarget::default();
+                if let Some(i) = u(target, "POSITION") {
+                    morph.positions =
+                        chunk3(&read_floats(bin, &resolve_accessor(gltf, i, bin.len())?)?);
+                }
+                if let Some(i) = u(target, "NORMAL") {
+                    morph.normals =
+                        chunk3(&read_floats(bin, &resolve_accessor(gltf, i, bin.len())?)?);
+                }
+                if let Some(i) = u(target, "TANGENT") {
+                    morph.tangents =
+                        chunk3(&read_floats(bin, &resolve_accessor(gltf, i, bin.len())?)?);
+                }
+                prim.morph_targets.push(morph);
+            }
+            prim.morph_weights = mesh_weights.clone();
             mesh.primitives.push(prim);
         }
         out.push(mesh);
@@ -578,15 +739,40 @@ fn parse_meshes(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbMesh>, GlbError> {
     Ok(out)
 }
 
-fn parse_materials(gltf: &Json) -> Vec<GlbMaterial> {
+fn texture_ref(v: Option<&Json>, scale_key: &str) -> Result<Option<TextureRef>, GlbError> {
+    let Some(info) = v else {
+        return Ok(None);
+    };
+    let texture = u(info, "index").ok_or(GlbError::OutOfRange)?;
+    let tex_coord = u(info, "texCoord").unwrap_or(0);
+    if tex_coord > 1 {
+        return Err(GlbError::Unsupported("texture texCoord > 1"));
+    }
+    Ok(Some(TextureRef {
+        texture,
+        tex_coord: tex_coord as u8,
+        scale: info.get(scale_key).and_then(Json::as_f32).unwrap_or(1.0),
+    }))
+}
+
+fn extension<'a>(material: &'a Json, name: &str) -> Option<&'a Json> {
+    material
+        .get("extensions")
+        .and_then(|extensions| extensions.get(name))
+}
+
+fn parse_materials(gltf: &Json) -> Result<Vec<GlbMaterial>, GlbError> {
     let mut out = Vec::new();
     let Some(mats) = gltf.get("materials").and_then(Json::as_array) else {
-        return out;
+        return Ok(out);
     };
     for m in mats {
         let mut mat = GlbMaterial {
             name: m.get("name").and_then(Json::as_str).map(String::from),
-            double_sided: m.get("doubleSided").and_then(Json::as_bool).unwrap_or(false),
+            double_sided: m
+                .get("doubleSided")
+                .and_then(Json::as_bool)
+                .unwrap_or(false),
             ..Default::default()
         };
         if let Some(pbr) = m.get("pbrMetallicRoughness") {
@@ -597,24 +783,157 @@ fn parse_materials(gltf: &Json) -> Vec<GlbMaterial> {
                     }
                 }
             }
-            if let Some(v) = pbr.get("metallicFactor").and_then(Json::as_f32) {
-                mat.metallic = v;
-            }
-            if let Some(v) = pbr.get("roughnessFactor").and_then(Json::as_f32) {
-                mat.roughness = v;
+            mat.metallic = pbr
+                .get("metallicFactor")
+                .and_then(Json::as_f32)
+                .unwrap_or(1.0);
+            mat.roughness = pbr
+                .get("roughnessFactor")
+                .and_then(Json::as_f32)
+                .unwrap_or(1.0);
+            mat.base_color_texture = texture_ref(pbr.get("baseColorTexture"), "")?;
+            mat.metallic_roughness_texture = texture_ref(pbr.get("metallicRoughnessTexture"), "")?;
+        }
+        mat.normal_texture = texture_ref(m.get("normalTexture"), "scale")?;
+        mat.normal_scale = mat
+            .normal_texture
+            .map(|texture| texture.scale)
+            .unwrap_or(1.0);
+        mat.occlusion_texture = texture_ref(m.get("occlusionTexture"), "strength")?;
+        mat.occlusion_strength = mat
+            .occlusion_texture
+            .map(|texture| texture.scale)
+            .unwrap_or(1.0);
+        mat.emissive_texture = texture_ref(m.get("emissiveTexture"), "")?;
+        if let Some(values) = m.get("emissiveFactor").and_then(Json::as_array) {
+            for (index, slot) in mat.emissive_factor.iter_mut().enumerate() {
+                *slot = values.get(index).and_then(Json::as_f32).unwrap_or(0.0);
             }
         }
+        if let Some(value) = extension(m, "KHR_materials_emissive_strength")
+            .and_then(|value| value.get("emissiveStrength"))
+            .and_then(Json::as_f32)
+        {
+            mat.emissive_strength = value;
+        }
+        if let Some(value) = extension(m, "KHR_materials_clearcoat") {
+            mat.clearcoat = value
+                .get("clearcoatFactor")
+                .and_then(Json::as_f32)
+                .unwrap_or(0.0);
+            mat.clearcoat_roughness = value
+                .get("clearcoatRoughnessFactor")
+                .and_then(Json::as_f32)
+                .unwrap_or(0.0);
+        }
+        mat.ior = extension(m, "KHR_materials_ior")
+            .and_then(|value| value.get("ior"))
+            .and_then(Json::as_f32)
+            .unwrap_or(1.5);
+        mat.specular = extension(m, "KHR_materials_specular")
+            .and_then(|value| value.get("specularFactor"))
+            .and_then(Json::as_f32)
+            .unwrap_or(1.0);
+        mat.transmission = extension(m, "KHR_materials_transmission")
+            .and_then(|value| value.get("transmissionFactor"))
+            .and_then(Json::as_f32)
+            .unwrap_or(0.0);
         mat.alpha_mode = match m.get("alphaMode").and_then(Json::as_str) {
             Some("MASK") => AlphaMode::Mask,
             Some("BLEND") => AlphaMode::Blend,
-            _ => AlphaMode::Opaque,
+            Some("OPAQUE") | None => AlphaMode::Opaque,
+            _ => return Err(GlbError::Unsupported("alpha mode")),
         };
-        if let Some(c) = m.get("alphaCutoff").and_then(Json::as_f32) {
-            mat.alpha_cutoff = c;
-        }
+        mat.alpha_cutoff = m.get("alphaCutoff").and_then(Json::as_f32).unwrap_or(0.5);
         out.push(mat);
     }
-    out
+    Ok(out)
+}
+
+fn buffer_view_bytes(gltf: &Json, bin: &[u8], index: usize) -> Result<Vec<u8>, GlbError> {
+    let views = gltf
+        .get("bufferViews")
+        .and_then(Json::as_array)
+        .ok_or(GlbError::OutOfRange)?;
+    let view = views.get(index).ok_or(GlbError::OutOfRange)?;
+    if u(view, "buffer").unwrap_or(0) != 0 {
+        return Err(GlbError::Unsupported("multi-buffer image"));
+    }
+    let offset = u(view, "byteOffset").unwrap_or(0);
+    let length = u(view, "byteLength").ok_or(GlbError::OutOfRange)?;
+    let end = offset.checked_add(length).ok_or(GlbError::OutOfRange)?;
+    Ok(bin.get(offset..end).ok_or(GlbError::OutOfRange)?.to_vec())
+}
+
+fn parse_images(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbImage>, GlbError> {
+    let mut out = Vec::new();
+    for image in gltf.get("images").and_then(Json::as_array).unwrap_or(&[]) {
+        if image.get("uri").is_some() {
+            return Err(GlbError::Unsupported("external image"));
+        }
+        let mime_type = image
+            .get("mimeType")
+            .and_then(Json::as_str)
+            .ok_or(GlbError::Unsupported("image without mime type"))?;
+        if !matches!(mime_type, "image/png" | "image/jpeg") {
+            return Err(GlbError::Unsupported("image mime type"));
+        }
+        out.push(GlbImage {
+            name: image.get("name").and_then(Json::as_str).map(String::from),
+            mime_type: String::from(mime_type),
+            bytes: buffer_view_bytes(
+                gltf,
+                bin,
+                u(image, "bufferView").ok_or(GlbError::OutOfRange)?,
+            )?,
+        });
+    }
+    Ok(out)
+}
+
+fn parse_textures(gltf: &Json) -> Result<Vec<GlbTexture>, GlbError> {
+    gltf.get("textures")
+        .and_then(Json::as_array)
+        .unwrap_or(&[])
+        .iter()
+        .map(|texture| {
+            Ok(GlbTexture {
+                source: u(texture, "source").ok_or(GlbError::OutOfRange)?,
+                sampler: u(texture, "sampler"),
+            })
+        })
+        .collect()
+}
+
+fn parse_texture_samplers(gltf: &Json) -> Result<Vec<GlbTextureSampler>, GlbError> {
+    gltf.get("samplers")
+        .and_then(Json::as_array)
+        .unwrap_or(&[])
+        .iter()
+        .map(|sampler| {
+            let mag_filter = match u(sampler, "magFilter").unwrap_or(9729) {
+                9728 => MagFilter::Nearest,
+                9729 => MagFilter::Linear,
+                _ => return Err(GlbError::Unsupported("sampler mag filter")),
+            };
+            let min_filter = match u(sampler, "minFilter").unwrap_or(9987) {
+                9984 => MinFilter::NearestMipmapNearest,
+                9987 => MinFilter::LinearMipmapLinear,
+                _ => return Err(GlbError::Unsupported("sampler min filter")),
+            };
+            let wrap = |value| match value {
+                33071 => Ok(WrapMode::ClampToEdge),
+                10497 => Ok(WrapMode::Repeat),
+                _ => Err(GlbError::Unsupported("sampler wrap")),
+            };
+            Ok(GlbTextureSampler {
+                mag_filter,
+                min_filter,
+                wrap_s: wrap(u(sampler, "wrapS").unwrap_or(10497))?,
+                wrap_t: wrap(u(sampler, "wrapT").unwrap_or(10497))?,
+            })
+        })
+        .collect()
 }
 
 fn parse_skins(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbSkin>, GlbError> {
@@ -626,7 +945,11 @@ fn parse_skins(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbSkin>, GlbError> {
         let joints = s
             .get("joints")
             .and_then(Json::as_array)
-            .map(|a| a.iter().filter_map(|j| j.as_i64().map(|x| x as usize)).collect::<Vec<_>>())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|j| j.as_i64().map(|x| x as usize))
+                    .collect::<Vec<_>>()
+            })
             .unwrap_or_default();
         let inverse_bind = if let Some(i) = u(s, "inverseBindMatrices") {
             read_mat4s(bin, &resolve_accessor(gltf, i, bin.len())?)?
@@ -665,7 +988,11 @@ fn parse_animations(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbAnimation>, GlbErr
                     duration = last;
                 }
             }
-            samplers.push(GlbSampler { input, output, interp });
+            samplers.push(GlbSampler {
+                input,
+                output,
+                interp,
+            });
         }
         let mut channels = Vec::new();
         for c in a.get("channels").and_then(Json::as_array).unwrap_or(&[]) {
@@ -678,7 +1005,7 @@ fn parse_animations(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbAnimation>, GlbErr
                 Some("translation") => ChannelPath::Translation,
                 Some("rotation") => ChannelPath::Rotation,
                 Some("scale") => ChannelPath::Scale,
-                Some("weights") => continue, // morph targets unsupported: skip.
+                Some("weights") => return Err(GlbError::Unsupported("animated morph weights")),
                 _ => return Err(GlbError::BadAccessor),
             };
             channels.push(GlbChannel {
@@ -696,6 +1023,94 @@ fn parse_animations(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbAnimation>, GlbErr
     }
     Ok(out)
 }
+pub fn generate_mikktspace_corner_tangents(
+    positions: &[[f32; 3]],
+    normals: &[[f32; 3]],
+    uvs: &[[f32; 2]],
+    indices: &[u32],
+) -> Result<Vec<[f32; 4]>, GlbError> {
+    struct LibmOps;
+    impl bevy_mikktspace::Ops for LibmOps {
+        fn sqrt(value: f32) -> f32 {
+            libm::sqrtf(value)
+        }
+        fn acos(value: f32) -> f32 {
+            libm::acosf(value)
+        }
+    }
+    struct GeometryAdapter<'a> {
+        positions: &'a [[f32; 3]],
+        normals: &'a [[f32; 3]],
+        uvs: &'a [[f32; 2]],
+        indices: &'a [u32],
+        corners: Vec<Option<bevy_mikktspace::TangentSpace>>,
+    }
+    impl bevy_mikktspace::Geometry<LibmOps> for GeometryAdapter<'_> {
+        fn num_faces(&self) -> usize {
+            self.indices.len() / 3
+        }
+        fn num_vertices_of_face(&self, _face: usize) -> usize {
+            3
+        }
+        fn position(&self, face: usize, vert: usize) -> [f32; 3] {
+            self.positions[self.indices[face * 3 + vert] as usize]
+        }
+        fn normal(&self, face: usize, vert: usize) -> [f32; 3] {
+            self.normals[self.indices[face * 3 + vert] as usize]
+        }
+        fn tex_coord(&self, face: usize, vert: usize) -> [f32; 2] {
+            self.uvs[self.indices[face * 3 + vert] as usize]
+        }
+        fn set_tangent(
+            &mut self,
+            tangent: Option<bevy_mikktspace::TangentSpace>,
+            face: usize,
+            vert: usize,
+        ) {
+            self.corners[face * 3 + vert] = tangent;
+        }
+    }
+    if positions.len() != normals.len()
+        || positions.len() != uvs.len()
+        || indices
+            .iter()
+            .any(|index| *index as usize >= positions.len())
+    {
+        return Err(GlbError::BadAccessor);
+    }
+    let mut adapter = GeometryAdapter {
+        positions,
+        normals,
+        uvs,
+        indices,
+        corners: alloc::vec![None; indices.len()],
+    };
+    bevy_mikktspace::generate_tangents::<_, LibmOps>(&mut adapter)
+        .map_err(|_| GlbError::Unsupported("tangent generation"))?;
+    Ok(adapter
+        .corners
+        .into_iter()
+        .map(|value| {
+            value
+                .map(|tangent| tangent.tangent_encoded())
+                .unwrap_or([1.0, 0.0, 0.0, 1.0])
+        })
+        .collect())
+}
+
+pub fn generate_mikktspace_tangents(
+    positions: &[[f32; 3]],
+    normals: &[[f32; 3]],
+    uvs: &[[f32; 2]],
+    indices: &[u32],
+) -> Result<Vec<[f32; 4]>, GlbError> {
+    let corners = generate_mikktspace_corner_tangents(positions, normals, uvs, indices)?;
+    let mut result = alloc::vec![[1.0, 0.0, 0.0, 1.0]; positions.len()];
+    for (corner, index) in corners.into_iter().zip(indices) {
+        result[*index as usize] = corner;
+    }
+    Ok(result)
+}
 
 fn parse_scene_roots(gltf: &Json) -> Vec<usize> {
     let scene_idx = u(gltf, "scene").unwrap_or(0);
@@ -704,7 +1119,11 @@ fn parse_scene_roots(gltf: &Json) -> Vec<usize> {
         .and_then(|s| s.get(scene_idx))
         .and_then(|s| s.get("nodes"))
         .and_then(Json::as_array)
-        .map(|a| a.iter().filter_map(|n| n.as_i64().map(|x| x as usize)).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|n| n.as_i64().map(|x| x as usize))
+                .collect()
+        })
         .unwrap_or_default()
 }
 

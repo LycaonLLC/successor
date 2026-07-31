@@ -4,26 +4,27 @@
 //! `GameWorld` and the demo/playable runners. The native binary is `main.rs`;
 //! the wasm cdylib exports live here behind `target_arch = "wasm32"`.
 
+#[cfg(not(target_arch = "wasm32"))]
+pub mod audio;
 pub mod demo;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod game;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod glb_scene;
 #[cfg(not(target_arch = "wasm32"))]
-pub mod world;
-#[cfg(not(target_arch = "wasm32"))]
-pub mod pawn;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod hud;
-#[cfg(not(target_arch = "wasm32"))]
-pub mod windows;
-#[cfg(not(target_arch = "wasm32"))]
-pub mod audio;
+pub mod material_parity;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod net;
 #[cfg(not(target_arch = "wasm32"))]
-pub mod screens;
+pub mod pawn;
 pub mod rss;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod screens;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod windows;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod world;
 
 use successor_engine_core::world;
 use successor_engine_render::components::{
@@ -81,7 +82,10 @@ pub fn render_quality() -> RenderQuality {
 /// Renderer limits at the current quality tier (tier-derived shadow size).
 pub fn quality_limits() -> RendererLimits {
     let quality = render_quality();
-    RendererLimits { quality, ..RendererLimits::default() }
+    RendererLimits {
+        quality,
+        ..RendererLimits::default()
+    }
 }
 
 // Allocation-counting global allocator: installed only under `alloc-count`, so
@@ -104,16 +108,38 @@ mod web_runtime {
 
     static GPU: GlobalCell<GlGpu> = GlobalCell::new();
     static SCENE: GlobalCell<Scene> = GlobalCell::new();
+    static PARITY_SCENE: GlobalCell<crate::material_parity::Scene> = GlobalCell::new();
+    static DEMO_SELECTOR: GlobalCell<u32> = GlobalCell::new();
     static FRAME: GlobalCell<u64> = GlobalCell::new();
     static SIZE: GlobalCell<(u32, u32)> = GlobalCell::new();
 
     #[no_mangle]
-    pub extern "C" fn init() {
+    pub extern "C" fn init(demo_selector: u32) {
         successor_platform::init("Successor", 1280, 720);
         let mut gpu = successor_platform::create_gpu();
-        let scene = build_scene(&mut gpu);
+        if demo_selector == 1 {
+            let assets = [
+                successor_platform::http_get("parity-assets/commerce_facility.glb")
+                    .expect("commerce asset"),
+                successor_platform::http_get("parity-assets/lightning_carbine.glb")
+                    .expect("lightning asset"),
+                successor_platform::http_get("parity-assets/mossmuff_adult.glb")
+                    .expect("mossmuff asset"),
+                successor_platform::http_get("parity-assets/successor_food_beer_mug.glb")
+                    .expect("beer mug asset"),
+                successor_platform::http_get("parity-assets/field_cap.glb")
+                    .expect("field cap asset"),
+                successor_platform::http_get("parity-assets/megalith_brick_hex.glb")
+                    .expect("megalith asset"),
+            ];
+            let scene =
+                crate::material_parity::build(&mut gpu, &assets).expect("material parity scene");
+            PARITY_SCENE.set(scene);
+        } else {
+            SCENE.set(build_scene(&mut gpu));
+        }
         GPU.set(gpu);
-        SCENE.set(scene);
+        DEMO_SELECTOR.set(demo_selector);
         FRAME.set(0);
         SIZE.set((1280, 720));
     }
@@ -125,17 +151,53 @@ mod web_runtime {
 
     #[no_mangle]
     pub extern "C" fn update(_dt_ms: f32) {
-        let f = FRAME.get_mut().map(|f| { *f += 1; *f }).unwrap_or(0);
-        if let Some(scene) = SCENE.get_mut() {
-            scene.animate(f);
+        let f = FRAME
+            .get_mut()
+            .map(|f| {
+                *f += 1;
+                *f
+            })
+            .unwrap_or(0);
+        if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) == 0 {
+            if let Some(scene) = SCENE.get_mut() {
+                scene.animate(f);
+            }
         }
     }
 
     #[no_mangle]
     pub extern "C" fn render() {
         let (w, h) = SIZE.get_mut().copied().unwrap_or((1280, 720));
-        if let (Some(gpu), Some(scene)) = (GPU.get_mut(), SCENE.get_mut()) {
-            scene.renderer.render(gpu, &mut scene.world, w, h);
+        if let Some(gpu) = GPU.get_mut() {
+            if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) == 1 {
+                if let Some(scene) = PARITY_SCENE.get_mut() {
+                    scene
+                        .renderer
+                        .render(gpu, &mut scene.world, w, h)
+                        .expect("render failed");
+                }
+            } else if let Some(scene) = SCENE.get_mut() {
+                scene
+                    .renderer
+                    .render(gpu, &mut scene.world, w, h)
+                    .expect("render failed");
+            }
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn probe_material_parity() -> u32 {
+        if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) != 1 {
+            return 0;
+        }
+        let (width, height) = SIZE.get_mut().copied().unwrap_or((0, 0));
+        let pixels = successor_platform::read_pixels_rgba(width as i32, height as i32);
+        match crate::material_parity::probe_rgba_top_left(&pixels, width, height) {
+            Ok(_) => 1,
+            Err(error) => {
+                successor_engine_core::rt::log::log_str(&error);
+                0
+            }
         }
     }
 
@@ -156,7 +218,9 @@ mod web_runtime {
         // Dev endpoint; the server gates on GAME_ALLOW_DEV_IDENTITY. A
         // configurable endpoint from the page lands with the connect-URL wiring.
         let endpoint = "ws://127.0.0.1:28093";
-        let http = endpoint.replacen("wss://", "https://", 1).replacen("ws://", "http://", 1);
+        let http = endpoint
+            .replacen("wss://", "https://", 1)
+            .replacen("ws://", "http://", 1);
         let opts = json!({ "playerId": "dev-1", "actorId": "dev-1" });
         let (url, body) = match colyseus::build_matchmake_request(&http, &opts) {
             Ok(v) => v,
@@ -191,7 +255,9 @@ mod web_runtime {
             let ev = successor_platform::ws_poll(ws, &mut buf);
             let outs = match ev {
                 successor_platform::WsEvent::Open => sess.on_ws_event(WsInput::Open),
-                successor_platform::WsEvent::Frame(n) => sess.on_ws_event(WsInput::Frame(&buf[..n])),
+                successor_platform::WsEvent::Frame(n) => {
+                    sess.on_ws_event(WsInput::Frame(&buf[..n]))
+                }
                 successor_platform::WsEvent::Closed => {
                     let o = sess.on_ws_event(WsInput::Closed);
                     send_frames(ws, o);

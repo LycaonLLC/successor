@@ -15,9 +15,7 @@ use successor_engine_render::components::{
     CamTarget, Camera, CompositeQuad, DirectionalLight, MaterialId, MeshId, MeshRenderer,
     Projection, RectNorm, TextOverlay, Transform,
 };
-use successor_engine_render::gpu::{
-    ClearSpec, Filter, Gpu, RenderTargetDesc, RenderTargetId,
-};
+use successor_engine_render::gpu::{ClearSpec, Filter, Gpu, RenderTargetDesc, RenderTargetId};
 use successor_engine_render::primitives;
 use successor_engine_render::renderer::Renderer;
 
@@ -54,7 +52,8 @@ impl Stats {
 
 /// Build the standard scene, creating GPU resources through `gpu`.
 pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
-    let mut renderer = Renderer::new(gpu, crate::quality_limits());
+    let mut renderer =
+        Renderer::new(gpu, crate::quality_limits()).expect("renderer initialization failed");
     let mut world = GameWorld::new();
     renderer.gi_set_focus([31.5, 0.0, 31.5]);
 
@@ -65,15 +64,50 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
     let plane: MeshId = renderer.upload_mesh(gpu, &pv, &pi);
     let (kv, ki) = primitives::capsule(0.4, 1.8, 12, 6);
     let capsule: MeshId = renderer.upload_mesh(gpu, &kv, &ki);
-    let ground: MaterialId = renderer.add_material([0.35, 0.30, 0.20, 1.0]);
-    let opaque: MaterialId = renderer.add_material([0.72, 0.58, 0.36, 1.0]);
-    let glass: MaterialId = renderer.add_material([0.30, 0.55, 0.85, 0.5]); // alpha<1 -> dithered
-    let hero: MaterialId = renderer.add_material([0.85, 0.85, 0.90, 1.0]);
+    let ground: MaterialId =
+        renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+            base_color: [0.35, 0.30, 0.20, 1.0],
+            blend: false,
+            ..successor_engine_render::renderer::MaterialDesc::default()
+        });
+    let opaque: MaterialId =
+        renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+            base_color: [0.72, 0.58, 0.36, 1.0],
+            blend: false,
+            ..successor_engine_render::renderer::MaterialDesc::default()
+        });
+    let glass: MaterialId =
+        renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+            base_color: [0.30, 0.55, 0.85, 0.5],
+            blend: ([0.30, 0.55, 0.85, 0.5])[3] < 1.0,
+            ..successor_engine_render::renderer::MaterialDesc::default()
+        }); // alpha<1 -> dithered
+    let hero: MaterialId =
+        renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+            base_color: [0.85, 0.85, 0.90, 1.0],
+            blend: false,
+            ..successor_engine_render::renderer::MaterialDesc::default()
+        });
 
     // Ground plane (visible in main + minimap).
     let g = world.spawn();
-    world.set_component(g, Transform { pos: vec3(31.5, 0.0, 31.5), rot: Quat::IDENTITY, scale: Vec3::ONE });
-    world.set_component(g, MeshRenderer { mesh: plane, material: ground, viewport_mask: 0b011, ..Default::default() });
+    world.set_component(
+        g,
+        Transform {
+            pos: vec3(31.5, 0.0, 31.5),
+            rot: Quat::IDENTITY,
+            scale: Vec3::ONE,
+        },
+    );
+    world.set_component(
+        g,
+        MeshRenderer {
+            mesh: plane,
+            material: ground,
+            viewport_mask: 0b011,
+            ..Default::default()
+        },
+    );
 
     // 64x64 opaque cubes (main + minimap).
     for x in 0..OPAQUE_SIDE {
@@ -87,7 +121,15 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
                     scale: vec3(0.9, 0.9, 0.9),
                 },
             );
-            world.set_component(e, MeshRenderer { mesh: cube, material: opaque, viewport_mask: 0b011, ..Default::default() });
+            world.set_component(
+                e,
+                MeshRenderer {
+                    mesh: cube,
+                    material: opaque,
+                    viewport_mask: 0b011,
+                    ..Default::default()
+                },
+            );
         }
     }
 
@@ -99,22 +141,53 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
         let fz = (i / 16) as f32 * 4.0;
         world.set_component(
             e,
-            Transform { pos: vec3(fx, 3.0, fz), rot: Quat::IDENTITY, scale: Vec3::ONE },
+            Transform {
+                pos: vec3(fx, 3.0, fz),
+                rot: Quat::IDENTITY,
+                scale: Vec3::ONE,
+            },
         );
-        world.set_component(e, MeshRenderer { mesh: cube, material: glass, viewport_mask: 0b001, ..Default::default() });
+        world.set_component(
+            e,
+            MeshRenderer {
+                mesh: cube,
+                material: glass,
+                viewport_mask: 0b001,
+                ..Default::default()
+            },
+        );
         transparent.push(e);
     }
 
     // Hero capsule visible in ALL viewports (main + minimap + portrait).
     let hero_e = world.spawn();
-    world.set_component(hero_e, Transform { pos: vec3(31.5, 0.9, 31.5), rot: Quat::IDENTITY, scale: Vec3::ONE });
-    world.set_component(hero_e, MeshRenderer { mesh: capsule, material: hero, viewport_mask: 0b111, ..Default::default() });
+    world.set_component(
+        hero_e,
+        Transform {
+            pos: vec3(31.5, 0.9, 31.5),
+            rot: Quat::IDENTITY,
+            scale: Vec3::ONE,
+        },
+    );
+    world.set_component(
+        hero_e,
+        MeshRenderer {
+            mesh: capsule,
+            material: hero,
+            viewport_mask: 0b111,
+            ..Default::default()
+        },
+    );
 
     // Shadow-casting sun.
     let sun = world.spawn();
     world.set_component(
         sun,
-        DirectionalLight { dir: vec3(-0.5, -1.0, -0.35), color: [1.0, 0.97, 0.9], cast_shadows: true },
+        DirectionalLight {
+            dir: vec3(-0.5, -1.0, -0.35),
+            color: [1.0, 0.97, 0.9],
+            cast_shadows: true,
+        },
     );
 
     // Offscreen targets for minimap + portrait.
@@ -128,9 +201,16 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
         Camera {
             viewport_id: 0,
             order: 0,
-            projection: Projection::Perspective { fovy: 1.05, near: 0.1, far: 400.0 },
+            projection: Projection::Perspective {
+                fovy: 1.05,
+                near: 0.1,
+                far: 400.0,
+            },
             target: CamTarget::Screen(RectNorm::FULL),
-            clear: ClearSpec { color: Some([0.05, 0.06, 0.08, 1.0]), depth: Some(1.0) },
+            clear: ClearSpec {
+                color: Some([0.05, 0.06, 0.08, 1.0]),
+                depth: Some(1.0),
+            },
             eye: vec3(31.5, 40.0, 92.0),
             look_at: vec3(31.5, 0.0, 31.5),
             up: Vec3::Y,
@@ -142,9 +222,16 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
         Camera {
             viewport_id: 1,
             order: -2,
-            projection: Projection::Ortho { half_height: 40.0, near: 0.1, far: 200.0 },
+            projection: Projection::Ortho {
+                half_height: 40.0,
+                near: 0.1,
+                far: 200.0,
+            },
             target: CamTarget::Texture(rt_minimap),
-            clear: ClearSpec { color: Some([0.02, 0.03, 0.04, 1.0]), depth: Some(1.0) },
+            clear: ClearSpec {
+                color: Some([0.02, 0.03, 0.04, 1.0]),
+                depth: Some(1.0),
+            },
             eye: vec3(31.5, 120.0, 31.5),
             look_at: vec3(31.5, 0.0, 31.5),
             up: vec3(0.0, 0.0, -1.0),
@@ -156,9 +243,16 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
         Camera {
             viewport_id: 2,
             order: -1,
-            projection: Projection::Perspective { fovy: 0.8, near: 0.05, far: 20.0 },
+            projection: Projection::Perspective {
+                fovy: 0.8,
+                near: 0.05,
+                far: 20.0,
+            },
             target: CamTarget::Texture(rt_portrait),
-            clear: ClearSpec { color: Some([0.10, 0.10, 0.12, 1.0]), depth: Some(1.0) },
+            clear: ClearSpec {
+                color: Some([0.10, 0.10, 0.12, 1.0]),
+                depth: Some(1.0),
+            },
             eye: vec3(31.5, 1.4, 34.0),
             look_at: vec3(31.5, 0.9, 31.5),
             up: Vec3::Y,
@@ -167,15 +261,51 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
 
     // Composite the two RTs into corners.
     let q1 = world.spawn();
-    world.set_component(q1, CompositeQuad { source: rt_minimap, rect: RectNorm { x: 0.75, y: 0.74, w: 0.24, h: 0.24 }, order: 0 });
+    world.set_component(
+        q1,
+        CompositeQuad {
+            source: rt_minimap,
+            rect: RectNorm {
+                x: 0.75,
+                y: 0.74,
+                w: 0.24,
+                h: 0.24,
+            },
+            order: 0,
+        },
+    );
     let q2 = world.spawn();
-    world.set_component(q2, CompositeQuad { source: rt_portrait, rect: RectNorm { x: 0.01, y: 0.01, w: 0.20, h: 0.20 }, order: 1 });
+    world.set_component(
+        q2,
+        CompositeQuad {
+            source: rt_portrait,
+            rect: RectNorm {
+                x: 0.01,
+                y: 0.01,
+                w: 0.20,
+                h: 0.20,
+            },
+            order: 1,
+        },
+    );
 
     // HUD line.
     let hud = world.spawn();
-    world.set_component(hud, TextOverlay::new("successor rust client", Vec2 { x: 0.02, y: 0.05 }, [220, 230, 240, 255]));
+    world.set_component(
+        hud,
+        TextOverlay::new(
+            "successor rust client",
+            Vec2 { x: 0.02, y: 0.05 },
+            [220, 230, 240, 255],
+        ),
+    );
 
-    Scene { world, renderer, portrait_cam: portrait, transparent }
+    Scene {
+        world,
+        renderer,
+        portrait_cam: portrait,
+        transparent,
+    }
 }
 
 fn make_rt<G: Gpu>(gpu: &mut G) -> RenderTargetId {
@@ -207,7 +337,9 @@ impl Scene {
     }
 
     pub fn render<G: Gpu>(&mut self, gpu: &mut G) {
-        self.renderer.render(gpu, &mut self.world, SCREEN_W, SCREEN_H);
+        self.renderer
+            .render(gpu, &mut self.world, SCREEN_W, SCREEN_H)
+            .expect("render failed");
     }
 }
 

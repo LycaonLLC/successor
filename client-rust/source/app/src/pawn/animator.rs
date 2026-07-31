@@ -39,8 +39,20 @@ impl WeaponLane {
     fn base_clips(self) -> [&'static str; 5] {
         match self {
             WeaponLane::Unarmed => ["idle", "walk_f", "run_f", "walk_b", "kneel_loop"],
-            WeaponLane::Rifle => ["rifle_idle", "rifle_walk_f", "rifle_run_f", "walk_b", "kneel_loop"],
-            WeaponLane::Melee => ["melee_idle", "melee_walk_f", "melee_run_f", "walk_b", "kneel_loop"],
+            WeaponLane::Rifle => [
+                "rifle_idle",
+                "rifle_walk_f",
+                "rifle_run_f",
+                "walk_b",
+                "kneel_loop",
+            ],
+            WeaponLane::Melee => [
+                "melee_idle",
+                "melee_walk_f",
+                "melee_run_f",
+                "walk_b",
+                "kneel_loop",
+            ],
         }
     }
 }
@@ -50,7 +62,7 @@ pub struct PawnAnimator {
     palette: Vec<[f32; 16]>,
     time: f32,
     gait: Gait,
-    moving: bool, // hysteresis latch for idle start/stop
+    moving: bool,  // hysteresis latch for idle start/stop
     running: bool, // hysteresis latch for walk/run
 }
 
@@ -97,7 +109,11 @@ impl PawnAnimator {
         } else if speed_cells >= RUN_START {
             self.running = true;
         }
-        self.gait = if self.running { Gait::RunF } else { Gait::WalkF };
+        self.gait = if self.running {
+            Gait::RunF
+        } else {
+            Gait::WalkF
+        };
         self.gait
     }
 
@@ -156,7 +172,10 @@ impl PawnAnimator {
         } else {
             (speed_cells / nominal).clamp(0.5, 1.6)
         };
-        let duration = template.animation(clip).map(|a| a.duration.max(0.001)).unwrap_or(1.0);
+        let duration = template
+            .animation(clip)
+            .map(|a| a.duration.max(0.001))
+            .unwrap_or(1.0);
         // Death holds on the last frame; others loop.
         if matches!(self.gait, Gait::Death) {
             self.time = duration;
@@ -164,7 +183,9 @@ impl PawnAnimator {
             self.time = (self.time + dt_seconds * ts) % duration;
         }
         template.pose_at(clip, self.time, &mut self.pose);
-        template.skeleton.compute_palette(&self.pose, &mut self.palette);
+        template
+            .skeleton
+            .compute_palette(&self.pose, &mut self.palette);
         &self.palette
     }
 
@@ -200,7 +221,7 @@ mod tests {
     fn idle_hysteresis_holds_moving_until_stop_threshold() {
         let mut a = anim();
         a.resolve_gait(1.0, false, true); // moving
-        // Between stop (0.035) and start (0.12): stays moving (walk).
+                                          // Between stop (0.035) and start (0.12): stays moving (walk).
         assert_eq!(a.resolve_gait(0.08, false, true), Gait::WalkF);
         // Below stop: idle.
         assert_eq!(a.resolve_gait(0.01, false, true), Gait::Idle);

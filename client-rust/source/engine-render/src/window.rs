@@ -93,7 +93,14 @@ impl Default for WindowManager {
 
 impl WindowManager {
     pub fn new() -> Self {
-        Self { wins: Vec::new(), z: 0, drag: None, sw: 1.0, sh: 1.0, captured: false }
+        Self {
+            wins: Vec::new(),
+            z: 0,
+            drag: None,
+            sw: 1.0,
+            sh: 1.0,
+            captured: false,
+        }
     }
 
     /// Register a (closed) window. `icon` is an atlas cell the host resolved.
@@ -168,7 +175,9 @@ impl WindowManager {
 
     /// Open windows, back-to-front (ascending z) — the host draw order.
     pub fn z_order(&self) -> Vec<usize> {
-        let mut idx: Vec<usize> = (0..self.wins.len()).filter(|&i| self.wins[i].open).collect();
+        let mut idx: Vec<usize> = (0..self.wins.len())
+            .filter(|&i| self.wins[i].open)
+            .collect();
         idx.sort_by_key(|&i| self.wins[i].z);
         idx
     }
@@ -243,13 +252,38 @@ impl WindowManager {
                 return;
             }
             // Resize gadget: bottom-right corner.
-            if UiBuilder::hit(x + w - RESIZE_H, y + h - RESIZE_H, RESIZE_H, RESIZE_H, mx, my) {
-                self.drag = Some(Drag { idx, mode: DragMode::Resize, mx0: mx, my0: my, bx: x, by: y, bw: w, bh: h });
+            if UiBuilder::hit(
+                x + w - RESIZE_H,
+                y + h - RESIZE_H,
+                RESIZE_H,
+                RESIZE_H,
+                mx,
+                my,
+            ) {
+                self.drag = Some(Drag {
+                    idx,
+                    mode: DragMode::Resize,
+                    mx0: mx,
+                    my0: my,
+                    bx: x,
+                    by: y,
+                    bw: w,
+                    bh: h,
+                });
                 return;
             }
             // Title strip: move.
             if UiBuilder::hit(x, y, w - cb, TITLE_H, mx, my) {
-                self.drag = Some(Drag { idx, mode: DragMode::Move, mx0: mx, my0: my, bx: x, by: y, bw: w, bh: h });
+                self.drag = Some(Drag {
+                    idx,
+                    mode: DragMode::Move,
+                    mx0: mx,
+                    my0: my,
+                    bx: x,
+                    by: y,
+                    bw: w,
+                    bh: h,
+                });
             }
             return; // topmost hit consumes the press
         }
@@ -270,24 +304,59 @@ impl WindowManager {
         ui.rect(win.x, win.y, win.w, win.h, style.body);
         ui.border(win.x, win.y, win.w, win.h, 1.5, style.edge);
         // Title bar.
-        let tb = if focused { style.title_bar_focused } else { style.title_bar };
+        let tb = if focused {
+            style.title_bar_focused
+        } else {
+            style.title_bar
+        };
         ui.rect(win.x, win.y, win.w, TITLE_H, tb);
         let mut tx = win.x + 8.0;
         if let Some((col, row)) = win.icon {
-            ui.icon(col, row, win.x + 4.0, win.y + 4.0, TITLE_H - 8.0, TITLE_H - 8.0, style.text);
+            ui.icon(
+                col,
+                row,
+                win.x + 4.0,
+                win.y + 4.0,
+                TITLE_H - 8.0,
+                TITLE_H - 8.0,
+                style.text,
+            );
             tx = win.x + TITLE_H + 2.0;
         }
         let px = 2.2;
-        ui.text(&win.title, tx, win.y + (TITLE_H - 7.0 * px) * 0.5, px, style.text);
+        ui.text(
+            &win.title,
+            tx,
+            win.y + (TITLE_H - 7.0 * px) * 0.5,
+            px,
+            style.text,
+        );
         // Close box (draw an X).
         let cb = TITLE_H;
         let cx = win.x + win.w - cb;
-        ui.text("X", cx + cb * 0.5 - 5.0, win.y + (TITLE_H - 7.0 * px) * 0.5, px, style.close);
+        ui.text(
+            "X",
+            cx + cb * 0.5 - 5.0,
+            win.y + (TITLE_H - 7.0 * px) * 0.5,
+            px,
+            style.close,
+        );
         // Resize gadget.
-        ui.rect(win.x + win.w - RESIZE_H, win.y + win.h - RESIZE_H, RESIZE_H, RESIZE_H, style.resize);
+        ui.rect(
+            win.x + win.w - RESIZE_H,
+            win.y + win.h - RESIZE_H,
+            RESIZE_H,
+            RESIZE_H,
+            style.resize,
+        );
         // Content rect (below title, padded).
         let pad = 6.0;
-        [win.x + pad, win.y + TITLE_H + pad, win.w - 2.0 * pad, win.h - TITLE_H - 2.0 * pad]
+        [
+            win.x + pad,
+            win.y + TITLE_H + pad,
+            win.w - 2.0 * pad,
+            win.h - TITLE_H - 2.0 * pad,
+        ]
     }
 }
 
@@ -296,12 +365,31 @@ mod tests {
     use super::*;
     use crate::ui::{AtlasMeta, UiBuilder};
 
-    const ATLAS: AtlasMeta = AtlasMeta { cell: 32, cols: 8, width: 256, height: 160 };
+    const ATLAS: AtlasMeta = AtlasMeta {
+        cell: 32,
+        cols: 8,
+        width: 256,
+        height: 160,
+    };
 
     fn wm() -> WindowManager {
         let mut m = WindowManager::new();
-        m.register("inv", "INVENTORY", None, [100.0, 100.0, 300.0, 200.0], 160.0, 120.0);
-        m.register("char", "CHARACTER", None, [200.0, 150.0, 300.0, 200.0], 160.0, 120.0);
+        m.register(
+            "inv",
+            "INVENTORY",
+            None,
+            [100.0, 100.0, 300.0, 200.0],
+            160.0,
+            120.0,
+        );
+        m.register(
+            "char",
+            "CHARACTER",
+            None,
+            [200.0, 150.0, 300.0, 200.0],
+            160.0,
+            120.0,
+        );
         m
     }
 
@@ -348,7 +436,11 @@ mod tests {
         m.update(&ui, 1280, 720);
         let rect = m.draw_chrome(&mut ui, m.find("inv").unwrap(), WindowStyle::default());
         // content x = new window x (140) + pad(6).
-        assert!((rect[0] - (140.0 + 6.0)).abs() < 1e-3, "moved x, got {}", rect[0]);
+        assert!(
+            (rect[0] - (140.0 + 6.0)).abs() < 1e-3,
+            "moved x, got {}",
+            rect[0]
+        );
     }
 
     #[test]

@@ -18,7 +18,8 @@ fn percent_decode(s: &str) -> String {
         if s_bytes[i] == b'%' && i + 2 < s_bytes.len() {
             let h1 = s_bytes[i + 1];
             let h2 = s_bytes[i + 2];
-            if let (Some(d1), Some(d2)) = (char::from(h1).to_digit(16), char::from(h2).to_digit(16)) {
+            if let (Some(d1), Some(d2)) = (char::from(h1).to_digit(16), char::from(h2).to_digit(16))
+            {
                 bytes.push(((d1 << 4) | d2) as u8);
                 i += 3;
                 continue;
@@ -143,10 +144,19 @@ mod tests {
 
     #[test]
     fn test_http_endpoint_mapping() {
-        assert_eq!(http_endpoint("ws://127.0.0.1:28093/"), "http://127.0.0.1:28093/");
-        assert_eq!(http_endpoint("wss://127.0.0.1:28093/"), "https://127.0.0.1:28093/");
+        assert_eq!(
+            http_endpoint("ws://127.0.0.1:28093/"),
+            "http://127.0.0.1:28093/"
+        );
+        assert_eq!(
+            http_endpoint("wss://127.0.0.1:28093/"),
+            "https://127.0.0.1:28093/"
+        );
         assert_eq!(http_endpoint("http://example.com/"), "http://example.com/");
-        assert_eq!(http_endpoint("https://example.com/"), "https://example.com/");
+        assert_eq!(
+            http_endpoint("https://example.com/"),
+            "https://example.com/"
+        );
     }
 
     #[test]

@@ -1,8 +1,9 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
+    use crate::colyseus;
     use crate::packets::{self, GameServerPacket};
     use crate::session::{Session, SessionEvent, SessionOut, SessionState, WsInput};
-    use crate::colyseus;
     use serde_json::json;
 
     // Load JSON fixtures
@@ -23,7 +24,11 @@ mod tests {
             assert_eq!(hello.player_actor_id, "actor-player-1");
             assert_eq!(hello.snapshot.tick, 42);
             assert_eq!(hello.snapshot.shard_id, "open-desert-persistent");
-            let player = hello.snapshot.actors.get("actor-player-1").expect("player actor present");
+            let player = hello
+                .snapshot
+                .actors
+                .get("actor-player-1")
+                .expect("player actor present");
             assert_eq!(player.display_name, "Dev Player");
             assert_eq!(player.vitals.health, 100.0);
         } else {
@@ -31,8 +36,15 @@ mod tests {
         }
 
         // game.snapshot
-        let packet: GameServerPacket = serde_json::from_str(SNAPSHOT_JSON).expect("decode game.snapshot");
-        if let GameServerPacket::Snapshot { snapshot, receipts, events, .. } = &packet {
+        let packet: GameServerPacket =
+            serde_json::from_str(SNAPSHOT_JSON).expect("decode game.snapshot");
+        if let GameServerPacket::Snapshot {
+            snapshot,
+            receipts,
+            events,
+            ..
+        } = &packet
+        {
             assert_eq!(snapshot.tick, 43);
             assert_eq!(receipts.len(), 1);
             assert_eq!(receipts[0].command_id, 101);
@@ -44,9 +56,18 @@ mod tests {
 
         // game.delta
         let packet: GameServerPacket = serde_json::from_str(DELTA_JSON).expect("decode game.delta");
-        if let GameServerPacket::Delta { delta, receipts, events, .. } = &packet {
+        if let GameServerPacket::Delta {
+            delta,
+            receipts,
+            events,
+            ..
+        } = &packet
+        {
             assert_eq!(delta.tick, 44);
-            let patch = delta.actor_patches.get("actor-player-1").expect("player patch present");
+            let patch = delta
+                .actor_patches
+                .get("actor-player-1")
+                .expect("player patch present");
             assert_eq!(patch.x, Some(523.0));
             assert_eq!(receipts.len(), 1);
             assert!(events.is_empty());
@@ -55,8 +76,12 @@ mod tests {
         }
 
         // game.receipts
-        let packet: GameServerPacket = serde_json::from_str(RECEIPTS_JSON).expect("decode game.receipts");
-        if let GameServerPacket::Receipts { receipts, events, .. } = &packet {
+        let packet: GameServerPacket =
+            serde_json::from_str(RECEIPTS_JSON).expect("decode game.receipts");
+        if let GameServerPacket::Receipts {
+            receipts, events, ..
+        } = &packet
+        {
             assert_eq!(receipts.len(), 1);
             assert_eq!(receipts[0].command_id, 103);
             assert!(events.is_empty());
@@ -66,7 +91,13 @@ mod tests {
 
         // game.acks
         let packet: GameServerPacket = serde_json::from_str(ACKS_JSON).expect("decode game.acks");
-        if let GameServerPacket::Acks { acks, player_actor, player_position, .. } = &packet {
+        if let GameServerPacket::Acks {
+            acks,
+            player_actor,
+            player_position,
+            ..
+        } = &packet
+        {
             assert_eq!(acks.len(), 1);
             assert_eq!(acks[0].0, 104);
             assert_eq!(acks[0].1, 1);
@@ -104,7 +135,11 @@ mod tests {
         let payload = json!({"foo": "bar", "val": 42});
         let encoded = colyseus::encode_room_message("my_test_type", &payload).unwrap();
         let decoded = colyseus::decode_inbound_frame(&encoded).unwrap();
-        if let colyseus::InboundFrame::RoomData { msg_type, payload: decoded_payload } = &decoded {
+        if let colyseus::InboundFrame::RoomData {
+            msg_type,
+            payload: decoded_payload,
+        } = &decoded
+        {
             assert_eq!(msg_type, "my_test_type");
             assert_eq!(decoded_payload, &payload);
         } else {
@@ -140,7 +175,10 @@ mod tests {
         let outs = session.on_ws_event(WsInput::Frame(&join_frame));
         assert_eq!(session.state(), SessionState::ExpectingHello);
         assert_eq!(outs.len(), 2, "join acks JOIN_ROOM then sends game.ready");
-        assert_eq!(outs[0], SessionOut::SendFrame(vec![colyseus::opcodes::JOIN_ROOM]));
+        assert_eq!(
+            outs[0],
+            SessionOut::SendFrame(vec![colyseus::opcodes::JOIN_ROOM])
+        );
         match &outs[1] {
             SessionOut::SendFrame(ready_bytes) => {
                 let decoded = colyseus::decode_inbound_frame(ready_bytes).unwrap();
@@ -191,7 +229,10 @@ mod tests {
             assert_eq!(session.state(), SessionState::Connecting);
             assert_eq!(outs.len(), 1);
             match &outs[0] {
-                SessionOut::Emit(SessionEvent::ReconnectAttempt { attempt, max_attempts }) => {
+                SessionOut::Emit(SessionEvent::ReconnectAttempt {
+                    attempt,
+                    max_attempts,
+                }) => {
                     assert_eq!(*attempt, i);
                     assert_eq!(*max_attempts, 5);
                 }
@@ -213,7 +254,7 @@ mod tests {
         let mut parts = parsed_url.splitn(2, '/');
         let host_port = parts.next().ok_or("Invalid host")?;
         let path = parts.next().unwrap_or("");
-        
+
         let mut stream = TcpStream::connect(host_port)?;
         let request = format!(
             "POST /{} HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
@@ -221,10 +262,10 @@ mod tests {
         );
         stream.write_all(request.as_bytes())?;
         stream.write_all(body)?;
-        
+
         let mut response = Vec::new();
         stream.read_to_end(&mut response)?;
-        
+
         if let Some(pos) = response.windows(4).position(|w| w == b"\r\n\r\n") {
             Ok(response[pos + 4..].to_vec())
         } else {
@@ -248,8 +289,10 @@ mod tests {
 
         // 1. Matchmake
         let (matchmake_url, body) = colyseus::build_matchmake_request(endpoint, &options).unwrap();
-        let seat_res_bytes = http_post(&matchmake_url, &body).expect("HTTP matchmaking request failed");
-        let seat_res = colyseus::parse_seat_reservation(&seat_res_bytes).expect("Failed to parse seat reservation");
+        let seat_res_bytes =
+            http_post(&matchmake_url, &body).expect("HTTP matchmaking request failed");
+        let seat_res = colyseus::parse_seat_reservation(&seat_res_bytes)
+            .expect("Failed to parse seat reservation");
         let ws_url = colyseus::build_ws_url(endpoint, &seat_res);
 
         // 2. WebSocket connect
@@ -260,7 +303,7 @@ mod tests {
         let outs = session.on_ws_event(WsInput::Open);
         for out in outs {
             if let SessionOut::SendFrame(frame) = out {
-                socket.send(Message::Binary(frame.into())).unwrap();
+                socket.send(Message::Binary(frame)).unwrap();
             }
         }
 
@@ -273,7 +316,7 @@ mod tests {
                     for out in outs {
                         match out {
                             SessionOut::SendFrame(frame) => {
-                                socket.send(Message::Binary(frame.into())).unwrap();
+                                socket.send(Message::Binary(frame)).unwrap();
                             }
                             SessionOut::Emit(SessionEvent::Hello(_hello)) => {
                                 // Success! Joined and authenticated.

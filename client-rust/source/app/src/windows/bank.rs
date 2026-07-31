@@ -1,7 +1,7 @@
 //! BANK — Kiosk-style bank vault content view.
-use super::{WindowAction, TEXT, DIM, ACCENT, SLOT, SLOT_EDGE};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder, ButtonStyle};
+use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
 #[derive(Clone, Debug)]
 pub struct ItemStack {
@@ -25,12 +25,32 @@ impl BankModel {
             wallet_credits: 1280,
             vault_credits: 5000,
             inventory_items: vec![
-                ItemStack { id: 1, name: "SLUGTHROWER".into(), kind: "item-weapon".into(), qty: 1 },
-                ItemStack { id: 2, name: "RIFLE AMMO".into(), kind: "item-ammo".into(), qty: 240 },
+                ItemStack {
+                    id: 1,
+                    name: "SLUGTHROWER".into(),
+                    kind: "item-weapon".into(),
+                    qty: 1,
+                },
+                ItemStack {
+                    id: 2,
+                    name: "RIFLE AMMO".into(),
+                    kind: "item-ammo".into(),
+                    qty: 240,
+                },
             ],
             vault_items: vec![
-                ItemStack { id: 3, name: "MEDKIT".into(), kind: "item-medical".into(), qty: 10 },
-                ItemStack { id: 4, name: "SCRAP ALLOY".into(), kind: "item-resource".into(), qty: 500 },
+                ItemStack {
+                    id: 3,
+                    name: "MEDKIT".into(),
+                    kind: "item-medical".into(),
+                    qty: 10,
+                },
+                ItemStack {
+                    id: 4,
+                    name: "SCRAP ALLOY".into(),
+                    kind: "item-resource".into(),
+                    qty: 500,
+                },
             ],
         }
     }
@@ -47,7 +67,10 @@ pub fn draw(
 
     // Credits balance line at the top
     let cy = y + 8.0;
-    let credits_text = format!("WALLET: {} CR  |  VAULT: {} CR", model.wallet_credits, model.vault_credits);
+    let credits_text = format!(
+        "WALLET: {} CR  |  VAULT: {} CR",
+        model.wallet_credits, model.vault_credits
+    );
     ui.text(&credits_text, x + 8.0, cy, 2.0, ACCENT);
 
     // Columns calculations
@@ -154,12 +177,24 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 500.0, 300.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 300.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 500.0, 300.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 300.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert_eq!(out, vec![WindowAction::Deposit(1, 1)]);
     }
@@ -183,12 +218,24 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 500.0, 300.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 300.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 500.0, 300.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 500.0, 300.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         assert_eq!(out, vec![WindowAction::Withdraw(3, 10)]);
     }

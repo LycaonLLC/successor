@@ -1,8 +1,8 @@
 //! CRAFT — crafting bench with recipe list and detailed requirements.
 
-use super::{WindowAction, TEXT, DIM, ACCENT, SLOT, SLOT_EDGE};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder, ButtonStyle};
+use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
 #[derive(Clone, Debug, Default)]
 pub struct CraftIngredient {
@@ -120,11 +120,26 @@ impl CraftModel {
 }
 
 fn is_craftable(recipe: &CraftRecipe) -> bool {
-    recipe.ingredients.iter().all(|ing| ing.carried_qty >= ing.required_qty)
+    recipe
+        .ingredients
+        .iter()
+        .all(|ing| ing.carried_qty >= ing.required_qty)
 }
 
-fn ingredient_bar(ui: &mut UiBuilder, x: f32, y: f32, w: f32, carried: u32, required: u32, label: &str) {
-    let frac = if required > 0 { carried as f32 / required as f32 } else { 1.0 };
+fn ingredient_bar(
+    ui: &mut UiBuilder,
+    x: f32,
+    y: f32,
+    w: f32,
+    carried: u32,
+    required: u32,
+    label: &str,
+) {
+    let frac = if required > 0 {
+        carried as f32 / required as f32
+    } else {
+        1.0
+    };
     ui.rect(x, y, w, 18.0, SLOT);
     if frac > 0.0 {
         let fill_color = if carried >= required {
@@ -139,7 +154,13 @@ fn ingredient_bar(ui: &mut UiBuilder, x: f32, y: f32, w: f32, carried: u32, requ
     ui.text(&bar_text, x + 6.0, y + 3.0, 1.6, TEXT);
 }
 
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CraftModel, icons: &Icons, out: &mut Vec<WindowAction>) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    model: &CraftModel,
+    icons: &Icons,
+    out: &mut Vec<WindowAction>,
+) {
     let [x, y, w, h] = rect;
 
     // Split layout
@@ -167,7 +188,14 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CraftModel, icons: &Icon
         };
         ui.rect(x, ry, list_w, 40.0, fill);
         let border_col = if selected { ACCENT } else { SLOT_EDGE };
-        ui.border(x, ry, list_w, 40.0, if selected { 1.5 } else { 1.0 }, border_col);
+        ui.border(
+            x,
+            ry,
+            list_w,
+            40.0,
+            if selected { 1.5 } else { 1.0 },
+            border_col,
+        );
 
         // Name
         let name_col = if craftable { ACCENT } else { TEXT };
@@ -177,11 +205,22 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CraftModel, icons: &Icon
         let mut summary = String::new();
         for (idx, ing) in recipe.ingredients.iter().enumerate() {
             if idx > 0 {
-                summary.push_str(" ");
+                summary.push(' ');
             }
-            summary.push_str(&format!("{}: {}/{}", ing.name.chars().next().unwrap_or('?'), ing.carried_qty, ing.required_qty));
+            summary.push_str(&format!(
+                "{}: {}/{}",
+                ing.name.chars().next().unwrap_or('?'),
+                ing.carried_qty,
+                ing.required_qty
+            ));
         }
-        ui.text(&summary, x + 6.0, ry + 22.0, 1.4, if craftable { ACCENT } else { DIM });
+        ui.text(
+            &summary,
+            x + 6.0,
+            ry + 22.0,
+            1.4,
+            if craftable { ACCENT } else { DIM },
+        );
 
         if resp.clicked {
             out.push(WindowAction::Button(format!("select:{}", recipe.id)));
@@ -193,7 +232,9 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CraftModel, icons: &Icon
     ui.rect(dx, y, detail_w, h, [10, 14, 20, 210]);
     ui.border(dx, y, detail_w, h, 1.0, SLOT_EDGE);
 
-    let selected_recipe = model.selected_recipe_id.as_ref()
+    let selected_recipe = model
+        .selected_recipe_id
+        .as_ref()
         .and_then(|id| model.recipes.iter().find(|r| &r.id == id));
 
     if let Some(recipe) = selected_recipe {
@@ -213,12 +254,26 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CraftModel, icons: &Icon
         };
 
         if let Some((col, row)) = icons.cell(icon_key) {
-            ui.icon(col, row, slot_x + 4.0, slot_y + 4.0, slot_size - 8.0, slot_size - 8.0, TEXT);
+            ui.icon(
+                col,
+                row,
+                slot_x + 4.0,
+                slot_y + 4.0,
+                slot_size - 8.0,
+                slot_size - 8.0,
+                TEXT,
+            );
         }
 
         // Title and Category next to icon
         ui.text(&recipe.name, dx + 52.0, y + 8.0, 2.0, ACCENT);
-        ui.text(&format!("CATEGORY: {}", recipe.category), dx + 52.0, y + 26.0, 1.4, DIM);
+        ui.text(
+            &format!("CATEGORY: {}", recipe.category),
+            dx + 52.0,
+            y + 26.0,
+            1.4,
+            DIM,
+        );
 
         // Divider
         ui.rect(dx + 8.0, y + 52.0, detail_w - 16.0, 1.0, SLOT_EDGE);
@@ -232,7 +287,15 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CraftModel, icons: &Icon
             if iy + 18.0 > y + h - 46.0 {
                 break; // Clip if it overflows detail panel
             }
-            ingredient_bar(ui, dx + 8.0, iy, detail_w - 16.0, ing.carried_qty, ing.required_qty, &ing.name);
+            ingredient_bar(
+                ui,
+                dx + 8.0,
+                iy,
+                detail_w - 16.0,
+                ing.carried_qty,
+                ing.required_qty,
+                &ing.name,
+            );
         }
 
         // Craft Button at the bottom
@@ -250,10 +313,16 @@ pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], model: &CraftModel, icons: &Icon
             style.edge = SLOT_EDGE;
         }
 
-        if ui.button(dx + 8.0, y + h - 38.0, detail_w - 16.0, 30.0, "CRAFT", style) {
-            if craftable {
-                out.push(WindowAction::Craft(recipe.id.clone()));
-            }
+        if ui.button(
+            dx + 8.0,
+            y + h - 38.0,
+            detail_w - 16.0,
+            30.0,
+            "CRAFT",
+            style,
+        ) && craftable
+        {
+            out.push(WindowAction::Craft(recipe.id.clone()));
         }
     } else {
         // No recipe selected state
@@ -275,14 +344,29 @@ mod tests {
         ui.set_input(150.0, 190.0, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 600.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(150.0, 190.0, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 600.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
-        assert_eq!(out, vec![WindowAction::Button("select:field_multitool".to_string())]);
+        assert_eq!(
+            out,
+            vec![WindowAction::Button("select:field_multitool".to_string())]
+        );
     }
 
     #[test]
@@ -296,13 +380,28 @@ mod tests {
         ui.set_input(539.0, 477.0, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 600.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
         ui.set_input(539.0, 477.0, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, [100.0, 100.0, 600.0, 400.0], &model, &icons, &mut out);
+        draw(
+            &mut ui,
+            [100.0, 100.0, 600.0, 400.0],
+            &model,
+            &icons,
+            &mut out,
+        );
 
-        assert_eq!(out, vec![WindowAction::Craft("field_multitool".to_string())]);
+        assert_eq!(
+            out,
+            vec![WindowAction::Craft("field_multitool".to_string())]
+        );
     }
 }

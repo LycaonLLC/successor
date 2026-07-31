@@ -1,6 +1,4 @@
-// Mesh fragment shader: single directional light + ambient, 3x3 PCF shadow,
-// and screen-door (Bayer 4x4) dithered transparency — no blending, order
-// independent.
+// Forward material shader used by RTT and sorted transparent scene draws.
 in vec3 v_normal;
 in vec4 v_lightPos;
 in vec2 v_uv;
@@ -18,21 +16,25 @@ uniform vec3 u_camEye;
 uniform vec3 u_fogColor;
 uniform float u_fogNear;
 uniform float u_fogFar;
+uniform sampler2D u_sceneCopy;
+uniform sampler2D u_opaqueDepth;
+uniform vec2 u_screenSize;
+uniform int u_transparentPass;
+uniform float u_transmission;
+uniform float u_ior;
+uniform float u_metallic;
+uniform float u_roughness;
+uniform float u_dielectricF0;
+uniform float u_clearcoat;
+uniform float u_clearcoatRoughness;
+uniform int u_pointCount;
+uniform vec3 u_pointPositions[32];
+uniform float u_pointRadii[32];
+uniform vec3 u_pointColors[32];
+uniform float u_pointIntensities[32];
 
 out vec4 frag;
 
-float bayer4(vec2 p) {
-    int x = int(mod(p.x, 4.0));
-    int y = int(mod(p.y, 4.0));
-    int i = x + y * 4;
-    // Normalized 4x4 Bayer threshold matrix (values 0..15)/16.
-    float m[16];
-    m[0]=0.0;  m[1]=8.0;  m[2]=2.0;  m[3]=10.0;
-    m[4]=12.0; m[5]=4.0;  m[6]=14.0; m[7]=6.0;
-    m[8]=3.0;  m[9]=11.0; m[10]=1.0; m[11]=9.0;
-    m[12]=15.0;m[13]=7.0; m[14]=13.0;m[15]=5.0;
-    return (m[i] + 0.5) / 16.0;
-}
 
 float shadowFactor(vec4 lp) {
     vec3 proj = lp.xyz / lp.w;
@@ -51,16 +53,60 @@ float shadowFactor(vec4 lp) {
 }
 
 void main() {
+    vec2 screenUv = gl_FragCoord.xy / u_screenSize;
+    if (u_transparentPass == 1) {
+        float opaqueDepth = texture(u_opaqueDepth, screenUv).r;
+        if (gl_FragCoord.z > opaqueDepth + 0.00001) discard;
+    }
     vec3 n = normalize(v_normal);
-    float ndl = max(dot(n, normalize(-u_lightDir)), 0.0);
+    vec3 viewDir = normalize(u_camEye - v_worldPos);
+    vec3 sunDir = normalize(-u_lightDir);
+    float nDotSun = max(dot(n, sunDir), 0.0);
     float sh = (u_useShadow == 1) ? shadowFactor(v_lightPos) : 1.0;
-    vec4 base = (u_hasTex == 1) ? texture(u_albedo, v_uv) : u_color;
-    vec3 lit = base.rgb * (u_ambient + ndl * sh) * u_lightColor;
-
-    if (base.a < 0.999) {
-        if (base.a < bayer4(gl_FragCoord.xy)) discard;
+    vec4 base = u_color;
+    if (u_hasTex == 1) base *= texture(u_albedo, v_uv);
+    vec3 fresnel;
+    vec3 sunBrdf = pbrBaseLobe(
+        base.rgb, u_metallic, u_roughness, u_dielectricF0,
+        n, viewDir, sunDir, fresnel
+    );
+    float coatFresnel;
+    vec3 coat = pbrClearcoatLobe(
+        u_clearcoat, u_clearcoatRoughness, n, viewDir, sunDir, coatFresnel
+    );
+    vec3 lit = base.rgb * u_ambient
+        + (sunBrdf * (1.0 - coatFresnel * u_clearcoat) + coat)
+            * u_lightColor * nDotSun * sh;
+    for (int index = 0; index < 32; index++) {
+        if (index >= u_pointCount) break;
+        vec3 toLight = u_pointPositions[index] - v_worldPos;
+        float distanceToLight = length(toLight);
+        float radius = max(u_pointRadii[index], 0.001);
+        float attenuation = max(1.0 - distanceToLight / radius, 0.0);
+        attenuation *= attenuation;
+        vec3 pointDir = toLight / max(distanceToLight, 0.001);
+        float nDotPoint = max(dot(n, pointDir), 0.0);
+        vec3 pointFresnel;
+        vec3 pointBrdf = pbrBaseLobe(
+            base.rgb, u_metallic, u_roughness, u_dielectricF0,
+            n, viewDir, pointDir, pointFresnel
+        );
+        float pointCoatFresnel;
+        vec3 pointCoat = pbrClearcoatLobe(
+            u_clearcoat, u_clearcoatRoughness, n, viewDir, pointDir, pointCoatFresnel
+        );
+        lit += (pointBrdf * (1.0 - pointCoatFresnel * u_clearcoat) + pointCoat)
+            * u_pointColors[index] * u_pointIntensities[index]
+            * nDotPoint * attenuation;
     }
     float fogD = distance(v_worldPos, u_camEye);
     float fogF = clamp((fogD - u_fogNear) / max(1.0, u_fogFar - u_fogNear), 0.0, 1.0);
-    frag = vec4(mix(lit, u_fogColor, fogF), 1.0);
+    vec3 surface = mix(lit, u_fogColor, fogF);
+    if (u_transparentPass == 1 && u_transmission > 0.0) {
+        float eta = 1.0 / max(u_ior, 1.0);
+        vec2 refractedUv = clamp(screenUv + n.xy * (1.0 - eta) * 0.005, vec2(0.001), vec2(0.999));
+        vec3 transmitted = texture(u_sceneCopy, refractedUv).rgb;
+        surface = mix(surface, transmitted, clamp(u_transmission, 0.0, 1.0));
+    }
+    frag = vec4(surface, base.a);
 }
