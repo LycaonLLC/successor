@@ -224,9 +224,6 @@ const importObject = {
             gl.texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
         },
         glGenerateMipmap: (target) => gl.generateMipmap(target),
-        glFramebufferTextureLayer: (target, attachment, tex, level, layer) => {
-            gl.framebufferTextureLayer(target, attachment, glGet(tex), level, layer);
-        },
         glCapHalfFloatTarget: () => (gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float')) ? 1 : 0,
 
         // --- Window/Input/Time Functions ---

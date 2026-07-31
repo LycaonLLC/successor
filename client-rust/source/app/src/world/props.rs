@@ -415,6 +415,7 @@ impl WorldScene {
             }
         }
         let center = if n > 0.0 { vec3(sx / n, 0.0, sz / n) } else { vec3(512.0, 0.0, 512.0) };
+        renderer.gi_set_focus([center.x, center.y, center.z]);
 
         // Terrain ground under the props.
         let mut streamer = TerrainStreamer::new(0x0d3d_071e, Biome::Desert, 64.0, 128, 3, 0b1);

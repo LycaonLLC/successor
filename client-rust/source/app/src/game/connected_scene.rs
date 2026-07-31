@@ -91,6 +91,7 @@ impl ConnectedScene {
         let mut world = GameWorld::new();
 
         let center = vec3(512.0, 0.0, 513.0);
+        renderer.gi_set_focus([center.x, center.y, center.z]);
 
         // Terrain under the slice.
         let mut streamer = TerrainStreamer::new(0x0d3d_071e, Biome::Desert, 64.0, 128, 3, 0b1);
@@ -380,6 +381,7 @@ impl ConnectedScene {
         // 3) Cameras track the player.
         let p = self.player_pos();
         self.center = p;
+        self.renderer.gi_set_focus([p.x, p.y, p.z]);
         if let Some(cam) = self.world.get_component::<Camera>(self.follow) {
             cam.look_at = p;
             cam.eye = p.add(vec3(0.0, 9.0, 13.0));

@@ -55,6 +55,8 @@ pub struct Texture3dDesc {
     pub format: TextureFormat,
     /// Allocate a mip chain (radiance volume) with trilinear min filtering.
     pub mips: bool,
+    /// Wrap X/Z for world-aligned toroidal volumes; Y always clamps.
+    pub wrap_xz: bool,
 }
 
 /// Multi-render-target descriptor: `colors` lists the attachment formats
@@ -184,9 +186,21 @@ pub struct VertexLayout {
 pub const MESH_LAYOUT: VertexLayout = VertexLayout {
     stride: 32,
     attrs: &[
-        VertexAttr { location: 0, components: 3, offset: 0 },
-        VertexAttr { location: 1, components: 3, offset: 12 },
-        VertexAttr { location: 2, components: 2, offset: 24 },
+        VertexAttr {
+            location: 0,
+            components: 3,
+            offset: 0,
+        },
+        VertexAttr {
+            location: 1,
+            components: 3,
+            offset: 12,
+        },
+        VertexAttr {
+            location: 2,
+            components: 2,
+            offset: 24,
+        },
     ],
 };
 
@@ -194,8 +208,16 @@ pub const MESH_LAYOUT: VertexLayout = VertexLayout {
 pub const QUAD_LAYOUT: VertexLayout = VertexLayout {
     stride: 16,
     attrs: &[
-        VertexAttr { location: 0, components: 2, offset: 0 },
-        VertexAttr { location: 1, components: 2, offset: 8 },
+        VertexAttr {
+            location: 0,
+            components: 2,
+            offset: 0,
+        },
+        VertexAttr {
+            location: 1,
+            components: 2,
+            offset: 8,
+        },
     ],
 };
 
@@ -204,9 +226,21 @@ pub const QUAD_LAYOUT: VertexLayout = VertexLayout {
 pub const UI_LAYOUT: VertexLayout = VertexLayout {
     stride: 32,
     attrs: &[
-        VertexAttr { location: 0, components: 2, offset: 0 },
-        VertexAttr { location: 1, components: 2, offset: 8 },
-        VertexAttr { location: 2, components: 4, offset: 16 },
+        VertexAttr {
+            location: 0,
+            components: 2,
+            offset: 0,
+        },
+        VertexAttr {
+            location: 1,
+            components: 2,
+            offset: 8,
+        },
+        VertexAttr {
+            location: 2,
+            components: 4,
+            offset: 16,
+        },
     ],
 };
 
@@ -214,9 +248,21 @@ pub const UI_LAYOUT: VertexLayout = VertexLayout {
 pub const PARTICLE_LAYOUT: VertexLayout = VertexLayout {
     stride: 36,
     attrs: &[
-        VertexAttr { location: 0, components: 3, offset: 0 },
-        VertexAttr { location: 1, components: 2, offset: 12 },
-        VertexAttr { location: 2, components: 4, offset: 20 },
+        VertexAttr {
+            location: 0,
+            components: 3,
+            offset: 0,
+        },
+        VertexAttr {
+            location: 1,
+            components: 2,
+            offset: 12,
+        },
+        VertexAttr {
+            location: 2,
+            components: 4,
+            offset: 20,
+        },
     ],
 };
 
@@ -225,11 +271,31 @@ pub const PARTICLE_LAYOUT: VertexLayout = VertexLayout {
 pub const SKINNED_MESH_LAYOUT: VertexLayout = VertexLayout {
     stride: 64,
     attrs: &[
-        VertexAttr { location: 0, components: 3, offset: 0 },
-        VertexAttr { location: 1, components: 3, offset: 12 },
-        VertexAttr { location: 2, components: 2, offset: 24 },
-        VertexAttr { location: 3, components: 4, offset: 32 },
-        VertexAttr { location: 4, components: 4, offset: 48 },
+        VertexAttr {
+            location: 0,
+            components: 3,
+            offset: 0,
+        },
+        VertexAttr {
+            location: 1,
+            components: 3,
+            offset: 12,
+        },
+        VertexAttr {
+            location: 2,
+            components: 2,
+            offset: 24,
+        },
+        VertexAttr {
+            location: 3,
+            components: 4,
+            offset: 32,
+        },
+        VertexAttr {
+            location: 4,
+            components: 4,
+            offset: 48,
+        },
     ],
 };
 
@@ -238,10 +304,26 @@ pub const SKINNED_MESH_LAYOUT: VertexLayout = VertexLayout {
 pub const INSTANCE_MAT4_LAYOUT: VertexLayout = VertexLayout {
     stride: 64,
     attrs: &[
-        VertexAttr { location: 5, components: 4, offset: 0 },
-        VertexAttr { location: 6, components: 4, offset: 16 },
-        VertexAttr { location: 7, components: 4, offset: 32 },
-        VertexAttr { location: 8, components: 4, offset: 48 },
+        VertexAttr {
+            location: 5,
+            components: 4,
+            offset: 0,
+        },
+        VertexAttr {
+            location: 6,
+            components: 4,
+            offset: 16,
+        },
+        VertexAttr {
+            location: 7,
+            components: 4,
+            offset: 32,
+        },
+        VertexAttr {
+            location: 8,
+            components: 4,
+            offset: 48,
+        },
     ],
 };
 
@@ -251,8 +333,16 @@ pub const INSTANCE_MAT4_LAYOUT: VertexLayout = VertexLayout {
 pub const POINT_LIGHT_INSTANCE_LAYOUT: VertexLayout = VertexLayout {
     stride: 32,
     attrs: &[
-        VertexAttr { location: 5, components: 4, offset: 0 },
-        VertexAttr { location: 6, components: 4, offset: 16 },
+        VertexAttr {
+            location: 5,
+            components: 4,
+            offset: 0,
+        },
+        VertexAttr {
+            location: 6,
+            components: 4,
+            offset: 16,
+        },
     ],
 };
 
@@ -315,8 +405,15 @@ pub trait Gpu {
     fn create_texture_3d(&mut self, _desc: &Texture3dDesc, _data: Option<&[u8]>) -> TextureId {
         TextureId(0)
     }
-    /// Upload one full XY slice (`size*size*4` bytes) at depth `z`.
-    fn update_texture_3d(&mut self, _id: TextureId, _size: u32, _z: u32, _data: &[u8]) {}
+    /// Upload a tightly packed 3D subvolume at mip level zero.
+    fn update_texture_3d_region(
+        &mut self,
+        _id: TextureId,
+        _offset: [u32; 3],
+        _extent: [u32; 3],
+        _data: &[u8],
+    ) {
+    }
     /// Regenerate the mip chain of a 3D texture.
     fn generate_mipmaps_3d(&mut self, _id: TextureId) {}
     /// Bind a 3D texture to a sampler slot.
@@ -329,8 +426,6 @@ pub trait Gpu {
     fn render_target_color_n(&self, _rt: RenderTargetId, _index: usize) -> Option<TextureId> {
         None
     }
-    /// Begin a pass rendering into one Z layer of a 3D texture (radiance inject).
-    fn begin_layer_pass(&mut self, _tex: TextureId, _layer: u32, _viewport: RectPx, _clear: ClearSpec) {}
     /// Free an FBO and its attachments (G-buffer / scene RT recreation on resize).
     fn delete_render_target(&mut self, _rt: RenderTargetId) {}
     fn end_pass(&mut self);
@@ -349,14 +444,24 @@ pub struct MockGpu {
 #[cfg(feature = "std")]
 #[derive(Clone, Debug, PartialEq)]
 pub enum MockCall {
-    BeginPass { target: PassTarget, viewport: RectPx },
-    Draw { count: u32 },
-    DrawInstanced { instances: u32 },
+    BeginPass {
+        target: PassTarget,
+        viewport: RectPx,
+    },
+    Draw {
+        count: u32,
+    },
+    DrawInstanced {
+        instances: u32,
+    },
     EndPass,
     CreateTexture3d,
-    UpdateTexture3d { z: u32 },
+    UpdateTexture3dRegion {
+        id: TextureId,
+        offset: [u32; 3],
+        extent: [u32; 3],
+    },
     GenMips3d,
-    BeginLayerPass { layer: u32 },
     CreateMrt,
     DeleteRenderTarget,
 }
@@ -369,7 +474,10 @@ impl MockGpu {
     }
 
     pub fn draw_calls(&self) -> usize {
-        self.log.iter().filter(|c| matches!(c, MockCall::Draw { .. })).count()
+        self.log
+            .iter()
+            .filter(|c| matches!(c, MockCall::Draw { .. }))
+            .count()
     }
 
     pub fn pass_targets(&self) -> Vec<PassTarget> {
@@ -429,8 +537,15 @@ impl Gpu for MockGpu {
         self.log.push(MockCall::CreateTexture3d);
         TextureId(self.mint())
     }
-    fn update_texture_3d(&mut self, _id: TextureId, _size: u32, z: u32, _data: &[u8]) {
-        self.log.push(MockCall::UpdateTexture3d { z });
+    fn update_texture_3d_region(
+        &mut self,
+        id: TextureId,
+        offset: [u32; 3],
+        extent: [u32; 3],
+        _data: &[u8],
+    ) {
+        self.log
+            .push(MockCall::UpdateTexture3dRegion { id, offset, extent });
     }
     fn generate_mipmaps_3d(&mut self, _id: TextureId) {
         self.log.push(MockCall::GenMips3d);
@@ -442,9 +557,6 @@ impl Gpu for MockGpu {
     }
     fn render_target_color_n(&self, rt: RenderTargetId, index: usize) -> Option<TextureId> {
         Some(TextureId(rt.0 + 100_000 + index as u32))
-    }
-    fn begin_layer_pass(&mut self, _tex: TextureId, layer: u32, _viewport: RectPx, _clear: ClearSpec) {
-        self.log.push(MockCall::BeginLayerPass { layer });
     }
     fn delete_render_target(&mut self, _rt: RenderTargetId) {
         self.log.push(MockCall::DeleteRenderTarget);

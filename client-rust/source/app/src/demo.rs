@@ -56,6 +56,7 @@ impl Stats {
 pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
     let mut renderer = Renderer::new(gpu, crate::quality_limits());
     let mut world = GameWorld::new();
+    renderer.gi_set_focus([31.5, 0.0, 31.5]);
 
     // Meshes + materials.
     let (cv, ci) = primitives::cube();

@@ -31,6 +31,7 @@ pub const TEXTURE_WRAP_T: u32 = 0x2803;
 pub const NEAREST: i32 = 0x2600;
 pub const LINEAR: i32 = 0x2601;
 pub const CLAMP_TO_EDGE: i32 = 0x812F;
+pub const REPEAT: i32 = 0x2901;
 
 pub const RGBA: u32 = 0x1908;
 pub const RGBA8: u32 = 0x8058;
@@ -187,7 +188,6 @@ extern "C" {
         pixels: *const c_void,
     );
     fn glGenerateMipmap(target: u32);
-    fn glFramebufferTextureLayer(target: u32, attachment: u32, texture: u32, level: i32, layer: i32);
 }
 
 // Wrappers
@@ -560,9 +560,6 @@ pub fn generate_mipmap(target: u32) {
     unsafe { glGenerateMipmap(target); }
 }
 
-pub fn framebuffer_texture_layer(target: u32, attachment: u32, texture: u32, level: i32, layer: i32) {
-    unsafe { glFramebufferTextureLayer(target, attachment, texture, level, layer); }
-}
 
 /// Native always supports RGBA16F color attachments (GL 3.3 core).
 pub fn cap_half_float_target() -> bool {
