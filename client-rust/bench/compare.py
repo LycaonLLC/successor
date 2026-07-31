@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Perf, size, runtime, and render regression gate for the Successor Rust client.
+"""Perf, size, runtime, render, and terrain gates for the Successor Rust client.
 
-In addition to Criterion and process-level runtime measurements, the render
-gate tracks the material-parity scene's GPU p99. Every check enforces the
+In addition to Criterion and process-level runtime measurements, the GPU gates
+track the material-parity and terrain-material scenes. Every check enforces the
 absolute ceilings in ../budgets.json before applying baseline-relative slack.
 """
 
@@ -111,6 +111,13 @@ def read_render(stats: str) -> dict:
     return {"render_gpu_p99_ms": float(j["render_gpu_p99_ms"])}
 
 
+def read_terrain(stats: str) -> dict:
+    path = Path(stats)
+    if not path.is_file():
+        sys.exit(f"error: {path} not found — run `make terrain-check` producing it")
+    j = json.loads(path.read_text())
+    return {"render_gpu_p99_ms": float(j["render_gpu_p99_ms"])}
+
 def load_baseline() -> dict:
     path = baseline_path()
     if not path.is_file():
@@ -146,6 +153,8 @@ def cmd_capture(args) -> None:
         data["runtime"] = read_runtime(args.runtime)
     if args.render:
         data["render"] = read_render(args.render)
+    if args.terrain:
+        data["terrain"] = read_terrain(args.terrain)
     BASELINE_DIR.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2) + "\n")
     print(f"baseline written: {path.relative_to(ROOT)} ({len(benches)} benches) — review and commit it.")
@@ -286,6 +295,30 @@ def check_render(base: dict, budgets: dict, stats: str) -> bool:
         print("WARN render/gpu-p99: not in baseline — re-baseline to track it")
     return ok
 
+def check_terrain(base: dict, budgets: dict, stats: str) -> bool:
+    current = read_terrain(stats)
+    value = current["render_gpu_p99_ms"]
+    cap = budgets.get("terrain", {}).get("gpu_p99_max_ms", {}).get(machine_id())
+    ok = True
+    if cap is not None and value > cap:
+        print(f"FAIL terrain/gpu-p99: {value:.3f}ms > ceiling {cap}ms")
+        ok = False
+    else:
+        print(f"ok   terrain/gpu-p99: {value:.3f}ms")
+
+    old = base.get("terrain", {}).get("render_gpu_p99_ms")
+    if old:
+        limit = float(budgets.get("regression", {}).get("perf_max_regress_pct", 10.0))
+        delta = (value - old) / old * 100.0
+        if delta > limit:
+            print(f"FAIL terrain/gpu-p99: {old}ms -> {value}ms ({delta:+.1f}% > +{limit:.0f}%)")
+            ok = False
+        else:
+            print(f"ok   terrain/gpu-p99 regression: {delta:+.1f}%")
+    else:
+        print("WARN terrain/gpu-p99: not in baseline — re-baseline to track it")
+    return ok
+
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -295,11 +328,13 @@ def main() -> None:
     cap.add_argument("--wasm")
     cap.add_argument("--runtime")
     cap.add_argument("--render")
+    cap.add_argument("--terrain")
     chk = sub.add_parser("check")
     chk.add_argument("--perf", action="store_true")
     chk.add_argument("--size", action="store_true")
     chk.add_argument("--runtime")
     chk.add_argument("--render")
+    chk.add_argument("--terrain")
     chk.add_argument("--native")
     chk.add_argument("--wasm")
     sub.add_parser("machine-id")
@@ -312,8 +347,8 @@ def main() -> None:
         cmd_capture(args)
         return
 
-    if not (args.perf or args.size or args.runtime or args.render):
-        ap.error("check: pass --perf and/or --size and/or --runtime and/or --render")
+    if not (args.perf or args.size or args.runtime or args.render or args.terrain):
+        ap.error("check: pass --perf, --size, --runtime, --render, and/or --terrain")
     if args.size and not (args.native and args.wasm):
         ap.error("check --size: --native and --wasm paths required")
     budgets = load_budgets()
@@ -328,6 +363,8 @@ def main() -> None:
         ok &= check_runtime(base, budgets, args.runtime)
     if args.render:
         ok &= check_render(base, budgets, args.render)
+    if args.terrain:
+        ok &= check_terrain(base, budgets, args.terrain)
     if not ok:
         sys.exit(1)
     print("PASS")

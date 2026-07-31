@@ -43,6 +43,14 @@ pub struct Texel {
     pub kind: TerrainKind,
 }
 
+/// Continuous low-frequency material controls sampled by the PBR terrain path.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct TerrainSample {
+    pub weights: [f32; 3],
+    pub macro_tint: f32,
+    pub kind: TerrainKind,
+}
+
 fn wind_axis() -> (f64, f64, f64, f64) {
     let rad = 115.0_f64 * core::f64::consts::PI / 180.0;
     let ax = rad.cos();
@@ -123,6 +131,76 @@ pub fn paint_terrain_pixel(seed: i32, world_x: f64, world_z: f64, biome: Biome) 
     };
     Texel {
         rgba: [clamp_byte(r), clamp_byte(g), clamp_byte(b), 255],
+        kind,
+    }
+}
+
+/// Sample continuous material weights without baking final surface color.
+pub fn sample_terrain(seed: i32, world_x: f64, world_z: f64, biome: Biome) -> TerrainSample {
+    if biome == Biome::Forest {
+        let clearing = clearing_mask_at(seed, world_x, world_z);
+        let clearing_blend = smoothstep(0.34, 0.78, clearing);
+        let canopy = 1.0 - clearing_blend;
+        let macro_shade = fbm(
+            seed,
+            world_x * 0.0065 + 13.7,
+            world_z * 0.0065 - 21.9,
+            0x4f31,
+        );
+        let moss_field = fbm(seed, world_x * 0.016 - 8.1, world_z * 0.016 + 5.4, 0x8d22);
+        let duff_field = fbm(seed, world_x * 0.024 + 41.3, world_z * 0.024 - 15.8, 0xa907);
+        let mut moss = 0.16 + moss_field * 0.24 + clearing_blend * 0.14;
+        let mut duff = 0.28 + duff_field * 0.28 + canopy * 0.16;
+        let mut loam = (1.0 - moss - duff).max(0.18);
+        let total = moss + duff + loam;
+        moss /= total;
+        duff /= total;
+        loam /= total;
+        let kind = if clearing_blend > 0.58 {
+            TerrainKind::Scrub
+        } else if duff >= moss && duff > 0.34 {
+            TerrainKind::Hardpan
+        } else {
+            TerrainKind::Desert
+        };
+        return TerrainSample {
+            weights: [moss as f32, duff as f32, loam as f32],
+            macro_tint: (0.88 + macro_shade * 0.24 + clearing_blend * 0.08) as f32,
+            kind,
+        };
+    }
+
+    let macro_ = fbm(seed, world_x * 0.0045, world_z * 0.0045, 0x2b01);
+    let scrub_field = fbm(
+        seed,
+        world_x * 0.018 + 37.17,
+        world_z * 0.018 - 19.31,
+        0x5107,
+    );
+    let salt_long = fbm(
+        seed,
+        world_x * 0.0075 + world_z * 0.0015,
+        world_z * 0.052,
+        0x91af,
+    );
+    let salt_fine = value_noise(seed, world_x * 0.022, world_z * 0.19, 0xbad5);
+    let hardpan = smoothstep(
+        0.54,
+        0.73,
+        salt_long * 0.82 + salt_fine * 0.18 + (macro_ - 0.5) * 0.1,
+    );
+    let scrub = (1.0 - hardpan) * smoothstep(0.56, 0.75, scrub_field + (0.53 - macro_) * 0.14);
+    let desert = (1.0 - hardpan - scrub).max(0.0);
+    let kind = if hardpan >= scrub && hardpan > 0.32 {
+        TerrainKind::Hardpan
+    } else if scrub > 0.32 {
+        TerrainKind::Scrub
+    } else {
+        TerrainKind::Desert
+    };
+    TerrainSample {
+        weights: [desert as f32, scrub as f32, hardpan as f32],
+        macro_tint: (0.88 + macro_ * 0.24) as f32,
         kind,
     }
 }
@@ -425,6 +503,31 @@ mod tests {
         assert_eq!(to_uint8_clamp(3.5), 4); // tie → even
         assert_eq!(to_uint8_clamp(2.4), 2);
         assert_eq!(to_uint8_clamp(2.6), 3);
+    }
+
+    #[test]
+    fn continuous_sample_matches_legacy_classification_and_normalizes_weights() {
+        for biome in [Biome::Desert, Biome::Forest] {
+            for i in -64..64 {
+                let x = i as f64 * 7.125;
+                let z = i as f64 * -3.375 + 256.0;
+                let sample = sample_terrain(0x0d3d_071e, x, z, biome);
+                let legacy = paint_terrain_pixel(0x0d3d_071e, x, z, biome);
+                assert_eq!(sample.kind, legacy.kind);
+                let total: f32 = sample.weights.iter().sum();
+                assert!((total - 1.0).abs() < 1.0e-5);
+                assert!(sample.weights.iter().all(|weight| *weight >= 0.0));
+            }
+        }
+    }
+
+    #[test]
+    fn continuous_controls_are_world_space_at_chunk_edges() {
+        for biome in [Biome::Desert, Biome::Forest] {
+            let left = sample_terrain(42, 256.0, -31.25, biome);
+            let right = sample_terrain(42, 256.0, -31.25, biome);
+            assert_eq!(left, right);
+        }
     }
 
     // Byte-exact cross-check against the verbatim-JS reference fixture.

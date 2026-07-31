@@ -9,6 +9,9 @@
   "render": {
     "gpu_p99_max_ms": { "darwin-arm64-apple-m2-max": 16.67 }
   },
+  "terrain": {
+    "gpu_p99_max_ms": { "darwin-arm64-apple-m2-max": 4.0 }
+  },
   "regression": {
     "size_max_growth_bytes": 16384, "size_max_growth_pct": 1,
     "perf_max_regress_pct": 10, "rss_max_regress_pct": 5

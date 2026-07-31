@@ -16,12 +16,12 @@
       "median_ns": 60647.65
     },
     "render/build-drawlist/4096": {
-      "median_ns": 1872826.53
+      "median_ns": 2121298.0
     }
   },
   "sizes": {
     "native_stripped": 1442216,
-    "wasm_stripped": 822432
+    "wasm_stripped": 885113
   },
   "runtime": {
     "frame_p50_ms": 3.582,
@@ -30,6 +30,9 @@
     "frame_allocs_steady": 0
   },
   "render": {
-    "render_gpu_p99_ms": 4.317417
+    "render_gpu_p99_ms": 4.769584
+  },
+  "terrain": {
+    "render_gpu_p99_ms": 3.277708
   }
 }

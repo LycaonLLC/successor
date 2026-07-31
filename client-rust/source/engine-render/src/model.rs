@@ -127,6 +127,7 @@ pub fn upload_glb<G: Gpu>(
                         alpha_cutoff: source.alpha_cutoff,
                         double_sided: source.double_sided,
                         blend: source.alpha_mode == AlphaMode::Blend || source.transmission > 0.0,
+                        terrain: None,
                     })
                 }
                 None => renderer.add_material_desc(MaterialDesc::default()),

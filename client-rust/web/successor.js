@@ -410,7 +410,8 @@ fetch("successor.wasm")
         wasmExports = instance.exports;
 
         const params = new URLSearchParams(window.location.search);
-        const demoSelector = params.get("demo") === "material-parity" ? 1 : 0;
+        const demoName = params.get("demo");
+        const demoSelector = demoName === "material-parity" ? 1 : demoName === "terrain-material" ? 2 : 0;
         window.__successorRenderReady = false;
         window.__successorRenderError = null;
         window.__successorRenderProbe = null;
@@ -479,6 +480,14 @@ fetch("successor.wasm")
                     };
                     window.__successorRenderReady = passed === 1;
                     if (passed !== 1) window.__successorRenderError = "material parity probe failed";
+                }
+                if (demoSelector === 2 && renderedFrames === 120 && typeof wasmExports.probe_terrain_material === "function") {
+                    const passed = wasmExports.probe_terrain_material();
+                    if (passed !== 1) {
+                        throw new Error("terrain material probe failed");
+                    }
+                    window.__successorRenderProbe = { terrainMaterial: true };
+                    window.__successorRenderReady = true;
                 }
             } catch (error) {
                 window.__successorRenderError = String(error);

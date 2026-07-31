@@ -32,6 +32,9 @@ rmp3 = { version = "0.3", default-features = false, features = ["std", "float"] 
 successor-client-proto.workspace = true
 serde_json.workspace = true
 
+[dev-dependencies]
+successor-engine-render = { workspace = true, features = ["std"] }
+
 [features]
 default = []
 alloc-count = [

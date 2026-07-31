@@ -599,7 +599,7 @@ mod tests {
         while let Some((_, p)) = q.next() {
             sum += p.0;
         }
-        assert_eq!(sum, 0 + 1 + 2 + 3 + 4);
+        assert_eq!(sum, 10);
     }
 
     #[test]

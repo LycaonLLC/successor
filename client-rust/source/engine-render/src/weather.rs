@@ -302,7 +302,7 @@ mod tests {
                 dir_deg += 360.0;
             }
             assert!(
-                dir_deg >= 42.9 && dir_deg <= 187.1,
+                (42.9..=187.1).contains(&dir_deg),
                 "Wind direction degrees out of bounds: {}",
                 dir_deg
             );

@@ -233,7 +233,7 @@ void main() {
     float gao;
     vec3 irr = diffuseGI(P, N, gao);
     ao = gao;
-    vec3 giAmbient = irr * albedo * u_giStrength + u_ambient * albedo * ao * 0.3;
+    vec3 giAmbient = irr * albedo * u_giStrength + hemi * mix(0.7, 1.0, ao);
     float border = clamp(volumeBorderDist(P) / (4.0 * u_giCell), 0.0, 1.0);
         float giWeight = border * u_giBlend;
         ambient = mix(hemi, giAmbient, giWeight);

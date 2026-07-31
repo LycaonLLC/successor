@@ -761,7 +761,7 @@ mod tests {
             1024.0,
             0.5,
             89.0 / 255.0,
-            3.1415927,
+            core::f32::consts::PI,
         ] {
             let mut w = JsonWriter::new();
             w.value_f32(v);

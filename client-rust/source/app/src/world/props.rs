@@ -484,7 +484,7 @@ impl WorldScene {
         renderer.gi_set_focus([center.x, center.y, center.z]);
 
         // Terrain ground under the props.
-        let mut streamer = TerrainStreamer::new(0x0d3d_071e, Biome::Desert, 64.0, 128, 3, 0b1);
+        let mut streamer = TerrainStreamer::new(0x0d3d_071e, Biome::Desert, 64.0, 3, 0b1);
         streamer.ensure_around(
             &mut world,
             &mut renderer,

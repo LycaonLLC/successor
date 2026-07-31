@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use successor_engine_render::gpu::{
     BufferId, BufferUsage, ClearSpec, Cull, Filter, ForwardLight, Gpu, GpuCaps, GpuError,
     MinFilter, MrtDesc, PassTarget, PipelineState, ProgramId, RectPx, RenderTargetDesc,
-    RenderTargetId, Texture3dDesc, TextureDesc, TextureFormat, TextureId, Uniform, UniformValue,
-    VertexFormat, VertexLayout, Wrap,
+    RenderTargetId, Texture3dDesc, TextureArrayDesc, TextureDesc, TextureFormat, TextureId,
+    Uniform, UniformValue, VertexFormat, VertexLayout, Wrap,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -91,7 +91,7 @@ impl Gpu for GlGpu {
 
     fn create_program(&mut self, vert_src: &str, frag_src: &str) -> ProgramId {
         let header = if cfg!(target_arch = "wasm32") {
-            "#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp sampler3D;\n"
+            "#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp sampler3D;\nprecision highp sampler2DArray;\n"
         } else {
             "#version 330 core\n"
         };
@@ -208,6 +208,86 @@ impl Gpu for GlGpu {
 
         gl::bind_texture(gl::TEXTURE_2D, 0);
         TextureId(handle)
+    }
+
+    fn update_texture(&mut self, id: TextureId, desc: &TextureDesc, data: &[u8]) {
+        gl::bind_texture(gl::TEXTURE_2D, id.0);
+        gl::pixel_storei(gl::UNPACK_ALIGNMENT, 1);
+        let (internal_format, format) = match desc.format {
+            TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA),
+            TextureFormat::Srgba8 => (gl::SRGB8_ALPHA8 as i32, gl::RGBA),
+            _ => {
+                self.error.get_or_insert(GpuError::InvalidResource);
+                gl::bind_texture(gl::TEXTURE_2D, 0);
+                return;
+            }
+        };
+        gl::tex_image_2d(
+            gl::TEXTURE_2D,
+            0,
+            internal_format,
+            desc.width as i32,
+            desc.height as i32,
+            0,
+            format,
+            gl::UNSIGNED_BYTE,
+            Some(data),
+        );
+        if desc.mipmaps {
+            gl::generate_mipmap(gl::TEXTURE_2D);
+        }
+        gl::bind_texture(gl::TEXTURE_2D, 0);
+    }
+
+    fn create_texture_array(&mut self, desc: &TextureArrayDesc, data: Option<&[u8]>) -> TextureId {
+        if desc.width == 0 || desc.height == 0 || desc.layers == 0 {
+            self.error.get_or_insert(GpuError::InvalidResource);
+        }
+        let handle = gl::gen_texture();
+        gl::bind_texture(gl::TEXTURE_2D_ARRAY, handle);
+        gl::pixel_storei(gl::UNPACK_ALIGNMENT, 1);
+        gl::tex_parameteri(
+            gl::TEXTURE_2D_ARRAY,
+            gl::TEXTURE_MIN_FILTER,
+            if desc.mipmaps {
+                gl::LINEAR_MIPMAP_LINEAR
+            } else {
+                gl::LINEAR
+            },
+        );
+        gl::tex_parameteri(gl::TEXTURE_2D_ARRAY, gl::TEXTURE_MAG_FILTER, gl::LINEAR);
+        gl::tex_parameteri(gl::TEXTURE_2D_ARRAY, gl::TEXTURE_WRAP_S, gl::REPEAT);
+        gl::tex_parameteri(gl::TEXTURE_2D_ARRAY, gl::TEXTURE_WRAP_T, gl::REPEAT);
+        let (internal_format, format) = match desc.format {
+            TextureFormat::Rgba8 => (gl::RGBA8 as i32, gl::RGBA),
+            TextureFormat::Srgba8 => (gl::SRGB8_ALPHA8 as i32, gl::RGBA),
+            _ => {
+                self.error.get_or_insert(GpuError::InvalidResource);
+                (gl::RGBA8 as i32, gl::RGBA)
+            }
+        };
+        gl::tex_image_3d(
+            gl::TEXTURE_2D_ARRAY,
+            0,
+            internal_format,
+            desc.width as i32,
+            desc.height as i32,
+            desc.layers as i32,
+            0,
+            format,
+            gl::UNSIGNED_BYTE,
+            data,
+        );
+        if desc.mipmaps {
+            gl::generate_mipmap(gl::TEXTURE_2D_ARRAY);
+        }
+        gl::bind_texture(gl::TEXTURE_2D_ARRAY, 0);
+        TextureId(handle)
+    }
+
+    fn bind_texture_array(&mut self, slot: u32, tex: TextureId) {
+        gl::active_texture(gl::TEXTURE0 + slot);
+        gl::bind_texture(gl::TEXTURE_2D_ARRAY, tex.0);
     }
 
     fn create_render_target(&mut self, desc: &RenderTargetDesc) -> RenderTargetId {

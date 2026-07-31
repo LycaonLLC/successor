@@ -8,3 +8,4 @@ pub mod flora;
 pub mod picking;
 pub mod props;
 pub mod terrain;
+pub mod terrain_material;

@@ -80,6 +80,16 @@ pub struct Texture3dDesc {
     pub wrap_xz: bool,
 }
 
+/// A 2D texture array with equally sized RGBA8 layers.
+#[derive(Clone, Copy, Debug)]
+pub struct TextureArrayDesc {
+    pub width: u32,
+    pub height: u32,
+    pub layers: u32,
+    pub format: TextureFormat,
+    pub mipmaps: bool,
+}
+
 /// Multi-render-target descriptor: `colors` lists the attachment formats
 /// (`COLOR_ATTACHMENT0..`), `depth` allocates a sampleable D24.
 #[derive(Clone, Copy, Debug)]
@@ -365,6 +375,18 @@ pub trait Gpu {
     fn update_buffer(&mut self, id: BufferId, data: &[u8]);
     fn create_program(&mut self, vert_src: &str, frag_src: &str) -> ProgramId;
     fn create_texture(&mut self, desc: &TextureDesc, data: Option<&[u8]>) -> TextureId;
+    /// Replace a complete RGBA8/SRGBA8 2D texture at mip level zero.
+    fn update_texture(&mut self, _id: TextureId, _desc: &TextureDesc, _data: &[u8]) {}
+    /// Create a 2D texture array. Layer payloads are tightly packed in ascending order.
+    fn create_texture_array(
+        &mut self,
+        _desc: &TextureArrayDesc,
+        _data: Option<&[u8]>,
+    ) -> TextureId {
+        TextureId(0)
+    }
+    /// Bind a 2D texture array to a sampler slot.
+    fn bind_texture_array(&mut self, _slot: u32, _tex: TextureId) {}
     fn create_render_target(&mut self, desc: &RenderTargetDesc) -> RenderTargetId;
     /// The sampleable color texture of a render target (RTT compositing).
     fn render_target_color(&self, rt: RenderTargetId) -> Option<TextureId>;
@@ -478,6 +500,8 @@ pub enum MockCall {
     },
     EndPass,
     CreateTexture3d,
+    CreateTextureArray,
+    UpdateTexture,
     UpdateTexture3dRegion {
         id: TextureId,
         offset: [u32; 3],
@@ -526,6 +550,14 @@ impl Gpu for MockGpu {
     fn create_texture(&mut self, _d: &TextureDesc, _data: Option<&[u8]>) -> TextureId {
         TextureId(self.mint())
     }
+    fn update_texture(&mut self, _id: TextureId, _desc: &TextureDesc, _data: &[u8]) {
+        self.log.push(MockCall::UpdateTexture);
+    }
+    fn create_texture_array(&mut self, _d: &TextureArrayDesc, _data: Option<&[u8]>) -> TextureId {
+        self.log.push(MockCall::CreateTextureArray);
+        TextureId(self.mint())
+    }
+    fn bind_texture_array(&mut self, _slot: u32, _tex: TextureId) {}
     fn create_render_target(&mut self, _d: &RenderTargetDesc) -> RenderTargetId {
         RenderTargetId(self.mint())
     }
