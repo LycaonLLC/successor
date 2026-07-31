@@ -1,0 +1,32 @@
+{
+  "machine": "linux-x86_64-amd-ryzen-9-9900x-12-core-processor",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "date": "2026-07-30",
+  "benches": {
+    "ecs/query1/4096": {
+      "median_ns": 12426.48
+    },
+    "ecs/query2/4096": {
+      "median_ns": 36249.28
+    },
+    "ecs/spawn-set/4096": {
+      "median_ns": 228670.41
+    },
+    "math/mat4-mul/1024": {
+      "median_ns": 28444.64
+    },
+    "render/build-drawlist/4096": {
+      "median_ns": 1202994.12
+    }
+  },
+  "sizes": {
+    "native_stripped": 1539216,
+    "wasm_stripped": 495379
+  },
+  "runtime": {
+    "frame_p50_ms": 2.1292,
+    "frame_p99_ms": 2.3453,
+    "peak_rss_bytes": 7491584,
+    "frame_allocs_steady": 0
+  }
+}

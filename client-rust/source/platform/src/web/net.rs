@@ -13,6 +13,7 @@ pub struct WsHandle {
     pub(crate) id: u32,
 }
 
+#[link(wasm_import_module = "env")]
 extern "C" {
     fn js_ws_connect(url_ptr: *const u8, url_len: u32) -> u32;
     fn js_ws_send(id: u32, data_ptr: *const u8, data_len: u32);

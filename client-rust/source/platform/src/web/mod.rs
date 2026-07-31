@@ -5,6 +5,7 @@ pub mod net;
 
 use successor_engine_core::input::Key;
 
+#[link(wasm_import_module = "env")]
 extern "C" {
     fn js_init(title_ptr: *const u8, title_len: u32, w: i32, h: i32);
     fn js_log(ptr: *const u8, len: u32);
