@@ -41,18 +41,22 @@ export function parseRuntimePointerDocument(value: unknown, baseURI: string): Ru
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") return null;
   if (url.username !== "" || url.password !== "") return null;
-  const boundedRelease = (field: unknown): string | undefined =>
-    typeof field === "string" && /^[A-Za-z0-9][A-Za-z0-9._@-]{0,127}$/u.test(field)
+  const boundedRelease = (field: unknown, maxLength: number): string | undefined =>
+    typeof field === "string"
+      && field.length <= maxLength
+      && /^[A-Za-z0-9][A-Za-z0-9._@-]*$/u.test(field)
       ? field
       : undefined;
-  if (doc.clientReleaseId !== undefined && boundedRelease(doc.clientReleaseId) === undefined) return null;
-  if (doc.serverReleaseId !== undefined && boundedRelease(doc.serverReleaseId) === undefined) return null;
+  const clientReleaseId = boundedRelease(doc.clientReleaseId, 128);
+  const serverReleaseId = boundedRelease(doc.serverReleaseId, 512);
+  if (doc.clientReleaseId !== undefined && clientReleaseId === undefined) return null;
+  if (doc.serverReleaseId !== undefined && serverReleaseId === undefined) return null;
   if (doc.channel !== undefined && doc.channel !== "beta") return null;
   return {
     entry: url,
     href: url.href,
-    clientReleaseId: boundedRelease(doc.clientReleaseId),
-    serverReleaseId: boundedRelease(doc.serverReleaseId),
+    clientReleaseId,
+    serverReleaseId,
     channel: doc.channel === "beta" ? "beta" : undefined,
   };
 }
