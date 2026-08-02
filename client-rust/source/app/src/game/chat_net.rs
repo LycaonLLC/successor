@@ -163,9 +163,170 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
     None
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChatConnectionState {
+    Offline,
+    Connecting,
+    Authenticating,
+    SyncingHistory,
+    Online,
+    Reconnecting,
+    Degraded,
+    Exhausted,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SocialRequest {
+    FriendAdd(String),
+    FriendRemove(String),
+    IgnoreAdd(String),
+    IgnoreRemove(String),
+    Presence(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ChatCommand {
+    Send(ChatChannel, String, Option<String>),
+    Social(SocialRequest),
+    Invalid(String),
+}
+
+/// Separate chat transport state. Gameplay remains usable when this state is
+/// degraded; authentication failures are terminal to chat only.
+pub struct ChatConnection {
+    pub state: ChatConnectionState,
+    pub endpoint: String,
+    pub history_cursor: Option<String>,
+    pub reconnect_attempt: u32,
+    pub max_reconnect_attempts: u32,
+    pub pending_requests: Vec<String>,
+    /// Last server error is retained for the HUD, but never includes secrets.
+    pub last_error: Option<String>,
+}
+
+impl ChatConnection {
+    pub fn new(endpoint: String) -> Self {
+        Self {
+            state: ChatConnectionState::Offline,
+            endpoint,
+            history_cursor: None,
+            reconnect_attempt: 0,
+            max_reconnect_attempts: 5,
+            pending_requests: Vec::new(),
+            last_error: None,
+        }
+    }
+    pub fn begin(&mut self) {
+        self.state = ChatConnectionState::Connecting;
+        self.last_error = None;
+    }
+    /// Takes the one-use ticket and builds the first authenticated frame.
+    /// The ticket is never retained in the connection after this call.
+    pub fn authenticate(&mut self, ticket: &mut Option<String>) -> Option<String> {
+        let value = ticket.take()?;
+        self.state = ChatConnectionState::Authenticating;
+        Some(serde_json::json!({"type":"chat.authenticate","chatTicket":value}).to_string())
+    }
+    pub fn authenticated(&mut self) {
+        self.state = ChatConnectionState::SyncingHistory;
+        self.reconnect_attempt = 0;
+    }
+    pub fn history_loaded(&mut self, cursor: Option<String>) {
+        self.history_cursor = cursor;
+        self.state = ChatConnectionState::Online;
+    }
+    pub fn failed(&mut self, message: &str) {
+        self.last_error = Some(bounded_text(message));
+        self.state = ChatConnectionState::Degraded;
+    }
+    pub fn lost(&mut self) -> bool {
+        if self.reconnect_attempt >= self.max_reconnect_attempts {
+            self.state = ChatConnectionState::Exhausted;
+            return false;
+        }
+        self.reconnect_attempt += 1;
+        self.state = ChatConnectionState::Reconnecting;
+        true
+    }
+    pub fn request_id(&mut self, prefix: &str) -> String {
+        let id = format!(
+            "{prefix}-{}",
+            self.pending_requests.len() as u32 + self.reconnect_attempt + 1
+        );
+        self.pending_requests.push(id.clone());
+        id
+    }
+    pub fn complete_request(&mut self, id: &str) {
+        self.pending_requests.retain(|v| v != id);
+    }
+}
+
+fn bounded_text(text: &str) -> String {
+    text.chars()
+        .filter(|c| !c.is_control() || *c == '\n')
+        .take(200)
+        .collect()
+}
+
+pub fn parse_input(channel: ChatChannel, input: &str) -> ChatCommand {
+    let text = bounded_text(input.trim());
+    if text.is_empty() {
+        return ChatCommand::Invalid("empty message".into());
+    }
+    if !text.starts_with('/') {
+        return ChatCommand::Send(channel, text, None);
+    }
+    let mut p = text.splitn(3, ' ');
+    match p.next().unwrap_or_default() {
+        "/w" | "/whisper" => match (p.next(), p.next()) {
+            (Some(target), Some(body)) if !target.is_empty() => ChatCommand::Send(
+                ChatChannel::Whisper,
+                bounded_text(body),
+                Some(target.to_owned()),
+            ),
+            _ => ChatCommand::Invalid("usage: /whisper <player> <message>".into()),
+        },
+        "/friend" => match (p.next(), p.next()) {
+            (Some("add"), Some(id)) => ChatCommand::Social(SocialRequest::FriendAdd(id.to_owned())),
+            (Some("add"), None) => ChatCommand::Invalid("missing player".into()),
+            (Some("remove"), Some(id)) => {
+                ChatCommand::Social(SocialRequest::FriendRemove(id.to_owned()))
+            }
+            (Some(id), _) => ChatCommand::Social(SocialRequest::FriendAdd(id.to_owned())),
+            _ => ChatCommand::Invalid("missing player".into()),
+        },
+        "/unfriend" => p
+            .next()
+            .map(|id| ChatCommand::Social(SocialRequest::FriendRemove(id.to_owned())))
+            .unwrap_or_else(|| ChatCommand::Invalid("missing player".into())),
+        "/ignore" => match (p.next(), p.next()) {
+            (Some("add"), Some(id)) => ChatCommand::Social(SocialRequest::IgnoreAdd(id.to_owned())),
+            (Some("remove"), Some(id)) => {
+                ChatCommand::Social(SocialRequest::IgnoreRemove(id.to_owned()))
+            }
+            (Some(id), _) => ChatCommand::Social(SocialRequest::IgnoreAdd(id.to_owned())),
+            _ => ChatCommand::Invalid("missing player".into()),
+        },
+        "/unignore" => p
+            .next()
+            .map(|id| ChatCommand::Social(SocialRequest::IgnoreRemove(id.to_owned())))
+            .unwrap_or_else(|| ChatCommand::Invalid("missing player".into())),
+        "/status" => p
+            .next()
+            .map(|s| ChatCommand::Social(SocialRequest::Presence(s.to_owned())))
+            .unwrap_or_else(|| ChatCommand::Invalid("missing status".into())),
+        _ => ChatCommand::Invalid("unknown chat command".into()),
+    }
+}
 pub struct ChatClient {
     pub history: Vec<ChatMessage>,
     pub cap: usize,
+    pub connection: ChatConnection,
+    pub friends: Vec<String>,
+    pub ignored: Vec<String>,
+    pub active_channel: ChatChannel,
+    pub last_error: Option<String>,
+    pub presence: Option<String>,
 }
 
 impl ChatClient {
@@ -173,33 +334,179 @@ impl ChatClient {
         Self {
             history: Vec::with_capacity(cap),
             cap,
+            connection: ChatConnection::new(String::new()),
+            friends: Vec::new(),
+            ignored: Vec::new(),
+            active_channel: ChatChannel::All,
+            last_error: None,
+            presence: None,
         }
     }
-
-    pub fn on_incoming(&mut self, json: &str) -> Option<ChatMessage> {
-        if let Some(msg) = decode_incoming(json) {
-            if self.cap > 0 {
-                while self.history.len() >= self.cap {
-                    self.history.remove(0);
-                }
-                self.history.push(msg.clone());
+    pub fn with_endpoint(cap: usize, endpoint: String) -> Self {
+        let mut c = Self::new(cap);
+        c.connection = ChatConnection::new(endpoint);
+        c
+    }
+    pub fn apply_social(&mut self, request: SocialRequest) {
+        let (list, add, id) = match request {
+            SocialRequest::FriendAdd(id) => (&mut self.friends, true, id),
+            SocialRequest::FriendRemove(id) => (&mut self.friends, false, id),
+            SocialRequest::IgnoreAdd(id) => (&mut self.ignored, true, id),
+            SocialRequest::IgnoreRemove(id) => (&mut self.ignored, false, id),
+            SocialRequest::Presence(status) => {
+                self.presence = Some(status);
+                return;
             }
-            Some(msg)
+        };
+        if add {
+            if !list.iter().any(|x| x == &id) && list.len() < 128 {
+                list.push(id);
+            }
         } else {
-            None
+            list.retain(|x| x != &id);
         }
     }
-
+    pub fn history_request(&mut self, limit: usize) -> String {
+        let request_id = self.connection.request_id("history");
+        serde_json::json!({"type":"chat.history","requestId":request_id,"limit":limit.min(100),"before":self.connection.history_cursor}).to_string()
+    }
+    pub fn ping(&mut self) -> String {
+        let request_id = self.connection.request_id("ping");
+        serde_json::json!({"type":"ping","requestId":request_id}).to_string()
+    }
+    pub fn submit_input(&mut self, input: &str) -> ChatCommand {
+        parse_input(self.active_channel, input)
+    }
+    /// Encode a parsed line using the server's chat-room vocabulary.
+    pub fn command_frame(&mut self, command: ChatCommand) -> Option<String> {
+        let request_id = self.connection.request_id("chat");
+        let frame = match command {
+            ChatCommand::Send(channel, body, target) => serde_json::json!({
+                "type":"chat.send","requestId":request_id,"channel":channel.as_str(),
+                "body":bounded_text(&body),"targetId":target
+            }),
+            ChatCommand::Social(SocialRequest::FriendAdd(id)) => {
+                serde_json::json!({"type":"friend.add","requestId":request_id,"friendId":bounded_text(&id)})
+            }
+            ChatCommand::Social(SocialRequest::FriendRemove(id)) => {
+                serde_json::json!({"type":"friend.remove","requestId":request_id,"friendId":bounded_text(&id)})
+            }
+            ChatCommand::Social(SocialRequest::IgnoreAdd(id)) => {
+                serde_json::json!({"type":"ignore.add","requestId":request_id,"targetId":bounded_text(&id)})
+            }
+            ChatCommand::Social(SocialRequest::IgnoreRemove(id)) => {
+                serde_json::json!({"type":"ignore.remove","requestId":request_id,"targetId":bounded_text(&id)})
+            }
+            ChatCommand::Social(SocialRequest::Presence(status)) => {
+                serde_json::json!({"type":"presence.set","requestId":request_id,"status":bounded_text(&status)})
+            }
+            ChatCommand::Invalid(error) => {
+                self.connection.complete_request(&request_id);
+                self.last_error = Some(bounded_text(&error));
+                return None;
+            }
+        };
+        serde_json::to_string(&frame).ok()
+    }
+    pub fn on_incoming(&mut self, json: &str) -> Option<ChatMessage> {
+        let value: serde_json::Value = serde_json::from_str(json).ok()?;
+        if let Some(id) = value.get("requestId").and_then(|v| v.as_str()) {
+            self.connection.complete_request(id);
+        }
+        match value.get("type").and_then(|v| v.as_str()) {
+            Some("chat.hello") => {
+                self.connection.authenticated();
+                let msg = ChatMessage {
+                    channel: ChatChannel::System,
+                    sender: String::new(),
+                    text: "Connected to chat.".into(),
+                    whisper_to: None,
+                };
+                self.record(&msg);
+                Some(msg)
+            }
+            Some("chat.history") => {
+                if let Some(messages) = value.get("messages").and_then(|v| v.as_array()) {
+                    for message in messages {
+                        if let Ok(raw) = serde_json::to_string(
+                            &serde_json::json!({"type":"chat.message","message":message}),
+                        ) {
+                            let _ = self.on_incoming(&raw);
+                        }
+                    }
+                }
+                self.connection.history_loaded(None);
+                None
+            }
+            Some("chat.error") => {
+                self.last_error = value
+                    .get("message")
+                    .and_then(|v| v.as_str())
+                    .map(bounded_text);
+                self.connection
+                    .failed(self.last_error.as_deref().unwrap_or("chat error"));
+                None
+            }
+            Some("friends.snapshot") => {
+                self.friends = value
+                    .get("friends")
+                    .and_then(|v| v.as_array())
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|x| x.get("id").and_then(|v| v.as_str()).map(str::to_owned))
+                            .take(128)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                None
+            }
+            Some("friend.event") => {
+                if let Some(id) = value.pointer("/friend/id").and_then(|v| v.as_str()) {
+                    let added = value.get("action").and_then(|v| v.as_str()) == Some("added");
+                    self.apply_social(if added {
+                        SocialRequest::FriendAdd(id.into())
+                    } else {
+                        SocialRequest::FriendRemove(id.into())
+                    });
+                }
+                None
+            }
+            Some("presence.update") => None,
+            Some("pong") => None,
+            _ => {
+                let msg = decode_incoming(json)?;
+                if self.cap > 0 {
+                    while self.history.len() >= self.cap {
+                        self.history.remove(0);
+                    }
+                    self.history.push(msg.clone());
+                }
+                Some(msg)
+            }
+        }
+    }
+    fn record(&mut self, msg: &ChatMessage) {
+        if self.cap == 0 {
+            return;
+        }
+        while self.history.len() >= self.cap {
+            self.history.remove(0);
+        }
+        self.history.push(msg.clone());
+    }
+    pub fn recent_channel(&self, channel: ChatChannel) -> impl Iterator<Item = &ChatMessage> {
+        self.history
+            .iter()
+            .filter(move |m| m.channel == channel || channel == ChatChannel::All)
+    }
     pub fn compose(&self, channel: ChatChannel, text: &str, whisper_to: Option<String>) -> String {
-        let msg = ChatMessage {
+        encode_outgoing(&ChatMessage {
             channel,
             sender: String::new(),
-            text: text.to_string(),
+            text: bounded_text(text),
             whisper_to,
-        };
-        encode_outgoing(&msg)
+        })
     }
-
     pub fn recent(&self) -> &[ChatMessage] {
         &self.history
     }

@@ -21,15 +21,34 @@ pub enum Key {
     Backspace = 11,
     LeftShift = 12,
     Backquote = 13,
+    R = 14,
+    F = 15,
+    I = 16,
+    C = 17,
+    Semicolon = 18,
+    O = 19,
+    Tab = 20,
+    V = 21,
+    X = 22,
+    N = 23,
+    Digit0 = 24,
+    Digit1 = 25,
+    Digit2 = 26,
+    Digit3 = 27,
+    Digit4 = 28,
+    Digit5 = 29,
+    Digit6 = 30,
+    Digit7 = 31,
+    Digit8 = 32,
+    Digit9 = 33,
 }
 
 impl Key {
-    pub const COUNT: usize = 14;
+    pub const COUNT: usize = 34;
 
     pub fn from_u16(v: u16) -> Option<Key> {
         if (v as usize) < Key::COUNT {
-            // SAFETY: bounds-checked against COUNT; the enum is a contiguous
-            // 0..COUNT sequence of `u16` discriminants.
+            // SAFETY: bounds-checked against COUNT; enum discriminants are contiguous.
             Some(unsafe { core::mem::transmute::<u16, Key>(v) })
         } else {
             None

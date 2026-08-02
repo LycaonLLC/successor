@@ -1,67 +1,248 @@
-//! OPTIONS — sliders (master/music volume) + toggles (fullscreen, invert-Y…).
+//! OPTIONS — display + input reference (exact port of
+//! `ui/windows/defs/optionsWindow.ts`).
+//!
+//! DISPLAY: the canonical theme picker (four swatches; the dock swatch stays a
+//! cycle shortcut), the live session DUST dial, and the current camera zoom
+//! (display-only — the wheel owns zoom and persists it).
+//! TOOLBAR: the ACTIONS browser link plus one row per slot with its bind and
+//! a REBIND pending-capture button (assignment lives in the Action Browser).
+//! INVENTORY: the default stack-split snap step.
+//! INPUT: read-only binding rows generated from the shared gameplay registry.
 
-use super::model::OptionKind;
-use super::{WindowAction, WindowModel, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
-use crate::hud::Icons;
-use successor_engine_render::ui::UiBuilder;
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use crate::hud::{code_glyph, Icons, THEMES, THEME_COUNT, THEME_LABELS};
+use successor_engine_render::ui::{ButtonStyle, UiBuilder};
+
+/// Split-snap steps (`inventory/splitPrefs.ts` SPLIT_SNAP_STEPS).
+pub const SPLIT_SNAP_STEPS: [u32; 6] = [1, 5, 10, 100, 1000, 10000];
+
+/// Typed view of the options surface. The host projects this from
+/// `RuntimeSettings` + the live toolbar doc and applies emitted actions back
+/// at the same scope as the reference (theme/local, dust/session, snap/local,
+/// binds/toolbar doc).
+#[derive(Clone, Debug, Default)]
+pub struct OptionsModel {
+    pub theme_index: usize,
+    /// Session dust dial 0..1 (post-pass strength; resets on relaunch).
+    pub dust_strength: f32,
+    /// Display-only camera zoom percent (wheel-owned, 55..125).
+    pub zoom_percent: u16,
+    pub split_snap: u32,
+    /// One bind code per toolbar slot (12).
+    pub toolbar_binds: Vec<String>,
+    /// Slot currently capturing a new key (`PRESS KEY…`).
+    pub rebind_pending: Option<usize>,
+    /// Read-only gameplay binding reference rows: (LABEL, KEYS).
+    pub binding_reference: Vec<(String, String)>,
+}
+
+impl OptionsModel {
+    pub fn sample() -> Self {
+        Self {
+            theme_index: 0,
+            dust_strength: 0.5,
+            zoom_percent: 100,
+            split_snap: 100,
+            toolbar_binds: crate::hud::toolbar::DEFAULT_BINDS
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+            rebind_pending: None,
+            binding_reference: vec![
+                ("MOVE".into(), "W A S D".into()),
+                ("SPRINT".into(), "SHIFT / X".into()),
+                ("INTERACT".into(), "F".into()),
+                ("TARGET CYCLE".into(), "TAB".into()),
+                ("RELOAD".into(), "R".into()),
+            ],
+        }
+    }
+}
+
+fn section_title(ui: &mut UiBuilder, x: f32, y: f32, title: &str) -> f32 {
+    ui.text(title, x, y, 1.8, ACCENT);
+    ui.rect(x, y + 14.0, 120.0, 1.0, SLOT_EDGE);
+    y + 22.0
+}
 
 pub fn draw(
     ui: &mut UiBuilder,
     rect: [f32; 4],
-    model: &WindowModel,
+    model: &OptionsModel,
     _icons: &Icons,
     out: &mut Vec<WindowAction>,
 ) {
-    let [x, y, w, _h] = rect;
-    let ctrl_x = x + 220.0;
-    let ctrl_w = (w - 230.0).max(80.0);
-    for (i, row) in model.options.rows.iter().enumerate() {
-        let ry = y + i as f32 * 38.0;
-        ui.text(&row.label, x, ry + 4.0, 2.0, TEXT);
-        match row.kind {
-            OptionKind::Slider(v) => {
-                // Track + fill + knob.
-                let ty = ry + 8.0;
-                ui.rect(ctrl_x, ty, ctrl_w, 8.0, SLOT);
-                ui.rect(
-                    ctrl_x,
-                    ty,
-                    ctrl_w * v.clamp(0.0, 1.0),
-                    8.0,
-                    [120, 170, 220, 235],
-                );
-                let kx = ctrl_x + ctrl_w * v.clamp(0.0, 1.0) - 5.0;
-                ui.rect(kx, ty - 4.0, 10.0, 16.0, ACCENT);
-                ui.border(ctrl_x, ty, ctrl_w, 8.0, 1.0, SLOT_EDGE);
-                ui.text(
-                    &format!("{}", (v * 100.0) as i32),
-                    ctrl_x + ctrl_w + 8.0,
-                    ry + 4.0,
-                    1.8,
-                    DIM,
-                );
-                // Drag/click on the track sets a new value.
-                let resp = ui.interact(ctrl_x, ty - 4.0, ctrl_w, 16.0);
-                if resp.held {
-                    let (mx, _) = ui.mouse();
-                    let nv = ((mx - ctrl_x) / ctrl_w).clamp(0.0, 1.0);
-                    out.push(WindowAction::Button(format!("opt:{}={:.2}", row.label, nv)));
-                }
-            }
-            OptionKind::Toggle(on) => {
-                let bw = 54.0;
-                let bx = ctrl_x;
-                let fill = if on { [70, 150, 96, 235] } else { SLOT };
-                ui.rect(bx, ry, bw, 22.0, fill);
-                ui.border(bx, ry, bw, 22.0, 1.0, SLOT_EDGE);
-                let lbl = if on { "ON" } else { "OFF" };
-                ui.text(lbl, bx + 8.0, ry + 4.0, 1.8, TEXT);
-                let resp = ui.interact(bx, ry, bw, 22.0);
-                if resp.clicked {
-                    out.push(WindowAction::Toggle(row.label.clone()));
-                }
-            }
+    let [x, y, w, h] = rect;
+    let bottom = y + h - 6.0;
+    let mut cy = y + 4.0;
+
+    // ── DISPLAY ──────────────────────────────────────────────────────────
+    cy = section_title(ui, x, cy, "DISPLAY");
+
+    // THEME — four swatches, active ring, exact reference palettes.
+    ui.text("THEME", x, cy + 4.0, 1.6, TEXT);
+    let sw_px = 26.0;
+    for (i, theme) in THEMES.iter().enumerate().take(THEME_COUNT) {
+        let bx = x + 130.0 + i as f32 * (sw_px + 8.0);
+        let resp = ui.interact(bx, cy, sw_px, sw_px);
+        ui.rect(bx, cy, sw_px, sw_px, theme.accent);
+        let edge = if i == model.theme_index {
+            TEXT
+        } else if resp.hovered {
+            ACCENT
+        } else {
+            SLOT_EDGE
+        };
+        ui.border(
+            bx,
+            cy,
+            sw_px,
+            sw_px,
+            if i == model.theme_index { 2.0 } else { 1.0 },
+            edge,
+        );
+        if resp.hovered {
+            ui.text(THEME_LABELS[i], x + 130.0, cy + sw_px + 3.0, 1.3, DIM);
         }
+        if resp.clicked {
+            out.push(WindowAction::SetTheme(i));
+        }
+    }
+    cy += sw_px + 18.0;
+
+    // DUST — live session dial (0..1, step 0.05 via slider granularity).
+    ui.text("DUST", x, cy + 2.0, 1.6, TEXT);
+    let mut dust = model.dust_strength.clamp(0.0, 1.0);
+    if ui.slider(x + 130.0, cy - 2.0, w - 200.0, 16.0, &mut dust, 0.0, 1.0) {
+        // Reference input uses step=0.05 — quantize to the same grid.
+        let quantized = (dust / 0.05).round() * 0.05;
+        out.push(WindowAction::SetDust(quantized));
+    }
+    ui.text(
+        &format!("{:.2}", model.dust_strength),
+        x + w - 56.0,
+        cy + 2.0,
+        1.5,
+        DIM,
+    );
+    cy += 22.0;
+
+    // ZOOM — display-only; the wheel owns zoom and persists it.
+    ui.text("ZOOM", x, cy + 2.0, 1.6, TEXT);
+    ui.text(
+        &format!("{}%", model.zoom_percent),
+        x + 130.0,
+        cy + 2.0,
+        1.6,
+        DIM,
+    );
+    ui.text("WHEEL-OWNED", x + 190.0, cy + 3.0, 1.2, DIM);
+    cy += 24.0;
+
+    // ── TOOLBAR ──────────────────────────────────────────────────────────
+    cy = section_title(ui, x, cy, "TOOLBAR");
+    ui.text("ACTIONS", x, cy + 4.0, 1.6, TEXT);
+    if ui.button(
+        x + 130.0,
+        cy,
+        118.0,
+        20.0,
+        "OPEN BROWSER",
+        ButtonStyle::default(),
+    ) {
+        out.push(WindowAction::OpenWindow("actions".into()));
+    }
+    cy += 26.0;
+
+    let slot_count = model.toolbar_binds.len().min(12);
+    for slot in 0..slot_count {
+        if cy + 18.0 > bottom - 120.0 {
+            // Keep the lower sections visible in shorter windows; remaining
+            // slots list continues in the same rhythm on taller windows.
+            ui.text("…RESIZE FOR ALL SLOTS", x, cy, 1.3, DIM);
+            cy += 16.0;
+            break;
+        }
+        ui.text(&format!("SLOT {:02}", slot + 1), x, cy + 3.0, 1.5, TEXT);
+        // Dotted leader.
+        let leader_x0 = x + 74.0;
+        let leader_x1 = x + 150.0;
+        let mut lx = leader_x0;
+        while lx < leader_x1 {
+            ui.rect(lx, cy + 9.0, 2.0, 1.0, SLOT_EDGE);
+            lx += 6.0;
+        }
+        let key_label = code_glyph(&model.toolbar_binds[slot]);
+        ui.rect(x + 158.0, cy, 44.0, 16.0, SLOT);
+        ui.border(x + 158.0, cy, 44.0, 16.0, 1.0, SLOT_EDGE);
+        let klw = UiBuilder::text_width(key_label, 1.5);
+        ui.text(
+            key_label,
+            x + 158.0 + (44.0 - klw) * 0.5,
+            cy + 3.0,
+            1.5,
+            TEXT,
+        );
+        let pending = model.rebind_pending == Some(slot);
+        let btn_label = if pending { "PRESS KEY…" } else { "REBIND" };
+        let mut style = ButtonStyle::default();
+        if pending {
+            style.edge = ACCENT;
+            style.text = ACCENT;
+        }
+        if ui.button(x + 210.0, cy, 86.0, 16.0, btn_label, style) && !pending {
+            out.push(WindowAction::RebindToolbarSlot(slot));
+        }
+        cy += 19.0;
+    }
+    cy += 6.0;
+
+    // ── INVENTORY ────────────────────────────────────────────────────────
+    cy = section_title(ui, x, cy, "INVENTORY");
+    ui.text("DEFAULT SNAP", x, cy + 4.0, 1.6, TEXT);
+    let mut bx = x + 130.0;
+    for step in SPLIT_SNAP_STEPS {
+        let label = if step >= 1000 {
+            format!("{}K", step / 1000)
+        } else {
+            format!("{step}")
+        };
+        let bw = UiBuilder::text_width(&label, 1.5) + 14.0;
+        let active = model.split_snap == step;
+        let resp = ui.interact(bx, cy, bw, 18.0);
+        ui.rect(
+            bx,
+            cy,
+            bw,
+            18.0,
+            if active { [70, 92, 120, 240] } else { SLOT },
+        );
+        ui.border(
+            bx,
+            cy,
+            bw,
+            18.0,
+            1.0,
+            if active { ACCENT } else { SLOT_EDGE },
+        );
+        ui.text(&label, bx + 7.0, cy + 4.0, 1.5, TEXT);
+        if resp.clicked && !active {
+            out.push(WindowAction::SetSplitSnap(step));
+        }
+        bx += bw + 6.0;
+    }
+    cy += 26.0;
+
+    // ── INPUT (read-only reference) ──────────────────────────────────────
+    cy = section_title(ui, x, cy, "INPUT");
+    for (label, keys) in &model.binding_reference {
+        if cy + 14.0 > bottom {
+            break;
+        }
+        ui.text(label, x, cy, 1.5, TEXT);
+        let kw = UiBuilder::text_width(keys, 1.5);
+        ui.text(keys, x + w - kw - 8.0, cy, 1.5, DIM);
+        cy += 15.0;
     }
 }
 
@@ -69,58 +250,90 @@ pub fn draw(
 mod tests {
     use super::*;
 
-    #[test]
-    fn toggle_click_emits_toggle() {
+    fn setup() -> (UiBuilder, OptionsModel, Icons) {
         let icons = Icons::load();
-        let model = WindowModel::sample();
-        let mut ui = UiBuilder::new(icons.meta);
-        // FULLSCREEN is row index 2 (toggle): ry = y + 2*38 = y+76. rect y=100.
-        // ctrl_x = x+220 = 320. toggle at (320, 176) size 54x22.
-        ui.set_input(340.0, 186.0, true);
+        let ui = UiBuilder::new(icons.meta);
+        (ui, OptionsModel::sample(), icons)
+    }
+
+    const RECT: [f32; 4] = [100.0, 60.0, 380.0, 640.0];
+
+    fn click(
+        ui: &mut UiBuilder,
+        model: &OptionsModel,
+        icons: &Icons,
+        bx: f32,
+        by: f32,
+    ) -> Vec<WindowAction> {
+        ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(
-            &mut ui,
-            [100.0, 100.0, 500.0, 400.0],
-            &model,
-            &icons,
-            &mut out,
-        );
-        ui.set_input(340.0, 186.0, false);
+        draw(ui, RECT, model, icons, &mut out);
+        ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(
-            &mut ui,
-            [100.0, 100.0, 500.0, 400.0],
-            &model,
-            &icons,
-            &mut out,
-        );
-        assert_eq!(out, vec![WindowAction::Toggle("FULLSCREEN".into())]);
+        draw(ui, RECT, model, icons, &mut out);
+        out
     }
 
     #[test]
-    fn slider_drag_emits_value() {
-        let icons = Icons::load();
-        let model = WindowModel::sample();
-        let mut ui = UiBuilder::new(icons.meta);
-        // MASTER VOLUME row 0: ry=100, track y=108. Click mid-track.
-        // ctrl_x=320, ctrl_w=500-230=270. mid = 320+135.
-        ui.set_input(320.0 + 135.0, 110.0, true);
+    fn theme_swatch_click_sets_theme() {
+        let (mut ui, model, icons) = setup();
+        // Swatches start at x+130, y = 60+4 (title consumed 22 → cy=86)…
+        // swatch row cy after section_title = 60+4+22 = 86; third swatch at
+        // 130 + 2*(26+8) = x+198.
+        let out = click(&mut ui, &model, &icons, 100.0 + 198.0 + 13.0, 86.0 + 13.0);
+        assert_eq!(out, vec![WindowAction::SetTheme(2)]);
+    }
+
+    // Layout walk for RECT: DISPLAY title→86, swatches 86..112, DUST row 130,
+    // ZOOM row 152, TOOLBAR title→198(=176+22), ACTIONS row 198..224, slot
+    // rows from 224 step 19, INVENTORY title after 458→480, snap segs at 480.
+    #[test]
+    fn snap_segment_emits_step() {
+        let (mut ui, model, icons) = setup();
+        // Segment origins from x+130: widths 23,23,32,41,32,41 with 6px gaps →
+        // the 1K button spans [373,405) at y 480..498.
+        let out = click(&mut ui, &model, &icons, 100.0 + 273.0 + 16.0, 480.0 + 9.0);
+        assert_eq!(out, vec![WindowAction::SetSplitSnap(1000)]);
+    }
+
+    #[test]
+    fn rebind_button_begins_capture_for_slot_one() {
+        let (mut ui, model, icons) = setup();
+        // Slot rows start at cy=224; REBIND button at x+210, 86 wide, 16 tall.
+        let out = click(&mut ui, &model, &icons, 100.0 + 210.0 + 43.0, 224.0 + 8.0);
+        assert_eq!(out, vec![WindowAction::RebindToolbarSlot(0)]);
+    }
+
+    #[test]
+    fn dust_slider_press_emits_quantized_value() {
+        let (mut ui, model, icons) = setup();
+        // Slider track: x+130..x+130+(w-200) at y 128..144. Press at 75%.
+        let track_x = 100.0 + 130.0;
+        let track_w = 380.0 - 200.0;
+        ui.set_input(track_x + track_w * 0.75, 136.0, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(
-            &mut ui,
-            [100.0, 100.0, 500.0, 400.0],
-            &model,
-            &icons,
-            &mut out,
-        );
+        draw(&mut ui, RECT, &model, &icons, &mut out);
+        let dust = out.iter().find_map(|a| match a {
+            WindowAction::SetDust(v) => Some(*v),
+            _ => None,
+        });
+        let v = dust.expect("slider press emits SetDust");
         assert!(
-            out.iter().any(
-                |a| matches!(a, WindowAction::Button(s) if s.starts_with("opt:MASTER VOLUME="))
-            ),
-            "slider emits value, got {out:?}"
+            (v - 0.75).abs() < 0.051,
+            "quantized near press point, got {v}"
         );
+        // Quantized to the reference 0.05 grid.
+        assert!(((v / 0.05).round() * 0.05 - v).abs() < 1e-6);
+    }
+
+    #[test]
+    fn zoom_is_display_only_no_action_path() {
+        let (mut ui, model, icons) = setup();
+        // Clicking the zoom readout (row at y≈152) emits nothing.
+        let out = click(&mut ui, &model, &icons, 100.0 + 140.0, 156.0);
+        assert!(out.is_empty(), "zoom row is inert, got {out:?}");
     }
 }

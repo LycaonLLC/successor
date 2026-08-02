@@ -2,7 +2,16 @@
 //! (`engine_core::audio`), a manifest-driven clip registry with buses, and the
 //! game-event → sound trigger map (port of `client/src/audio/sfx.ts`).
 //!
-//! Web builds decode through Web Audio and are out of scope here (native-only).
+//! The mixer is shared behind an `Arc<Mutex<…>>` so the platform device sink
+//! (`successor_platform::AudioOutput`) can pull interleaved-stereo blocks from
+//! its render thread while the scene fires triggers from the frame loop. The
+//! device callback never allocates; play/stop calls only touch preallocated
+//! voice slots.
+//!
+//! Web builds decode through Web Audio and use the same trigger map; the
+//! native decode path stays out of the wasm module.
+
+use std::sync::{Arc, Mutex};
 
 use successor_engine_core::audio::{Mixer, Pcm, Point, SpatialOpts};
 
@@ -20,19 +29,22 @@ pub fn decode_mp3(bytes: &[u8]) -> Pcm {
     let mut decoder = Decoder::new(bytes);
     let mut out: Vec<f32> = Vec::new();
     let mut rate = OUT_RATE;
+    let mut first = true;
     while let Some(frame) = decoder.next() {
         if let Frame::Audio(audio) = frame {
-            rate = audio.sample_rate();
-            let ch = audio.channels().max(1) as usize;
-            let s = audio.samples();
-            let frames = s.len() / ch;
-            out.reserve(frames);
-            for f in 0..frames {
-                let mut acc = 0.0f32;
-                for c in 0..ch {
-                    acc += s[f * ch + c];
+            if first {
+                rate = audio.sample_rate();
+                first = false;
+            }
+            let channels = audio.channels() as usize;
+            let samples = audio.samples();
+            if channels <= 1 {
+                out.extend_from_slice(samples);
+            } else {
+                for chunk in samples.chunks_exact(channels) {
+                    let sum: f32 = chunk.iter().sum();
+                    out.push(sum / channels as f32);
                 }
-                out.push(acc / ch as f32);
             }
         }
     }
@@ -48,9 +60,9 @@ struct ClipInfo {
     bus: String,
 }
 
-/// The SFX player: owns the mixer + decoded clip bank + bus gains.
+/// The SFX player: owns the clip registry + bus gains over a shared mixer.
 pub struct SfxPlayer {
-    mixer: Mixer,
+    mixer: Arc<Mutex<Mixer>>,
     clips: Vec<ClipInfo>,
     buses: Vec<(String, f32)>,
     listener: Point,
@@ -59,24 +71,44 @@ pub struct SfxPlayer {
 impl SfxPlayer {
     pub fn new() -> Self {
         Self {
-            mixer: Mixer::new(OUT_RATE, 64),
+            mixer: Arc::new(Mutex::new(Mixer::new(OUT_RATE, 64))),
             clips: Vec::new(),
             buses: Vec::new(),
             listener: Point { x: 0.0, y: 0.0 },
         }
     }
 
-    pub fn mixer_mut(&mut self) -> &mut Mixer {
-        &mut self.mixer
+    /// Shared handle for the platform device sink: the fill callback locks the
+    /// mixer, mixes one block, and releases (no allocation in the callback).
+    pub fn shared_mixer(&self) -> Arc<Mutex<Mixer>> {
+        Arc::clone(&self.mixer)
     }
+    /// Lock the mixer, recovering a poisoned guard: audio degrades to the
+    /// last coherent mixer state instead of panicking the frame loop.
+    fn lock_mixer(&self) -> std::sync::MutexGuard<'_, Mixer> {
+        self.mixer
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
     pub fn set_listener(&mut self, p: Point) {
         self.listener = p;
     }
 
-    /// Load a manifest (JSON string) and decode each clip's MP3 from
-    /// `assets_dir`. Missing/failed clips are skipped (logged), so a partial
-    /// asset tree still yields a working player.
-    pub fn load(&mut self, manifest_json: &str, assets_dir: &str) -> usize {
+    pub fn listener(&self) -> Point {
+        self.listener
+    }
+
+    /// Load a manifest (JSON string), fetching each clip's MP3 bytes through
+    /// `read` (platform asset reader; ids are the manifest `path` values with
+    /// the leading `/` stripped). Missing/failed clips are skipped so a
+    /// partial asset tree still yields a working player — each miss is a
+    /// diagnosable degradation, not a fatal.
+    pub fn load_with(
+        &mut self,
+        manifest_json: &str,
+        read: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
+    ) -> usize {
         let v: serde_json::Value = match serde_json::from_str(manifest_json) {
             Ok(v) => v,
             Err(_) => return 0,
@@ -95,17 +127,15 @@ impl SfxPlayer {
                     None => continue,
                 };
                 let path = c.get("path").and_then(|x| x.as_str()).unwrap_or("");
-                let file = path.rsplit('/').next().unwrap_or(path);
-                let full = format!("{}/{}", assets_dir.trim_end_matches('/'), file);
-                let bytes = match std::fs::read(&full) {
-                    Ok(b) => b,
-                    Err(_) => continue,
+                let stable_id = path.trim_start_matches('/');
+                let Some(bytes) = read(stable_id) else {
+                    continue;
                 };
                 let pcm = decode_mp3(&bytes);
                 if pcm.samples.is_empty() {
                     continue;
                 }
-                let bank = self.mixer.add_clip(pcm);
+                let bank = self.lock_mixer().add_clip(pcm);
                 self.clips.push(ClipInfo {
                     id,
                     bank,
@@ -121,6 +151,16 @@ impl SfxPlayer {
             }
         }
         loaded
+    }
+
+    /// Filesystem-backed load (tests / tools): decodes each MP3 from
+    /// `assets_dir` by file name.
+    pub fn load(&mut self, manifest_json: &str, assets_dir: &str) -> usize {
+        let dir = assets_dir.trim_end_matches('/').to_string();
+        self.load_with(manifest_json, &mut |stable_id: &str| {
+            let file = stable_id.rsplit('/').next().unwrap_or(stable_id);
+            std::fs::read(format!("{dir}/{file}")).ok()
+        })
     }
 
     fn clip(&self, id: &str) -> Option<&ClipInfo> {
@@ -162,7 +202,7 @@ impl SfxPlayer {
         if base_gain <= 0.0 {
             return true; // culled by distance — nothing to play
         }
-        self.mixer
+        self.lock_mixer()
             .play(bank, Self::key(id), base_gain, pan, 1.0, false, poly)
     }
 
@@ -172,20 +212,56 @@ impl SfxPlayer {
             Some(c) => (c.bank, c.volume * self.bus_volume(&c.bus), c.polyphony),
             None => return false,
         };
-        self.mixer
+        self.lock_mixer()
             .play(bank, Self::key(id), gain, 0.0, 1.0, false, poly)
+    }
+
+    /// Start (or keep) a looping clip under an explicit voice key. Gain is
+    /// snapshotted from the given position; callers refresh long-lived loops
+    /// by re-issuing under the same key after `stop_loop`.
+    pub fn play_loop(&mut self, id: &str, key: u32, at: Option<Point>, volume: f32) -> bool {
+        let (bank, gain) = match self.clip(id) {
+            Some(c) => {
+                let spatial = at
+                    .map(|p| {
+                        successor_engine_core::audio::spatial_mix(
+                            self.listener,
+                            p,
+                            SpatialOpts::default(),
+                        )
+                        .gain
+                    })
+                    .unwrap_or(1.0);
+                (
+                    c.bank,
+                    c.volume * self.bus_volume(&c.bus) * spatial * volume,
+                )
+            }
+            None => return false,
+        };
+        if gain <= 0.0 {
+            return true;
+        }
+        self.lock_mixer().play(bank, key, gain, 0.0, 1.0, true, 1)
+    }
+
+    /// Stop every voice under `key` (loop teardown; also used to silence
+    /// orphaned loops when their world entity leaves the stream).
+    pub fn stop_loop(&mut self, key: u32) {
+        self.lock_mixer().stop_key(key);
     }
 
     pub fn clip_count(&self) -> usize {
         self.clips.len()
     }
     pub fn active_voices(&self) -> usize {
-        self.mixer.active_voices()
+        self.lock_mixer().active_voices()
     }
 
-    /// Render the next block of interleaved-stereo audio (for the output sink).
+    /// Render the next block of interleaved-stereo audio (for the offline WAV
+    /// path; the live device sink pulls through `shared_mixer`).
     pub fn render(&mut self, out: &mut [f32]) {
-        self.mixer.mix_into(out);
+        self.lock_mixer().mix_into(out);
     }
 }
 
@@ -215,7 +291,6 @@ mod tests {
         let pcm = decode_mp3(&bytes);
         assert!(!pcm.samples.is_empty(), "decoded PCM non-empty");
         assert_eq!(pcm.sample_rate, 44_100, "44.1 kHz source");
-        // Manifest says ~0.522s; allow slack for encoder padding.
         assert!(
             pcm.duration_secs() > 0.3 && pcm.duration_secs() < 1.0,
             "≈0.5s, got {}",
@@ -247,9 +322,45 @@ mod tests {
             return;
         }
         p.set_listener(Point { x: 0.0, y: 0.0 });
-        // Far away → gain 0 → no voice, but returns true (handled).
         let far = Point { x: 0.0, y: 200.0 };
         assert!(p.play_at("slugthrower_fire", far, SpatialOpts::default()));
         assert_eq!(p.active_voices(), 0, "distant shot culled");
+    }
+
+    #[test]
+    fn loop_starts_and_stops_under_its_key() {
+        let Some(manifest) = read_manifest() else {
+            return;
+        };
+        let mut p = SfxPlayer::new();
+        if p.load(&manifest, ASSETS) == 0 {
+            return;
+        }
+        assert!(p.play_loop("campfire_crackle_loop", 0xC0FFEE, None, 1.0));
+        assert!(p.active_voices() >= 1);
+        p.stop_loop(0xC0FFEE);
+        assert_eq!(p.active_voices(), 0, "loop torn down by key");
+    }
+
+    #[test]
+    fn shared_mixer_renders_from_a_second_handle() {
+        let Some(manifest) = read_manifest() else {
+            return;
+        };
+        let mut p = SfxPlayer::new();
+        if p.load(&manifest, ASSETS) == 0 {
+            return;
+        }
+        let shared = p.shared_mixer();
+        assert!(p.play_ui("ui_panel_open"));
+        let mut block = vec![0.0f32; 16_384];
+        shared
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .mix_into(&mut block);
+        assert!(
+            block.iter().any(|s| s.abs() > 1e-6),
+            "device-sink handle hears the scene's trigger"
+        );
     }
 }

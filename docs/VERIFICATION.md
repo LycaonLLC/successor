@@ -1,7 +1,7 @@
 # Successor Verification
 
-Status: current verification contract and latest source proof as of
-2026-07-31; latest public proof remains 2026-07-29.
+Status: current verification contract and latest local source proof as of
+2026-08-02; latest public proof remains 2026-07-29.
 
 Run commands from the repository root in the checkout being verified. A passing
 result belongs to the exact source revision and working tree that produced it.
@@ -70,17 +70,20 @@ gates before handoff.
 | Desktop supervisor | `pnpm --dir desktop check && pnpm --dir desktop test && pnpm --dir desktop verify:key-ownership` |
 | Marketing and launch site | `pnpm site:test && pnpm site:build` |
 | Release tooling | `pnpm deploy:contract && pnpm --dir desktop release:manifest` |
-| Standalone Rust client | `make -C client-rust verify && make -C client-rust check-allocs && make -C client-rust runtime-check && make -C client-rust render-check && make -C client-rust terrain-check && make -C client-rust nostd` |
+| Standalone Rust client | `make -C client-rust verify && make -C client-rust check-allocs && make -C client-rust runtime-check && make -C client-rust render-check && make -C client-rust terrain-check && make -C client-rust nostd`; connected changes also run `make -C client-rust connected-check-allocs CONNECTED_ENDPOINT=... CONNECTED_PLAYER=... CONNECTED_ACTOR=...` against a disposable authority |
 
 `client-rust/` is outside both root workspaces. Its own gates are mandatory:
 `verify` covers tests, corpus audit, and stripped native/wasm size budgets;
-`check-allocs` requires zero steady-state frame allocations; `runtime-check`
-checks frame time and RSS; `render-check` checks the native material-parity GPU
-p99; `terrain-check` checks deterministic desert and forest ROI probes plus the
-terrain GPU p99; and `nostd` builds both engine crates for
+`check-allocs` requires zero steady-state allocations in the standard scene;
+`connected-check-allocs` applies the same invariant after deferred connected
+presentation initialization and requires at least 240 stable actor-count
+frames; `runtime-check` checks frame time and RSS; `render-check` checks native
+material-parity GPU p99; `terrain-check` checks deterministic desert and forest
+ROI probes plus terrain GPU p99; and `nostd` builds both engine crates for
 `thumbv7em-none-eabihf`. Browser renderer changes additionally require the
-corresponding WebGL2 probe, a resize round trip, and the deterministic
-half-float-disabled fallback where applicable.
+corresponding WebGL2 probe, connected authority commands and receipts, a resize
+round trip, deterministic half-float-disabled fallback, gesture-gated audio,
+and rendered context-loss recovery without replaying the launch capability.
 
 Native agent-control changes additionally require a real loopback journey:
 launch a windowed demo or connected client with `--control-port N`, pipe

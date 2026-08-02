@@ -24,11 +24,12 @@ digest-pinned authority container runs on private EC2 behind the public ALB.
 The host has no public remote-shell ingress. Operators use the documented
 provider session path; development workstations are not public game hosts.
 
-The `client-rust/` graphical material-parity, PBR terrain, and native
-developer-only agent-control work verified in source through 2026-07-31 has
-not been published, promoted, allowlisted, linked from the site, or added to
-the native download ledger. It does not change any identity in this deployment
-ledger.
+The `client-rust/` connected native/WebGL2 runtime, full workflow projection,
+graphics-mastering, replay, failure, allocation, performance, and matched
+legacy visual work was verified only from local development source through
+2026-08-02. It has not been published, promoted, allowlisted, linked from the
+site, packaged by desktop, or added to the native download ledger. It changes
+no identity in this deployment ledger.
 
 ## Site
 

@@ -697,6 +697,9 @@ impl SliceAuthorityState {
                 self.apply_guild_rescind_war(config, opposing_guild_id)
             }
             ClientCommand::GuildDisband {} => self.apply_guild_disband(config),
+            ClientCommand::PurchaseTravelTicket { .. }
+            | ClientCommand::UseTravelTicket { .. }
+            | ClientCommand::ToggleDoor { .. } => Err(AuthorityRejectReason::TargetUnavailable),
         }
     }
 

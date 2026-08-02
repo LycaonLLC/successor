@@ -241,6 +241,31 @@ impl TerrainStreamer {
         self.upload_detail_batches(renderer, gpu, center_x as f32, center_z as f32);
     }
 
+    /// Release every area-scoped chunk: despawn chunk entities, forget the
+    /// residency map, and zero the flora instance batches so a dropped
+    /// streamer leaves nothing rendering. Used on area transition before a
+    /// new streamer (new seed/biome) is built.
+    pub fn clear<G: Gpu>(&mut self, world: &mut GameWorld, renderer: &mut Renderer, gpu: &mut G) {
+        for slot in &mut self.slots {
+            if let Some(entity) = slot.entity.take() {
+                world.destroy(entity);
+            }
+            for matrices in &mut slot.detail_matrices {
+                matrices.clear();
+            }
+        }
+        self.loaded.clear();
+        for matrices in &mut self.merged_detail_matrices {
+            matrices.clear();
+        }
+        if let Some(batches) = self.detail_batches {
+            for batch in batches {
+                let _ = renderer.update_instance_batch(gpu, batch, &[], [0.0, 0.0, 0.0]);
+            }
+        }
+        world.flush();
+    }
+
     fn load_chunk<G: Gpu>(
         &mut self,
         world: &mut GameWorld,

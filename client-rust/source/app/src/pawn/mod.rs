@@ -5,6 +5,7 @@
 
 pub mod animator;
 pub mod appearance;
+pub mod catalog;
 pub mod creatures;
 pub mod face;
 pub mod lod;

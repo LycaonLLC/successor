@@ -11,12 +11,15 @@ pub const TERRAIN_MATERIAL_METERS_PER_TILE: f32 = 1.25;
 pub const FOLLOW_CAMERA_HEIGHT_METERS: f32 = 14.0;
 pub const FOLLOW_CAMERA_BACK_METERS: f32 = 21.0;
 
+pub mod area;
 pub mod camera;
 pub mod chunks;
 pub mod cutaway;
+pub mod environs;
 pub mod flora;
 pub mod picking;
 pub mod props;
+pub mod streamed;
 pub mod terrain;
 pub mod terrain_material;
 

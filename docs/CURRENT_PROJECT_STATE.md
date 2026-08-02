@@ -58,49 +58,53 @@ contains no visual runtime; graphical presentation belongs to `client-3d/`.
 The checked-in slice and map bundle are renderer-neutral authority inputs, not
 an old 2D game.
 
-The standalone Rust client now loads the complete checked-in GLB model corpus
-through one packed mesh/material path and renders deferred opaque PBR,
-shadowed sun and point lights, sorted transparent and transmissive surfaces,
-bloom, and FXAA on native GL and WebGL2. Its canonical spatial contract is one
-authority cell = one renderer unit = one metre. Fixture buildings retain their
-metric footprints, PawnForge bodies normalize to a 1.8-metre adult height,
-pawns and non-building props sample terrain elevation, and the live camera
-frames the actor from a metric 14-metre-up/21-metre-back offset. Streamed
-terrain uses continuous deterministic displacement, matching G-buffer and
-depth/shadow geometry, slope-aware three-surface desert/forest PBR, wet/dry and
-clear-coated puddle regions, and pooled deterministic detail instances.
-Building exclusions flatten and feather structure footprints while rejecting
-rocks, grass, scrub, and shrubs. Fixed native and WebGL2 beauty views have ROI,
-non-repetition, resize, and half-float-disabled fallback proof. The
-fidelity-first budgets are intentionally 6 MiB native, 4 MiB wasm, 8.33 ms
-runtime/terrain p99, and 16.67 ms generic render p99 while retaining zero
-steady-state frame allocations. This remains source/local-build proof only:
-gameplay parity and product promotion are outstanding, and the Rust client is
-absent from the site and native download ledger.
+The standalone Rust client now runs the same authority-driven game runtime on
+native GL and WebGL2. Both targets consume the checked-in open-desert slice,
+props mapping, PawnForge bodies and equipment, streamed actors, structures,
+doors, extractors, camps, corpses, farms, clock, weather, receipts, compact
+acks, and combat events. The client submits typed `successor-net` commands;
+movement prediction and reconciliation, actor interpolation, event dedupe, and
+window/HUD state remain projections of server and Rust-sim authority rather
+than a client-side gameplay fallback.
 
-The renderer now loads the versioned
+The connected presentation uses a locked north-up orthographic camera, live
+terrain and props, complete pawn/equipment routing, environment grading,
+weather, bounded effects, immediate-mode HUD/windows, dock and toolbar,
+datapad, macros, options, and redacted bug reporting. Native connected audio
+uses the platform mixer. WebGL2 consumes the same `ConnectedScene`, requires a
+strict one-use launch envelope, fetches stable-id assets fail-closed, unlocks
+audio only after a gesture, renders correctly at resized viewports and through
+the forced RGBA8 fallback, and rebuilds GPU resources after WebGL context loss
+without resetting the live network session or authority projection.
+
+The renderer loads the versioned
 `client-rust/assets/render/settings.json` Low/Medium/High presets and exposes a
 Backquote graphics-mastering overlay through the existing immediate-mode UI.
-Lighting, shadow-map options, AO/emissive response, bloom radius/threshold,
-FXAA, exposure, lift/gamma/gain, white balance, saturation/contrast, and
-palette quantization with ordered dithering apply live. Native save is an
-atomic sibling-file replacement; reload validates completely, and startup
-falls back to built-in defaults. Web applies the embedded checked-in document
-without gaining filesystem imports. Remote screenshots proved the neutral
-baseline, the complete overlay, a visibly warm eight-level dithered grade,
-atomic save/reset, and deterministic Backquote input replay. This is
-source/local-build proof only and changes no public release identity.
+Lighting, shadows, AO/emissive response, bloom, FXAA, exposure, color grade,
+and palette quantization apply live. Native save uses atomic replacement;
+reload validates completely; web applies the checked-in document read-only.
+The current visual proof inspected all three pages, changed lighting and color,
+observed distinct pixels, saved/reloaded the override, and restored the exact
+checked-in defaults.
 
+Native developer builds retain the explicit loopback-only `successor-control`
+path. Nine connected journey groups and nine deterministic input replays cover
+the live command/window families; focused failure journeys cover launch,
+release/source/schema, packet, receipt, reconnect, chat-loss, required-asset,
+command-rejection, and authority-shutdown behavior. Chromium proof covers live
+entry, commands, selection/combat rejection, permanent windows, zoom, desktop
+and resized layouts, gesture-gated audio, forced half-float fallback, and
+context loss/recovery. A matched legacy `client-3d` frame confirms the same
+north-up fixture composition and authority state.
 
-Native desktop development now also has an explicit loopback-only agent
-control path. `successor-control` accepts argv, command files, or piped text;
-remote input overrides local GLFW state while held, screenshot requests
-acknowledge only after a rendered BMP is written, and `successor.input.v1`
-recordings capture frame-indexed key, pointer, text, and scroll commands for
-fail-closed replay. A local live-authority proof moved an ordinary connected
-actor through the existing `SetMoveIntent` path and captured the resulting
-world frame. The server remains disabled by default, native-only, local
-developer tooling and changes no public download or deployment identity.
+The client remains an unshipped development surface. Its stripped native and
+WebAssembly artifacts remain below the 6 MiB and 4 MiB absolute caps; the
+matching Apple M2 Max baseline records the intentional size increase from the
+complete connected native/WebGL runtime. Standard runtime and connected frame
+loops report zero steady-state allocations, and runtime, terrain, render, and
+RSS gates remain below their absolute budgets. None of this promotes
+`client-rust`, changes the supported-client list, or adds it to the site,
+desktop package, publication allowlist, or native download ledger.
 
 
 Source assets and generated runtime assets have separate homes. PawnForge

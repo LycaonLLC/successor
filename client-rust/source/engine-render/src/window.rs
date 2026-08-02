@@ -181,6 +181,12 @@ impl WindowManager {
         idx.sort_by_key(|&i| self.wins[i].z);
         idx
     }
+    /// Fill a caller-owned draw-order buffer without allocating.
+    pub fn fill_z_order(&self, out: &mut Vec<usize>) {
+        out.clear();
+        out.extend((0..self.wins.len()).filter(|&index| self.wins[index].open));
+        out.sort_unstable_by_key(|&index| self.wins[index].z);
+    }
 
     pub fn window_id(&self, idx: usize) -> &str {
         &self.wins[idx].id

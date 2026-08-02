@@ -2350,6 +2350,9 @@ pub fn client_command_kind_for_manifest(command: &ClientCommand) -> &'static str
         ClientCommand::GuildRescindWar { .. } => "GuildRescindWar",
         ClientCommand::GuildDisband { .. } => "GuildDisband",
         ClientCommand::HarvestCrop { .. } => "HarvestCrop",
+        ClientCommand::PurchaseTravelTicket { .. } => "PurchaseTravelTicket",
+        ClientCommand::UseTravelTicket { .. } => "UseTravelTicket",
+        ClientCommand::ToggleDoor { .. } => "ToggleDoor",
     }
 }
 

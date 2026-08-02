@@ -93,6 +93,22 @@ pub fn parse_connect_url(url: &str) -> Option<JoinOptions> {
     })
 }
 
+/// Strict launch parsing used by connected mode. Unlike the development-only
+/// helper above this never invents an identity when URL fields are absent.
+pub fn parse_connect_url_strict(url: &str) -> Option<JoinOptions> {
+    let parsed = parse_connect_url(url)?;
+    if parsed.player_id == "dev-1"
+        && parsed.actor_id == "dev-1"
+        && !url.split('?').nth(1).unwrap_or("").contains("player=")
+    {
+        return None;
+    }
+    if parsed.player_id.trim().is_empty() || parsed.actor_id.trim().is_empty() {
+        return None;
+    }
+    Some(parsed)
+}
+
 /// Maps wss:// to https:// and ws:// to http://.
 pub fn http_endpoint(endpoint: &str) -> String {
     endpoint

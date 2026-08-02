@@ -8,6 +8,7 @@
 //! protocol and a live authority to verify. `submit()` returns the entered text
 //! so a future chat-room sender can transmit it.
 
+use super::chat_net::ChatMessage;
 use successor_engine_core::math::Vec2;
 use successor_engine_render::components::TextOverlay;
 
@@ -70,6 +71,16 @@ impl ChatState {
     /// Record an incoming chat line (e.g. LOCAL bubble text from another actor).
     pub fn push_incoming(&mut self, who: &str, text: &str) {
         self.push_line(&format!("{who}: {text}"));
+    }
+
+    /// Bridge a sanitized network message into the render ring.
+    pub fn push_message(&mut self, message: &ChatMessage) {
+        let who = if message.sender.is_empty() {
+            message.channel.as_str()
+        } else {
+            message.sender.as_str()
+        };
+        self.push_incoming(who, &message.text);
     }
 
     fn push_line(&mut self, line: &str) {

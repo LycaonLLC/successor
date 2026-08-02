@@ -1,11 +1,12 @@
 # Rust client — parity matrix
 
-Tracks progress toward 1:1 parity with the existing web client (`client-3d/`)
-so "replace the web client" is measurable. This client is **pre-parity and
-unshipped**; the web/desktop/TUI clients remain the supported surfaces.
+Tracks parity with the checked-in `client-3d` surface. Native GL and WebGL2 now
+share the connected authority projection, presentation, command, HUD/window,
+and failure paths described below. This is **source-proven but unshipped**:
+`client-3d`, desktop, and TUI remain the supported surfaces until a separate
+product promotion.
 
-Status legend: **done** (delivered + gated), **partial** (foundation present,
-not complete), **backlog** (not started — ordered wave).
+Status legend: **done** means delivered and gated from the current source.
 
 ## Foundation (this milestone)
 
@@ -35,50 +36,31 @@ not complete), **backlog** (not started — ordered wave).
 | Alpha blending | CSS/DOM compositing | `PipelineState.blend` → GL `SRC_ALPHA,ONE_MINUS_SRC_ALPHA` | done (Wave 5) |
 | Wire protocol (Colyseus) | `@colyseus/sdk` in `gameAuthoritySystem.ts` | `client-proto::{colyseus, session}` (sans-IO) | done |
 | Command vocabulary | `crates/successor-net` | reuse `ClientCommand`/`ClientCommandEnvelope` (117 cmds) | done |
-| Snapshot/delta projection | `gameAuthoritySystem.ts` | `client-proto::packets` + `game/projection.rs` | partial (actor id/pos/vitals/dir) |
-| Movement input → command | `authorityMovementSystem.ts` | `game/movement.rs` (`SetMoveIntent`) | done |
-| Follow + minimap cameras (live) | camera rig | `connected::run` | done (compile+unit; live Bunker-gated) |
-| Chat UI (input + overlay) | `client/src/chat/chatClient.ts` HUD | `game/chat.rs` | partial (UI only) |
-| Platform abstraction (desktop/web) | Vite/Electron | `successor-platform` (GLFW/GL native, WebGL2 web) | done |
+| Snapshot/delta/receipt projection | `gameAuthoritySystem.ts` | transactional `AuthorityStore` plus full/compact packet application and exact receipt settlement | done |
+| Movement input → command | `authorityMovementSystem.ts` | queued/coalesced `SetMoveIntent`, prediction, interpolation, reconciliation, and receipt feedback | done |
+| Orthographic world, picking, minimap (live) | renderer and camera rig | shared `ConnectedScene` on native GL and WebGL2 | done |
+| Chat lifecycle and presentation | `client/src/chat/chatClient.ts` HUD | bounded `game/chat_net.rs` connection state and connected HUD/bubbles | done |
+| Platform abstraction (desktop/web) | Vite/Electron | `successor-platform` native GL/WebGL2, sockets, assets, input, audio, and context recovery | done |
 | Agent input, screenshots, record/replay | headless automation + graphical journey tooling | loopback `successor-platform::native::control` + pipeable `successor-control`; `successor.input.v1` frame replay | done (native developer-only) |
 | Size / alloc / perf / RSS gates | n/a | `budgets.json` + `bench/compare.py` + Makefile | done |
 
-## Backlog waves (ordered)
+## Promotion boundary
 
-1. **Real bitmap-font text** — replace block glyphs with an 8×16 atlas sampled
-   per glyph (`text.rs` / `TextOverlay`).
-2. **GLB / PawnForge pawns** — load promoted GLB actors + face compositor
-   (`client-3d/src/render/pawns.ts`, `faceDecal.ts`) instead of capsules;
-   requires a glTF loader behind the asset manifest already in `engine-core`.
-3. **Map-bundle world geometry** — consume `open-desert-map-bundle.json`
-   (props/anchors/structures/transitions) via `assets::AssetManifest` +
-   `props-mapping.json` instead of the flat ground plane.
-4. **Full HUD + panels** — inventory, crafting, trade, guild, vitals, radar
-   (`client-3d/src/ui/`, `client/src/slice-core/*System.ts`).
-5. **Chat network path** — second Colyseus chat room (chat ticket +
-   `chatClient.ts` vocabulary) feeding `game/chat.rs::push_incoming`; LOCAL
-   speech bubbles.
-6. **Combat presentation** — roll tracers, muzzle, impact FX, outcome text
-   (`client-3d/src/combat/`), driven by streamed combat events.
-7. **Weather / day-night / lighting zones**, **positional audio**
-   (`ambientAudioSystem.ts`, `combatAudioSystem.ts`), **effects**
-   (`effectsSystem.ts`).
-8. **Web runtime networking** — drive `client-proto` from the wasm build via
-   the `js_ws_*`/`js_fetch_*` shim (currently the wasm renders the demo scene
-   only; native does networking).
-9. **Ticketed public auth** — replace dev-identity join with launch tickets.
-10. **TUI + mobile backends** — new `Gpu`/platform impls behind the existing
-    compile-time seam.
+The parity implementation does not itself replace or publish a supported
+client. Remaining work is a product/release decision: select an immutable
+source, run release-bound proof, package and sign supported artifacts, update
+the site/download ledger, and promote the Rust surface in canonical context.
+TUI/mobile backends are outside this parity milestone.
 
 ## Live playable-slice run (DEMONSTRATED)
 
-The full bidirectional round-trip has been run end-to-end on macOS against a
-Linux **container** authority (macOS lacks `/usr/bin/flock`, which the
-persistent authority requires; a Linux container has it). Observed: session
-reaches `Ready` (matchmake → join → `game.ready` → `game.hello`), the client
-projects the live authority actors as capsules (player distinguished), a
-`SetMoveIntent` moves the player and the new position streams back via
-`game.acks` (e.g. `(512,513) → (512,511.36)`), and `exit_world` closes cleanly.
+The full bidirectional round-trip now runs on macOS against a disposable
+loopback authority in both native GL and Chromium WebGL2. The session reaches
+`Ready`; full/compact snapshots, deltas, receipts, acks, and events update the
+shared projection; typed commands move the player and surface accepted or
+rejected receipts; and `exit_world` closes intentionally. Native proof uses GLB
+pawns and equipment, streamed terrain/props, weather, HUD/windows, positional
+audio, and record/replay rather than placeholder capsules.
 
 ### Recipe (macOS host + Linux container authority)
 
@@ -254,37 +236,25 @@ Tracking the ordered parity waves from `local://rust-client-parity-plan.md`.
   PASS` (native 1.18 MB, wasm 479 KB — under the 4/3 MiB ceilings). All render
   surfaces smoke-tested (`--demo ui/fx/env/pawns/props/terrain`).
 
-All 54 parity tasks are complete. Live browser/authority behavior (wasm net,
-CoreAudio playback, live combat FX/audio) is confirmed interactively; every
-deterministic core is unit/fixture-tested and every render surface has a
-verified screenshot. The engine builds and all gates pass at each landed step.
+All parity tasks are implemented and source-proven. Native and Chromium
+journeys exercise the live authority, current world fixture, command families,
+window/HUD surfaces, receipts, failure lifecycle, and visual composition.
+Deterministic native replays reproduce each journey group. The complete Rust
+workspace, no-std, corpus, allocation, runtime, RSS, size, render, terrain, and
+WebGL2 fallback/recovery gates are the acceptance boundary.
 
-## Connected-scene integration (live client renders like client-3d)
+## Connected-scene integration
 
-The parity waves built each capability as demo scenes + tested modules; this
-wave wires them into the live `connected::run` so the client renders the real
-world (not placeholder capsules) when joined to the authority.
+`game::connected_scene::ConnectedScene` composes one `GameWorld` and renderer
+from the transactional `AuthorityStore`: area-scoped terrain and GLB props,
+PawnForge bodies/equipment, structures and stateful world objects,
+orthographic camera/minimap, streamed environment, combat/status effects,
+labels, HUD, toolbar, and live windows. Native and wasm shells supply only
+platform services and feed the same scene; neither owns gameplay simulation.
 
-- **`game::connected_scene::ConnectedScene`** composes one `GameWorld`/`Renderer`
-  driven by the authoritative `AuthorityStore`: streamed terrain
-  (`TerrainStreamer`) + the 139 GLB slice props (`PropsLoader`, same
-  `open-desert-slice.json` + `props-mapping.json` `client-3d` uses), a GLB pawn
-  per live actor (skin/faction-tinted, gait from velocity, facing from move
-  direction) replacing capsules, environment lighting/fog/clear from
-  `environment::sample`, a follow camera + minimap composite, combat-event FX
-  billboards, ambient dust `weather`, and the HUD + mouse-routed interactive
-  windows (action bar toggles them, as in `--demo ui`).
-- **`AuthorityStore::apply_player_position`** applies the `game.acks`
-  authoritative player position (own moves arrive as acks, not AOI deltas).
-- **Verified live** against the dockerized authority (`ws://127.0.0.1:28093`,
-  `GAME_ALLOW_DEV_IDENTITY=1`): `terrain streamed, 139 props placed`, `actors=3`,
-  `session_state=Ready`; GLB pawns render at actor positions (screenshot);
-  `--auto-walk` moves the player `(512.5,513.5)→(512.5,511.86)` (full
-  command→acks→store→render loop). Gates green (176 tests, 0 frame allocs,
-  `VERIFY: PASS`, native 1.19 MB / wasm 479 KB).
-- **Deferred (enhancements, not asset/game-load blockers):** the fullscreen
-  post-grade pass (conflicts with the multi-camera + minimap composite ordering;
-  day-night look is instead driven via sun/fog/ambient/clear), the live chat-room
-  socket + pane, and projecting live inventory JSON into the window models
-  (windows currently show representative content). Each underlying module is
-  built + tested; wiring these into the live loop is follow-on polish.
+Live proof against the checked-in open-desert fixture reaches `Ready`, streams
+the accepted area, moves through queued `SetMoveIntent`, settles receipts,
+renders full inventory/workflow state, and exits cleanly. The Chromium build
+also proves resized rendering, forced RGBA8 fallback, gesture-gated audio, and
+WebGL context recovery while retaining the network session and authority
+projection.

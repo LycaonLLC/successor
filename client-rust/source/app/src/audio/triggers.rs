@@ -1,10 +1,12 @@
 //! Game-event → SFX trigger map (port of the trigger sites in `sfx.ts` +
-//! callers). Each trigger names a manifest clip id; combat triggers derive from
-//! the same `CombatEvent`s that drive the particle FX, so audio and visuals fire
-//! from one authoritative event.
+//! callers). Each trigger names a manifest clip id; combat triggers derive
+//! from the same authoritative `CombatEvent`s that drive the particle FX, so
+//! audio and visuals fire from one event. Ambience/doors/loop triggers are
+//! keyed, bounded, and always stoppable (no orphaned loops).
 
 use super::SfxPlayer;
-use crate::game::combat_fx::{CombatEvent, OUTCOME_BLOOD, OUTCOME_DEFLECT, OUTCOME_SPARK};
+use crate::game::combat_fx::{CombatEvent, CombatOutcome, WeaponVisual};
+use crate::world::terrain::Biome;
 use successor_engine_core::audio::{Point, SpatialOpts};
 
 /// UI/HUD sound cues (non-spatial).
@@ -18,6 +20,10 @@ pub enum UiCue {
     ChatSend,
     ChatReceive,
     Notification,
+    Deny,
+    CreditsChime,
+    ItemTransfer,
+    AreaTransition,
 }
 
 impl UiCue {
@@ -31,6 +37,10 @@ impl UiCue {
             UiCue::ChatSend => "chat_send",
             UiCue::ChatReceive => "chat_receive",
             UiCue::Notification => "notification_ping",
+            UiCue::Deny => "ui_deny",
+            UiCue::CreditsChime => "credits_chime",
+            UiCue::ItemTransfer => "item_transfer",
+            UiCue::AreaTransition => "area_transition",
         }
     }
 }
@@ -40,9 +50,10 @@ pub fn play_ui(player: &mut SfxPlayer, cue: UiCue) -> bool {
     player.play_ui(cue.clip_id())
 }
 
-/// Footstep clip id for a step index (round-robins the grass variants).
-pub fn footstep_id(step: u32) -> &'static str {
-    const STEPS: [&str; 8] = [
+/// Footstep clip id for a step index on a surface family. Desert/forest
+/// overworld ground round-robins the grass variants; interiors use tile.
+pub fn footstep_id(step: u32, interior: bool) -> &'static str {
+    const GRASS: [&str; 8] = [
         "footstep_grass_01",
         "footstep_grass_02",
         "footstep_grass_03",
@@ -52,41 +63,122 @@ pub fn footstep_id(step: u32) -> &'static str {
         "footstep_grass_07",
         "footstep_grass_08",
     ];
-    STEPS[(step as usize) % STEPS.len()]
+    const TILE: [&str; 8] = [
+        "footstep_tile_01",
+        "footstep_tile_02",
+        "footstep_tile_03",
+        "footstep_tile_04",
+        "footstep_tile_05",
+        "footstep_tile_06",
+        "footstep_tile_07",
+        "footstep_tile_08",
+    ];
+    let table = if interior { &TILE } else { &GRASS };
+    table[(step as usize) % table.len()]
 }
 
-/// The weapon-fire clip id (default slugthrower).
-pub fn weapon_fire_id(_weapon: Option<&str>) -> &'static str {
-    "slugthrower_fire"
-}
-
-/// The impact clip id for a combat outcome.
-pub fn impact_id(outcome: u8) -> &'static str {
-    match outcome {
-        OUTCOME_BLOOD => "body_hit_1",
-        OUTCOME_SPARK | OUTCOME_DEFLECT => "projectile_hit",
-        _ => "projectile_hit",
+/// The weapon-fire clip id for the event's weapon family.
+pub fn weapon_fire_id(weapon: WeaponVisual) -> &'static str {
+    match weapon {
+        WeaponVisual::Plasma => "gunshot_4",
+        WeaponVisual::Melee => "saber_deflect_01",
+        WeaponVisual::Slugthrower | WeaponVisual::Unknown => "slugthrower_fire",
     }
 }
 
-/// Fire the audio for one combat event: a weapon report at the origin and an
-/// impact at the hit point. Mirrors the visual `CombatFx` fan-out so both read
-/// from the same authoritative event.
-pub fn play_combat(player: &mut SfxPlayer, ev: &CombatEvent) {
-    // Origin/hit points are world (x,y,z); the mixer spatializes in the sim
-    // plane (x,z) — collapse to that plane.
-    let origin = Point {
-        x: ev.origin[0],
-        y: ev.origin[2],
-    };
-    let hit = Point {
-        x: ev.hit[0],
-        y: ev.hit[2],
-    };
-    let opts = SpatialOpts::default();
-    player.play_at(weapon_fire_id(None), origin, opts);
-    player.play_at(impact_id(ev.outcome), hit, opts);
+/// The impact clip id for a combat outcome (None → intentionally silent).
+pub fn impact_id(outcome: CombatOutcome) -> Option<&'static str> {
+    match outcome {
+        CombatOutcome::Blood => Some("body_hit_1"),
+        CombatOutcome::Spark => Some("projectile_hit"),
+        CombatOutcome::Deflect => Some("ricochet_ping"),
+        CombatOutcome::Dodge => None,
+        CombatOutcome::Sleep => Some("sleep_puff_soft_01"),
+    }
 }
+
+/// The door slide clip (fixture props, buildings, and camp auto-doors share
+/// the ratified door).
+pub const DOOR_CLIP: &str = "door_slide";
+/// Death sting (target killed).
+pub const DEATH_CLIP: &str = "death";
+/// Reload pair.
+pub const RELOAD_CLIP: &str = "slugthrower_reload";
+
+/// Fire the audio for one combat event at its resolved world points: a weapon
+/// report at the origin (ranged only) and the outcome impact at the hit
+/// point. Mirrors the visual `CombatFx` fan-out so both read one event.
+pub fn play_combat(
+    player: &mut SfxPlayer,
+    ev: &CombatEvent,
+    origin_world: [f32; 3],
+    hit_world: [f32; 3],
+) {
+    let opts = SpatialOpts::default();
+    if ev.ranged {
+        let origin = Point {
+            x: origin_world[0],
+            y: origin_world[2],
+        };
+        player.play_at(weapon_fire_id(ev.weapon), origin, opts);
+    }
+    let hit = Point {
+        x: hit_world[0],
+        y: hit_world[2],
+    };
+    if let Some(clip) = impact_id(ev.outcome) {
+        player.play_at(clip, hit, opts);
+    }
+    if ev.killed {
+        player.play_at(DEATH_CLIP, hit, opts);
+    }
+}
+
+/// One-shot ambience beds per biome/day-phase — bounded, no loop lifecycle.
+/// Returns the clip id to fire when the ambience timer elapses.
+pub fn ambience_one_shot(biome: Biome, is_day: bool, roll: u32) -> &'static str {
+    const DESERT_DAY: [&str; 6] = [
+        "amb_desert_bird_01",
+        "amb_desert_bird_02",
+        "amb_desert_bird_03",
+        "amb_desert_crow_01",
+        "amb_desert_twig_01",
+        "amb_desert_twig_02",
+    ];
+    const DESERT_NIGHT: [&str; 2] = [
+        "amb_night_cricket_distant_01",
+        "amb_night_cricket_distant_02",
+    ];
+    const FOREST_DAY: [&str; 4] = [
+        "amb_desert_bird_04",
+        "amb_desert_bird_05",
+        "amb_desert_bird_06",
+        "amb_desert_twig_03",
+    ];
+    match (biome, is_day) {
+        (Biome::Desert, true) => DESERT_DAY[(roll as usize) % DESERT_DAY.len()],
+        (_, false) => DESERT_NIGHT[(roll as usize) % DESERT_NIGHT.len()],
+        (Biome::Forest, true) => FOREST_DAY[(roll as usize) % FOREST_DAY.len()],
+    }
+}
+
+/// Weather loop clip for the current streamed weather, if any.
+pub fn weather_loop_id(
+    kind: successor_engine_render::weather::WeatherKind,
+    intensity: f32,
+) -> Option<&'static str> {
+    use successor_engine_render::weather::WeatherKind;
+    match kind {
+        WeatherKind::Rain if intensity >= 0.55 => Some("rain_heavy_loop"),
+        WeatherKind::Rain => Some("rain_light_loop"),
+        // The dust bed reuses the settlement murmur-free desert music stem's
+        // silence; dust reads through particles + grade, not a loop.
+        WeatherKind::DustStorm | WeatherKind::Clear => None,
+    }
+}
+
+/// Campfire crackle loop (placed camps / campfire props).
+pub const CAMPFIRE_LOOP: &str = "campfire_crackle_loop";
 
 #[cfg(test)]
 mod tests {
@@ -109,10 +201,7 @@ mod tests {
             eprintln!("skip: assets absent");
             return;
         };
-        assert!(
-            play_ui(&mut p, UiCue::PanelOpen),
-            "panel-open cue exists + plays"
-        );
+        assert!(play_ui(&mut p, UiCue::PanelOpen));
         assert!(play_ui(&mut p, UiCue::ButtonTick));
         assert!(p.active_voices() >= 2);
     }
@@ -125,31 +214,43 @@ mod tests {
         p.set_listener(Point { x: 0.0, y: 0.0 });
         let ev = CombatEvent {
             id: 1,
-            origin: [0.0, 1.3, 0.5],
-            hit: [1.0, 1.1, 0.5],
-            outcome: OUTCOME_BLOOD,
-            magnitude: 1.0,
-            color: [1.0, 0.8, 0.5],
+            tick: 0,
+            shooter_actor_id: "a".into(),
+            target_actor_id: "b".into(),
+            origin: Some([0.0, 0.5]),
+            hit_point: Some([1.0, 0.5]),
+            damage: 12.0,
+            outcome: CombatOutcome::Blood,
+            killed: false,
+            downed: false,
+            ranged: true,
+            weapon: WeaponVisual::Slugthrower,
         };
-        play_combat(&mut p, &ev);
-        // Close range → both weapon report + body hit audible.
-        assert!(
-            p.active_voices() >= 1,
-            "combat audio fired, voices={}",
-            p.active_voices()
-        );
+        play_combat(&mut p, &ev, [0.0, 1.3, 0.5], [1.0, 1.0, 0.5]);
+        assert!(p.active_voices() >= 1, "voices={}", p.active_voices());
     }
 
     #[test]
-    fn footstep_round_robins() {
-        assert_eq!(footstep_id(0), "footstep_grass_01");
-        assert_eq!(footstep_id(8), "footstep_grass_01");
-        assert_eq!(footstep_id(2), "footstep_grass_03");
+    fn footstep_round_robins_by_surface() {
+        assert_eq!(footstep_id(0, false), "footstep_grass_01");
+        assert_eq!(footstep_id(8, false), "footstep_grass_01");
+        assert_eq!(footstep_id(2, true), "footstep_tile_03");
     }
 
     #[test]
     fn impact_id_by_outcome() {
-        assert_eq!(impact_id(OUTCOME_BLOOD), "body_hit_1");
-        assert_eq!(impact_id(OUTCOME_SPARK), "projectile_hit");
+        assert_eq!(impact_id(CombatOutcome::Blood), Some("body_hit_1"));
+        assert_eq!(impact_id(CombatOutcome::Spark), Some("projectile_hit"));
+        assert_eq!(impact_id(CombatOutcome::Deflect), Some("ricochet_ping"));
+        assert_eq!(impact_id(CombatOutcome::Dodge), None, "dodge is silent");
+    }
+
+    #[test]
+    fn ambience_tables_never_panic_and_stay_in_family() {
+        for roll in 0..16 {
+            assert!(ambience_one_shot(Biome::Desert, true, roll).starts_with("amb_"));
+            assert!(ambience_one_shot(Biome::Forest, true, roll).starts_with("amb_"));
+            assert!(ambience_one_shot(Biome::Desert, false, roll).starts_with("amb_night"));
+        }
     }
 }

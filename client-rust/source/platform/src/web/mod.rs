@@ -7,13 +7,21 @@ use successor_engine_core::input::Key;
 
 #[link(wasm_import_module = "env")]
 extern "C" {
-    fn js_init(title_ptr: *const u8, title_len: u32, w: i32, h: i32);
     fn js_log(ptr: *const u8, len: u32);
-    fn js_get_canvas_size(w_ptr: *mut i32, h_ptr: *mut i32);
+    fn js_init(ptr: *const u8, len: u32, width: i32, height: i32);
+    fn js_get_canvas_size(width: *mut i32, height: *mut i32);
     fn js_now_ms() -> f64;
     fn js_is_key_down(key: u32) -> u32;
     fn js_set_cursor_visible(visible: u32);
     fn js_poll_char() -> i32;
+    fn js_poll_scroll_x() -> f32;
+    fn js_poll_scroll_y() -> f32;
+    fn js_get_mouse_x() -> f32;
+    fn js_get_mouse_y() -> f32;
+    fn js_mouse_button_down(button: u32) -> u32;
+    fn js_launch_context_len() -> u32;
+    fn js_launch_context_copy(ptr: *mut u8, max_len: u32) -> u32;
+    fn js_audio_unlock();
 }
 
 fn web_log_sink(s: &str) {
@@ -49,6 +57,28 @@ pub fn framebuffer_size() -> (i32, i32) {
     (w, h)
 }
 
+pub fn mouse_position() -> (f32, f32) {
+    unsafe { (js_get_mouse_x(), js_get_mouse_y()) }
+}
+
+pub fn mouse_button_down(button: i32) -> bool {
+    button >= 0 && unsafe { js_mouse_button_down(button as u32) != 0 }
+}
+
+pub fn launch_context() -> Option<Vec<u8>> {
+    let len = unsafe { js_launch_context_len() } as usize;
+    if len == 0 || len > 1024 * 1024 {
+        return None;
+    }
+    let mut bytes = vec![0; len];
+    let copied = unsafe { js_launch_context_copy(bytes.as_mut_ptr(), len as u32) } as usize;
+    (copied == len).then_some(bytes)
+}
+
+pub fn unlock_audio() {
+    unsafe { js_audio_unlock() }
+}
+
 pub fn now_ms() -> f64 {
     unsafe { js_now_ms() }
 }
@@ -72,14 +102,13 @@ pub fn poll_text_input() -> Option<char> {
     }
 }
 
-/// Mouse position (framebuffer px). Web input routing lands in the wasm wave;
-/// until then this reports the origin so the shared UI code compiles/runs.
-pub fn mouse_position() -> (f32, f32) {
-    (0.0, 0.0)
-}
-
-pub fn mouse_button_down(_button: i32) -> bool {
-    false
+pub fn poll_scroll_delta() -> Option<(f32, f32)> {
+    let delta = unsafe { (js_poll_scroll_x(), js_poll_scroll_y()) };
+    if delta.0 == 0.0 && delta.1 == 0.0 {
+        None
+    } else {
+        Some(delta)
+    }
 }
 
 pub mod http {

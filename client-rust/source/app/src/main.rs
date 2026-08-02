@@ -13,16 +13,43 @@
 //!       (Playable slice — wired in the PlayableSlice phase.)
 
 use successor_client::demo;
+use successor_client::net::session::LaunchEnvelope;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|arg| arg == "--model-corpus") {
-        run_model_corpus();
-        return;
+        #[cfg(feature = "dev-tools")]
+        {
+            run_model_corpus();
+            return;
+        }
+        #[cfg(not(feature = "dev-tools"))]
+        {
+            eprintln!("developer probes and demo modes require the `dev-tools` capability");
+            std::process::exit(2);
+        }
     }
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "dev-tools"))]
     configure_automation(&args);
-    successor_client::initialize_render_settings();
+    #[cfg(all(not(target_arch = "wasm32"), not(feature = "dev-tools")))]
+    if args.iter().any(|arg| {
+        matches!(
+            arg.as_str(),
+            "--control"
+                | "--control-port"
+                | "--record-input"
+                | "--replay-input"
+                | "--screenshot"
+                | "--stats-json"
+                | "--gpu-stats-json"
+                | "--assert-zero-allocs"
+                | "--assert-material-parity"
+                | "--assert-terrain-material"
+        ) || arg.starts_with("--demo")
+    }) {
+        eprintln!("developer probes and demo modes require the `dev-tools` capability");
+        std::process::exit(2);
+    }
 
     let mode = arg_value(&args, "--demo");
     let frames: u64 = arg_value(&args, "--frames")
@@ -32,27 +59,83 @@ fn main() {
     let assert_zero = args.iter().any(|a| a == "--assert-zero-allocs");
     let gl = args.iter().any(|a| a == "--gl");
     let endpoint = arg_value(&args, "--endpoint");
+    let player_arg = arg_value(&args, "--player-id");
+    let actor_arg = arg_value(&args, "--actor-id");
+    let dev_identity = args.iter().any(|a| a == "--dev-identity");
+    #[cfg(not(feature = "dev-tools"))]
+    let _ = dev_identity;
+
+    // Raw identity flags are strictly a development capability. In release
+    // builds they cannot accidentally become an alternate authenticated path.
+    if endpoint.is_some() || player_arg.is_some() || actor_arg.is_some() {
+        #[cfg(not(feature = "dev-tools"))]
+        {
+            eprintln!("raw endpoint/identity launch requires dev-tools");
+            std::process::exit(2);
+        }
+        #[cfg(feature = "dev-tools")]
+        if !dev_identity || endpoint.is_none() || player_arg.is_none() || actor_arg.is_none() {
+            eprintln!(
+                "raw launch requires --dev-identity, --endpoint, --player-id, and --actor-id"
+            );
+            std::process::exit(2);
+        }
+    }
     if let Some(q) = arg_value(&args, "--quality") {
         successor_client::set_render_quality(successor_client::parse_quality(&q));
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     if mode.is_none() {
-        if let Some(endpoint) = endpoint {
-            let player_id = arg_value(&args, "--player-id").unwrap_or_else(|| "dev-1".to_string());
-            let actor_id = arg_value(&args, "--actor-id").unwrap_or_else(|| player_id.clone());
-            let max_frames = arg_value(&args, "--frames").and_then(|s| s.parse::<u64>().ok());
-            let screenshot = arg_value(&args, "--screenshot");
-            let auto_walk = args.iter().any(|a| a == "--auto-walk");
-            std::process::exit(connected::run(
+        let max_frames = arg_value(&args, "--frames").and_then(|s| s.parse::<u64>().ok());
+        let screenshot = arg_value(&args, "--screenshot");
+        let auto_walk = args.iter().any(|a| a == "--auto-walk");
+        #[cfg(feature = "dev-tools")]
+        if let (Some(endpoint), Some(player), Some(actor)) = (endpoint, player_arg, actor_arg) {
+            std::process::exit(connected::run_dev(
                 &endpoint,
-                &player_id,
-                &actor_id,
+                &player,
+                &actor,
                 max_frames,
                 screenshot.as_deref(),
                 auto_walk,
+                assert_zero,
             ));
         }
+        let raw = arg_value(&args, "--launch-context").unwrap_or_else(|| {
+            eprintln!("ordinary launch requires --launch-context <json-or-file>");
+            std::process::exit(2);
+        });
+        let text = if raw.trim_start().starts_with('{') {
+            raw
+        } else {
+            std::fs::read_to_string(&raw).unwrap_or_else(|e| {
+                eprintln!("failed to read launch context: {e}");
+                std::process::exit(2);
+            })
+        };
+        let value: serde_json::Value = serde_json::from_str(&text).unwrap_or_else(|e| {
+            eprintln!("invalid launch context JSON: {e}");
+            std::process::exit(2);
+        });
+        let mut envelope = LaunchEnvelope::from_json(
+            &value,
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0),
+        )
+        .unwrap_or_else(|e| {
+            eprintln!("launch rejected: {e:?}");
+            std::process::exit(2);
+        });
+        std::process::exit(connected::run_launch(
+            &mut envelope,
+            max_frames,
+            screenshot.as_deref(),
+            auto_walk,
+            assert_zero,
+        ));
     }
 
     if mode.as_deref() == Some("glb-view") {
@@ -371,9 +454,8 @@ fn run_windowed(frames: u64, screenshot: Option<&str>, gpu_stats_json: Option<&s
 #[cfg(not(target_arch = "wasm32"))]
 fn run_ui(frames: u64, screenshot: Option<&str>) {
     use successor_client::hud;
-    use successor_engine_core::input::Key;
     use successor_engine_render::gpu::Gpu;
-    use successor_engine_render::ui::{TextField, UiBuilder};
+    use successor_engine_render::ui::UiBuilder;
     use successor_engine_render::window::{WindowManager, WindowStyle};
     if !successor_platform::init("Successor UI", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
         eprintln!("platform init failed (no display?)");
@@ -387,9 +469,22 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
         .renderer
         .set_ui_atlas(&mut gpu, icons.meta.width, icons.meta.height, &icons.rgba);
     let mut ui = UiBuilder::new(icons.meta);
-    let mut search = TextField::new(48);
     let mut hud_state = hud::HudState::default();
-    let mut win_model = successor_client::windows::WindowModel::sample();
+    let mut toolbar = hud::toolbar::Toolbar::new(hud::toolbar::ToolbarDoc::blank());
+    // Demo-only slot seeding so the bar photographs occupied (connected mode
+    // starts blank per the owner spec and loads the persisted doc).
+    toolbar
+        .doc
+        .assign(0, hud::toolbar::SlotRef::Action("attack".into()));
+    toolbar
+        .doc
+        .assign(1, hud::toolbar::SlotRef::Action("reload".into()));
+    toolbar
+        .doc
+        .assign(4, hud::toolbar::SlotRef::Action("window:inventory".into()));
+    let mut hud_actions: Vec<hud::HudAction> = Vec::with_capacity(8);
+    let mut right_was_down = false;
+    let win_model = successor_client::windows::WindowModel::sample();
     // Register the demo windows with cascaded default bounds + toolbar icons.
     let mut wm = WindowManager::new();
     for (i, (id, title, icon)) in hud::DEMO_WINDOWS.iter().enumerate() {
@@ -407,36 +502,57 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
     // A screenshot run is pointer-less, so seed some open state so the chrome +
     // content + focused text edit are captured; a live run drives them for real.
     if screenshot.is_some() {
-        search.focused = true;
-        for c in "rifle ammo".chars() {
-            search.insert(c);
-        }
         wm.open("loot");
         wm.open("converse");
         wm.open("clone");
         wm.open("craft");
-        hud_state.target = Some(("RAIDER SCOUT".into(), 0.62));
-        hud_state.shield = 72.0;
+        hud_state.connection = hud::ConnectionHud::Live;
+        hud_state.fine_text = "LIVE · 3 IN FIELD".into();
+        hud_state.name = "DEMO OPERATIVE".into();
+        hud_state.health = hud::GaugeHud {
+            value: 88.0,
+            max: 100.0,
+        };
+        hud_state.action = hud::GaugeHud {
+            value: 64.0,
+            max: 120.0,
+        };
+        hud_state.spirit = hud::GaugeHud {
+            value: 100.0,
+            max: 100.0,
+        };
+        hud_state.health_text = "88".into();
+        hud_state.action_text = "64".into();
+        hud_state.spirit_text = "100".into();
+        hud_state.area_label = "OPEN-DESERT".into();
+        hud_state.target = Some(hud::TargetHud {
+            actor_id: "raider".into(),
+            name: "RAIDER SCOUT".into(),
+            relation: hud::RelationHud::Hostile,
+            health: hud::GaugeHud {
+                value: 62.0,
+                max: 100.0,
+            },
+            alive: true,
+            stamp: None,
+            chips: vec![hud::ChipHud {
+                label: "HOSTILE".into(),
+                danger: true,
+            }],
+        });
     }
     let total = frames.max(1);
     let mut frame = 0u64;
-    let mut prev_backspace = false;
     while !successor_platform::should_quit() && frame < total {
         successor_platform::begin_frame();
         scene.animate(frame);
         // Route pointer + text input into the UI.
         let (mx, my) = successor_platform::mouse_position();
         ui.set_input(mx, my, successor_platform::mouse_button_down(0));
-        while let Some(c) = successor_platform::poll_text_input() {
-            if search.focused {
-                search.insert(c);
-            }
-        }
-        let bk = successor_platform::is_key_down(Key::Backspace);
-        if bk && !prev_backspace && search.focused {
-            search.backspace();
-        }
-        prev_backspace = bk;
+        let right_down = successor_platform::mouse_button_down(1);
+        let right_pressed = right_down && !right_was_down;
+        right_was_down = right_down;
+        while successor_platform::poll_text_input().is_some() {}
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
             scene
@@ -447,20 +563,28 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
             // Windows resolve pointer first (topmost consumes drag/close/focus).
             wm.update(&ui, w as u32, h as u32);
             let captured = wm.pointer_captured();
-            if let Some(action) = hud::build_hud(
+            hud_actions.clear();
+            let mut hud_frame = hud::HudFrame {
+                state: &hud_state,
+                toolbar: &mut toolbar,
+                palette: hud::palette(0),
+                now_ms: successor_platform::now_ms().max(0.0) as u64,
+                captured,
+                right_pressed,
+            };
+            hud::build_hud(
                 &mut ui,
                 &icons,
-                &hud_state,
-                &mut search,
-                captured,
+                &mut hud_frame,
                 w as u32,
                 h as u32,
-            ) {
-                // Toolbar buttons that name a window toggle it; others are actions.
-                if hud::DEMO_WINDOWS.iter().any(|(id, _, _)| *id == action) {
-                    wm.toggle(action);
-                } else {
-                    println!("ui action: {action}");
+                &mut hud_actions,
+            );
+            for action in &hud_actions {
+                match action {
+                    hud::HudAction::ToggleWindow(id) => wm.toggle(id),
+                    hud::HudAction::OpenWindow(id) => wm.open(id),
+                    other => println!("ui action: {other:?}"),
                 }
             }
             // Draw open windows back-to-front over the HUD.
@@ -468,6 +592,8 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
             for idx in wm.z_order() {
                 let rect = wm.draw_chrome(&mut ui, idx, style);
                 let id = wm.window_id(idx).to_string();
+                // Demo windows discard emitted intents (no live authority to
+                // route them to); inventory examine selection is window-local.
                 let mut actions = Vec::new();
                 successor_client::windows::content(
                     &mut ui,
@@ -477,11 +603,7 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
                     &icons,
                     &mut actions,
                 );
-                for a in actions {
-                    if let successor_client::windows::WindowAction::Select(item) = a {
-                        win_model.inventory.selected = Some(item);
-                    }
-                }
+                drop(actions);
             }
             scene
                 .renderer
@@ -1477,7 +1599,16 @@ fn arg_value(args: &[String], key: &str) -> Option<String> {
     }
     None
 }
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "dev-tools"))]
+fn environment_flag(name: &str) -> bool {
+    std::env::var(name).ok().is_some_and(|value| {
+        matches!(
+            value.to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "on"
+        )
+    })
+}
+#[cfg(all(not(target_arch = "wasm32"), feature = "dev-tools"))]
 fn configure_automation(args: &[String]) {
     let control_requested =
         args.iter().any(|arg| arg == "--control") || environment_flag("SUCCESSOR_CONTROL");
@@ -1532,16 +1663,6 @@ fn configure_automation(args: &[String]) {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-fn environment_flag(name: &str) -> bool {
-    std::env::var(name).ok().is_some_and(|value| {
-        matches!(
-            value.to_ascii_lowercase().as_str(),
-            "1" | "true" | "yes" | "on"
-        )
-    })
-}
-
 /// Live playable slice: connect to a local authority, project actors, send
 /// movement, render with the GL backend. Native-only. Requires a display and a
 /// running authority; verified by compile/link here and by the headless
@@ -1549,7 +1670,9 @@ fn environment_flag(name: &str) -> bool {
 #[cfg(not(target_arch = "wasm32"))]
 mod connected {
     use serde_json::json;
-    use successor_client::game::combat_fx::CombatEvent;
+    use successor_client::game::actions;
+    use successor_client::game::chat_net::{ChatClient, ChatConnectionState};
+    use successor_client::game::command_queue::CommandQueue;
     use successor_client::game::connected_scene::ConnectedScene;
     use successor_client::game::movement;
     use successor_client_proto::colyseus;
@@ -1561,20 +1684,114 @@ mod connected {
     use successor_engine_render::gpu::Gpu;
     use successor_platform as plat;
 
-    pub fn run(
+    use std::path::PathBuf;
+    use successor_client::net::session::{GameConnection, GameLifecycle, LaunchEnvelope};
+    use successor_client::{App, AppMode};
+    use successor_platform::{NativePlatform, Platform, SettingsScope};
+
+    #[cfg(feature = "dev-tools")]
+    pub fn run_dev(
         endpoint: &str,
         player_id: &str,
         actor_id: &str,
         max_frames: Option<u64>,
         screenshot: Option<&str>,
         auto_walk: bool,
+        assert_zero: bool,
     ) -> i32 {
-        // 1) Colyseus matchmake over HTTP (dev identity; server gates on
-        //    GAME_ALLOW_DEV_IDENTITY=1).
+        run_inner(
+            endpoint,
+            player_id,
+            actor_id,
+            None,
+            None,
+            None,
+            None,
+            max_frames,
+            screenshot,
+            auto_walk,
+            assert_zero,
+        )
+    }
+
+    pub fn run_launch(
+        envelope: &mut LaunchEnvelope,
+        max_frames: Option<u64>,
+        screenshot: Option<&str>,
+        auto_walk: bool,
+        assert_zero: bool,
+    ) -> i32 {
+        let game_ticket = match envelope.consume_game_ticket() {
+            Ok(ticket) => ticket,
+            Err(error) => {
+                eprintln!("game ticket rejected: {error:?}");
+                return 2;
+            }
+        };
+        // Keep this distinct capability only until the chat socket's first
+        // authentication frame; ChatConnection takes it and immediately clears it.
+        let chat_ticket = match envelope.consume_chat_ticket() {
+            Ok(ticket) => ticket,
+            Err(error) => {
+                eprintln!("chat ticket rejected: {error:?}");
+                return 2;
+            }
+        };
+        let endpoint = envelope.game_endpoint.clone();
+        let chat_endpoint = envelope.chat_endpoint.clone();
+        let character = envelope.character_id.clone();
+        run_inner(
+            &endpoint,
+            &character,
+            &character,
+            Some(game_ticket),
+            Some(chat_ticket),
+            Some(chat_endpoint),
+            envelope.shard.as_deref(),
+            max_frames,
+            screenshot,
+            auto_walk,
+            assert_zero,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn run_inner(
+        endpoint: &str,
+        player_id: &str,
+        actor_id: &str,
+        game_ticket: Option<String>,
+        chat_ticket: Option<String>,
+        chat_endpoint: Option<String>,
+        expected_shard: Option<&str>,
+        max_frames: Option<u64>,
+        screenshot: Option<&str>,
+        auto_walk: bool,
+        assert_zero: bool,
+    ) -> i32 {
+        // Ordinary launch carries a one-use ticket; only explicit dev mode
+        // reaches this function without one.
         let http_endpoint = endpoint
             .replacen("wss://", "https://", 1)
             .replacen("ws://", "http://", 1);
-        let opts = json!({ "playerId": player_id, "actorId": actor_id });
+        let opts = if let Some(ticket) = game_ticket.as_deref() {
+            json!({ "characterId": player_id, "gameTicket": ticket })
+        } else {
+            json!({ "playerId": player_id, "actorId": actor_id })
+        };
+        let settings_root = std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(std::env::temp_dir)
+            .join("Library")
+            .join("Application Support")
+            .join("Successor")
+            .join("rust-client");
+        let mut app = App::new(NativePlatform {
+            asset_root: PathBuf::from(".."),
+            settings_root,
+        });
+        app.mode = AppMode::Loading;
+        let mut lifecycle = GameLifecycle::default();
+        lifecycle.begin_matchmake();
         let (url, body) = match colyseus::build_matchmake_request(&http_endpoint, &opts) {
             Ok(v) => v,
             Err(e) => {
@@ -1606,7 +1823,27 @@ mod connected {
         }
         let mut gpu = plat::create_gpu();
         let _ = &mut gpu as &mut dyn Gpu;
-        let mut scene = match ConnectedScene::build(&mut gpu, player_id) {
+        let theme =
+            successor_client::persist::load_section(&app.platform, SettingsScope::Local, "theme");
+        let toolbar =
+            successor_client::persist::load_section(&app.platform, SettingsScope::Local, "toolbar");
+        let split_snap = successor_client::persist::load_section(
+            &app.platform,
+            SettingsScope::Local,
+            "splitSnap",
+        );
+        let waypoints = successor_client::persist::load_section(
+            &app.platform,
+            SettingsScope::Character,
+            "waypoints",
+        );
+        let macros = successor_client::persist::load_section(
+            &app.platform,
+            SettingsScope::Character,
+            "macros",
+        );
+        let mut read_asset = |stable_id: &str| app.platform.read_asset(stable_id).ok();
+        let mut scene = match ConnectedScene::build(&mut gpu, player_id, &mut read_asset) {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("connected scene build failed: {e}");
@@ -1614,7 +1851,43 @@ mod connected {
                 return 1;
             }
         };
+        scene.load_persisted(
+            theme.as_ref(),
+            toolbar.as_ref(),
+            split_snap.as_ref(),
+            waypoints.as_ref(),
+            macros.as_ref(),
+        );
+        let audio_mixer = scene.audio_mixer();
+        let _audio_output = if assert_zero {
+            None
+        } else {
+            Some(plat::AudioOutput::start(
+                successor_client::audio::OUT_RATE,
+                Box::new(move |out| {
+                    audio_mixer
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .mix_into(out);
+                }),
+            ))
+        };
 
+        // Namespace commands with process time and the authenticated player;
+        // movement and verbs never use a synthetic command id.
+        let player_num = player_id
+            .bytes()
+            .fold(2166136261u64, |hash, byte| {
+                (hash ^ byte as u64).wrapping_mul(16777619)
+            })
+            .max(1);
+        let session_num = plat::now_ms().max(1.0) as u64;
+        let command_floor = session_num.saturating_mul(1000).max(1);
+        scene.set_command_queue(CommandQueue::new(
+            successor_net::SessionId(session_num),
+            successor_net::PlayerId(player_num as u32),
+            command_floor,
+        ));
         // 3) Connect + drive.
         let mut ws = match plat::ws_connect(&ws_url) {
             Ok(w) => w,
@@ -1627,16 +1900,68 @@ mod connected {
         let mut sess = Session::new();
         sess.start_connecting();
         let mut buf: Vec<u8> = Vec::with_capacity(64 * 1024);
+        let mut chat_ticket = chat_ticket;
+        let mut chat_client =
+            ChatClient::with_endpoint(128, chat_endpoint.clone().unwrap_or_default());
+        chat_client.connection.begin();
+        let mut chat_ws = chat_endpoint
+            .as_deref()
+            .and_then(|url| match plat::ws_connect(url) {
+                Ok(socket) => Some(socket),
+                Err(error) => {
+                    chat_client.connection.failed(&error);
+                    None
+                }
+            });
         let mut last_intent = (0i32, 0i32, false);
-        let mut cmd_id = 0u64;
+        let mut chat_buf = Vec::with_capacity(64 * 1024);
         let mut view_sent = false;
         let mut frame: u64 = 0;
+        #[cfg(feature = "alloc-count")]
+        let mut connected_frame_allocs = 0u64;
+        #[cfg(feature = "alloc-count")]
+        let mut connected_actor_count = 0usize;
+        #[cfg(feature = "alloc-count")]
+        let mut connected_stable_frames = 0u64;
+        #[cfg(feature = "alloc-count")]
+        let mut connected_alloc_frame = None;
 
         while !plat::should_quit() && max_frames.is_none_or(|m| frame < m) {
             plat::begin_frame();
+            // Chat is deliberately independent: loss degrades only chat while
+            // the authoritative game scene and movement continue rendering.
+            if let Some(socket) = chat_ws.as_mut() {
+                chat_buf.clear();
+                for _ in 0..64 {
+                    match plat::ws_poll(socket, &mut chat_buf) {
+                        plat::WsEvent::Frame(n) => {
+                            let _ =
+                                chat_client.on_incoming(&String::from_utf8_lossy(&chat_buf[..n]));
+                            if chat_client.connection.state == ChatConnectionState::SyncingHistory {
+                                let frame = chat_client.history_request(100);
+                                plat::ws_send(socket, frame.as_bytes());
+                            }
+                        }
+                        plat::WsEvent::None => break,
+                        plat::WsEvent::Open => {
+                            if let Some(frame) =
+                                chat_client.connection.authenticate(&mut chat_ticket)
+                            {
+                                plat::ws_send(socket, frame.as_bytes());
+                            }
+                        }
+                        plat::WsEvent::Closed | plat::WsEvent::Error => {
+                            chat_client.connection.lost();
+                            break;
+                        }
+                    }
+                }
+            }
 
             // Drain socket → session; feed packets into the scene + combat FX.
-            loop {
+            // Bound socket work so a continuously streaming authority cannot
+            // starve input, rendering, status probes, or screenshot acks.
+            for _ in 0..64 {
                 buf.clear();
                 let ev = plat::ws_poll(&mut ws, &mut buf);
                 let (outs, brk) = match ev {
@@ -1650,10 +1975,26 @@ mod connected {
                     match out {
                         SessionOut::SendFrame(f) => plat::ws_send(&mut ws, &f),
                         SessionOut::Emit(SessionEvent::Hello(hello)) => {
-                            scene.on_snapshot(&hello.snapshot)
+                            lifecycle.authenticated();
+                            if let Err(error) =
+                                lifecycle.validate_hello(&hello, None, expected_shard)
+                            {
+                                app.fail(format!("game hello rejected: {error:?}"));
+                                eprintln!("game hello rejected: {error:?}");
+                                return 2;
+                            }
+                            if lifecycle.state != GameConnection::Connected {
+                                app.fail("game lifecycle did not reach Connected");
+                                return 2;
+                            }
+                            app.mode = AppMode::Connected;
+                            scene.on_snapshot(&hello.snapshot);
                         }
-                        SessionOut::Emit(SessionEvent::Packet(pkt)) => {
-                            apply_packet(pkt, &mut scene)
+                        SessionOut::Emit(SessionEvent::Packet(packet)) => {
+                            if let GameServerPacket::Error { code, message } = &packet {
+                                eprintln!("game.error {code}: {message}");
+                            }
+                            scene.apply_server_packet(packet);
                         }
                         SessionOut::Emit(SessionEvent::Error(m)) => eprintln!("session error: {m}"),
                         SessionOut::Emit(SessionEvent::Closed) => eprintln!("session closed"),
@@ -1666,6 +2007,11 @@ mod connected {
                     }
                 }
                 if brk {
+                    if lifecycle.socket_lost().is_none()
+                        && lifecycle.state == GameConnection::Exhausted
+                    {
+                        app.fail("game reconnect exhausted");
+                    }
                     break;
                 }
             }
@@ -1680,38 +2026,178 @@ mod connected {
             }
             scene.handle_tuning_toggle(plat::is_key_down(Key::Backquote));
 
-            // Movement (WASD or --auto-walk); resend a live intent periodically.
+            // Connected input is translated into gameplay actions, then queued
+            // with fresh ids. UI/window keys are consumed by the scene locally.
+            scene.set_move_intent(0, 0, false);
             if sess.state() == SessionState::Ready {
                 let intent = if scene.tuning_open() {
                     (0, 0, false)
                 } else if auto_walk {
                     (0, -1, false)
                 } else {
-                    movement::intent_from_keys(plat::is_key_down)
+                    let (dx, dy, held_sprint) = movement::intent_from_keys(plat::is_key_down);
+                    (dx, dy, held_sprint || scene.sprint_toggled())
                 };
+                let actor_dead = scene
+                    .player_actor()
+                    .is_some_and(|actor| actor.life_state != "alive");
+                let predicted_intent = if actor_dead { (0, 0, false) } else { intent };
+                scene.set_move_intent(predicted_intent.0, predicted_intent.1, predicted_intent.2);
                 let moving = intent != (0, 0, false);
-                if intent != last_intent || (moving && frame.is_multiple_of(6)) {
+                if actor_dead {
+                    if last_intent != (0, 0, false) {
+                        let _ = scene.release_movement(movement::StopReason::Dead);
+                        last_intent = (0, 0, false);
+                    }
+                } else if intent != last_intent || (moving && frame.is_multiple_of(6)) {
                     last_intent = intent;
-                    cmd_id += 1;
-                    let env = movement::move_envelope(
-                        0,
-                        0,
-                        cmd_id,
-                        scene.store.tick,
-                        intent.0,
-                        intent.1,
-                        intent.2,
-                    );
+                    let _ = scene.dispatch_gameplay_action(actions::GameplayAction::Move {
+                        dx: intent.0,
+                        dy: intent.1,
+                        facing: movement::facing_from_intent(intent.0, intent.1),
+                        sprint: intent.2,
+                    });
+                }
+                for key in [
+                    Key::I,
+                    Key::C,
+                    Key::Semicolon,
+                    Key::O,
+                    Key::Tab,
+                    Key::V,
+                    Key::X,
+                    Key::N,
+                    Key::R,
+                    Key::F,
+                    Key::Space,
+                ] {
+                    if let Some(action) = scene.handle_key(key, plat::is_key_down(key)) {
+                        let _ = scene.dispatch_gameplay_action(action);
+                    }
+                }
+                let (mx, my) = plat::mouse_position();
+                if let Some(action) = scene.handle_pointer(
+                    mx,
+                    my,
+                    plat::mouse_button_down(0),
+                    plat::mouse_button_down(1),
+                    scene.pointer_captured(),
+                ) {
+                    let _ = scene.dispatch_gameplay_action(action);
+                }
+                if let Some((_, scroll_y)) = plat::poll_scroll_delta() {
+                    scene.handle_scroll(scroll_y);
+                }
+                while let Some(env) = scene.take_next_command() {
                     if let Ok(SessionOut::SendFrame(f)) = sess.send_command(&env) {
                         plat::ws_send(&mut ws, &f);
                     }
                 }
+            } else if last_intent != (0, 0, false) {
+                let _ = scene.release_movement(movement::StopReason::Disconnected);
+                last_intent = (0, 0, false);
             }
             let _ = plat::is_key_down(Key::Escape);
 
             let (w, h) = plat::framebuffer_size();
+            if w > 0
+                && h > 0
+                && chat_client.connection.state == ChatConnectionState::Online
+                && frame.is_multiple_of(300)
+            {
+                if let Some(socket) = chat_ws.as_mut() {
+                    let ping = chat_client.ping();
+                    plat::ws_send(socket, ping.as_bytes());
+                }
+            }
+            let actor = scene.player_actor();
+            let status = plat::ControlStatusV2 {
+                frame,
+                framebuffer: (w > 0 && h > 0).then_some((w as u32, h as u32)),
+                app_mode: Some(format!("{:?}", app.mode)),
+                game_connection: format!("{:?}", lifecycle.state),
+                chat_connection: match chat_client.connection.state {
+                    ChatConnectionState::Online => "connected",
+                    ChatConnectionState::Connecting
+                    | ChatConnectionState::Authenticating
+                    | ChatConnectionState::SyncingHistory
+                    | ChatConnectionState::Reconnecting => "reconnecting",
+                    ChatConnectionState::Offline
+                    | ChatConnectionState::Degraded
+                    | ChatConnectionState::Exhausted => "degraded",
+                }
+                .into(),
+                shard: scene.shard_id().map(str::to_owned),
+                tick: Some(scene.store.tick),
+                area: scene.area_id().map(str::to_owned),
+                source_hashes: scene.store.source_state_hash.iter().cloned().collect(),
+                player_actor_id: (!scene.store.player_actor_id.is_empty())
+                    .then(|| scene.store.player_actor_id.clone()),
+                player_position: actor.map(|a| (a.x, a.y)),
+                life: actor.map(|a| a.life_state.clone()),
+                selection: scene.selected_actor_id().map(str::to_owned),
+                windows: scene.open_window_ids(),
+                focused_window: scene.focused_window_id(),
+                pending_command_kinds: scene.pending_command_kinds(),
+                last_receipt: scene.store.last_receipt.as_ref().map(|r| {
+                    format!(
+                        "{}:{}",
+                        if r.accepted { "accepted" } else { "rejected" },
+                        r.reason_code.as_deref().unwrap_or("ok")
+                    )
+                }),
+                renderer_degradation_ids: Vec::new(),
+            };
+            plat::publish_control_status(status);
+            #[cfg(feature = "alloc-count")]
+            successor_engine_core::rt::alloc::reset_alloc_count();
             if w > 0 && h > 0 {
-                scene.frame(&mut gpu, w as u32, h as u32, 1.0 / 60.0);
+                let mut read_asset = |stable_id: &str| app.platform.read_asset(stable_id).ok();
+                scene.frame(&mut gpu, w as u32, h as u32, 1.0 / 60.0, &mut read_asset);
+                #[cfg(feature = "alloc-count")]
+                {
+                    let actor_count = scene.actor_count();
+                    if actor_count != connected_actor_count {
+                        connected_actor_count = actor_count;
+                        connected_stable_frames = 0;
+                        connected_frame_allocs = 0;
+                    } else {
+                        connected_stable_frames = connected_stable_frames.saturating_add(1);
+                        if connected_stable_frames > 240 {
+                            let allocations = successor_engine_core::rt::alloc::alloc_count();
+                            connected_frame_allocs = connected_frame_allocs.max(allocations);
+                            if allocations != 0 {
+                                connected_alloc_frame.get_or_insert(frame);
+                            }
+                        }
+                    }
+                }
+            }
+            if let Some(report) = scene.take_bug_report() {
+                if let Ok(SessionOut::SendFrame(frame)) =
+                    sess.send_message("support.bug-report", &report)
+                {
+                    plat::ws_send(&mut ws, &frame);
+                }
+            }
+            let (theme, toolbar, split_snap, waypoints, macros) = scene.take_persisted();
+            for (scope, key, value) in [
+                (SettingsScope::Local, "theme", theme),
+                (SettingsScope::Local, "toolbar", toolbar),
+                (SettingsScope::Local, "splitSnap", split_snap),
+                (SettingsScope::Character, "waypoints", waypoints),
+                (SettingsScope::Character, "macros", macros),
+            ] {
+                if let Some(value) = value {
+                    if let Err(error) = successor_client::persist::store_section(
+                        &mut app.platform,
+                        scope,
+                        key,
+                        value,
+                    ) {
+                        eprintln!("settings save failed for {key}: {error}");
+                    }
+                }
             }
             if let (Some(path), true) = (screenshot, max_frames.is_some_and(|m| frame + 1 == m)) {
                 if w > 0 && h > 0 {
@@ -1726,6 +2212,16 @@ mod connected {
             frame += 1;
         }
 
+        if sess.state() != SessionState::Ready || lifecycle.state != GameConnection::Connected {
+            eprintln!(
+                "connected run failed: session={:?} lifecycle={:?}",
+                sess.state(),
+                lifecycle.state
+            );
+            plat::deinit();
+            return 1;
+        }
+
         let p = scene.player_pos();
         println!(
             "connected summary: actors={} player_pos=({:.2},{:.2},{:.2}) session_state={:?}",
@@ -1735,56 +2231,54 @@ mod connected {
             p.z,
             sess.state()
         );
+        if last_intent != (0, 0, false) {
+            let _ = scene.release_movement(movement::StopReason::ControlReleased);
+            while let Some(env) = scene.take_next_command() {
+                if let Ok(SessionOut::SendFrame(f)) = sess.send_command(&env) {
+                    plat::ws_send(&mut ws, &f);
+                }
+            }
+        }
+        lifecycle.intentional_exit();
+        app.mode = AppMode::Entry;
         if let Ok(SessionOut::SendFrame(f)) = sess.exit_world() {
             plat::ws_send(&mut ws, &f);
+        }
+        if assert_zero {
+            #[cfg(feature = "alloc-count")]
+            {
+                if connected_stable_frames < 240 {
+                    eprintln!(
+                        "CONNECTED ALLOC GATE FAIL: only {connected_stable_frames} stable frames"
+                    );
+                    plat::deinit();
+                    return 1;
+                }
+                println!(
+                    "connected-frame-allocs {connected_frame_allocs} first-frame {:?}",
+                    connected_alloc_frame
+                );
+                if connected_frame_allocs != 0 {
+                    eprintln!(
+                        "CONNECTED ALLOC GATE FAIL: {connected_frame_allocs} steady-state allocations"
+                    );
+                    plat::deinit();
+                    return 1;
+                }
+            }
+            #[cfg(not(feature = "alloc-count"))]
+            {
+                eprintln!("connected allocation probe requires alloc-count");
+                plat::deinit();
+                return 2;
+            }
         }
         plat::deinit();
         0
     }
-
-    /// Route a decoded packet into the scene's authority store + combat FX.
-    fn apply_packet(pkt: GameServerPacket, scene: &mut ConnectedScene) {
-        match pkt {
-            GameServerPacket::Snapshot {
-                snapshot, events, ..
-            } => {
-                scene.on_snapshot(&snapshot);
-                fire_events(scene, &events);
-            }
-            GameServerPacket::Delta { delta, events, .. } => {
-                scene.on_delta(&delta);
-                fire_events(scene, &events);
-            }
-            GameServerPacket::Receipts { events, .. } => fire_events(scene, &events),
-            GameServerPacket::Acks {
-                player_actor,
-                player_position,
-                events,
-                ..
-            } => {
-                if let Some(pa) = player_actor {
-                    scene.on_player_pos(pa.x, pa.y);
-                } else if let Some(pos) = player_position {
-                    scene.on_player_pos(pos.0, pos.1);
-                }
-                if let Some(evs) = events {
-                    fire_events(scene, &evs);
-                }
-            }
-            GameServerPacket::Error { code, message } => eprintln!("game.error {code}: {message}"),
-            _ => {}
-        }
-    }
-
-    fn fire_events(scene: &mut ConnectedScene, events: &[serde_json::Value]) {
-        for jv in events {
-            if let Some(ce) = CombatEvent::from_json(jv) {
-                scene.ingest_combat(&ce);
-            }
-        }
-    }
 }
 
+#[cfg(feature = "dev-tools")]
 fn run_model_corpus() {
     use std::io::Read;
 

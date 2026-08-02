@@ -2,6 +2,9 @@ use crate::colyseus;
 use crate::packets::{self, GameHello, GameServerPacket};
 use serde_json::Value;
 
+// Packet events stay inline: boxing every network packet adds an avoidable
+// allocation on the connected receive path.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum SessionEvent {
     Hello(GameHello),
@@ -209,6 +212,14 @@ impl Session {
         let frame = colyseus::encode_room_message(packets::MSG_GAME_VIEW, view)?;
         Ok(SessionOut::SendFrame(frame))
     }
+    pub fn send_message(
+        &mut self,
+        name: &str,
+        value: &Value,
+    ) -> Result<SessionOut, rmp_serde::encode::Error> {
+        let frame = colyseus::encode_room_message(name, value)?;
+        Ok(SessionOut::SendFrame(frame))
+    }
 
     pub fn exit_world(&mut self) -> Result<SessionOut, rmp_serde::encode::Error> {
         let frame = colyseus::encode_room_message(
@@ -242,5 +253,37 @@ fn strip_nulls(value: &mut Value) {
 impl Default for Session {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use successor_net::{ClientCommand, ClientCommandEnvelope, PlayerId, SessionId};
+
+    #[test]
+    fn command_payload_omits_optional_null_fields() {
+        let envelope = ClientCommandEnvelope {
+            session: SessionId(7),
+            player: PlayerId(9),
+            command_id: 11,
+            issued_at_tick: 13,
+            command: ClientCommand::ReloadWeapon {
+                weapon_id: None,
+                ammo_type: None,
+            },
+        };
+        let mut value = serde_json::to_value(envelope).unwrap();
+        strip_nulls(&mut value);
+        assert_eq!(
+            value,
+            serde_json::json!({
+                "session": 7,
+                "player": 9,
+                "command_id": 11,
+                "issued_at_tick": 13,
+                "command": { "ReloadWeapon": {} }
+            })
+        );
     }
 }

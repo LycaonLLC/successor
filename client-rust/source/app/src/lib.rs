@@ -7,27 +7,145 @@
 #[cfg(not(target_arch = "wasm32"))]
 pub mod audio;
 pub mod demo;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod game;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod glb_scene;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod graphics_tuning;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod hud;
 pub mod material_parity;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod net;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod pawn;
+pub mod persist;
 pub mod render_settings;
 pub mod rss;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod screens;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod windows;
 pub mod world;
+use successor_platform::Platform;
 
+pub struct App<P: Platform> {
+    pub mode: AppMode,
+    pub platform: P,
+    pub settings: RuntimeSettings,
+    pub fatal_error: Option<String>,
+}
+
+/// Renderer-neutral application state. Native and WebGL2 shells only provide
+/// platform services; this state machine owns mode transitions and frame time.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AppMode {
+    Entry,
+    CharacterSelect,
+    Loading,
+    Connected,
+    Fatal,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UiTheme {
+    Signal,
+    Phosphor,
+    Amber,
+    Oxide,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RuntimeSettings {
+    pub mouse_sensitivity: f32,
+    pub orthographic_zoom_percent: u16,
+    pub combat_crosshair: bool,
+    pub ui_theme: UiTheme,
+    pub dust_edge_fog: f32,
+    pub inventory_split_snap: u32,
+    pub toolbar_hotkeys: [u16; 12],
+}
+
+impl Default for RuntimeSettings {
+    fn default() -> Self {
+        Self {
+            mouse_sensitivity: 1.0,
+            orthographic_zoom_percent: 100,
+            combat_crosshair: true,
+            ui_theme: UiTheme::Signal,
+            dust_edge_fog: 0.5,
+            inventory_split_snap: 100,
+            toolbar_hotkeys: [0; 12],
+        }
+    }
+}
+
+impl RuntimeSettings {
+    /// Normalize fields independently; movement remains available even when
+    /// persisted data is corrupt or partially missing.
+    pub fn normalized(mut self) -> Self {
+        if !self.mouse_sensitivity.is_finite() || self.mouse_sensitivity <= 0.0 {
+            self.mouse_sensitivity = 1.0;
+        }
+        if !(55..=125).contains(&self.orthographic_zoom_percent) {
+            self.orthographic_zoom_percent = 100;
+        }
+        if !matches!(self.inventory_split_snap, 1 | 5 | 10 | 100 | 1000 | 10000) {
+            self.inventory_split_snap = 100;
+        }
+        if !self.dust_edge_fog.is_finite() || !(0.0..=1.0).contains(&self.dust_edge_fog) {
+            self.dust_edge_fog = 0.5;
+        }
+        self
+    }
+}
+
+impl<P: Platform> App<P> {
+    pub fn new(platform: P) -> Self {
+        Self {
+            mode: AppMode::Entry,
+            platform,
+            settings: RuntimeSettings::default(),
+            fatal_error: None,
+        }
+    }
+    pub fn fail(&mut self, message: impl Into<String>) {
+        let message = message.into();
+        self.mode = AppMode::Fatal;
+        self.fatal_error = Some(message.clone());
+        self.platform.report_fatal(&message);
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AssetRequirement {
+    Required,
+    Optional,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct AssetSpec {
+    pub stable_id: &'static str,
+    pub requirement: AssetRequirement,
+}
+
+pub struct AssetCatalog {
+    pub specs: &'static [AssetSpec],
+}
+
+impl AssetCatalog {
+    pub fn load<P: Platform>(&self, platform: &P) -> Result<usize, String> {
+        let mut loaded = 0;
+        for spec in self.specs {
+            match platform.read_asset(spec.stable_id) {
+                Ok(_) => loaded += 1,
+                Err(error) if spec.requirement == AssetRequirement::Required => {
+                    return Err(format!(
+                        "required asset {} unavailable: {error:?}",
+                        spec.stable_id
+                    ))
+                }
+                Err(_) => {}
+            }
+        }
+        Ok(loaded)
+    }
+}
 use successor_engine_core::world;
 use successor_engine_render::components::{
     Camera, CompositeQuad, DirectionalLight, MeshRenderer, ModelRef, PointLight, TextOverlay,
@@ -136,9 +254,21 @@ static GLOBAL: successor_engine_core::rt::alloc::CountingAllocator<std::alloc::S
 #[cfg(target_arch = "wasm32")]
 mod web_runtime {
     use crate::demo::{build_scene, Scene};
-    use successor_engine_core::rt::cell::GlobalCell;
-    use successor_platform::GlGpu;
+    use crate::game::actions;
+    use crate::game::command_queue::CommandQueue;
+    use crate::game::connected_scene::ConnectedScene;
+    use crate::game::movement;
+    use crate::net::session::LaunchEnvelope;
+    use serde_json::json;
+    use successor_client_proto::colyseus;
 
+    use successor_client_proto::session::{
+        Session, SessionEvent, SessionOut, SessionState, WsInput,
+    };
+    use successor_engine_core::input::Key;
+    use successor_engine_core::rt::cell::GlobalCell;
+    use successor_net::{PlayerId, SessionId};
+    use successor_platform::GlGpu;
     static GPU: GlobalCell<GlGpu> = GlobalCell::new();
     static SCENE: GlobalCell<Scene> = GlobalCell::new();
     static PARITY_SCENE: GlobalCell<crate::material_parity::Scene> = GlobalCell::new();
@@ -146,11 +276,49 @@ mod web_runtime {
     static DEMO_SELECTOR: GlobalCell<u32> = GlobalCell::new();
     static FRAME: GlobalCell<u64> = GlobalCell::new();
     static SIZE: GlobalCell<(u32, u32)> = GlobalCell::new();
+    static LAUNCH: GlobalCell<LaunchEnvelope> = GlobalCell::new();
+    static CONNECTED_SCENE: GlobalCell<ConnectedScene> = GlobalCell::new();
+    static CONNECTED_DT: GlobalCell<f32> = GlobalCell::new();
+    static VIEW_SENT: GlobalCell<bool> = GlobalCell::new();
+    static LAST_MOVE: GlobalCell<(i32, i32, bool)> = GlobalCell::new();
+    static FATAL: GlobalCell<bool> = GlobalCell::new();
+
+    fn read_web_asset(stable_id: &str) -> Option<Vec<u8>> {
+        if stable_id.is_empty() || stable_id.contains("..") || stable_id.starts_with('/') {
+            return None;
+        }
+        let path = if stable_id.starts_with("assets/") {
+            stable_id.to_string()
+        } else if let Some(path) = stable_id.strip_prefix("successor-slice/") {
+            format!("successor-slice/{path}")
+        } else if let Some(path) = stable_id.strip_prefix("render/") {
+            format!("render/{path}")
+        } else {
+            return None;
+        };
+        successor_platform::http_get(&path).ok()
+    }
 
     #[no_mangle]
     pub extern "C" fn init(demo_selector: u32) {
         crate::initialize_render_settings();
         successor_platform::init("Successor", 1280, 720);
+        DEMO_SELECTOR.set(demo_selector);
+        if demo_selector == 0 {
+            let bytes = successor_platform::web::launch_context()
+                .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok())
+                .and_then(|v| {
+                    LaunchEnvelope::from_json(&v, successor_platform::now_ms() as u64).ok()
+                });
+            if let Some(envelope) = bytes {
+                LAUNCH.set(envelope);
+            } else {
+                FATAL.set(true);
+                successor_engine_core::rt::log::log_str(
+                    "fatal launch: missing or invalid launch context",
+                );
+            }
+        }
         let mut gpu = successor_platform::create_gpu();
         if demo_selector == 1 {
             let assets = [
@@ -179,6 +347,32 @@ mod web_runtime {
             let mut scene = crate::world::chunks::TerrainScene::build(&mut gpu, biome);
             scene.use_material_detail_view();
             TERRAIN_SCENE.set(scene);
+        } else if demo_selector == 0 {
+            let player_id = LAUNCH
+                .get_mut()
+                .map(|launch| launch.character_id.clone())
+                .unwrap_or_default();
+            let mut read_asset = read_web_asset;
+            match ConnectedScene::build(&mut gpu, &player_id, &mut read_asset) {
+                Ok(mut scene) => {
+                    let session = successor_platform::now_ms().max(1.0) as u64;
+                    let player = player_id.bytes().fold(2_166_136_261u32, |hash, byte| {
+                        (hash ^ byte as u32).wrapping_mul(16_777_619)
+                    });
+                    scene.set_command_queue(CommandQueue::new(
+                        SessionId(session),
+                        PlayerId(player.max(1)),
+                        session.saturating_mul(1000),
+                    ));
+                    CONNECTED_SCENE.set(scene);
+                    VIEW_SENT.set(false);
+                    LAST_MOVE.set((0, 0, false));
+                }
+                Err(error) => {
+                    FATAL.set(true);
+                    successor_engine_core::rt::log::log_str(&error);
+                }
+            }
         } else {
             SCENE.set(build_scene(&mut gpu));
         }
@@ -194,19 +388,73 @@ mod web_runtime {
     }
 
     #[no_mangle]
-    pub extern "C" fn update(_dt_ms: f32) {
-        let f = FRAME
+    pub extern "C" fn update(dt: f32) {
+        let frame = FRAME
             .get_mut()
-            .map(|f| {
-                *f += 1;
-                *f
+            .map(|frame| {
+                *frame += 1;
+                *frame
             })
             .unwrap_or(0);
-        if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) == 0 {
-            if let Some(scene) = SCENE.get_mut() {
-                scene.animate(f);
+        CONNECTED_DT.set(dt.clamp(0.0, 0.1));
+        if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) != 0 {
+            return;
+        }
+        let Some(scene) = CONNECTED_SCENE.get_mut() else {
+            return;
+        };
+        let ready = SESSION
+            .get_mut()
+            .is_some_and(|session| session.state() == SessionState::Ready);
+        if !ready {
+            scene.set_move_intent(0, 0, false);
+            return;
+        }
+
+        let (dx, dy, held_sprint) = movement::intent_from_keys(successor_platform::is_key_down);
+        let intent = (dx, dy, held_sprint || scene.sprint_toggled());
+        scene.set_move_intent(intent.0, intent.1, intent.2);
+        let last = LAST_MOVE.get_mut().copied().unwrap_or((0, 0, false));
+        if intent != last || (intent != (0, 0, false) && frame.is_multiple_of(6)) {
+            LAST_MOVE.set(intent);
+            let _ = scene.dispatch_gameplay_action(actions::GameplayAction::Move {
+                dx: intent.0,
+                dy: intent.1,
+                facing: movement::facing_from_intent(intent.0, intent.1),
+                sprint: intent.2,
+            });
+        }
+        for key in [
+            Key::I,
+            Key::C,
+            Key::Semicolon,
+            Key::O,
+            Key::Tab,
+            Key::V,
+            Key::X,
+            Key::N,
+            Key::R,
+            Key::F,
+            Key::Space,
+        ] {
+            if let Some(action) = scene.handle_key(key, successor_platform::is_key_down(key)) {
+                let _ = scene.dispatch_gameplay_action(action);
             }
         }
+        let (mouse_x, mouse_y) = successor_platform::mouse_position();
+        if let Some(action) = scene.handle_pointer(
+            mouse_x,
+            mouse_y,
+            successor_platform::mouse_button_down(0),
+            successor_platform::mouse_button_down(1),
+            scene.pointer_captured(),
+        ) {
+            let _ = scene.dispatch_gameplay_action(action);
+        }
+        if let Some((_, scroll_y)) = successor_platform::poll_scroll_delta() {
+            scene.handle_scroll(scroll_y);
+        }
+        flush_scene_commands();
     }
 
     #[no_mangle]
@@ -226,6 +474,12 @@ mod web_runtime {
                         .renderer
                         .render(gpu, &mut scene.world, w, h)
                         .expect("terrain render failed");
+                }
+            } else if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) == 0 {
+                if let Some(scene) = CONNECTED_SCENE.get_mut() {
+                    let dt = CONNECTED_DT.get_mut().copied().unwrap_or(1.0 / 60.0);
+                    let mut read_asset = read_web_asset;
+                    scene.frame(gpu, w, h, dt, &mut read_asset);
                 }
             } else if let Some(scene) = SCENE.get_mut() {
                 scene
@@ -279,22 +533,36 @@ mod web_runtime {
     // target-agnostic; here they run on the browser WebSocket/fetch shim
     // (`platform::web::net`). JS drives `net_connect` once, then `net_poll` each
     // frame; `net_state` exposes the handshake state for the page.
-    use serde_json::json;
-    use successor_client_proto::colyseus;
-    use successor_client_proto::session::{Session, SessionOut, WsInput};
 
     static SESSION: GlobalCell<Session> = GlobalCell::new();
     static WS: GlobalCell<successor_platform::WsHandle> = GlobalCell::new();
 
     #[no_mangle]
     pub extern "C" fn net_connect() {
-        // Dev endpoint; the server gates on GAME_ALLOW_DEV_IDENTITY. A
-        // configurable endpoint from the page lands with the connect-URL wiring.
-        let endpoint = "ws://127.0.0.1:28093";
+        let envelope = match LAUNCH.get_mut() {
+            Some(envelope) => envelope,
+            None => return,
+        };
+        let game_ticket = match envelope.consume_game_ticket() {
+            Ok(ticket) => ticket,
+            Err(_) => return,
+        };
+        let endpoint = envelope.game_endpoint.clone();
         let http = endpoint
             .replacen("wss://", "https://", 1)
             .replacen("ws://", "http://", 1);
-        let opts = json!({ "playerId": "dev-1", "actorId": "dev-1" });
+        let opts = if game_ticket == "dev-identity" {
+            json!({
+                "playerId": envelope.character_id,
+                "actorId": envelope.character_id,
+            })
+        } else {
+            json!({
+                "characterId": envelope.character_id,
+                "gameTicket": game_ticket,
+                "release": envelope.client_release,
+            })
+        };
         let (url, body) = match colyseus::build_matchmake_request(&http, &opts) {
             Ok(v) => v,
             Err(_) => return,
@@ -307,7 +575,7 @@ mod web_runtime {
             Ok(s) => s,
             Err(_) => return,
         };
-        let ws_url = colyseus::build_ws_url(endpoint, &seat);
+        let ws_url = colyseus::build_ws_url(&endpoint, &seat);
         if let Ok(ws) = successor_platform::ws_connect(&ws_url) {
             let mut s = Session::new();
             s.start_connecting();
@@ -315,42 +583,96 @@ mod web_runtime {
             WS.set(ws);
         }
     }
-
     #[no_mangle]
-    pub extern "C" fn net_poll() {
-        let (sess, ws) = match (SESSION.get_mut(), WS.get_mut()) {
-            (Some(s), Some(w)) => (s, w),
-            _ => return,
-        };
-        let mut buf: Vec<u8> = Vec::new();
-        loop {
-            buf.clear();
-            let ev = successor_platform::ws_poll(ws, &mut buf);
-            let outs = match ev {
-                successor_platform::WsEvent::Open => sess.on_ws_event(WsInput::Open),
-                successor_platform::WsEvent::Frame(n) => {
-                    sess.on_ws_event(WsInput::Frame(&buf[..n]))
+    pub extern "C" fn context_restored() {
+        let player_id = LAUNCH
+            .get_mut()
+            .map(|launch| launch.character_id.clone())
+            .unwrap_or_default();
+        let mut gpu = successor_platform::create_gpu();
+        let mut read_asset = read_web_asset;
+        match ConnectedScene::build(&mut gpu, &player_id, &mut read_asset) {
+            Ok(mut rebuilt) => {
+                if let Some(previous) = CONNECTED_SCENE.get_mut() {
+                    rebuilt.restore_projection_from(previous);
                 }
-                successor_platform::WsEvent::Closed => {
-                    let o = sess.on_ws_event(WsInput::Closed);
-                    send_frames(ws, o);
-                    break;
-                }
-                successor_platform::WsEvent::Error => {
-                    let o = sess.on_ws_event(WsInput::Error("ws error"));
-                    send_frames(ws, o);
-                    break;
-                }
-                successor_platform::WsEvent::None => break,
-            };
-            send_frames(ws, outs);
+                CONNECTED_SCENE.set(rebuilt);
+                GPU.set(gpu);
+                successor_engine_core::rt::log::log_str("webgl context restored");
+            }
+            Err(error) => {
+                FATAL.set(true);
+                successor_engine_core::rt::log::log_str(&error);
+            }
         }
     }
 
-    fn send_frames(ws: &mut successor_platform::WsHandle, outs: Vec<SessionOut>) {
-        for o in outs {
-            if let SessionOut::SendFrame(f) = o {
-                successor_platform::ws_send(ws, &f);
+    #[no_mangle]
+    pub extern "C" fn net_poll() {
+        let (session, socket) = match (SESSION.get_mut(), WS.get_mut()) {
+            (Some(session), Some(socket)) => (session, socket),
+            _ => return,
+        };
+        let mut buffer = Vec::with_capacity(64 * 1024);
+        for _ in 0..64 {
+            buffer.clear();
+            let event = successor_platform::ws_poll(socket, &mut buffer);
+            let (outputs, stop) = match event {
+                successor_platform::WsEvent::Open => (session.on_ws_event(WsInput::Open), false),
+                successor_platform::WsEvent::Frame(length) => (
+                    session.on_ws_event(WsInput::Frame(&buffer[..length])),
+                    false,
+                ),
+                successor_platform::WsEvent::Closed => (session.on_ws_event(WsInput::Closed), true),
+                successor_platform::WsEvent::Error => {
+                    (session.on_ws_event(WsInput::Error("ws error")), true)
+                }
+                successor_platform::WsEvent::None => break,
+            };
+            for output in outputs {
+                match output {
+                    SessionOut::SendFrame(frame) => successor_platform::ws_send(socket, &frame),
+                    SessionOut::Emit(SessionEvent::Hello(hello)) => {
+                        if let Some(scene) = CONNECTED_SCENE.get_mut() {
+                            scene.on_snapshot(&hello.snapshot);
+                        }
+                    }
+                    SessionOut::Emit(SessionEvent::Packet(packet)) => {
+                        if let Some(scene) = CONNECTED_SCENE.get_mut() {
+                            scene.apply_server_packet(packet);
+                        }
+                    }
+                    SessionOut::Emit(SessionEvent::Error(message)) => {
+                        FATAL.set(true);
+                        successor_engine_core::rt::log::log_str(&message);
+                    }
+                    SessionOut::Emit(SessionEvent::Closed)
+                    | SessionOut::Emit(SessionEvent::ReconnectAttempt { .. }) => {}
+                }
+            }
+            if stop {
+                break;
+            }
+        }
+        if session.state() == SessionState::Ready && !VIEW_SENT.get_mut().copied().unwrap_or(false)
+        {
+            let view = json!({ "viewport_width_cells": 96, "viewport_height_cells": 96, "margin_cells": 32 });
+            if let Ok(SessionOut::SendFrame(frame)) = session.send_view(&view) {
+                successor_platform::ws_send(socket, &frame);
+                VIEW_SENT.set(true);
+            }
+        }
+    }
+
+    fn flush_scene_commands() {
+        let (scene, session, socket) =
+            match (CONNECTED_SCENE.get_mut(), SESSION.get_mut(), WS.get_mut()) {
+                (Some(scene), Some(session), Some(socket)) => (scene, session, socket),
+                _ => return,
+            };
+        while let Some(envelope) = scene.take_next_command() {
+            if let Ok(SessionOut::SendFrame(frame)) = session.send_command(&envelope) {
+                successor_platform::ws_send(socket, &frame);
             }
         }
     }
@@ -359,5 +681,10 @@ mod web_runtime {
     #[no_mangle]
     pub extern "C" fn net_state() -> u32 {
         SESSION.get_mut().map(|s| s.state() as u32).unwrap_or(0)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn net_fatal() -> u32 {
+        FATAL.get_mut().copied().unwrap_or(false) as u32
     }
 }

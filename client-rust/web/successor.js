@@ -4,27 +4,31 @@
 const canvas = document.getElementById("app");
 const gl = canvas.getContext("webgl2");
 
+let webglContextLost = false;
+canvas.addEventListener("webglcontextlost", e => {
+    e.preventDefault();
+    webglContextLost = true;
+    window.__successorRenderError = "WebGL context lost; reconnecting renderer";
+});
+canvas.addEventListener("webglcontextrestored", () => {
+    webglContextLost = false;
+    window.__successorRenderError = null;
+    if (typeof wasmExports.context_restored === "function") wasmExports.context_restored();
+});
 if (!gl) {
     console.error("WebGL2 is not supported by this browser.");
 }
 
-// Input state tracking
-const keyState = new Uint8Array(14);
+// Input state tracking. Indices are the stable engine-core Key discriminants.
+const keyState = new Uint8Array(34);
 const keyMap = {
-    "KeyW": 0,
-    "KeyA": 1,
-    "KeyS": 2,
-    "KeyD": 3,
-    "ArrowUp": 4,
-    "ArrowDown": 5,
-    "ArrowLeft": 6,
-    "ArrowRight": 7,
-    "Space": 8,
-    "Enter": 9,
-    "Escape": 10,
-    "Backspace": 11,
-    "ShiftLeft": 12,
-    "Backquote": 13
+    "KeyW": 0, "KeyA": 1, "KeyS": 2, "KeyD": 3,
+    "ArrowUp": 4, "ArrowDown": 5, "ArrowLeft": 6, "ArrowRight": 7,
+    "Space": 8, "Enter": 9, "Escape": 10, "Backspace": 11,
+    "ShiftLeft": 12, "Backquote": 13, "KeyR": 14, "KeyF": 15,
+    "KeyI": 16, "KeyC": 17, "Semicolon": 18, "KeyO": 19,
+    "Tab": 20, "KeyV": 21, "KeyX": 22, "KeyN": 23,
+    ...Object.fromEntries(Array.from({length: 10}, (_, i) => [`Digit${i}`, 24 + i]))
 };
 
 window.addEventListener("keydown", (e) => {
@@ -45,6 +49,21 @@ window.addEventListener("blur", () => {
     keyState.fill(0);
 });
 
+let mouseX = 0, mouseY = 0;
+const mouseButtons = new Uint8Array(3);
+canvas.addEventListener("pointermove", e => {
+    const r = canvas.getBoundingClientRect();
+    mouseX = (e.clientX - r.left) * canvas.width / r.width;
+    mouseY = (r.bottom - e.clientY) * canvas.height / r.height;
+});
+canvas.addEventListener("pointerdown", e => {
+    if (e.button < mouseButtons.length) mouseButtons[e.button] = 1;
+    // A gesture is the only legal point at which web audio may start.
+    audioUnlock();
+});
+canvas.addEventListener("pointerup", e => {
+    if (e.button < mouseButtons.length) mouseButtons[e.button] = 0;
+});
 const charQueue = [];
 window.addEventListener("keypress", (e) => {
     if (e.key.length === 1) {
@@ -54,12 +73,47 @@ window.addEventListener("keypress", (e) => {
 
 // Resource table: WebGL objects referenced by integer ID from WASM.
 // Index 0 = null/invalid.
+
+let scrollX = 0;
+let scrollY = 0;
+window.addEventListener("wheel", (e) => {
+    scrollX += e.deltaX;
+    scrollY += e.deltaY;
+}, { passive: true });
 const glResources = [null];
 
 function glAlloc(obj) {
     glResources.push(obj);
     return glResources.length - 1;
 }
+
+let launchContextText = (() => {
+    const supplied = window.__SUCCESSOR_LAUNCH_CONTEXT;
+    if (typeof supplied === "string" && supplied.trim()) return supplied;
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("launchContext") || params.get("launch");
+    if (!raw) return "";
+    try {
+        return params.has("launchContext") ? decodeURIComponent(raw) : atob(raw);
+    } catch (_) {
+        return raw;
+    }
+})();
+window.addEventListener("message", event => {
+    const value = event.data?.launchContext ?? event.data;
+    if (typeof value === "string" && value.includes("successor.launch-context.v1")) {
+        launchContextText = value;
+    }
+});
+let audioContext = null;
+function audioUnlock() {
+    if (!audioContext) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) audioContext = new Ctx();
+    }
+    if (audioContext && audioContext.state === "suspended") audioContext.resume();
+}
+window.__successorAudioState = () => audioContext?.state ?? "locked";
 
 function glGet(id) {
     return id > 0 && id < glResources.length ? glResources[id] : null;
@@ -232,9 +286,11 @@ const importObject = {
         },
         glGenerateMipmap: (target) => gl.generateMipmap(target),
         glCapHalfFloatTarget: () => {
-            if (new URLSearchParams(location.search).has("disable-half-float")) return 0;
-            return (gl.getExtension("EXT_color_buffer_float") ||
-                gl.getExtension("EXT_color_buffer_half_float")) ? 1 : 0;
+            const disabled = new URLSearchParams(location.search).has("disable-half-float");
+            const supported = Boolean(gl.getExtension("EXT_color_buffer_float") ||
+                gl.getExtension("EXT_color_buffer_half_float"));
+            window.__successorHalfFloatTarget = supported && !disabled;
+            return window.__successorHalfFloatTarget ? 1 : 0;
         },
 
         // --- Window/Input/Time Functions ---
@@ -254,15 +310,32 @@ const importObject = {
             w_arr[0] = canvas.width;
             h_arr[0] = canvas.height;
         },
+        js_get_mouse_x: () => mouseX,
+        js_get_mouse_y: () => mouseY,
+        js_mouse_button_down: (button) => button < mouseButtons.length ? mouseButtons[button] : 0,
+        js_launch_context_len: () => new TextEncoder().encode(launchContextText).length,
+        js_launch_context_copy: (ptr, maxLen) => {
+            const bytes = new TextEncoder().encode(launchContextText);
+            const len = Math.min(bytes.length, maxLen);
+            new Uint8Array(wasmMemory.buffer, ptr, len).set(bytes.subarray(0, len));
+            return len;
+        },
+        js_audio_unlock: () => audioUnlock(),
         js_now_ms: () => performance.now(),
         js_is_key_down: (key) => {
-            return key < 13 ? keyState[key] : 0;
+            return key < keyState.length ? keyState[key] : 0;
         },
         js_set_cursor_visible: (visible) => {
             canvas.style.cursor = visible ? "default" : "none";
         },
         js_poll_char: () => {
             return charQueue.length > 0 ? charQueue.shift() : -1;
+        },
+        js_poll_scroll_x: () => {
+            const value = scrollX; scrollX = 0; return value;
+        },
+        js_poll_scroll_y: () => {
+            const value = scrollY; scrollY = 0; return value;
         },
 
         // --- WebSocket & Fetch Functions ---
@@ -374,13 +447,15 @@ const importObject = {
                 if (!bytes) {
                     const xhr = new XMLHttpRequest();
                     xhr.open("GET", url, false); // synchronous
-                    xhr.responseType = "arraybuffer";
+                    xhr.overrideMimeType("text/plain; charset=x-user-defined");
                     xhr.send(null);
                     if (xhr.status !== 200) {
                         console.error("fetch_get error status:", xhr.status, url);
                         return -1;
                     }
-                    bytes = new Uint8Array(xhr.response);
+                    const text = xhr.responseText;
+                    bytes = new Uint8Array(text.length);
+                    for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i) & 0xff;
                     cache.set(url, bytes);
                 }
                 if (outMaxLen > 0 && outPtr !== 0) {
@@ -468,13 +543,25 @@ fetch("successor.wasm")
                 if (typeof wasmExports.net_poll === "function" && demoSelector === 0) {
                     wasmExports.net_poll();
                 }
-                if (typeof wasmExports.update === "function") {
-                    wasmExports.update(dt);
-                }
-                if (typeof wasmExports.render === "function") {
-                    wasmExports.render();
+                if (!webglContextLost) {
+                    if (typeof wasmExports.update === "function") {
+                        wasmExports.update(dt);
+                    }
+                    if (typeof wasmExports.render === "function") {
+                        wasmExports.render();
+                    }
                 }
                 renderedFrames += 1;
+                if (demoSelector === 0 && typeof wasmExports.net_state === "function") {
+                    const state = wasmExports.net_state();
+                    window.__successorNetState = state;
+                    if (state === 4 && renderedFrames > 2) {
+                        window.__successorRenderReady = true;
+                    }
+                    if (typeof wasmExports.net_fatal === "function" && wasmExports.net_fatal() === 1) {
+                        throw new Error("connected runtime entered fatal state");
+                    }
+                }
                 if (demoSelector === 1 && renderedFrames === 120 && typeof wasmExports.probe_material_parity === "function") {
                     const passed = wasmExports.probe_material_parity();
                     window.__successorRenderProbe = {

@@ -306,6 +306,32 @@ pub enum ClientCommand {
         variant_id: u32,
         quantity: i32,
     },
+    /// Coordinator-owned travel ticket purchase. Execution remains in the
+    /// TypeScript shard coordinator; the Rust client only submits the command.
+    PurchaseTravelTicket {
+        terminal_prop_id: String,
+        to_planet_id: String,
+        to_city_id: String,
+    },
+    /// Consume a coordinator-issued travel ticket.
+    UseTravelTicket {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        container: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        stack_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        ticket_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        item_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        item_numeric_id: Option<u32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        variant_id: Option<u32>,
+    },
+    /// Coordinator-owned door toggle.
+    ToggleDoor {
+        prop_id: String,
+    },
     CraftItem {
         schematic_id: String,
         experiment_power: u8,
@@ -632,7 +658,7 @@ impl ClientCommand {
             Self::RefillAmmo { .. } => 7,
             Self::ApplyServiceBuff { .. } => 5,
             Self::CloneRespawn { .. } => 6,
-            Self::ReviveActor { .. } => 24,
+            Self::ReviveActor { .. } => 10,
             Self::BankStoreItem { .. } => 130,
             Self::BankRetrieveItem { .. } => 131,
             Self::BankDepositCredits { .. } => 132,
@@ -656,6 +682,9 @@ impl ClientCommand {
             Self::RedeemCreditChip { .. } => 94,
             Self::HarvestCorpse { .. } => 9,
             Self::TakeLootItem { .. } => 37,
+            Self::PurchaseTravelTicket { .. } => 155,
+            Self::UseTravelTicket { .. } => 156,
+            Self::ToggleDoor { .. } => 157,
             Self::CraftItem { .. } => 11,
             Self::CraftBegin { .. } => 48,
             Self::CraftAssignSlot { .. } => 49,
@@ -734,6 +763,13 @@ impl ClientCommand {
             Self::GuildRescindWar { .. } => 148,
             Self::GuildDisband {} => 149,
         }
+    }
+    /// Debug-only commands are never valid on a production capability path.
+    pub const fn is_debug_only(&self) -> bool {
+        matches!(
+            self,
+            Self::DebugGiveItem { .. } | Self::DebugGrantSkillBoxes { .. }
+        )
     }
     pub fn write_to(&self, w: &mut StateWriter) {
         match self {
@@ -981,6 +1017,36 @@ impl ClientCommand {
                 w.write_u32(*item_id)
                     .write_u32(*variant_id)
                     .write_i64(i64::from(*quantity));
+            }
+            Self::PurchaseTravelTicket {
+                terminal_prop_id,
+                to_planet_id,
+                to_city_id,
+            } => {
+                w.write_u32(self.wire_tag());
+                write_string(w, terminal_prop_id);
+                write_string(w, to_planet_id);
+                write_string(w, to_city_id);
+            }
+            Self::UseTravelTicket {
+                container,
+                stack_id,
+                ticket_id,
+                item_id,
+                item_numeric_id,
+                variant_id,
+            } => {
+                w.write_u32(self.wire_tag());
+                write_optional_string(w, container.as_deref());
+                write_optional_string(w, stack_id.as_deref());
+                write_optional_string(w, ticket_id.as_deref());
+                write_optional_string(w, item_id.as_deref());
+                w.write_u32(item_numeric_id.unwrap_or(0));
+                w.write_u32(variant_id.map(|v| v.saturating_add(1)).unwrap_or(0));
+            }
+            Self::ToggleDoor { prop_id } => {
+                w.write_u32(self.wire_tag());
+                write_string(w, prop_id);
             }
             Self::CraftItem {
                 schematic_id,
@@ -2243,9 +2309,9 @@ mod tests {
             119, 54, 55, 56, 18, 97, 19, 25, 12, 13, 14, 15, 16, 63, 64, 65, 66, 38, 39, 57, 58,
             59, 60, 61, 62, 90, 91, 92, 93, 136, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 69, 70,
             71, 72, 73, 74, 75, 76, 77, 78, 79, 150, 96, 137, 138, 139, 140, 141, 142, 143, 144,
-            145, 146, 147, 148, 149,
+            145, 146, 147, 148, 149, 155, 156, 157,
         ];
-        assert_eq!(EXPECTED_WIRE_TAGS.len(), 110);
+        assert_eq!(EXPECTED_WIRE_TAGS.len(), 113);
         let unique = EXPECTED_WIRE_TAGS
             .iter()
             .copied()

@@ -41,6 +41,7 @@ pub fn command_kind(command: &ClientCommand) -> String {
         .unwrap_or_default()
 }
 
+#[derive(Clone)]
 pub struct CommandQueue {
     session: SessionId,
     player: PlayerId,
@@ -62,18 +63,35 @@ impl CommandQueue {
         }
     }
 
-    /// Enqueue a command; returns its assigned command id.
+    fn is_move(command: &ClientCommand) -> bool {
+        matches!(command, ClientCommand::SetMoveIntent { .. })
+    }
+
+    /// Enqueue a command; returns its assigned command id. A queued movement
+    /// heartbeat is superseded by the latest intent while another command is
+    /// in flight, keeping held movement bounded during authority latency.
     pub fn enqueue(&mut self, command: ClientCommand, issued_at_tick: u64) -> u64 {
         let command_id = self.next_id;
         self.next_id += 1;
         self.total_queued += 1;
-        self.pending.push(ClientCommandEnvelope {
+        let envelope = ClientCommandEnvelope {
             session: self.session,
             player: self.player,
             command_id,
             issued_at_tick,
             command,
-        });
+        };
+        if Self::is_move(&envelope.command) {
+            if let Some(index) = self
+                .pending
+                .iter()
+                .rposition(|pending| Self::is_move(&pending.command))
+            {
+                self.pending[index] = envelope;
+                return command_id;
+            }
+        }
+        self.pending.push(envelope);
         command_id
     }
 
@@ -146,6 +164,20 @@ impl CommandQueue {
     pub fn in_flight(&self) -> Option<&ClientCommandEnvelope> {
         self.in_flight.as_ref()
     }
+    /// Retain unsettled commands across reconnect and replay them idempotently.
+    pub fn reconcile_reconnect(&mut self) {
+        let _ = self.defer_in_flight();
+    }
+
+    pub fn settle_many(&mut self, command_ids: impl IntoIterator<Item = u64>) {
+        for id in command_ids {
+            self.settle(id);
+        }
+    }
+
+    pub fn pending_envelopes(&self) -> impl Iterator<Item = &ClientCommandEnvelope> {
+        self.pending.iter().chain(self.in_flight.iter())
+    }
 }
 
 #[cfg(test)]
@@ -199,6 +231,41 @@ mod tests {
             "high-priority CloneRespawn first"
         );
         assert_eq!(order[1].command_id, 1000);
+    }
+    #[test]
+    fn queued_movement_is_coalesced_while_receipt_is_delayed() {
+        let mut q = q();
+        let first = q.enqueue(
+            ClientCommand::SetMoveIntent {
+                dx: 1,
+                dy: 0,
+                facing: None,
+                sprint: false,
+            },
+            1,
+        );
+        assert_eq!(q.take_next().unwrap().command_id, first);
+        q.enqueue(
+            ClientCommand::SetMoveIntent {
+                dx: 1,
+                dy: 0,
+                facing: None,
+                sprint: false,
+            },
+            2,
+        );
+        let latest = q.enqueue(
+            ClientCommand::SetMoveIntent {
+                dx: 0,
+                dy: -1,
+                facing: None,
+                sprint: true,
+            },
+            3,
+        );
+        assert_eq!(q.pending_len(), 1);
+        assert!(q.settle(first));
+        assert_eq!(q.take_next().unwrap().command_id, latest);
     }
 
     #[test]

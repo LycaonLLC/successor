@@ -9,21 +9,24 @@ WASM_STRIP := $(shell command -v wasm-strip || command -v llvm-strip || echo /op
 STATS_JSON := out/stats.json
 RENDER_STATS_JSON := out/material-parity-gpu.json
 TERRAIN_STATS_JSON := out/terrain-material-gpu.json
-
 NATIVE_BIN := out/bin/successor
+DEV_BIN := target/release/successor
 CONTROL_BIN := out/bin/successor-control
+
+DEV_FEATURES := --features dev-tools
 
 WASM_OUT := out/web/successor.wasm
 NATIVE_STRIPPED := /tmp/successor-port/successor
 WASM_STRIPPED := /tmp/successor-port/successor.wasm
 
 .PHONY: all native web run serve strip-port size-check bench bench-check \
-        bench-baseline check-allocs runtime-check render-check terrain-check model-check test-unit nostd verify clean
+        bench-baseline check-allocs connected-check-allocs runtime-check render-check terrain-check model-check test-unit nostd verify clean
 
 all: native web
 
 native:
-	$(CARGO) build --release -p successor-client --bin successor --bin successor-control
+	$(CARGO) build --release -p successor-client --bin successor
+	$(CARGO) build --release -p successor-client --bin successor-control $(DEV_FEATURES)
 	mkdir -p out/bin
 	cp target/release/successor $(NATIVE_BIN)
 	cp target/release/successor-control $(CONTROL_BIN)
@@ -41,6 +44,10 @@ web:
 	cp ../client-3d/public/assets/wave-props/everyday-wave-20260719/prepared-foods/successor_food_beer_mug.glb out/web/parity-assets/
 	cp ../client-3d/public/assets/items/custom/accessories/field_cap.glb out/web/parity-assets/
 	cp ../client-3d/public/assets/world-items/megalith_brick_hex.glb out/web/parity-assets/
+	mkdir -p out/web/assets out/web/successor-slice out/web/render
+	cp -R ../client-3d/public/assets/. out/web/assets/
+	cp -R ../client/public/successor-slice/. out/web/successor-slice/
+	cp ../client-3d/src/render/props-mapping.json out/web/render/
 
 run: native
 	./$(NATIVE_BIN) $(ARGS)
@@ -61,8 +68,9 @@ strip-port: all
 	strip -x $(NATIVE_STRIPPED) 2>/dev/null || strip $(NATIVE_STRIPPED)
 	$(WASM_STRIP) --strip-all $(WASM_STRIPPED) 2>/dev/null || wasm-strip $(WASM_STRIPPED)
 
-model-check: native
-	git -C .. ls-files -z -- '*.glb' '*.gltf' '*.obj' '*.fbx' '*.blend' | ./$(NATIVE_BIN) --model-corpus
+model-check:
+	$(CARGO) build --release -p successor-client --bin successor $(DEV_FEATURES)
+	git -C .. ls-files -z -- '*.glb' '*.gltf' '*.obj' '*.fbx' '*.blend' | ./$(DEV_BIN) --model-corpus
 
 test-unit:
 	$(CARGO) test -p successor-engine-core --features std
@@ -80,40 +88,48 @@ bench-check: bench
 
 size-check: strip-port
 	$(PYTHON) bench/compare.py check --size --native $(NATIVE_STRIPPED) --wasm $(WASM_STRIPPED)
-
-# Native build with the allocation counter; the demo prints frame-alloc lines and
-# exits nonzero if any steady-state frame allocated.
+# Allocation and runtime probes are built only with the developer capability.
+# Production binaries are intentionally unable to select demo/probe modes;
+# connected-scene probes can use the same instrumented binary and caps.
 check-allocs:
-	$(CARGO) build --release -p successor-client --bin successor --features successor-client/alloc-count
-	./target/release/successor --demo parity-basic --frames 600 --assert-zero-allocs
+	$(CARGO) build --release -p successor-client --bin successor --features dev-tools,alloc-count
+	$(DEV_BIN) --demo parity-basic --frames 600 --assert-zero-allocs
 
-# Frame p50/p99, peak RSS, steady allocs -> STATS_JSON, then gate vs baseline + ceilings.
-runtime-check: native
+# Live connected-frame allocation gate. Caller supplies a disposable authority
+# identity; 240 warmup frames cover deferred presentation initialization.
+connected-check-allocs:
+	test -n "$(CONNECTED_ENDPOINT)" -a -n "$(CONNECTED_PLAYER)" -a -n "$(CONNECTED_ACTOR)"
+	$(CARGO) build --release -p successor-client --bin successor --features dev-tools,alloc-count
+	$(DEV_BIN) --dev-identity --endpoint $(CONNECTED_ENDPOINT) --player-id $(CONNECTED_PLAYER) --actor-id $(CONNECTED_ACTOR) --frames 600 --assert-zero-allocs
+
+runtime-check:
 	mkdir -p out
-	./$(NATIVE_BIN) --demo parity-basic --frames 600 --stats-json $(STATS_JSON)
+	$(CARGO) build --release -p successor-client --bin successor $(DEV_FEATURES)
+	$(DEV_BIN) --demo parity-basic --frames 600 --stats-json $(STATS_JSON)
 	$(PYTHON) bench/compare.py check --runtime $(STATS_JSON)
-
 # Material parity GPU p99, measured after 120 warmup frames.
-render-check: native
+render-check:
 	mkdir -p out
-	./$(NATIVE_BIN) --demo material-parity --quality high --frames 840 --gpu-stats-json $(RENDER_STATS_JSON)
+	$(CARGO) build --release -p successor-client --bin successor $(DEV_FEATURES)
+	$(DEV_BIN) --demo material-parity --quality high --frames 840 --gpu-stats-json $(RENDER_STATS_JSON)
 	$(PYTHON) bench/compare.py check --render $(RENDER_STATS_JSON)
 
 # Deterministic terrain material probes plus GPU p99 after 120 warmup frames.
-terrain-check: native
+terrain-check:
 	mkdir -p out
-	./$(NATIVE_BIN) --demo terrain-material --biome desert --quality high --frames 120 --assert-terrain-material
-	./$(NATIVE_BIN) --demo terrain-material --biome forest --quality high --frames 120 --assert-terrain-material
-	./$(NATIVE_BIN) --demo terrain-material --biome desert --quality high --frames 840 --gpu-stats-json $(TERRAIN_STATS_JSON)
+	$(CARGO) build --release -p successor-client --bin successor $(DEV_FEATURES)
+	$(DEV_BIN) --demo terrain-material --biome desert --quality high --frames 120 --assert-terrain-material
+	$(DEV_BIN) --demo terrain-material --biome forest --quality high --frames 120 --assert-terrain-material
+	$(DEV_BIN) --demo terrain-material --biome desert --quality high --frames 840 --gpu-stats-json $(TERRAIN_STATS_JSON)
 	$(PYTHON) bench/compare.py check --terrain $(TERRAIN_STATS_JSON)
 
 # Rewrites this machine's baseline (perf medians, stripped sizes, runtime, and render stats).
-# The resulting bench/baselines diff is reviewed and committed like code.
 bench-baseline: strip-port bench
 	mkdir -p out
-	./$(NATIVE_BIN) --demo parity-basic --frames 600 --stats-json $(STATS_JSON)
-	./$(NATIVE_BIN) --demo material-parity --quality high --frames 840 --gpu-stats-json $(RENDER_STATS_JSON)
-	./$(NATIVE_BIN) --demo terrain-material --biome desert --quality high --frames 840 --gpu-stats-json $(TERRAIN_STATS_JSON)
+	$(CARGO) build --release -p successor-client --bin successor $(DEV_FEATURES)
+	$(DEV_BIN) --demo parity-basic --frames 600 --stats-json $(STATS_JSON)
+	$(DEV_BIN) --demo material-parity --quality high --frames 840 --gpu-stats-json $(RENDER_STATS_JSON)
+	$(DEV_BIN) --demo terrain-material --biome desert --quality high --frames 840 --gpu-stats-json $(TERRAIN_STATS_JSON)
 	$(PYTHON) bench/compare.py capture --native $(NATIVE_STRIPPED) --wasm $(WASM_STRIPPED) --runtime $(STATS_JSON) --render $(RENDER_STATS_JSON) --terrain $(TERRAIN_STATS_JSON)
 
 # Pre-acceptance gate: unit tests + perf gate + size gate.

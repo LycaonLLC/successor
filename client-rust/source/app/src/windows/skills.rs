@@ -1,4 +1,12 @@
-//! SKILLS — progression nodes with rank + progress bar; locked nodes dimmed.
+//! SKILLS — profession skill-box trees with trained/available/denied states.
+//!
+//! Reads `WindowModel::skills` (live `SkillsModel` projection: profession
+//! trees joined from the checked-in progression spec + actor state, skill
+//! point budget, wallet credits, and the in-range trainer gate). Clicking a
+//! purchasable box emits `WindowAction::Button("skill:buy:<box id>")` — the
+//! host routes it onto `ClientCommand::PurchaseSkillBox`. Trained and denied
+//! boxes never emit; the deny reason is the authoritative copy from the
+//! projection.
 
 use super::{WindowAction, WindowModel, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
@@ -11,103 +19,256 @@ pub fn draw(
     icons: &Icons,
     out: &mut Vec<WindowAction>,
 ) {
-    let [x, y, w, _h] = rect;
-    for (i, node) in model.skills.nodes.iter().enumerate() {
-        let ny = y + i as f32 * 40.0;
-        let text_col = if node.locked { DIM } else { TEXT };
-        // Lock glyph for locked nodes.
-        if node.locked {
-            if let Some((c, r)) = icons.cell("lock") {
-                ui.icon(c, r, x, ny, 18.0, 18.0, DIM);
+    let [x, y, w, h] = rect;
+    let s = &model.skills;
+
+    // ── Header: point budget, wallet, trainer gate ───────────────────────
+    ui.text(
+        &format!("SP {}/{}", s.skill_points_used, s.skill_points_cap),
+        x,
+        y,
+        2.0,
+        TEXT,
+    );
+    let cr = format!("CR {}", s.credits);
+    ui.text(&cr, x + w - UiBuilder::text_width(&cr, 2.0), y, 2.0, ACCENT);
+    let trainer = match &s.trainer {
+        Some(t) if t.in_range => format!("TRAINER {}", t.name),
+        Some(t) => format!("TRAINER {} — {}", t.name, super::DENY_RANGE),
+        None => "NO TRAINER IN RANGE".to_string(),
+    };
+    ui.text(
+        &trainer,
+        x,
+        y + 22.0,
+        1.8,
+        if s.trainer.as_ref().is_some_and(|t| t.in_range) {
+            TEXT
+        } else {
+            DIM
+        },
+    );
+
+    if s.professions.is_empty() {
+        ui.text("NO PROFESSION DATA", x, y + 48.0, 2.0, DIM);
+        return;
+    }
+
+    // ── Profession trees ─────────────────────────────────────────────────
+    let mut cy = y + 48.0;
+    for tree in &s.professions {
+        if cy + 26.0 > y + h {
+            return;
+        }
+        ui.text(
+            &format!("{} — XP {}", tree.label, tree.xp),
+            x,
+            cy,
+            2.2,
+            ACCENT,
+        );
+        cy += 26.0;
+        for b in &tree.boxes {
+            if cy + 34.0 > y + h {
+                return;
             }
-        }
-        ui.text(&node.label, x + 22.0, ny, 2.0, text_col);
-        ui.text(&format!("R{}", node.rank), x + 22.0, ny + 20.0, 1.6, ACCENT);
-
-        // Progress bar.
-        let bx = x + 180.0;
-        let bw = (w - 190.0).max(60.0);
-        ui.rect(bx, ny + 2.0, bw, 14.0, SLOT);
-        if !node.locked && node.progress > 0.0 {
-            ui.rect(
-                bx,
-                ny + 2.0,
-                bw * node.progress.clamp(0.0, 1.0),
-                14.0,
-                [120, 170, 220, 235],
+            let resp = ui.interact(x, cy, w, 34.0);
+            let clickable = s.trainer.as_ref().is_some_and(|trainer| trainer.in_range)
+                && (b.available || b.trained);
+            let fill = if clickable && resp.hovered {
+                [36, 48, 64, 230]
+            } else {
+                SLOT
+            };
+            ui.rect(x, cy, w, 34.0, fill);
+            ui.border(
+                x,
+                cy,
+                w,
+                34.0,
+                1.0,
+                if b.trained { ACCENT } else { SLOT_EDGE },
             );
+            let text_col = if b.trained {
+                ACCENT
+            } else if b.available {
+                TEXT
+            } else {
+                DIM
+            };
+            let mut lx = x + 8.0;
+            if !b.trained && !b.available {
+                if let Some((c, r)) = icons.cell("lock") {
+                    ui.icon(c, r, lx, cy + 8.0, 18.0, 18.0, DIM);
+                }
+                lx += 22.0;
+            }
+            ui.text(&b.label, lx, cy + 4.0, 2.0, text_col);
+            // Right column: trained mark, cost line, or the deny reason.
+            let right = if b.trained {
+                "TRAINED".to_string()
+            } else if b.available {
+                let mut cost = format!("SP {} · XP {}", b.skill_point_cost, b.xp_cost);
+                if b.credit_cost > 0 {
+                    cost.push_str(&format!(" · CR {}", b.credit_cost));
+                }
+                cost
+            } else {
+                b.deny_reason.clone()
+            };
+            ui.text(
+                &right,
+                x + w - UiBuilder::text_width(&right, 1.6) - 8.0,
+                cy + 20.0,
+                1.6,
+                text_col,
+            );
+            if resp.clicked && clickable {
+                let trainer_actor_id = s
+                    .trainer
+                    .as_ref()
+                    .expect("clickable skills have an in-range trainer")
+                    .actor_id
+                    .clone();
+                let command = if b.trained {
+                    successor_net::ClientCommand::UnlearnSkillBox {
+                        skill_box_id: b.id.clone(),
+                        trainer_actor_id,
+                    }
+                } else {
+                    successor_net::ClientCommand::PurchaseSkillBox {
+                        skill_box_id: b.id.clone(),
+                        trainer_actor_id,
+                    }
+                };
+                out.push(WindowAction::Command(command));
+            }
+            cy += 40.0;
         }
-        ui.border(bx, ny + 2.0, bw, 14.0, 1.0, SLOT_EDGE);
-        let pct = format!("{}%", (node.progress * 100.0) as i32);
-        ui.text(&pct, bx + bw + 6.0, ny + 2.0, 1.6, text_col);
-
-        // Clicking an unlocked node emits a generic inspect action.
-        let resp = ui.interact(x, ny, w, 34.0);
-        if resp.clicked && !node.locked {
-            out.push(WindowAction::Button(format!("skill:{}", node.label)));
-        }
+        cy += 10.0;
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::windows::model::{ProfessionTreeView, SkillBoxView, TrainerView};
 
-    #[test]
-    fn clicking_unlocked_node_emits_inspect() {
-        let icons = Icons::load();
-        let model = WindowModel::sample();
-        let mut ui = UiBuilder::new(icons.meta);
-        // First node row at y=100 (rect y=100). Click within row.
-        ui.set_input(150.0, 108.0, true);
+    /// Explicit test fixture — `WindowModel::sample()` is intentionally empty
+    /// so demo/test state can never masquerade as a live projection.
+    fn fixture() -> WindowModel {
+        let mut m = WindowModel::sample();
+        m.skills.skill_points_used = 10;
+        m.skills.skill_points_cap = 250;
+        m.skills.credits = 500;
+        m.skills.trainer = Some(TrainerView {
+            actor_id: "trainer-1".into(),
+            name: "SGT HALE".into(),
+            profession_id: "marksman".into(),
+            in_range: true,
+        });
+        m.skills.professions = vec![ProfessionTreeView {
+            id: "marksman".into(),
+            label: "MARKSMAN".into(),
+            xp: 1200,
+            boxes: vec![
+                SkillBoxView {
+                    id: "marksman_novice".into(),
+                    label: "NOVICE MARKSMAN".into(),
+                    trained: true,
+                    ..Default::default()
+                },
+                SkillBoxView {
+                    id: "marksman_rifles_1".into(),
+                    label: "RIFLES I".into(),
+                    xp_cost: 400,
+                    skill_point_cost: 2,
+                    available: true,
+                    ..Default::default()
+                },
+                SkillBoxView {
+                    id: "marksman_pistols_1".into(),
+                    label: "PISTOLS I".into(),
+                    xp_cost: 400,
+                    skill_point_cost: 2,
+                    available: false,
+                    deny_reason: "REQUIRES 1000 MARKSMAN XP".into(),
+                    ..Default::default()
+                },
+            ],
+        }];
+        m
+    }
+
+    /// Row geometry for rect [100,100,500,400]: tree header at y=148, boxes
+    /// start at 174 and advance 40 ⇒ box0 174, box1 214, box2 254.
+    const RECT: [f32; 4] = [100.0, 100.0, 500.0, 400.0];
+
+    fn click(
+        ui: &mut UiBuilder,
+        model: &WindowModel,
+        icons: &Icons,
+        cx: f32,
+        cy: f32,
+    ) -> Vec<WindowAction> {
+        ui.set_input(cx, cy, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(
-            &mut ui,
-            [100.0, 100.0, 500.0, 400.0],
-            &model,
-            &icons,
-            &mut out,
-        );
-        ui.set_input(150.0, 108.0, false);
+        draw(ui, RECT, model, icons, &mut out);
+        ui.set_input(cx, cy, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(
-            &mut ui,
-            [100.0, 100.0, 500.0, 400.0],
-            &model,
-            &icons,
-            &mut out,
-        );
-        assert_eq!(out, vec![WindowAction::Button("skill:RIFLES".into())]);
+        draw(ui, RECT, model, icons, &mut out);
+        out
     }
 
     #[test]
-    fn locked_node_ignores_click() {
+    fn clicking_available_box_emits_purchase_intent() {
+        let icons = Icons::load();
+        let model = fixture();
+        let mut ui = UiBuilder::new(icons.meta);
+        let out = click(&mut ui, &model, &icons, 150.0, 230.0);
+        assert_eq!(
+            out,
+            vec![WindowAction::Command(
+                successor_net::ClientCommand::PurchaseSkillBox {
+                    skill_box_id: "marksman_rifles_1".into(),
+                    trainer_actor_id: "trainer-1".into(),
+                }
+            )],
+            "available untrained box emits the typed purchase command"
+        );
+    }
+
+    #[test]
+    fn trained_box_unlearns_and_denied_box_ignores_click() {
+        let icons = Icons::load();
+        let model = fixture();
+        let mut ui = UiBuilder::new(icons.meta);
+        let out = click(&mut ui, &model, &icons, 150.0, 190.0);
+        assert_eq!(
+            out,
+            vec![WindowAction::Command(
+                successor_net::ClientCommand::UnlearnSkillBox {
+                    skill_box_id: "marksman_novice".into(),
+                    trainer_actor_id: "trainer-1".into(),
+                }
+            )],
+            "trained box emits the typed unlearn command"
+        );
+        let out = click(&mut ui, &model, &icons, 150.0, 270.0);
+        assert!(out.is_empty(), "denied box emits nothing, got {out:?}");
+    }
+
+    #[test]
+    fn empty_model_renders_without_actions() {
         let icons = Icons::load();
         let model = WindowModel::sample();
         let mut ui = UiBuilder::new(icons.meta);
-        // PILOTING is index 4 (locked): row y = 100 + 4*40 = 260.
-        ui.set_input(150.0, 268.0, true);
-        ui.begin(1280, 720);
-        let mut out = Vec::new();
-        draw(
-            &mut ui,
-            [100.0, 100.0, 500.0, 400.0],
-            &model,
-            &icons,
-            &mut out,
+        let out = click(&mut ui, &model, &icons, 150.0, 230.0);
+        assert!(
+            out.is_empty(),
+            "empty projection emits nothing, got {out:?}"
         );
-        ui.set_input(150.0, 268.0, false);
-        ui.begin(1280, 720);
-        out.clear();
-        draw(
-            &mut ui,
-            [100.0, 100.0, 500.0, 400.0],
-            &model,
-            &icons,
-            &mut out,
-        );
-        assert!(out.is_empty(), "locked node emits nothing, got {out:?}");
     }
 }

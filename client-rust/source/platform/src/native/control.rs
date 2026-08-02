@@ -37,6 +37,29 @@ pub struct ControlStatus {
     pub recording: bool,
 }
 
+/// Secret-free status payload contract. Values are owned so the status can be
+/// published from the connected frame without borrowing runtime state.
+#[derive(Clone, Debug, Default)]
+pub struct ControlStatusV2 {
+    pub frame: u64,
+    pub framebuffer: Option<(u32, u32)>,
+    pub app_mode: Option<String>,
+    pub game_connection: String,
+    pub chat_connection: String,
+    pub shard: Option<String>,
+    pub tick: Option<u64>,
+    pub area: Option<String>,
+    pub source_hashes: Vec<String>,
+    pub player_actor_id: Option<String>,
+    pub player_position: Option<(f32, f32)>,
+    pub life: Option<String>,
+    pub selection: Option<String>,
+    pub windows: Vec<String>,
+    pub focused_window: Option<String>,
+    pub pending_command_kinds: Vec<String>,
+    pub last_receipt: Option<String>,
+    pub renderer_degradation_ids: Vec<String>,
+}
 #[derive(Clone, Debug)]
 pub struct NativeInputSnapshot {
     pub keys: [bool; Key::COUNT],
@@ -82,6 +105,7 @@ enum KeyAction {
 #[derive(Clone, Debug)]
 struct ReplayEvent {
     frame: u64,
+
     command: Command,
 }
 
@@ -97,7 +121,6 @@ struct PendingWrite {
     bytes: Vec<u8>,
     sent: usize,
 }
-
 #[derive(Clone, Debug)]
 pub struct ScreenshotRequest {
     pub sequence: u64,
@@ -111,6 +134,7 @@ struct ControlState {
     receive: Vec<u8>,
     writes: VecDeque<PendingWrite>,
     frame: u64,
+    latest_status: ControlStatusV2,
     remote_keys: [bool; Key::COUNT],
     remote_mouse_position: (f32, f32),
     remote_mouse_buttons: [bool; MOUSE_BUTTON_COUNT],
@@ -135,6 +159,7 @@ impl ControlState {
             receive: Vec::with_capacity(4096),
             writes: VecDeque::new(),
             frame: 0,
+            latest_status: ControlStatusV2::default(),
             remote_keys: [false; Key::COUNT],
             remote_mouse_position: (0.0, 0.0),
             remote_mouse_buttons: [false; MOUSE_BUTTON_COUNT],
@@ -387,16 +412,7 @@ impl ControlState {
                 Err(error) => self.queue_error(sequence, &error),
             },
             Command::Status => {
-                let details = format!(
-                    "\"frame\":{},\"input_override\":{},\"recording\":{},\"replaying\":{},\"listen_port\":{}",
-                    self.frame,
-                    self.override_active(),
-                    self.recorder.is_some(),
-                    self.replaying,
-                    self.listen_port
-                        .map(|port| port.to_string())
-                        .unwrap_or_else(|| "null".into())
-                );
+                let details = self.status_details();
                 self.queue_ok(sequence, &details);
             }
             Command::Quit => {
@@ -420,6 +436,92 @@ impl ControlState {
             "{{\"ok\":false,\"sequence\":{sequence},\"error\":\"{}\"}}\n",
             json_escape(error)
         ));
+    }
+    fn status_details(&self) -> String {
+        let s = &self.latest_status;
+        let framebuffer = s
+            .framebuffer
+            .map(|(w, h)| format!("[{w},{h}]"))
+            .unwrap_or_else(|| "null".into());
+        let position = s
+            .player_position
+            .map(|(x, y)| format!("[{},{}]", format_float(x), format_float(y)))
+            .unwrap_or_else(|| "null".into());
+        let app_mode = s
+            .app_mode
+            .as_deref()
+            .map(json_string)
+            .unwrap_or_else(|| "null".into());
+        let shard = s
+            .shard
+            .as_deref()
+            .map(json_string)
+            .unwrap_or_else(|| "null".into());
+        let area = s
+            .area
+            .as_deref()
+            .map(json_string)
+            .unwrap_or_else(|| "null".into());
+        let actor = s
+            .player_actor_id
+            .as_deref()
+            .map(json_string)
+            .unwrap_or_else(|| "null".into());
+        let life = s
+            .life
+            .as_deref()
+            .map(json_string)
+            .unwrap_or_else(|| "null".into());
+        let selection = s
+            .selection
+            .as_deref()
+            .map(json_string)
+            .unwrap_or_else(|| "null".into());
+        let focused = s
+            .focused_window
+            .as_deref()
+            .map(json_string)
+            .unwrap_or_else(|| "null".into());
+        let receipt = s
+            .last_receipt
+            .as_deref()
+            .map(json_string)
+            .unwrap_or_else(|| "null".into());
+        format!(
+            "\"schema\":\"successor.control.status.v2\",\"frame\":{},\"framebuffer\":{},\
+             \"app_mode\":{},\"game_connection\":{},\"chat_connection\":{},\"shard\":{},\
+             \"tick\":{},\"area\":{},\"source_hashes\":{},\"player_actor_id\":{},\
+             \"player_position\":{},\"life\":{},\"selection\":{},\"windows\":{},\
+             \"focused_window\":{},\"pending_command_kinds\":{},\"last_receipt\":{},\
+             \"recording\":{},\"replaying\":{},\"renderer_degradation_ids\":{},\
+             \"input_override\":{},\"listen_port\":{}",
+            s.frame,
+            framebuffer,
+            app_mode,
+            json_string(&s.game_connection),
+            json_string(&s.chat_connection),
+            shard,
+            s.tick
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "null".into()),
+            area,
+            json_list(&s.source_hashes),
+            actor,
+            position,
+            life,
+            selection,
+            json_list(&s.windows),
+            focused,
+            json_list(&s.pending_command_kinds),
+            receipt,
+            self.recorder.is_some(),
+            self.replaying,
+            json_list(&s.renderer_degradation_ids),
+            self.override_active(),
+            self.listen_port
+                .map(|p| p.to_string())
+                .unwrap_or_else(|| "null".into())
+        )
     }
 
     fn queue_response(&mut self, response: String) {
@@ -575,6 +677,10 @@ pub fn shutdown() {
 
 pub fn is_configured() -> bool {
     CONFIGURED.load(Ordering::Acquire)
+}
+/// Publish the latest connected runtime status as one atomic owned snapshot.
+pub fn publish_control_status(status: ControlStatusV2) {
+    CONTROL.lock().latest_status = status;
 }
 
 pub fn begin_frame(snapshot: NativeInputSnapshot) {
@@ -848,6 +954,26 @@ fn parse_key(value: &str) -> Result<Key, String> {
         "backspace" => Ok(Key::Backspace),
         "leftshift" | "shift" => Ok(Key::LeftShift),
         "backquote" | "grave" | "`" => Ok(Key::Backquote),
+        "r" => Ok(Key::R),
+        "f" => Ok(Key::F),
+        "i" => Ok(Key::I),
+        "c" => Ok(Key::C),
+        "semicolon" | ";" => Ok(Key::Semicolon),
+        "o" => Ok(Key::O),
+        "tab" => Ok(Key::Tab),
+        "v" => Ok(Key::V),
+        "x" => Ok(Key::X),
+        "n" => Ok(Key::N),
+        "0" | "digit0" => Ok(Key::Digit0),
+        "1" | "digit1" => Ok(Key::Digit1),
+        "2" | "digit2" => Ok(Key::Digit2),
+        "3" | "digit3" => Ok(Key::Digit3),
+        "4" | "digit4" => Ok(Key::Digit4),
+        "5" | "digit5" => Ok(Key::Digit5),
+        "6" | "digit6" => Ok(Key::Digit6),
+        "7" | "digit7" => Ok(Key::Digit7),
+        "8" | "digit8" => Ok(Key::Digit8),
+        "9" | "digit9" => Ok(Key::Digit9),
         _ => Err(format!("unknown key: {value}")),
     }
 }
@@ -868,6 +994,26 @@ fn key_name(key: Key) -> &'static str {
         Key::Backspace => "backspace",
         Key::LeftShift => "leftshift",
         Key::Backquote => "backquote",
+        Key::R => "r",
+        Key::F => "f",
+        Key::I => "i",
+        Key::C => "c",
+        Key::Semicolon => "semicolon",
+        Key::O => "o",
+        Key::Tab => "tab",
+        Key::V => "v",
+        Key::X => "x",
+        Key::N => "n",
+        Key::Digit0 => "0",
+        Key::Digit1 => "1",
+        Key::Digit2 => "2",
+        Key::Digit3 => "3",
+        Key::Digit4 => "4",
+        Key::Digit5 => "5",
+        Key::Digit6 => "6",
+        Key::Digit7 => "7",
+        Key::Digit8 => "8",
+        Key::Digit9 => "9",
     }
 }
 
@@ -963,6 +1109,21 @@ fn json_escape(value: &str) -> String {
         }
     }
     escaped
+}
+fn json_string(value: &str) -> String {
+    format!("\"{}\"", json_escape(value))
+}
+
+fn json_list(values: &[String]) -> String {
+    let mut out = String::from("[");
+    for (i, value) in values.iter().enumerate() {
+        if i != 0 {
+            out.push(',');
+        }
+        out.push_str(&json_string(value));
+    }
+    out.push(']');
+    out
 }
 
 #[cfg(test)]

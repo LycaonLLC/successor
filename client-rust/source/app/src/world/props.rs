@@ -1,12 +1,18 @@
 //! World prop placement — port of `client-3d/src/render/props.ts` core: resolve
 //! each slice prop through `props-mapping.json` (assetKey then kind), load+bake
 //! its GLB once (recentered on its footprint, uniform-scaled to the cell
-//! footprint), and spawn one entity per instance. Unmapped/`placeholder` kinds
-//! render a tinted box; `skip` kinds are ignored. Doors/cutaway/animated
-//! screens are later refinements; this lands static placement.
+//! footprint), and spawn one entity per instance. Props are area-scoped (the
+//! reference `propsForArea`), GLBs resolve through a stable-id byte reader
+//! (platform asset read — no filesystem assumptions here), spawned entities
+//! are tracked so an area transition can release them, and a mapped GLB that
+//! fails to load renders the explicit missing-asset marker plus a typed
+//! [`WorldAssetIssue`]. Unmapped/`placeholder` kinds render a tinted box;
+//! `skip` kinds are ignored.
 
 use std::collections::HashMap;
 
+use super::streamed::WorldAssetIssue;
+use crate::GameWorld;
 use successor_engine_core::ecs::{Entity, WorldOps};
 use successor_engine_core::glb::{self, GlbDocument};
 use successor_engine_core::json::Json;
@@ -16,8 +22,6 @@ use successor_engine_render::gi::GiOccluder;
 use successor_engine_render::gpu::Gpu;
 use successor_engine_render::model::upload_glb;
 use successor_engine_render::renderer::Renderer;
-
-use crate::GameWorld;
 
 /// A distinct GLB uploaded once: its parts (mesh+material) and measured XZ
 /// footprint (post-recenter), used to fit instances to their cell size.
@@ -38,16 +42,23 @@ struct PropModel {
     mean_albedo: [f32; 3],
 }
 
-pub struct PropsLoader<'a> {
-    assets_dir: &'a str,
+pub struct PropsLoader {
     mapping: Json,
     asset_base: String,
-    cache: HashMap<String, PropModel>,
+    cache: HashMap<String, Option<PropModel>>,
+    /// Entities spawned by the last `load` calls (released by `clear`).
+    spawned: Vec<Entity>,
+    /// Typed optional-asset degradation (bounded, deduped).
+    issues: Vec<WorldAssetIssue>,
 }
 
-impl<'a> PropsLoader<'a> {
+const MAX_PROP_ISSUES: usize = 32;
+/// Explicit missing-asset marker tint (matches the streamed-world pylon).
+const MISSING_TINT: [f32; 4] = [0.9, 0.15, 0.75, 1.0];
+
+impl PropsLoader {
     #[allow(clippy::result_unit_err)]
-    pub fn new(assets_dir: &'a str, mapping_json: &str) -> Result<Self, ()> {
+    pub fn new(mapping_json: &str) -> Result<Self, ()> {
         let mapping = Json::parse(mapping_json).map_err(|_| ())?;
         let asset_base = mapping
             .get("assetBase")
@@ -55,18 +66,42 @@ impl<'a> PropsLoader<'a> {
             .unwrap_or("/assets/world-items/")
             .to_string();
         Ok(PropsLoader {
-            assets_dir,
             mapping,
             asset_base,
             cache: HashMap::new(),
+            spawned: Vec::new(),
+            issues: Vec::new(),
         })
+    }
+
+    /// Typed degradation log (each missing model recorded once).
+    pub fn issues(&self) -> &[WorldAssetIssue] {
+        &self.issues
+    }
+
+    fn record(&mut self, issue: WorldAssetIssue) {
+        if self.issues.len() < MAX_PROP_ISSUES && !self.issues.contains(&issue) {
+            self.issues.push(issue);
+        }
+    }
+
+    /// Release every entity spawned by prior `load` calls (area transition).
+    pub fn clear(&mut self, world: &mut GameWorld) {
+        for e in self.spawned.drain(..) {
+            world.destroy(e);
+        }
+        world.flush();
     }
 
     fn entry(&self, key: &str) -> Option<&Json> {
         self.mapping.get("entries").and_then(|e| e.get(key))
     }
 
-    /// Place every visible prop from a parsed slice into the world.
+    /// Place every visible prop of one area from a parsed slice into the
+    /// world. `area_id = None` places every area (developer world demo);
+    /// connected rendering always scopes to the accepted active area. `read`
+    /// resolves stable asset ids (`assets/world-items/*.glb`) to bytes.
+    #[allow(clippy::too_many_arguments)]
     pub fn load<G: Gpu>(
         &mut self,
         world: &mut GameWorld,
@@ -74,6 +109,8 @@ impl<'a> PropsLoader<'a> {
         gpu: &mut G,
         slice: &Json,
         terrain: &TerrainStreamer,
+        area_id: Option<&str>,
+        read: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
         mask: u32,
     ) -> usize {
         let Some(props) = slice.get("props").and_then(Json::as_array) else {
@@ -84,6 +121,11 @@ impl<'a> PropsLoader<'a> {
         for prop in props {
             if prop.get("visible").and_then(Json::as_bool) == Some(false) {
                 continue;
+            }
+            if let Some(area) = area_id {
+                if prop.get("areaId").and_then(Json::as_str) != Some(area) {
+                    continue;
+                }
             }
             let asset_key = prop.get("assetKey").and_then(Json::as_str);
             let kind = prop.get("kind").and_then(Json::as_str);
@@ -124,10 +166,41 @@ impl<'a> PropsLoader<'a> {
                 .unwrap_or(false);
 
             if let Some(glb_ref) = entry.get("glb").and_then(Json::as_str) {
-                if self.ensure_model(renderer, gpu, glb_ref).is_none() {
+                if !self.ensure_model(renderer, gpu, read, glb_ref) {
+                    // Never invisible: the mapped model failed to load, so the
+                    // instance renders the explicit missing-asset marker.
+                    let ground_x = cx + sw / 2.0;
+                    let ground_z = cy + sh / 2.0;
+                    let ground_y = terrain.height_at(ground_x, ground_z);
+                    let mesh = placeholder_cube(renderer, gpu);
+                    let material = renderer.add_material_desc(
+                        successor_engine_render::renderer::MaterialDesc {
+                            base_color: MISSING_TINT,
+                            ..successor_engine_render::renderer::MaterialDesc::default()
+                        },
+                    );
+                    let e = world.spawn();
+                    world.set_component(
+                        e,
+                        Transform {
+                            pos: vec3(ground_x, ground_y + 0.6, ground_z),
+                            rot: Quat::from_yaw(core::f32::consts::FRAC_PI_4),
+                            scale: vec3(0.35, 1.2, 0.35),
+                        },
+                    );
+                    world.set_component(
+                        e,
+                        MeshRenderer {
+                            mesh,
+                            material,
+                            viewport_mask: mask,
+                            skin: SkinRef::NONE,
+                        },
+                    );
+                    self.spawned.push(e);
                     continue;
                 }
-                let model = self.cache.get(glb_ref).unwrap();
+                let model = self.cache.get(glb_ref).unwrap().as_ref().unwrap();
                 let (fx, fz, hy, alb) = (
                     model.footprint_x,
                     model.footprint_z,
@@ -151,6 +224,7 @@ impl<'a> PropsLoader<'a> {
                 for part in parts {
                     let (part_pos, part_rot, part_scale) = placement.mul(part.local).to_trs();
                     let e = world.spawn();
+                    self.spawned.push(e);
                     world.set_component(
                         e,
                         Transform {
@@ -195,6 +269,7 @@ impl<'a> PropsLoader<'a> {
                         ..successor_engine_render::renderer::MaterialDesc::default()
                     });
                 let e = world.spawn();
+                self.spawned.push(e);
                 world.set_component(
                     e,
                     Transform {
@@ -225,38 +300,46 @@ impl<'a> PropsLoader<'a> {
         placed
     }
 
+    /// Ensure a model is cached; `true` when loaded, `false` → typed miss
+    /// (recorded once; the miss itself is cached so it is not re-read).
     fn ensure_model<G: Gpu>(
         &mut self,
         renderer: &mut Renderer,
         gpu: &mut G,
+        read: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
         glb_ref: &str,
-    ) -> Option<()> {
-        if self.cache.contains_key(glb_ref) {
-            return Some(());
+    ) -> bool {
+        if let Some(slot) = self.cache.get(glb_ref) {
+            return slot.is_some();
         }
-        // Resolve public path -> local file.
+        // Public path (`/assets/world-items/foo.glb`) → stable asset id.
         let public = if glb_ref.starts_with('/') {
             glb_ref.to_string()
         } else {
             format!("{}{}", self.asset_base, glb_ref)
         };
-        let local = format!(
-            "{}{}",
-            self.assets_dir,
-            public.strip_prefix("/assets").unwrap_or(&public)
-        );
-        let bytes = std::fs::read(&local).ok()?;
-        let doc = glb::parse(&bytes).ok()?;
-        let model = upload_model(renderer, gpu, &doc)?;
+        let stable_id = public.trim_start_matches('/').to_string();
+        let model = read(&stable_id)
+            .and_then(|bytes| glb::parse(&bytes).ok())
+            .and_then(|doc| upload_model(renderer, gpu, &doc));
+        if model.is_none() {
+            self.record(WorldAssetIssue::MissingModel { stable_id });
+        }
+        let loaded = model.is_some();
         self.cache.insert(glb_ref.to_string(), model);
-        Some(())
+        loaded
     }
 }
 
 /// Build visual-ground and detail-scatter exclusions from authoritative
 /// building cells. Small props do not flatten the landscape; only structures
-/// whose placement contract owns a footprint do.
-pub fn building_terrain_exclusions(slice: &Json, padding: f32) -> Vec<TerrainExclusion> {
+/// whose placement contract owns a footprint do. `area_id = None` spans every
+/// area (developer demo); connected use scopes to the active area.
+pub fn building_terrain_exclusions(
+    slice: &Json,
+    area_id: Option<&str>,
+    padding: f32,
+) -> Vec<TerrainExclusion> {
     let Some(props) = slice.get("props").and_then(Json::as_array) else {
         return Vec::new();
     };
@@ -267,6 +350,11 @@ pub fn building_terrain_exclusions(slice: &Json, padding: f32) -> Vec<TerrainExc
             || prop.get("kind").and_then(Json::as_str) != Some("building")
         {
             continue;
+        }
+        if let Some(area) = area_id {
+            if prop.get("areaId").and_then(Json::as_str) != Some(area) {
+                continue;
+            }
         }
         let Some(cell) = prop.get("cell") else {
             continue;
@@ -539,7 +627,7 @@ impl WorldScene {
             3,
             0b1,
         );
-        let exclusions = building_terrain_exclusions(&slice, 1.5);
+        let exclusions = building_terrain_exclusions(&slice, None, 1.5);
         streamer.set_exclusions(&exclusions);
         streamer.ensure_around(
             &mut world,
@@ -549,9 +637,29 @@ impl WorldScene {
             center.z as f64,
         );
 
-        // Props.
-        let mut loader = PropsLoader::new(assets_dir, mapping_json)?;
-        let placed = loader.load(&mut world, &mut renderer, gpu, &slice, &streamer, 0b1);
+        // Props (all areas — developer demo; stable ids resolve under the
+        // public root implied by `assets_dir`).
+        let public_root = assets_dir
+            .strip_suffix("/assets")
+            .unwrap_or(assets_dir)
+            .to_string();
+        let mut read = move |stable_id: &str| -> Option<Vec<u8>> {
+            if stable_id.is_empty() || stable_id.contains("..") || stable_id.starts_with('/') {
+                return None;
+            }
+            std::fs::read(format!("{public_root}/{stable_id}")).ok()
+        };
+        let mut loader = PropsLoader::new(mapping_json)?;
+        let placed = loader.load(
+            &mut world,
+            &mut renderer,
+            gpu,
+            &slice,
+            &streamer,
+            None,
+            &mut read,
+            0b1,
+        );
         eprintln!("props: placed {placed} instances");
 
         let sun = world.spawn();
@@ -647,7 +755,10 @@ mod tests {
             ]}"#,
         )
         .expect("slice");
-        let exclusions = building_terrain_exclusions(&slice, 1.5);
+        let exclusions = building_terrain_exclusions(&slice, None, 1.5);
+        // Area scoping: no prop carries `areaId` here, so a scoped call
+        // excludes them all (fail closed rather than leak across areas).
+        assert!(building_terrain_exclusions(&slice, Some("a"), 1.5).is_empty());
         assert_eq!(
             exclusions,
             vec![TerrainExclusion {

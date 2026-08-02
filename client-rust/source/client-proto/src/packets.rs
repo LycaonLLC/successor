@@ -77,44 +77,79 @@ pub struct GameShardDelta {
     pub compact_actor_moves: Vec<GameCompactActorMove>,
     #[serde(rename = "actorRefs")]
     pub actor_refs: Vec<GameActorNetRef>,
-    /// Compact full-actor tuples (situational server optimization). Kept as
-    /// passthrough values; the movement fast path uses `compact_actor_moves`.
+    /// Compact tuples retain their wire order until the authority decoder
+    /// validates and projects them; never project malformed rows partially.
     #[serde(rename = "compactActors")]
-    pub compact_actors: Vec<serde_json::Value>,
+    pub compact_actors: Vec<GameCompactActorSnapshot>,
     #[serde(rename = "compactActorPatches")]
-    pub compact_actor_patches: Vec<serde_json::Value>,
-    pub inventory: Vec<serde_json::Value>,
-    pub reservations: Vec<serde_json::Value>,
-    pub bank: Option<serde_json::Value>,
-    #[serde(rename = "playerCorpses")]
-    pub player_corpses: Vec<serde_json::Value>,
-    #[serde(rename = "resourceSpawns")]
-    pub resource_spawns: Vec<serde_json::Value>,
-    #[serde(rename = "placedExtractors")]
-    pub placed_extractors: Vec<serde_json::Value>,
-    #[serde(rename = "placedCamps")]
-    pub placed_camps: Vec<serde_json::Value>,
-    #[serde(rename = "placedParcels")]
-    pub placed_parcels: Vec<serde_json::Value>,
-    pub building: Option<serde_json::Value>,
-    #[serde(rename = "farmPlots")]
-    pub farm_plots: Vec<serde_json::Value>,
+    pub compact_actor_patches: Vec<GameCompactActorPatch>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inventory: Option<Vec<serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reservations: Option<Vec<serde_json::Value>>,
+    pub bank: Option<Option<serde_json::Value>>,
+    #[serde(
+        rename = "playerCorpses",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub player_corpses: Option<Vec<serde_json::Value>>,
+    #[serde(
+        rename = "resourceSpawns",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub resource_spawns: Option<Vec<serde_json::Value>>,
+    #[serde(
+        rename = "placedExtractors",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub placed_extractors: Option<Vec<serde_json::Value>>,
+    #[serde(
+        rename = "placedCamps",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub placed_camps: Option<Vec<serde_json::Value>>,
+    #[serde(
+        rename = "placedParcels",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub placed_parcels: Option<Vec<serde_json::Value>>,
+    pub building: Option<Option<serde_json::Value>>,
+    #[serde(rename = "farmPlots", default, skip_serializing_if = "Option::is_none")]
+    pub farm_plots: Option<Vec<serde_json::Value>>,
     #[serde(rename = "craftSession")]
-    pub craft_session: Option<serde_json::Value>,
-    #[serde(rename = "draftedSchematics")]
-    pub drafted_schematics: Vec<serde_json::Value>,
-    pub groups: Option<serde_json::Value>,
-    pub guilds: Option<serde_json::Value>,
-    pub duels: Option<serde_json::Value>,
-    #[serde(rename = "propStates")]
-    pub prop_states: HashMap<String, serde_json::Value>,
+    pub craft_session: Option<Option<serde_json::Value>>,
+    #[serde(
+        rename = "draftedSchematics",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub drafted_schematics: Option<Vec<serde_json::Value>>,
+    pub groups: Option<Option<serde_json::Value>>,
+    pub guilds: Option<Option<serde_json::Value>>,
+    pub duels: Option<Option<serde_json::Value>>,
+    #[serde(
+        rename = "propStates",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub prop_states: Option<HashMap<String, serde_json::Value>>,
     #[serde(rename = "worldClock")]
-    pub world_clock: Option<serde_json::Value>,
-    pub weather: Vec<serde_json::Value>,
+    pub world_clock: Option<Option<serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weather: Option<Vec<serde_json::Value>>,
     #[serde(rename = "abilityQueue")]
-    pub ability_queue: Option<serde_json::Value>,
-    #[serde(rename = "dialogueDeliveries")]
-    pub dialogue_deliveries: Vec<serde_json::Value>,
+    pub ability_queue: Option<Option<serde_json::Value>>,
+    #[serde(
+        rename = "dialogueDeliveries",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dialogue_deliveries: Option<Vec<serde_json::Value>>,
     #[serde(rename = "sourceStateHash")]
     pub source_state_hash: Option<String>,
     #[serde(rename = "sourceActorCount")]
@@ -135,13 +170,20 @@ pub struct GameCounters {
     pub hits: u64,
     pub deaths: u64,
 }
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct GameActorVitals {
+    pub health: f32,
+    pub action: f32,
+    pub spirit: f32,
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GameActorSnapshot {
     pub id: String,
     pub label: String,
-    #[serde(rename = "display_name")]
+    #[serde(rename = "displayName", alias = "display_name")]
     pub display_name: String,
     #[serde(rename = "areaId")]
     pub area_id: String,
@@ -155,10 +197,61 @@ pub struct GameActorSnapshot {
     pub life_state: String,
     #[serde(rename = "lifecycleSeq")]
     pub lifecycle_seq: i64,
-    // Presentation fields consumed by the pawn renderer (Wave 3).
+    pub bleed: Option<serde_json::Value>,
+    #[serde(rename = "bodyVanishAtTick")]
+    pub body_vanish_at_tick: Option<i64>,
+    #[serde(rename = "respawnAtTick")]
+    pub respawn_at_tick: Option<i64>,
+    #[serde(rename = "bodyVanishTick")]
+    pub body_vanish_tick: Option<i64>,
+    #[serde(rename = "incapRemainingMs")]
+    pub incap_remaining_ms: Option<i64>,
+    #[serde(rename = "incapCount")]
+    pub incap_count: Option<i64>,
+    #[serde(rename = "incapWindowMs")]
+    pub incap_window_ms: Option<i64>,
+    #[serde(rename = "nextSampleTick")]
+    pub next_sample_tick: Option<i64>,
+    #[serde(rename = "cloneSicknessRemainingMs")]
+    pub clone_sickness_remaining_ms: Option<i64>,
+    #[serde(rename = "skillPointsUsed")]
+    pub skill_points_used: Option<i64>,
+    #[serde(rename = "skillPointsCap")]
+    pub skill_points_cap: Option<i64>,
+    #[serde(rename = "activeTitle")]
+    pub active_title: Option<serde_json::Value>,
+    #[serde(rename = "combatQueue")]
+    pub combat_queue: Option<serde_json::Value>,
+    #[serde(rename = "inCombat")]
+    pub in_combat: Option<bool>,
+    #[serde(rename = "peaceRequested")]
+    pub peace_requested: Option<bool>,
+    #[serde(rename = "aiAttitude")]
+    pub ai_attitude: Option<String>,
+    pub lootable: Option<bool>,
+    pub has_loot: Option<bool>,
+    #[serde(rename = "lootRightsActorId")]
+    pub loot_rights_actor_id: Option<String>,
+    #[serde(rename = "playerOrganizationId")]
+    pub player_organization_id: Option<String>,
+    #[serde(rename = "playerOrganizationTag")]
+    pub player_organization_tag: Option<String>,
+    #[serde(rename = "willAutoAggro")]
+    pub will_auto_aggro: Option<bool>,
+    pub descriptor: Option<String>,
+    #[serde(rename = "linkDead")]
+    pub link_dead: bool,
+    #[serde(rename = "careerGoalId")]
+    pub career_goal_id: Option<String>,
+    pub stats: Option<serde_json::Value>,
+    pub mobility: Option<serde_json::Value>,
+    #[serde(rename = "shotSpreadDegreesMilli")]
+    pub shot_spread_degrees_milli: Option<i64>,
     pub sprite: Option<String>,
     pub role: Option<String>,
     pub posture: Option<String>,
+    #[serde(rename = "postureUntilTick")]
+    pub posture_until_tick: Option<i64>,
     pub appearance: Option<GameActorAppearance>,
     #[serde(default)]
     pub worn: Vec<GameActorWorn>,
@@ -178,6 +271,8 @@ pub struct GameActorSnapshot {
     pub pvp_status: Option<String>,
     #[serde(rename = "engagementTargetId")]
     pub engagement_target_id: Option<String>,
+    #[serde(rename = "sprintRecoveryLocked")]
+    pub sprint_recovery_locked: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -185,8 +280,11 @@ pub struct GameActorSnapshot {
 pub struct GameActorPatch {
     pub id: String,
     pub label: Option<String>,
-    #[serde(rename = "display_name")]
+    #[serde(rename = "displayName", alias = "display_name")]
     pub display_name: Option<String>,
+    pub descriptor: Option<String>,
+    #[serde(rename = "linkDead")]
+    pub link_dead: Option<bool>,
     #[serde(rename = "areaId")]
     pub area_id: Option<String>,
     pub x: Option<f32>,
@@ -195,20 +293,76 @@ pub struct GameActorPatch {
     pub vitals: Option<GameActorVitals>,
     #[serde(rename = "maxVitals")]
     pub max_vitals: Option<GameActorVitals>,
+    pub bleed: Option<serde_json::Value>,
     #[serde(rename = "lifeState")]
     pub life_state: Option<String>,
     #[serde(rename = "lifecycleSeq")]
     pub lifecycle_seq: Option<i64>,
+    #[serde(rename = "bodyVanishAtTick")]
+    pub body_vanish_at_tick: Option<i64>,
+    #[serde(rename = "respawnAtTick")]
+    pub respawn_at_tick: Option<i64>,
+    #[serde(rename = "bodyVanishTick")]
+    pub body_vanish_tick: Option<i64>,
+    #[serde(rename = "incapRemainingMs")]
+    pub incap_remaining_ms: Option<i64>,
+    #[serde(rename = "incapCount")]
+    pub incap_count: Option<i64>,
+    #[serde(rename = "incapWindowMs")]
+    pub incap_window_ms: Option<i64>,
+    #[serde(rename = "nextSampleTick")]
+    pub next_sample_tick: Option<i64>,
+    #[serde(rename = "cloneSicknessRemainingMs")]
+    pub clone_sickness_remaining_ms: Option<i64>,
+    #[serde(rename = "skillPointsUsed")]
+    pub skill_points_used: Option<i64>,
+    #[serde(rename = "skillPointsCap")]
+    pub skill_points_cap: Option<i64>,
+    #[serde(rename = "activeTitle")]
+    pub active_title: Option<serde_json::Value>,
+    #[serde(rename = "combatQueue")]
+    pub combat_queue: Option<serde_json::Value>,
+    #[serde(rename = "inCombat")]
+    pub in_combat: Option<bool>,
+    #[serde(rename = "peaceRequested")]
+    pub peace_requested: Option<bool>,
+    #[serde(rename = "aiAttitude")]
+    pub ai_attitude: Option<String>,
+    pub lootable: Option<bool>,
+    pub has_loot: Option<bool>,
+    #[serde(rename = "lootRightsActorId")]
+    pub loot_rights_actor_id: Option<String>,
+    #[serde(rename = "playerOrganizationId")]
+    pub player_organization_id: Option<String>,
+    #[serde(rename = "playerOrganizationTag")]
+    pub player_organization_tag: Option<String>,
+    #[serde(rename = "willAutoAggro")]
+    pub will_auto_aggro: Option<bool>,
     pub sprite: Option<String>,
     pub role: Option<String>,
     pub posture: Option<String>,
+    #[serde(rename = "postureUntilTick")]
+    pub posture_until_tick: Option<i64>,
     pub appearance: Option<GameActorAppearance>,
     pub worn: Option<Vec<GameActorWorn>>,
-    pub weapon: Option<serde_json::Value>,
+    pub weapon: Option<GameActorWeapon>,
+    pub statuses: Option<Vec<serde_json::Value>>,
+    pub professions: Option<Vec<serde_json::Value>>,
+    #[serde(rename = "personalShield")]
+    pub personal_shield: Option<serde_json::Value>,
+    pub credits: Option<i64>,
+    #[serde(rename = "factionId")]
+    pub faction_id: Option<String>,
+    #[serde(rename = "socialGroup")]
+    pub social_group: Option<String>,
+    #[serde(rename = "pvpStatus")]
+    pub pvp_status: Option<String>,
+    #[serde(rename = "engagementTargetId")]
+    pub engagement_target_id: Option<String>,
+    #[serde(rename = "sprintRecoveryLocked")]
+    pub sprint_recovery_locked: Option<bool>,
+    pub mobility: Option<serde_json::Value>,
 }
-
-/// Character appearance (skin tone, hair, face) — permissive passthrough for
-/// the face-kit fields beyond the two the body renderer needs directly.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GameActorAppearance {
@@ -241,21 +395,78 @@ pub struct GameActorWeapon {
 
 /// Compact per-tick move delta: `[netId, qx, qy, direction]` (positions are
 /// milli-cell quantized / 100; direction 0..3). netId resolves via `actorRefs`.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
 pub struct GameCompactActorMove(pub u32, pub i64, pub i64, pub u8);
+
+impl<'de> Deserialize<'de> for GameCompactActorMove {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let row = Vec::<serde_json::Value>::deserialize(deserializer)?;
+        if row.len() != 4 {
+            return Err(serde::de::Error::invalid_length(
+                row.len(),
+                &"4-element compact actor move",
+            ));
+        }
+        let n = |i: usize| {
+            row[i]
+                .as_i64()
+                .ok_or_else(|| serde::de::Error::custom("compact move integer"))
+        };
+        let net = u32::try_from(n(0)?).map_err(|_| serde::de::Error::custom("net id range"))?;
+        let dir = u8::try_from(n(3)?).map_err(|_| serde::de::Error::custom("direction range"))?;
+        if dir > 3 {
+            return Err(serde::de::Error::custom("direction range"));
+        }
+        Ok(Self(net, n(1)?, n(2)?, dir))
+    }
+}
 
 /// `actorRefs` entry mapping a net id to an actor id.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GameActorNetRef(pub u32, pub String);
+/// Compact full actor row. The wire tuple is retained losslessly and decoded
+/// by the authority projection, which can therefore reject it transactionally.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct GameCompactActorSnapshot(pub Vec<serde_json::Value>);
 
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
-#[serde(default)]
-pub struct GameActorVitals {
-    pub health: f32,
-    pub action: f32,
-    pub spirit: f32,
+impl<'de> Deserialize<'de> for GameCompactActorSnapshot {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let row = Vec::<serde_json::Value>::deserialize(deserializer)?;
+        if row.len() != 52 {
+            return Err(serde::de::Error::invalid_length(
+                row.len(),
+                &"52-element compact actor snapshot",
+            ));
+        }
+        Ok(Self(row))
+    }
 }
 
+/// Compact actor patch. `null` and `false` are intentionally retained.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct GameCompactActorPatch(pub Vec<serde_json::Value>);
+
+impl<'de> Deserialize<'de> for GameCompactActorPatch {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let row = Vec::<serde_json::Value>::deserialize(deserializer)?;
+        if row.len() != 52 {
+            return Err(serde::de::Error::invalid_length(
+                row.len(),
+                &"52-element compact actor patch",
+            ));
+        }
+        Ok(Self(row))
+    }
+}
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GameCommandReceipt {

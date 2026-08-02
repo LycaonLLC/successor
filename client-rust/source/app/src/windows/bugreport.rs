@@ -1,122 +1,385 @@
-//! BUGREPORT — bug report submission window UI.
+//! BUG REPORT — categories, bounded player text, redacted diagnostics, and
+//! request-correlated results (ports of `ui/windows/defs/bugReportWindow.ts`,
+//! `slice-core/bugReportSystem.ts` and `support/bugReportDiagnostics.ts`).
+//!
+//! Redaction contract: the diagnostics payload is built ONLY from the typed
+//! [`DiagnosticsInput`] — free-text fields pass through [`redact_text`], and
+//! game/chat tickets, bearer values and filesystem secrets have no field to
+//! ride in. Reports correlate through `requestId`; only a matching
+//! `successor.bug-report-result.v1` settles the pending state.
 
-use super::{WindowAction, ACCENT, DIM};
+use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
 use crate::hud::Icons;
-use std::cell::RefCell;
+use serde_json::{json, Value};
 use successor_engine_render::ui::{ButtonStyle, TextField, UiBuilder};
 
-thread_local! {
-    static BUG_BODY: RefCell<TextField> = RefCell::new(TextField::new(256));
+pub const BODY_MIN_CHARS: usize = 20;
+pub const BODY_MAX_CHARS: usize = 4_000;
+
+pub const CATEGORIES: [(&str, &str); 5] = [
+    ("gameplay", "GAMEPLAY"),
+    ("interface", "INTERFACE"),
+    ("connection", "CONNECTION"),
+    ("graphics_audio", "GRAPHICS/AUDIO"),
+    ("other", "OTHER"),
+];
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum BugStatus {
+    #[default]
+    Idle,
+    /// Submitted; waiting for the correlated `bugReportResult`.
+    Pending {
+        request_id: String,
+    },
+    Accepted {
+        report_id: String,
+    },
+    Denied {
+        copy: String,
+    },
 }
 
-#[derive(Clone, Debug, Default)]
+/// Window state (owned by the host's window ui-state; mutated by draw).
+#[derive(Default)]
 pub struct BugReportModel {
-    pub category: String,
-    pub status_text: Option<String>,
+    pub category: usize,
+    pub body: TextField,
+    pub status: BugStatus,
 }
 
 impl BugReportModel {
-    pub fn sample() -> Self {
+    pub fn new() -> Self {
         Self {
-            category: "interface".into(),
-            status_text: None,
+            category: 0,
+            body: TextField::new(BODY_MAX_CHARS),
+            status: BugStatus::Idle,
         }
     }
+    pub fn sample() -> Self {
+        Self::new()
+    }
 }
+
+/// Player-facing denial copy (reference `reportErrorCopy`).
+pub fn report_error_copy(reason_code: &str) -> &'static str {
+    match reason_code {
+        "rate_limited" => "QUEUE BUSY · TRY AGAIN IN A MINUTE",
+        "invalid_report" => "REPORT NEEDS MORE DETAIL",
+        _ => "NO LINK · YOUR REPORT IS KEPT, TRY AGAIN",
+    }
+}
+
+/// Correlated result decode (port of `bugReportResultForRequest`): `None`
+/// when the payload is not this request's result.
+pub fn result_for_request(payload: &Value, expected_request_id: &str) -> Option<BugStatus> {
+    if payload.get("schema").and_then(|v| v.as_str()) != Some("successor.bug-report-result.v1") {
+        return None;
+    }
+    if payload.get("requestId").and_then(|v| v.as_str()) != Some(expected_request_id) {
+        return None;
+    }
+    match payload.get("status").and_then(|v| v.as_str()) {
+        Some("accepted") => {
+            let report_id = payload.get("reportId").and_then(|v| v.as_str())?;
+            let received_at = payload.get("receivedAt").and_then(|v| v.as_f64())?;
+            if report_id.len() < 8 || !received_at.is_finite() {
+                return None;
+            }
+            Some(BugStatus::Accepted {
+                report_id: report_id.chars().take(128).collect(),
+            })
+        }
+        Some("rejected") => {
+            let reason = payload.get("reasonCode").and_then(|v| v.as_str())?;
+            if !["invalid_report", "rate_limited", "unavailable"].contains(&reason) {
+                return None;
+            }
+            Some(BugStatus::Denied {
+                copy: report_error_copy(reason).to_string(),
+            })
+        }
+        _ => None,
+    }
+}
+
+// ── Redaction ───────────────────────────────────────────────────────────────
+
+fn is_token_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '~' | '-')
+}
+
+/// Redact bearer values and ticket/token query parameters from free text and
+/// cap its length (port of the reference `safeText` patterns).
+pub fn redact_text(value: &str, max: usize) -> String {
+    let bytes: Vec<char> = value.chars().take(max).collect();
+    let lower_chars: Vec<char> = bytes.iter().map(|c| c.to_ascii_lowercase()).collect();
+    let mut out = String::with_capacity(bytes.len() + 32);
+    let mut i = 0usize;
+    const SECRET_KEYS: [&str; 6] = [
+        "chatticket",
+        "gameticket",
+        "csrftoken",
+        "csrf",
+        "ticket",
+        "token",
+    ];
+    while i < bytes.len() {
+        // `Bearer <16+ token chars>` → `Bearer [redacted]`.
+        if lower_chars[i..].starts_with(&['b', 'e', 'a', 'r', 'e', 'r', ' ']) {
+            let start = i + 7;
+            let mut end = start;
+            while end < bytes.len() && is_token_char(bytes[end]) {
+                end += 1;
+            }
+            if end - start >= 16 {
+                out.extend(&bytes[i..i + 7]);
+                out.push_str("[redacted]");
+                i = end;
+                continue;
+            }
+        }
+        // `?key=value` / `&key=value` for secret-bearing keys.
+        if bytes[i] == '?' || bytes[i] == '&' {
+            let key_start = i + 1;
+            if let Some(eq_at) = SECRET_KEYS.iter().find_map(|key| {
+                let end = key_start + key.len();
+                (end < lower_chars.len()
+                    && lower_chars[key_start..end].iter().collect::<String>() == **key
+                    && lower_chars[end] == '=')
+                    .then_some(end)
+            }) {
+                let mut end = eq_at + 1;
+                while end < bytes.len() && bytes[end] != '&' && !bytes[end].is_whitespace() {
+                    end += 1;
+                }
+                out.extend(&bytes[i..=eq_at]);
+                out.push_str("[redacted]");
+                i = end;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    out
+}
+
+/// Typed diagnostics input — this is the ONLY door into the payload. There is
+/// deliberately no field a ticket, bearer token or chat body could ride in.
+#[derive(Clone, Debug, Default)]
+pub struct DiagnosticsInput {
+    pub client_release_id: String,
+    pub server_release_id: String,
+    pub shard_id: String,
+    pub source_state_hash: String,
+    pub area_id: String,
+    pub position: Option<(f32, f32)>,
+    pub life_state: String,
+    pub selected_actor_id: Option<String>,
+    pub weapon_id: Option<String>,
+    pub connected: bool,
+    pub authority_tick: u64,
+    pub accepted_commands: u64,
+    pub rejected_commands: u64,
+    /// Recent receipts: (command_id, accepted, reason_code).
+    pub recent_receipts: Vec<(u64, bool, String)>,
+    /// Recent client errors (already short strings; redacted again anyway).
+    pub recent_errors: Vec<String>,
+    pub open_windows: Vec<String>,
+    pub viewport: (u32, u32),
+    pub fps: f32,
+    pub uptime_ms: u64,
+}
+
+/// Build the redacted diagnostics payload
+/// (`successor.bug-report-diagnostics.v1`).
+pub fn collect_diagnostics(input: &DiagnosticsInput) -> Value {
+    let receipts: Vec<Value> = input
+        .recent_receipts
+        .iter()
+        .rev()
+        .take(16)
+        .map(|(id, accepted, reason)| {
+            json!({
+                "commandId": id,
+                "accepted": accepted,
+                "reasonCode": if reason.is_empty() { Value::Null } else { Value::String(redact_text(reason, 128)) },
+            })
+        })
+        .collect();
+    let errors: Vec<Value> = input
+        .recent_errors
+        .iter()
+        .rev()
+        .take(4)
+        .map(|e| Value::String(redact_text(e, 500)))
+        .collect();
+    json!({
+        "schema": "successor.bug-report-diagnostics.v1",
+        "clientUptimeMs": input.uptime_ms,
+        "client": {
+            "clientReleaseId": redact_text(&input.client_release_id, 128),
+            "serverReleaseId": redact_text(&input.server_release_id, 128),
+            "shardId": redact_text(&input.shard_id, 128),
+        },
+        "viewport": { "width": input.viewport.0, "height": input.viewport.1 },
+        "world": {
+            "areaId": redact_text(&input.area_id, 64),
+            "position": input.position.map(|(x, y)| json!({"x": x, "y": y})).unwrap_or(Value::Null),
+            "lifeState": redact_text(&input.life_state, 32),
+            "selectedActorId": input.selected_actor_id.as_deref().map(|s| Value::String(redact_text(s, 64))).unwrap_or(Value::Null),
+            "weaponId": input.weapon_id.as_deref().map(|s| Value::String(redact_text(s, 64))).unwrap_or(Value::Null),
+        },
+        "authority": {
+            "connected": input.connected,
+            "tick": input.authority_tick,
+            "sourceStateHash": redact_text(&input.source_state_hash, 128),
+            "acceptedCommands": input.accepted_commands,
+            "rejectedCommands": input.rejected_commands,
+        },
+        "recentReceipts": receipts,
+        "runtimeErrors": errors,
+        "ui": { "openWindows": input.open_windows.iter().map(|w| Value::String(redact_text(w, 48))).collect::<Vec<_>>() },
+        "renderer": { "fps": input.fps },
+    })
+}
+
+// ── Window ──────────────────────────────────────────────────────────────────
 
 pub fn draw(
     ui: &mut UiBuilder,
     rect: [f32; 4],
-    model: &BugReportModel,
+    model: &mut BugReportModel,
     icons: &Icons,
     out: &mut Vec<WindowAction>,
 ) {
     let [x, y, w, h] = rect;
-
-    // Header
     ui.text("SUBMIT BUG REPORT", x, y, 2.2, ACCENT);
-
-    // Draw icon if available
     if let Some((col, row)) = icons.cell("bug-report") {
-        ui.icon(col, row, x + w - 32.0, y - 4.0, 24.0, 24.0, ACCENT);
+        ui.icon(col, row, x + w - 28.0, y - 2.0, 22.0, 22.0, ACCENT);
     }
 
-    let start_y = y + 26.0;
+    // Received panel replaces the form after acceptance.
+    if let BugStatus::Accepted { report_id } = &model.status {
+        let cy = y + 40.0;
+        ui.text("REPORT RECEIVED", x, cy, 2.0, ACCENT);
+        ui.text(
+            "YOUR SESSION LOG AND NOTES ARE TOGETHER IN THE QUEUE.",
+            x,
+            cy + 20.0,
+            1.4,
+            DIM,
+        );
+        ui.rect(x, cy + 36.0, w, 18.0, SLOT);
+        ui.text(report_id, x + 6.0, cy + 40.0, 1.5, TEXT);
+        if ui.button(
+            x,
+            cy + 64.0,
+            140.0,
+            24.0,
+            "ANOTHER REPORT",
+            ButtonStyle::default(),
+        ) {
+            out.push(WindowAction::BugReportReset);
+        }
+        return;
+    }
 
-    // Help Intro
+    let mut cy = y + 24.0;
     ui.text(
-        "TELL US WHAT BROKE, WHAT YOU EXPECTED,",
+        "TELL US WHAT BROKE, WHAT YOU EXPECTED, AND WHAT",
         x,
-        start_y,
+        cy,
         1.4,
         DIM,
     );
-    ui.text("AND HOW TO REPRODUCE IT.", x, start_y + 12.0, 1.4, DIM);
+    ui.text("YOU DID JUST BEFORE IT HAPPENED.", x, cy + 11.0, 1.4, DIM);
+    cy += 28.0;
 
-    // Category Selector
-    let cat_y = start_y + 32.0;
-    ui.text("AREA", x, cat_y, 1.4, DIM);
-
-    let categories = [
-        ("gameplay", "GAMEPLAY"),
-        ("interface", "INTERFACE"),
-        ("connection", "CONNECTION"),
-        ("graphics_audio", "GRAPHICS/AUDIO"),
-        ("other", "OTHER"),
-    ];
-
-    let cat_btn_w = (w - 12.0) / 3.0;
-    let cat_btn_h = 22.0;
-
-    for (i, &(cat_id, label)) in categories.iter().enumerate() {
+    // AREA selector.
+    ui.text("AREA", x, cy, 1.4, DIM);
+    cy += 12.0;
+    let btn_w = (w - 12.0) / 3.0;
+    for (i, (_, label)) in CATEGORIES.iter().enumerate() {
         let col = i % 3;
         let row = i / 3;
-        let bx = x + col as f32 * (cat_btn_w + 6.0);
-        let by = cat_y + 14.0 + row as f32 * (cat_btn_h + 6.0);
-
+        let bx = x + col as f32 * (btn_w + 6.0);
+        let by = cy + row as f32 * 26.0;
         let mut style = ButtonStyle::default();
-        let is_selected = model.category == cat_id;
-        if is_selected {
+        if i == model.category {
             style.fill = [70, 92, 120, 240];
             style.edge = ACCENT;
         }
-
-        if ui.button(bx, by, cat_btn_w, cat_btn_h, label, style) {
-            out.push(WindowAction::Button(format!("bug:category:{}", cat_id)));
+        if ui.button(bx, by, btn_w, 20.0, label, style) {
+            model.category = i;
         }
     }
+    cy += 2.0 * 26.0 + 8.0;
 
-    // Text Field for body
-    let body_label_y = cat_y + 14.0 + 2.0 * (cat_btn_h + 6.0) + 12.0;
-    ui.text("WHAT HAPPENED?", x, body_label_y, 1.4, DIM);
-
-    let body_field_y = body_label_y + 14.0;
-    let body_field_h = h - (body_field_y - y) - 52.0; // leave space for diagnostics + submit button
-
-    BUG_BODY.with(|f| {
-        let mut f = f.borrow_mut();
-        ui.text_field(&mut f, x, body_field_y, w, body_field_h, 1.6, true);
-    });
-
-    // Diagnostics / Status Foot
-    let foot_y = body_field_y + body_field_h + 8.0;
+    // Body field + live count.
+    ui.text("WHAT HAPPENED?", x, cy, 1.4, DIM);
+    cy += 12.0;
+    let field_h = (h - (cy - y) - 78.0).max(40.0);
+    let pending = matches!(model.status, BugStatus::Pending { .. });
+    ui.text_field(&mut model.body, x, cy, w, field_h, 1.6, !pending);
+    cy += field_h + 6.0;
+    let len = model.body.text.trim().chars().count();
     ui.text(
-        "SESSION DIAGNOSTICS WILL BE SENT AUTOMATICALLY.",
+        &format!("{len} / {BODY_MAX_CHARS}"),
         x,
-        foot_y,
+        cy,
+        1.3,
+        if len < BODY_MIN_CHARS { DIM } else { TEXT },
+    );
+
+    // Diagnostics disclosure (exact reference promise).
+    ui.text(
+        "SESSION LOG ATTACHED: BUILD AND SHARD IDS, LOCATION,",
+        x,
+        cy + 12.0,
+        1.2,
+        DIM,
+    );
+    ui.text(
+        "CLIENT ERRORS, RECEIPTS, OPEN WINDOWS. NEVER PASSWORDS,",
+        x,
+        cy + 22.0,
+        1.2,
+        DIM,
+    );
+    ui.text(
+        "TICKETS, COOKIES, CHAT, OR INVENTORY.",
+        x,
+        cy + 32.0,
         1.2,
         DIM,
     );
 
-    if let Some(status) = &model.status_text {
-        ui.text(status, x, foot_y + 14.0, 1.4, ACCENT);
+    // Status line.
+    match &model.status {
+        BugStatus::Pending { .. } => {
+            ui.text("PACKING SESSION LOG…", x, cy + 44.0, 1.4, ACCENT);
+        }
+        BugStatus::Denied { copy } => {
+            ui.text(copy, x, cy + 44.0, 1.4, [227, 74, 74, 255]);
+        }
+        _ => {}
     }
 
-    // Submit Button
-    let btn_y = y + h - 30.0;
-    let submit_style = ButtonStyle::default();
-    if ui.button(x, btn_y, w, 26.0, "SEND REPORT", submit_style) {
-        out.push(WindowAction::Button("bug:submit".into()));
+    // Submit.
+    let can_send = len >= BODY_MIN_CHARS && !pending;
+    let mut style = ButtonStyle::default();
+    if !can_send {
+        style.text = DIM;
+        style.edge = SLOT_EDGE;
+    }
+    let label = if pending { "SENDING…" } else { "SEND REPORT" };
+    if ui.button(x, y + h - 24.0, w, 22.0, label, style) && can_send {
+        out.push(WindowAction::SubmitBugReport {
+            category: CATEGORIES[model.category].0.to_string(),
+            body: crate::hud::sanitize_text(&model.body.text, BODY_MAX_CHARS),
+        });
     }
 }
 
@@ -125,43 +388,128 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bug_report_submit_button_emits_action() {
+    fn redacts_bearer_and_ticket_params() {
+        let s = "auth Bearer abcdefghijklmnop0123 tail";
+        assert_eq!(redact_text(s, 500), "auth Bearer [redacted] tail");
+        let q = "wss://x/y?gameTicket=SECRET123&keep=1&chatTicket=ALSO";
+        let r = redact_text(q, 500);
+        assert!(!r.contains("SECRET123"), "{r}");
+        assert!(!r.contains("ALSO"), "{r}");
+        assert!(r.contains("gameTicket=[redacted]"), "{r}");
+        assert!(r.contains("keep=1"), "{r}");
+        // Short bearer-ish strings survive (not a token).
+        assert_eq!(redact_text("Bearer short", 64), "Bearer short");
+    }
+
+    #[test]
+    fn diagnostics_never_carry_secrets() {
+        let input = DiagnosticsInput {
+            client_release_id: "client-1".into(),
+            server_release_id: "server-1".into(),
+            shard_id: "shard-9".into(),
+            source_state_hash: "abc123".into(),
+            area_id: "open-desert".into(),
+            recent_errors: vec![
+                "socket wss://host/game?ticket=TOPSECRET failed".into(),
+                "reject Bearer aaaaaaaaaaaaaaaaaaaaaa".into(),
+            ],
+            ..Default::default()
+        };
+        let payload = serde_json::to_string(&collect_diagnostics(&input)).unwrap();
+        assert!(!payload.contains("TOPSECRET"));
+        assert!(!payload.contains("aaaaaaaaaaaaaaaaaaaaaa"));
+        assert!(payload.contains("[redacted]"));
+        assert!(payload.contains("successor.bug-report-diagnostics.v1"));
+    }
+
+    #[test]
+    fn result_correlation_is_exact() {
+        let accepted = serde_json::json!({
+            "schema": "successor.bug-report-result.v1",
+            "requestId": "req-1",
+            "status": "accepted",
+            "reportId": "REPORT-12345",
+            "receivedAt": 172000.0,
+        });
+        assert_eq!(
+            result_for_request(&accepted, "req-1"),
+            Some(BugStatus::Accepted {
+                report_id: "REPORT-12345".into()
+            })
+        );
+        assert_eq!(
+            result_for_request(&accepted, "req-2"),
+            None,
+            "foreign request ignored"
+        );
+        let rejected = serde_json::json!({
+            "schema": "successor.bug-report-result.v1",
+            "requestId": "req-1",
+            "status": "rejected",
+            "reasonCode": "rate_limited",
+        });
+        assert!(matches!(
+            result_for_request(&rejected, "req-1"),
+            Some(BugStatus::Denied { .. })
+        ));
+        let short_id = serde_json::json!({
+            "schema": "successor.bug-report-result.v1",
+            "requestId": "req-1",
+            "status": "accepted",
+            "reportId": "short",
+            "receivedAt": 1.0,
+        });
+        assert_eq!(result_for_request(&short_id, "req-1"), None);
+    }
+
+    #[test]
+    fn submit_gates_on_min_length_and_pending() {
         let icons = Icons::load();
-        let model = BugReportModel::sample();
         let mut ui = UiBuilder::new(icons.meta);
-
-        // rect = [10.0, 10.0, 300.0, 400.0]
-        // Submit button is at bottom: btn_y = 10.0 + 400.0 - 30.0 = 380.0
-        // Size = 300.0 x 26.0, x = 10.0
-        let bx = 10.0 + 150.0;
-        let by = 380.0 + 10.0;
-
+        let mut model = BugReportModel::new();
+        let rect = [10.0, 10.0, 320.0, 400.0];
+        // Too-short body: click SEND → no action.
+        for c in "short".chars() {
+            model.body.insert(c);
+        }
+        let (bx, by) = (10.0 + 160.0, 10.0 + 400.0 - 13.0);
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(
-            &mut ui,
-            [10.0, 10.0, 300.0, 400.0],
-            &model,
-            &icons,
-            &mut out,
-        );
-
+        draw(&mut ui, rect, &mut model, &icons, &mut out);
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(
-            &mut ui,
-            [10.0, 10.0, 300.0, 400.0],
-            &model,
-            &icons,
-            &mut out,
-        );
-
-        assert!(
-            out.contains(&WindowAction::Button("bug:submit".into())),
-            "Expected bug:submit action, got {:?}",
-            out
-        );
+        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        assert!(out.is_empty());
+        // Long enough → SubmitBugReport with the reference category id.
+        for c in " and then the terminal ate my report".chars() {
+            model.body.insert(c);
+        }
+        ui.set_input(bx, by, true);
+        ui.begin(1280, 720);
+        out.clear();
+        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        ui.set_input(bx, by, false);
+        ui.begin(1280, 720);
+        out.clear();
+        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        assert!(matches!(
+            out.as_slice(),
+            [WindowAction::SubmitBugReport { category, .. }] if category == "gameplay"
+        ));
+        // Pending swallows further submits.
+        model.status = BugStatus::Pending {
+            request_id: "r".into(),
+        };
+        ui.set_input(bx, by, true);
+        ui.begin(1280, 720);
+        out.clear();
+        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        ui.set_input(bx, by, false);
+        ui.begin(1280, 720);
+        out.clear();
+        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        assert!(out.is_empty());
     }
 }

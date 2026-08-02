@@ -21,14 +21,16 @@ focused design detail and cannot introduce another active runtime path.
 | Gameplay authority | `crates/successor-sim/` | Deterministic world simulation and gameplay mutations |
 | Shared Rust contracts | `crates/successor-{core,inventory,net,wasm}/` | Types, inventory primitives, wire commands, and platform bindings |
 | Public deployment | `ops/deploy/` | Immutable client/site publication, AWS infrastructure, and single-writer server operation |
-| Native client (in development) | `client-rust/` | no_std Rust engine + platform-abstracted deferred/forward PBR renderer (desktop GL, web WebGL2; TUI/mobile later); reuses `successor-net` wire types; not yet a supported player surface |
+| Rust client (in development) | `client-rust/` | no_std Rust engine plus one authority-driven connected runtime on desktop GL and WebGL2; reuses `successor-net` wire types; not yet a supported player surface |
 
 There are two supported player-facing clients. `client/` is a shared package,
 not a third visual client. Both clients submit the same server commands and
 render the same authoritative state.
 
-A third, in-development Rust client lives in `client-rust/`; it is not yet a
-supported player-facing client and ships nothing.
+A third, in-development Rust client lives in `client-rust/`. Its native and
+WebGL2 builds run the same streamed-state projection and command path as the
+supported clients, but it remains unshipped and is not yet a supported
+player-facing surface.
 
 The native client's desktop platform has one developer-only agent-control
 surface. Explicit opt-in starts a loopback-only text protocol; the companion
@@ -39,6 +41,12 @@ client. The same platform boundary records effective input to the current-only
 This tooling is disabled by default, is absent from the web backend, and
 submits gameplay through the ordinary client/server command path; it is not a
 second gameplay authority or a public control endpoint.
+
+The browser backend consumes a strict launch context, stable-id assets, and the
+same connected scene as native. It may rebuild renderer resources after WebGL
+context loss while retaining the session and last valid authority projection;
+it must not replay launch capabilities or synthesize gameplay state. The
+deterministic half-float-disabled mode is verification-only.
 
 The native renderer also has one developer graphics-mastering layer over the
 existing immediate-mode UI. Backquote toggles it; its validated Low, Medium,
