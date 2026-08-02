@@ -1707,6 +1707,7 @@ mod connected {
             None,
             None,
             None,
+            None,
             max_frames,
             screenshot,
             auto_walk,
@@ -1739,6 +1740,7 @@ mod connected {
         };
         let endpoint = envelope.game_endpoint.clone();
         let chat_endpoint = envelope.chat_endpoint.clone();
+        let client_release = envelope.client_release.clone();
         let character = envelope.character_id.clone();
         run_inner(
             &endpoint,
@@ -1747,6 +1749,7 @@ mod connected {
             Some(game_ticket),
             Some(chat_ticket),
             Some(chat_endpoint),
+            Some(client_release),
             envelope.shard.as_deref(),
             max_frames,
             screenshot,
@@ -1762,6 +1765,7 @@ mod connected {
         game_ticket: Option<String>,
         chat_ticket: Option<String>,
         chat_endpoint: Option<String>,
+        client_release: Option<String>,
         expected_shard: Option<&str>,
         max_frames: Option<u64>,
         screenshot: Option<&str>,
@@ -1944,9 +1948,10 @@ mod connected {
                         }
                         plat::WsEvent::None => break,
                         plat::WsEvent::Open => {
-                            if let Some(frame) =
-                                chat_client.connection.authenticate(&mut chat_ticket)
-                            {
+                            if let Some(frame) = chat_client.connection.authenticate(
+                                &mut chat_ticket,
+                                client_release.as_deref().unwrap_or_default(),
+                            ) {
                                 plat::ws_send(socket, frame.as_bytes());
                             }
                         }

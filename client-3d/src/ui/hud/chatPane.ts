@@ -103,6 +103,7 @@ export function createChatPaneClient(
     },
     zoneId: identity.zoneId,
     authTicket: identity.standalone ? identity.chatTicket : undefined,
+    authReleaseId: identity.standalone ? identity.clientReleaseId : undefined,
     onFailure: identity.standalone ? onLaunchFailure : undefined,
     // The bubble message passes through unchanged — no actorId; the shared
     // bubble system's fallback rule

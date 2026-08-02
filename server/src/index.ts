@@ -83,7 +83,7 @@ export async function createApp() {
     const originPattern = process.env.NODE_ENV === "production" ? /^https:\/\/[^/]+$/u : /^https?:\/\/[^/]+$/u;
     if (!origin || !originPattern.test(origin)) throw new Error("SUCCESSOR_ALPHA_ORIGIN must be an exact origin");
     const requiredLegalVersions = alphaLegalVersionsFromEnv();
-    const allowlist = (process.env.SUCCESSOR_ALPHA_CLIENT_RELEASE_ALLOWLIST ?? runtimeAuth.clientReleaseId).split(",").map((value) => value.trim()).filter(Boolean);
+    const allowlist = runtimeAuth.acceptedClientReleaseIds ?? [runtimeAuth.clientReleaseId];
     const gameEndpoint = process.env.SUCCESSOR_ALPHA_GAME_ENDPOINT?.trim();
     const chatEndpoint = process.env.SUCCESSOR_ALPHA_CHAT_ENDPOINT?.trim();
     assertStandaloneSocketEndpoints(origin, gameEndpoint, chatEndpoint, process.env.NODE_ENV === "production");

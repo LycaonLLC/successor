@@ -85,6 +85,30 @@ corresponding WebGL2 probe, connected authority commands and receipts, a resize
 round trip, deterministic half-float-disabled fallback, gesture-gated audio,
 and rendered context-loss recovery without replaying the launch capability.
 
+For a Rust web beta release, build the immutable artifact from the exact source
+and server protocol identities:
+
+```bash
+make -C client-rust web-release \
+  SOURCE_COMMIT=<40-char-source-commit> \
+  CLIENT_RELEASE_ID=successor-rust-beta@<source-prefix> \
+  SERVER_RELEASE_ID=<server-protocol-id>
+```
+
+Inspect `client-rust/out/web-release/release-manifest.json`, then dry-run
+`publish-client-assets.mjs` against that directory and
+`promote-client-runtime.mjs` with
+`--destination site/current/beta/release.json --channel beta
+--server-release-id <server-protocol-id>`. The beta pointer and stable
+`site/current/client/release.json` pointer are independent.
+
+Browser beta proof must use `/beta/` and cover exact-parent READY/launch,
+release-bound game and chat redemption, movement and receipts, resize,
+gesture-gated audio, RGBA8 fallback, WebGL context loss/recovery, clean exit,
+fresh-ticket re-entry, and character switching. Inspect URLs, storage, DOM,
+console output, and proof artifacts for capability leakage. Repeat a stable
+`/play/` journey after beta proof.
+
 Native agent-control changes additionally require a real loopback journey:
 launch a windowed demo or connected client with `--control-port N`, pipe
 multiple input commands through `out/bin/successor-control`, request and
@@ -254,6 +278,7 @@ reset, key rotation, or pointer promotion:
 
 ```bash
 curl -fsS https://www.successorgame.com/client/release.json | jq .
+curl -fsS https://www.successorgame.com/beta/release.json | jq .
 curl -fsS https://www.successorgame.com/downloads/manifest.json | jq .
 curl -fsS https://world.successorgame.com/healthz | jq .
 curl -fsS https://world.successorgame.com/readyz | jq .

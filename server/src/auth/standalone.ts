@@ -53,14 +53,19 @@ export async function redeemStandaloneLaunch(
   purpose: LaunchPurpose,
   controlStore: StandaloneLaunchStore,
   characterStore: CharacterStore,
-  config: Pick<RuntimeAuthConfig, "shardId" | "clientReleaseId" | "serverReleaseId" | "issuer">,
+  config: Pick<RuntimeAuthConfig, "shardId" | "clientReleaseId" | "acceptedClientReleaseIds" | "serverReleaseId" | "issuer">,
   isCharacterIdReserved?: (characterId: string) => boolean,
+  presentedClientReleaseId = config.clientReleaseId,
 ): Promise<StandaloneLaunchIdentity> {
+  const acceptedReleases = config.acceptedClientReleaseIds ?? [config.clientReleaseId];
+  if (!acceptedReleases.includes(presentedClientReleaseId)) {
+    throw new Error("client release is not accepted");
+  }
   const launch = await controlStore.redeemCapability({
     token,
     purpose,
     shardId: config.shardId,
-    clientReleaseId: config.clientReleaseId,
+    clientReleaseId: presentedClientReleaseId,
     serverReleaseId: config.serverReleaseId,
     issuer: config.issuer,
   });

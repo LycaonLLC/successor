@@ -30,6 +30,8 @@ export interface SuccessorHeadlessHostOptions {
   /** Standalone one-use game capability. Sent only inside the join body and
    *  cleared the moment the join request is built — never a URL, never kept. */
   gameTicket?: string;
+  /** Exact release bound into a standalone game capability. */
+  clientReleaseId?: string;
   /** Exact storefront Origin sent on the matchmake request and WS handshake
    *  (hosted admission policy). In-memory only; never logged or persisted. */
   origin?: string;
@@ -74,7 +76,10 @@ export async function createSuccessorHeadlessHost(options: SuccessorHeadlessHost
  * server's standalone mode rejects any URL-borne ticket.
  */
 export function joinBodyFor(options: SuccessorHeadlessHostOptions, actorId: string): Record<string, string> {
-  if (options.gameTicket) return { gameTicket: options.gameTicket };
+  if (options.gameTicket) {
+    if (!options.clientReleaseId) throw new Error("standalone game release id required");
+    return { gameTicket: options.gameTicket, release: options.clientReleaseId };
+  }
   const body: Record<string, string> = {
     playerId: options.playerId ?? actorId,
     actorId,

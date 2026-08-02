@@ -167,13 +167,13 @@ export function initCreatorStage(doc: Document, api: Api, options: CreatorStageO
     teardown?.();
     setState("loading", LOADING_COPY);
 
-    const entry = await loadRuntimePointer(doc.baseURI);
-    if (entry === null) {
+    const runtime = await loadRuntimePointer(doc.baseURI);
+    if (runtime === null) {
       setState("unavailable", POINTER_DOWN_COPY);
       return;
     }
     // Public mode flag only; the URL never carries ids, tickets, or tokens.
-    const creatorUrl = new URL(entry.href);
+    const creatorUrl = new URL(runtime.entry.href);
     creatorUrl.searchParams.set("mode", "creator");
     const creatorOrigin = creatorUrl.origin;
 

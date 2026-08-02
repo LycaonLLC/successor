@@ -51,7 +51,7 @@ layout. The supported components are:
 | `desktop/` | Electron packaging and isolated local-authority lifecycle |
 | `site/` | Marketing, account, launch, legal, roadmap, and download presentation |
 | `ops/deploy/` | AWS infrastructure and immutable release/operator scripts |
-| `client-rust/` | In-development native Rust client (no_std engine, desktop GL/WebGL2 renderer, Colyseus protocol) — graphical material parity implemented, unshipped, standalone workspace |
+| `client-rust/` | Rust native/WebGL2 client workspace; source now includes the independently published `/beta/` WebGL2 route and release tooling, while native remains development-only |
 
 There is no supported 2D game client. `client/` has one headless entry point and
 contains no visual runtime; graphical presentation belongs to `client-3d/`.
@@ -97,14 +97,20 @@ and resized layouts, gesture-gated audio, forced half-float fallback, and
 context loss/recovery. A matched legacy `client-3d` frame confirms the same
 north-up fixture composition and authority state.
 
-The client remains an unshipped development surface. Its stripped native and
-WebAssembly artifacts remain below the 6 MiB and 4 MiB absolute caps; the
-matching Apple M2 Max baseline records the intentional size increase from the
-complete connected native/WebGL runtime. Standard runtime and connected frame
-loops report zero steady-state allocations, and runtime, terrain, render, and
-RSS gates remain below their absolute budgets. None of this promotes
-`client-rust`, changes the supported-client list, or adds it to the site,
-desktop package, publication allowlist, or native download ledger.
+The source now promotes WebGL2 as an opt-in beta without replacing the stable
+clients. The site has a real `/beta/` route and an independent
+`/beta/release.json` pointer; ticket minting and redemption bind stable and beta
+release ids end to end. Public Rust artifacts exclude URL launch capabilities,
+carry exact storefront/game/chat/client/server identities, and emit a
+deterministic hashed inventory. The native Rust build remains unshipped and the
+download ledger is unchanged.
+
+The stripped native and WebAssembly artifacts remain subject to the 6 MiB and
+4 MiB absolute caps. Standard runtime and connected frame loops must retain
+zero steady-state allocations, and runtime, terrain, render, and RSS gates
+remain below their absolute budgets. This source status does not claim that a
+beta pointer, server allowlist, site release, or public player journey has been
+promoted; those volatile identities belong only in `CURRENT_DEPLOYMENT.md`.
 
 
 Source assets and generated runtime assets have separate homes. PawnForge

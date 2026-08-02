@@ -1029,7 +1029,9 @@ export function gameAuthorityWsUrl(launchIdentity: LaunchIdentity): string {
 
 export function gameAuthorityJoinOptions(launchIdentity: LaunchIdentity): Record<string, string> {
   if (launchIdentity.standalone) {
-    return launchIdentity.gameTicket ? { gameTicket: launchIdentity.gameTicket } : {};
+    return launchIdentity.gameTicket && launchIdentity.clientReleaseId
+      ? { gameTicket: launchIdentity.gameTicket, release: launchIdentity.clientReleaseId }
+      : {};
   }
   const params = new URLSearchParams(window.location.search);
   const explicit = launchIdentity.gameWsUrl;

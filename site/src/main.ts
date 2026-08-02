@@ -16,7 +16,15 @@ if (page === "home") {
 } else if (page === "connect") {
   initConnectPage(document);
 } else if (page === "play") {
-  void initPlayPage(document);
+  const beta = document.body.dataset.runtimeChannel === "beta";
+  void initPlayPage(document, undefined, beta
+    ? {
+      runtimePointerPath: "/beta/release.json",
+      beta: true,
+      consumeCharacterHandoff: false,
+      enableMacroBridge: false,
+    }
+    : {});
 } else if (page === "download") {
   void initDownloads(document);
 }

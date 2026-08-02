@@ -344,6 +344,7 @@ export async function identityFromOptions(
 ): Promise<GameSessionIdentity> {
   const query = isRecord(options) ? stringRecord(options) : {};
   const standaloneToken = query.gameTicket?.trim();
+  const standaloneRelease = query.release?.trim();
   if (auth.runtimeAuth?.mode === "standalone") {
     if (query.ticket?.trim()) rejectJoin("launch ticket must be in join body");
     if (auth.authenticatedIdentity) {
@@ -356,9 +357,9 @@ export async function identityFromOptions(
       requireInitialProfessionForFirstEntry(character);
       return auth.authenticatedIdentity;
     }
-    if (!standaloneToken) rejectJoin("game ticket required");
+    if (!standaloneToken || !standaloneRelease) rejectJoin("game ticket and release required");
     try {
-      const identity = await redeemStandaloneLaunch(standaloneToken, "game", auth.controlStore!, characterStore, auth.runtimeAuth, policy.isCharacterIdReserved);
+      const identity = await redeemStandaloneLaunch(standaloneToken, "game", auth.controlStore!, characterStore, auth.runtimeAuth, policy.isCharacterIdReserved, standaloneRelease);
       const character = characterStore.get(identity.characterId, identity.ownerRef);
       if (!character) rejectJoin("invalid game ticket character");
       requireInitialProfessionForFirstEntry(character);

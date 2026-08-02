@@ -184,8 +184,11 @@ export const api = {
   logout: () => mutateRotating<void>("/logout", {}),
   characters: () => get<CharacterList>("/characters"),
   createCharacter: (input: CreateCharacterInput) => mutate<Character>("/characters", input),
-  playTicket: async (characterId: string): Promise<ApiResult<LaunchContext>> => {
-    const result = await mutate<Omit<LaunchContext, "schema">>("/play-ticket", { characterId });
+  playTicket: async (characterId: string, clientReleaseId?: string): Promise<ApiResult<LaunchContext>> => {
+    const result = await mutate<Omit<LaunchContext, "schema">>("/play-ticket", {
+      characterId,
+      ...(clientReleaseId ? { clientReleaseId } : {}),
+    });
     if (!result.ok) return result;
     return { ok: true, value: { schema: "successor.launch-context.v1", ...result.value } };
   },

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Rust web beta | Successor</title>
+    <meta name="description" content="Try the Successor Rust WebGL2 client beta." />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F8F8F8" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Karrik-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/AtkinsonHyperlegibleNext-Latin-var.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body data-page="play" data-runtime-channel="beta" data-requires-session data-session-state="unknown">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+      <div class="shell">
+        <a class="wordmark" href="/">
+          <img class="wordmark-mark" src="/brand/successor-mark.svg" width="20" height="20" alt="" decoding="async" />
+          <img class="wordmark-type" src="/brand/successor-wordmark.svg" width="132" height="16" alt="Successor" decoding="async" />
+        </a>
+        <nav class="site-nav" aria-label="Site">
+          <ul class="nav-inline">
+            <li><a href="/">Home</a></li>
+            <li><a href="/roadmap/">Roadmap</a></li>
+            <li><a href="/alpha/">Alpha</a></li>
+            <li><a href="/account/">Account</a></li>
+            <li><a href="/play/">Play</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    <main id="main" class="play-main">
+      <section class="game-stage" id="launch-section" data-stage-state="idle" aria-labelledby="h-launch">
+        <div class="stage-panel">
+          <h1 id="h-launch">Rust web beta</h1>
+          <p class="stage-lede">Opt in to the new Rust WebGL2 client. It uses your existing characters and the live world.</p>
+          <p class="note">Beta software can fail. The supported browser client remains available at <a href="/play/">Play</a>.</p>
+          <noscript><p class="note">The beta requires JavaScript and WebGL2.</p></noscript>
+          <p class="note" id="api-status" role="status" aria-live="polite" hidden></p>
+          <p class="note" id="signin-first" hidden>Sign in and create a character on the <a href="/account/">account page</a>.</p>
+          <div class="session-gated" hidden>
+            <form id="launch-form" novalidate>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="launch-character">Character</label>
+                  <select id="launch-character" name="characterId" required aria-describedby="launch-hint"></select>
+                  <p class="field-error" id="launch-character-error" aria-live="polite"></p>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" data-busy-label="Entering beta…">Enter beta</button>
+                <button type="button" class="btn btn-secondary" id="launch-retry" hidden>Try again</button>
+                <span class="form-status" role="status" aria-live="polite"></span>
+              </div>
+            </form>
+            <p class="stage-hint" id="launch-hint">Choose a character. One action starts the beta client.</p>
+            <p class="note" id="launch-result" role="status" aria-live="polite" hidden></p>
+          </div>
+        </div>
+        <div class="play-frame-controls" id="play-frame-controls" aria-label="Game view">
+          <button class="play-frame-control" id="play-frame-exit" type="button">Exit</button>
+          <button class="play-frame-control" id="play-frame-enter" type="button">Full screen</button>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

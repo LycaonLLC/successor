@@ -9,6 +9,7 @@ const runtimeAuth: RuntimeAuthConfig = {
   origin: "https://www.successorgame.com",
   shardId: "open-desert",
   clientReleaseId: "release-a",
+  acceptedClientReleaseIds: ["release-a", "release-beta"],
   serverReleaseId: "server-a",
   issuer: "successor-server",
 };
@@ -67,14 +68,14 @@ describe("standalone Colyseus pre-admission auth", () => {
       runtimeAuth,
       controlStore: { redeemCapability: redeem } as never,
     });
-    const auth = await RoomClass.onAuth("", { gameTicket: "g".repeat(32) }, {} as never);
+    const auth = await RoomClass.onAuth("", { gameTicket: "g".repeat(32), release: "release-a" }, {} as never);
     expect(auth).toMatchObject({ characterId: character.id, ownerRef: character.ownerRef });
     const room = roomHarness(RoomClass, characterStore, runtimeAuth);
     const client = { sessionId: "session-atlas", ref: {}, send: () => undefined, leave: () => undefined };
     await room.onJoin(client, { gameTicket: "g".repeat(32) }, auth);
     expect(redeem).toHaveBeenCalledTimes(1);
     expect(room.identities.get("session-atlas")).toMatchObject({ characterId: character.id, ownerRef: character.ownerRef });
-    await expect(RoomClass.onAuth("", { gameTicket: "g".repeat(32) }, {} as never)).resolves.toBe(false);
+    await expect(RoomClass.onAuth("", { gameTicket: "g".repeat(32), release: "release-a" }, {} as never)).resolves.toBe(false);
     expect(redeem).toHaveBeenCalledTimes(2);
   });
 
@@ -91,7 +92,7 @@ describe("standalone Colyseus pre-admission auth", () => {
       runtimeAuth,
       controlStore: { redeemCapability: redeem, revokeLaunch: vi.fn() } as never,
     });
-    await expect(RoomClass.onAuth("", { gameTicket: "r".repeat(32) }, {} as never)).resolves.toBe(false);
+    await expect(RoomClass.onAuth("", { gameTicket: "r".repeat(32), release: "release-a" }, {} as never)).resolves.toBe(false);
     const auth = { actorId: character.id, playerId: character.id, displayName: character.name, zoneId: runtimeAuth.shardId, characterId: character.id, ownerRef: character.ownerRef };
     const room = roomHarness(RoomClass, characterStore, runtimeAuth, true);
     const client = { sessionId: "session-player", ref: {}, send: () => undefined, leave: () => undefined };
@@ -118,8 +119,33 @@ describe("standalone Colyseus pre-admission auth", () => {
       controlStore: { redeemCapability: redeem, revokeLaunch: vi.fn() } as never,
     });
 
-    await expect(RoomClass.onAuth("", { gameTicket: "a".repeat(32) }, {} as never)).resolves.toBe(false);
+    await expect(RoomClass.onAuth("", { gameTicket: "a".repeat(32), release: "release-a" }, {} as never)).resolves.toBe(false);
     expect(redeem).toHaveBeenCalledTimes(1);
+  });
+
+  it("redeems stable and beta capabilities against their presented release", async () => {
+    const redeem = vi.fn(async ({ clientReleaseId }: { clientReleaseId: string }) => ({
+      launchId: `launch-${clientReleaseId}`,
+      accountId: "account-atlas",
+      ownerRef: character.ownerRef,
+      characterId: character.id,
+      shardId: runtimeAuth.shardId,
+      clientReleaseId,
+      serverReleaseId: runtimeAuth.serverReleaseId,
+      issuer: runtimeAuth.issuer,
+      purpose: "game" as const,
+    }));
+    const RoomClass = createStandaloneAuthenticatedRoomClass({
+      shard: { isReservedCharacterId: () => false } as never,
+      characterStore: { get: () => character } as never,
+      runtimeAuth,
+      controlStore: { redeemCapability: redeem } as never,
+    });
+
+    await expect(RoomClass.onAuth("", { gameTicket: "s".repeat(32), release: "release-a" }, {} as never)).resolves.toMatchObject({ clientReleaseId: "release-a" });
+    await expect(RoomClass.onAuth("", { gameTicket: "b".repeat(32), release: "release-beta" }, {} as never)).resolves.toMatchObject({ clientReleaseId: "release-beta" });
+    await expect(RoomClass.onAuth("", { gameTicket: "x".repeat(32), release: "release-unknown" }, {} as never)).resolves.toBe(false);
+    expect(redeem.mock.calls.map(([input]) => input.clientReleaseId)).toEqual(["release-a", "release-beta"]);
   });
 
   it("replays an early ready view once async identity admission completes", () => {

@@ -222,10 +222,21 @@ impl ChatConnection {
     }
     /// Takes the one-use ticket and builds the first authenticated frame.
     /// The ticket is never retained in the connection after this call.
-    pub fn authenticate(&mut self, ticket: &mut Option<String>) -> Option<String> {
+    pub fn authenticate(
+        &mut self,
+        ticket: &mut Option<String>,
+        client_release: &str,
+    ) -> Option<String> {
         let value = ticket.take()?;
+        if client_release.is_empty() {
+            return None;
+        }
         self.state = ChatConnectionState::Authenticating;
-        Some(serde_json::json!({"type":"chat.authenticate","chatTicket":value}).to_string())
+        Some(serde_json::json!({
+            "type":"chat.authenticate",
+            "chatTicket":value,
+            "release":client_release,
+        }).to_string())
     }
     pub fn authenticated(&mut self) {
         self.state = ChatConnectionState::SyncingHistory;

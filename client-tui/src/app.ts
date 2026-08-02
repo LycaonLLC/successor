@@ -182,6 +182,7 @@ export async function runTui(options: TuiOptions): Promise<number> {
     characterId: options.characterId,
     ticket: options.ticket,
     gameTicket: options.hosted?.gameTicket,
+    clientReleaseId: options.hosted?.clientReleaseId,
     chatTicket: options.hosted?.chatTicket,
     origin: options.hosted?.origin,
     spawnArea: options.spawnArea,

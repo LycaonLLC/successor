@@ -21,16 +21,20 @@ focused design detail and cannot introduce another active runtime path.
 | Gameplay authority | `crates/successor-sim/` | Deterministic world simulation and gameplay mutations |
 | Shared Rust contracts | `crates/successor-{core,inventory,net,wasm}/` | Types, inventory primitives, wire commands, and platform bindings |
 | Public deployment | `ops/deploy/` | Immutable client/site publication, AWS infrastructure, and single-writer server operation |
-| Rust client (in development) | `client-rust/` | no_std Rust engine plus one authority-driven connected runtime on desktop GL and WebGL2; reuses `successor-net` wire types; not yet a supported player surface |
+| Rust web beta | `client-rust/` | no_std Rust engine plus one authority-driven connected runtime on desktop GL and WebGL2; the WebGL2 build is an opt-in beta at `/beta/`; native remains development-only |
 
-There are two supported player-facing clients. `client/` is a shared package,
-not a third visual client. Both clients submit the same server commands and
-render the same authoritative state.
+There are two stable player-facing clients. `client/` is a shared package, not
+a third visual client. The Rust WebGL2 client is a separately versioned,
+opt-in beta surface; it does not replace the stable graphical or terminal
+clients.
 
-A third, in-development Rust client lives in `client-rust/`. Its native and
-WebGL2 builds run the same streamed-state projection and command path as the
-supported clients, but it remains unshipped and is not yet a supported
-player-facing surface.
+`client-rust/` runs the same streamed-state projection and command path as the
+stable clients. Its public WebGL2 artifact is selected only by
+`/beta/release.json`; `/play/` continues to select `/client/release.json`.
+Both surfaces use the same accounts, character roster, world, one-use
+capabilities, server protocol identity, single authority, and durable state.
+The native Rust build remains development-only and stays out of the download
+ledger.
 
 The native client's desktop platform has one developer-only agent-control
 surface. Explicit opt-in starts a loopback-only text protocol; the companion
@@ -42,11 +46,14 @@ This tooling is disabled by default, is absent from the web backend, and
 submits gameplay through the ordinary client/server command path; it is not a
 second gameplay authority or a public control endpoint.
 
-The browser backend consumes a strict launch context, stable-id assets, and the
-same connected scene as native. It may rebuild renderer resources after WebGL
-context loss while retaining the session and last valid authority projection;
-it must not replay launch capabilities or synthesize gameplay state. The
-deterministic half-float-disabled mode is verification-only.
+The browser backend consumes a strict launch context from the exact storefront
+parent, stable-id assets, and the same connected scene as native. Public builds
+exclude URL/global launch capabilities and bind the storefront, game, chat,
+client-release, and server-release identities at build time. The runtime may
+rebuild renderer resources after WebGL context loss while retaining the
+session and last valid authority projection; it must not replay launch
+capabilities or synthesize gameplay state. The deterministic
+half-float-disabled mode is verification-only.
 
 The native renderer also has one developer graphics-mastering layer over the
 existing immediate-mode UI. Backquote toggles it; its validated Low, Medium,
@@ -66,21 +73,24 @@ The supported public alpha is live:
 ```text
 www.successorgame.com
   -> S3/CloudFront site shell
-  -> immutable browser-client release on CloudFront
+  -> stable `/play/` pointer and opt-in `/beta/` pointer
+  -> separate immutable browser-client releases on CloudFront
   -> same-origin account/control routes
-  -> one-use game and chat tickets
+  -> release-bound one-use game and chat tickets
   -> world.successorgame.com ALB
   -> one private EC2 host
   -> one digest-pinned TypeScript/Rust authority container
   -> one encrypted persistent state domain
 ```
 
-The marketing site and browser-client pointer are separately promotable. A site
-release does not deploy gameplay, and a game release does not imply a site or
-native-download promotion. The public EC2 authority remains single-writer and
+The site, stable browser pointer, and Rust beta pointer are independently
+promotable. A beta promotion never mutates `/client/release.json`; disabling or
+rolling back beta changes only `/beta/release.json` or removes the exact beta
+release from the server allowlist. Stable and beta releases must name the same
+server protocol identity. The public EC2 authority remains single-writer and
 has no public remote-shell ingress. The provider session service is the
-operator path. S3/CloudFront owns the site, browser client, and native archives; the ALB owns public game/chat
-ingress.
+operator path. S3/CloudFront owns the site, browser clients, and native
+archives; the ALB owns public game/chat ingress.
 
 `CURRENT_DEPLOYMENT.md` owns the exact current site release, client manifest,
 source commit, server image digest, state generation, and download manifest.

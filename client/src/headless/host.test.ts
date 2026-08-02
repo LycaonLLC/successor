@@ -46,6 +46,7 @@ describe("successor headless host", () => {
       playerId: "legacy-player",
       actorId: "char_a",
       displayName: "Legacy Player",
+      clientReleaseId: "release-a",
       zoneId: "open-desert",
       characterId: "char_a",
       ticket: "legacy-ticket",
@@ -57,6 +58,7 @@ describe("successor headless host", () => {
 
     expect(joinBodyFor({ ...base, gameTicket: "game-capability" }, "char_a")).toEqual({
       gameTicket: "game-capability",
+      release: "release-a",
     });
     expect(joinBodyFor(base, "char_a")).toEqual({
       playerId: "legacy-player",
@@ -80,6 +82,7 @@ describe("successor headless host", () => {
       characterId: "char_a",
       actorId: "char_a",
       gameTicket: "game-capability",
+      clientReleaseId: "release-a",
       readyTimeoutMs: 1_000,
     };
     const host = await createSuccessorHeadlessHost(options);

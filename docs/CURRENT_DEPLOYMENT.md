@@ -26,10 +26,16 @@ provider session path; development workstations are not public game hosts.
 
 The `client-rust/` connected native/WebGL2 runtime, full workflow projection,
 graphics-mastering, replay, failure, allocation, performance, and matched
-legacy visual work was verified only from local development source through
-2026-08-02. It has not been published, promoted, allowlisted, linked from the
-site, packaged by desktop, or added to the native download ledger. It changes
-no identity in this deployment ledger.
+legacy visual work remains unpublished. Development source now contains the
+opt-in `/beta/` launcher, exact-release dual admission, hosted WebGL2
+handshake, deterministic release builder, and independent beta promotion and
+rollback tooling. A source-only dry run on 2026-08-02 produced 62 runtime
+files (53,893,680 bytes) and immutable publication inventory SHA-256
+`b3c87703a4c8f92ba9a99fecf9ce3b552ad2891f8ed428946dd07ea97dfc54f2`.
+That artifact is not a release: its source stamp predates the uncommitted
+implementation, no AWS operator route was available on the verification
+workstation, and no object, allowlist, site entrypoint, or public pointer was
+changed. The stable production identities above remain authoritative.
 
 ## Site
 

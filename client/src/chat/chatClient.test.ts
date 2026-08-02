@@ -64,19 +64,19 @@ describe("chat client social commands", () => {
 
   it("sends standalone authentication as the only first websocket frame", () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
-    const client = createChatClient({ self, zoneId: "open-desert", authTicket: "chat-secret" });
+    const client = createChatClient({ self, zoneId: "open-desert", authTicket: "chat-secret", authReleaseId: "release-a" });
     client.connect("wss://chat.example.test/socket");
     const socket = FakeWebSocket.latest;
     if (!socket) throw new Error("expected fake websocket");
     socket.emit("open");
-    expect(socket.sent).toEqual([JSON.stringify({ type: "chat.authenticate", chatTicket: "chat-secret" })]);
+    expect(socket.sent).toEqual([JSON.stringify({ type: "chat.authenticate", chatTicket: "chat-secret", release: "release-a" })]);
     client.dispose();
   });
 
   it("starts application pings only after authenticated open and before the idle timeout", () => {
     vi.useFakeTimers();
     vi.stubGlobal("WebSocket", FakeWebSocket);
-    const client = createChatClient({ self, zoneId: "open-desert", authTicket: "chat-secret" });
+    const client = createChatClient({ self, zoneId: "open-desert", authTicket: "chat-secret", authReleaseId: "release-a" });
     client.connect("wss://chat.example.test/socket");
     const socket = FakeWebSocket.latest;
     if (!socket) throw new Error("expected fake websocket");
@@ -85,7 +85,7 @@ describe("chat client social commands", () => {
     expect(socket.sent).toEqual([]);
 
     socket.emit("open");
-    expect(socket.sent).toEqual([JSON.stringify({ type: "chat.authenticate", chatTicket: "chat-secret" })]);
+    expect(socket.sent).toEqual([JSON.stringify({ type: "chat.authenticate", chatTicket: "chat-secret", release: "release-a" })]);
     vi.advanceTimersByTime(24_999);
     expect(socket.sent).toHaveLength(1);
     vi.advanceTimersByTime(1);

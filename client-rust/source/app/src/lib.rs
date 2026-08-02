@@ -255,6 +255,7 @@ static GLOBAL: successor_engine_core::rt::alloc::CountingAllocator<std::alloc::S
 mod web_runtime {
     use crate::demo::{build_scene, Scene};
     use crate::game::actions;
+    use crate::game::chat_net::{ChatClient, ChatConnectionState};
     use crate::game::command_queue::CommandQueue;
     use crate::game::connected_scene::ConnectedScene;
     use crate::game::movement;
@@ -282,6 +283,7 @@ mod web_runtime {
     static VIEW_SENT: GlobalCell<bool> = GlobalCell::new();
     static LAST_MOVE: GlobalCell<(i32, i32, bool)> = GlobalCell::new();
     static FATAL: GlobalCell<bool> = GlobalCell::new();
+    static EXITING: GlobalCell<bool> = GlobalCell::new();
 
     fn read_web_asset(stable_id: &str) -> Option<Vec<u8>> {
         if stable_id.is_empty() || stable_id.contains("..") || stable_id.starts_with('/') {
@@ -380,6 +382,7 @@ mod web_runtime {
         DEMO_SELECTOR.set(demo_selector);
         FRAME.set(0);
         SIZE.set((1280, 720));
+        EXITING.set(false);
     }
 
     #[no_mangle]
@@ -536,6 +539,10 @@ mod web_runtime {
 
     static SESSION: GlobalCell<Session> = GlobalCell::new();
     static WS: GlobalCell<successor_platform::WsHandle> = GlobalCell::new();
+    static CHAT_CLIENT: GlobalCell<ChatClient> = GlobalCell::new();
+    static CHAT_TICKET: GlobalCell<Option<String>> = GlobalCell::new();
+    static CHAT_WS: GlobalCell<successor_platform::WsHandle> = GlobalCell::new();
+    static CLIENT_RELEASE: GlobalCell<String> = GlobalCell::new();
 
     #[no_mangle]
     pub extern "C" fn net_connect() {
@@ -547,7 +554,13 @@ mod web_runtime {
             Ok(ticket) => ticket,
             Err(_) => return,
         };
+        let chat_ticket = match envelope.consume_chat_ticket() {
+            Ok(ticket) => ticket,
+            Err(_) => return,
+        };
         let endpoint = envelope.game_endpoint.clone();
+        let chat_endpoint = envelope.chat_endpoint.clone();
+        let client_release = envelope.client_release.clone();
         let http = endpoint
             .replacen("wss://", "https://", 1)
             .replacen("ws://", "http://", 1);
@@ -582,6 +595,42 @@ mod web_runtime {
             SESSION.set(s);
             WS.set(ws);
         }
+        let mut chat_client = ChatClient::with_endpoint(128, chat_endpoint.clone());
+        chat_client.connection.begin();
+        if let Ok(chat_ws) = successor_platform::ws_connect(&chat_endpoint) {
+            CHAT_CLIENT.set(chat_client);
+            CHAT_TICKET.set(Some(chat_ticket));
+            CHAT_WS.set(chat_ws);
+            CLIENT_RELEASE.set(client_release);
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn net_exit_world() -> u32 {
+        let (session, socket) = match (SESSION.get_mut(), WS.get_mut()) {
+            (Some(session), Some(socket)) if session.state() == SessionState::Ready => {
+                (session, socket)
+            }
+            _ => return 0,
+        };
+        match session.exit_world() {
+            Ok(SessionOut::SendFrame(frame)) => {
+                successor_platform::ws_send(socket, &frame);
+                EXITING.set(true);
+                1
+            }
+            _ => 0,
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn net_exit_complete() -> u32 {
+        if !EXITING.get_mut().copied().unwrap_or(false) {
+            return 0;
+        }
+        SESSION
+            .get_mut()
+            .is_some_and(|session| session.state() != SessionState::Ready) as u32
     }
     #[no_mangle]
     pub extern "C" fn context_restored() {
@@ -660,6 +709,44 @@ mod web_runtime {
             if let Ok(SessionOut::SendFrame(frame)) = session.send_view(&view) {
                 successor_platform::ws_send(socket, &frame);
                 VIEW_SENT.set(true);
+            }
+        }
+        let (chat_client, chat_ticket, chat_socket, client_release) = match (
+            CHAT_CLIENT.get_mut(),
+            CHAT_TICKET.get_mut(),
+            CHAT_WS.get_mut(),
+            CLIENT_RELEASE.get_mut(),
+        ) {
+            (Some(client), Some(ticket), Some(socket), Some(release)) => {
+                (client, ticket, socket, release)
+            }
+            _ => return,
+        };
+        let mut chat_buffer = Vec::with_capacity(64 * 1024);
+        for _ in 0..32 {
+            chat_buffer.clear();
+            match successor_platform::ws_poll(chat_socket, &mut chat_buffer) {
+                successor_platform::WsEvent::Open => {
+                    if let Some(frame) = chat_client
+                        .connection
+                        .authenticate(chat_ticket, client_release)
+                    {
+                        successor_platform::ws_send(chat_socket, frame.as_bytes());
+                    }
+                }
+                successor_platform::WsEvent::Frame(length) => {
+                    let _ = chat_client
+                        .on_incoming(&String::from_utf8_lossy(&chat_buffer[..length]));
+                    if chat_client.connection.state == ChatConnectionState::SyncingHistory {
+                        let frame = chat_client.history_request(100);
+                        successor_platform::ws_send(chat_socket, frame.as_bytes());
+                    }
+                }
+                successor_platform::WsEvent::Closed | successor_platform::WsEvent::Error => {
+                    let _ = chat_client.connection.lost();
+                    break;
+                }
+                successor_platform::WsEvent::None => break,
             }
         }
     }

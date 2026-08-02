@@ -13,6 +13,7 @@ import { ChatHub, type ChatSocket } from "./hub.js";
 const standaloneAuthenticateSchema = z.object({
   type: z.literal("chat.authenticate"),
   chatTicket: z.string().min(32).max(256),
+  release: z.string().trim().min(1).max(128),
 }).strict();
 const CHAT_AUTH_FRAME_MAX_BYTES = 1_024;
 
@@ -87,7 +88,7 @@ async function authenticateStandaloneSocket(
       const parsed = standaloneAuthenticateSchema.safeParse(parseFrame(data));
       if (!parsed.success) { socket.close(1008, "chat authentication required"); return; }
       try {
-        const identity = await redeemStandaloneLaunch(parsed.data.chatTicket, "chat", controlStore, characterStore, runtimeAuth);
+        const identity = await redeemStandaloneLaunch(parsed.data.chatTicket, "chat", controlStore, characterStore, runtimeAuth, undefined, parsed.data.release);
         // The URL/query was intentionally never consulted; only the bounded
         // first frame supplies the one-use chat capability.
         const hubIdentity = { ...identity, userId: normalizeUserId(identity.characterId) };

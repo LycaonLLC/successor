@@ -18,8 +18,15 @@ DEV_FEATURES := --features dev-tools
 WASM_OUT := out/web/successor.wasm
 NATIVE_STRIPPED := /tmp/successor-port/successor
 WASM_STRIPPED := /tmp/successor-port/successor.wasm
+WEB_RELEASE_OUT ?= out/web-release
+SOURCE_COMMIT ?=
+CLIENT_RELEASE_ID ?=
+SERVER_RELEASE_ID ?=
+STOREFRONT_ORIGIN ?= https://www.successorgame.com
+GAME_ORIGIN ?= wss://world.successorgame.com
+CHAT_ORIGIN ?= wss://world.successorgame.com
 
-.PHONY: all native web run serve strip-port size-check bench bench-check \
+.PHONY: all native web web-release run serve strip-port size-check bench bench-check \
         bench-baseline check-allocs connected-check-allocs runtime-check render-check terrain-check model-check test-unit nostd verify clean
 
 all: native web
@@ -48,6 +55,17 @@ web:
 	cp -R ../client-3d/public/assets/. out/web/assets/
 	cp -R ../client/public/successor-slice/. out/web/successor-slice/
 	cp ../client-3d/src/render/props-mapping.json out/web/render/
+
+web-release:
+	$(CARGO) build --release --target $(WASM_TARGET) -p successor-client --lib
+	node tools/web-release.mjs \
+		--source-commit "$(SOURCE_COMMIT)" \
+		--client-release-id "$(CLIENT_RELEASE_ID)" \
+		--server-release-id "$(SERVER_RELEASE_ID)" \
+		--storefront-origin "$(STOREFRONT_ORIGIN)" \
+		--game-origin "$(GAME_ORIGIN)" \
+		--chat-origin "$(CHAT_ORIGIN)" \
+		--out "$(WEB_RELEASE_OUT)"
 
 run: native
 	./$(NATIVE_BIN) $(ARGS)

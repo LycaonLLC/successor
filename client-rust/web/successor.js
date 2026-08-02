@@ -1,6 +1,17 @@
 // Successor Rust Client — WebGL2, WebSockets, Fetch, and Input JS loader.
 "use strict";
 
+// `tools/web-release.mjs` replaces this complete development block when it
+// assembles a public artifact. Release builds fail closed on every blank field.
+const successorBuild = Object.freeze({
+    allowDevLaunch: true,
+    storefrontOrigin: "",
+    clientReleaseId: "",
+    serverReleaseId: "",
+    gameOrigin: "",
+    chatOrigin: ""
+});
+
 const canvas = document.getElementById("app");
 const gl = canvas.getContext("webgl2");
 
@@ -87,7 +98,11 @@ function glAlloc(obj) {
     return glResources.length - 1;
 }
 
-let launchContextText = (() => {
+let launchContextText = "";
+let hostedLaunch = false;
+
+function takeDevelopmentLaunch() {
+    if (!successorBuild.allowDevLaunch) return "";
     const supplied = window.__SUCCESSOR_LAUNCH_CONTEXT;
     if (typeof supplied === "string" && supplied.trim()) return supplied;
     const params = new URLSearchParams(window.location.search);
@@ -98,13 +113,97 @@ let launchContextText = (() => {
     } catch (_) {
         return raw;
     }
-})();
-window.addEventListener("message", event => {
-    const value = event.data?.launchContext ?? event.data;
-    if (typeof value === "string" && value.includes("successor.launch-context.v1")) {
-        launchContextText = value;
+}
+
+function validHostedLaunch(value) {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+    if (Object.keys(value).sort().join(",") !== "characterId,chatTicket,endpoints,expiresAt,gameTicket,release,schema") return false;
+    if (value.schema !== "successor.launch-context.v1") return false;
+    if (typeof value.gameTicket !== "string" || value.gameTicket.length < 32) return false;
+    if (typeof value.chatTicket !== "string" || value.chatTicket.length < 32 || value.chatTicket === value.gameTicket) return false;
+    if (typeof value.characterId !== "string" || value.characterId.length < 1 || value.characterId.length > 128) return false;
+    if (!Number.isSafeInteger(value.expiresAt) || value.expiresAt <= Date.now() || value.expiresAt > Date.now() + 50000) return false;
+    if (value.release === null || typeof value.release !== "object") return false;
+    if (value.release.client !== successorBuild.clientReleaseId || value.release.server !== successorBuild.serverReleaseId) return false;
+    if (value.endpoints === null || typeof value.endpoints !== "object") return false;
+    try {
+        return new URL(value.endpoints.game).origin === successorBuild.gameOrigin
+            && new URL(value.endpoints.chat).origin === successorBuild.chatOrigin;
+    } catch (_) {
+        return false;
     }
-});
+}
+
+function waitForHostedLaunch(timeoutMs = 30000) {
+    const development = takeDevelopmentLaunch();
+    if (development) {
+        launchContextText = development;
+        return Promise.resolve();
+    }
+    const configured = [
+        successorBuild.storefrontOrigin,
+        successorBuild.clientReleaseId,
+        successorBuild.serverReleaseId,
+        successorBuild.gameOrigin,
+        successorBuild.chatOrigin
+    ].every(value => typeof value === "string" && value.length > 0);
+    if (!configured || window.parent === window) return Promise.reject(new Error("hosted launch is not configured"));
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        const ready = () => window.parent.postMessage({
+            type: "successor.client.ready.v1",
+            releaseId: successorBuild.clientReleaseId
+        }, successorBuild.storefrontOrigin);
+        const finish = callback => {
+            if (settled) return;
+            settled = true;
+            window.removeEventListener("message", onMessage);
+            clearInterval(retry);
+            clearTimeout(timeout);
+            callback();
+        };
+        const onMessage = event => {
+            if (event.source !== window.parent || event.origin !== successorBuild.storefrontOrigin) return;
+            const data = event.data;
+            if (data === null || typeof data !== "object" || Object.keys(data).sort().join(",") !== "launch,type") return;
+            if (data.type !== "successor.launch.v1" || !validHostedLaunch(data.launch)) return;
+            launchContextText = JSON.stringify(data.launch);
+            hostedLaunch = true;
+            finish(resolve);
+        };
+        window.addEventListener("message", onMessage);
+        const retry = setInterval(ready, 2000);
+        const timeout = setTimeout(() => finish(() => reject(new Error("hosted launch timed out"))), timeoutMs);
+        ready();
+    });
+}
+
+function installHostedExitHandler() {
+    if (!hostedLaunch) return;
+    let running = false;
+    window.addEventListener("message", event => {
+        if (running || event.source !== window.parent || event.origin !== successorBuild.storefrontOrigin) return;
+        if (event.data === null || typeof event.data !== "object") return;
+        if (Object.keys(event.data).join(",") !== "type" || event.data.type !== "successor.client.exit-world.v1") return;
+        running = true;
+        const started = typeof wasmExports.net_exit_world === "function" && wasmExports.net_exit_world() === 1;
+        const deadline = performance.now() + 1250;
+        const finish = ok => {
+            window.parent.postMessage({ type: "successor.client.exit-world-result.v1", ok }, successorBuild.storefrontOrigin);
+            running = false;
+        };
+        if (!started) {
+            finish(false);
+            return;
+        }
+        const waitForClose = () => {
+            if (typeof wasmExports.net_exit_complete === "function" && wasmExports.net_exit_complete() === 1) finish(true);
+            else if (performance.now() >= deadline) finish(false);
+            else setTimeout(waitForClose, 25);
+        };
+        waitForClose();
+    });
+}
 let audioContext = null;
 function audioUnlock() {
     if (!audioContext) {
@@ -492,6 +591,7 @@ fetch("successor.wasm")
             : demoName === "terrain-material"
                 ? (params.get("biome") === "forest" ? 3 : 2)
                 : 0;
+        if (demoSelector === 0) await waitForHostedLaunch();
         window.__successorRenderReady = false;
         window.__successorRenderError = null;
         window.__successorRenderProbe = null;
@@ -518,6 +618,7 @@ fetch("successor.wasm")
         if (typeof wasmExports.init === "function") {
             wasmExports.init(demoSelector);
         }
+        installHostedExitHandler();
         // Kick the wasm networking runtime (optional export): connect once,
         // then poll each frame.
         if (typeof wasmExports.net_connect === "function") {
