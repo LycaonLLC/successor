@@ -571,7 +571,6 @@ mod web_runtime {
             })
         } else {
             json!({
-                "characterId": envelope.character_id,
                 "gameTicket": game_ticket,
                 "release": envelope.client_release,
             })
