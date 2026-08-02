@@ -1,8 +1,8 @@
 # Successor Current Deployment
 
-Status: re-observed and fully exercised on 2026-07-30 UTC after the authority
-hotfix, browser-client promotion, native-package publication, and site
-promotion.
+Status: re-observed and beta-promoted on 2026-08-02 UTC after immutable Rust
+WebGL2 publication, exact-release authority admission, authority replacement,
+site promotion, and public launch-path verification.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -13,42 +13,43 @@ operator procedures live in `OPERATIONS.md`.
 
 | Surface | Public address | Current identity |
 | --- | --- | --- |
-| Site, account, and browser launch | `https://www.successorgame.com/` | `site-0acf4e2e-20260730` |
-| Browser client pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `e46164824608…` |
+| Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-c5e239c-20260802` |
+| Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@a9654cb69b264eca` |
+| Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | site release commit `0acf4e2e449ca830192a487e6daa7e06711abb45` |
+| Public source | `https://github.com/LycaonLLC/successor` | deployment source `a9654cb69b264eca47326e3e0af613acfe67b226` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
 The host has no public remote-shell ingress. Operators use the documented
 provider session path; development workstations are not public game hosts.
 
-The `client-rust/` connected native/WebGL2 runtime, full workflow projection,
-graphics-mastering, replay, failure, allocation, performance, and matched
-legacy visual work remains unpublished. Development source now contains the
-opt-in `/beta/` launcher, exact-release dual admission, hosted WebGL2
-handshake, deterministic release builder, and independent beta promotion and
-rollback tooling. A source-only dry run on 2026-08-02 produced 62 runtime
-files (53,893,680 bytes) and immutable publication inventory SHA-256
-`b3c87703a4c8f92ba9a99fecf9ce3b552ad2891f8ed428946dd07ea97dfc54f2`.
-That artifact is not a release: its source stamp predates the uncommitted
-implementation, no AWS operator route was available on the verification
-workstation, and no object, allowlist, site entrypoint, or public pointer was
-changed. The stable production identities above remain authoritative.
+The `client-rust/` WebGL2 client is now available only through the opt-in
+`/beta/` route. It has not replaced the supported stable browser client and is
+not present in the native download ledger. Stable and beta have independent
+no-cache pointers and immutable release prefixes; promotion or rollback of one
+does not move the other.
+
+The promoted beta identity is source
+`a9654cb69b264eca47326e3e0af613acfe67b226`, client
+`successor-rust-beta@a9654cb69b264eca`, and immutable publication inventory
+SHA-256 `e792517634842ad2e6b3a4f3700ebf27b32990be57d9ee59cb227a8d91c2b322`.
+The previous dry runs and the unpromoted `1a4d38f…` candidate are not release
+identities.
 
 ## Site
 
 The authenticated S3 pointer contains:
 
-- release: `site-0acf4e2e-20260730`
-- source commit: `0acf4e2e449ca830192a487e6daa7e06711abb45`
+- release: `site-c5e239c-20260802`
+- source commit: `c5e239c3af74ac93121a6e8492308c1769cc1f8a`
 - manifest SHA-256:
-  `ef6c2f6e5f00cf872e7838d9b6b9d1f3eb39fb5a7774641dead53659705ef9d9`
-- release prefix: `site/releases/site-0acf4e2e-20260730`
-- inventory: 48 files, 35,577,370 bytes
+  `8a4a36b2ee3f0f368425d49efb187b8fc6ebd76b4359491e471d301ba5455610`
+- release prefix: `site/releases/site-c5e239c-20260802`
+- inventory: 49 files
 
-The site suite passed 173/173 tests, followed by its TypeScript/Vite build
+The site suite passed 174/174 tests, followed by its TypeScript/Vite build
 and all seven transfer-budget checks. The publisher excluded the
 independently managed `downloads/manifest.json` as required.
 
@@ -87,14 +88,34 @@ The earlier launch-identity regression is repaired. Tickets, server protocol
 identity, client identity, and shard identity now agree, and character
 selection/creation hands directly into the 3D client.
 
+### Rust WebGL2 beta
+
+The independent beta pointer is:
+
+- source commit: `a9654cb69b264eca47326e3e0af613acfe67b226`
+- client release: `successor-rust-beta@a9654cb69b264eca`
+- manifest SHA-256:
+  `e792517634842ad2e6b3a4f3700ebf27b32990be57d9ee59cb227a8d91c2b322`
+- release-builder manifest SHA-256:
+  `d1fd3e6c300fde5f075bd237f4a6db555fff64f73bd2444aad2767fb48c807e5`
+- immutable entry:
+  `https://d2kf3ri6r74a0m.cloudfront.net/releases/e792517634842ad2e6b3a4f3700ebf27b32990be57d9ee59cb227a8d91c2b322/index.html`
+
+The public `/beta/` route loaded this exact iframe, minted a ticket for a
+freshly created Scout, and received HTTP 200 from
+`/matchmake/joinOrCreate/game` with the beta release presented. The same
+journey first exposed and then verified fixes for the site's canonical server
+identity bound and the Rust client's strict matchmaking body. The stable
+pointer remained `successor-alpha@cdab7dccacc1d75c`.
+
 ## Authority and durable state
 
 The running authority is:
 
 - runtime source commit:
-  `81dd217365b5b18ea62e467e50e063724937a0dd`
+  `b99dfb6b5f5ee64425f9d2f792d6170ae4c0e48b`
 - immutable image:
-  `595529182031.dkr.ecr.us-east-1.amazonaws.com/successor-staging-1/server@sha256:e461648246084787e2985413b8ef6005e829d10873baa0a09fcb35a6a369166d`
+  `595529182031.dkr.ecr.us-east-1.amazonaws.com/successor-staging-1/server@sha256:40530c1343122b9f67cbe168ff19c00bb02b3115a36368417c4f8b85191e39f7`
 - state-generation release:
   `b9262b21a1c8f51d146a9006188d62794456f3fb`
 - state-generation id:
@@ -111,17 +132,20 @@ The runtime source and the state-generation release intentionally differ.
 This deployment repaired the container and persistence behavior without
 resetting or restamping the live state domain.
 
-Immediately before and after the controlled restart, the restored Rust state
-hash was identical:
+Immediately before and after the controlled replacement, the restored Rust
+state hash was identical:
 
 ```text
-f52af9c24ca696a304f4f1f9a98d91d9baf7ed08931be071c75f516ccde2899b
+c485c797c0bdb80bd78f22185f37a1aa54306bf343702f6cf0de86265cac45ad
 ```
 
-The final backup is identified by SHA-256
-`75fb0ae57e4d2f8ae50393ee5b93817ec8190b6701d3035e7b3a31da15f41a3`.
-Its storage location is environment-specific and is not part of this
-deployment ledger.
+The pre-deployment immutable backup is
+`s3://successor-backups-5a537a77/state/successor-20260802T214820Z.tar.gz`,
+825,552 bytes, SHA-256
+`fd48d72c407dbf00ef5ac681d19edaad46dbdd75e85062353fd3e726135b291a`.
+The rollback image remains the prior digest
+`sha256:e461648246084787e2985413b8ef6005e829d10873baa0a09fcb35a6a369166d`;
+the stable client pointer was not moved.
 The live state then advanced normally as the browser and native proof
 characters entered the world. The mutable `persistence.stateHash` is therefore
 an observation, not a deployment identity.
