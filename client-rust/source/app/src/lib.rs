@@ -148,8 +148,8 @@ impl AssetCatalog {
 }
 use successor_engine_core::world;
 use successor_engine_render::components::{
-    Camera, CompositeQuad, DirectionalLight, MeshRenderer, ModelRef, PointLight, TextOverlay,
-    Transform,
+    Camera, CompositeQuad, DirectionalLight, HeightCutaway, MeshRenderer, ModelRef, PointLight,
+    TextOverlay, Transform,
 };
 
 // The concrete ECS world: the render component set (Transform/Mesh/Camera/…)
@@ -158,6 +158,7 @@ world! { pub struct GameWorld {
     transform: Transform,
     model: ModelRef,
     mesh: MeshRenderer,
+    cutaway: HeightCutaway,
     camera: Camera,
     light: DirectionalLight,
     point_light: PointLight,
@@ -414,7 +415,9 @@ mod web_runtime {
             return;
         }
 
-        let (dx, dy, held_sprint) = movement::intent_from_keys(successor_platform::is_key_down);
+        let (manual_dx, manual_dy, held_sprint) =
+            movement::intent_from_keys(successor_platform::is_key_down);
+        let (dx, dy) = scene.navigation_intent(manual_dx, manual_dy);
         let intent = (dx, dy, held_sprint || scene.sprint_toggled());
         scene.set_move_intent(intent.0, intent.1, intent.2);
         let last = LAST_MOVE.get_mut().copied().unwrap_or((0, 0, false));
@@ -734,8 +737,8 @@ mod web_runtime {
                     }
                 }
                 successor_platform::WsEvent::Frame(length) => {
-                    let _ = chat_client
-                        .on_incoming(&String::from_utf8_lossy(&chat_buffer[..length]));
+                    let _ =
+                        chat_client.on_incoming(&String::from_utf8_lossy(&chat_buffer[..length]));
                     if chat_client.connection.state == ChatConnectionState::SyncingHistory {
                         let frame = chat_client.history_request(100);
                         successor_platform::ws_send(chat_socket, frame.as_bytes());

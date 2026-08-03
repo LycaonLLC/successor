@@ -5,11 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
     <title>Successor (Rust client)</title>
     <style>
-      html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+      html, body { margin: 0; height: 100%; background: #050807; overflow: hidden; color: #d8e4d9; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
       #app { display: block; width: 100vw; height: 100vh; }
+      #loading { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; background: radial-gradient(circle at 50% 42%, #15201c 0, #080d0b 46%, #030504 100%); transition: opacity 180ms linear; }
+      #loading.hidden { opacity: 0; pointer-events: none; }
+      #loading-panel { width: min(32rem, calc(100vw - 3rem)); }
+      #loading-title { margin: 0 0 .45rem; color: #b9e7c4; font-size: clamp(1.35rem, 4vw, 2.25rem); letter-spacing: .22em; }
+      #loading-phase { margin-bottom: .75rem; color: #8fa99a; font-size: .78rem; letter-spacing: .14em; }
+      #loading-track { height: .35rem; border: 1px solid #355244; background: #0a110e; }
+      #loading-bar { width: 0; height: 100%; background: #76c88c; transition: width 100ms linear; }
+      #loading-detail { margin-top: .65rem; min-height: 1rem; color: #71877a; font-size: .72rem; }
+      #loading.error #loading-phase, #loading.error #loading-detail { color: #e08b7e; }
+      @media (prefers-reduced-motion: reduce) { #loading, #loading-bar { transition: none; } }
     </style>
   </head>
   <body>
+    <div id="loading" role="status" aria-live="polite">
+      <div id="loading-panel">
+        <h1 id="loading-title">SUCCESSOR</h1>
+        <div id="loading-phase">PREPARING CLIENT</div>
+        <div id="loading-track"><div id="loading-bar"></div></div>
+        <div id="loading-detail">INITIALIZING</div>
+      </div>
+    </div>
     <canvas id="app"></canvas>
     <script type="module" src="./successor.js"></script>
   </body>

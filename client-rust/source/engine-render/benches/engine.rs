@@ -86,6 +86,7 @@ fn bench_math(c: &mut Criterion) {
 world! { pub struct RWorld {
     transform: Transform,
     mesh: MeshRenderer,
+    cutaway: HeightCutaway,
     camera: Camera,
     light: DirectionalLight,
     point_light: PointLight,

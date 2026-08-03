@@ -81,6 +81,13 @@ pub struct MeshRenderer {
     /// Skinning palette binding; `SkinRef::NONE` for static meshes.
     pub skin: SkinRef,
 }
+/// World-height presentation cutaway. Geometry below `cutoff_y` remains;
+/// fragments above it are dithered by `amount`.
+#[derive(Clone, Copy, PartialEq, Debug, Default)]
+pub struct HeightCutaway {
+    pub cutoff_y: f32,
+    pub amount: f32,
+}
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Projection {
@@ -196,6 +203,7 @@ impl TextOverlay {
 impl_component!(Transform: dense);
 impl_component!(ModelRef: sparse);
 impl_component!(MeshRenderer: dense);
+impl_component!(HeightCutaway: sparse);
 impl_component!(Camera: sparse);
 impl_component!(DirectionalLight: sparse);
 impl_component!(PointLight: sparse);

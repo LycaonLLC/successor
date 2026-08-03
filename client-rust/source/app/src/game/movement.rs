@@ -2,6 +2,7 @@
 //! the player capsule advances only when the authority streams the new position
 //! (via `game.delta` / `game.acks`), exactly like the existing clients.
 
+use std::collections::{HashMap, VecDeque};
 use successor_engine_core::input::Key;
 use successor_net::{CardinalDirection, ClientCommand, ClientCommandEnvelope, PlayerId, SessionId};
 
@@ -112,6 +113,62 @@ pub fn pointer_action(target: PointerTarget, gesture: PointerGesture) -> Pointer
         (PointerTarget::Prop, _) => PointerAction::Select,
     }
 }
+/// Deterministic eight-neighbor route. Search is bounded around the endpoints;
+/// diagonal steps require both adjacent cardinal cells to be clear.
+pub fn route_grid(
+    start: (i32, i32),
+    goal: (i32, i32),
+    mut blocked: impl FnMut(i32, i32) -> bool,
+) -> Option<Vec<(i32, i32)>> {
+    const NEIGHBORS: [(i32, i32); 8] = [
+        (0, -1),
+        (1, 0),
+        (0, 1),
+        (-1, 0),
+        (1, -1),
+        (1, 1),
+        (-1, 1),
+        (-1, -1),
+    ];
+    let margin = 32;
+    let min_x = start.0.min(goal.0) - margin;
+    let max_x = start.0.max(goal.0) + margin;
+    let min_y = start.1.min(goal.1) - margin;
+    let max_y = start.1.max(goal.1) + margin;
+    let mut queue = VecDeque::from([start]);
+    let mut previous = HashMap::from([(start, start)]);
+    while let Some(cell) = queue.pop_front() {
+        if cell == goal {
+            let mut route = Vec::new();
+            let mut cursor = goal;
+            while cursor != start {
+                route.push(cursor);
+                cursor = previous[&cursor];
+            }
+            route.reverse();
+            return Some(route);
+        }
+        for (dx, dy) in NEIGHBORS {
+            let next = (cell.0 + dx, cell.1 + dy);
+            if next.0 < min_x
+                || next.0 > max_x
+                || next.1 < min_y
+                || next.1 > max_y
+                || previous.contains_key(&next)
+                || (next != goal && blocked(next.0, next.1))
+                || (dx != 0
+                    && dy != 0
+                    && (blocked(cell.0 + dx, cell.1) || blocked(cell.0, cell.1 + dy)))
+            {
+                continue;
+            }
+            previous.insert(next, cell);
+            queue.push_back(next);
+        }
+    }
+    None
+}
+
 /// Build a `SetMoveIntent` envelope reusing the shared `successor-net` vocabulary.
 pub fn move_envelope(
     session: u64,
@@ -216,5 +273,21 @@ mod tests {
             pointer_action(PointerTarget::Empty, PointerGesture::RightHold),
             PointerAction::FaceOrStrafe
         );
+    }
+    #[test]
+    fn route_detours_around_blocked_cells() {
+        let blocked = [(1, 0), (1, 1), (1, 2)];
+        let route = route_grid((0, 1), (2, 1), |x, y| blocked.contains(&(x, y)))
+            .expect("route around wall");
+        assert_eq!(route.last(), Some(&(2, 1)));
+        assert!(route.iter().all(|cell| !blocked.contains(cell)));
+    }
+
+    #[test]
+    fn route_rejects_diagonal_corner_cutting() {
+        let blocked = [(1, 0), (0, 1)];
+        let route = route_grid((0, 0), (1, 1), |x, y| blocked.contains(&(x, y)));
+        assert!(route.is_some());
+        assert_ne!(route.unwrap().first(), Some(&(1, 1)));
     }
 }

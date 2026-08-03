@@ -27,6 +27,7 @@ uniform float u_clearcoat;
 uniform float u_clearcoatRoughness;
 uniform float u_dielectricF0;
 uniform float u_alphaCutoff;
+uniform vec2 u_cutaway;
 
 layout(location = 0) out vec4 gb0;
 layout(location = 1) out vec4 gb1;
@@ -73,6 +74,10 @@ vec3 mappedNormal(vec3 geometric, float faceSign) {
 }
 
 void main() {
+    if (v_worldPos.y > u_cutaway.x && u_cutaway.y > 0.0) {
+        float dither = fract(sin(dot(floor(gl_FragCoord.xy), vec2(12.9898, 78.233))) * 43758.5453);
+        if (dither < u_cutaway.y) discard;
+    }
     vec4 base = u_color * v_color;
     if (u_hasTex == 1) base *= texture(u_albedo, v_uv);
     if (base.a < u_alphaCutoff) discard;

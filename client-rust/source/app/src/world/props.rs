@@ -17,7 +17,9 @@ use successor_engine_core::ecs::{Entity, WorldOps};
 use successor_engine_core::glb::{self, GlbDocument};
 use successor_engine_core::json::Json;
 use successor_engine_core::math::{vec3, Mat4, Quat, Vec3};
-use successor_engine_render::components::{MaterialId, MeshId, MeshRenderer, SkinRef, Transform};
+use successor_engine_render::components::{
+    HeightCutaway, MaterialId, MeshId, MeshRenderer, SkinRef, Transform,
+};
 use successor_engine_render::gi::GiOccluder;
 use successor_engine_render::gpu::Gpu;
 use successor_engine_render::model::upload_glb;
@@ -41,6 +43,13 @@ struct PropModel {
     /// Index-weighted mean base color, for the GI occluder proxy.
     mean_albedo: [f32; 3],
 }
+struct EnterableProp {
+    entities: Vec<Entity>,
+    region: crate::world::cutaway::RegionMilli,
+    state: crate::world::cutaway::CutawayState,
+    cutoff_y: f32,
+    fade_seconds: f64,
+}
 
 pub struct PropsLoader {
     mapping: Json,
@@ -48,6 +57,7 @@ pub struct PropsLoader {
     cache: HashMap<String, Option<PropModel>>,
     /// Entities spawned by the last `load` calls (released by `clear`).
     spawned: Vec<Entity>,
+    enterables: Vec<EnterableProp>,
     /// Typed optional-asset degradation (bounded, deduped).
     issues: Vec<WorldAssetIssue>,
 }
@@ -70,6 +80,7 @@ impl PropsLoader {
             asset_base,
             cache: HashMap::new(),
             spawned: Vec::new(),
+            enterables: Vec::new(),
             issues: Vec::new(),
         })
     }
@@ -90,6 +101,7 @@ impl PropsLoader {
         for e in self.spawned.drain(..) {
             world.destroy(e);
         }
+        self.enterables.clear();
         world.flush();
     }
 
@@ -220,11 +232,13 @@ impl PropsLoader {
                 let ground_z = cy + sh / 2.0;
                 let pos = vec3(ground_x, terrain.height_at(ground_x, ground_z), ground_z);
                 let parts = model.parts.clone();
+                let mut instance_entities = Vec::with_capacity(parts.len());
                 let placement = Mat4::from_trs(pos, Quat::from_yaw(yaw), vec3(scale, scale, scale));
                 for part in parts {
                     let (part_pos, part_rot, part_scale) = placement.mul(part.local).to_trs();
                     let e = world.spawn();
                     self.spawned.push(e);
+                    instance_entities.push(e);
                     world.set_component(
                         e,
                         Transform {
@@ -242,6 +256,24 @@ impl PropsLoader {
                             skin: SkinRef::NONE,
                         },
                     );
+                }
+                if let Some(enterable) = entry.get("enterable") {
+                    let fade_seconds = enterable
+                        .get("fadeSeconds")
+                        .and_then(Json::as_f32)
+                        .unwrap_or(0.25) as f64;
+                    self.enterables.push(EnterableProp {
+                        entities: instance_entities,
+                        region: crate::world::cutaway::RegionMilli {
+                            x_milli: cx as f64 * 1000.0,
+                            y_milli: cy as f64 * 1000.0,
+                            w_milli: sw as f64 * 1000.0,
+                            h_milli: sh as f64 * 1000.0,
+                        },
+                        state: Default::default(),
+                        cutoff_y: pos.y + hy * scale * (2.0 / 3.0),
+                        fade_seconds,
+                    });
                 }
                 occ.push(GiOccluder {
                     center: [pos.x, pos.y + hy * scale * 0.5, pos.z],
@@ -298,6 +330,41 @@ impl PropsLoader {
         }
         renderer.gi_set_occluders(&occ);
         placed
+    }
+
+    /// Update authored enterable props from the authoritative local player.
+    pub fn update_cutaways(
+        &mut self,
+        world: &mut GameWorld,
+        tick: u64,
+        player_x: f32,
+        player_y: f32,
+        dt: f32,
+    ) {
+        for enterable in &mut self.enterables {
+            crate::world::cutaway::sample(
+                &mut enterable.state,
+                tick as f64,
+                &[enterable.region],
+                player_x as f64 * 1000.0,
+                player_y as f64 * 1000.0,
+            );
+            let amount = crate::world::cutaway::advance_fade(
+                &mut enterable.state,
+                dt as f64,
+                enterable.fade_seconds,
+                false,
+            ) as f32;
+            for entity in &enterable.entities {
+                world.set_component(
+                    *entity,
+                    HeightCutaway {
+                        cutoff_y: enterable.cutoff_y,
+                        amount,
+                    },
+                );
+            }
+        }
     }
 
     /// Ensure a model is cached; `true` when loaded, `false` → typed miss

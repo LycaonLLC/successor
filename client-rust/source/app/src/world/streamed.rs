@@ -14,12 +14,14 @@
 //! [`WorldAssetIssue`] once and the instance renders the explicit placeholder
 //! marker instead — never invisible, never silent.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
 use successor_engine_core::ecs::{Entity, WorldOps};
 use successor_engine_core::math::{vec3, Mat4, Quat, Vec3};
-use successor_engine_render::components::{MaterialId, MeshId, MeshRenderer, SkinRef, Transform};
+use successor_engine_render::components::{
+    HeightCutaway, MaterialId, MeshId, MeshRenderer, SkinRef, Transform,
+};
 use successor_engine_render::gpu::Gpu;
 use successor_engine_render::renderer::{MaterialDesc, Renderer};
 
@@ -198,6 +200,9 @@ pub struct StreamedWorld {
     farm_tiles: Pool,
     parcels: Pool,
     building: Pool,
+    cutaway_states: HashMap<String, crate::world::cutaway::CutawayState>,
+    cutaway_cells: HashSet<String>,
+    cutaway_amount: f32,
     generation: u64,
     /// stable id → uploaded model (or typed absence).
     models: HashMap<String, ModelSlot>,
@@ -228,6 +233,9 @@ impl StreamedWorld {
             farm_tiles: Pool::default(),
             parcels: Pool::default(),
             building: Pool::default(),
+            cutaway_states: HashMap::new(),
+            cutaway_cells: HashSet::new(),
+            cutaway_amount: 0.0,
             generation: 0,
             models: HashMap::new(),
             issues: Vec::new(),
@@ -260,6 +268,9 @@ impl StreamedWorld {
         self.farm_tiles.sweep(world, generation);
         self.parcels.sweep(world, generation);
         self.building.sweep(world, generation);
+        self.cutaway_states.clear();
+        self.cutaway_cells.clear();
+        self.cutaway_amount = 0.0;
         if let Some(e) = self.waypoint_entity.take() {
             world.destroy(e);
         }
@@ -804,6 +815,74 @@ impl StreamedWorld {
                 .insert(id.to_string(), entities, key, generation);
         }
         self.parcels.sweep(world, generation);
+        self.cutaway_cells.clear();
+        self.cutaway_amount = 0.0;
+        if let (Some(building), Some(player)) = (
+            store.building.as_ref(),
+            store.actors.get(&store.player_actor_id),
+        ) {
+            if let Some(interiors) = building.get("interiors").and_then(Value::as_array) {
+                for interior in interiors {
+                    if !interior
+                        .get("roofed")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false)
+                        || !interior
+                            .get("enclosed")
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false)
+                    {
+                        continue;
+                    }
+                    let Some(id) = interior.get("interiorId").and_then(Value::as_str) else {
+                        continue;
+                    };
+                    let Some(cells) = interior.get("cellKeys").and_then(Value::as_array) else {
+                        continue;
+                    };
+                    let mut min_x = i32::MAX;
+                    let mut min_y = i32::MAX;
+                    let mut max_x = i32::MIN;
+                    let mut max_y = i32::MIN;
+                    for cell in cells.iter().filter_map(Value::as_str) {
+                        let Some((x, y)) = cell.split_once(':') else {
+                            continue;
+                        };
+                        let (Ok(x), Ok(y)) = (x.parse::<i32>(), y.parse::<i32>()) else {
+                            continue;
+                        };
+                        min_x = min_x.min(x);
+                        min_y = min_y.min(y);
+                        max_x = max_x.max(x);
+                        max_y = max_y.max(y);
+                    }
+                    if min_x > max_x || min_y > max_y {
+                        continue;
+                    }
+                    let region = crate::world::cutaway::RegionMilli {
+                        x_milli: min_x as f64 * 1000.0,
+                        y_milli: min_y as f64 * 1000.0,
+                        w_milli: (max_x - min_x + 1) as f64 * 1000.0,
+                        h_milli: (max_y - min_y + 1) as f64 * 1000.0,
+                    };
+                    let state = self.cutaway_states.entry(id.to_string()).or_default();
+                    crate::world::cutaway::sample(
+                        state,
+                        store.tick as f64,
+                        &[region],
+                        player.x as f64 * 1000.0,
+                        player.y as f64 * 1000.0,
+                    );
+                    let amount =
+                        crate::world::cutaway::advance_fade(state, dt as f64, 0.25, false) as f32;
+                    if amount > 0.0 {
+                        self.cutaway_amount = self.cutaway_amount.max(amount);
+                        self.cutaway_cells
+                            .extend(cells.iter().filter_map(Value::as_str).map(str::to_string));
+                    }
+                }
+            }
+        }
 
         // ── Player-built structures (Rust-authority building projection) ─
         let components = store
@@ -834,6 +913,21 @@ impl StreamedWorld {
                     .get("doorOpen")
                     .and_then(Value::as_bool)
                     .unwrap_or(false);
+                self.tile_id_scratch.clear();
+                use core::fmt::Write;
+                let _ = write!(&mut self.tile_id_scratch, "{}:{}", cx as i32, cy as i32);
+                let cutaway_amount = if self.cutaway_cells.contains(&self.tile_id_scratch) {
+                    self.cutaway_amount
+                } else {
+                    0.0
+                };
+                let wx = (cx as f32 + 0.5) * WORLD_UNITS_PER_CELL;
+                let wz = (cy as f32 + 0.5) * WORLD_UNITS_PER_CELL;
+                let g = vec3(wx, terrain.height_at(wx, wz), wz);
+                let cutaway = HeightCutaway {
+                    cutoff_y: g.y + 2.5 * (2.0 / 3.0),
+                    amount: cutaway_amount,
+                };
                 let key = state_key(&[
                     qf(cx as f32),
                     qf(cy as f32),
@@ -842,11 +936,14 @@ impl StreamedWorld {
                     door_open as u64,
                 ]);
                 if self.building.keep_if_unchanged(world, id, key, generation) {
+                    if let Some(slot) = self.building.slots.get(id) {
+                        for entity in &slot.entities {
+                            world.set_component(*entity, cutaway);
+                        }
+                    }
                     continue;
                 }
-                let wx = (cx as f32 + 0.5) * WORLD_UNITS_PER_CELL;
-                let wz = (cy as f32 + 0.5) * WORLD_UNITS_PER_CELL;
-                let g = vec3(wx, terrain.height_at(wx, wz), wz);
+
                 let yaw = quarters as f32 * core::f32::consts::FRAC_PI_2;
                 let primary = comp
                     .get("palette")
@@ -915,6 +1012,9 @@ impl StreamedWorld {
                         yaw,
                         primary,
                     )),
+                }
+                for entity in &entities {
+                    world.set_component(*entity, cutaway);
                 }
                 self.building
                     .insert(id.to_string(), entities, key, generation);

@@ -170,6 +170,9 @@ pub struct ConnectedScene {
     muzzle_lights: Vec<(Entity, f32)>,
     sim_time: f32,
     move_intent: (i32, i32, bool),
+    click_route: Vec<(i32, i32)>,
+    click_route_index: usize,
+    click_goal: Option<(i32, i32)>,
 }
 
 fn follow_focus(ground: Vec3) -> Vec3 {
@@ -426,6 +429,9 @@ impl ConnectedScene {
             muzzle_lights: Vec::with_capacity(32),
             sim_time: 0.0,
             move_intent: (0, 0, false),
+            click_route: Vec::new(),
+            click_route_index: 0,
+            click_goal: None,
         })
     }
 
@@ -1138,6 +1144,91 @@ impl ConnectedScene {
     pub fn set_move_intent(&mut self, dx: i32, dy: i32, sprint: bool) {
         self.move_intent = (dx, dy, sprint);
     }
+    /// Resolve the current click route against streamed authority position.
+    /// Manual movement always wins and cancels navigation.
+    pub fn navigation_intent(&mut self, manual_dx: i32, manual_dy: i32) -> (i32, i32) {
+        if manual_dx != 0 || manual_dy != 0 {
+            self.click_route.clear();
+            self.click_route_index = 0;
+            self.click_goal = None;
+            self.streamed_world.set_waypoint(None);
+            return (manual_dx, manual_dy);
+        }
+        let Some(player) = self.store.actors.get(&self.store.player_actor_id) else {
+            return (0, 0);
+        };
+        if let (Some(goal), Some(next)) = (
+            self.click_goal,
+            self.click_route.get(self.click_route_index).copied(),
+        ) {
+            let components = self
+                .store
+                .building
+                .as_ref()
+                .and_then(|value| value.get("components"))
+                .and_then(serde_json::Value::as_array);
+            let next_blocked = components.is_some_and(|rows| {
+                rows.iter().any(|component| {
+                    matches!(
+                        component.get("kind").and_then(serde_json::Value::as_str),
+                        Some("wall" | "window" | "door")
+                    ) && component.get("cellX").and_then(serde_json::Value::as_i64)
+                        == Some(next.0 as i64)
+                        && component.get("cellY").and_then(serde_json::Value::as_i64)
+                            == Some(next.1 as i64)
+                })
+            });
+            if next_blocked {
+                let mut blocked = std::collections::HashSet::new();
+                if let Some(rows) = components {
+                    for component in rows {
+                        if !matches!(
+                            component.get("kind").and_then(serde_json::Value::as_str),
+                            Some("wall" | "window" | "door")
+                        ) {
+                            continue;
+                        }
+                        if let (Some(x), Some(y)) = (
+                            component.get("cellX").and_then(serde_json::Value::as_i64),
+                            component.get("cellY").and_then(serde_json::Value::as_i64),
+                        ) {
+                            blocked.insert((x as i32, y as i32));
+                        }
+                    }
+                }
+                let start = (player.x.floor() as i32, player.y.floor() as i32);
+                self.click_route =
+                    movement::route_grid(start, goal, |x, y| blocked.contains(&(x, y)))
+                        .unwrap_or_default();
+                self.click_route_index = 0;
+            }
+        }
+        while let Some(&(x, y)) = self.click_route.get(self.click_route_index) {
+            let dx = x as f32 + 0.5 - player.x;
+            let dy = y as f32 + 0.5 - player.y;
+            if dx * dx + dy * dy <= 0.35 * 0.35 {
+                self.click_route_index += 1;
+                continue;
+            }
+            return (
+                if dx.abs() < 0.2 {
+                    0
+                } else {
+                    dx.signum() as i32
+                },
+                if dy.abs() < 0.2 {
+                    0
+                } else {
+                    dy.signum() as i32
+                },
+            );
+        }
+        self.click_route.clear();
+        self.click_route_index = 0;
+        self.click_goal = None;
+        self.streamed_world.set_waypoint(None);
+        (0, 0)
+    }
     fn nearest_interaction_prop(&self) -> Option<(String, String)> {
         let player = self.store.actors.get(&self.player_id)?;
         self.slice
@@ -1431,24 +1522,75 @@ impl ConnectedScene {
         }
         self.selected_actor_id = None;
         self.project_windows();
-        let center_x = self.framebuffer.0 as f32 * 0.5;
-        let center_y = self.framebuffer.1 as f32 * 0.5;
-        let mx = if (x - center_x).abs() < 8.0 {
-            0
-        } else {
-            (x - center_x).signum() as i32
+        if self.framebuffer.0 == 0 || self.framebuffer.1 == 0 {
+            return None;
+        }
+        let camera = self.world.get_component::<Camera>(self.follow).copied()?;
+        let Projection::Ortho {
+            half_height,
+            near,
+            far,
+        } = camera.projection
+        else {
+            return None;
         };
-        let my = if (y - center_y).abs() < 8.0 {
-            0
-        } else {
-            (y - center_y).signum() as i32
-        };
-        Some(actions::GameplayAction::Move {
-            dx: mx,
-            dy: my,
-            facing: movement::facing_from_intent(mx, my),
-            sprint: self.sprint_toggle,
-        })
+        let aspect = self.framebuffer.0 as f32 / self.framebuffer.1 as f32;
+        let vp = Mat4::ortho(
+            -half_height * aspect,
+            half_height * aspect,
+            -half_height,
+            half_height,
+            near,
+            far,
+        )
+        .mul(Mat4::look_at(camera.eye, camera.look_at, camera.up));
+        let inv = vp.inverse();
+        let ndc_x = x / self.framebuffer.0 as f32 * 2.0 - 1.0;
+        let ndc_y = 1.0 - y / self.framebuffer.1 as f32 * 2.0;
+        let near_point = inv.project_point(vec3(ndc_x, ndc_y, -1.0));
+        let far_point = inv.project_point(vec3(ndc_x, ndc_y, 1.0));
+        let ray = far_point.sub(near_point);
+        if ray.y.abs() < 1e-5 {
+            return None;
+        }
+        let hit = near_point.add(ray.scale(-near_point.y / ray.y));
+        let goal = (
+            (hit.x / WORLD_UNITS_PER_CELL).floor() as i32,
+            (hit.z / WORLD_UNITS_PER_CELL).floor() as i32,
+        );
+        let player = self.store.actors.get(&self.store.player_actor_id)?;
+        let start = (player.x.floor() as i32, player.y.floor() as i32);
+        let mut blocked = std::collections::HashSet::new();
+        if let Some(components) = self
+            .store
+            .building
+            .as_ref()
+            .and_then(|value| value.get("components"))
+            .and_then(serde_json::Value::as_array)
+        {
+            for component in components {
+                let kind = component
+                    .get("kind")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("");
+                if !matches!(kind, "wall" | "window" | "door") {
+                    continue;
+                }
+                if let (Some(cx), Some(cy)) = (
+                    component.get("cellX").and_then(serde_json::Value::as_i64),
+                    component.get("cellY").and_then(serde_json::Value::as_i64),
+                ) {
+                    blocked.insert((cx as i32, cy as i32));
+                }
+            }
+        }
+        self.click_route = movement::route_grid(start, goal, |cx, cy| blocked.contains(&(cx, cy)))
+            .unwrap_or_default();
+        self.click_route_index = 0;
+        self.click_goal = (!self.click_route.is_empty()).then_some(goal);
+        self.streamed_world
+            .set_waypoint((!self.click_route.is_empty()).then_some((goal.0 as f32, goal.1 as f32)));
+        None
     }
 
     /// Apply a receipt to the queue and visible pending/rejection state.
@@ -2171,6 +2313,16 @@ impl ConnectedScene {
         if let Some(cam) = self.world.get_component::<Camera>(self.minimap) {
             cam.eye = p.add(vec3(0.0, 160.0, 0.0));
             cam.look_at = p;
+        }
+
+        if let Some(player) = self.store.actors.get(&self.store.player_actor_id) {
+            self.props_loader.update_cutaways(
+                &mut self.world,
+                self.store.tick,
+                player.x,
+                player.y,
+                dt,
+            );
         }
 
         self.streamed_world.sync(

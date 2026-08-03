@@ -16,6 +16,7 @@ layout(location = 10) in vec4 a_instance3;
 
 uniform mat4 u_model;
 uniform mat4 u_lightViewProj;
+out vec3 v_worldPos;
 
 void main() {
 #ifdef SKINNED
@@ -30,8 +31,10 @@ void main() {
 #endif
 #ifdef INSTANCED
     mat4 instanceModel = mat4(a_instance0, a_instance1, a_instance2, a_instance3);
-    gl_Position = u_lightViewProj * u_model * instanceModel * local;
+    vec4 world = u_model * instanceModel * local;
 #else
-    gl_Position = u_lightViewProj * u_model * local;
+    vec4 world = u_model * local;
 #endif
+    v_worldPos = world.xyz;
+    gl_Position = u_lightViewProj * world;
 }
