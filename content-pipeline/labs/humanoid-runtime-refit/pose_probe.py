@@ -273,12 +273,18 @@ class Body(SkinnedGeometry):
                          keep=lambda name: name.startswith(BZ.MATERIAL_PREFIX))
         self.body_id = body_id
         self.rig = Rig(self.glb)
-        self.zone_faces: dict[str, np.ndarray] = {}
+        grouped_faces: dict[str, list[np.ndarray]] = {}
         for name, start, stop in self.groups:
             zone = name[len(BZ.MATERIAL_PREFIX):]
             if zone not in BZ.ZONE_INDEX:
                 raise SystemExit(f"{body_id}: unknown zone material {name!r}")
-            self.zone_faces[zone] = self.faces[start:stop]
+            grouped_faces.setdefault(zone, []).append(self.faces[start:stop])
+        # The opaque face-panel base is a second BodyZone_head primitive. Keep
+        # both ranges; assignment-by-name would discard the sculpted skull and
+        # leave only the narrow face panel in every posed proof.
+        self.zone_faces = {
+            zone: np.concatenate(parts) for zone, parts in grouped_faces.items()
+        }
         missing = [zone for zone in BZ.ZONES if zone not in self.zone_faces]
         if missing:
             raise SystemExit(f"{body_id}: body has no {missing} zone primitives")
