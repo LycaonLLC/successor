@@ -350,19 +350,20 @@ def _sidecar_footprint(
     }
 
 
-def _entry_safe_footprint(
-    floor_bounds: dict[str, float], closed_door: dict[str, Any], entry_record: dict[str, Any]
-) -> dict[str, float]:
-    """Keep a centrally placed courtyard entry's exterior side unambiguous.
+def _entry_safe_door(
+    closed_door: dict[str, Any], floor_bounds: dict[str, float], entry_record: dict[str, Any]
+) -> dict[str, Any]:
+    """Disambiguate a centreline exterior leaf without changing its footprint.
 
-    The fixture adapter derives a doorway's outward normal from its offset from
-    the sidecar center.  Approved home_court places its south-facing courtyard
-    entry on the plan centreline, so reserve only one wall-thickness of empty
-    threshold space on the opposite (north) edge when that condition occurs.
+    The fixture adapter infers exterior direction from a door's offset from the
+    footprint centre.  `home_court` has an approved south-facing courtyard
+    entry exactly on the global centreline; a 1 mm outward proxy bias encodes
+    that authored direction while retaining the exact 10 x 8 floor field.
     """
+    door = dict(closed_door)
     footprint = _sidecar_footprint(floor_bounds, [], [])
-    center_x = (closed_door["minX"] + closed_door["maxX"]) / 2.0
-    center_z = (closed_door["minZ"] + closed_door["maxZ"]) / 2.0
+    center_x = (door["minX"] + door["maxX"]) / 2.0
+    center_z = (door["minZ"] + door["maxZ"]) / 2.0
     facing = _entry_facing(entry_record["item"]["rot"])
     centered = (
         abs(center_z - footprint["centerZ"]) <= 1e-6
@@ -370,21 +371,28 @@ def _entry_safe_footprint(
         else abs(center_x - footprint["centerX"]) <= 1e-6
     )
     if not centered:
-        return footprint
-    margin = 0.1
+        return door
+    bias = 0.001
     if facing == "south":
-        footprint["maxZ"] = _round(footprint["maxZ"] + margin)
+        door["minZ"] = _round(door["minZ"] - bias)
+        door["maxZ"] = _round(door["maxZ"] - bias)
     elif facing == "north":
-        footprint["minZ"] = _round(footprint["minZ"] - margin)
+        door["minZ"] = _round(door["minZ"] + bias)
+        door["maxZ"] = _round(door["maxZ"] + bias)
     elif facing == "east":
-        footprint["minX"] = _round(footprint["minX"] - margin)
+        door["minX"] = _round(door["minX"] + bias)
+        door["maxX"] = _round(door["maxX"] + bias)
     else:
-        footprint["maxX"] = _round(footprint["maxX"] + margin)
-    footprint["spanX"] = _round(footprint["maxX"] - footprint["minX"])
-    footprint["spanZ"] = _round(footprint["maxZ"] - footprint["minZ"])
-    footprint["centerX"] = _round((footprint["minX"] + footprint["maxX"]) / 2.0)
-    footprint["centerZ"] = _round((footprint["minZ"] + footprint["maxZ"]) / 2.0)
-    return footprint
+        door["minX"] = _round(door["minX"] - bias)
+        door["maxX"] = _round(door["maxX"] - bias)
+    if (
+        door["minX"] < floor_bounds["minX"]
+        or door["maxX"] > floor_bounds["maxX"]
+        or door["minZ"] < floor_bounds["minZ"]
+        or door["maxZ"] > floor_bounds["maxZ"]
+    ):
+        raise RuntimeError("entry direction bias would leave the floor field")
+    return door
 
 
 def _build_collision(
@@ -465,7 +473,8 @@ def _build_collision(
     )
     if closed_door is None:
         raise RuntimeError(f"{key}: exterior door lies outside its floor field")
-    footprint = _entry_safe_footprint(floor_bounds, closed_door, entry_record)
+    closed_door = _entry_safe_door(closed_door, floor_bounds, entry_record)
+    footprint = _sidecar_footprint(floor_bounds, [], [])
 
     return (
         {

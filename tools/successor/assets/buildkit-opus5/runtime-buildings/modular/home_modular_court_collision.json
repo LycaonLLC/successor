@@ -4434,9 +4434,9 @@
     "closed": {
       "id": "closed_exterior_entry",
       "maxX": 6.546,
-      "maxZ": 3.825,
+      "maxZ": 3.824,
       "minX": 5.646,
-      "minZ": 3.775
+      "minZ": 3.774
     },
     "node": "door_slide"
   },
@@ -4452,13 +4452,13 @@
   },
   "footprint": {
     "centerX": 4.75,
-    "centerZ": 3.85,
+    "centerZ": 3.8,
     "maxX": 9.5,
-    "maxZ": 7.7,
+    "maxZ": 7.6,
     "minX": 0.0,
     "minZ": 0.0,
     "spanX": 9.5,
-    "spanZ": 7.7
+    "spanZ": 7.6
   },
   "furniture": [
     {
