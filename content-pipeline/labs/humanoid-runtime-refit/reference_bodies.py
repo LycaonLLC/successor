@@ -77,17 +77,13 @@ def refined() -> dict[str, str]:
 
 
 def promotion_inputs() -> dict[str, str]:
-    """What the promotion actually reads: approved sources, plus corrections.
+    """Return the final reviewed body artifacts without another shape pass.
 
-    The male source promotes as authored. The female source does NOT contain the
-    posterior reduction its name implies -- `compare_female_sources.py` measures
-    it as identical to `rbf_v2` through the pelvis -- so the female promotes from
-    `reduce_female_posterior`'s derived body, which is rebuilt from the pinned
-    source whenever either the source or the correction changes.
+    The Bunker refinement already owns both bodies' posterior and transition
+    decisions. Reapplying the older female-only reduction here would silently
+    deform the accepted female a second time.
     """
-    import reduce_female_posterior as REDUCE
-    sources = refined()
-    return {"male": sources["male"], "female": REDUCE.ensure(sources["female"])}
+    return refined()
 
 
 def materialise() -> dict[str, str]:

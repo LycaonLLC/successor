@@ -1,9 +1,10 @@
-//! Face-kit compositor — port of the texture side of
-//! `client-3d/src/render/faceDecal.ts` (+ `assets/faceKit/face-kit`): composite
-//! the selected eyes/brows/nose/mouth style cells from the atlas sheets onto a
-//! skin-toned 256² face texture, chroma-keying the atlas background. Uses the
-//! Wave-1 PNG decoder. The head-overlay geometry projection (attaching this
-//! texture to the pawn head) is a follow-on render integration.
+//! Face-kit compositor — port of the transparent texture side of
+//! `client-3d/src/render/faceDecal.ts` (+ `assets/faceKit/face-kit`).
+//! It chroma-keys the atlas skin colour and returns only eyes, brows, nose, and
+//! mouth as straight RGBA. The pawn's opaque head skin stays underneath; baking
+//! another skin rectangle into this texture is the dark-face regression this
+//! module must not reintroduce. Head-overlay geometry attachment remains a
+//! follow-on render integration.
 //!
 //! Atlas contract from `face-kit/metadata/atlas-layout.json`: a 4×2 grid of 8
 //! named styles per feature sheet; `backgroundKey` [202,136,97] is transparent.
@@ -14,7 +15,6 @@ pub const FACE_TEXTURE_SIZE: u32 = 256;
 const GRID_COLS: u32 = 4;
 const GRID_ROWS: u32 = 2;
 const BG_KEY: [u8; 3] = [202, 136, 97];
-const BG_TOLERANCE: i32 = 10;
 
 /// The eight atlas style cells in grid order.
 pub const CELL_ORDER: [&str; 8] = [
@@ -51,22 +51,15 @@ pub fn style_index(name: &str) -> usize {
     CELL_ORDER.iter().position(|&c| c == name).unwrap_or(0)
 }
 
-/// Composite a face texture for a style over a skin-toned base. Later features
-/// paint over earlier ones (brows/nose/mouth over eyes).
-pub fn render_face_texture(kit: &FaceKit, style: usize, skin: [u8; 3]) -> RgbaImage {
+/// Composite a transparent face-component overlay for one style. Later
+/// features paint over earlier ones (brows/nose/mouth over eyes).
+pub fn render_face_overlay(kit: &FaceKit, style: usize) -> RgbaImage {
     let size = FACE_TEXTURE_SIZE;
     let mut out = RgbaImage {
         width: size,
         height: size,
         pixels: vec![0u8; (size * size * 4) as usize],
     };
-    for p in out.pixels.chunks_exact_mut(4) {
-        p[0] = skin[0];
-        p[1] = skin[1];
-        p[2] = skin[2];
-        p[3] = 255;
-    }
-    // Order: eyes, brows, nose, mouth (mouth on top).
     composite_cell(&mut out, &kit.eyes, style);
     composite_cell(&mut out, &kit.brows, style);
     composite_cell(&mut out, &kit.noses, style);
@@ -74,7 +67,7 @@ pub fn render_face_texture(kit: &FaceKit, style: usize, skin: [u8; 3]) -> RgbaIm
     out
 }
 
-/// Composite one atlas cell (nearest-scaled to `out`) with chroma-key + alpha.
+/// Composite one atlas cell with a soft background key and straight-alpha over.
 fn composite_cell(out: &mut RgbaImage, sheet: &RgbaImage, style: usize) {
     let cell_w = sheet.width / GRID_COLS;
     let cell_h = sheet.height / GRID_ROWS;
@@ -96,27 +89,42 @@ fn composite_cell(out: &mut RgbaImage, sheet: &RgbaImage, style: usize) {
                 sheet.pixels[si + 2],
                 sheet.pixels[si + 3],
             );
-            if a < 8 || is_bg_key(r, g, b) {
+            let source_alpha = a as f32 / 255.0 * mark_strength(r, g, b);
+            if source_alpha <= 0.0 {
                 continue;
             }
             let di = ((oy * out.width + ox) * 4) as usize;
-            let af = a as f32 / 255.0;
-            out.pixels[di] = blend(out.pixels[di], r, af);
-            out.pixels[di + 1] = blend(out.pixels[di + 1], g, af);
-            out.pixels[di + 2] = blend(out.pixels[di + 2], b, af);
-            out.pixels[di + 3] = 255;
+            over_straight(&mut out.pixels[di..di + 4], [r, g, b], source_alpha);
         }
     }
 }
 
-fn is_bg_key(r: u8, g: u8, b: u8) -> bool {
-    (r as i32 - BG_KEY[0] as i32).abs() <= BG_TOLERANCE
-        && (g as i32 - BG_KEY[1] as i32).abs() <= BG_TOLERANCE
-        && (b as i32 - BG_KEY[2] as i32).abs() <= BG_TOLERANCE
+fn mark_strength(r: u8, g: u8, b: u8) -> f32 {
+    let distance = [
+        (r as i32 - BG_KEY[0] as i32).abs(),
+        (g as i32 - BG_KEY[1] as i32).abs(),
+        (b as i32 - BG_KEY[2] as i32).abs(),
+    ]
+    .into_iter()
+    .max()
+    .unwrap_or(0) as f32;
+    let t = ((distance - 4.0) / 14.0).clamp(0.0, 1.0);
+    t * t * (3.0 - 2.0 * t)
 }
 
-fn blend(dst: u8, src: u8, a: f32) -> u8 {
-    (dst as f32 * (1.0 - a) + src as f32 * a) as u8
+fn over_straight(dst: &mut [u8], source: [u8; 3], source_alpha: f32) {
+    let destination_alpha = dst[3] as f32 / 255.0;
+    let inverse = 1.0 - source_alpha;
+    let output_alpha = source_alpha + destination_alpha * inverse;
+    if output_alpha <= 0.0 {
+        return;
+    }
+    for channel in 0..3 {
+        let premultiplied = source[channel] as f32 * source_alpha
+            + dst[channel] as f32 * destination_alpha * inverse;
+        dst[channel] = (premultiplied / output_alpha).round().clamp(0.0, 255.0) as u8;
+    }
+    dst[3] = (output_alpha * 255.0).round().clamp(0.0, 255.0) as u8;
 }
 
 #[cfg(test)]
@@ -133,22 +141,37 @@ mod tests {
     }
 
     #[test]
-    fn composites_real_face_texture() {
+    fn composites_background_erased_face_overlay() {
         let Ok(kit) = FaceKit::load(FACE_KIT) else {
             eprintln!("skip: face-kit not present");
             return;
         };
-        let skin = [204, 153, 120];
-        let tex = render_face_texture(&kit, style_index("rogue"), skin);
+        let tex = render_face_overlay(&kit, style_index("rogue"));
         assert_eq!(tex.width, FACE_TEXTURE_SIZE);
         assert_eq!(tex.height, FACE_TEXTURE_SIZE);
-        // Features must paint SOME pixels different from the flat skin base.
-        let mut diff = 0;
-        for p in tex.pixels.chunks_exact(4) {
-            if p[0] != skin[0] || p[1] != skin[1] || p[2] != skin[2] {
-                diff += 1;
+
+        let mut transparent = 0;
+        let mut painted = 0;
+        for pixel in tex.pixels.chunks_exact(4) {
+            if pixel[3] == 0 {
+                transparent += 1;
+            } else {
+                painted += 1;
             }
         }
-        assert!(diff > 100, "expected composited feature pixels, got {diff}");
+        assert!(painted > 100, "expected composited feature pixels, got {painted}");
+        assert!(
+            transparent > (FACE_TEXTURE_SIZE * FACE_TEXTURE_SIZE / 2) as usize,
+            "skin-coloured atlas background survived the chroma key"
+        );
+        for (x, y) in [
+            (0, 0),
+            (FACE_TEXTURE_SIZE - 1, 0),
+            (0, FACE_TEXTURE_SIZE - 1),
+            (FACE_TEXTURE_SIZE - 1, FACE_TEXTURE_SIZE - 1),
+        ] {
+            let offset = ((y * FACE_TEXTURE_SIZE + x) * 4 + 3) as usize;
+            assert_eq!(tex.pixels[offset], 0, "corner ({x},{y}) is not transparent");
+        }
     }
 }

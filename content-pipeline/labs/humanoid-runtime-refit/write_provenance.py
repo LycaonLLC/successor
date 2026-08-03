@@ -38,7 +38,6 @@ def load(name: str) -> dict:
 def main() -> None:
     promotion = load("promotion.json")
     verification = load("body_zone_verification.json")
-    posterior = promotion.get("female_posterior_reduction")
     coverage = load("body_zone_coverage.json")
 
     written = []
@@ -60,10 +59,9 @@ def main() -> None:
                 "generator": promotion["generator"],
                 "pipeline": [
                     "reference_bodies.py (hash-pinned shell + approved sources)",
-                    "reduce_female_posterior.py (female only)",
                     "bake_body_shading.py (per-vertex AO)",
-                    "bake_face_texture.py (RB_Face panel)",
-                    "promote_bodies.py (zone split + accessor transplant)",
+                    "bake_face_texture.py (background-erased RGBA components)",
+                    "promote_bodies.py (zone split + face skin base/overlay + accessor transplant)",
                 ],
             }
             if alias_of:
@@ -82,7 +80,8 @@ def main() -> None:
                 "segmentation": {
                     "vocabulary": list(BZ.ZONES),
                     "material_pattern": f"{BZ.MATERIAL_PREFIX}<zone>",
-                    "face_primitive": BZ.FACE_MATERIAL,
+                    "face_overlay_primitive": BZ.FACE_MATERIAL,
+                    "face_skin_base_material": BZ.material_name("head"),
                     "method": ("per-tree-edge weight cuts, relaxed over the welded "
                                "dual graph, descended from the pelvis"),
                     "seams": entry["zone_segmentation"]["seams"],
@@ -124,16 +123,6 @@ def main() -> None:
                 },
                 "generator": GENERATOR,
             }
-            if body_id == "female" and posterior:
-                document["source"]["posterior_reduction"] = {
-                    "generator": posterior["generator"],
-                    "gates": posterior["gates"],
-                    "metrics": posterior["metrics"],
-                    "reason": ("rbf_v3 does not contain the posterior reduction its "
-                               "name implies: measured identical to rbf_v2 through "
-                               "the pelvis, and 26.8 mm deeper than the body it "
-                               "replaced"),
-                }
             destination = os.path.splitext(path)[0] + ".provenance.json"
             with open(destination, "w", encoding="utf-8") as handle:
                 json.dump(document, handle, indent=2)

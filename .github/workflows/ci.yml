@@ -87,7 +87,7 @@ jobs:
       - name: hydrate audited LFS sources
         run: >
           git lfs pull
-          --include="content-pipeline/labs/humanoid-runtime-refit/source/male/rb_v4_anim.glb,content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v2_anim.glb,content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v3_anim.glb"
+          --include="content-pipeline/labs/humanoid-runtime-refit/source/male/rb_v4_anim.glb,content-pipeline/labs/humanoid-runtime-refit/source/male/pawn_male_refined.glb,content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v2_anim.glb,content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v3_anim.glb,content-pipeline/labs/humanoid-runtime-refit/source/female/pawn_female_refined.glb"
           --exclude=""
       - uses: actions/setup-python@v5
         with:

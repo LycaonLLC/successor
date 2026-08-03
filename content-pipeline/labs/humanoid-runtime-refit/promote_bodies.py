@@ -1,8 +1,8 @@
 """Promote the approved refined humanoids onto the runtime body paths.
 
-Input  : `client-3d/public/assets/humanoid-lab/pawn_{male,female}_latest.glb`
-         (the approved bodies -- geometry is copied, never resculpted)
-         plus `pawn_male.glb` as the runtime SHELL.
+Input  : the hash-pinned final Bunker refinement artifacts selected by
+         `refit_config.REFINED` (geometry + skin, no clips), plus the
+         hash-pinned pre-refit male runtime shell.
 Output : `client-3d/public/assets/pawn-pack/pawn_{male,female}.glb`
 
 The shell contributes everything the runtime contract pins down: the 52-node
@@ -25,13 +25,11 @@ Per-body work:
   * attribute prune -- `COLOR_0` is a constant white VEC3 (a no-op the loader
     still uploads) and `COLOR_1` is the lab's region-debug layer that three.js
     ignores; both are dropped from the runtime body;
-  * face panel UVs -- the authored `RB_Face` island lives in a fixed
-    [0.25,0.5]x[0.324,0.94] rectangle. It is normalised to the full [0,1] square
-    so the baked face binds without a texture transform. The lab's own
-    `SkinPainter.fitPanel` measures the island instead of assuming it, so a
-    normalised island stays correct there too;
-  * materials -- skin tone in `baseColorFactor` x baked AO in the texture, and
-    the composited default face on the panel.
+  * face panel -- the authored `RB_Face` island fills a real hole in the head,
+    so it is emitted once as opaque head skin and again 1.5 mm forward as a
+    transparent, component-only overlay. The overlay UVs are normalised from
+    the authored island. This preserves a closed, skin-toned head while the
+    face texture carries no baked skin rectangle.
 
     python3 promote_bodies.py
 """
@@ -48,7 +46,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import body_zones as BZ  # noqa: E402
-import reduce_female_posterior as REDUCE  # noqa: E402
 import reference_bodies  # noqa: E402
 import refit_config as CFG  # noqa: E402
 from gltf_io import (Glb, GlbBuilder, TARGET_ARRAY_BUFFER,  # noqa: E402
@@ -229,16 +226,12 @@ def build(body_id: str, source: str, report: dict) -> None:
             sampler["input"] = copy_accessor(shell, builder, sampler["input"], cache)
             sampler["output"] = copy_accessor(shell, builder, sampler["output"], cache)
 
-    # --- materials + the one embedded texture -------------------------------
+    # --- materials + the transparent default face overlay ------------------
     # Skin shading is per-vertex `COLOR_0`, not a map: the approved heads carry
-    # an authored UV set whose head island folds front onto back, so a baked
-    # skin map would smear the jaw onto the crown. The face panel is the only
-    # surface with a trustworthy island, and it is the only one textured.
-    #
-    # One material per coverage zone, all with the SAME PBR values the single
-    # skin material used to carry. The split is addressing, not shading: the
-    # runtime hides `BodyZone_<zone>` primitives, and a pawn with nothing
-    # equipped renders exactly as it did with one material.
+    # an authored UV set whose head island folds front onto back. The face panel
+    # is emitted as ordinary head skin, then duplicated just proud of the head
+    # with the component-only RGBA texture. That split is load-bearing: using a
+    # skin-filled face texture makes the entire panel render as a dark mask.
     builder.json["samplers"] = [dict(SAMPLER)]
     tone = srgb_to_linear(CFG.DEFAULT_SKIN_HEX)
     face_texture = os.path.join(CFG.TEXTURE_DIR, "face_default.png")
@@ -248,14 +241,17 @@ def build(body_id: str, source: str, report: dict) -> None:
                   "pbrMetallicRoughness": dict(skin_pbr)} for zone in BZ.ZONES]
     face_slot = len(materials)
     materials.append({
-        "name": CFG.MATERIALS[body_id]["face"], "doubleSided": True,
-        # The composite already carries the default tone, so the panel
-        # multiplier stays neutral and its border reads as plain skin.
+        "name": CFG.MATERIALS[body_id]["face"],
+        "doubleSided": True,
+        "alphaMode": "BLEND",
         "pbrMetallicRoughness": {
             "baseColorFactor": [1.0, 1.0, 1.0, 1.0],
-            "metallicFactor": 0.0, "roughnessFactor": 0.82,
+            "metallicFactor": 0.0,
+            "roughnessFactor": 0.82,
             "baseColorTexture": {
-                "index": add_texture(builder, face_texture, f"{body_id}_face", 0)}},
+                "index": add_texture(builder, face_texture, f"{body_id}_face", 0),
+            },
+        },
     })
     builder.json["materials"] = materials
 
@@ -356,6 +352,7 @@ def build(body_id: str, source: str, report: dict) -> None:
                       for p in source_primitives[:panel_slot])
     panel_shade = shading[panel_start: panel_start + panel_count]
     panel_position = refined.accessor(panel["attributes"]["POSITION"]).astype(np.float32)
+    panel_normal = refined.accessor(panel["attributes"]["NORMAL"]).astype(np.float32)
     panel_joints = refined.accessor(panel["attributes"]["JOINTS_0"]).astype(np.int64)
     panel_weights = refined.accessor(panel["attributes"]["WEIGHTS_0"]).astype(np.float64)
     panel_totals = panel_weights.sum(axis=1, keepdims=True)
@@ -368,35 +365,67 @@ def build(body_id: str, source: str, report: dict) -> None:
     panel_colour[:, 0] = panel_colour[:, 1] = panel_colour[:, 2] = np.rint(
         np.clip(panel_shade, 0.0, 1.0) * 255.0).astype(np.uint8)
     panel_colour[:, 3] = 255
-    # Only the panel keeps UVs: it is the only island the head generator
-    # authored, and the only textured material.
     panel_uv, panel_rect = normalise_face_uv(
         refined.accessor(panel["attributes"]["TEXCOORD_0"]).astype(np.float64), body_id)
     panel_indices = refined.accessor(panel["indices"]).astype(np.uint16)
+
+    panel_normal_accessor = builder.add_accessor(panel_normal, target=TARGET_ARRAY_BUFFER)
+    panel_joints_accessor = builder.add_accessor(panel_remapped, target=TARGET_ARRAY_BUFFER)
+    panel_weights_accessor = builder.add_accessor(
+        panel_weights.astype(np.float32), target=TARGET_ARRAY_BUFFER)
+    panel_indices_accessor = builder.add_accessor(
+        panel_indices, target=TARGET_ELEMENT_ARRAY_BUFFER)
+
+    # The source panel fills a real opening. First emit it as ordinary opaque
+    # head skin so transparent face pixels reveal the same material as the skull.
     primitives.append({
         "attributes": {
-            "POSITION": builder.add_accessor(panel_position, target=TARGET_ARRAY_BUFFER,
-                                             minmax=True),
-            "NORMAL": builder.add_accessor(
-                refined.accessor(panel["attributes"]["NORMAL"]).astype(np.float32),
-                target=TARGET_ARRAY_BUFFER),
-            "JOINTS_0": builder.add_accessor(panel_remapped, target=TARGET_ARRAY_BUFFER),
-            "WEIGHTS_0": builder.add_accessor(panel_weights.astype(np.float32),
-                                              target=TARGET_ARRAY_BUFFER),
-            "COLOR_0": builder.add_accessor(panel_colour, target=TARGET_ARRAY_BUFFER,
-                                            normalized=True),
-            "TEXCOORD_0": builder.add_accessor(panel_uv.astype(np.float32),
-                                               target=TARGET_ARRAY_BUFFER),
+            "POSITION": builder.add_accessor(
+                panel_position, target=TARGET_ARRAY_BUFFER, minmax=True),
+            "NORMAL": panel_normal_accessor,
+            "JOINTS_0": panel_joints_accessor,
+            "WEIGHTS_0": panel_weights_accessor,
+            "COLOR_0": builder.add_accessor(
+                panel_colour, target=TARGET_ARRAY_BUFFER, normalized=True),
         },
-        "indices": builder.add_accessor(panel_indices,
-                                        target=TARGET_ELEMENT_ARRAY_BUFFER),
+        "indices": panel_indices_accessor,
+        "material": BZ.ZONES.index("head"),
+    })
+    stats.append({
+        "material": BZ.material_name("head"),
+        "zone": "head",
+        "role": "face_panel_skin_base",
+        "vertices": int(panel_count),
+        "triangles": int(len(panel_indices) // 3),
+        "shading_min": float(panel_shade.min()),
+        "shading_mean": float(panel_shade.mean()),
+    })
+
+    # Then duplicate only the panel as a transparent feature overlay. It omits
+    # COLOR_0 deliberately: ambient-occlusion vertex colour must not darken the
+    # eyes, brows, nose, or mouth.
+    overlay_position = panel_position + panel_normal * CFG.FACE_OVERLAY_INFLATE
+    primitives.append({
+        "attributes": {
+            "POSITION": builder.add_accessor(
+                overlay_position, target=TARGET_ARRAY_BUFFER, minmax=True),
+            "NORMAL": panel_normal_accessor,
+            "JOINTS_0": panel_joints_accessor,
+            "WEIGHTS_0": panel_weights_accessor,
+            "TEXCOORD_0": builder.add_accessor(
+                panel_uv.astype(np.float32), target=TARGET_ARRAY_BUFFER),
+        },
+        "indices": panel_indices_accessor,
         "material": face_slot,
     })
-    stats.append({"material": CFG.MATERIALS[body_id]["face"], "zone": None,
-                  "vertices": int(panel_count),
-                  "triangles": int(len(panel_indices) // 3),
-                  "shading_min": float(panel_shade.min()),
-                  "shading_mean": float(panel_shade.mean())})
+    stats.append({
+        "material": CFG.MATERIALS[body_id]["face"],
+        "zone": None,
+        "role": "transparent_face_overlay",
+        "vertices": int(panel_count),
+        "triangles": int(len(panel_indices) // 3),
+        "inflate_m": CFG.FACE_OVERLAY_INFLATE,
+    })
     builder.json["meshes"] = [{"name": "body", "primitives": primitives}]
 
     destination = CFG.RUNTIME_BODY[body_id]
@@ -427,8 +456,8 @@ def build(body_id: str, source: str, report: dict) -> None:
         "face_texture": os.path.relpath(os.path.join(CFG.TEXTURE_DIR, "face_default.png"), CFG.REPO),
     }
     print(f"[promote] {body_id}: {size} B, {len(stats)} primitives "
-          f"({len(BZ.ZONES)} zones + panel), {len(gltf['animations'])} clips "
-          f"-> {report[body_id]['output']}"
+          f"({len(BZ.ZONES)} zones + face skin base + transparent overlay), "
+          f"{len(gltf['animations'])} clips -> {report[body_id]['output']}"
           + (f" (+{len(aliases)} alias)" if aliases else ""))
 
 
@@ -448,9 +477,8 @@ def main() -> None:
     report["shell_sha256"] = sha256_file(CFG.RUNTIME_SHELL)
     report["shell_animations"] = [a["name"] for a in shell.json["animations"]]
     del shell
-    # The corrected inputs, NOT the raw sources: the female needs the posterior
-    # reduction its source does not carry, and promoting `refined()` directly
-    # would silently ship the uncorrected body.
+    # Promote the exact final Bunker refinement artifacts. Shape corrections
+    # have already been reviewed and must not be applied a second time here.
     sources = reference_bodies.promotion_inputs()
     approved = reference_bodies.refined()
     report["approved_sources"] = {
@@ -458,10 +486,6 @@ def main() -> None:
                   "sha256": sha256_file(path),
                   "promotes_directly": os.path.abspath(path) == os.path.abspath(sources[body_id])}
         for body_id, path in approved.items()}
-    posterior = REDUCE.report_path()
-    if os.path.exists(posterior):
-        with open(posterior, encoding="utf-8") as handle:
-            report["female_posterior_reduction"] = json.load(handle)
     for body_id in ("female", "male"):
         build(body_id, sources[body_id], report)
     with open(os.path.join(CFG.REPORT_DIR, "promotion.json"), "w", encoding="utf-8") as handle:

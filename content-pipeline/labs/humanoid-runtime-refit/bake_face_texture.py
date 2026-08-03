@@ -1,14 +1,14 @@
-"""Bake the default face panel texture with the canonical face kit.
+"""Bake the default transparent face-component overlay.
 
-The refined heads reserve `RB_Face`: 56 triangles filling a matching hole in the
-head shell with their own rectangular UV island. The dev-only creator paints
-that island from a live canvas; the shipped body needs the same pixels baked in
-so a plain GLB consumer sees a coherent face.
+The refined heads reserve `RB_Face`: 56 triangles filling a matching hole in
+the head shell. Promotion emits that panel first as ordinary opaque head skin,
+then duplicates it 1.5 mm forward for this RGBA texture. Only eyes, brows, nose,
+and mouth survive the compositor's background key; transparent pixels reveal
+the skin panel instead of painting a second, darker skin rectangle over it.
 
-Compositing stays inside `client-3d/src/assets/faceKit/face-kit.js` -- this
-driver only decodes the five canonical atlases to raw RGBA, hands them to the
-kit through `compose_face.mjs`, and re-encodes the result. No pixel is invented
-here.
+Compositing stays inside `client-3d/src/assets/faceKit/face-kit.js`; this driver
+only decodes the canonical atlases, invokes the compositor, and re-encodes its
+straight-alpha output.
 
     python3 bake_face_texture.py
 """
@@ -49,18 +49,21 @@ def compose(config: dict, size: int, transparent: bool = False) -> Image.Image:
 
 
 def panel_texture(config: dict, span: float, size: int) -> Image.Image:
-    """Place one square composite into the top `span` of the panel island.
-
-    The panel border is invisible only while the background is exactly the tone
-    the head material carries, so the padding below the canvas is filled with
-    the config's own skin colour rather than left transparent or black.
-    """
-    face = compose(config, size).convert("RGB")
+    """Place a background-erased square composite at the top of the panel UV."""
+    face = compose(config, size, transparent=True)
     height = int(round(size / max(1e-3, min(1.0, span))))
     height += height % 2
-    tone = tuple(int(config["skinColor"].lstrip("#")[i * 2:i * 2 + 2], 16) for i in range(3))
-    panel = Image.new("RGB", (size, height), tone)
+    panel = Image.new("RGBA", (size, height), (0, 0, 0, 0))
     panel.paste(face, (0, 0))
+
+    alpha = panel.getchannel("A")
+    corners = (alpha.getpixel((0, 0)), alpha.getpixel((size - 1, 0)),
+               alpha.getpixel((0, height - 1)), alpha.getpixel((size - 1, height - 1)))
+    if any(corners):
+        raise SystemExit(f"face compositor leaked background into panel corners: {corners}")
+    transparent_pixels = alpha.histogram()[0]
+    if transparent_pixels < size * height // 2:
+        raise SystemExit("face compositor retained a skin-coloured background")
     return panel
 
 

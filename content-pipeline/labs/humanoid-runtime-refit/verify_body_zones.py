@@ -70,29 +70,62 @@ def main() -> None:
     bodies = {}
     for body_id, path in CFG.RUNTIME_BODY.items():
         glb = Glb.load(path)
-        materials = [glb.json["materials"][p["material"]]["name"]
-                     for p in glb.json["meshes"][0]["primitives"]]
-        expected = [BZ.material_name(zone) for zone in BZ.ZONES] + [BZ.FACE_MATERIAL]
+        primitives = glb.json["meshes"][0]["primitives"]
+        materials = [glb.json["materials"][p["material"]]["name"] for p in primitives]
+        expected = ([BZ.material_name(zone) for zone in BZ.ZONES]
+                    + [BZ.material_name("head"), BZ.FACE_MATERIAL])
+        overlay_slots = [index for index, name in enumerate(materials)
+                         if name == BZ.FACE_MATERIAL]
+        skin_primitives = [primitive for index, primitive in enumerate(primitives)
+                           if index not in overlay_slots]
         joints = [glb.json["nodes"][j].get("name")
                   for j in glb.json["skins"][0]["joints"]]
         clips = [a["name"] for a in glb.json.get("animations", ())]
         ibm = glb.accessor(glb.json["skins"][0]["inverseBindMatrices"])
-        index_types = {glb.json["accessors"][p["indices"]]["type"]
-                       for p in glb.json["meshes"][0]["primitives"]}
-        skin_pbr = {json.dumps(glb.json["materials"][i]["pbrMetallicRoughness"],
-                               sort_keys=True)
-                    for i, name in enumerate(materials) if name != BZ.FACE_MATERIAL}
+        index_types = {glb.json["accessors"][p["indices"]]["type"] for p in primitives}
+        skin_pbr = {
+            json.dumps(material["pbrMetallicRoughness"], sort_keys=True)
+            for material in glb.json["materials"]
+            if material["name"] != BZ.FACE_MATERIAL
+        }
         source = Glb.load(sources[body_id])
+        source_primitives = source.json["meshes"][0]["primitives"]
+        source_materials = [source.json["materials"][p["material"]]["name"]
+                            for p in source_primitives]
+        source_face = source_primitives[source_materials.index(BZ.FACE_MATERIAL)]
         out_points = np.unique(np.round(np.concatenate(
             [glb.accessor(p["attributes"]["POSITION"]).astype(np.float64)
-             for p in glb.json["meshes"][0]["primitives"]]), 6), axis=0)
+             for p in skin_primitives]), 6), axis=0)
         src_points = np.unique(np.round(np.concatenate(
             [source.accessor(p["attributes"]["POSITION"]).astype(np.float64)
-             for p in source.json["meshes"][0]["primitives"]]), 6), axis=0)
-        out_tris = sum(glb.json["accessors"][p["indices"]]["count"]
-                       for p in glb.json["meshes"][0]["primitives"]) // 3
+             for p in source_primitives]), 6), axis=0)
+        render_tris = sum(glb.json["accessors"][p["indices"]]["count"]
+                          for p in primitives) // 3
+        geometry_tris = sum(glb.json["accessors"][p["indices"]]["count"]
+                            for p in skin_primitives) // 3
         src_tris = sum(source.json["accessors"][p["indices"]]["count"]
-                       for p in source.json["meshes"][0]["primitives"]) // 3
+                       for p in source_primitives) // 3
+
+        overlay_ok = len(overlay_slots) == 1
+        overlay_inflate_delta = float("inf")
+        overlay_omits_colour = False
+        overlay_alpha_blend = False
+        if overlay_ok:
+            overlay = primitives[overlay_slots[0]]
+            overlay_position = glb.accessor(
+                overlay["attributes"]["POSITION"]).astype(np.float64)
+            source_position = source.accessor(
+                source_face["attributes"]["POSITION"]).astype(np.float64)
+            source_normal = source.accessor(
+                source_face["attributes"]["NORMAL"]).astype(np.float64)
+            expected_overlay = source_position + source_normal * CFG.FACE_OVERLAY_INFLATE
+            if overlay_position.shape == expected_overlay.shape:
+                overlay_inflate_delta = float(
+                    np.abs(overlay_position - expected_overlay).max())
+            overlay_omits_colour = "COLOR_0" not in overlay["attributes"]
+            overlay_material = glb.json["materials"][overlay["material"]]
+            overlay_alpha_blend = overlay_material.get("alphaMode") == "BLEND"
+
         entry = {
             "path": os.path.relpath(path, CFG.REPO),
             "sha256": hashlib.sha256(open(path, "rb").read()).hexdigest(),
@@ -105,7 +138,13 @@ def main() -> None:
             "welded_points_identical_to_source": bool(
                 out_points.shape == src_points.shape
                 and np.array_equal(out_points, src_points)),
-            "triangles": out_tris, "source_triangles": src_tris,
+            "source_geometry_triangles": geometry_tris,
+            "triangles": render_tris,
+            "source_triangles": src_tris,
+            "face_overlay_count": len(overlay_slots),
+            "face_overlay_alpha_blend": overlay_alpha_blend,
+            "face_overlay_omits_vertex_color": overlay_omits_colour,
+            "face_overlay_inflate_max_delta_m": overlay_inflate_delta,
             "stature_m": round(float(out_points[:, 1].max()), 6),
             "source_stature_m": round(float(src_points[:, 1].max()), 6),
         }
@@ -126,9 +165,21 @@ def main() -> None:
             failures.append(f"{body_id}: zone materials are not visually identical "
                             f"({entry['skin_material_variants']} PBR variants)")
         if not entry["welded_points_identical_to_source"]:
-            failures.append(f"{body_id}: welded vertex set differs from its source")
-        if out_tris != src_tris:
-            failures.append(f"{body_id}: {out_tris} triangles vs source {src_tris}")
+            failures.append(f"{body_id}: opaque skin vertex set differs from its source")
+        if geometry_tris != src_tris:
+            failures.append(
+                f"{body_id}: opaque geometry has {geometry_tris} triangles vs source {src_tris}")
+        if entry["face_overlay_count"] != 1:
+            failures.append(
+                f"{body_id}: expected one transparent face overlay, got {entry['face_overlay_count']}")
+        if not entry["face_overlay_alpha_blend"]:
+            failures.append(f"{body_id}: face overlay is not alpha-blended")
+        if not entry["face_overlay_omits_vertex_color"]:
+            failures.append(f"{body_id}: face overlay still carries darkening vertex colour")
+        if entry["face_overlay_inflate_max_delta_m"] > 1e-6:
+            failures.append(
+                f"{body_id}: face overlay inflate drift "
+                f"{entry['face_overlay_inflate_max_delta_m']:.2e} m")
         if entry["stature_m"] != entry["source_stature_m"]:
             failures.append(f"{body_id}: stature {entry['stature_m']} != source "
                             f"{entry['source_stature_m']}")
@@ -176,8 +227,10 @@ def main() -> None:
         print(f"[verify] {body_id}: materials exact {entry['materials_exact']}, "
               f"joints {entry['joints_match_shell']}, clips {entry['clips_match_shell']}, "
               f"ibm delta {entry['inverse_bind_max_delta']:.2e}, "
-              f"points identical {entry['welded_points_identical_to_source']}, "
-              f"tris {entry['triangles']}=={entry['source_triangles']}, "
+              f"skin points identical {entry['welded_points_identical_to_source']}, "
+              f"opaque tris {entry['source_geometry_triangles']}=={entry['source_triangles']}, "
+              f"render tris {entry['triangles']}, "
+              f"face inflate delta {entry['face_overlay_inflate_max_delta_m']:.2e}, "
               f"stature {entry['stature_m']}")
     print(f"[verify] vocabulary match {report['checks']['vocabulary']['match']}, "
           f"rust missing {report['checks']['rust_vocabulary']['missing']}")

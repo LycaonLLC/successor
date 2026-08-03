@@ -21,23 +21,25 @@ TEXTURE_DIR = os.path.join(BUILD_DIR, "textures")
 REPORT_DIR = os.path.join(LAB_DIR, "reports")
 PROOF_DIR = os.path.join(LAB_DIR, "proof")
 
-# The FINAL approved bodies -- promotion input, never output. `rb_v4` is the
-# male retro body and `rbf_v3` the female reduced-posterior build; each ships
-# with a sidecar recording its own source blend, clip donor and dimensions.
-# Older `humanoid-lab/pawn_*_latest.glb` inputs are superseded and must not be
-# read: they are a different, higher-poly lineage.
+# The FINAL reviewed bodies from Bunker's `body-refine-20260802` lane. These
+# exact geometry-and-skin artifacts carry the hand-shaped shared-topology heads
+# and neck grafts, verified SWG hands, and the final body-transition pass. They
+# intentionally carry no clips: promotion copies the hash-pinned 47-clip bank
+# from `RUNTIME_SHELL` without re-exporting it.
+#
+# Source commit: d3fdfa2831bf938c0d9c8bf06f8796a00a935af5
 SOURCE_DIR = os.path.join(LAB_DIR, "source")
 REFINED = {
-    "male": os.path.join(SOURCE_DIR, "male/rb_v4_anim.glb"),
-    "female": os.path.join(SOURCE_DIR, "female/rbf_v3_anim.glb"),
+    "male": os.path.join(SOURCE_DIR, "male/pawn_male_refined.glb"),
+    "female": os.path.join(SOURCE_DIR, "female/pawn_female_refined.glb"),
 }
 REFINED_SIDECAR = {
-    "male": os.path.join(SOURCE_DIR, "male/rb_v4_anim.json"),
-    "female": os.path.join(SOURCE_DIR, "female/rbf_v3_anim.json"),
+    "male": os.path.join(SOURCE_DIR, "male/pawn_male_refined.json"),
+    "female": os.path.join(SOURCE_DIR, "female/pawn_female_refined.json"),
 }
 REFINED_SHA = {
-    "male": "dd6d99baa5de4cbe585fc7075eb9e5bb3cc0006d809ca2655095a533a43f8be5",
-    "female": "8c1aefa701b6f6560cd9cb87f979c25a3bb4227fd9da6cde9f29f464f5da1650",
+    "male": "d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
+    "female": "bd99fdb32fc40291780d92b1494f07a428c439204b306a2a6d32d2bc403c0c8b",
 }
 
 # The runtime SHELL: the pre-refit male body, whose skeleton order, animation
@@ -99,6 +101,9 @@ FACE_TEXTURE_SIZE = 256      # matches render/faceDecal.ts FACE_TEXTURE_SIZE
 # panel's own top edge follows; the remainder is flat tone, which is exactly
 # what the chin below the mouth should be.
 FACE_PANEL_V_SPAN = 0.82
+# Keep the static transparent face overlay just proud of its opaque skin base.
+# This matches `client-3d/src/render/faceDecal.ts`.
+FACE_OVERLAY_INFLATE = 0.0015
 SKIN_TEXTURE_SIZE = 512
 
 # Gentle ambient occlusion only: enough tonal definition to read the faceted
