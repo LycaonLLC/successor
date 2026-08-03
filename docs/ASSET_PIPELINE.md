@@ -102,8 +102,9 @@ Collision ships as a mesh-derived sidecar (`<glb>_collision.json`) referenced
 from the model manifest as a structural-only proxy. Both Dustgate facility
 sidecars are emitted directly at schema `successor.structure-collision.v3` by
 their deterministic builders: the cloning facility
-(`tools/successor/assets/build_cloning_facility.py`) carries nine stable
-structural proxy boxes plus the `closed_door_panel` door blocker, and the
+(`tools/successor/assets/cloning-facility-opus5/src/build_clone_suite.py`)
+carries nine stable structural proxy boxes plus the `closed_door_panel` door
+blocker, and the
 commerce facility (`tools/successor/assets/build_commerce_facility.py`)
 carries its wall boxes, 15 named furniture blockers, and a door blocker.
 Those sidecar boxes are the collision authority; detail meshes never are.
