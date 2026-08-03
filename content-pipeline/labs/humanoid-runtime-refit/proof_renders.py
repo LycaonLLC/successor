@@ -1,4 +1,4 @@
-"""Render the proofs the numbers stand behind: posterior before/after, starter kit.
+"""Render the proofs the numbers stand behind: final bodies and starter kit.
 
 Geometry comes from `pose_probe`, not from Blender's own armature import. That is
 deliberate: importing three GLBs gives three armatures, and the garments carry no
@@ -28,9 +28,8 @@ import numpy as np
 LAB_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, LAB_DIR)
 
+import body_zones as BZ  # noqa: E402
 import pose_probe as POSE  # noqa: E402
-import reduce_female_posterior as REDUCE  # noqa: E402
-import reference_bodies  # noqa: E402
 import refit_config as CFG  # noqa: E402
 from gltf_io import Glb  # noqa: E402
 
@@ -109,10 +108,13 @@ def render(name: str, cells: dict) -> None:
 
 
 def bare_mesh(path: str):
-    """Every skin triangle of a body GLB, in its bind pose."""
+    """Every opaque skin triangle of a body GLB, in its bind pose."""
     glb = Glb.load(path)
     positions, faces, base = [], [], 0
     for primitive in glb.json["meshes"][0]["primitives"]:
+        material = glb.json["materials"][primitive["material"]]["name"]
+        if material == BZ.FACE_MATERIAL:
+            continue
         position = glb.accessor(primitive["attributes"]["POSITION"]).astype(np.float64)
         positions.append(position)
         faces.append(glb.accessor(primitive["indices"]).astype(np.int64).reshape(-1, 3)
@@ -124,21 +126,9 @@ def bare_mesh(path: str):
 def main() -> None:
     CFG.ensure_dirs()
     cells: dict = {}
-    sources = reference_bodies.refined()
-    reduced = REDUCE.ensure(sources["female"])
-
-    # 1. the female posterior: approved source against the corrected body.
-    for label, path in (("posterior_before_rbf_v3", sources["female"]),
-                        ("posterior_after_reduced", reduced)):
-        vertices, faces = bare_mesh(path)
-        for view in ("side", "threequarter", "rear"):
-            for suffix, height, scale in (("", 0.95, 0.75), ("_full", 0.9, 2.0)):
-                reset()
-                add("body", vertices, faces, SKIN)
-                frame(VIEWS[view], height=height, scale=scale)
-                render(f"{label}_{view}{suffix}", cells)
-
-    # 2. both promoted bodies bare, so the zone split reads as the no-op it is.
+    # 1. both final promoted bodies bare. The transparent face overlay is
+    # intentionally omitted here; the opaque skin panel proves the head stays
+    # closed when the atlas background is erased.
     for body_id, path in CFG.RUNTIME_BODY.items():
         vertices, faces = bare_mesh(path)
         for view in ("front", "side"):
@@ -147,7 +137,7 @@ def main() -> None:
             frame(VIEWS[view])
             render(f"body_{body_id}_{view}", cells)
 
-    # 3. the starter loadout, skinned AND masked exactly as the runtime does it.
+    # 2. the starter loadout, skinned AND masked exactly as the runtime does it.
     with open(os.path.join(CFG.REPORT_DIR, "body_zone_coverage.json"),
               encoding="utf-8") as handle:
         coverage = json.load(handle)["items"]
