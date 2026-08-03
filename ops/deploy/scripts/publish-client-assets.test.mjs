@@ -2,7 +2,10 @@ import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { assertNoUnprefixedRuntimeAssetPaths } from "./publish-client-assets.mjs";
+import {
+  assertNoUnprefixedRuntimeAssetPaths,
+  assertRequiredRustRuntimeAssets,
+} from "./publish-client-assets.mjs";
 
 const roots = [];
 
@@ -19,5 +22,26 @@ describe("publish client synthetic-prefix gate", () => {
     await expect(assertNoUnprefixedRuntimeAssetPaths(root)).rejects.toThrow("/assets/");
     await writeFile(join(root, "assets", "bad.js"), 'fetch("/releases/fakehash/assets/pawn-pack/pawn_male.glb")');
     await expect(assertNoUnprefixedRuntimeAssetPaths(root)).resolves.toBe(true);
+  });
+});
+
+describe("Rust runtime required-asset gate", () => {
+  it("rejects a beta inventory without both authored pawn bodies", () => {
+    expect(() => assertRequiredRustRuntimeAssets(
+      "successor-rust-beta@abc123",
+      ["index.html", "successor.js", "assets/pawn-pack/pawn_male.glb"],
+    )).toThrow("assets/pawn-pack/pawn_female.glb");
+  });
+
+  it("accepts a beta inventory containing both authored pawn bodies", () => {
+    expect(assertRequiredRustRuntimeAssets(
+      "successor-rust-beta@abc123",
+      [
+        "index.html",
+        "successor.js",
+        "assets/pawn-pack/pawn_male.glb",
+        "assets/pawn-pack/pawn_female.glb",
+      ],
+    )).toBe(true);
   });
 });

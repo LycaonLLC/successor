@@ -86,6 +86,20 @@ export async function assertNoUnprefixedRuntimeAssetPaths(dist) {
   return true;
 }
 
+const REQUIRED_RUST_RUNTIME_ASSETS = [
+  "assets/pawn-pack/pawn_male.glb",
+  "assets/pawn-pack/pawn_female.glb",
+];
+
+/** Fail closed before publication when a Rust runtime omits fatal body assets. */
+export function assertRequiredRustRuntimeAssets(releaseId, paths) {
+  if (!releaseId.startsWith("successor-rust-")) return true;
+  const available = new Set(paths);
+  const missing = REQUIRED_RUST_RUNTIME_ASSETS.filter((path) => !available.has(path));
+  if (missing.length > 0) throw new Error(`Rust runtime is missing required assets: ${missing.join(", ")}`);
+  return true;
+}
+
 function localPath(value, origin, field) {
   if (typeof value !== "string") throw new Error(`dist/current.json ${field} must be a URL`);
   let parsed;
@@ -123,6 +137,7 @@ export async function buildManifest(dist, cdnOrigin, storeOrigin) {
     const digest = sha256(bytes);
     entries.push({ path, sha256: digest, size: bytes.length, content_type: contentType(path) });
   }
+  assertRequiredRustRuntimeAssets(sourcePointer.releaseId, entries.map((entry) => entry.path));
   const inventory = { schema: "successor-client-assets.v1", release_id: sourcePointer.releaseId, files: entries };
   const inventoryCanonical = `${JSON.stringify(inventory, null, 2)}\n`;
   const manifestSha256 = sha256(Buffer.from(inventoryCanonical));

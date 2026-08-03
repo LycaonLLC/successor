@@ -87,6 +87,8 @@ await writeFile(join(out, "successor.js"), releaseShim);
 
 const sliceRoot = resolve(repo, "client/public/successor-slice");
 await cp(sliceRoot, join(out, "successor-slice"), { recursive: true });
+const pawnPackRoot = resolve(repo, "client-3d/public/assets/pawn-pack");
+await cp(pawnPackRoot, join(out, "assets/pawn-pack"), { recursive: true });
 await mkdir(join(out, "render"), { recursive: true });
 const propsMapping = resolve(repo, "client-3d/src/render/props-mapping.json");
 await cp(propsMapping, join(out, "render/props-mapping.json"));
