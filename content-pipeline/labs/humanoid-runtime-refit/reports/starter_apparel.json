@@ -3,13 +3,13 @@
   "bodies": {
     "male": {
       "body": "client-3d/public/assets/pawn-pack/pawn_male.glb",
-      "body_sha256": "adb7d47da62748fbc857f682994c0faf4aac43975be205218c27d3a93e749485",
+      "body_sha256": "3595b3717a4d40f6a0a3e593f8722a70bba367a5787226e2d825d5206e658615",
       "under_bodysuit": {
         "path": "client-3d/public/assets/pawn-pack/equipment/Under/under_bodysuit.glb",
-        "bytes": 50364,
-        "sha256": "89855244d55c4e10891d83b0f048f7cb197f56e60727462739257e4fc70bc461",
-        "vertices": 630,
-        "triangles": 1207,
+        "bytes": 58648,
+        "sha256": "eacce93ccdc47a3b901bb15006fe9bb4ab5399b043da3b32b2b6b621e0ae1888",
+        "vertices": 782,
+        "triangles": 1473,
         "offset_mm": 1.0,
         "zones": [
           "torso",
@@ -24,20 +24,20 @@
           "right_calf"
         ],
         "bbox_min": [
-          -0.81126,
+          -0.825,
           0.07358,
           -0.11524
         ],
         "bbox_max": [
-          0.81207,
-          1.55115,
-          0.15137
+          0.825,
+          1.52882,
+          0.14956
         ]
       },
       "boots_canvas_ankle": {
         "path": "client-3d/public/assets/pawn-pack/equipment/Under/boots_canvas_ankle.glb",
-        "bytes": 31860,
-        "sha256": "6f274b51abfabd3dc158f2149931ba1cd29ccf9fd099d5607adddf696484ff5d",
+        "bytes": 31872,
+        "sha256": "3958b4599d46f8d3f3e3b20dcc60bf944c6f990ad25cb091ad41b41d1a99cf50",
         "offset_mm": 10.0,
         "shaft_top_m": 0.215,
         "trim_bottom_m": 0.185,
@@ -52,13 +52,13 @@
             "sole_triangles": 9,
             "upper_triangles": 109,
             "bbox_min": [
-              0.01647,
+              0.01736,
               -0.004,
-              -0.08589
+              -0.08373
             ],
             "bbox_max": [
               0.14289,
-              0.21544,
+              0.21549,
               0.19618
             ]
           },
@@ -73,11 +73,11 @@
             "bbox_min": [
               -0.14289,
               -0.004,
-              -0.08589
+              -0.08373
             ],
             "bbox_max": [
-              -0.01647,
-              0.21544,
+              -0.01736,
+              0.21549,
               0.19618
             ]
           }
@@ -86,13 +86,13 @@
     },
     "female": {
       "body": "client-3d/public/assets/pawn-pack/pawn_female.glb",
-      "body_sha256": "9dc6e6a189bf581d0d996090cf9fd32a92c69dded3eebc22813e109a7606ebf0",
+      "body_sha256": "13c35d3c9fb9aae1f023becbbcddd7225860fb98c08b2af761d1a4f839b451c4",
       "under_bodysuit": {
         "path": "client-3d/public/assets/pawn-pack/equipment/Female/Under/under_bodysuit.glb",
-        "bytes": 51880,
-        "sha256": "e9a07c2202fea48d25e132afa14dd9b772be172435a1fb86b18bf71e7cf86039",
-        "vertices": 657,
-        "triangles": 1262,
+        "bytes": 60608,
+        "sha256": "f708819b7fcbd620fa634290652dfbe831ffc82b06fba3e73bc2d35729079267",
+        "vertices": 817,
+        "triangles": 1543,
         "offset_mm": 1.0,
         "zones": [
           "torso",
@@ -107,20 +107,20 @@
           "right_calf"
         ],
         "bbox_min": [
-          -0.81143,
+          -0.825,
           0.05723,
           -0.09718
         ],
         "bbox_max": [
-          0.81285,
-          1.54795,
+          0.825,
+          1.52847,
           0.1516
         ]
       },
       "boots_canvas_ankle": {
         "path": "client-3d/public/assets/pawn-pack/equipment/Female/Under/boots_canvas_ankle.glb",
         "bytes": 33220,
-        "sha256": "91f77303a14ca3d06c1aad68fa5741ce5a80aaf205dab294f17584a8d78510a1",
+        "sha256": "dea382ca1f4b521c42c0e29e29ea78e29abeb44b2fbf5e626860f414daccf02b",
         "offset_mm": 10.0,
         "shaft_top_m": 0.215,
         "trim_bottom_m": 0.185,

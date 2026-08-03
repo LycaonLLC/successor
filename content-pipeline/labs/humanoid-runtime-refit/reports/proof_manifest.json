@@ -23,208 +23,216 @@
     {
       "clip": "meditate_loop",
       "phase": 0.5
+    },
+    {
+      "clip": "rifle_aim",
+      "phase": 0.5
+    },
+    {
+      "clip": "swing_h1",
+      "phase": 0.45
     }
   ],
   "cells": {
-    "posterior_before_rbf_v3_side": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_before_rbf_v3_side.png",
-      "sha256": "4f73b29389b52d882ffa37c12d93d728ff1ac4448b5f658a18e2898b87695be4",
-      "bytes": 314839
-    },
-    "posterior_before_rbf_v3_side_full": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_before_rbf_v3_side_full.png",
-      "sha256": "6361dd7d3b5971031161990d3ad1aee362b66e83f284173b0558d639adbc16ce",
-      "bytes": 229955
-    },
-    "posterior_before_rbf_v3_threequarter": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_before_rbf_v3_threequarter.png",
-      "sha256": "b66b14c72779da7934202a3424e61b391707aad0f17048667c50ae595515a94e",
-      "bytes": 358525
-    },
-    "posterior_before_rbf_v3_threequarter_full": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_before_rbf_v3_threequarter_full.png",
-      "sha256": "9b0bb983b211a8696f4200f8bd2ef6902c2e81965ed1a884aee300e179eddad7",
-      "bytes": 261567
-    },
-    "posterior_before_rbf_v3_rear": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_before_rbf_v3_rear.png",
-      "sha256": "c84cd0c8d7131a4d832fbc1bbfb0b4eddcee771679ef584e2f55962469595ad9",
-      "bytes": 370832
-    },
-    "posterior_before_rbf_v3_rear_full": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_before_rbf_v3_rear_full.png",
-      "sha256": "1fd7a756141f354f44336ae79fc7a38e5917f30a520edde2971a12f359fa1d1d",
-      "bytes": 263326
-    },
-    "posterior_after_reduced_side": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_after_reduced_side.png",
-      "sha256": "7c7cae5693f736b2ca2d78ff27b95359d60475ee655936486019682267be5fc3",
-      "bytes": 313378
-    },
-    "posterior_after_reduced_side_full": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_after_reduced_side_full.png",
-      "sha256": "bbf1aea26360fec0aefd349bd626bac8448f9c5385ddfecfae97586730847b85",
-      "bytes": 229598
-    },
-    "posterior_after_reduced_threequarter": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_after_reduced_threequarter.png",
-      "sha256": "8495552116030fd8ec9be51d4fd8ae4745e5674665b5203e16ae9b7563b6620a",
-      "bytes": 357594
-    },
-    "posterior_after_reduced_threequarter_full": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_after_reduced_threequarter_full.png",
-      "sha256": "bcf5a7cce0778b81d43f839b9cc601563bca18d79309c2a4b548a1965d6215c5",
-      "bytes": 261352
-    },
-    "posterior_after_reduced_rear": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_after_reduced_rear.png",
-      "sha256": "e8ea07710109205b34c52f3195f5e1a633ee9d571d8087a56aefa3ffa4459218",
-      "bytes": 370943
-    },
-    "posterior_after_reduced_rear_full": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/posterior_after_reduced_rear_full.png",
-      "sha256": "b27ba741a2cf99002b8bb5df910d1d2f5ffedbc8dc6848bb74121fe91b0b0238",
-      "bytes": 263296
-    },
     "body_male_front": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/body_male_front.png",
-      "sha256": "db0ccd4dd19eaacdea7254922292853f438d715fa3c0d47994d65fb3c16c4484",
-      "bytes": 279607
+      "sha256": "ca3260b2361efea255bd710a6392da846026721a97e661861d0e3c72a3d4a27e",
+      "bytes": 278523
     },
     "body_male_side": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/body_male_side.png",
-      "sha256": "75a41d8eea86252c728393eae7cbe25f36f6e7fc08e7cc609e58880e6edb88c1",
-      "bytes": 235421
+      "sha256": "f60c5bd44cc87f68c106207fe7204c01b490639bf2d2ebe872fd42a3e3b426ca",
+      "bytes": 233761
     },
     "body_female_front": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/body_female_front.png",
-      "sha256": "4e8b6fce07f40672186ba6752700a57a33787b5e6ec0692124b1e4efabe94868",
-      "bytes": 268202
+      "sha256": "fdfb9eadb35ea1dbba223bbfd1ceb27986ca9738debf9af8cf98fd9802d6450e",
+      "bytes": 268052
     },
     "body_female_side": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/body_female_side.png",
-      "sha256": "bbf1aea26360fec0aefd349bd626bac8448f9c5385ddfecfae97586730847b85",
-      "bytes": 229598
+      "sha256": "767e2878ab5a8fecca3069d11ca31299dc779d22bbfc58b7e2ea4960fc694821",
+      "bytes": 228089
     },
     "starter_male_front": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_front.png",
-      "sha256": "116793b19e4957c5fb18210316418b9bc0acff192418a8aae0b456c05e29f2a3",
-      "bytes": 269299
+      "sha256": "adf9b214aa66f92080c755651bf083161eecaa844275e8624e1dd2053db07cf2",
+      "bytes": 256746
     },
     "starter_male_side": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_side.png",
-      "sha256": "d920840fed9bfbefdcc4b14827d9d0750e0198e14d6b42c620c4eb8f9611104d",
-      "bytes": 224999
+      "sha256": "ec31facd83331cc3514e3ae20fbf5eef9910bad1632143f44dd26fe6b124e784",
+      "bytes": 217364
     },
     "starter_male_threequarter": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_threequarter.png",
-      "sha256": "b2b81daeaca4dd2ad348280b8083a83abd1909c1b493f89287151f2e716039fd",
-      "bytes": 255255
+      "sha256": "e179228b9c7272c3674001f12e6ee83640ddf313acdf6f5941ba12bcd017d93e",
+      "bytes": 247331
     },
     "starter_male_front_walk": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_front_walk.png",
-      "sha256": "02ffe84ab12d5e0d2e8da5074f4c2f12a95ec2dc36b504d9e5fcf69fce07c12a",
-      "bytes": 298974
+      "sha256": "9504986e71cbe8a514956bf5e3a54f9c232ed2da988ac46572974f6b03f73904",
+      "bytes": 296846
     },
     "starter_male_side_walk": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_side_walk.png",
-      "sha256": "1c7ef0120dd2359db4144076c634c7d81d1b041dc3ec5b1b16ccd7d430a78bba",
-      "bytes": 294563
+      "sha256": "cbfa016081538e805875f6d873693806c2ca853b23f877c7be4638ba2508ca3e",
+      "bytes": 293063
     },
     "starter_male_threequarter_walk": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_threequarter_walk.png",
-      "sha256": "543c2d2a6406f60dcde40309a0ca239553faa690095ee7abc4bab3331fef289a",
-      "bytes": 298478
+      "sha256": "be86d281ae8040bf3fb313fae95e624abd7e72b87031e325fd6e9754ee365950",
+      "bytes": 295356
     },
     "starter_male_front_crouch": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_front_crouch.png",
-      "sha256": "09527b1fce1508f8c14cf58a84dde8487b0961a60f3df4163aa0114bbd990ab3",
-      "bytes": 349870
+      "sha256": "68a96813c2c054286d86b5b7dd39de46528eb36bcefbbd6d0f26630986e93bbb",
+      "bytes": 347340
     },
     "starter_male_side_crouch": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_side_crouch.png",
-      "sha256": "269a956467ba214f3c72f53e7a9338f3b33459f395cb2a8124f53e1bcd99624f",
-      "bytes": 314131
+      "sha256": "f3bad9181471040156ee05cffd1618251051eed05534c2e12642d502c9ebb109",
+      "bytes": 310418
     },
     "starter_male_threequarter_crouch": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_threequarter_crouch.png",
-      "sha256": "ae3be398db37e2a128a2c4c2a958e9fd38b45a7ff3b643ed1cf4347ca8353b8e",
-      "bytes": 336654
+      "sha256": "ca60752364754be70ddab310c63e9a8ca23211059720cb564d6eebcd3386d81c",
+      "bytes": 331564
     },
     "starter_male_front_meditate": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_front_meditate.png",
-      "sha256": "c1163a60f569944c8ffbe8825a76c44ea960b3df2ccf7e9be959768068e8ce5c",
-      "bytes": 358179
+      "sha256": "8dfec8164849e5ebbc926e6e17d7d269047b87a3ba2f88542bb76a2b36b0701f",
+      "bytes": 353360
     },
     "starter_male_side_meditate": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_side_meditate.png",
-      "sha256": "df62d6e4ff6e744fdec52a0376c58ae78a50b43b3b71f659324f0390fea2a3a1",
-      "bytes": 298380
+      "sha256": "08fe9d351b40b908db21c0f0ab0e45e5bd5fefdd0cb95ed4860dc64467d9a6d4",
+      "bytes": 295529
     },
     "starter_male_threequarter_meditate": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_threequarter_meditate.png",
-      "sha256": "b262f567da7d12638e14107c54952c7e2c264a8f0ffec793b06e9d66f0b78393",
-      "bytes": 342202
+      "sha256": "fdb6cd885d20993e62457226a39bddbd7fffd600f805cf6698bc062ad25b10d8",
+      "bytes": 338999
+    },
+    "starter_male_front_rifle_aim": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_front_rifle_aim.png",
+      "sha256": "5d90d8fd316930ed14e10eb21395a4e86a4bf60833ad62b3ed5b672232f81e5d",
+      "bytes": 282157
+    },
+    "starter_male_side_rifle_aim": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_side_rifle_aim.png",
+      "sha256": "f358f2a750415f07e9a54254f735a99db0ccb4d957afe17daee4a69b5b7a892c",
+      "bytes": 290970
+    },
+    "starter_male_threequarter_rifle_aim": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_threequarter_rifle_aim.png",
+      "sha256": "f9847ca5e3d2c94989dd04288da613d218d9c2763d8cca99e13e9c5a7566a43a",
+      "bytes": 260460
+    },
+    "starter_male_front_swing_h1": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_front_swing_h1.png",
+      "sha256": "fb36e56d77241270ef259540a86079b4bb3b82bddfb1491bb614bf268c2c433e",
+      "bytes": 279490
+    },
+    "starter_male_side_swing_h1": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_side_swing_h1.png",
+      "sha256": "4167ffefa9ac1be5c50d5695ed98427ac69304fc84555b2b58457bb801b8e1a7",
+      "bytes": 289253
+    },
+    "starter_male_threequarter_swing_h1": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_male_threequarter_swing_h1.png",
+      "sha256": "031b7178df0f1c716fea4f74ea0078a954187329e8657346d187a47df669d309",
+      "bytes": 261833
     },
     "starter_female_front": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_front.png",
-      "sha256": "5fe532df4958d49a6e470000e81a40791dad1d583b2819282cc6e297bf428c49",
-      "bytes": 256092
+      "sha256": "79badfb4c5871f0640afaaec305b4b2022946908d47c3742bda10cf07e6d21d2",
+      "bytes": 248070
     },
     "starter_female_side": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_side.png",
-      "sha256": "c77ac15389747cfc7a25e1f87bd97555328d76c3ff755111a7d08ab4217ac77e",
-      "bytes": 219052
+      "sha256": "237d73e188dca3e6647f614196248cc53c8802f4bf6ce019155060e8d9195d04",
+      "bytes": 212680
     },
     "starter_female_threequarter": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_threequarter.png",
-      "sha256": "3ba9d4b2c3c3444da85528b8a3e24acfb3b71f279eb9fcf0e6bad57e7762b347",
-      "bytes": 248246
+      "sha256": "6c86ff1fb5ed6df07ef9e23520eadfe589561d6ab9991fc0e3c466fd2c697b72",
+      "bytes": 239842
     },
     "starter_female_front_walk": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_front_walk.png",
-      "sha256": "f2b70f377e22dcc9c8aa64b53e2899ae4a6d982b0cb2d3374b7dd4aa908a5238",
-      "bytes": 285490
+      "sha256": "cb63f84769d6ea3629bb860524bc621d2cd3bc609340024164cc64403680b897",
+      "bytes": 286100
     },
     "starter_female_side_walk": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_side_walk.png",
-      "sha256": "e7620da5661f3475eec4ecf6d3c69968f7e140562cc8beb719672ca3381888a6",
-      "bytes": 285720
+      "sha256": "53944ce849f5c3119520ad1029781dceff1bb568efac070f1e25ede4d4b05320",
+      "bytes": 287731
     },
     "starter_female_threequarter_walk": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_threequarter_walk.png",
-      "sha256": "2cd18acce72988bc08126453c96b961d2697e1f0b23017e051aa27be8d9109c5",
-      "bytes": 286949
+      "sha256": "507f3731174e6a56d5f0382f2b4b7b64348e9f5832ae7ec2f0d40337e99b4586",
+      "bytes": 286710
     },
     "starter_female_front_crouch": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_front_crouch.png",
-      "sha256": "ee684568df505d222440b607489822aa640c3a161c244cd0d51b06fe55a336ac",
-      "bytes": 336579
+      "sha256": "fd706398de288f7fda7519f74ba69df5f816490ffe2bc072cd52253c415ca87d",
+      "bytes": 334105
     },
     "starter_female_side_crouch": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_side_crouch.png",
-      "sha256": "ada6930e75b93d140c7d4697bed9067277b0629992395568812ff696e7e928ca",
-      "bytes": 304393
+      "sha256": "535e92355aa9371242fc0637145e1837de2f43f5ac79987dfc715ec341955c55",
+      "bytes": 301575
     },
     "starter_female_threequarter_crouch": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_threequarter_crouch.png",
-      "sha256": "f6825a7d4e584e2b54b1c481e0b6979a9038d29abedcd884070ad5f7b1364f6d",
-      "bytes": 323641
+      "sha256": "bb635ead7ecf6b0fbfb7d70f1869aa6a8864653a4de6acc13c92f529ad9c5ba7",
+      "bytes": 319911
     },
     "starter_female_front_meditate": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_front_meditate.png",
-      "sha256": "aa9c5d80daeac9fe0ded624d326d701f7ea1964df63852fa06a4079b54e31d53",
-      "bytes": 344298
+      "sha256": "13f71ad77971f6828b478e0b915ccd31d1d300091c996d08b04784ef9b7099c1",
+      "bytes": 339565
     },
     "starter_female_side_meditate": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_side_meditate.png",
-      "sha256": "42566fb56dab74c7cdcdec603223995259c6a54c46ee80194df0d939c136dc04",
-      "bytes": 288833
+      "sha256": "09e3ff152cbe154203e51406d4a777d1a979d5c0925fa6795a164dd2175cbd34",
+      "bytes": 288955
     },
     "starter_female_threequarter_meditate": {
       "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_threequarter_meditate.png",
-      "sha256": "5b09be6b90cd56c3cf52e16f2dcf867fde72c27cab088f984720a4844b2d5643",
-      "bytes": 332954
+      "sha256": "471548cf2b6edb0963094e0973a8ec48550f1528cbc2dc2f36d74242baec95e9",
+      "bytes": 332097
+    },
+    "starter_female_front_rifle_aim": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_front_rifle_aim.png",
+      "sha256": "869ecc3fb1e7dd3103db57cae5b5f17920a1e8aba326a5dd3fb15fee93969cd8",
+      "bytes": 273769
+    },
+    "starter_female_side_rifle_aim": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_side_rifle_aim.png",
+      "sha256": "e2094267bb4282fab4fa6d254c9513025f54cbd2c16217d059af6b2139cacc09",
+      "bytes": 283172
+    },
+    "starter_female_threequarter_rifle_aim": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_threequarter_rifle_aim.png",
+      "sha256": "32d115cc18525fb35d2875f780431487c6a782e874a4eaeb7afa619cf34d31ba",
+      "bytes": 254258
+    },
+    "starter_female_front_swing_h1": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_front_swing_h1.png",
+      "sha256": "f031def6072608d9fe75434be87be6085463bf97f6aedc871a52224186297d12",
+      "bytes": 275726
+    },
+    "starter_female_side_swing_h1": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_side_swing_h1.png",
+      "sha256": "a495ea0e9ded4801bffd17c968455962dfa65b45d9576fb7d9636b2fc9e61925",
+      "bytes": 286048
+    },
+    "starter_female_threequarter_swing_h1": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/proof/cells/starter_female_threequarter_swing_h1.png",
+      "sha256": "cd2fb1d71c04ac9528361d203fe2b2c6d9c06ab08f9b94126b05619d570e76c2",
+      "bytes": 260153
     }
   }
 }
