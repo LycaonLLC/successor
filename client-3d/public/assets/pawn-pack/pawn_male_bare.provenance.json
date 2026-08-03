@@ -2,81 +2,50 @@
   "schema": "successor-asset-provenance/1",
   "asset_id": "pawn_male_bare",
   "asset_path": "client-3d/public/assets/pawn-pack/pawn_male_bare.glb",
-  "asset_hash": "sha256:adb7d47da62748fbc857f682994c0faf4aac43975be205218c27d3a93e749485",
+  "asset_hash": "sha256:3595b3717a4d40f6a0a3e593f8722a70bba367a5787226e2d825d5206e658615",
   "asset_kind": "pawn_body_glb",
   "source": {
-    "approved_body": "content-pipeline/labs/humanoid-runtime-refit/source/male/rb_v4_anim.glb",
-    "approved_body_hash": "sha256:dd6d99baa5de4cbe585fc7075eb9e5bb3cc0006d809ca2655095a533a43f8be5",
-    "promotion_input": "content-pipeline/labs/humanoid-runtime-refit/source/male/rb_v4_anim.glb",
-    "promotion_input_hash": "sha256:dd6d99baa5de4cbe585fc7075eb9e5bb3cc0006d809ca2655095a533a43f8be5",
+    "approved_body": "content-pipeline/labs/humanoid-runtime-refit/source/male/pawn_male_refined.glb",
+    "approved_body_hash": "sha256:d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
+    "promotion_input": "content-pipeline/labs/humanoid-runtime-refit/source/male/pawn_male_refined.glb",
+    "promotion_input_hash": "sha256:d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
     "runtime_shell": "content-pipeline/labs/humanoid-runtime-refit/build/reference/male.glb",
     "runtime_shell_hash": "sha256:6eaac9062bcfbc5efdf40c64f9e3236402a0d81832f1e0e8f4ce9a0a4dacac42",
     "sidecar": {
-      "body": "rb_v4.glb",
-      "clips_from": "pawn_male.glb",
-      "actions": 47,
-      "action_names": [
-        "block_hold",
-        "cast_aoe",
-        "cast_directed_loop",
-        "cast_directed_windup",
-        "crouch_idle",
-        "crouch_walk",
-        "death_b",
-        "death_f",
-        "deflect_c",
-        "deflect_l",
-        "deflect_r",
-        "gun_grip_trigger_discipline",
-        "idle",
-        "kneel_loop",
-        "meditate_loop",
-        "melee_draw",
-        "melee_draw_alt",
-        "melee_flinch",
-        "melee_grip",
-        "melee_idle",
-        "melee_ready",
-        "melee_run_f",
-        "melee_run_v2",
-        "melee_sheath",
-        "melee_strafe_l",
-        "melee_strafe_r",
-        "melee_turn_180",
-        "melee_turn_90",
-        "melee_walk_f",
-        "melee_walk_v2",
-        "reload",
-        "rifle_aim",
-        "rifle_fire",
-        "rifle_idle",
-        "rifle_run_f",
-        "rifle_walk_f",
-        "run_f",
-        "stim_inject",
-        "strafe_l",
-        "strafe_r",
-        "swing_h1",
-        "swing_h2",
-        "swing_h3",
-        "swing_spin_aoe",
-        "swing_thrust",
-        "walk_b",
-        "walk_f"
-      ],
-      "worst_rest_delta_m": 3.07e-07,
-      "verts": 1099,
-      "tris": 1632,
+      "body": "pawn_male_refined.glb",
+      "source_repository": "ssh://bunker/home/lycaon/git/successor.git",
+      "source_branch": "body-refine-20260802",
+      "source_commit": "d3fdfa2831bf938c0d9c8bf06f8796a00a935af5",
+      "source_sha256": "d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
+      "clips_from": "hash-pinned runtime shell during promotion",
+      "actions": 0,
+      "runtime_actions": 47,
+      "verts": 3226,
+      "tris": 5818,
       "height": 1.7525,
-      "vertex_groups": 50
+      "vertex_groups": 50,
+      "head": {
+        "method": "reviewed shared-topology 10-ring, 16-column faceted head and neck graft",
+        "face_panel_faces": 56,
+        "art_gates": {
+          "depth_over_height": true,
+          "rear_fill": true,
+          "occiput_peak": true
+        }
+      },
+      "hands": {
+        "source": "verified SWG runtime hands",
+        "unchanged_by_body_refinement": true,
+        "islands_per_side": 36
+      },
+      "review": "Final Bunker humanoid refinement; immutable, head, transition, animation-proof, and viewer gates completed before commit."
     },
     "generator": "successor content-pipeline/labs/humanoid-runtime-refit/promote_bodies.py",
     "pipeline": [
       "reference_bodies.py (hash-pinned shell + approved sources)",
-      "reduce_female_posterior.py (female only)",
       "bake_body_shading.py (per-vertex AO)",
-      "bake_face_texture.py (RB_Face panel)",
-      "promote_bodies.py (zone split + accessor transplant)"
+      "bake_face_texture.py (background-erased RGBA components)",
+      "promote_bodies.py (zone split + face skin base/overlay + accessor transplant)"
     ],
     "alias_of": "client-3d/public/assets/pawn-pack/pawn_male.glb",
     "reason": "game_pack.json pawns.male.bare_file; the refit unified the accommodation body and its full-volume sibling, so the bare path is the same mesh and must carry the same zone primitives"
@@ -101,7 +70,8 @@
       "right_foot"
     ],
     "material_pattern": "BodyZone_<zone>",
-    "face_primitive": "RB_Face",
+    "face_overlay_primitive": "RB_Face",
+    "face_skin_base_material": "BodyZone_head",
     "method": "per-tree-edge weight cuts, relaxed over the welded dual graph, descended from the pelvis",
     "seams": [
       [
@@ -115,14 +85,6 @@
       [
         "left_calf",
         "left_thigh"
-      ],
-      [
-        "left_forearm",
-        "left_hand"
-      ],
-      [
-        "left_forearm",
-        "left_upper_arm"
       ],
       [
         "left_thigh",
@@ -153,14 +115,6 @@
         "right_thigh"
       ],
       [
-        "right_forearm",
-        "right_hand"
-      ],
-      [
-        "right_forearm",
-        "right_upper_arm"
-      ],
-      [
         "right_upper_arm",
         "torso"
       ]
@@ -168,99 +122,99 @@
     "specks_absorbed": [],
     "zones": {
       "torso": {
-        "triangles": 280,
+        "triangles": 311,
         "patches": 1,
-        "area_cm2": 3895.699,
+        "area_cm2": 3855.826,
         "centroid_y_range_m": [
           1.0634,
-          1.5436
+          1.5253
         ]
       },
       "pelvis": {
         "triangles": 121,
         "patches": 1,
-        "area_cm2": 1652.963,
+        "area_cm2": 1609.484,
         "centroid_y_range_m": [
           0.8399,
           1.109
         ]
       },
       "neck": {
-        "triangles": 34,
-        "patches": 3,
-        "area_cm2": 111.748,
+        "triangles": 77,
+        "patches": 1,
+        "area_cm2": 87.306,
         "centroid_y_range_m": [
           1.4937,
-          1.5738
+          1.5338
         ]
       },
       "head": {
-        "triangles": 117,
+        "triangles": 230,
         "patches": 1,
-        "area_cm2": 945.875,
+        "area_cm2": 958.522,
         "centroid_y_range_m": [
-          1.5258,
-          1.7498
+          1.5309,
+          1.7453
         ]
       },
       "left_upper_arm": {
-        "triangles": 96,
+        "triangles": 97,
         "patches": 1,
-        "area_cm2": 1209.062,
+        "area_cm2": 1212.401,
         "centroid_y_range_m": [
           1.3889,
           1.5114
         ]
       },
       "right_upper_arm": {
-        "triangles": 96,
+        "triangles": 97,
         "patches": 1,
-        "area_cm2": 1209.239,
+        "area_cm2": 1212.401,
         "centroid_y_range_m": [
-          1.3892,
-          1.5117
+          1.3889,
+          1.5114
         ]
       },
       "left_forearm": {
-        "triangles": 67,
-        "patches": 1,
-        "area_cm2": 536.526,
+        "triangles": 145,
+        "patches": 2,
+        "area_cm2": 518.889,
         "centroid_y_range_m": [
-          1.4188,
-          1.495
+          1.4176,
+          1.4926
         ]
       },
       "right_forearm": {
-        "triangles": 65,
-        "patches": 1,
-        "area_cm2": 533.168,
+        "triangles": 145,
+        "patches": 2,
+        "area_cm2": 518.889,
         "centroid_y_range_m": [
-          1.4191,
-          1.4954
+          1.4176,
+          1.4926
         ]
       },
       "left_hand": {
-        "triangles": 110,
-        "patches": 1,
-        "area_cm2": 377.713,
+        "triangles": 2032,
+        "patches": 36,
+        "area_cm2": 480.673,
         "centroid_y_range_m": [
-          1.4336,
-          1.4712
+          1.3825,
+          1.4483
         ]
       },
       "right_hand": {
-        "triangles": 110,
-        "patches": 1,
-        "area_cm2": 241.016,
+        "triangles": 2032,
+        "patches": 36,
+        "area_cm2": 480.673,
         "centroid_y_range_m": [
-          1.4339,
-          1.4715
+          1.3825,
+          1.4483
         ]
       },
       "left_thigh": {
         "triangles": 94,
         "patches": 1,
-        "area_cm2": 1714.199,
+        "area_cm2": 1648.396,
         "centroid_y_range_m": [
           0.5055,
           0.9329
@@ -269,7 +223,7 @@
       "right_thigh": {
         "triangles": 95,
         "patches": 1,
-        "area_cm2": 1740.552,
+        "area_cm2": 1676.093,
         "centroid_y_range_m": [
           0.5055,
           0.9329
@@ -278,34 +232,34 @@
       "left_calf": {
         "triangles": 87,
         "patches": 1,
-        "area_cm2": 1339.1,
+        "area_cm2": 1293.324,
         "centroid_y_range_m": [
           0.1049,
           0.5279
         ]
       },
       "right_calf": {
-        "triangles": 88,
+        "triangles": 87,
         "patches": 1,
-        "area_cm2": 1351.11,
+        "area_cm2": 1293.324,
         "centroid_y_range_m": [
-          0.1038,
+          0.1049,
           0.5279
         ]
       },
       "left_foot": {
         "triangles": 56,
         "patches": 1,
-        "area_cm2": 743.194,
+        "area_cm2": 742.925,
         "centroid_y_range_m": [
           0.0,
           0.1082
         ]
       },
       "right_foot": {
-        "triangles": 55,
+        "triangles": 56,
         "patches": 1,
-        "area_cm2": 731.184,
+        "area_cm2": 742.925,
         "centroid_y_range_m": [
           0.0,
           0.1082
@@ -314,12 +268,12 @@
     }
   },
   "metrics": {
-    "bytes": 2680152,
+    "bytes": 3292764,
     "joints": 50,
     "animations": 47,
-    "primitives": 17,
-    "triangles": 1632,
-    "source_triangles": 1632,
+    "primitives": 18,
+    "triangles": 5874,
+    "source_triangles": 5818,
     "height_max_y_m": 1.7525
   },
   "validation": {

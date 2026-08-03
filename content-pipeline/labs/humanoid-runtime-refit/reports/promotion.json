@@ -52,298 +52,51 @@
   ],
   "approved_sources": {
     "male": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/source/male/rb_v4_anim.glb",
-      "sha256": "dd6d99baa5de4cbe585fc7075eb9e5bb3cc0006d809ca2655095a533a43f8be5",
+      "path": "content-pipeline/labs/humanoid-runtime-refit/source/male/pawn_male_refined.glb",
+      "sha256": "d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
       "promotes_directly": true
     },
     "female": {
-      "path": "content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v3_anim.glb",
-      "sha256": "8c1aefa701b6f6560cd9cb87f979c25a3bb4227fd9da6cde9f29f464f5da1650",
-      "promotes_directly": false
+      "path": "content-pipeline/labs/humanoid-runtime-refit/source/female/pawn_female_refined.glb",
+      "sha256": "bd99fdb32fc40291780d92b1494f07a428c439204b306a2a6d32d2bc403c0c8b",
+      "promotes_directly": true
     }
-  },
-  "female_posterior_reduction": {
-    "generator": "successor content-pipeline/labs/humanoid-runtime-refit/reduce_female_posterior.py",
-    "source": "content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v3_anim.glb",
-    "source_sha256": "8c1aefa701b6f6560cd9cb87f979c25a3bb4227fd9da6cde9f29f464f5da1650",
-    "output": "content-pipeline/labs/humanoid-runtime-refit/build/female_posterior/rbf_v3_reduced.glb",
-    "output_sha256": "a2d270b11ce9e22b3813dd96cbf45739496af50948e7f32afbd8f6761a2eaab7",
-    "bytes": 2622236,
-    "gates": {
-      "peak_m": 0.015,
-      "height_in": [
-        0.845,
-        0.9
-      ],
-      "height_out": [
-        1.0,
-        1.06
-      ],
-      "lateral_hold_m": 0.075,
-      "lateral_out_m": 0.115,
-      "depth_in": [
-        -0.045,
-        -0.07
-      ]
-    },
-    "metrics": {
-      "glute_band_y_m": [
-        0.86,
-        1.02
-      ],
-      "rear_projection_before_mm": -93.767,
-      "rear_projection_after_mm": -78.767,
-      "reduction_mm": 15.0,
-      "audit_bands_mm": [
-        {
-          "y_m": [
-            0.85,
-            0.95
-          ],
-          "before": -89.94,
-          "after": -77.94,
-          "reduction": 12.0
-        },
-        {
-          "y_m": [
-            0.95,
-            1.05
-          ],
-          "before": -93.767,
-          "after": -78.767,
-          "reduction": 15.0
-        }
-      ],
-      "vertices_moved": 31,
-      "vertices_total": 1219,
-      "max_move_mm": 15.0,
-      "mean_move_moved_mm": 4.854,
-      "height_span_moved_m": [
-        0.8549,
-        1.0524
-      ],
-      "abs_x_span_moved_m": [
-        0.0,
-        0.1121
-      ],
-      "stature_delta_mm": 0.0,
-      "hip_width_delta_mm": 0.0,
-      "front_silhouette_delta_mm": 0.0
-    },
-    "rear_profile_before_mm": [
-      [
-        0.73,
-        -57.07
-      ],
-      [
-        0.74,
-        -52.23
-      ],
-      [
-        0.85,
-        -53.75
-      ],
-      [
-        0.86,
-        -69.31
-      ],
-      [
-        0.87,
-        -65.38
-      ],
-      [
-        0.88,
-        -57.85
-      ],
-      [
-        0.9,
-        -89.94
-      ],
-      [
-        0.92,
-        -15.67
-      ],
-      [
-        0.95,
-        -66.27
-      ],
-      [
-        0.96,
-        -92.93
-      ],
-      [
-        0.97,
-        -93.77
-      ],
-      [
-        0.99,
-        -15.01
-      ],
-      [
-        1.0,
-        -78.87
-      ],
-      [
-        1.05,
-        -57.39
-      ],
-      [
-        1.09,
-        -34.32
-      ],
-      [
-        1.1,
-        -27.83
-      ],
-      [
-        1.12,
-        -35.44
-      ],
-      [
-        1.13,
-        -37.45
-      ]
-    ],
-    "rear_profile_after_mm": [
-      [
-        0.73,
-        -57.07
-      ],
-      [
-        0.74,
-        -52.23
-      ],
-      [
-        0.85,
-        -53.63
-      ],
-      [
-        0.86,
-        -66.19
-      ],
-      [
-        0.87,
-        -61.92
-      ],
-      [
-        0.88,
-        -54.85
-      ],
-      [
-        0.9,
-        -77.94
-      ],
-      [
-        0.92,
-        -15.67
-      ],
-      [
-        0.95,
-        -66.27
-      ],
-      [
-        0.96,
-        -77.93
-      ],
-      [
-        0.97,
-        -78.77
-      ],
-      [
-        0.99,
-        -15.01
-      ],
-      [
-        1.0,
-        -63.88
-      ],
-      [
-        1.05,
-        -57.16
-      ],
-      [
-        1.09,
-        -34.32
-      ],
-      [
-        1.1,
-        -27.83
-      ],
-      [
-        1.12,
-        -35.44
-      ],
-      [
-        1.13,
-        -37.45
-      ]
-    ]
   },
   "female": {
     "output": "client-3d/public/assets/pawn-pack/pawn_female.glb",
     "aliases": [],
-    "bytes": 2688208,
-    "sha256": "9dc6e6a189bf581d0d996090cf9fd32a92c69dded3eebc22813e109a7606ebf0",
-    "source": "content-pipeline/labs/humanoid-runtime-refit/build/female_posterior/rbf_v3_reduced.glb",
-    "source_sha256": "a2d270b11ce9e22b3813dd96cbf45739496af50948e7f32afbd8f6761a2eaab7",
+    "bytes": 3298232,
+    "sha256": "13c35d3c9fb9aae1f023becbbcddd7225860fb98c08b2af761d1a4f839b451c4",
+    "source": "content-pipeline/labs/humanoid-runtime-refit/source/female/pawn_female_refined.glb",
+    "source_sha256": "bd99fdb32fc40291780d92b1494f07a428c439204b306a2a6d32d2bc403c0c8b",
     "source_sidecar": {
-      "body": "rbf_v3.glb",
-      "clips_from": "pawn_male.glb",
-      "actions": 47,
-      "action_names": [
-        "block_hold",
-        "cast_aoe",
-        "cast_directed_loop",
-        "cast_directed_windup",
-        "crouch_idle",
-        "crouch_walk",
-        "death_b",
-        "death_f",
-        "deflect_c",
-        "deflect_l",
-        "deflect_r",
-        "gun_grip_trigger_discipline",
-        "idle",
-        "kneel_loop",
-        "meditate_loop",
-        "melee_draw",
-        "melee_draw_alt",
-        "melee_flinch",
-        "melee_grip",
-        "melee_idle",
-        "melee_ready",
-        "melee_run_f",
-        "melee_run_v2",
-        "melee_sheath",
-        "melee_strafe_l",
-        "melee_strafe_r",
-        "melee_turn_180",
-        "melee_turn_90",
-        "melee_walk_f",
-        "melee_walk_v2",
-        "reload",
-        "rifle_aim",
-        "rifle_fire",
-        "rifle_idle",
-        "rifle_run_f",
-        "rifle_walk_f",
-        "run_f",
-        "stim_inject",
-        "strafe_l",
-        "strafe_r",
-        "swing_h1",
-        "swing_h2",
-        "swing_h3",
-        "swing_spin_aoe",
-        "swing_thrust",
-        "walk_b",
-        "walk_f"
-      ],
-      "worst_rest_delta_m": 3.07e-07,
-      "verts": 1218,
-      "tris": 1840,
+      "body": "pawn_female_refined.glb",
+      "source_repository": "ssh://bunker/home/lycaon/git/successor.git",
+      "source_branch": "body-refine-20260802",
+      "source_commit": "d3fdfa2831bf938c0d9c8bf06f8796a00a935af5",
+      "source_sha256": "bd99fdb32fc40291780d92b1494f07a428c439204b306a2a6d32d2bc403c0c8b",
+      "clips_from": "hash-pinned runtime shell during promotion",
+      "actions": 0,
+      "runtime_actions": 47,
+      "verts": 3262,
+      "tris": 5882,
       "height": 1.7525,
-      "vertex_groups": 50
+      "vertex_groups": 50,
+      "head": {
+        "method": "reviewed shared-topology 10-ring, 16-column faceted head and neck graft",
+        "face_panel_faces": 56,
+        "art_gates": {
+          "depth_over_height": true,
+          "rear_fill": true,
+          "occiput_peak": true
+        }
+      },
+      "hands": {
+        "source": "verified SWG runtime hands",
+        "unchanged_by_body_refinement": true,
+        "islands_per_side": 36
+      },
+      "review": "Final Bunker humanoid refinement; immutable, head, transition, animation-proof, and viewer gates completed before commit."
     },
     "joints": 50,
     "animations": 47,
@@ -400,65 +153,65 @@
       {
         "slot": 0,
         "material": "hum_f_body",
-        "vertices": 838
+        "vertices": 790
       },
       {
         "slot": 1,
         "material": "hum_f_head",
-        "vertices": 309
+        "vertices": 12396
       }
     ],
     "face_panel_uv_rect": [
-      0.266953,
-      0.06,
-      0.733047,
+      0.25,
+      0.324,
+      0.5,
       0.94
     ],
     "primitives": [
       {
         "material": "BodyZone_torso",
         "zone": "torso",
-        "vertices": 254,
-        "triangles": 366,
-        "area_cm2": 3194.294,
-        "shading_min": 0.9808058738708496,
-        "shading_mean": 0.9966846108436584
+        "vertices": 321,
+        "triangles": 397,
+        "area_cm2": 3190.456,
+        "shading_min": 0.9798156023025513,
+        "shading_mean": 0.9956191778182983
       },
       {
         "material": "BodyZone_pelvis",
         "zone": "pelvis",
         "vertices": 105,
         "triangles": 146,
-        "area_cm2": 1876.219,
-        "shading_min": 0.940632700920105,
-        "shading_mean": 0.9893778562545776
+        "area_cm2": 1876.243,
+        "shading_min": 0.9345221519470215,
+        "shading_mean": 0.9885234832763672
       },
       {
         "material": "BodyZone_neck",
         "zone": "neck",
-        "vertices": 30,
-        "triangles": 32,
-        "area_cm2": 101.428,
-        "shading_min": 0.9865835905075073,
-        "shading_mean": 0.9920943975448608
+        "vertices": 164,
+        "triangles": 66,
+        "area_cm2": 63.203,
+        "shading_min": 0.9839693307876587,
+        "shading_mean": 0.9905405044555664
       },
       {
         "material": "BodyZone_head",
         "zone": "head",
-        "vertices": 132,
-        "triangles": 150,
-        "area_cm2": 850.279,
-        "shading_min": 0.9886064529418945,
-        "shading_mean": 0.9978934526443481
+        "vertices": 681,
+        "triangles": 227,
+        "area_cm2": 861.892,
+        "shading_min": 0.9876691699028015,
+        "shading_mean": 0.9991410374641418
       },
       {
         "material": "BodyZone_left_upper_arm",
         "zone": "left_upper_arm",
         "vertices": 58,
         "triangles": 84,
-        "area_cm2": 977.487,
-        "shading_min": 0.9972450733184814,
-        "shading_mean": 0.9996703863143921
+        "area_cm2": 981.422,
+        "shading_min": 0.9972501397132874,
+        "shading_mean": 0.9995008707046509
       },
       {
         "material": "BodyZone_right_upper_arm",
@@ -466,62 +219,62 @@
         "vertices": 58,
         "triangles": 84,
         "area_cm2": 981.422,
-        "shading_min": 0.997036337852478,
-        "shading_mean": 0.9996795058250427
+        "shading_min": 0.997032105922699,
+        "shading_mean": 0.9996808767318726
       },
       {
         "material": "BodyZone_left_forearm",
         "zone": "left_forearm",
-        "vertices": 47,
-        "triangles": 55,
-        "area_cm2": 505.984,
-        "shading_min": 0.9984546899795532,
-        "shading_mean": 0.9996821880340576
+        "vertices": 245,
+        "triangles": 133,
+        "area_cm2": 477.372,
+        "shading_min": 0.8959680795669556,
+        "shading_mean": 0.9503381848335266
       },
       {
         "material": "BodyZone_right_forearm",
         "zone": "right_forearm",
-        "vertices": 50,
-        "triangles": 55,
-        "area_cm2": 498.858,
-        "shading_min": 0.994589626789093,
-        "shading_mean": 0.9991415143013
+        "vertices": 245,
+        "triangles": 133,
+        "area_cm2": 477.372,
+        "shading_min": 0.8976382613182068,
+        "shading_mean": 0.9505999684333801
       },
       {
         "material": "BodyZone_left_hand",
         "zone": "left_hand",
-        "vertices": 96,
-        "triangles": 137,
-        "area_cm2": 324.103,
-        "shading_min": 0.9895499348640442,
-        "shading_mean": 0.9966323971748352
+        "vertices": 5525,
+        "triangles": 2032,
+        "area_cm2": 480.673,
+        "shading_min": 0.8700000047683716,
+        "shading_mean": 0.9279468059539795
       },
       {
         "material": "BodyZone_right_hand",
         "zone": "right_hand",
-        "vertices": 95,
-        "triangles": 131,
-        "area_cm2": 218.127,
-        "shading_min": 0.9913299679756165,
-        "shading_mean": 0.9965068697929382
+        "vertices": 5525,
+        "triangles": 2032,
+        "area_cm2": 480.673,
+        "shading_min": 0.8700000047683716,
+        "shading_mean": 0.9279047846794128
       },
       {
         "material": "BodyZone_left_thigh",
         "zone": "left_thigh",
         "vertices": 62,
         "triangles": 77,
-        "area_cm2": 1568.405,
-        "shading_min": 0.9411008358001709,
-        "shading_mean": 0.9871347546577454
+        "area_cm2": 1580.901,
+        "shading_min": 0.9387226700782776,
+        "shading_mean": 0.9866659045219421
       },
       {
         "material": "BodyZone_right_thigh",
         "zone": "right_thigh",
         "vertices": 62,
         "triangles": 77,
-        "area_cm2": 1568.405,
-        "shading_min": 0.9422538876533508,
-        "shading_mean": 0.9874342083930969
+        "area_cm2": 1580.901,
+        "shading_min": 0.9415721893310547,
+        "shading_mean": 0.9872750639915466
       },
       {
         "material": "BodyZone_left_calf",
@@ -529,8 +282,8 @@
         "vertices": 77,
         "triangles": 101,
         "area_cm2": 1050.905,
-        "shading_min": 0.9840549826622009,
-        "shading_mean": 0.9987874031066895
+        "shading_min": 0.984488844871521,
+        "shading_mean": 0.9987558126449585
       },
       {
         "material": "BodyZone_right_calf",
@@ -538,8 +291,8 @@
         "vertices": 77,
         "triangles": 101,
         "area_cm2": 1050.905,
-        "shading_min": 0.9850540161132812,
-        "shading_mean": 0.999001145362854
+        "shading_min": 0.9850500226020813,
+        "shading_mean": 0.9990007281303406
       },
       {
         "material": "BodyZone_left_foot",
@@ -547,8 +300,8 @@
         "vertices": 56,
         "triangles": 68,
         "area_cm2": 603.509,
-        "shading_min": 0.9982072114944458,
-        "shading_mean": 0.9996622800827026
+        "shading_min": 0.9981849789619446,
+        "shading_mean": 0.9995891451835632
       },
       {
         "material": "BodyZone_right_foot",
@@ -560,17 +313,26 @@
         "shading_mean": 0.9997367262840271
       },
       {
-        "material": "RB_Face",
-        "zone": null,
-        "vertices": 72,
-        "triangles": 108,
+        "material": "BodyZone_head",
+        "zone": "head",
+        "role": "face_panel_skin_base",
+        "vertices": 168,
+        "triangles": 56,
         "shading_min": 1.0,
         "shading_mean": 1.0
+      },
+      {
+        "material": "RB_Face",
+        "zone": null,
+        "role": "transparent_face_overlay",
+        "vertices": 168,
+        "triangles": 56,
+        "inflate_m": 0.0015
       }
     ],
     "zone_segmentation": {
-      "welded_points": 884,
-      "boundary_edges": 34,
+      "welded_points": 3062,
+      "boundary_edges": 84,
       "relax_passes": 3,
       "relax_weight": 0.5,
       "speck_area_cm2": 2.0,
@@ -587,14 +349,6 @@
         [
           "left_calf",
           "left_thigh"
-        ],
-        [
-          "left_forearm",
-          "left_hand"
-        ],
-        [
-          "left_forearm",
-          "left_upper_arm"
         ],
         [
           "left_thigh",
@@ -625,61 +379,53 @@
           "right_thigh"
         ],
         [
-          "right_forearm",
-          "right_hand"
-        ],
-        [
-          "right_forearm",
-          "right_upper_arm"
-        ],
-        [
           "right_upper_arm",
           "torso"
         ]
       ],
       "zones": {
         "torso": {
-          "triangles": 366,
+          "triangles": 397,
           "patches": 1,
-          "area_cm2": 3194.294,
+          "area_cm2": 3190.456,
           "centroid_y_range_m": [
             1.0881,
-            1.5302
+            1.5253
           ]
         },
         "pelvis": {
           "triangles": 146,
           "patches": 1,
-          "area_cm2": 1876.219,
+          "area_cm2": 1876.243,
           "centroid_y_range_m": [
             0.8449,
             1.1148
           ]
         },
         "neck": {
-          "triangles": 32,
-          "patches": 2,
-          "area_cm2": 101.428,
+          "triangles": 66,
+          "patches": 1,
+          "area_cm2": 63.203,
           "centroid_y_range_m": [
-            1.5065,
-            1.556
+            1.5038,
+            1.5378
           ]
         },
         "head": {
-          "triangles": 150,
-          "patches": 2,
-          "area_cm2": 850.279,
+          "triangles": 227,
+          "patches": 1,
+          "area_cm2": 861.892,
           "centroid_y_range_m": [
-            1.5367,
-            1.7508
+            1.5378,
+            1.7455
           ]
         },
         "left_upper_arm": {
           "triangles": 84,
           "patches": 1,
-          "area_cm2": 977.487,
+          "area_cm2": 981.422,
           "centroid_y_range_m": [
-            1.3824,
+            1.3809,
             1.4893
           ]
         },
@@ -693,45 +439,45 @@
           ]
         },
         "left_forearm": {
-          "triangles": 55,
-          "patches": 1,
-          "area_cm2": 505.984,
+          "triangles": 133,
+          "patches": 2,
+          "area_cm2": 477.372,
           "centroid_y_range_m": [
-            1.4062,
-            1.4718
+            1.4063,
+            1.4724
           ]
         },
         "right_forearm": {
-          "triangles": 55,
-          "patches": 1,
-          "area_cm2": 498.858,
+          "triangles": 133,
+          "patches": 2,
+          "area_cm2": 477.372,
           "centroid_y_range_m": [
-            1.4062,
-            1.4719
+            1.4063,
+            1.4724
           ]
         },
         "left_hand": {
-          "triangles": 137,
-          "patches": 1,
-          "area_cm2": 324.103,
+          "triangles": 2032,
+          "patches": 36,
+          "area_cm2": 480.673,
           "centroid_y_range_m": [
-            1.4235,
-            1.4665
+            1.3825,
+            1.4483
           ]
         },
         "right_hand": {
-          "triangles": 131,
-          "patches": 1,
-          "area_cm2": 218.127,
+          "triangles": 2032,
+          "patches": 36,
+          "area_cm2": 480.673,
           "centroid_y_range_m": [
-            1.4229,
-            1.4658
+            1.3825,
+            1.4483
           ]
         },
         "left_thigh": {
           "triangles": 77,
           "patches": 1,
-          "area_cm2": 1568.405,
+          "area_cm2": 1580.901,
           "centroid_y_range_m": [
             0.4963,
             0.9195
@@ -740,7 +486,7 @@
         "right_thigh": {
           "triangles": 77,
           "patches": 1,
-          "area_cm2": 1568.405,
+          "area_cm2": 1580.901,
           "centroid_y_range_m": [
             0.4963,
             0.9195
@@ -796,68 +542,38 @@
     "aliases": [
       "client-3d/public/assets/pawn-pack/pawn_male_bare.glb"
     ],
-    "bytes": 2680152,
-    "sha256": "adb7d47da62748fbc857f682994c0faf4aac43975be205218c27d3a93e749485",
-    "source": "content-pipeline/labs/humanoid-runtime-refit/source/male/rb_v4_anim.glb",
-    "source_sha256": "dd6d99baa5de4cbe585fc7075eb9e5bb3cc0006d809ca2655095a533a43f8be5",
+    "bytes": 3292764,
+    "sha256": "3595b3717a4d40f6a0a3e593f8722a70bba367a5787226e2d825d5206e658615",
+    "source": "content-pipeline/labs/humanoid-runtime-refit/source/male/pawn_male_refined.glb",
+    "source_sha256": "d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
     "source_sidecar": {
-      "body": "rb_v4.glb",
-      "clips_from": "pawn_male.glb",
-      "actions": 47,
-      "action_names": [
-        "block_hold",
-        "cast_aoe",
-        "cast_directed_loop",
-        "cast_directed_windup",
-        "crouch_idle",
-        "crouch_walk",
-        "death_b",
-        "death_f",
-        "deflect_c",
-        "deflect_l",
-        "deflect_r",
-        "gun_grip_trigger_discipline",
-        "idle",
-        "kneel_loop",
-        "meditate_loop",
-        "melee_draw",
-        "melee_draw_alt",
-        "melee_flinch",
-        "melee_grip",
-        "melee_idle",
-        "melee_ready",
-        "melee_run_f",
-        "melee_run_v2",
-        "melee_sheath",
-        "melee_strafe_l",
-        "melee_strafe_r",
-        "melee_turn_180",
-        "melee_turn_90",
-        "melee_walk_f",
-        "melee_walk_v2",
-        "reload",
-        "rifle_aim",
-        "rifle_fire",
-        "rifle_idle",
-        "rifle_run_f",
-        "rifle_walk_f",
-        "run_f",
-        "stim_inject",
-        "strafe_l",
-        "strafe_r",
-        "swing_h1",
-        "swing_h2",
-        "swing_h3",
-        "swing_spin_aoe",
-        "swing_thrust",
-        "walk_b",
-        "walk_f"
-      ],
-      "worst_rest_delta_m": 3.07e-07,
-      "verts": 1099,
-      "tris": 1632,
+      "body": "pawn_male_refined.glb",
+      "source_repository": "ssh://bunker/home/lycaon/git/successor.git",
+      "source_branch": "body-refine-20260802",
+      "source_commit": "d3fdfa2831bf938c0d9c8bf06f8796a00a935af5",
+      "source_sha256": "d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
+      "clips_from": "hash-pinned runtime shell during promotion",
+      "actions": 0,
+      "runtime_actions": 47,
+      "verts": 3226,
+      "tris": 5818,
       "height": 1.7525,
-      "vertex_groups": 50
+      "vertex_groups": 50,
+      "head": {
+        "method": "reviewed shared-topology 10-ring, 16-column faceted head and neck graft",
+        "face_panel_faces": 56,
+        "art_gates": {
+          "depth_over_height": true,
+          "rear_fill": true,
+          "occiput_peak": true
+        }
+      },
+      "hands": {
+        "source": "verified SWG runtime hands",
+        "unchanged_by_body_refinement": true,
+        "islands_per_side": 36
+      },
+      "review": "Final Bunker humanoid refinement; immutable, head, transition, animation-proof, and viewer gates completed before commit."
     },
     "joints": 50,
     "animations": 47,
@@ -914,177 +630,186 @@
       {
         "slot": 0,
         "material": "hum_m_body",
-        "vertices": 797
+        "vertices": 766
       },
       {
         "slot": 1,
         "material": "hum_m_head",
-        "vertices": 257
+        "vertices": 12343
       }
     ],
     "face_panel_uv_rect": [
-      0.240671,
-      0.066302,
-      0.759328,
+      0.25,
+      0.324,
+      0.5,
       0.94
     ],
     "primitives": [
       {
         "material": "BodyZone_torso",
         "zone": "torso",
-        "vertices": 192,
-        "triangles": 280,
-        "area_cm2": 3895.699,
-        "shading_min": 0.9838811755180359,
-        "shading_mean": 0.9961355328559875
+        "vertices": 267,
+        "triangles": 311,
+        "area_cm2": 3855.826,
+        "shading_min": 0.9808084964752197,
+        "shading_mean": 0.9943628311157227
       },
       {
         "material": "BodyZone_pelvis",
         "zone": "pelvis",
         "vertices": 88,
         "triangles": 121,
-        "area_cm2": 1652.963,
-        "shading_min": 0.9396821856498718,
-        "shading_mean": 0.9870877861976624
+        "area_cm2": 1609.484,
+        "shading_min": 0.9399081468582153,
+        "shading_mean": 0.9871720671653748
       },
       {
         "material": "BodyZone_neck",
         "zone": "neck",
-        "vertices": 37,
-        "triangles": 34,
-        "area_cm2": 111.748,
-        "shading_min": 0.9842326045036316,
-        "shading_mean": 0.9916506409645081
+        "vertices": 166,
+        "triangles": 77,
+        "area_cm2": 87.306,
+        "shading_min": 0.9806256890296936,
+        "shading_mean": 0.9859585762023926
       },
       {
         "material": "BodyZone_head",
         "zone": "head",
-        "vertices": 113,
-        "triangles": 117,
-        "area_cm2": 945.875,
-        "shading_min": 0.9878135323524475,
-        "shading_mean": 0.9973199963569641
+        "vertices": 690,
+        "triangles": 230,
+        "area_cm2": 958.522,
+        "shading_min": 0.983392059803009,
+        "shading_mean": 0.998429536819458
       },
       {
         "material": "BodyZone_left_upper_arm",
         "zone": "left_upper_arm",
         "vertices": 66,
-        "triangles": 96,
-        "area_cm2": 1209.062,
-        "shading_min": 0.996826708316803,
-        "shading_mean": 0.9995884895324707
+        "triangles": 97,
+        "area_cm2": 1212.401,
+        "shading_min": 0.9967027306556702,
+        "shading_mean": 0.9995764493942261
       },
       {
         "material": "BodyZone_right_upper_arm",
         "zone": "right_upper_arm",
         "vertices": 66,
-        "triangles": 96,
-        "area_cm2": 1209.239,
-        "shading_min": 0.9959513545036316,
-        "shading_mean": 0.9995276927947998
+        "triangles": 97,
+        "area_cm2": 1212.401,
+        "shading_min": 0.996150553226471,
+        "shading_mean": 0.9994533658027649
       },
       {
         "material": "BodyZone_left_forearm",
         "zone": "left_forearm",
-        "vertices": 58,
-        "triangles": 67,
-        "area_cm2": 536.526,
-        "shading_min": 0.9986114501953125,
-        "shading_mean": 0.9997557997703552
+        "vertices": 246,
+        "triangles": 145,
+        "area_cm2": 518.889,
+        "shading_min": 0.8943880200386047,
+        "shading_mean": 0.9484396576881409
       },
       {
         "material": "BodyZone_right_forearm",
         "zone": "right_forearm",
-        "vertices": 54,
-        "triangles": 65,
-        "area_cm2": 533.168,
-        "shading_min": 0.9950010776519775,
-        "shading_mean": 0.9992309808731079
+        "vertices": 246,
+        "triangles": 145,
+        "area_cm2": 518.889,
+        "shading_min": 0.8946832418441772,
+        "shading_mean": 0.9484513998031616
       },
       {
         "material": "BodyZone_left_hand",
         "zone": "left_hand",
-        "vertices": 82,
-        "triangles": 110,
-        "area_cm2": 377.713,
-        "shading_min": 0.9922452569007874,
-        "shading_mean": 0.9978516697883606
+        "vertices": 5504,
+        "triangles": 2032,
+        "area_cm2": 480.673,
+        "shading_min": 0.8700000047683716,
+        "shading_mean": 0.9277414083480835
       },
       {
         "material": "BodyZone_right_hand",
         "zone": "right_hand",
-        "vertices": 82,
-        "triangles": 110,
-        "area_cm2": 241.016,
-        "shading_min": 0.991412878036499,
-        "shading_mean": 0.9963669180870056
+        "vertices": 5504,
+        "triangles": 2032,
+        "area_cm2": 480.673,
+        "shading_min": 0.8700000047683716,
+        "shading_mean": 0.9275314807891846
       },
       {
         "material": "BodyZone_left_thigh",
         "zone": "left_thigh",
         "vertices": 69,
         "triangles": 94,
-        "area_cm2": 1714.199,
-        "shading_min": 0.9299997091293335,
-        "shading_mean": 0.9842446446418762
+        "area_cm2": 1648.396,
+        "shading_min": 0.9353067874908447,
+        "shading_mean": 0.9859322905540466
       },
       {
         "material": "BodyZone_right_thigh",
         "zone": "right_thigh",
         "vertices": 69,
         "triangles": 95,
-        "area_cm2": 1740.552,
-        "shading_min": 0.9303013682365417,
-        "shading_mean": 0.9842625260353088
+        "area_cm2": 1676.093,
+        "shading_min": 0.934494137763977,
+        "shading_mean": 0.9855992197990417
       },
       {
         "material": "BodyZone_left_calf",
         "zone": "left_calf",
         "vertices": 67,
         "triangles": 87,
-        "area_cm2": 1339.1,
-        "shading_min": 0.9850836992263794,
-        "shading_mean": 0.9957735538482666
+        "area_cm2": 1293.324,
+        "shading_min": 0.9886006116867065,
+        "shading_mean": 0.9968411922454834
       },
       {
         "material": "BodyZone_right_calf",
         "zone": "right_calf",
         "vertices": 67,
-        "triangles": 88,
-        "area_cm2": 1351.11,
-        "shading_min": 0.9849769473075867,
-        "shading_mean": 0.9960101842880249
+        "triangles": 87,
+        "area_cm2": 1293.324,
+        "shading_min": 0.9886415600776672,
+        "shading_mean": 0.9966046810150146
       },
       {
         "material": "BodyZone_left_foot",
         "zone": "left_foot",
         "vertices": 48,
         "triangles": 56,
-        "area_cm2": 743.194,
-        "shading_min": 0.9955335855484009,
-        "shading_mean": 0.998979389667511
+        "area_cm2": 742.925,
+        "shading_min": 0.9961320161819458,
+        "shading_mean": 0.9990367889404297
       },
       {
         "material": "BodyZone_right_foot",
         "zone": "right_foot",
-        "vertices": 47,
-        "triangles": 55,
-        "area_cm2": 731.184,
-        "shading_min": 0.9964267611503601,
-        "shading_mean": 0.9991208910942078
+        "vertices": 48,
+        "triangles": 56,
+        "area_cm2": 742.925,
+        "shading_min": 0.9961107969284058,
+        "shading_mean": 0.9990103840827942
+      },
+      {
+        "material": "BodyZone_head",
+        "zone": "head",
+        "role": "face_panel_skin_base",
+        "vertices": 168,
+        "triangles": 56,
+        "shading_min": 1.0,
+        "shading_mean": 1.0
       },
       {
         "material": "RB_Face",
         "zone": null,
-        "vertices": 45,
-        "triangles": 61,
-        "shading_min": 1.0,
-        "shading_mean": 1.0
+        "role": "transparent_face_overlay",
+        "vertices": 168,
+        "triangles": 56,
+        "inflate_m": 0.0015
       }
     ],
     "zone_segmentation": {
-      "welded_points": 800,
-      "boundary_edges": 27,
+      "welded_points": 3046,
+      "boundary_edges": 76,
       "relax_passes": 3,
       "relax_weight": 0.5,
       "speck_area_cm2": 2.0,
@@ -1101,14 +826,6 @@
         [
           "left_calf",
           "left_thigh"
-        ],
-        [
-          "left_forearm",
-          "left_hand"
-        ],
-        [
-          "left_forearm",
-          "left_upper_arm"
         ],
         [
           "left_thigh",
@@ -1139,113 +856,105 @@
           "right_thigh"
         ],
         [
-          "right_forearm",
-          "right_hand"
-        ],
-        [
-          "right_forearm",
-          "right_upper_arm"
-        ],
-        [
           "right_upper_arm",
           "torso"
         ]
       ],
       "zones": {
         "torso": {
-          "triangles": 280,
+          "triangles": 311,
           "patches": 1,
-          "area_cm2": 3895.699,
+          "area_cm2": 3855.826,
           "centroid_y_range_m": [
             1.0634,
-            1.5436
+            1.5253
           ]
         },
         "pelvis": {
           "triangles": 121,
           "patches": 1,
-          "area_cm2": 1652.963,
+          "area_cm2": 1609.484,
           "centroid_y_range_m": [
             0.8399,
             1.109
           ]
         },
         "neck": {
-          "triangles": 34,
-          "patches": 3,
-          "area_cm2": 111.748,
+          "triangles": 77,
+          "patches": 1,
+          "area_cm2": 87.306,
           "centroid_y_range_m": [
             1.4937,
-            1.5738
+            1.5338
           ]
         },
         "head": {
-          "triangles": 117,
+          "triangles": 230,
           "patches": 1,
-          "area_cm2": 945.875,
+          "area_cm2": 958.522,
           "centroid_y_range_m": [
-            1.5258,
-            1.7498
+            1.5309,
+            1.7453
           ]
         },
         "left_upper_arm": {
-          "triangles": 96,
+          "triangles": 97,
           "patches": 1,
-          "area_cm2": 1209.062,
+          "area_cm2": 1212.401,
           "centroid_y_range_m": [
             1.3889,
             1.5114
           ]
         },
         "right_upper_arm": {
-          "triangles": 96,
+          "triangles": 97,
           "patches": 1,
-          "area_cm2": 1209.239,
+          "area_cm2": 1212.401,
           "centroid_y_range_m": [
-            1.3892,
-            1.5117
+            1.3889,
+            1.5114
           ]
         },
         "left_forearm": {
-          "triangles": 67,
-          "patches": 1,
-          "area_cm2": 536.526,
+          "triangles": 145,
+          "patches": 2,
+          "area_cm2": 518.889,
           "centroid_y_range_m": [
-            1.4188,
-            1.495
+            1.4176,
+            1.4926
           ]
         },
         "right_forearm": {
-          "triangles": 65,
-          "patches": 1,
-          "area_cm2": 533.168,
+          "triangles": 145,
+          "patches": 2,
+          "area_cm2": 518.889,
           "centroid_y_range_m": [
-            1.4191,
-            1.4954
+            1.4176,
+            1.4926
           ]
         },
         "left_hand": {
-          "triangles": 110,
-          "patches": 1,
-          "area_cm2": 377.713,
+          "triangles": 2032,
+          "patches": 36,
+          "area_cm2": 480.673,
           "centroid_y_range_m": [
-            1.4336,
-            1.4712
+            1.3825,
+            1.4483
           ]
         },
         "right_hand": {
-          "triangles": 110,
-          "patches": 1,
-          "area_cm2": 241.016,
+          "triangles": 2032,
+          "patches": 36,
+          "area_cm2": 480.673,
           "centroid_y_range_m": [
-            1.4339,
-            1.4715
+            1.3825,
+            1.4483
           ]
         },
         "left_thigh": {
           "triangles": 94,
           "patches": 1,
-          "area_cm2": 1714.199,
+          "area_cm2": 1648.396,
           "centroid_y_range_m": [
             0.5055,
             0.9329
@@ -1254,7 +963,7 @@
         "right_thigh": {
           "triangles": 95,
           "patches": 1,
-          "area_cm2": 1740.552,
+          "area_cm2": 1676.093,
           "centroid_y_range_m": [
             0.5055,
             0.9329
@@ -1263,34 +972,34 @@
         "left_calf": {
           "triangles": 87,
           "patches": 1,
-          "area_cm2": 1339.1,
+          "area_cm2": 1293.324,
           "centroid_y_range_m": [
             0.1049,
             0.5279
           ]
         },
         "right_calf": {
-          "triangles": 88,
+          "triangles": 87,
           "patches": 1,
-          "area_cm2": 1351.11,
+          "area_cm2": 1293.324,
           "centroid_y_range_m": [
-            0.1038,
+            0.1049,
             0.5279
           ]
         },
         "left_foot": {
           "triangles": 56,
           "patches": 1,
-          "area_cm2": 743.194,
+          "area_cm2": 742.925,
           "centroid_y_range_m": [
             0.0,
             0.1082
           ]
         },
         "right_foot": {
-          "triangles": 55,
+          "triangles": 56,
           "patches": 1,
-          "area_cm2": 731.184,
+          "area_cm2": 742.925,
           "centroid_y_range_m": [
             0.0,
             0.1082

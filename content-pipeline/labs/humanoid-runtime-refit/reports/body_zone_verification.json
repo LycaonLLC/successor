@@ -58,7 +58,7 @@
   "bodies": {
     "male": {
       "path": "client-3d/public/assets/pawn-pack/pawn_male.glb",
-      "sha256": "adb7d47da62748fbc857f682994c0faf4aac43975be205218c27d3a93e749485",
+      "sha256": "3595b3717a4d40f6a0a3e593f8722a70bba367a5787226e2d825d5206e658615",
       "materials_exact": true,
       "joints_match_shell": true,
       "clips_match_shell": true,
@@ -68,14 +68,19 @@
       ],
       "skin_material_variants": 1,
       "welded_points_identical_to_source": true,
-      "triangles": 1632,
-      "source_triangles": 1632,
+      "source_geometry_triangles": 5818,
+      "triangles": 5874,
+      "source_triangles": 5818,
+      "face_overlay_count": 1,
+      "face_overlay_alpha_blend": true,
+      "face_overlay_omits_vertex_color": true,
+      "face_overlay_inflate_max_delta_m": 5.922466517205294e-08,
       "stature_m": 1.7525,
       "source_stature_m": 1.7525
     },
     "female": {
       "path": "client-3d/public/assets/pawn-pack/pawn_female.glb",
-      "sha256": "9dc6e6a189bf581d0d996090cf9fd32a92c69dded3eebc22813e109a7606ebf0",
+      "sha256": "13c35d3c9fb9aae1f023becbbcddd7225860fb98c08b2af761d1a4f839b451c4",
       "materials_exact": true,
       "joints_match_shell": true,
       "clips_match_shell": true,
@@ -85,8 +90,13 @@
       ],
       "skin_material_variants": 1,
       "welded_points_identical_to_source": true,
-      "triangles": 1840,
-      "source_triangles": 1840,
+      "source_geometry_triangles": 5882,
+      "triangles": 5938,
+      "source_triangles": 5882,
+      "face_overlay_count": 1,
+      "face_overlay_alpha_blend": true,
+      "face_overlay_omits_vertex_color": true,
+      "face_overlay_inflate_max_delta_m": 5.948543546629992e-08,
       "stature_m": 1.7525,
       "source_stature_m": 1.7525
     }

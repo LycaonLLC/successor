@@ -42,36 +42,36 @@
         "right_foot"
       ],
       "depth_mm": {
-        "suit_excess_depth_mm": -0.918,
-        "suit_depth_mm": -25.977,
-        "bare_body_depth_mm": -25.415,
-        "bare_leg_contact_mm": -22.91,
-        "boots_into_suit_away_from_collar_mm": -29.739,
-        "boots_into_suit_at_collar_mm": -2.302,
-        "hidden_skin_penetration_mm": -0.968
+        "suit_excess_depth_mm": -0.563,
+        "suit_depth_mm": -28.089,
+        "bare_body_depth_mm": -28.043,
+        "bare_leg_contact_mm": -21.901,
+        "boots_into_suit_away_from_collar_mm": -28.852,
+        "boots_into_suit_at_collar_mm": -6.416,
+        "hidden_skin_penetration_mm": -0.954
       },
       "counts": {
-        "suit_vs_visible_pairs": 123,
-        "bare_vs_visible_pairs": 120,
-        "boots_vs_suit_pairs": 93,
+        "suit_vs_visible_pairs": 442,
+        "bare_vs_visible_pairs": 505,
+        "boots_vs_suit_pairs": 94,
         "suit_rim_gap_mm": 0.0,
-        "boot_rim_gap_mm": 0.583
+        "boot_rim_gap_mm": 0.544
       },
       "worst_pose": {
-        "suit_excess_depth_mm": "kneel_loop@0.5",
+        "suit_excess_depth_mm": "crouch_walk@0.3",
         "suit_depth_mm": "crouch_idle@0.5",
-        "bare_body_depth_mm": "run_f@0.2",
+        "bare_body_depth_mm": "crouch_idle@0.5",
         "bare_leg_contact_mm": "meditate_loop@0.5",
         "boots_into_suit_away_from_collar_mm": "meditate_loop@0.5",
         "boots_into_suit_at_collar_mm": "meditate_loop@0.5",
-        "hidden_skin_penetration_mm": "crouch_idle@0.5",
+        "hidden_skin_penetration_mm": "swing_h1@0.4",
         "suit_vs_visible_pairs": "meditate_loop@0.5",
         "bare_vs_visible_pairs": "meditate_loop@0.5",
         "boots_vs_suit_pairs": "meditate_loop@0.5",
         "suit_rim_gap_mm": null,
         "boot_rim_gap_mm": "meditate_loop@0.5"
       },
-      "boot_suit_allowance_mm": 34.91
+      "boot_suit_allowance_mm": 33.901
     },
     "female": {
       "suit": "client-3d/public/assets/pawn-pack/equipment/Female/Under/under_bodysuit.glb",
@@ -107,36 +107,36 @@
         "right_foot"
       ],
       "depth_mm": {
-        "suit_excess_depth_mm": -0.892,
-        "suit_depth_mm": -11.863,
-        "bare_body_depth_mm": -12.286,
-        "bare_leg_contact_mm": -20.291,
-        "boots_into_suit_away_from_collar_mm": -9.876,
-        "boots_into_suit_at_collar_mm": -2.865,
-        "hidden_skin_penetration_mm": -0.963
+        "suit_excess_depth_mm": -0.332,
+        "suit_depth_mm": -9.614,
+        "bare_body_depth_mm": -9.695,
+        "bare_leg_contact_mm": -20.296,
+        "boots_into_suit_away_from_collar_mm": -15.601,
+        "boots_into_suit_at_collar_mm": -2.531,
+        "hidden_skin_penetration_mm": -0.959
       },
       "counts": {
-        "suit_vs_visible_pairs": 132,
-        "bare_vs_visible_pairs": 130,
+        "suit_vs_visible_pairs": 351,
+        "bare_vs_visible_pairs": 380,
         "boots_vs_suit_pairs": 76,
         "suit_rim_gap_mm": 0.0,
         "boot_rim_gap_mm": 0.0
       },
       "worst_pose": {
-        "suit_excess_depth_mm": "walk_f@0.75",
-        "suit_depth_mm": "death_f@0.6",
-        "bare_body_depth_mm": "death_f@0.6",
+        "suit_excess_depth_mm": "crouch_walk@0.3",
+        "suit_depth_mm": "run_f@0.7",
+        "bare_body_depth_mm": "run_f@0.2",
         "bare_leg_contact_mm": "meditate_loop@0.5",
         "boots_into_suit_away_from_collar_mm": "meditate_loop@0.5",
         "boots_into_suit_at_collar_mm": "meditate_loop@0.5",
-        "hidden_skin_penetration_mm": "crouch_idle@0.5",
-        "suit_vs_visible_pairs": "meditate_loop@0.5",
+        "hidden_skin_penetration_mm": "meditate_loop@0.5",
+        "suit_vs_visible_pairs": "kneel_loop@0.5",
         "bare_vs_visible_pairs": "meditate_loop@0.5",
         "boots_vs_suit_pairs": "meditate_loop@0.5",
         "suit_rim_gap_mm": null,
         "boot_rim_gap_mm": null
       },
-      "boot_suit_allowance_mm": 32.291
+      "boot_suit_allowance_mm": 32.296
     }
   },
   "failures": []
