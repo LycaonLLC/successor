@@ -108,6 +108,16 @@ for (const document of sourceDocs.filter(path => extname(path) === ".json")) {
     if (RUNTIME_EXTENSIONS.has(extname(clean).toLowerCase()) && !clean.startsWith("successor-slice/")) references.add(clean);
   }
 }
+const rustSources = [resolve(root, "source/app/src/pawn/creatures.rs")];
+for (const source of rustSources) {
+  const text = await readFile(source, "utf8");
+  for (const match of text.matchAll(/["']\/?((?:assets|successor-audio)\/[^"'?#]+\.(?:glb|gltf|png|jpe?g|webp|mp3|ogg|wav))["']/giu)) {
+    references.add(match[1]);
+  }
+}
+for (const category of ["mineral", "chemical", "gas", "water"]) references.add(`assets/world-items/extractor_${category}.glb`);
+references.add("assets/world-items/podtent_scout.glb");
+references.add("assets/world-items/campfire_scout.glb");
 const publicRoots = [resolve(repo, "client-3d/public"), resolve(repo, "client/public")];
 const candidates = (await Promise.all(publicRoots.map(path => filesUnder(path)))).flat();
 for (const reference of [...references].sort()) {
