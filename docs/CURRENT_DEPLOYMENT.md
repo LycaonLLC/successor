@@ -15,10 +15,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-254cc62-20260802` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@6e12d4de99727a3d` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@83b2a024f4a03bcc` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `6e12d4de99727a3d269579acf39ac6f869a38f95` |
+| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `83b2a024f4a03bcc131a1dfae5689b6610ea2753` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -32,9 +32,9 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`6e12d4de99727a3d269579acf39ac6f869a38f95`, client
-`successor-rust-beta@6e12d4de99727a3d`, and immutable publication inventory
-SHA-256 `9dbb76ac8cb924c52e7d107e0b106f99b369d0dce8de9c203cbbf130addd4450`.
+`83b2a024f4a03bcc131a1dfae5689b6610ea2753`, client
+`successor-rust-beta@83b2a024f4a03bcc`, and immutable publication inventory
+SHA-256 `a3a11630a1334d4fb1ddf44a29601f40d47ab2b00af67747c6894d47608010d8`.
 The previous dry runs and superseded beta candidates are not release
 identities.
 
@@ -92,14 +92,14 @@ selection/creation hands directly into the 3D client.
 
 The independent beta pointer is:
 
-- source commit: `6e12d4de99727a3d269579acf39ac6f869a38f95`
-- client release: `successor-rust-beta@6e12d4de99727a3d`
+- source commit: `83b2a024f4a03bcc131a1dfae5689b6610ea2753`
+- client release: `successor-rust-beta@83b2a024f4a03bcc`
 - manifest SHA-256:
-  `9dbb76ac8cb924c52e7d107e0b106f99b369d0dce8de9c203cbbf130addd4450`
+  `a3a11630a1334d4fb1ddf44a29601f40d47ab2b00af67747c6894d47608010d8`
 - release-builder manifest SHA-256:
-  `2a8089a8704c643673fc5853ed7869e534339f5d656155293004f40bcc434864`
+  `23cc8a54a93f2153b17dbf6ea4de42bc735dbfe9117cc0cba4dea8d01ccb80c0`
 - immutable entry:
-  `https://d2kf3ri6r74a0m.cloudfront.net/releases/9dbb76ac8cb924c52e7d107e0b106f99b369d0dce8de9c203cbbf130addd4450/index.html`
+  `https://d2kf3ri6r74a0m.cloudfront.net/releases/a3a11630a1334d4fb1ddf44a29601f40d47ab2b00af67747c6894d47608010d8/index.html`
 
 The first-load HTTP 525 failure was an expired launch ticket: the site minted
 the ticket before constructing the iframe, while the Rust client downloaded
@@ -124,6 +124,15 @@ and restoration emitted both expected events and left the context live. A
 page reload minted fresh tickets and completed a second 200/204/200 entry.
 The redacted proof record has SHA-256
 `eada44e716f928d7c427fca5254fad4021eaf657583960c5cccccd8bd646dbbb`.
+
+The current release repairs the WebGL matrix-array bridge: skinned draws now
+upload all `count * 16` floats instead of only the first joint matrix. The
+authority accepted the exact release after its allowlist update and clean
+restart. A public authenticated Chromium journey loaded the promoted immutable
+entry with no failed requests or render error, visibly rendered the selected
+player pawn and its equipment in the live world, and visibly moved that pawn
+under keyboard input. The redacted proof record has SHA-256
+`5b5cf77c2b5b58702031ab8d50361d51b5263b45c74a79e1781d568071dc780f`.
 
 The stable pointer remained `successor-alpha@cdab7dccacc1d75c`. Its repeated
 public `/play/` journey still reached HTTP 204 then failed HTTP 400
