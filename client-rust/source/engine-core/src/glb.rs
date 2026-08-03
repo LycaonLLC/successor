@@ -385,12 +385,38 @@ fn read_floats(bin: &[u8], av: &AccessorView) -> Result<Vec<f32>, GlbError> {
     Ok(out)
 }
 
+fn read_weights(bin: &[u8], av: &AccessorView) -> Result<Vec<f32>, GlbError> {
+    if av.num_comps != 4 {
+        return Err(GlbError::BadAccessor);
+    }
+    let mut out = Vec::with_capacity(av.count * av.num_comps);
+    for i in 0..av.count {
+        let base = av.offset + i * av.stride;
+        for c in 0..av.num_comps {
+            let value = match av.comp_type {
+                CT_F32 if !av.normalized => rd_f32(bin, base + c * 4)?,
+                CT_U8 if av.normalized => {
+                    f32::from(*bin.get(base + c).ok_or(GlbError::OutOfRange)?) / 255.0
+                }
+                CT_U16 if av.normalized => {
+                    f32::from(rd_u16(bin, base + c * 2)?) / 65_535.0
+                }
+                _ => return Err(GlbError::BadAccessor),
+            };
+            out.push(value);
+        }
+    }
+    Ok(out)
+}
+
 fn chunk3(flat: &[f32]) -> Vec<[f32; 3]> {
     flat.chunks_exact(3).map(|c| [c[0], c[1], c[2]]).collect()
 }
+
 fn chunk2(flat: &[f32]) -> Vec<[f32; 2]> {
     flat.chunks_exact(2).map(|c| [c[0], c[1]]).collect()
 }
+
 fn chunk4(flat: &[f32]) -> Vec<[f32; 4]> {
     flat.chunks_exact(4)
         .map(|c| [c[0], c[1], c[2], c[3]])
@@ -398,19 +424,31 @@ fn chunk4(flat: &[f32]) -> Vec<[f32; 4]> {
 }
 
 fn read_colors(bin: &[u8], av: &AccessorView) -> Result<Vec<[u8; 4]>, GlbError> {
-    if !av.normalized || !matches!(av.num_comps, 3 | 4) {
+    if !matches!(av.num_comps, 3 | 4) {
         return Err(GlbError::BadAccessor);
     }
+    let integer_color = av.normalized && matches!(av.comp_type, CT_U8 | CT_U16);
+    let float_color = !av.normalized && av.comp_type == CT_F32;
+    if !integer_color && !float_color {
+        return Err(GlbError::BadAccessor);
+    }
+    let component_size = comp_size(av.comp_type)?;
     let mut out = Vec::with_capacity(av.count);
     for i in 0..av.count {
         let base = av.offset + i * av.stride;
         let mut color = [255u8; 4];
         for (component, slot) in color.iter_mut().enumerate().take(av.num_comps) {
             *slot = match av.comp_type {
-                CT_U8 => *bin.get(base + component).ok_or(GlbError::OutOfRange)?,
+                CT_U8 => *bin
+                    .get(base + component)
+                    .ok_or(GlbError::OutOfRange)?,
                 CT_U16 => {
-                    let value = rd_u16(bin, base + component * 2)?;
+                    let value = rd_u16(bin, base + component * component_size)?;
                     ((u32::from(value) * 255 + 32_767) / 65_535) as u8
+                }
+                CT_F32 => {
+                    let value = rd_f32(bin, base + component * component_size)?;
+                    libm::roundf(value.clamp(0.0, 1.0) * 255.0) as u8
                 }
                 _ => return Err(GlbError::BadAccessor),
             };
@@ -707,7 +745,10 @@ fn parse_meshes(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbMesh>, GlbError> {
                 prim.joints = read_joints(bin, &resolve_accessor(gltf, i, bin.len())?)?;
             }
             if let Some(i) = u(attrs, "WEIGHTS_0") {
-                prim.weights = chunk4(&read_floats(bin, &resolve_accessor(gltf, i, bin.len())?)?);
+                prim.weights = chunk4(&read_weights(
+                    bin,
+                    &resolve_accessor(gltf, i, bin.len())?,
+                )?);
             }
             if let Some(i) = u(p, "indices") {
                 prim.indices = read_indices(bin, &resolve_accessor(gltf, i, bin.len())?)?;

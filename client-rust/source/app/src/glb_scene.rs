@@ -184,11 +184,13 @@ impl GlbScene {
         }
 
         // Skinned animation.
-        if let (Some(sk), Some(anim)) = (self.skeleton.as_mut(), self.anim.as_ref()) {
-            let duration = anim.duration.max(0.001);
-            let t = (frame as f32 / 60.0) % duration;
+        if let Some(sk) = self.skeleton.as_mut() {
             self.pose.copy_from_slice(&sk.rest);
-            apply_animation(anim, t, &mut self.pose);
+            if let Some(anim) = self.anim.as_ref() {
+                let duration = anim.duration.max(0.001);
+                let t = (frame as f32 / 60.0) % duration;
+                apply_animation(anim, t, &mut self.pose);
+            }
             sk.compute_palette(&self.pose, &mut self.palette);
             self.renderer.begin_skin_frame();
             let offset = self.renderer.push_skin_palette(&self.palette);
