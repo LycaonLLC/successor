@@ -15,10 +15,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-c5e239c-20260802` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@a9654cb69b264eca` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@66b355075afb9351` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | deployment source `a9654cb69b264eca47326e3e0af613acfe67b226` |
+| Public source | `https://github.com/LycaonLLC/successor` | deployment source `66b355075afb9351c0925ca32349ece96268deb2` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -32,10 +32,10 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`a9654cb69b264eca47326e3e0af613acfe67b226`, client
-`successor-rust-beta@a9654cb69b264eca`, and immutable publication inventory
-SHA-256 `e792517634842ad2e6b3a4f3700ebf27b32990be57d9ee59cb227a8d91c2b322`.
-The previous dry runs and the unpromoted `1a4d38f…` candidate are not release
+`66b355075afb9351c0925ca32349ece96268deb2`, client
+`successor-rust-beta@66b355075afb9351`, and immutable publication inventory
+SHA-256 `c84af1195a31ac7b61854cb29628e4a53506413ed0f6af547045ff19b422661a`.
+The previous dry runs and superseded beta candidates are not release
 identities.
 
 ## Site
@@ -92,21 +92,22 @@ selection/creation hands directly into the 3D client.
 
 The independent beta pointer is:
 
-- source commit: `a9654cb69b264eca47326e3e0af613acfe67b226`
-- client release: `successor-rust-beta@a9654cb69b264eca`
+- source commit: `66b355075afb9351c0925ca32349ece96268deb2`
+- client release: `successor-rust-beta@66b355075afb9351`
 - manifest SHA-256:
-  `e792517634842ad2e6b3a4f3700ebf27b32990be57d9ee59cb227a8d91c2b322`
+  `c84af1195a31ac7b61854cb29628e4a53506413ed0f6af547045ff19b422661a`
 - release-builder manifest SHA-256:
-  `d1fd3e6c300fde5f075bd237f4a6db555fff64f73bd2444aad2767fb48c807e5`
+  `81fb220d6f842adc50652677cffd94cad242c0e1aab255ea36a48c16acc5b6d2`
 - immutable entry:
-  `https://d2kf3ri6r74a0m.cloudfront.net/releases/e792517634842ad2e6b3a4f3700ebf27b32990be57d9ee59cb227a8d91c2b322/index.html`
+  `https://d2kf3ri6r74a0m.cloudfront.net/releases/c84af1195a31ac7b61854cb29628e4a53506413ed0f6af547045ff19b422661a/index.html`
 
-The public `/beta/` route loaded this exact iframe, minted a ticket for a
-freshly created Scout, and received HTTP 200 from
-`/matchmake/joinOrCreate/game` with the beta release presented. The same
-journey first exposed and then verified fixes for the site's canonical server
-identity bound and the Rust client's strict matchmaking body. The stable
-pointer remained `successor-alpha@cdab7dccacc1d75c`.
+The public `/beta/` route loaded this exact iframe, minted a ticket for the
+verification Scout, loaded both required authored pawn bodies with HTTP 200,
+and received HTTP 200 from `/matchmake/joinOrCreate/game` with the beta release
+presented. Browser proof observed no missing-body request, HTTP 403, fatal
+runtime state, or render-loop error. The release builder now includes the
+complete pawn pack, and publication fails closed when either required body is
+absent. The stable pointer remained `successor-alpha@cdab7dccacc1d75c`.
 
 ## Authority and durable state
 
