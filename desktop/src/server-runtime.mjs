@@ -24,7 +24,7 @@ const ownerRefPattern = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/u;
 const stateLockHandshakeSchema = "successor.state-lock.v1";
 const stateLockHandshakeTimeoutMs = 5_000;
 const stateLockReleaseTimeoutMs = 2_000;
-const flockBin = "/usr/bin/flock";
+const flockBins = ["/usr/bin/flock", "/opt/homebrew/bin/flock", "/usr/local/bin/flock"];
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const stateLockSupervisorPath = path.join(moduleDir, "state-lock-supervisor.mjs");
@@ -188,15 +188,17 @@ export async function acquireDesktopStateLock({
   const resolvedStateDir = path.resolve(stateDir ?? path.dirname(lockPath));
   const resolvedLockPath = path.resolve(lockPath ?? path.join(resolvedStateDir, ".desktop-state.lock"));
   fs.mkdirSync(resolvedStateDir, { recursive: true });
-  assertFile(flockBin, "desktop state locking requires /usr/bin/flock");
+  const flockBin = [serverEnv.SUCCESSOR_FLOCK_BIN, ...flockBins]
+    .find((candidate) => candidate && fs.existsSync(candidate));
+  if (!flockBin) throw new Error(`desktop state locking requires one of ${flockBins.join(", ")}`);
   assertFile(stateLockSupervisorPath, "desktop state-lock supervisor is missing");
   if (serverEntry) assertFile(serverEntry, "server dist entry missing; run pnpm --dir server build");
   if (serverCwd) assertDirectory(serverCwd, "server working directory missing");
 
   const args = [
-    "--exclusive",
-    "--nonblock",
-    "--no-fork",
+    "-x",
+    "-n",
+    ...(process.platform === "linux" ? ["--no-fork"] : []),
     resolvedLockPath,
     process.execPath,
     stateLockSupervisorPath,
@@ -225,6 +227,10 @@ export async function acquireDesktopStateLock({
     const cause = error instanceof Error ? `: ${error.message}` : "";
     throw new Error(`Successor desktop game state is already in use or its lock could not be acquired at ${resolvedLockPath}${cause}`);
   }
+  // GNU flock can exec the supervisor in-place; BSD flock retains a parent
+  // process. Preserve the proven supervisor PID so graceful signals reach the
+  // process that owns server shutdown on both implementations.
+  child.successorSupervisorPid = handshake.pid;
 
   const lease = {
     child,
@@ -696,10 +702,13 @@ export async function stopDesktopServerSupervisor(child, {
   killWaitMs = stopKillWaitMs,
 } = {}) {
   const pid = child?.pid;
+  const supervisorPid = Number.isInteger(child?.successorSupervisorPid)
+    ? child.successorSupervisorPid
+    : pid;
   if (!pid) return { stopped: false, reason: "missing_pid" };
 
-  log("game-server-stop-start", { pid, port, signal: "SIGTERM" });
-  signalProcess(pid, "SIGTERM", log);
+  log("game-server-stop-start", { pid, supervisorPid, port, signal: "SIGTERM" });
+  signalProcess(supervisorPid, "SIGTERM", log);
   const exitedWithinGrace = await waitForChildExit(child, graceMs);
   let escalated = false;
 

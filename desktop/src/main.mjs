@@ -297,7 +297,7 @@ function registerAppProtocol(sessionProtocol, clientDist, sharedPublicRoots, she
     }
 
     const resolved = resolveAppFile(clientDist, url.pathname);
-    if (!resolved) return new Response("Forbidden path.", { status: 403 });
+    if (!resolved) return new Response("Successor app asset not found.", { status: 404 });
 
     return net.fetch(pathToFileURL(resolved).toString());
   });
@@ -348,6 +348,7 @@ function resolveAppFile(clientDist, requestPath) {
   if (resolved.status) return null;
 
   if (fileExists(resolved.path)) return resolved.path;
+  if (path.extname(resolved.path)) return null;
   const indexPath = path.join(path.resolve(clientDist), "index.html");
   return fileExists(indexPath) ? indexPath : null;
 }
@@ -709,7 +710,10 @@ async function openRuntimeWindow() {
 }
 
 function desktopGameStateDir() {
-  return path.join(app.getPath("appData"), "successor", "game-state");
+  const override = successorDesktopEnv("STATE_DIR");
+  return override
+    ? path.resolve(override)
+    : path.join(app.getPath("appData"), "successor", "game-state");
 }
 
 /**

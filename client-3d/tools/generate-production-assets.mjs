@@ -9,8 +9,8 @@ const packageDir = path.resolve(here, "..");
 const defaultRepoRoot = path.resolve(packageDir, "..");
 export const DEFAULT_STAGING_DIR = path.join(packageDir, ".generated", "production-assets");
 export const PRODUCTION_MANIFEST_NAME = "production-asset-manifest.json";
-// Four furnished starting-town buildings replace two light prototypes.
-export const PUBLIC_RELEASE_BUDGET = Object.freeze({ maxFiles: 425, maxBytes: 270_000_000 });
+// Canonical male/female bodies and their fitted runtime wardrobes ship together.
+export const PUBLIC_RELEASE_BUDGET = Object.freeze({ maxFiles: 510, maxBytes: 292_000_000 });
 
 const PAWN_CORE_FILES = [
   "game_pack.json",
@@ -302,10 +302,16 @@ function addPawnAssets(entries, repoRoot, fixture) {
   const equipmentManifest = readJson(path.join(base, "equipment", "manifest.json"));
   for (const item of equipmentManifest.items ?? []) {
     if (item?.viewerOnly === true) continue;
-    if (typeof item?.glb !== "string") fail("equipment manifest item has no GLB path");
-    const relative = path.posix.normalize(path.posix.join("assets", "pawn-pack", "equipment", item.glb));
-    if (relative === "assets" || relative.startsWith("../") || !relative.startsWith("assets/")) fail(`equipment path escapes assets root: ${item.glb}`);
-    addClientAsset(entries, relative.slice("assets/".length), `registry.pawnEquipment:${item.id}`);
+    if (typeof item?.glb !== "string" || item.glb.length === 0) fail("equipment manifest item has no GLB path");
+    if (item.glbFemale !== undefined && (typeof item.glbFemale !== "string" || item.glbFemale.length === 0)) {
+      fail("equipment manifest item has an invalid female GLB path");
+    }
+    const variants = new Set([item.glb, item.glbFemale].filter((value) => typeof value === "string"));
+    for (const glb of variants) {
+      const relative = path.posix.normalize(path.posix.join("assets", "pawn-pack", "equipment", glb));
+      if (relative === "assets" || relative.startsWith("../") || !relative.startsWith("assets/")) fail(`equipment path escapes assets root: ${glb}`);
+      addClientAsset(entries, relative.slice("assets/".length), `registry.pawnEquipment:${item.id}`);
+    }
   }
 
   const weaponsManifestPath = path.join(base, "weapons", "weapons_manifest.json");

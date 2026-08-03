@@ -47,6 +47,7 @@ describe("hosted origin admission", () => {
       characterId: "char_a",
       actorId: "char_a",
       gameTicket: "game-capability",
+      clientReleaseId: "test-client-release",
       origin: "https://www.successorgame.com",
       readyTimeoutMs: 3_000,
     });

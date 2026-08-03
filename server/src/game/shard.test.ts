@@ -10126,8 +10126,8 @@ describe("GameShard", () => {
     try {
       expect(shard.defaultJoinSpawnForActor("char_fresh")).toEqual({
         areaId: "open-desert-overworld",
-        x: 512,
-        y: 513,
+        x: 516,
+        y: 511,
         facing: "front",
       });
     } finally {
@@ -10148,7 +10148,7 @@ describe("GameShard", () => {
         displayName: "Fresh Missing Spawn",
         zoneId: "open-desert",
       };
-      expect(internals.ensureActor(identity)).toMatchObject({ x: 512, y: 513 });
+      expect(internals.ensureActor(identity)).toMatchObject({ x: 516, y: 511 });
       expect(internals.ensureActor({
         ...identity,
         spawn: { areaId: "open-desert-overworld", x: 300, y: 400, facing: "right" },

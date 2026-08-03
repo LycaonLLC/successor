@@ -90,14 +90,15 @@ function stopForLostParent() {
 
 function findInheritedLockFd(filePath) {
   const target = fs.statSync(filePath);
-  for (const name of fs.readdirSync("/proc/self/fd")) {
+  const fdDirectory = fs.existsSync("/proc/self/fd") ? "/proc/self/fd" : "/dev/fd";
+  for (const name of fs.readdirSync(fdDirectory)) {
     const fd = Number(name);
     if (!Number.isInteger(fd) || fd <= 3) continue;
     try {
       const candidate = fs.fstatSync(fd);
       if (candidate.dev === target.dev && candidate.ino === target.ino) return fd;
     } catch {
-      // Descriptors can disappear while /proc is enumerated.
+      // Descriptors can disappear while the directory is enumerated.
     }
   }
   return null;
