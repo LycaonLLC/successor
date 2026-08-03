@@ -17,7 +17,7 @@
   "collision": {
     "boxes": 422,
     "door_boxes": 5,
-    "sha256": "sha256:ee8dbd11ac9c1d821292df92a6c2ddfebeabc04fc5397f99e3bfb6c513a03321",
+    "sha256": "sha256:da1045f01a3ab4cedc071933f5c0921dfcb7996da540d888684df728532e13fb",
     "structure_boxes": 417
   },
   "collisionProxy": {

@@ -3667,6 +3667,568 @@
       ]
     }
   ],
+  "contract": {
+    "decorativeExcluded": [
+      "foundation",
+      "floor",
+      "ceiling",
+      "roof",
+      "entry_apron",
+      "entry_hood"
+    ],
+    "furnitureRoles": [
+      "furn_*",
+      "xs_san_*"
+    ],
+    "geometrySource": "placed_module_collision_records",
+    "interiorDoorPolicy": "closed_static",
+    "structuralRoles": [
+      "walls",
+      "windows",
+      "columns",
+      "static_internal_doors"
+    ]
+  },
+  "door": {
+    "closed": {
+      "id": "closed_exterior_entry",
+      "maxX": 4.646,
+      "maxZ": 0.025,
+      "minX": 3.746,
+      "minZ": 0.0
+    },
+    "node": "door_slide"
+  },
+  "floor": {
+    "bounds": {
+      "maxX": 7.6,
+      "maxZ": 5.7,
+      "minX": 0.0,
+      "minZ": 0.0
+    },
+    "slabThicknessM": 0.02,
+    "topY": 0.02
+  },
+  "footprint": {
+    "centerX": 3.8,
+    "centerZ": 2.85,
+    "maxX": 7.6,
+    "maxZ": 5.7,
+    "minX": 0.0,
+    "minZ": 0.0,
+    "spanX": 7.6,
+    "spanZ": 5.7
+  },
+  "furniture": [
+    {
+      "id": "furniture_135_furn_table_1c__panelclad",
+      "maxX": 1.815,
+      "maxZ": 1.755,
+      "minX": 1.035,
+      "minZ": 1.095
+    },
+    {
+      "id": "furniture_136_furn_stool__panelclad",
+      "maxX": 2.54,
+      "maxZ": 1.59,
+      "minX": 2.21,
+      "minZ": 1.26
+    },
+    {
+      "id": "furniture_137_furn_chair_1c__panelclad",
+      "maxX": 1.64,
+      "maxZ": 2.625,
+      "minX": 1.21,
+      "minZ": 2.125
+    },
+    {
+      "id": "furniture_138_furn_pendant_1c__panelclad",
+      "maxX": 1.655,
+      "maxZ": 1.655,
+      "minX": 1.195,
+      "minZ": 1.195
+    },
+    {
+      "id": "furniture_139_furn_stool__panelclad",
+      "maxX": 2.54,
+      "maxZ": 0.64,
+      "minX": 2.21,
+      "minZ": 0.31
+    },
+    {
+      "id": "furniture_140_furn_counter_2c__panelclad",
+      "maxX": 5.18,
+      "maxZ": 3.15,
+      "minX": 3.37,
+      "minZ": 2.55
+    },
+    {
+      "id": "furniture_141_furn_sink_1c__sintered",
+      "maxX": 0.3,
+      "maxZ": 1.875,
+      "minX": 0.0,
+      "minZ": 0.975
+    },
+    {
+      "id": "furniture_142_furn_stove_1c__sintered",
+      "maxX": 0.3,
+      "maxZ": 2.825,
+      "minX": 0.0,
+      "minZ": 1.925
+    },
+    {
+      "id": "furniture_143_furn_lamp_wall__panelclad",
+      "maxX": 5.322,
+      "maxZ": 0.238,
+      "minX": 5.128,
+      "minZ": 0.0
+    },
+    {
+      "id": "furniture_144_furn_lamp_wall__panelclad",
+      "maxX": 0.572,
+      "maxZ": 2.85,
+      "minX": 0.378,
+      "minZ": 2.612
+    },
+    {
+      "id": "furniture_145_furn_desk_2c__panelclad",
+      "maxX": 7.6,
+      "maxZ": 3.235,
+      "minX": 7.28,
+      "minZ": 1.515
+    },
+    {
+      "id": "furniture_146_furn_chair_1c__panelclad",
+      "maxX": 6.425,
+      "maxZ": 2.59,
+      "minX": 5.925,
+      "minZ": 2.16
+    },
+    {
+      "id": "furniture_147_furn_crate_stack__panelclad",
+      "maxX": 6.495,
+      "maxZ": 0.28,
+      "minX": 5.855,
+      "minZ": 0.0
+    },
+    {
+      "id": "furniture_148_furn_lamp_wall__panelclad",
+      "maxX": 7.222,
+      "maxZ": 2.85,
+      "minX": 7.028,
+      "minZ": 2.612
+    },
+    {
+      "id": "furniture_149_furn_bed_2c__panelclad",
+      "maxX": 3.275,
+      "maxZ": 5.7,
+      "minX": 1.475,
+      "minZ": 5.26
+    },
+    {
+      "id": "furniture_150_furn_nightstand__panelclad",
+      "maxX": 0.18,
+      "maxZ": 3.51,
+      "minX": 0.0,
+      "minZ": 3.14
+    },
+    {
+      "id": "furniture_151_furn_chest_1c__panelclad",
+      "maxX": 0.21,
+      "maxZ": 4.675,
+      "minX": 0.0,
+      "minZ": 3.875
+    },
+    {
+      "id": "furniture_152_furn_lamp_wall__panelclad",
+      "maxX": 1.522,
+      "maxZ": 5.7,
+      "minX": 1.328,
+      "minZ": 5.462
+    },
+    {
+      "id": "furniture_153_xs_san_soaktub_2c__panelclad",
+      "maxX": 4.6,
+      "maxZ": 5.145,
+      "minX": 3.8,
+      "minZ": 3.405
+    },
+    {
+      "id": "furniture_154_xs_san_basin_1c__panelclad",
+      "maxX": 6.515,
+      "maxZ": 5.7,
+      "minX": 5.835,
+      "minZ": 5.24
+    },
+    {
+      "id": "furniture_155_xs_san_mirrorcab_1c__panelclad",
+      "maxX": 6.615,
+      "maxZ": 5.606,
+      "minX": 5.735,
+      "minZ": 5.476
+    },
+    {
+      "id": "furniture_156_xs_san_reclaimer_1c__panelclad",
+      "maxX": 4.495,
+      "maxZ": 3.36,
+      "minX": 4.055,
+      "minZ": 2.85
+    },
+    {
+      "id": "furniture_157_xs_san_towelbar_1c__panelclad",
+      "maxX": 4.65,
+      "maxZ": 5.62,
+      "minX": 3.9,
+      "minZ": 5.516
+    },
+    {
+      "id": "furniture_158_xs_san_drain_1c__panelclad",
+      "maxX": 6.475,
+      "maxZ": 4.415,
+      "minX": 5.875,
+      "minZ": 4.135
+    },
+    {
+      "id": "furniture_159_furn_chest_1c__panelclad",
+      "maxX": 7.6,
+      "maxZ": 4.675,
+      "minX": 7.39,
+      "minZ": 3.875
+    },
+    {
+      "id": "furniture_160_furn_lamp_wall__panelclad",
+      "maxX": 7.6,
+      "maxZ": 3.422,
+      "minX": 7.362,
+      "minZ": 3.228
+    },
+    {
+      "id": "furniture_161_furn_corner_hearth__panelclad",
+      "maxX": 0.832375,
+      "maxZ": 0.832375,
+      "minX": 0.17225,
+      "minZ": 0.17225
+    },
+    {
+      "id": "furniture_162_furn_corner_shelf__panelclad",
+      "maxX": 7.302375,
+      "maxZ": 0.832375,
+      "minX": 6.767625,
+      "minZ": 0.297625
+    },
+    {
+      "id": "furniture_163_furn_corner_bench__panelclad",
+      "maxX": 0.832375,
+      "maxZ": 5.402375,
+      "minX": 0.297625,
+      "minZ": 4.867625
+    },
+    {
+      "id": "furniture_164_furn_corner_store__panelclad",
+      "maxX": 7.302375,
+      "maxZ": 5.402375,
+      "minX": 6.767625,
+      "minZ": 4.867625
+    }
+  ],
+  "generatedBy": "src/package_runtime_buildings.py",
+  "interiorRegions": [
+    {
+      "floorTopY": 0.02,
+      "id": "living",
+      "maxX": 5.7,
+      "maxZ": 2.85,
+      "minX": 0.0,
+      "minZ": 0.0
+    },
+    {
+      "floorTopY": 0.02,
+      "id": "study",
+      "maxX": 7.6,
+      "maxZ": 2.85,
+      "minX": 5.7,
+      "minZ": 0.0
+    },
+    {
+      "floorTopY": 0.02,
+      "id": "bedroom",
+      "maxX": 3.8,
+      "maxZ": 5.7,
+      "minX": 0.0,
+      "minZ": 2.85
+    },
+    {
+      "floorTopY": 0.02,
+      "id": "bath",
+      "maxX": 7.6,
+      "maxZ": 5.7,
+      "minX": 3.8,
+      "minZ": 2.85
+    }
+  ],
   "module_id": "home_modular_starter",
-  "version": "successor.structure-collision.v3"
+  "schema": "successor.structure-collision.v3",
+  "source": "home_modular_starter.glb",
+  "version": "successor.structure-collision.v3",
+  "walls": [
+    {
+      "id": "wall_096_wall_cham_1c__sintered",
+      "maxX": 0.95,
+      "maxZ": 0.95,
+      "minX": 0.0,
+      "minZ": 0.0
+    },
+    {
+      "id": "wall_097_wall_cham_1c__sintered",
+      "maxX": 0.95,
+      "maxZ": 5.7,
+      "minX": 0.0,
+      "minZ": 4.75
+    },
+    {
+      "id": "wall_098_wall_cham_1c__sintered",
+      "maxX": 7.6,
+      "maxZ": 0.95,
+      "minX": 6.65,
+      "minZ": 0.0
+    },
+    {
+      "id": "wall_099_wall_cham_1c__sintered",
+      "maxX": 7.6,
+      "maxZ": 5.7,
+      "minX": 6.65,
+      "minZ": 4.75
+    },
+    {
+      "id": "wall_100_wall_1c__sintered",
+      "maxX": 5.7,
+      "maxZ": 0.08,
+      "minX": 4.75,
+      "minZ": 0.0
+    },
+    {
+      "id": "wall_101_window_slot_1c__sintered",
+      "maxX": 6.65,
+      "maxZ": 0.08,
+      "minX": 5.7,
+      "minZ": 0.0
+    },
+    {
+      "id": "wall_102_window_tall_2c__sintered",
+      "maxX": 2.85,
+      "maxZ": 0.08,
+      "minX": 0.95,
+      "minZ": 0.0
+    },
+    {
+      "id": "wall_103_door_slide_2c__sintered",
+      "maxX": 4.75,
+      "maxZ": 0.08,
+      "minX": 2.85,
+      "minZ": 0.0
+    },
+    {
+      "id": "wall_106_wall_1c__sintered",
+      "maxX": 1.9,
+      "maxZ": 5.7,
+      "minX": 0.95,
+      "minZ": 5.62
+    },
+    {
+      "id": "wall_107_wall_1c__sintered",
+      "maxX": 4.75,
+      "maxZ": 5.7,
+      "minX": 3.8,
+      "minZ": 5.62
+    },
+    {
+      "id": "wall_108_window_slot_1c__sintered",
+      "maxX": 5.7,
+      "maxZ": 5.7,
+      "minX": 4.75,
+      "minZ": 5.62
+    },
+    {
+      "id": "wall_109_wall_1c__sintered",
+      "maxX": 6.65,
+      "maxZ": 5.7,
+      "minX": 5.7,
+      "minZ": 5.62
+    },
+    {
+      "id": "wall_110_window_tall_2c__sintered",
+      "maxX": 3.8,
+      "maxZ": 5.7,
+      "minX": 1.9,
+      "minZ": 5.62
+    },
+    {
+      "id": "wall_111_window_slot_1c__sintered",
+      "maxX": 0.08,
+      "maxZ": 1.9,
+      "minX": 0.0,
+      "minZ": 0.95
+    },
+    {
+      "id": "wall_112_window_cler_1c__sintered",
+      "maxX": 0.08,
+      "maxZ": 2.85,
+      "minX": 0.0,
+      "minZ": 1.9
+    },
+    {
+      "id": "wall_113_wall_1c__sintered",
+      "maxX": 0.08,
+      "maxZ": 3.8,
+      "minX": 0.0,
+      "minZ": 2.85
+    },
+    {
+      "id": "wall_114_window_slot_1c__sintered",
+      "maxX": 0.08,
+      "maxZ": 4.75,
+      "minX": 0.0,
+      "minZ": 3.8
+    },
+    {
+      "id": "wall_115_window_cler_1c__sintered",
+      "maxX": 7.6,
+      "maxZ": 1.9,
+      "minX": 7.52,
+      "minZ": 0.95
+    },
+    {
+      "id": "wall_116_wall_1c__sintered",
+      "maxX": 7.6,
+      "maxZ": 2.85,
+      "minX": 7.52,
+      "minZ": 1.9
+    },
+    {
+      "id": "wall_117_wall_1c__sintered",
+      "maxX": 7.6,
+      "maxZ": 3.8,
+      "minX": 7.52,
+      "minZ": 2.85
+    },
+    {
+      "id": "wall_118_window_slot_1c__sintered",
+      "maxX": 7.6,
+      "maxZ": 4.75,
+      "minX": 7.52,
+      "minZ": 3.8
+    },
+    {
+      "id": "wall_119_wall_1c__plasterlined",
+      "maxX": 0.95,
+      "maxZ": 2.93,
+      "minX": 0.0,
+      "minZ": 2.77
+    },
+    {
+      "id": "wall_120_wall_1c__plasterlined",
+      "maxX": 3.8,
+      "maxZ": 2.93,
+      "minX": 2.85,
+      "minZ": 2.77
+    },
+    {
+      "id": "wall_121_wall_1c__plasterlined",
+      "maxX": 4.75,
+      "maxZ": 2.93,
+      "minX": 3.8,
+      "minZ": 2.77
+    },
+    {
+      "id": "wall_122_wall_1c__plasterlined",
+      "maxX": 7.6,
+      "maxZ": 2.93,
+      "minX": 6.65,
+      "minZ": 2.77
+    },
+    {
+      "id": "wall_123_door_inner_2c__plasterlined",
+      "maxX": 2.85,
+      "maxZ": 2.93,
+      "minX": 0.95,
+      "minZ": 2.77
+    },
+    {
+      "id": "wall_124_door_inner_2c__plasterlined",
+      "maxX": 6.65,
+      "maxZ": 2.93,
+      "minX": 4.75,
+      "minZ": 2.77
+    },
+    {
+      "id": "wall_125_wall_tee__sintered",
+      "maxX": 0.148,
+      "maxZ": 2.998,
+      "minX": 0.0,
+      "minZ": 2.702
+    },
+    {
+      "id": "wall_126_wall_tee__sintered",
+      "maxX": 7.6,
+      "maxZ": 2.998,
+      "minX": 7.452,
+      "minZ": 2.702
+    },
+    {
+      "id": "wall_127_wall_1c__plasterlined",
+      "maxX": 3.88,
+      "maxZ": 3.8,
+      "minX": 3.72,
+      "minZ": 2.85
+    },
+    {
+      "id": "wall_128_wall_1c__plasterlined",
+      "maxX": 3.88,
+      "maxZ": 4.75,
+      "minX": 3.72,
+      "minZ": 3.8
+    },
+    {
+      "id": "wall_129_wall_1c__plasterlined",
+      "maxX": 3.88,
+      "maxZ": 5.7,
+      "minX": 3.72,
+      "minZ": 4.75
+    },
+    {
+      "id": "wall_130_wall_tee__plasterlined",
+      "maxX": 3.948,
+      "maxZ": 2.998,
+      "minX": 3.652,
+      "minZ": 2.702
+    },
+    {
+      "id": "wall_131_wall_tee__sintered",
+      "maxX": 3.948,
+      "maxZ": 5.7,
+      "minX": 3.652,
+      "minZ": 5.552
+    },
+    {
+      "id": "wall_132_wall_1c__panelclad",
+      "maxX": 5.78,
+      "maxZ": 0.95,
+      "minX": 5.62,
+      "minZ": 0.0
+    },
+    {
+      "id": "wall_133_wall_1c__panelclad",
+      "maxX": 5.78,
+      "maxZ": 1.9,
+      "minX": 5.62,
+      "minZ": 0.95
+    },
+    {
+      "id": "wall_134_wall_tee__sintered",
+      "maxX": 5.848,
+      "maxZ": 0.148,
+      "minX": 5.552,
+      "minZ": 0.0
+    }
+  ]
 }

@@ -1,9 +1,9 @@
 {
   "artifacts": {
     "collision": {
-      "bytes": 59467,
+      "bytes": 73650,
       "path": "home_modular_court_collision.json",
-      "sha256": "72b5875cb21673f72e72c936e80ba748b0bd5c377dac185a0c20b93754147810"
+      "sha256": "4960969dbc0d7481c30e7321dc18dde51729a12643e7ebf739f7543bdf221869"
     },
     "glb": {
       "bytes": 8337816,
@@ -13,7 +13,7 @@
     "manifest": {
       "bytes": 3123,
       "path": "home_modular_court_manifest.json",
-      "sha256": "c83ee92733807f6a8caa84bf272985fcb5672c0122f8433e8d6d0813c8d31074"
+      "sha256": "d176cd58217909453bc9b28fa269e87327f59dd1f8c7d7c7f15ab33a6ff4020a"
     }
   },
   "asset": {
@@ -35,7 +35,7 @@
   "generator": {
     "lod": 0,
     "path": "src/package_runtime_buildings.py",
-    "sha256": "0c01bae8e04d164e00de07bbf2a5b76658f617ba37df3f0e97f41df073206084"
+    "sha256": "252c43f491f6e42a52777759362d9c8922114ed9c867dba321d8df8a874bc443"
   },
   "modules": [
     {
@@ -700,7 +700,7 @@
   "sources": [
     {
       "path": "src/package_runtime_buildings.py",
-      "sha256": "0c01bae8e04d164e00de07bbf2a5b76658f617ba37df3f0e97f41df073206084"
+      "sha256": "252c43f491f6e42a52777759362d9c8922114ed9c867dba321d8df8a874bc443"
     },
     {
       "path": "src/assemble_home.py",

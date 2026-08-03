@@ -1,9 +1,9 @@
 {
   "artifacts": {
     "collision": {
-      "bytes": 49533,
+      "bytes": 60820,
       "path": "home_modular_starter_collision.json",
-      "sha256": "5e34e0bd45290cfedbe248afb8ea89186c826b10f543a0b11ce16a1461fd4902"
+      "sha256": "1e37247d787b0e2e17cbb9ab142b1e776f7cc4e034f23069b581994ccef9af78"
     },
     "glb": {
       "bytes": 7874120,
@@ -13,7 +13,7 @@
     "manifest": {
       "bytes": 3139,
       "path": "home_modular_starter_manifest.json",
-      "sha256": "6e1c73f11b7a66f549d946a2926b103bdc54957576d6949950775d25499497b9"
+      "sha256": "05785e8b9c217b93dc56e0f058da8ecc6e51b4a3834398c0bd479ab211bca9a7"
     }
   },
   "asset": {
@@ -35,7 +35,7 @@
   "generator": {
     "lod": 0,
     "path": "src/package_runtime_buildings.py",
-    "sha256": "0c01bae8e04d164e00de07bbf2a5b76658f617ba37df3f0e97f41df073206084"
+    "sha256": "252c43f491f6e42a52777759362d9c8922114ed9c867dba321d8df8a874bc443"
   },
   "modules": [
     {
@@ -661,7 +661,7 @@
   "sources": [
     {
       "path": "src/package_runtime_buildings.py",
-      "sha256": "0c01bae8e04d164e00de07bbf2a5b76658f617ba37df3f0e97f41df073206084"
+      "sha256": "252c43f491f6e42a52777759362d9c8922114ed9c867dba321d8df8a874bc443"
     },
     {
       "path": "src/assemble_home.py",

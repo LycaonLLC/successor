@@ -250,23 +250,255 @@ def _transform_box(box: dict[str, Any], item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _xz_box(box: dict[str, Any], identifier: str) -> dict[str, Any]:
+    """Project one placed collision box to the runtime sidecar's X/Z AABB."""
+    center = box["center"]
+    size = box["size"]
+    return {
+        "id": identifier,
+        "minX": _round(center[0] - size[0] / 2.0),
+        "minZ": _round(center[2] - size[2] / 2.0),
+        "maxX": _round(center[0] + size[0] / 2.0),
+        "maxZ": _round(center[2] + size[2] / 2.0),
+    }
+
+
+def _compact_xz_boxes(boxes: list[dict[str, Any]], identifier: str) -> dict[str, Any]:
+    """Keep the runtime sidecar compact while retaining each placed module's extent."""
+    projected = [_xz_box(box, identifier) for box in boxes]
+    if not projected:
+        raise RuntimeError(f"{identifier}: no collision boxes to compact")
+    return {
+        "id": identifier,
+        "minX": _round(min(box["minX"] for box in projected)),
+        "minZ": _round(min(box["minZ"] for box in projected)),
+        "maxX": _round(max(box["maxX"] for box in projected)),
+        "maxZ": _round(max(box["maxZ"] for box in projected)),
+    }
+
+
+def _clip_xz_box(
+    box: dict[str, Any], bounds: dict[str, float]
+) -> dict[str, Any] | None:
+    """Clip a module proxy to its authored floor field, never enlarging occupancy."""
+    clipped = {
+        "id": box["id"],
+        "minX": _round(max(box["minX"], bounds["minX"])),
+        "minZ": _round(max(box["minZ"], bounds["minZ"])),
+        "maxX": _round(min(box["maxX"], bounds["maxX"])),
+        "maxZ": _round(min(box["maxZ"], bounds["maxZ"])),
+    }
+    return clipped if clipped["maxX"] > clipped["minX"] and clipped["maxZ"] > clipped["minZ"] else None
+
+
+def _clip_xz_boxes(
+    boxes: list[dict[str, Any]], bounds: dict[str, float], label: str
+) -> list[dict[str, Any]]:
+    clipped = [box for box in (_clip_xz_box(box, bounds) for box in boxes) if box]
+    if not clipped:
+        raise RuntimeError(f"{label}: all collision proxies lie outside the floor field")
+    return clipped
+
+
+def _is_furniture_base(base: str) -> bool:
+    return base.startswith(("furn_", "xs_san_"))
+
+
+def _is_runtime_wall_base(base: str) -> bool:
+    """Structural X/Z blockers, excluding slabs, roofs, and exterior dressings."""
+    return (
+        base.startswith(("wall_", "window_", "corner_", "door_"))
+        or base == "column"
+    )
+
+
+def _floor_bounds(inputs: list[dict[str, Any]]) -> dict[str, float]:
+    floors = [
+        record["item"] for record in inputs
+        if record["item"]["base"] in {"floor_1x1", "floor_cham_1x1"}
+    ]
+    if not floors:
+        raise RuntimeError("packaged plan has no placed floor modules")
+    return {
+        "minX": _round(min(item["pos"][0] - Kit.CELL / 2.0 for item in floors)),
+        "minZ": _round(min(item["pos"][2] - Kit.CELL / 2.0 for item in floors)),
+        "maxX": _round(max(item["pos"][0] + Kit.CELL / 2.0 for item in floors)),
+        "maxZ": _round(max(item["pos"][2] + Kit.CELL / 2.0 for item in floors)),
+    }
+
+
+def _sidecar_footprint(
+    floor_bounds: dict[str, float], boxes: list[dict[str, Any]], regions: list[dict[str, Any]]
+) -> dict[str, float]:
+    """Envelope every exported X/Z proxy; render overhangs stay out of this proxy."""
+    all_bounds = [floor_bounds, *boxes, *regions]
+    min_x = min(bounds["minX"] for bounds in all_bounds)
+    min_z = min(bounds["minZ"] for bounds in all_bounds)
+    max_x = max(bounds["maxX"] for bounds in all_bounds)
+    max_z = max(bounds["maxZ"] for bounds in all_bounds)
+    if not (max_x > min_x and max_z > min_z):
+        raise RuntimeError("collision footprint has no positive X/Z area")
+    return {
+        "minX": _round(min_x),
+        "minZ": _round(min_z),
+        "maxX": _round(max_x),
+        "maxZ": _round(max_z),
+        "spanX": _round(max_x - min_x),
+        "spanZ": _round(max_z - min_z),
+        "centerX": _round((min_x + max_x) / 2.0),
+        "centerZ": _round((min_z + max_z) / 2.0),
+    }
+
+
+def _entry_safe_footprint(
+    floor_bounds: dict[str, float], closed_door: dict[str, Any], entry_record: dict[str, Any]
+) -> dict[str, float]:
+    """Keep a centrally placed courtyard entry's exterior side unambiguous.
+
+    The fixture adapter derives a doorway's outward normal from its offset from
+    the sidecar center.  Approved home_court places its south-facing courtyard
+    entry on the plan centreline, so reserve only one wall-thickness of empty
+    threshold space on the opposite (north) edge when that condition occurs.
+    """
+    footprint = _sidecar_footprint(floor_bounds, [], [])
+    center_x = (closed_door["minX"] + closed_door["maxX"]) / 2.0
+    center_z = (closed_door["minZ"] + closed_door["maxZ"]) / 2.0
+    facing = _entry_facing(entry_record["item"]["rot"])
+    centered = (
+        abs(center_z - footprint["centerZ"]) <= 1e-6
+        if facing in {"north", "south"}
+        else abs(center_x - footprint["centerX"]) <= 1e-6
+    )
+    if not centered:
+        return footprint
+    margin = 0.1
+    if facing == "south":
+        footprint["maxZ"] = _round(footprint["maxZ"] + margin)
+    elif facing == "north":
+        footprint["minZ"] = _round(footprint["minZ"] - margin)
+    elif facing == "east":
+        footprint["minX"] = _round(footprint["minX"] - margin)
+    else:
+        footprint["maxX"] = _round(footprint["maxX"] + margin)
+    footprint["spanX"] = _round(footprint["maxX"] - footprint["minX"])
+    footprint["spanZ"] = _round(footprint["maxZ"] - footprint["minZ"])
+    footprint["centerX"] = _round((footprint["minX"] + footprint["maxX"]) / 2.0)
+    footprint["centerZ"] = _round((footprint["minZ"] + footprint["maxZ"]) / 2.0)
+    return footprint
+
+
 def _build_collision(
-    key: str, inputs: list[dict[str, Any]]
+    key: str, plan: Any, inputs: list[dict[str, Any]], entry_record: dict[str, Any]
 ) -> tuple[dict[str, Any], dict[str, int]]:
+    """Derive both source-accurate 3D boxes and runtime fixture-compatible X/Z proxies.
+
+    `boxes` preserves every placed structural record for diagnostics.  The
+    top-level v3 fields are intentionally compacted per placed module: they are
+    the physical blocker contract consumed by structureCollisionFromSidecar.
+    """
     boxes: list[dict[str, Any]] = []
+    walls: list[dict[str, Any]] = []
+    furniture: list[dict[str, Any]] = []
+    entry_leaf_boxes: list[dict[str, Any]] = []
+    floor_boxes: list[dict[str, Any]] = []
     counts = {"source_records": 0, "structure": 0, "door": 0}
+
     for record in inputs:
-        for box in _load_collision(record):
+        base = record["item"]["base"]
+        placed_structures: list[dict[str, Any]] = []
+        placed_doors: list[dict[str, Any]] = []
+        for source_box in _load_collision(record):
             counts["source_records"] += 1
-            transformed = _transform_box(box, record["item"])
+            transformed = _transform_box(source_box, record["item"])
             boxes.append(transformed)
             counts[transformed["kind"]] += 1
+            if transformed["kind"] == "structure":
+                placed_structures.append(transformed)
+            else:
+                placed_doors.append(transformed)
+
+        placement_id = f"{record['index']:03d}_{record['id']}"
+        if _is_furniture_base(base):
+            if placed_structures:
+                furniture.append(_compact_xz_boxes(placed_structures, f"furniture_{placement_id}"))
+        elif _is_runtime_wall_base(base):
+            # Interior leaves have no runtime animation record and therefore
+            # intentionally remain static blockers; only the exterior leaf is
+            # represented by the dedicated top-level door record below.
+            blockers = placed_structures
+            if base == "door_inner_2c":
+                blockers = [*blockers, *placed_doors]
+            if blockers:
+                walls.append(_compact_xz_boxes(blockers, f"wall_{placement_id}"))
+
+        if record is entry_record:
+            entry_leaf_boxes.extend(placed_doors)
+        if base in {"floor_1x1", "floor_cham_1x1"}:
+            floor_boxes.extend(placed_structures)
+
     if not boxes or not counts["structure"] or not counts["door"]:
         raise RuntimeError(
             f"{key}: expected structure and door collision boxes, got {counts}"
         )
+    if not walls or not furniture or not entry_leaf_boxes:
+        raise RuntimeError(
+            f"{key}: incomplete runtime collision proxies "
+            f"(walls={len(walls)}, furniture={len(furniture)}, entry={len(entry_leaf_boxes)})"
+        )
+
+    regions = _interior_regions(plan)
+    floor_bounds = _floor_bounds(inputs)
+    floor_slabs = [
+        box["size"][1]
+        for box in floor_boxes
+        if abs(box["center"][1] + box["size"][1] / 2.0 - FLOOR_TOP_M) <= 0.0001
+    ]
+    if not floor_slabs:
+        raise RuntimeError(f"{key}: no floor collision slab reaches {FLOOR_TOP_M}m")
+    # The runtime footprint is the authored floor field, not wall thickness or
+    # roof/apron overhang.  Clamp edge proxies so every exported X/Z blocker is
+    # within that exact contracted occupancy rectangle.
+    walls = _clip_xz_boxes(walls, floor_bounds, f"{key}: walls")
+    furniture = _clip_xz_boxes(furniture, floor_bounds, f"{key}: furniture")
+    closed_door = _clip_xz_box(
+        _compact_xz_boxes(entry_leaf_boxes, "closed_exterior_entry"), floor_bounds
+    )
+    if closed_door is None:
+        raise RuntimeError(f"{key}: exterior door lies outside its floor field")
+    footprint = _entry_safe_footprint(floor_bounds, closed_door, entry_record)
+
     return (
-        {"version": COLLISION_SCHEMA, "module_id": key, "boxes": boxes},
+        {
+            "schema": COLLISION_SCHEMA,
+            # Retained for the current module-sidecar convention and tooling.
+            "version": COLLISION_SCHEMA,
+            "module_id": key,
+            "source": f"{key}.glb",
+            "generatedBy": "src/package_runtime_buildings.py",
+            "footprint": footprint,
+            "floor": {
+                "topY": FLOOR_TOP_M,
+                "slabThicknessM": _round(min(floor_slabs)),
+                "bounds": floor_bounds,
+            },
+            "walls": walls,
+            "furniture": furniture,
+            "door": {
+                "node": "door_slide",
+                "closed": closed_door,
+            },
+            "interiorRegions": regions,
+            "contract": {
+                "geometrySource": "placed_module_collision_records",
+                "structuralRoles": ["walls", "windows", "columns", "static_internal_doors"],
+                "furnitureRoles": ["furn_*", "xs_san_*"],
+                "decorativeExcluded": [
+                    "foundation", "floor", "ceiling", "roof", "entry_apron", "entry_hood"
+                ],
+                "interiorDoorPolicy": "closed_static",
+            },
+            "boxes": boxes,
+        },
         counts,
     )
 
@@ -775,14 +1007,96 @@ def _validate_plan_glb(
     }
 
 
+def _validate_sidecar_xz_box(
+    box: Any, footprint: dict[str, Any], label: str
+) -> None:
+    if not isinstance(box, dict):
+        raise RuntimeError(f"{label}: expected an object")
+    values = [box.get(field) for field in ("minX", "minZ", "maxX", "maxZ")]
+    if not all(isinstance(value, (int, float)) and math.isfinite(value) for value in values):
+        raise RuntimeError(f"{label}: invalid X/Z bounds")
+    min_x, min_z, max_x, max_z = values
+    if not (max_x > min_x and max_z > min_z):
+        raise RuntimeError(f"{label}: non-positive X/Z bounds")
+    epsilon = 1e-6
+    if (
+        min_x < footprint["minX"] - epsilon
+        or max_x > footprint["maxX"] + epsilon
+        or min_z < footprint["minZ"] - epsilon
+        or max_z > footprint["maxZ"] + epsilon
+    ):
+        raise RuntimeError(f"{label}: lies outside collision footprint")
+
+
 def _validate_collision(path: Path, expected_key: str) -> dict[str, int]:
+    """Validate the exact raw contract consumed by structureCollisionFromSidecar."""
     with path.open(encoding="utf-8") as handle:
         payload = json.load(handle)
-    if payload.get("version") != COLLISION_SCHEMA or payload.get("module_id") != expected_key:
+    if (
+        payload.get("schema") != COLLISION_SCHEMA
+        or payload.get("version") != COLLISION_SCHEMA
+        or payload.get("module_id") != expected_key
+        or payload.get("source") != f"{expected_key}.glb"
+    ):
         raise RuntimeError(f"{_relative(path)}: collision header is invalid")
+
+    footprint = payload.get("footprint")
+    if not isinstance(footprint, dict):
+        raise RuntimeError(f"{_relative(path)}: footprint is missing")
+    values = [footprint.get(field) for field in ("minX", "minZ", "maxX", "maxZ")]
+    if not all(isinstance(value, (int, float)) and math.isfinite(value) for value in values):
+        raise RuntimeError(f"{_relative(path)}: footprint bounds are invalid")
+    min_x, min_z, max_x, max_z = values
+    if not (max_x > min_x and max_z > min_z):
+        raise RuntimeError(f"{_relative(path)}: footprint has no positive X/Z area")
+    expected_footprint = {
+        "spanX": max_x - min_x,
+        "spanZ": max_z - min_z,
+        "centerX": (min_x + max_x) / 2.0,
+        "centerZ": (min_z + max_z) / 2.0,
+    }
+    for field, expected in expected_footprint.items():
+        actual = footprint.get(field)
+        if not isinstance(actual, (int, float)) or not math.isfinite(actual) or abs(actual - expected) > 1e-6:
+            raise RuntimeError(f"{_relative(path)}: footprint {field} drifted")
+
+    floor = payload.get("floor")
+    if not isinstance(floor, dict) or not all(
+        isinstance(floor.get(field), (int, float)) and math.isfinite(floor[field])
+        for field in ("topY", "slabThicknessM")
+    ) or floor["slabThicknessM"] <= 0.0:
+        raise RuntimeError(f"{_relative(path)}: floor contract is invalid")
+    if abs(floor["topY"] - FLOOR_TOP_M) > 0.0001:
+        raise RuntimeError(f"{_relative(path)}: floor top drifted")
+
+    walls = payload.get("walls")
+    furniture = payload.get("furniture")
+    regions = payload.get("interiorRegions")
+    door = payload.get("door")
+    if not isinstance(walls, list) or not walls:
+        raise RuntimeError(f"{_relative(path)}: walls are missing")
+    if not isinstance(furniture, list) or not furniture:
+        raise RuntimeError(f"{_relative(path)}: furniture is missing")
+    if not isinstance(regions, list) or not regions:
+        raise RuntimeError(f"{_relative(path)}: interiorRegions are missing")
+    if not isinstance(door, dict) or door.get("node") != "door_slide" or "closed" not in door:
+        raise RuntimeError(f"{_relative(path)}: exterior door is missing")
+    if not isinstance(payload.get("contract"), dict) or not payload["contract"]:
+        raise RuntimeError(f"{_relative(path)}: collision contract is missing")
+    for index, box in enumerate(walls):
+        _validate_sidecar_xz_box(box, footprint, f"{_relative(path)}: wall {index}")
+    for index, box in enumerate(furniture):
+        _validate_sidecar_xz_box(box, footprint, f"{_relative(path)}: furniture {index}")
+    _validate_sidecar_xz_box(door["closed"], footprint, f"{_relative(path)}: exterior door")
+    for index, region in enumerate(regions):
+        _validate_sidecar_xz_box(region, footprint, f"{_relative(path)}: interior region {index}")
+        floor_top = region.get("floorTopY")
+        if not isinstance(floor_top, (int, float)) or not math.isfinite(floor_top):
+            raise RuntimeError(f"{_relative(path)}: interior region {index} has no floorTopY")
+
     boxes = payload.get("boxes")
     if not isinstance(boxes, list) or not boxes:
-        raise RuntimeError(f"{_relative(path)}: collision has no boxes")
+        raise RuntimeError(f"{_relative(path)}: collision has no source boxes")
     counts = {"structure": 0, "door": 0}
     for box in boxes:
         if box.get("kind") not in counts:
@@ -795,7 +1109,7 @@ def _validate_collision(path: Path, expected_key: str) -> dict[str, int]:
                     for value in center + size)
             and all(value > 0.0 for value in size)
         ):
-            raise RuntimeError(f"{_relative(path)}: invalid collision box")
+            raise RuntimeError(f"{_relative(path)}: invalid collision source box")
         counts[box["kind"]] += 1
     if not counts["structure"] or not counts["door"]:
         raise RuntimeError(f"{_relative(path)}: missing structure or door collision")
@@ -981,8 +1295,8 @@ def _public_manifest(
 def _build_package(spec: dict[str, Any], output_dir: Path) -> dict[str, Any]:
     plan, inputs = _load_existing_inputs(spec["plan"])
     paths = _package_paths(output_dir, spec["key"])
-    collision, collision_counts = _build_collision(spec["key"], inputs)
     entry, entry_record = _entry_door(inputs)
+    collision, collision_counts = _build_collision(spec["key"], plan, inputs, entry_record)
 
     with tempfile.TemporaryDirectory(prefix=f".{spec['key']}.", dir=output_dir) as temp:
         raw_glb = Path(temp) / f"{spec['key']}.raw.glb"
