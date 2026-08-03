@@ -1,0 +1,31 @@
+{
+  "asset_id": "successor_humanoid_source_rbf_v2_anim",
+  "asset_path": "content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v2_anim.glb",
+  "asset_hash": "sha256:deb4ee8cbacebfee13e3e57cae3f6b7e44aff0ce39bed582fb83f6adcd6f4799",
+  "asset_kind": "model_glb",
+  "tool": {
+    "name": "Khronos glTF Blender I/O",
+    "version": "5.2.39",
+    "tool_snapshot_id": null
+  },
+  "prompt": {
+    "text": "Export the stylized Successor female body baseline on the canonical 50-joint runtime rig with the complete 47-clip runtime animation set for measured comparison.",
+    "denylist_audit": "passed:tools/denylist/check.sh",
+    "negative_terms": []
+  },
+  "seed": null,
+  "request_id": null,
+  "human_edits": [
+    {
+      "by": "Successor PawnForge body iteration lane",
+      "date": "2026-08-01T06:24:55Z",
+      "summary": "Ported the female body to the runtime skeleton and retained it as the measured pre-correction comparison source."
+    }
+  ],
+  "review": {
+    "art_director": "Michael Kelly",
+    "approved_at": "2026-08-01T06:24:55Z",
+    "notes": "Approved for inclusion as the pinned female comparison source; it is not the promoted runtime body."
+  },
+  "regeneration_command": null
+}

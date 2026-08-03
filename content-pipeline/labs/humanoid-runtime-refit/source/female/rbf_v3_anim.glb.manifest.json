@@ -1,0 +1,31 @@
+{
+  "asset_id": "successor_humanoid_source_rbf_v3_anim",
+  "asset_path": "content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v3_anim.glb",
+  "asset_hash": "sha256:8c1aefa701b6f6560cd9cb87f979c25a3bb4227fd9da6cde9f29f464f5da1650",
+  "asset_kind": "model_glb",
+  "tool": {
+    "name": "Khronos glTF Blender I/O",
+    "version": "5.2.39",
+    "tool_snapshot_id": null
+  },
+  "prompt": {
+    "text": "Export the approved stylized Successor female body on the canonical 50-joint runtime rig and retain the complete 47-clip runtime animation set.",
+    "denylist_audit": "passed:tools/denylist/check.sh",
+    "negative_terms": []
+  },
+  "seed": null,
+  "request_id": null,
+  "human_edits": [
+    {
+      "by": "Successor PawnForge body iteration lane",
+      "date": "2026-08-01T06:24:55Z",
+      "summary": "Refined the female silhouette and faceting, then rebound and gate-verified the runtime animation set."
+    }
+  ],
+  "review": {
+    "art_director": "Michael Kelly",
+    "approved_at": "2026-08-01T06:24:55Z",
+    "notes": "Pinned as the approved female refit source; the runtime promotion applies the separately recorded posterior-depth correction."
+  },
+  "regeneration_command": null
+}

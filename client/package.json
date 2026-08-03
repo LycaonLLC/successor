@@ -17,7 +17,7 @@
     "build": "tsc && vite build --config vite.headless.config.ts",
     "build:headless": "vite build --config vite.headless.config.ts",
     "lint": "eslint src",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --passWithNoTests --no-file-parallelism",
     "verify:slice-specs": "node scripts/verify-slice-specs.mjs"
   },
   "devDependencies": {

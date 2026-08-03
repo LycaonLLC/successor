@@ -99,6 +99,23 @@ def audit_asset(asset_path: Path) -> list[str]:
     return errors
 
 
+def tracked_pipeline_paths():
+    """Yield versioned pipeline files; ignored lab builds are not source assets."""
+    result = subprocess.run(
+        ["git", "ls-files", "-z", "--", "content-pipeline"],
+        cwd=REPO_ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        message = result.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"could not enumerate tracked pipeline files: {message}")
+    for raw_path in result.stdout.split(b"\0"):
+        if raw_path:
+            yield REPO_ROOT / raw_path.decode("utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--strict", action="store_true", help="treat warnings as errors")
@@ -111,15 +128,20 @@ def main() -> int:
     errors: list[str] = []
     asset_count = 0
 
-    for path in PIPELINE.rglob("*"):
-        if not path.is_file():
-            continue
-        if path.suffix.lower() not in ASSET_EXTS:
-            continue
-        if path.name.endswith(".manifest.json"):
-            continue
-        asset_count += 1
-        errors.extend(audit_asset(path))
+    try:
+        paths = tracked_pipeline_paths()
+        for path in paths:
+            if not path.is_file():
+                continue
+            if path.suffix.lower() not in ASSET_EXTS:
+                continue
+            if path.name.endswith(".manifest.json"):
+                continue
+            asset_count += 1
+            errors.extend(audit_asset(path))
+    except RuntimeError as error:
+        print(str(error), file=sys.stderr)
+        return 2
 
     if errors:
         print(f"provenance audit found {len(errors)} issue(s) across {asset_count} asset(s):", file=sys.stderr)
