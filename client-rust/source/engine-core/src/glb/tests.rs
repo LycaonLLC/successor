@@ -87,12 +87,37 @@ fn parses_static_triangle_with_material() {
 }
 
 #[test]
-fn reads_skin_joints_weights_and_ibm() {
-    // 1 vertex: pos(0,0,0), joints u8 [0,1,0,0], weights [0.5,0.5,0,0]; 2 IBM identity mats.
+fn reads_float_vec3_vertex_colors() {
+    let mut bin = f32s(&[0.0, 0.0, 0.0]);
+    bin.extend_from_slice(&f32s(&[1.0, 0.5, 0.0]));
+    let json = r#"{
+      "asset":{"version":"2.0"},
+      "nodes":[{"mesh":0}],
+      "meshes":[{"primitives":[{"attributes":{"POSITION":0,"COLOR_0":1}}]}],
+      "accessors":[
+        {"bufferView":0,"componentType":5126,"count":1,"type":"VEC3"},
+        {"bufferView":1,"componentType":5126,"count":1,"type":"VEC3"}
+      ],
+      "bufferViews":[
+        {"buffer":0,"byteOffset":0,"byteLength":12},
+        {"buffer":0,"byteOffset":12,"byteLength":12}
+      ],
+      "buffers":[{"byteLength":24}]
+    }"#;
+    let doc = parse(&build_glb(json, &bin)).expect("parse");
+    assert_eq!(doc.meshes[0].primitives[0].colors, vec![[255, 128, 0, 255]]);
+}
+
+#[test]
+fn reads_skin_joints_normalized_u16_weights_and_ibm() {
+    // Blender emits normalized u16 weights. This exact accessor shape is used
+    // by the promoted Successor humanoids.
     let mut bin = f32s(&[0.0, 0.0, 0.0]); // POSITION, offset 0, 12 bytes
     bin.extend_from_slice(&[0u8, 1, 0, 0]); // JOINTS_0 u8x4, offset 12, 4 bytes
-    bin.extend_from_slice(&f32s(&[0.5, 0.5, 0.0, 0.0])); // WEIGHTS_0, offset 16, 16 bytes
-                                                         // IBM: two identity mat4s, offset 32, 128 bytes
+    for weight in [32_768u16, 32_767, 0, 0] {
+        bin.extend_from_slice(&weight.to_le_bytes());
+    } // WEIGHTS_0 normalized u16x4, offset 16, 8 bytes
+      // IBM: two identity mat4s, offset 24, 128 bytes
     for _ in 0..2 {
         let id = Mat4::IDENTITY;
         bin.extend_from_slice(&f32s(&id.m));
@@ -105,21 +130,29 @@ fn reads_skin_joints_weights_and_ibm() {
       "accessors":[
         {"bufferView":0,"componentType":5126,"count":1,"type":"VEC3"},
         {"bufferView":1,"componentType":5121,"count":1,"type":"VEC4"},
-        {"bufferView":2,"componentType":5126,"count":1,"type":"VEC4"},
+        {"bufferView":2,"componentType":5123,"normalized":true,"count":1,"type":"VEC4"},
         {"bufferView":3,"componentType":5126,"count":2,"type":"MAT4"}
       ],
       "bufferViews":[
         {"buffer":0,"byteOffset":0,"byteLength":12},
         {"buffer":0,"byteOffset":12,"byteLength":4},
-        {"buffer":0,"byteOffset":16,"byteLength":16},
-        {"buffer":0,"byteOffset":32,"byteLength":128}
+        {"buffer":0,"byteOffset":16,"byteLength":8},
+        {"buffer":0,"byteOffset":24,"byteLength":128}
       ],
-      "buffers":[{"byteLength":160}]
+      "buffers":[{"byteLength":152}]
     }"#;
     let doc = parse(&build_glb(json, &bin)).expect("parse");
     let prim = &doc.meshes[0].primitives[0];
     assert_eq!(prim.joints, vec![[0, 1, 0, 0]]);
-    assert_eq!(prim.weights, vec![[0.5, 0.5, 0.0, 0.0]]);
+    assert_eq!(
+        prim.weights,
+        vec![[
+            32_768.0 / 65_535.0,
+            32_767.0 / 65_535.0,
+            0.0,
+            0.0
+        ]]
+    );
     assert_eq!(doc.skins[0].joints, vec![1, 2]);
     assert_eq!(doc.skins[0].inverse_bind.len(), 2);
     assert_eq!(doc.skins[0].inverse_bind[0], Mat4::IDENTITY);
