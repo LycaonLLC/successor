@@ -43,13 +43,17 @@ VIEWS = {"front": 0.0, "side": 270.0, "threequarter": 225.0, "rear": 180.0}
 SKIN = (0.88, 0.63, 0.42, 1.0)
 SUIT = (0.06, 0.42, 0.58, 1.0)
 BOOT = (0.06, 0.06, 0.08, 1.0)
-#: Poses the loadout is shown in: bind, a deep crouch, and the cross-legged sit
-#: the fit gate reports as its worst case.
-#: Both sexes get the same set: a bind reference plus three motions, so the
-#: movement proof is not male-only.
-LOADOUT_POSES = ((None, 0.0, ""), ("walk_f", 0.25, "_walk"),
-                 ("crouch_idle", 0.5, "_crouch"),
-                 ("meditate_loop", 0.5, "_meditate"))
+#: Both sexes get the same bind, locomotion, compact-pose, and hand-critical
+#: weapon motions. `rifle_aim` and `swing_h1` are deliberately included because
+#: a hand graft can look sound in rest pose while exploding under wrist motion.
+LOADOUT_POSES = (
+    (None, 0.0, ""),
+    ("walk_f", 0.25, "_walk"),
+    ("crouch_idle", 0.5, "_crouch"),
+    ("meditate_loop", 0.5, "_meditate"),
+    ("rifle_aim", 0.5, "_rifle_aim"),
+    ("swing_h1", 0.45, "_swing_h1"),
+)
 
 
 def reset() -> None:
