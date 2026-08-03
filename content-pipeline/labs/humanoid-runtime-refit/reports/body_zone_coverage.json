@@ -76,11 +76,11 @@
  "bodies": {
   "male": {
    "path": "client-3d/public/assets/pawn-pack/pawn_male.glb",
-   "sha256": "3595b3717a4d40f6a0a3e593f8722a70bba367a5787226e2d825d5206e658615"
+   "sha256": "a865e80f3fe740c135633c2c03b94afcfb0d10def3756cb7ca43fec5e51e7f9c"
   },
   "female": {
    "path": "client-3d/public/assets/pawn-pack/pawn_female.glb",
-   "sha256": "13c35d3c9fb9aae1f023becbbcddd7225860fb98c08b2af761d1a4f839b451c4"
+   "sha256": "9eb7242ce49fcd7d7afa53a898c35e5b7b5fd0d5d99d7109bfc82e33e4f095e9"
   }
  },
  "items": {
@@ -117,8 +117,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -215,8 +215,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -245,14 +245,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -328,8 +328,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -426,8 +426,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -456,14 +456,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -539,8 +539,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 240.3,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1190.691,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
@@ -637,8 +637,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 207.054,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1066.575,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
@@ -667,14 +667,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -750,9 +750,9 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "exposed_cm2": 1183.149,
+      "area_cm2": 1183.674,
+      "worst_pose": "walk_f@0.25"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -848,9 +848,9 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "exposed_cm2": 1054.205,
+      "area_cm2": 1054.218,
+      "worst_pose": "idle@0"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -878,14 +878,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -961,8 +961,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -1059,8 +1059,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -1089,14 +1089,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -1172,8 +1172,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -1270,8 +1270,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -1300,14 +1300,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -1382,10 +1382,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.01941,
-      "exposed_cm2": 241.484,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.32609,
+      "exposed_cm2": 797.313,
+      "area_cm2": 1183.674,
+      "worst_pose": "walk_f@0.75"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -1480,9 +1480,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.04322,
-      "exposed_cm2": 203.339,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.48551,
+      "exposed_cm2": 551.139,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -1511,14 +1511,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -1593,10 +1593,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.03839,
-      "exposed_cm2": 236.811,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.20183,
+      "exposed_cm2": 944.272,
+      "area_cm2": 1183.674,
+      "worst_pose": "rifle_aim@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -1691,10 +1691,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.05981,
-      "exposed_cm2": 199.812,
-      "area_cm2": 192.188,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.33079,
+      "exposed_cm2": 706.696,
+      "area_cm2": 1054.218,
+      "worst_pose": "kneel_loop@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -1722,14 +1722,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -1779,7 +1779,7 @@
    "slot": "cranium",
    "sha256": "2c71b4be39da29ceed169a31f3e85298e5f88b1997252752ad7a810a35b6f105",
    "glb_female": "Female/Armor/Helmet_C.glb",
-   "glb_female_sha256": "3b7d73ab7a0f3218809661f769a9e1b8742aa48d5e8dddb7308b5c1220e27128",
+   "glb_female_sha256": "fc5108a822700fdcb834ca28c00ee7301d0a0b0859e957a2c17d1fb648a747c3",
    "attached": true,
    "garment_triangles": 692,
    "female_garment_triangles": 692,
@@ -1804,10 +1804,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.07549,
-      "exposed_cm2": 227.674,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.3393,
+      "exposed_cm2": 782.382,
+      "area_cm2": 1183.674,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -1902,9 +1902,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.07222,
-      "exposed_cm2": 197.176,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.48445,
+      "exposed_cm2": 552.282,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -1933,14 +1933,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -2015,10 +2015,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.06545,
-      "exposed_cm2": 230.147,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.29199,
+      "exposed_cm2": 838.4,
+      "area_cm2": 1183.674,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -2113,10 +2113,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.07924,
-      "exposed_cm2": 195.683,
-      "area_cm2": 192.188,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.39071,
+      "exposed_cm2": 643.687,
+      "area_cm2": 1054.218,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -2144,14 +2144,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -2226,10 +2226,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.04636,
-      "exposed_cm2": 234.849,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.21573,
+      "exposed_cm2": 933.828,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -2324,9 +2324,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.07696,
-      "exposed_cm2": 196.168,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.33262,
+      "exposed_cm2": 714.921,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -2355,14 +2355,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -2437,10 +2437,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.04636,
-      "exposed_cm2": 234.849,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.25495,
+      "exposed_cm2": 881.951,
+      "area_cm2": 1183.674,
+      "worst_pose": "run_f@0.7"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -2535,10 +2535,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.07023,
-      "exposed_cm2": 197.599,
-      "area_cm2": 192.188,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.42916,
+      "exposed_cm2": 603.065,
+      "area_cm2": 1054.218,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -2566,14 +2566,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -2648,10 +2648,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.02766,
-      "exposed_cm2": 239.455,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.32264,
+      "exposed_cm2": 801.396,
+      "area_cm2": 1183.674,
+      "worst_pose": "idle@0"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -2746,10 +2746,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.05503,
-      "exposed_cm2": 200.83,
-      "area_cm2": 192.188,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.4795,
+      "exposed_cm2": 549.881,
+      "area_cm2": 1054.218,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -2777,14 +2777,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -2859,10 +2859,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.03097,
-      "exposed_cm2": 238.638,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.28321,
+      "exposed_cm2": 848.495,
+      "area_cm2": 1183.674,
+      "worst_pose": "run_f@0.7"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -2957,10 +2957,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.05263,
-      "exposed_cm2": 201.339,
-      "area_cm2": 192.188,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.36085,
+      "exposed_cm2": 675.228,
+      "area_cm2": 1054.218,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -2988,14 +2988,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -3070,9 +3070,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.10286,
+      "exposed_cm2": 1061.3,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -3168,10 +3168,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.14074,
+      "exposed_cm2": 907.768,
+      "area_cm2": 1054.218,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -3199,14 +3199,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -3295,8 +3295,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 240.3,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1190.691,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
@@ -3393,8 +3393,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 207.054,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1066.575,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
@@ -3423,14 +3423,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -3506,8 +3506,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -3604,8 +3604,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -3634,14 +3634,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -3689,9 +3689,9 @@
    "group": "Hair",
    "layer": "Under",
    "slot": "cranium",
-   "sha256": "20c2a845782b6c9328a1ee66df7a196ce5b0feea8d84ff03438f2fc5116a5b2d",
+   "sha256": "c7f32850960d89a53b2ac4fefbf288c5b8e4fc36527886d585275118b5b21508",
    "glb_female": "Female/Under/Hair_Mop.glb",
-   "glb_female_sha256": "afb73a4c934b8a95e750e54d728726a12e07e8030da86bb6540e8267cc3ffd45",
+   "glb_female_sha256": "221090cd837ff313c6978c7f5ed6d98f5637a0c107195c35709b030ccdba4c8b",
    "attached": true,
    "garment_triangles": 168,
    "female_garment_triangles": 168,
@@ -3716,10 +3716,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.04075,
-      "exposed_cm2": 236.229,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.38921,
+      "exposed_cm2": 722.64,
+      "area_cm2": 1183.674,
+      "worst_pose": "walk_f@0.75"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -3814,9 +3814,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.21412,
-      "exposed_cm2": 167.018,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.55967,
+      "exposed_cm2": 471.702,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -3845,14 +3845,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -3927,10 +3927,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.11259,
-      "exposed_cm2": 218.539,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.08889,
+      "exposed_cm2": 1078.456,
+      "area_cm2": 1183.674,
+      "worst_pose": "death_f@0.6"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -4025,10 +4025,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.13826,
-      "exposed_cm2": 183.14,
-      "area_cm2": 192.188,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.10868,
+      "exposed_cm2": 941.249,
+      "area_cm2": 1054.218,
+      "worst_pose": "kneel_loop@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -4056,14 +4056,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -4111,9 +4111,9 @@
    "group": "Hair",
    "layer": "Under",
    "slot": "cranium",
-   "sha256": "fdee7178658eac192b16ae146674019012c4de488d7e7ee0955802fc5f93ffc3",
+   "sha256": "725bbd31bcffeb041507d5fee1149502af90ed893b0ef8f4850142f9c2d10722",
    "glb_female": "Female/Under/Hair_Crop.glb",
-   "glb_female_sha256": "242b1df5fb30b4c82a032b7f78ec2178391a9268897cc3147ae12c17088ba57e",
+   "glb_female_sha256": "7ef20dc9bfe55e590ff870b87cada16ec5fc8d7a36cea4eaa1c97c365a03dd75",
    "attached": true,
    "garment_triangles": 144,
    "female_garment_triangles": 144,
@@ -4138,9 +4138,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.01219,
-      "exposed_cm2": 243.262,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.4274,
+      "exposed_cm2": 683.674,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -4236,9 +4236,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.10379,
-      "exposed_cm2": 190.467,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.49609,
+      "exposed_cm2": 539.813,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -4267,14 +4267,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -4322,9 +4322,9 @@
    "group": "Underlayer",
    "layer": "Under",
    "slot": "under_full",
-   "sha256": "eacce93ccdc47a3b901bb15006fe9bb4ab5399b043da3b32b2b6b621e0ae1888",
+   "sha256": "24e67fe6ab502546f58a07cb9be24e87880cb2d341f4e2c56488eee37bde2d0b",
    "glb_female": "Female/Under/under_bodysuit.glb",
-   "glb_female_sha256": "f708819b7fcbd620fa634290652dfbe831ffc82b06fba3e73bc2d35729079267",
+   "glb_female_sha256": "a4500baef1a8f9fdab63b472b2b2fc04c31c0ec7a93f84321ae43039e807de75",
    "attached": true,
    "garment_triangles": 1473,
    "female_garment_triangles": 1543,
@@ -4350,8 +4350,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -4385,10 +4385,10 @@
       "worst_pose": "rifle_aim@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.03378,
-      "exposed_cm2": 464.439,
+      "covered_fraction": 0.03362,
+      "exposed_cm2": 464.512,
       "area_cm2": 480.673,
-      "worst_pose": "crouch_walk@0.3"
+      "worst_pose": "rifle_aim@0.5"
      },
      "left_thigh": {
       "covered_fraction": 1.0,
@@ -4448,8 +4448,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -4477,15 +4477,15 @@
       "worst_pose": "bind"
      },
      "left_hand": {
-      "covered_fraction": 0.03351,
-      "exposed_cm2": 464.565,
-      "area_cm2": 480.673,
-      "worst_pose": "crouch_idle@0.5"
+      "covered_fraction": 0.03345,
+      "exposed_cm2": 464.663,
+      "area_cm2": 480.741,
+      "worst_pose": "rifle_aim@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.03373,
-      "exposed_cm2": 464.463,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.03372,
+      "exposed_cm2": 464.53,
+      "area_cm2": 480.741,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_thigh": {
@@ -4571,9 +4571,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.30273,
-      "exposed_cm2": 171.714,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.72845,
+      "exposed_cm2": 324.225,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -4669,9 +4669,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.52469,
-      "exposed_cm2": 101.015,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.79115,
+      "exposed_cm2": 223.734,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -4700,14 +4700,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -4782,9 +4782,9 @@
       "worst_pose": "crouch_walk@0.3"
      },
      "head": {
-      "covered_fraction": 0.53267,
-      "exposed_cm2": 115.086,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.73118,
+      "exposed_cm2": 320.97,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -4880,9 +4880,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.57205,
-      "exposed_cm2": 90.949,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.73715,
+      "exposed_cm2": 281.576,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -4911,14 +4911,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -4993,10 +4993,10 @@
       "worst_pose": "crouch_walk@0.3"
      },
      "head": {
-      "covered_fraction": 0.1974,
-      "exposed_cm2": 179.495,
-      "area_cm2": 224.24,
-      "worst_pose": "meditate_loop@0.5"
+      "covered_fraction": 0.39879,
+      "exposed_cm2": 711.637,
+      "area_cm2": 1183.674,
+      "worst_pose": "death_f@0.6"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -5091,9 +5091,9 @@
       "worst_pose": "crouch_idle@0.5"
      },
      "head": {
-      "covered_fraction": 0.19146,
-      "exposed_cm2": 171.835,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.42655,
+      "exposed_cm2": 614.305,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -5122,14 +5122,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -5204,9 +5204,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.30888,
-      "exposed_cm2": 170.2,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.34545,
+      "exposed_cm2": 781.518,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -5302,9 +5302,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.32549,
-      "exposed_cm2": 143.35,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.36088,
+      "exposed_cm2": 684.653,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -5333,14 +5333,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -5415,9 +5415,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.20174,
-      "exposed_cm2": 196.584,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.28038,
+      "exposed_cm2": 859.21,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -5513,10 +5513,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.18884,
-      "exposed_cm2": 172.391,
-      "area_cm2": 192.188,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.26261,
+      "exposed_cm2": 777.143,
+      "area_cm2": 1054.218,
+      "worst_pose": "bind"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -5544,14 +5544,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -5626,10 +5626,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.3697,
-      "exposed_cm2": 155.221,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.17104,
+      "exposed_cm2": 987.031,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -5724,9 +5724,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.39416,
-      "exposed_cm2": 128.756,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.1702,
+      "exposed_cm2": 888.919,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -5755,14 +5755,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -5837,10 +5837,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.02696,
-      "exposed_cm2": 239.627,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.05126,
+      "exposed_cm2": 1123.002,
+      "area_cm2": 1183.674,
+      "worst_pose": "death_f@0.6"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -5935,10 +5935,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.12271,
-      "exposed_cm2": 186.446,
-      "area_cm2": 192.188,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.07836,
+      "exposed_cm2": 972.807,
+      "area_cm2": 1054.218,
+      "worst_pose": "run_f@0.2"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -5966,14 +5966,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -6049,8 +6049,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -6147,8 +6147,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -6177,14 +6177,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -6260,8 +6260,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -6358,8 +6358,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -6388,14 +6388,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -6471,8 +6471,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -6569,8 +6569,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -6599,14 +6599,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -6682,8 +6682,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -6780,8 +6780,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -6810,14 +6810,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -6893,8 +6893,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -6991,8 +6991,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -7021,14 +7021,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -7103,10 +7103,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.00167,
-      "exposed_cm2": 245.855,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.3307,
+      "exposed_cm2": 796.933,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -7201,9 +7201,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.00917,
-      "exposed_cm2": 210.575,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.36649,
+      "exposed_cm2": 678.643,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -7232,14 +7232,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -7314,10 +7314,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.15606,
+      "exposed_cm2": 1004.866,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -7412,10 +7412,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.18296,
+      "exposed_cm2": 875.248,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -7443,14 +7443,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -7525,10 +7525,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.2527,
+      "exposed_cm2": 889.802,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -7623,10 +7623,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.35005,
+      "exposed_cm2": 693.223,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -7654,14 +7654,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -7736,9 +7736,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.02741,
-      "exposed_cm2": 239.514,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.16511,
+      "exposed_cm2": 996.836,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -7834,9 +7834,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.06629,
-      "exposed_cm2": 198.436,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.20841,
+      "exposed_cm2": 847.978,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -7865,14 +7865,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -7948,9 +7948,9 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "exposed_cm2": 1183.11,
+      "area_cm2": 1183.674,
+      "worst_pose": "idle@0"
      },
      "left_upper_arm": {
       "covered_fraction": 0.63834,
@@ -7983,8 +7983,8 @@
       "worst_pose": "melee_turn_180@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.04261,
-      "exposed_cm2": 460.192,
+      "covered_fraction": 0.04296,
+      "exposed_cm2": 460.024,
       "area_cm2": 480.673,
       "worst_pose": "run_f@0.7"
      },
@@ -8046,9 +8046,9 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "exposed_cm2": 1054.205,
+      "area_cm2": 1054.218,
+      "worst_pose": "idle@0"
      },
      "left_upper_arm": {
       "covered_fraction": 0.61044,
@@ -8075,15 +8075,15 @@
       "worst_pose": "swing_thrust@0.5"
      },
      "left_hand": {
-      "covered_fraction": 0.05554,
-      "exposed_cm2": 453.977,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.0559,
+      "exposed_cm2": 453.871,
+      "area_cm2": 480.741,
       "worst_pose": "rifle_aim@0.5"
      },
      "right_hand": {
       "covered_fraction": 0.03275,
-      "exposed_cm2": 464.931,
-      "area_cm2": 480.673,
+      "exposed_cm2": 464.997,
+      "area_cm2": 480.741,
       "worst_pose": "run_f@0.7"
      },
      "left_thigh": {
@@ -8159,8 +8159,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -8257,8 +8257,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -8287,14 +8287,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -8370,8 +8370,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -8468,8 +8468,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -8498,14 +8498,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -8581,8 +8581,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -8679,8 +8679,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -8709,14 +8709,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -8792,8 +8792,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -8890,8 +8890,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -8920,14 +8920,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -9003,8 +9003,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -9101,8 +9101,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -9131,14 +9131,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -9214,8 +9214,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -9312,8 +9312,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -9342,14 +9342,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -9425,8 +9425,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -9523,8 +9523,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -9553,14 +9553,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -9636,8 +9636,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -9734,8 +9734,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -9764,14 +9764,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -9847,8 +9847,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -9945,8 +9945,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -9975,14 +9975,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -10058,8 +10058,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -10156,8 +10156,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -10186,14 +10186,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -10269,8 +10269,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -10367,8 +10367,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -10397,14 +10397,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -10480,8 +10480,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -10578,8 +10578,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -10608,14 +10608,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -10691,8 +10691,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -10789,8 +10789,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -10819,14 +10819,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -10902,8 +10902,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -11000,8 +11000,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -11030,14 +11030,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -11113,8 +11113,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -11211,8 +11211,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -11241,14 +11241,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -11324,8 +11324,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -11422,8 +11422,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -11452,14 +11452,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -11535,8 +11535,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -11633,8 +11633,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -11663,14 +11663,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -11746,8 +11746,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -11844,8 +11844,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -11874,14 +11874,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -11957,8 +11957,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -12055,8 +12055,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -12085,14 +12085,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -12140,9 +12140,9 @@
    "group": "Footwear",
    "layer": "Under",
    "slot": "under_feet",
-   "sha256": "3958b4599d46f8d3f3e3b20dcc60bf944c6f990ad25cb091ad41b41d1a99cf50",
+   "sha256": "5980ff35c965522e2e88a03b63abdea9a75f49982c5e90fbd4a6c54f3f461cd6",
    "glb_female": "Female/Under/boots_canvas_ankle.glb",
-   "glb_female_sha256": "dea382ca1f4b521c42c0e29e29ea78e29abeb44b2fbf5e626860f414daccf02b",
+   "glb_female_sha256": "24fb7c94ad564ded849884cb8e750e9898e85a8703a86012369404c845e93a51",
    "attached": true,
    "garment_triangles": 304,
    "female_garment_triangles": 354,
@@ -12168,8 +12168,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -12266,8 +12266,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -12296,14 +12296,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -12382,8 +12382,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -12480,8 +12480,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -12510,14 +12510,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -12593,8 +12593,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -12691,8 +12691,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -12721,14 +12721,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -12804,8 +12804,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -12902,8 +12902,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -12932,14 +12932,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -13015,8 +13015,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -13113,8 +13113,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -13143,14 +13143,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -13200,7 +13200,7 @@
    "slot": "under_feet",
    "sha256": "1297f17fa95fead6c099a72de7f8a4512c1c883959ee8149acacdf35e1787ee4",
    "glb_female": "Female/Under/boots_rubberized_canvas.glb",
-   "glb_female_sha256": "41a707dd9c640e000c31a231366ef56f8410113da71234bcafd72128f6889a34",
+   "glb_female_sha256": "0245dc1cef9e6587a63e3216092bacec37e8339e93cfb898d83f7d51a12c667b",
    "attached": true,
    "garment_triangles": 1084,
    "female_garment_triangles": 1084,
@@ -13226,8 +13226,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -13324,8 +13324,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -13354,14 +13354,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -13437,8 +13437,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -13535,8 +13535,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -13565,14 +13565,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -13648,8 +13648,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -13746,8 +13746,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -13776,14 +13776,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -13859,8 +13859,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -13957,8 +13957,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -13987,14 +13987,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -14070,8 +14070,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -14168,8 +14168,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -14198,14 +14198,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -14253,9 +14253,9 @@
    "group": "Gloves",
    "layer": "Under",
    "slot": "under_hands",
-   "sha256": "9d4a3db654152a7358b48c458f5a5e112798d603341a21ddd81954ca0a58c7cc",
+   "sha256": "fd60ddaf6f51b96f820b394460c4afed179f90a5143f0d7b0e68a8d2e1fc4437",
    "glb_female": "Female/Under/gloves_knuckled_half.glb",
-   "glb_female_sha256": "b1bf09e01a56032293fc4410710e459af3dbcfd9d62dddd0d9474e42ba1a600f",
+   "glb_female_sha256": "82dc4642a2007d8dcd2c275cbf165ed8ffc0f94cfecf987850bed12cb5bbcebd",
    "attached": true,
    "garment_triangles": 422,
    "female_garment_triangles": 422,
@@ -14281,8 +14281,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -14298,26 +14298,26 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.00314,
-      "exposed_cm2": 517.257,
+      "covered_fraction": 0.00068,
+      "exposed_cm2": 518.534,
       "area_cm2": 516.688,
       "worst_pose": "bind"
      },
      "right_forearm": {
-      "covered_fraction": 0.00186,
-      "exposed_cm2": 517.926,
+      "covered_fraction": 0.00082,
+      "exposed_cm2": 518.462,
       "area_cm2": 511.829,
       "worst_pose": "bind"
      },
      "left_hand": {
-      "covered_fraction": 0.29044,
-      "exposed_cm2": 341.064,
+      "covered_fraction": 0.26587,
+      "exposed_cm2": 352.877,
       "area_cm2": 480.673,
       "worst_pose": "crouch_idle@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.25793,
-      "exposed_cm2": 356.693,
+      "covered_fraction": 0.24662,
+      "exposed_cm2": 362.13,
       "area_cm2": 480.673,
       "worst_pose": "kneel_loop@0.5"
      },
@@ -14379,8 +14379,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -14396,27 +14396,27 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.00225,
-      "exposed_cm2": 476.3,
+      "covered_fraction": 0.00074,
+      "exposed_cm2": 477.018,
       "area_cm2": 455.29,
       "worst_pose": "bind"
      },
      "right_forearm": {
-      "covered_fraction": 0.00225,
-      "exposed_cm2": 476.3,
+      "covered_fraction": 0.00089,
+      "exposed_cm2": 476.946,
       "area_cm2": 466.982,
       "worst_pose": "bind"
      },
      "left_hand": {
-      "covered_fraction": 0.27773,
-      "exposed_cm2": 347.175,
-      "area_cm2": 480.673,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.26581,
+      "exposed_cm2": 352.955,
+      "area_cm2": 480.741,
+      "worst_pose": "crouch_idle@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.26811,
-      "exposed_cm2": 351.798,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.24661,
+      "exposed_cm2": 362.187,
+      "area_cm2": 480.741,
       "worst_pose": "kneel_loop@0.5"
      },
      "left_thigh": {
@@ -14464,9 +14464,9 @@
    "group": "Gloves",
    "layer": "Under",
    "slot": "under_hands",
-   "sha256": "849fff2d1dfe53bfd45f8c27bdaca3dac71192db2c56ae6940996cfc66619581",
+   "sha256": "b30715b22e2931cb8f22eb060c12f17ee39311b4d94729ec46cdae8c2bc2dbf4",
    "glb_female": "Female/Under/gloves_guarded_leather.glb",
-   "glb_female_sha256": "fa821c573b2c4d48be6ce7f9a10f23f4b611d9b61652936117a66aa4a275637b",
+   "glb_female_sha256": "4f7cfca859f4da855dca1d85eea37f19386e60c9d6cd4295a4540d35e9e0db5d",
    "attached": true,
    "garment_triangles": 940,
    "female_garment_triangles": 940,
@@ -14492,8 +14492,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -14515,20 +14515,20 @@
       "worst_pose": "rifle_aim@0.5"
      },
      "right_forearm": {
-      "covered_fraction": 0.06588,
-      "exposed_cm2": 498.782,
+      "covered_fraction": 0.06599,
+      "exposed_cm2": 498.722,
       "area_cm2": 511.829,
       "worst_pose": "run_f@0.7"
      },
      "left_hand": {
-      "covered_fraction": 0.87802,
-      "exposed_cm2": 58.631,
+      "covered_fraction": 0.87198,
+      "exposed_cm2": 61.538,
       "area_cm2": 480.673,
       "worst_pose": "meditate_loop@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.87035,
-      "exposed_cm2": 62.32,
+      "covered_fraction": 0.8665,
+      "exposed_cm2": 64.169,
       "area_cm2": 480.673,
       "worst_pose": "meditate_loop@0.5"
      },
@@ -14590,8 +14590,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -14607,8 +14607,8 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.06563,
-      "exposed_cm2": 425.014,
+      "covered_fraction": 0.06565,
+      "exposed_cm2": 425.006,
       "area_cm2": 455.29,
       "worst_pose": "rifle_aim@0.5"
      },
@@ -14619,15 +14619,15 @@
       "worst_pose": "death_f@0.6"
      },
      "left_hand": {
-      "covered_fraction": 0.88419,
-      "exposed_cm2": 55.666,
-      "area_cm2": 480.673,
-      "worst_pose": "meditate_loop@0.5"
+      "covered_fraction": 0.87194,
+      "exposed_cm2": 61.564,
+      "area_cm2": 480.741,
+      "worst_pose": "bind"
      },
      "right_hand": {
-      "covered_fraction": 0.87212,
-      "exposed_cm2": 61.467,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.86836,
+      "exposed_cm2": 63.284,
+      "area_cm2": 480.741,
       "worst_pose": "meditate_loop@0.5"
      },
      "left_thigh": {
@@ -14675,9 +14675,9 @@
    "group": "Gloves",
    "layer": "Under",
    "slot": "under_hands",
-   "sha256": "bd3dffe9a57613662d4a2c075e7266978d16fe49f32b1fac9d8dbe526f3f2189",
+   "sha256": "16db1c2c83a7965a179fbebe1ccf36d7dbac02a83bc55ee41bfa0e8cc6cf89b9",
    "glb_female": "Female/Under/gloves_plain_work.glb",
-   "glb_female_sha256": "9dc8633584693c6b51732a000c79929a629decaff895ed1a92ca22fe34b94ee7",
+   "glb_female_sha256": "816b28bb67f4b65cdf0727b99930902764014a96b30f655b44818fd1900d964d",
    "attached": true,
    "garment_triangles": 472,
    "female_garment_triangles": 472,
@@ -14703,8 +14703,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -14720,26 +14720,26 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.03677,
-      "exposed_cm2": 499.807,
+      "covered_fraction": 0.03672,
+      "exposed_cm2": 499.836,
       "area_cm2": 516.688,
       "worst_pose": "bind"
      },
      "right_forearm": {
-      "covered_fraction": 0.03834,
-      "exposed_cm2": 491.952,
+      "covered_fraction": 0.03809,
+      "exposed_cm2": 492.082,
       "area_cm2": 511.829,
       "worst_pose": "meditate_loop@0.5"
      },
      "left_hand": {
-      "covered_fraction": 0.50943,
-      "exposed_cm2": 235.802,
+      "covered_fraction": 0.50894,
+      "exposed_cm2": 236.038,
       "area_cm2": 480.673,
       "worst_pose": "kneel_loop@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.31737,
-      "exposed_cm2": 328.121,
+      "covered_fraction": 0.34142,
+      "exposed_cm2": 316.561,
       "area_cm2": 480.673,
       "worst_pose": "meditate_loop@0.5"
      },
@@ -14801,8 +14801,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -14818,27 +14818,27 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.03765,
-      "exposed_cm2": 459.399,
+      "covered_fraction": 0.0374,
+      "exposed_cm2": 459.518,
       "area_cm2": 455.29,
       "worst_pose": "bind"
      },
      "right_forearm": {
-      "covered_fraction": 0.04487,
-      "exposed_cm2": 455.951,
+      "covered_fraction": 0.04462,
+      "exposed_cm2": 456.07,
       "area_cm2": 466.982,
       "worst_pose": "bind"
      },
      "left_hand": {
-      "covered_fraction": 0.51146,
-      "exposed_cm2": 234.83,
-      "area_cm2": 480.673,
-      "worst_pose": "bind"
+      "covered_fraction": 0.50891,
+      "exposed_cm2": 236.087,
+      "area_cm2": 480.741,
+      "worst_pose": "kneel_loop@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.34128,
-      "exposed_cm2": 316.627,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.34032,
+      "exposed_cm2": 317.135,
+      "area_cm2": 480.741,
       "worst_pose": "meditate_loop@0.5"
      },
      "left_thigh": {
@@ -14886,7 +14886,7 @@
    "group": "Gloves",
    "layer": "Under",
    "slot": "under_hands",
-   "sha256": "794adae814c113466b884f87feb37e51f20477459bdf7cd530a0fe50cf0d793b",
+   "sha256": "bbf327d07de9d39024964404a3f03c95c18baaa02c350f1aecf82b91bc40dd38",
    "glb_female": "Female/Under/gloves_reinforced_knit.glb",
    "glb_female_sha256": "af10354463c35504d5155e4480346c7b0de2708912c00a55874c038041815476",
    "attached": true,
@@ -14914,8 +14914,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -14931,26 +14931,26 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.00068,
-      "exposed_cm2": 518.534,
+      "covered_fraction": 0.0007,
+      "exposed_cm2": 518.525,
       "area_cm2": 516.688,
       "worst_pose": "bind"
      },
      "right_forearm": {
-      "covered_fraction": 0.00068,
-      "exposed_cm2": 518.536,
+      "covered_fraction": 0.00047,
+      "exposed_cm2": 518.644,
       "area_cm2": 511.829,
       "worst_pose": "bind"
      },
      "left_hand": {
-      "covered_fraction": 0.22198,
-      "exposed_cm2": 373.975,
+      "covered_fraction": 0.21183,
+      "exposed_cm2": 378.851,
       "area_cm2": 480.673,
       "worst_pose": "kneel_loop@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.25761,
-      "exposed_cm2": 356.847,
+      "covered_fraction": 0.24516,
+      "exposed_cm2": 362.832,
       "area_cm2": 480.673,
       "worst_pose": "kneel_loop@0.5"
      },
@@ -15012,8 +15012,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -15041,15 +15041,15 @@
       "worst_pose": "bind"
      },
      "left_hand": {
-      "covered_fraction": 0.21375,
-      "exposed_cm2": 377.927,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.22338,
+      "exposed_cm2": 373.353,
+      "area_cm2": 480.741,
       "worst_pose": "kneel_loop@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.24987,
-      "exposed_cm2": 360.567,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.24986,
+      "exposed_cm2": 360.623,
+      "area_cm2": 480.741,
       "worst_pose": "kneel_loop@0.5"
      },
      "left_thigh": {
@@ -15097,9 +15097,9 @@
    "group": "Gloves",
    "layer": "Under",
    "slot": "under_hands",
-   "sha256": "814dffc269cdc35f47942eb5517fc9116c388fe7dcb0a4613274535f81f1b25a",
+   "sha256": "1d266af174b0dcae56cfafef9a11901b4cf233496474ef6e6877d9b2eef13218",
    "glb_female": "Female/Under/gloves_light_utility.glb",
-   "glb_female_sha256": "78e12c9650b584b9d367c66cbbfe4a764fd9c8a0f8a9525bf18e3cbbfe0cd9b7",
+   "glb_female_sha256": "d8c13d15cb2ddad823f87b952c855b07151bc256fc2f36c2dd0025dff5737de1",
    "attached": true,
    "garment_triangles": 606,
    "female_garment_triangles": 606,
@@ -15125,8 +15125,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -15142,26 +15142,26 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.03753,
-      "exposed_cm2": 499.413,
+      "covered_fraction": 0.03769,
+      "exposed_cm2": 499.329,
       "area_cm2": 516.688,
       "worst_pose": "bind"
      },
      "right_forearm": {
-      "covered_fraction": 0.02499,
-      "exposed_cm2": 498.852,
+      "covered_fraction": 0.02494,
+      "exposed_cm2": 498.879,
       "area_cm2": 511.829,
       "worst_pose": "melee_turn_180@0.5"
      },
      "left_hand": {
-      "covered_fraction": 0.87986,
-      "exposed_cm2": 57.75,
+      "covered_fraction": 0.87771,
+      "exposed_cm2": 58.78,
       "area_cm2": 480.673,
       "worst_pose": "kneel_loop@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.88502,
-      "exposed_cm2": 55.267,
+      "covered_fraction": 0.87622,
+      "exposed_cm2": 59.5,
       "area_cm2": 480.673,
       "worst_pose": "meditate_loop@0.5"
      },
@@ -15223,8 +15223,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -15240,27 +15240,27 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.03987,
-      "exposed_cm2": 458.338,
+      "covered_fraction": 0.03955,
+      "exposed_cm2": 458.49,
       "area_cm2": 455.29,
       "worst_pose": "bind"
      },
      "right_forearm": {
-      "covered_fraction": 0.02729,
-      "exposed_cm2": 464.345,
+      "covered_fraction": 0.02692,
+      "exposed_cm2": 461.399,
       "area_cm2": 466.982,
-      "worst_pose": "bind"
+      "worst_pose": "walk_f@0.75"
      },
      "left_hand": {
-      "covered_fraction": 0.88889,
-      "exposed_cm2": 53.41,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.87764,
+      "exposed_cm2": 58.822,
+      "area_cm2": 480.741,
       "worst_pose": "kneel_loop@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.88599,
-      "exposed_cm2": 54.802,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.87655,
+      "exposed_cm2": 59.349,
+      "area_cm2": 480.741,
       "worst_pose": "meditate_loop@0.5"
      },
      "left_thigh": {
@@ -15308,9 +15308,9 @@
    "group": "Gloves",
    "layer": "Under",
    "slot": "under_hands",
-   "sha256": "501b14d10e879219564fdedcf0dfdc016486c1cd1f9a8295b7c84612616098a9",
+   "sha256": "042a2c177295afce9d1ae322a54bfc2567846975013840adf69bd66e61e2a803",
    "glb_female": "Female/Under/gloves_tipped_work.glb",
-   "glb_female_sha256": "a3f64f032c2504f7c42a187ed571bdca4e7a2a3092805578061892ea87594e2f",
+   "glb_female_sha256": "666cf7dbd00905e1143b3e49f368c55317fbb6b8fc087af70d1a167f0a3d891d",
    "attached": true,
    "garment_triangles": 1164,
    "female_garment_triangles": 1164,
@@ -15336,8 +15336,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -15353,26 +15353,26 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.07107,
-      "exposed_cm2": 483.926,
+      "covered_fraction": 0.0714,
+      "exposed_cm2": 482.138,
       "area_cm2": 516.688,
-      "worst_pose": "walk_f@0.75"
+      "worst_pose": "crouch_idle@0.5"
      },
      "right_forearm": {
-      "covered_fraction": 0.07759,
-      "exposed_cm2": 472.114,
+      "covered_fraction": 0.0778,
+      "exposed_cm2": 472.008,
       "area_cm2": 511.829,
       "worst_pose": "death_f@0.6"
      },
      "left_hand": {
-      "covered_fraction": 0.87474,
-      "exposed_cm2": 60.209,
+      "covered_fraction": 0.87222,
+      "exposed_cm2": 61.421,
       "area_cm2": 480.673,
       "worst_pose": "kneel_loop@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.89033,
-      "exposed_cm2": 52.713,
+      "covered_fraction": 0.877,
+      "exposed_cm2": 59.124,
       "area_cm2": 480.673,
       "worst_pose": "meditate_loop@0.5"
      },
@@ -15434,8 +15434,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -15451,8 +15451,8 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.06604,
-      "exposed_cm2": 422.059,
+      "covered_fraction": 0.06555,
+      "exposed_cm2": 422.278,
       "area_cm2": 455.29,
       "worst_pose": "meditate_loop@0.5"
      },
@@ -15463,15 +15463,15 @@
       "worst_pose": "meditate_loop@0.5"
      },
      "left_hand": {
-      "covered_fraction": 0.87074,
-      "exposed_cm2": 62.134,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.87228,
+      "exposed_cm2": 61.401,
+      "area_cm2": 480.741,
       "worst_pose": "kneel_loop@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.88103,
-      "exposed_cm2": 57.186,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.87689,
+      "exposed_cm2": 59.183,
+      "area_cm2": 480.741,
       "worst_pose": "meditate_loop@0.5"
      },
      "left_thigh": {
@@ -15519,9 +15519,9 @@
    "group": "Gloves",
    "layer": "Under",
    "slot": "under_hands",
-   "sha256": "0232f072251e358dbd3ad630d16411eb8583cc4401c82f8809481cdd95932ac6",
+   "sha256": "64cce264f147acfc00f79de986176a811898ce7c4e018b30ee0fe19751cd4fff",
    "glb_female": "Female/Under/gloves_plated_handwraps.glb",
-   "glb_female_sha256": "8c288ddb69fa85192fb181560dbe9453765d903574fcb0a33422e84b89cae2b5",
+   "glb_female_sha256": "b99b16c3f6366fd0212396254ef7b7759e989b0cef8203ebadb1e53837deacae",
    "attached": true,
    "garment_triangles": 712,
    "female_garment_triangles": 712,
@@ -15547,8 +15547,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
+      "exposed_cm2": 1182.986,
+      "area_cm2": 1183.674,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -15564,28 +15564,28 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.02925,
-      "exposed_cm2": 503.713,
+      "covered_fraction": 0.02734,
+      "exposed_cm2": 504.701,
       "area_cm2": 516.688,
       "worst_pose": "bind"
      },
      "right_forearm": {
-      "covered_fraction": 0.03121,
-      "exposed_cm2": 517.295,
+      "covered_fraction": 0.03085,
+      "exposed_cm2": 517.485,
       "area_cm2": 511.829,
       "worst_pose": "run_f@0.7"
      },
      "left_hand": {
-      "covered_fraction": 0.19129,
-      "exposed_cm2": 388.725,
+      "covered_fraction": 0.14143,
+      "exposed_cm2": 412.69,
       "area_cm2": 480.673,
-      "worst_pose": "crouch_walk@0.3"
+      "worst_pose": "melee_ready@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.17136,
-      "exposed_cm2": 398.308,
+      "covered_fraction": 0.14933,
+      "exposed_cm2": 408.897,
       "area_cm2": 480.673,
-      "worst_pose": "rifle_aim@0.5"
+      "worst_pose": "run_f@0.2"
      },
      "left_thigh": {
       "covered_fraction": 0.0,
@@ -15645,8 +15645,8 @@
      },
      "head": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
+      "exposed_cm2": 1053.916,
+      "area_cm2": 1054.218,
       "worst_pose": "bind"
      },
      "left_upper_arm": {
@@ -15662,27 +15662,27 @@
       "worst_pose": "bind"
      },
      "left_forearm": {
-      "covered_fraction": 0.03378,
-      "exposed_cm2": 461.246,
+      "covered_fraction": 0.02896,
+      "exposed_cm2": 463.546,
       "area_cm2": 455.29,
       "worst_pose": "bind"
      },
      "right_forearm": {
-      "covered_fraction": 0.03211,
-      "exposed_cm2": 458.94,
+      "covered_fraction": 0.03205,
+      "exposed_cm2": 458.97,
       "area_cm2": 466.982,
       "worst_pose": "walk_f@0.75"
      },
      "left_hand": {
-      "covered_fraction": 0.17117,
-      "exposed_cm2": 398.395,
-      "area_cm2": 480.673,
-      "worst_pose": "swing_h1@0.4"
+      "covered_fraction": 0.14109,
+      "exposed_cm2": 412.915,
+      "area_cm2": 480.741,
+      "worst_pose": "melee_ready@0.5"
      },
      "right_hand": {
-      "covered_fraction": 0.15285,
-      "exposed_cm2": 407.201,
-      "area_cm2": 480.673,
+      "covered_fraction": 0.14266,
+      "exposed_cm2": 412.161,
+      "area_cm2": 480.741,
       "worst_pose": "run_f@0.7"
      },
      "left_thigh": {
@@ -15757,10 +15757,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.11735,
+      "exposed_cm2": 1053.857,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -15855,10 +15855,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.13468,
+      "exposed_cm2": 926.961,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -15886,14 +15886,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -15968,10 +15968,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.15804,
+      "exposed_cm2": 1005.273,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -16066,10 +16066,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.17776,
+      "exposed_cm2": 880.812,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -16097,14 +16097,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -16179,9 +16179,9 @@
       "worst_pose": "crouch_idle@0.5"
      },
      "head": {
-      "covered_fraction": 0.03249,
-      "exposed_cm2": 238.265,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.44876,
+      "exposed_cm2": 658.165,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -16277,9 +16277,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0651,
-      "exposed_cm2": 198.689,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.49165,
+      "exposed_cm2": 544.561,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -16308,14 +16308,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -16390,10 +16390,10 @@
       "worst_pose": "run_f@0.7"
      },
      "head": {
-      "covered_fraction": 0.07802,
-      "exposed_cm2": 227.052,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.21166,
+      "exposed_cm2": 933.526,
+      "area_cm2": 1183.674,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -16488,10 +16488,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.10999,
-      "exposed_cm2": 189.148,
-      "area_cm2": 192.188,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.21473,
+      "exposed_cm2": 837.553,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -16519,14 +16519,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -16601,10 +16601,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.22937,
+      "exposed_cm2": 920.108,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -16699,9 +16699,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.00673,
-      "exposed_cm2": 211.093,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.25832,
+      "exposed_cm2": 794.514,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -16730,14 +16730,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -16812,10 +16812,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.12576,
+      "exposed_cm2": 1035.242,
+      "area_cm2": 1183.674,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -16910,10 +16910,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.15471,
+      "exposed_cm2": 901.563,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -16941,14 +16941,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -17023,10 +17023,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.08998,
+      "exposed_cm2": 1083.547,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -17121,10 +17121,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.10592,
+      "exposed_cm2": 944.551,
+      "area_cm2": 1054.218,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -17152,14 +17152,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -17234,10 +17234,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.10716,
+      "exposed_cm2": 1056.9,
+      "area_cm2": 1183.674,
+      "worst_pose": "run_f@0.7"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -17332,10 +17332,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.11723,
+      "exposed_cm2": 941.539,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -17363,14 +17363,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -17445,10 +17445,10 @@
       "worst_pose": "melee_turn_180@0.5"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.33899,
+      "exposed_cm2": 789.233,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -17543,10 +17543,10 @@
       "worst_pose": "crouch_idle@0.5"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.36704,
+      "exposed_cm2": 678.049,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -17574,14 +17574,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -17656,10 +17656,10 @@
       "worst_pose": "run_f@0.2"
      },
      "head": {
-      "covered_fraction": 0.07093,
-      "exposed_cm2": 228.798,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.29579,
+      "exposed_cm2": 833.897,
+      "area_cm2": 1183.674,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -17754,10 +17754,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.10314,
-      "exposed_cm2": 190.605,
-      "area_cm2": 192.188,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.35278,
+      "exposed_cm2": 683.481,
+      "area_cm2": 1054.218,
+      "worst_pose": "kneel_loop@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -17785,14 +17785,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -17867,10 +17867,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.11779,
+      "exposed_cm2": 1044.291,
+      "area_cm2": 1183.674,
+      "worst_pose": "run_f@0.2"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -17965,10 +17965,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.13762,
+      "exposed_cm2": 923.812,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -17996,14 +17996,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -18078,10 +18078,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.16637,
+      "exposed_cm2": 987.157,
+      "area_cm2": 1183.674,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -18176,10 +18176,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.1999,
+      "exposed_cm2": 857.097,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -18207,14 +18207,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -18289,10 +18289,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.01474,
-      "exposed_cm2": 242.636,
-      "area_cm2": 224.24,
-      "worst_pose": "crouch_walk@0.3"
+      "covered_fraction": 0.43437,
+      "exposed_cm2": 673.491,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_idle@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -18387,9 +18387,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.02067,
-      "exposed_cm2": 208.132,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.46391,
+      "exposed_cm2": 574.278,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -18418,14 +18418,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -18500,10 +18500,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.15006,
+      "exposed_cm2": 1014.805,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -18598,10 +18598,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.15801,
+      "exposed_cm2": 901.978,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -18629,14 +18629,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -18711,9 +18711,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.01419,
-      "exposed_cm2": 242.772,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.43557,
+      "exposed_cm2": 673.919,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -18809,9 +18809,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.016,
-      "exposed_cm2": 209.124,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.47822,
+      "exposed_cm2": 558.947,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -18840,14 +18840,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -18922,10 +18922,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.44902,
+      "exposed_cm2": 652.45,
+      "area_cm2": 1183.674,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -19020,10 +19020,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.46952,
+      "exposed_cm2": 568.267,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -19051,14 +19051,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -19133,10 +19133,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.26239,
+      "exposed_cm2": 873.446,
+      "area_cm2": 1183.674,
+      "worst_pose": "melee_turn_180@0.5"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -19231,10 +19231,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.29794,
+      "exposed_cm2": 752.079,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -19262,14 +19262,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -19344,10 +19344,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.38333,
+      "exposed_cm2": 736.29,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -19442,10 +19442,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.43175,
+      "exposed_cm2": 608.728,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -19473,14 +19473,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -19555,10 +19555,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.37319,
+      "exposed_cm2": 748.391,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -19653,10 +19653,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.41072,
+      "exposed_cm2": 631.259,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -19684,14 +19684,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -19766,10 +19766,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.4016,
+      "exposed_cm2": 714.478,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -19864,10 +19864,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.45399,
+      "exposed_cm2": 584.907,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -19895,14 +19895,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -19977,9 +19977,9 @@
       "worst_pose": "crouch_walk@0.3"
      },
      "head": {
-      "covered_fraction": 0.03106,
-      "exposed_cm2": 238.616,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.52295,
+      "exposed_cm2": 569.582,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -20075,9 +20075,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.08641,
-      "exposed_cm2": 194.16,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.56053,
+      "exposed_cm2": 470.775,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -20106,14 +20106,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -20188,9 +20188,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.06406,
-      "exposed_cm2": 230.489,
-      "area_cm2": 224.24,
+      "covered_fraction": 0.26697,
+      "exposed_cm2": 875.213,
+      "area_cm2": 1183.674,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -20286,9 +20286,9 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.07642,
-      "exposed_cm2": 196.283,
-      "area_cm2": 192.188,
+      "covered_fraction": 0.30085,
+      "exposed_cm2": 748.957,
+      "area_cm2": 1054.218,
       "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
@@ -20317,14 +20317,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -20399,10 +20399,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.27779,
+      "exposed_cm2": 862.302,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -20497,10 +20497,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.31747,
+      "exposed_cm2": 731.155,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -20528,14 +20528,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {
@@ -20610,10 +20610,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 224.464,
-      "area_cm2": 224.24,
-      "worst_pose": "bind"
+      "covered_fraction": 0.11381,
+      "exposed_cm2": 1058.09,
+      "area_cm2": 1183.674,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -20708,10 +20708,10 @@
       "worst_pose": "bind"
      },
      "head": {
-      "covered_fraction": 0.0,
-      "exposed_cm2": 192.024,
-      "area_cm2": 192.188,
-      "worst_pose": "bind"
+      "covered_fraction": 0.12692,
+      "exposed_cm2": 935.281,
+      "area_cm2": 1054.218,
+      "worst_pose": "crouch_walk@0.3"
      },
      "left_upper_arm": {
       "covered_fraction": 0.0,
@@ -20739,14 +20739,14 @@
      },
      "left_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "right_hand": {
       "covered_fraction": 0.0,
-      "exposed_cm2": 480.673,
-      "area_cm2": 480.673,
+      "exposed_cm2": 480.741,
+      "area_cm2": 480.741,
       "worst_pose": "bind"
      },
      "left_thigh": {

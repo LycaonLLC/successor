@@ -19,6 +19,7 @@ LAB_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, LAB_DIR)
 
 import body_zones as BZ  # noqa: E402
+import canonical_hands as HANDS  # noqa: E402
 import refit_config as CFG  # noqa: E402
 
 GENERATOR = "successor content-pipeline/labs/humanoid-runtime-refit/write_provenance.py"
@@ -44,6 +45,16 @@ def main() -> None:
     for body_id in ("male", "female"):
         entry = promotion[body_id]
         checks = verification["bodies"][body_id]
+        zones = json.loads(json.dumps(entry["zone_segmentation"]["zones"]))
+        for primitive in entry["primitives"]:
+            zone = primitive.get("zone")
+            if zone in HANDS.HAND_ZONES:
+                zones[zone].update({
+                    "vertices": primitive["vertices"],
+                    "triangles": primitive["triangles"],
+                    "area_cm2": primitive["area_cm2"],
+                    "geometry_source": primitive["geometry_source"],
+                })
         targets = [(body_id, CFG.RUNTIME_BODY[body_id], None)]
         for alias in CFG.RUNTIME_BODY_ALIAS[body_id]:
             targets.append((f"{body_id}_bare", alias, CFG.RUNTIME_BODY[body_id]))
@@ -56,12 +67,15 @@ def main() -> None:
                 "runtime_shell": os.path.relpath(CFG.RUNTIME_SHELL, CFG.REPO),
                 "runtime_shell_hash": "sha256:" + promotion["shell_sha256"],
                 "sidecar": entry["source_sidecar"],
+                "canonical_hands": entry["canonical_hand_source"]["path"],
+                "canonical_hands_hash":
+                    "sha256:" + entry["canonical_hand_source"]["sha256"],
                 "generator": promotion["generator"],
                 "pipeline": [
                     "reference_bodies.py (hash-pinned shell + approved sources)",
                     "bake_body_shading.py (per-vertex AO)",
                     "bake_face_texture.py (background-erased RGBA components)",
-                    "promote_bodies.py (zone split + face skin base/overlay + accessor transplant)",
+                    "promote_bodies.py (refined body + canonical animated hands + zone split + face skin base/overlay + accessor transplant)",
                 ],
             }
             if alias_of:
@@ -86,7 +100,7 @@ def main() -> None:
                                "dual graph, descended from the pelvis"),
                     "seams": entry["zone_segmentation"]["seams"],
                     "specks_absorbed": entry["zone_segmentation"]["specks_absorbed"],
-                    "zones": entry["zone_segmentation"]["zones"],
+                    "zones": zones,
                 },
                 "metrics": {
                     "bytes": entry["bytes"],
@@ -94,7 +108,8 @@ def main() -> None:
                     "animations": entry["animations"],
                     "primitives": len(entry["primitives"]),
                     "triangles": checks["triangles"],
-                    "source_triangles": checks["source_triangles"],
+                    "expected_hybrid_triangles": checks["expected_hybrid_triangles"],
+                    "refined_source_triangles": checks["refined_source_triangles"],
                     "height_max_y_m": checks["stature_m"],
                 },
                 "validation": {
@@ -104,9 +119,11 @@ def main() -> None:
                     "inverse_bind_max_delta": checks["inverse_bind_max_delta"],
                     "index_accessor_types": checks["index_accessor_types"],
                     "zone_material_pbr_variants": checks["skin_material_variants"],
-                    "welded_points_identical_to_source":
-                        checks["welded_points_identical_to_source"],
-                    "compatibility": entry["compatibility"],
+                    "welded_points_match_hybrid_sources":
+                        checks["welded_points_match_hybrid_sources"],
+                    "canonical_hands_exact": checks["canonical_hands_exact"],
+                    "canonical_hand_compatibility":
+                        entry["canonical_hand_source"]["compatibility"],
                     "gate": "content-pipeline/labs/humanoid-runtime-refit/verify_body_zones.py",
                     "reports": sorted(os.path.relpath(
                         os.path.join(CFG.REPORT_DIR, name), CFG.REPO)

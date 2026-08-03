@@ -65,8 +65,8 @@
   "female": {
     "output": "client-3d/public/assets/pawn-pack/pawn_female.glb",
     "aliases": [],
-    "bytes": 3298232,
-    "sha256": "13c35d3c9fb9aae1f023becbbcddd7225860fb98c08b2af761d1a4f839b451c4",
+    "bytes": 2870468,
+    "sha256": "9eb7242ce49fcd7d7afa53a898c35e5b7b5fd0d5d99d7109bfc82e33e4f095e9",
     "source": "content-pipeline/labs/humanoid-runtime-refit/source/female/pawn_female_refined.glb",
     "source_sha256": "bd99fdb32fc40291780d92b1494f07a428c439204b306a2a6d32d2bc403c0c8b",
     "source_sidecar": {
@@ -243,20 +243,22 @@
       {
         "material": "BodyZone_left_hand",
         "zone": "left_hand",
-        "vertices": 5525,
+        "vertices": 1088,
         "triangles": 2032,
-        "area_cm2": 480.673,
-        "shading_min": 0.8700000047683716,
-        "shading_mean": 0.9279468059539795
+        "area_cm2": 480.741,
+        "shading_min": 1.0,
+        "shading_mean": 1.0,
+        "geometry_source": "content-pipeline/labs/humanoid-runtime-refit/build/reference/female.glb"
       },
       {
         "material": "BodyZone_right_hand",
         "zone": "right_hand",
-        "vertices": 5525,
+        "vertices": 1088,
         "triangles": 2032,
-        "area_cm2": 480.673,
-        "shading_min": 0.8700000047683716,
-        "shading_mean": 0.9279047846794128
+        "area_cm2": 480.741,
+        "shading_min": 1.0,
+        "shading_mean": 1.0,
+        "geometry_source": "content-pipeline/labs/humanoid-runtime-refit/build/reference/female.glb"
       },
       {
         "material": "BodyZone_left_thigh",
@@ -535,6 +537,15 @@
       "rest_rotation_drift_deg": 0.03843819931216527,
       "inverse_bind_drift": 1.5944242477416992e-06
     },
+    "canonical_hand_source": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/build/reference/female.glb",
+      "sha256": "16d8c879aabc58b5ee176edcfc0b0dc43fc695e7d59f4a2ef6d6a15890e7d000",
+      "compatibility": {
+        "rest_translation_drift_m": 9.601935744285583e-07,
+        "rest_rotation_drift_deg": 0.03837102297622957,
+        "inverse_bind_drift": 5.338340997695923e-06
+      }
+    },
     "face_texture": "content-pipeline/labs/humanoid-runtime-refit/build/textures/face_default.png"
   },
   "male": {
@@ -542,8 +553,8 @@
     "aliases": [
       "client-3d/public/assets/pawn-pack/pawn_male_bare.glb"
     ],
-    "bytes": 3292764,
-    "sha256": "3595b3717a4d40f6a0a3e593f8722a70bba367a5787226e2d825d5206e658615",
+    "bytes": 2867012,
+    "sha256": "a865e80f3fe740c135633c2c03b94afcfb0d10def3756cb7ca43fec5e51e7f9c",
     "source": "content-pipeline/labs/humanoid-runtime-refit/source/male/pawn_male_refined.glb",
     "source_sha256": "d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
     "source_sidecar": {
@@ -720,20 +731,22 @@
       {
         "material": "BodyZone_left_hand",
         "zone": "left_hand",
-        "vertices": 5504,
+        "vertices": 1088,
         "triangles": 2032,
         "area_cm2": 480.673,
-        "shading_min": 0.8700000047683716,
-        "shading_mean": 0.9277414083480835
+        "shading_min": 1.0,
+        "shading_mean": 1.0,
+        "geometry_source": "content-pipeline/labs/humanoid-runtime-refit/build/reference/male.glb"
       },
       {
         "material": "BodyZone_right_hand",
         "zone": "right_hand",
-        "vertices": 5504,
+        "vertices": 1088,
         "triangles": 2032,
         "area_cm2": 480.673,
-        "shading_min": 0.8700000047683716,
-        "shading_mean": 0.9275314807891846
+        "shading_min": 1.0,
+        "shading_mean": 1.0,
+        "geometry_source": "content-pipeline/labs/humanoid-runtime-refit/build/reference/male.glb"
       },
       {
         "material": "BodyZone_left_thigh",
@@ -1011,6 +1024,15 @@
       "rest_translation_drift_m": 2.942979335784912e-07,
       "rest_rotation_drift_deg": 0.03843819931216527,
       "inverse_bind_drift": 1.5944242477416992e-06
+    },
+    "canonical_hand_source": {
+      "path": "content-pipeline/labs/humanoid-runtime-refit/build/reference/male.glb",
+      "sha256": "6eaac9062bcfbc5efdf40c64f9e3236402a0d81832f1e0e8f4ce9a0a4dacac42",
+      "compatibility": {
+        "rest_translation_drift_m": 0.0,
+        "rest_rotation_drift_deg": 0.038466318374601585,
+        "inverse_bind_drift": 0.0
+      }
     },
     "face_texture": "content-pipeline/labs/humanoid-runtime-refit/build/textures/face_default.png"
   }

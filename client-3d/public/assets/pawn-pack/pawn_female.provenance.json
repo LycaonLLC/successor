@@ -2,7 +2,7 @@
   "schema": "successor-asset-provenance/1",
   "asset_id": "pawn_female",
   "asset_path": "client-3d/public/assets/pawn-pack/pawn_female.glb",
-  "asset_hash": "sha256:13c35d3c9fb9aae1f023becbbcddd7225860fb98c08b2af761d1a4f839b451c4",
+  "asset_hash": "sha256:9eb7242ce49fcd7d7afa53a898c35e5b7b5fd0d5d99d7109bfc82e33e4f095e9",
   "asset_kind": "pawn_body_glb",
   "source": {
     "approved_body": "content-pipeline/labs/humanoid-runtime-refit/source/female/pawn_female_refined.glb",
@@ -40,12 +40,14 @@
       },
       "review": "Final Bunker humanoid refinement; immutable, head, transition, animation-proof, and viewer gates completed before commit."
     },
+    "canonical_hands": "content-pipeline/labs/humanoid-runtime-refit/build/reference/female.glb",
+    "canonical_hands_hash": "sha256:16d8c879aabc58b5ee176edcfc0b0dc43fc695e7d59f4a2ef6d6a15890e7d000",
     "generator": "successor content-pipeline/labs/humanoid-runtime-refit/promote_bodies.py",
     "pipeline": [
       "reference_bodies.py (hash-pinned shell + approved sources)",
       "bake_body_shading.py (per-vertex AO)",
       "bake_face_texture.py (background-erased RGBA components)",
-      "promote_bodies.py (zone split + face skin base/overlay + accessor transplant)"
+      "promote_bodies.py (refined body + canonical animated hands + zone split + face skin base/overlay + accessor transplant)"
     ]
   },
   "segmentation": {
@@ -194,20 +196,24 @@
       "left_hand": {
         "triangles": 2032,
         "patches": 36,
-        "area_cm2": 480.673,
+        "area_cm2": 480.741,
         "centroid_y_range_m": [
           1.3825,
           1.4483
-        ]
+        ],
+        "vertices": 1088,
+        "geometry_source": "content-pipeline/labs/humanoid-runtime-refit/build/reference/female.glb"
       },
       "right_hand": {
         "triangles": 2032,
         "patches": 36,
-        "area_cm2": 480.673,
+        "area_cm2": 480.741,
         "centroid_y_range_m": [
           1.3825,
           1.4483
-        ]
+        ],
+        "vertices": 1088,
+        "geometry_source": "content-pipeline/labs/humanoid-runtime-refit/build/reference/female.glb"
       },
       "left_thigh": {
         "triangles": 77,
@@ -266,12 +272,13 @@
     }
   },
   "metrics": {
-    "bytes": 3298232,
+    "bytes": 2870468,
     "joints": 50,
     "animations": 47,
     "primitives": 18,
     "triangles": 5938,
-    "source_triangles": 5882,
+    "expected_hybrid_triangles": 5882,
+    "refined_source_triangles": 5882,
     "height_max_y_m": 1.7525
   },
   "validation": {
@@ -283,11 +290,15 @@
       "SCALAR"
     ],
     "zone_material_pbr_variants": 1,
-    "welded_points_identical_to_source": true,
-    "compatibility": {
-      "rest_translation_drift_m": 2.942979335784912e-07,
-      "rest_rotation_drift_deg": 0.03843819931216527,
-      "inverse_bind_drift": 1.5944242477416992e-06
+    "welded_points_match_hybrid_sources": true,
+    "canonical_hands_exact": {
+      "left_hand": true,
+      "right_hand": true
+    },
+    "canonical_hand_compatibility": {
+      "rest_translation_drift_m": 9.601935744285583e-07,
+      "rest_rotation_drift_deg": 0.03837102297622957,
+      "inverse_bind_drift": 5.338340997695923e-06
     },
     "gate": "content-pipeline/labs/humanoid-runtime-refit/verify_body_zones.py",
     "reports": [

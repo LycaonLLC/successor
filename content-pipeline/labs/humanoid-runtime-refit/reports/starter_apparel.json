@@ -3,11 +3,11 @@
   "bodies": {
     "male": {
       "body": "client-3d/public/assets/pawn-pack/pawn_male.glb",
-      "body_sha256": "3595b3717a4d40f6a0a3e593f8722a70bba367a5787226e2d825d5206e658615",
+      "body_sha256": "a865e80f3fe740c135633c2c03b94afcfb0d10def3756cb7ca43fec5e51e7f9c",
       "under_bodysuit": {
         "path": "client-3d/public/assets/pawn-pack/equipment/Under/under_bodysuit.glb",
         "bytes": 58648,
-        "sha256": "eacce93ccdc47a3b901bb15006fe9bb4ab5399b043da3b32b2b6b621e0ae1888",
+        "sha256": "24e67fe6ab502546f58a07cb9be24e87880cb2d341f4e2c56488eee37bde2d0b",
         "vertices": 782,
         "triangles": 1473,
         "offset_mm": 1.0,
@@ -37,7 +37,7 @@
       "boots_canvas_ankle": {
         "path": "client-3d/public/assets/pawn-pack/equipment/Under/boots_canvas_ankle.glb",
         "bytes": 31872,
-        "sha256": "3958b4599d46f8d3f3e3b20dcc60bf944c6f990ad25cb091ad41b41d1a99cf50",
+        "sha256": "5980ff35c965522e2e88a03b63abdea9a75f49982c5e90fbd4a6c54f3f461cd6",
         "offset_mm": 10.0,
         "shaft_top_m": 0.215,
         "trim_bottom_m": 0.185,
@@ -86,11 +86,11 @@
     },
     "female": {
       "body": "client-3d/public/assets/pawn-pack/pawn_female.glb",
-      "body_sha256": "13c35d3c9fb9aae1f023becbbcddd7225860fb98c08b2af761d1a4f839b451c4",
+      "body_sha256": "9eb7242ce49fcd7d7afa53a898c35e5b7b5fd0d5d99d7109bfc82e33e4f095e9",
       "under_bodysuit": {
         "path": "client-3d/public/assets/pawn-pack/equipment/Female/Under/under_bodysuit.glb",
         "bytes": 60608,
-        "sha256": "f708819b7fcbd620fa634290652dfbe831ffc82b06fba3e73bc2d35729079267",
+        "sha256": "a4500baef1a8f9fdab63b472b2b2fc04c31c0ec7a93f84321ae43039e807de75",
         "vertices": 817,
         "triangles": 1543,
         "offset_mm": 1.0,
@@ -120,7 +120,7 @@
       "boots_canvas_ankle": {
         "path": "client-3d/public/assets/pawn-pack/equipment/Female/Under/boots_canvas_ankle.glb",
         "bytes": 33220,
-        "sha256": "dea382ca1f4b521c42c0e29e29ea78e29abeb44b2fbf5e626860f414daccf02b",
+        "sha256": "24fb7c94ad564ded849884cb8e750e9898e85a8703a86012369404c845e93a51",
         "offset_mm": 10.0,
         "shaft_top_m": 0.215,
         "trim_bottom_m": 0.185,

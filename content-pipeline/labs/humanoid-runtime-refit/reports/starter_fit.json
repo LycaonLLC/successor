@@ -42,7 +42,7 @@
         "right_foot"
       ],
       "depth_mm": {
-        "suit_excess_depth_mm": -0.563,
+        "suit_excess_depth_mm": -0.045,
         "suit_depth_mm": -28.089,
         "bare_body_depth_mm": -28.043,
         "bare_leg_contact_mm": -21.901,
@@ -52,13 +52,13 @@
       },
       "counts": {
         "suit_vs_visible_pairs": 442,
-        "bare_vs_visible_pairs": 505,
+        "bare_vs_visible_pairs": 506,
         "boots_vs_suit_pairs": 94,
         "suit_rim_gap_mm": 0.0,
         "boot_rim_gap_mm": 0.544
       },
       "worst_pose": {
-        "suit_excess_depth_mm": "crouch_walk@0.3",
+        "suit_excess_depth_mm": "crouch_idle@0.5",
         "suit_depth_mm": "crouch_idle@0.5",
         "bare_body_depth_mm": "crouch_idle@0.5",
         "bare_leg_contact_mm": "meditate_loop@0.5",
@@ -107,17 +107,17 @@
         "right_foot"
       ],
       "depth_mm": {
-        "suit_excess_depth_mm": -0.332,
-        "suit_depth_mm": -9.614,
-        "bare_body_depth_mm": -9.695,
+        "suit_excess_depth_mm": -0.329,
+        "suit_depth_mm": -9.616,
+        "bare_body_depth_mm": -9.698,
         "bare_leg_contact_mm": -20.296,
         "boots_into_suit_away_from_collar_mm": -15.601,
         "boots_into_suit_at_collar_mm": -2.531,
         "hidden_skin_penetration_mm": -0.959
       },
       "counts": {
-        "suit_vs_visible_pairs": 351,
-        "bare_vs_visible_pairs": 380,
+        "suit_vs_visible_pairs": 342,
+        "bare_vs_visible_pairs": 381,
         "boots_vs_suit_pairs": 76,
         "suit_rim_gap_mm": 0.0,
         "boot_rim_gap_mm": 0.0
@@ -130,7 +130,7 @@
         "boots_into_suit_away_from_collar_mm": "meditate_loop@0.5",
         "boots_into_suit_at_collar_mm": "meditate_loop@0.5",
         "hidden_skin_penetration_mm": "meditate_loop@0.5",
-        "suit_vs_visible_pairs": "kneel_loop@0.5",
+        "suit_vs_visible_pairs": "meditate_loop@0.5",
         "bare_vs_visible_pairs": "meditate_loop@0.5",
         "boots_vs_suit_pairs": "meditate_loop@0.5",
         "suit_rim_gap_mm": null,

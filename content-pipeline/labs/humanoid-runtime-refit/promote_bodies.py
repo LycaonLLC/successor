@@ -1,16 +1,18 @@
 """Promote the approved refined humanoids onto the runtime body paths.
 
 Input  : the hash-pinned final Bunker refinement artifacts selected by
-         `refit_config.REFINED` (geometry + skin, no clips), plus the
-         hash-pinned pre-refit male runtime shell.
+         `refit_config.REFINED` (body/head geometry + skin, no clips), the
+         hash-pinned pre-refit body for each sex (canonical animated hands),
+         and the hash-pinned pre-refit male runtime shell.
 Output : `client-3d/public/assets/pawn-pack/pawn_{male,female}.glb`
 
 The shell contributes everything the runtime contract pins down: the 52-node
 layout, the 50 joints in their exact skin order, the inverse bind matrices, and
 the 47 authored animation clips with their sampler data. Those accessors are
 copied through verbatim, so the promoted bodies carry a bit-identical animation
-bank rather than a re-export of it. Only the mesh, the materials and the
-embedded textures are new.
+bank rather than a re-export of it. The refined body supplies every non-hand
+zone; the last known-good body supplies both hand zones with their original
+weights. Materials and embedded textures are rebuilt around that hybrid mesh.
 
 The shell is read from `build/reference/male.glb`, the hash-pinned pre-refit
 body `reference_bodies.py` checks out of git, so promoting onto
@@ -22,6 +24,9 @@ Per-body work:
   * joint remap -- the lab exporter emits the same 50 joints in a different skin
     order, so `JOINTS_0` is permuted into the shell's order and the shell's
     inverse bind matrices stay untouched;
+  * hand graft -- the reviewed replacement hands separate from the forearms as
+    soon as wrist clips run, so both leaf zones come verbatim from each sex's
+    hash-pinned pre-refit body and are remapped into the shell joint order;
   * attribute prune -- `COLOR_0` is a constant white VEC3 (a no-op the loader
     still uploads) and `COLOR_1` is the lab's region-debug layer that three.js
     ignores; both are dropped from the runtime body;
@@ -46,6 +51,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import body_zones as BZ  # noqa: E402
+import canonical_hands as HANDS  # noqa: E402
 import reference_bodies  # noqa: E402
 import refit_config as CFG  # noqa: E402
 from gltf_io import (Glb, GlbBuilder, TARGET_ARRAY_BUFFER,  # noqa: E402
@@ -205,7 +211,13 @@ def build(body_id: str, source: str, report: dict) -> None:
         inverse[refined_slot] = shell_slot
     # Zone shares are computed in the REFINED skin order, before the remap.
     refined_joints, _ = joint_table(refined)
-
+    shell_joints, _ = joint_table(shell)
+    hand_reference_path = reference_bodies.path_for(body_id)
+    hand_reference = Glb.load(hand_reference_path)
+    hand_compatibility = assert_compatible(
+        shell, hand_reference, f"{body_id} canonical hands")
+    hand_compatibility.pop("joint_permutation")
+    canonical_hands = HANDS.extract(hand_reference, shell_joints)
     gltf: dict[str, Any] = {
         "asset": {"version": "2.0", "generator": GENERATOR},
         "scene": 0,
@@ -319,32 +331,58 @@ def build(body_id: str, source: str, report: dict) -> None:
     primitives = []
     stats = []
     for index, zone in enumerate(BZ.ZONES):
-        picked = faces[labels == index]
-        # `return_inverse` renumbers the zone's corners into a compact local
-        # vertex range; glTF wants the result flat and SCALAR.
-        used, indices = np.unique(picked, return_inverse=True)
-        indices = indices.reshape(-1)
+        if zone in HANDS.HAND_ZONES:
+            hand = canonical_hands[zone]
+            zone_position = hand["POSITION"]
+            zone_normal = hand["NORMAL"]
+            zone_joints = hand["JOINTS_0"]
+            zone_weights = hand["WEIGHTS_0"]
+            zone_faces = hand["indices"]
+            indices = zone_faces.reshape(-1)
+            zone_colour = np.full((len(zone_position), 4), 255, dtype=np.uint8)
+            area_cm2 = round(
+                float(BZ.triangle_areas(zone_position, zone_faces).sum()) * 1.0e4, 3)
+            shading_min = shading_mean = 1.0
+        else:
+            picked = faces[labels == index]
+            # `return_inverse` renumbers the zone's corners into a compact local
+            # vertex range; glTF wants the result flat and SCALAR.
+            used, indices = np.unique(picked, return_inverse=True)
+            indices = indices.reshape(-1)
+            zone_position = position32[used]
+            zone_normal = normal[used]
+            zone_joints = remapped[used]
+            zone_weights = weights32[used]
+            zone_colour = colour[used]
+            area_cm2 = zone_report["zones"][zone]["area_cm2"]
+            shading_min = float(shade[used].min())
+            shading_mean = float(shade[used].mean())
         primitives.append({
             "attributes": {
-                "POSITION": builder.add_accessor(position32[used],
-                                                 target=TARGET_ARRAY_BUFFER, minmax=True),
-                "NORMAL": builder.add_accessor(normal[used], target=TARGET_ARRAY_BUFFER),
-                "JOINTS_0": builder.add_accessor(remapped[used], target=TARGET_ARRAY_BUFFER),
-                "WEIGHTS_0": builder.add_accessor(weights32[used], target=TARGET_ARRAY_BUFFER),
-                "COLOR_0": builder.add_accessor(colour[used], target=TARGET_ARRAY_BUFFER,
-                                                normalized=True),
+                "POSITION": builder.add_accessor(
+                    zone_position, target=TARGET_ARRAY_BUFFER, minmax=True),
+                "NORMAL": builder.add_accessor(zone_normal, target=TARGET_ARRAY_BUFFER),
+                "JOINTS_0": builder.add_accessor(zone_joints, target=TARGET_ARRAY_BUFFER),
+                "WEIGHTS_0": builder.add_accessor(
+                    zone_weights, target=TARGET_ARRAY_BUFFER),
+                "COLOR_0": builder.add_accessor(
+                    zone_colour, target=TARGET_ARRAY_BUFFER, normalized=True),
             },
             "indices": builder.add_accessor(
-                indices.astype(np.uint16) if len(used) <= 65535
+                indices.astype(np.uint16) if len(zone_position) <= 65535
                 else indices.astype(np.uint32),
                 target=TARGET_ELEMENT_ARRAY_BUFFER),
             "material": index,
         })
-        stats.append({"material": BZ.material_name(zone), "zone": zone,
-                      "vertices": int(len(used)), "triangles": int(len(indices) // 3),
-                      "area_cm2": zone_report["zones"][zone]["area_cm2"],
-                      "shading_min": float(shade[used].min()),
-                      "shading_mean": float(shade[used].mean())})
+        stat = {"material": BZ.material_name(zone), "zone": zone,
+                "vertices": int(len(zone_position)),
+                "triangles": int(len(indices) // 3),
+                "area_cm2": area_cm2,
+                "shading_min": shading_min,
+                "shading_mean": shading_mean}
+        if zone in HANDS.HAND_ZONES:
+            stat["geometry_source"] = os.path.relpath(hand_reference_path, CFG.REPO)
+        stats.append(stat)
 
     panel = source_primitives[panel_slot]
     panel_count = refined.json["accessors"][panel["attributes"]["POSITION"]]["count"]
@@ -453,6 +491,11 @@ def build(body_id: str, source: str, report: dict) -> None:
         "primitives": stats,
         "zone_segmentation": zone_report,
         "compatibility": compatibility,
+        "canonical_hand_source": {
+            "path": os.path.relpath(hand_reference_path, CFG.REPO),
+            "sha256": sha256_file(hand_reference_path),
+            "compatibility": hand_compatibility,
+        },
         "face_texture": os.path.relpath(os.path.join(CFG.TEXTURE_DIR, "face_default.png"), CFG.REPO),
     }
     print(f"[promote] {body_id}: {size} B, {len(stats)} primitives "

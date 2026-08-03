@@ -66,6 +66,11 @@ def reset() -> None:
     shading.light = "STUDIO"
     shading.color_type = "OBJECT"
     shading.show_cavity = True
+    # The Workbench theme background has a studio-light horizon band. Proofs
+    # need a flat field so lighting changes on the model cannot be mistaken for
+    # runtime fog or post-processing.
+    shading.background_type = "VIEWPORT"
+    shading.background_color = (0.012, 0.014, 0.018)
 
 
 def to_blender(vertices: np.ndarray) -> np.ndarray:
@@ -140,8 +145,24 @@ def main() -> None:
             add("body", vertices, faces, SKIN)
             frame(VIEWS[view])
             render(f"body_{body_id}_{view}", cells)
+    # 2. Hand-critical clips on the bare body. Sleeves hid the detached-wrist
+    # regression in the starter proofs, so these views must stay unclothed.
+    for body_id in ("male", "female"):
+        body = POSE.Body(body_id)
+        for clip, phase in (("rifle_aim", 0.5), ("swing_h1", 0.45)):
+            _, skin = body.pose(clip, phase)
+            converted = to_blender(skin)
+            low, high = converted.min(axis=0), converted.max(axis=0)
+            centre = float((low[2] + high[2]) * 0.5)
+            span = 1.15 * float(max(high - low))
+            for view in ("front", "side", "threequarter"):
+                reset()
+                add("body", skin, body.faces, SKIN)
+                frame(VIEWS[view], height=centre, scale=span)
+                render(f"body_{body_id}_{view}_{clip}", cells)
 
-    # 2. the starter loadout, skinned AND masked exactly as the runtime does it.
+
+    # 3. the starter loadout, skinned AND masked exactly as the runtime does it.
     with open(os.path.join(CFG.REPORT_DIR, "body_zone_coverage.json"),
               encoding="utf-8") as handle:
         coverage = json.load(handle)["items"]

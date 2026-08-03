@@ -22,6 +22,7 @@ LAB_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, LAB_DIR)
 
 import body_zones as BZ  # noqa: E402
+import canonical_hands as HANDS  # noqa: E402
 import reference_bodies  # noqa: E402
 import refit_config as CFG  # noqa: E402
 from gltf_io import Glb  # noqa: E402
@@ -66,6 +67,7 @@ def main() -> None:
     shell_clips = [a["name"] for a in shell.json["animations"]]
     shell_ibm = shell.accessor(shell.json["skins"][0]["inverseBindMatrices"])
     sources = reference_bodies.promotion_inputs()
+    references = reference_bodies.materialise()
 
     bodies = {}
     for body_id, path in CFG.RUNTIME_BODY.items():
@@ -93,18 +95,83 @@ def main() -> None:
         source_materials = [source.json["materials"][p["material"]]["name"]
                             for p in source_primitives]
         source_face = source_primitives[source_materials.index(BZ.FACE_MATERIAL)]
+        source_skin = [primitive for primitive, material
+                       in zip(source_primitives, source_materials)
+                       if material != BZ.FACE_MATERIAL]
+        source_position_parts = []
+        source_joint_parts = []
+        source_weight_parts = []
+        source_face_parts = []
+        source_base = 0
+        for primitive in source_skin:
+            position_part = source.accessor(
+                primitive["attributes"]["POSITION"]).astype(np.float64)
+            source_position_parts.append(position_part)
+            source_joint_parts.append(source.accessor(
+                primitive["attributes"]["JOINTS_0"]).astype(np.int64))
+            source_weight_parts.append(source.accessor(
+                primitive["attributes"]["WEIGHTS_0"]).astype(np.float64))
+            source_face_parts.append(source.accessor(
+                primitive["indices"]).astype(np.int64).reshape(-1, 3) + source_base)
+            source_base += len(position_part)
+        source_position = np.concatenate(source_position_parts)
+        source_joint_slots = np.concatenate(source_joint_parts)
+        source_weights = np.concatenate(source_weight_parts)
+        source_weights /= source_weights.sum(axis=1, keepdims=True)
+        source_faces = np.concatenate(source_face_parts)
+        source_joint_names = [
+            source.json["nodes"][joint].get("name", "")
+            for joint in source.json["skins"][0]["joints"]]
+        source_labels, _ = BZ.segment(
+            source_position, source_faces, source_joint_names,
+            source_joint_slots, source_weights, body_id)
+        refined_hand_labels = {
+            BZ.ZONE_INDEX[zone] for zone in HANDS.HAND_ZONES}
+        source_non_hand_faces = source_faces[
+            ~np.isin(source_labels, list(refined_hand_labels))]
+        source_non_hand_points = source_position[
+            np.unique(source_non_hand_faces.reshape(-1))]
+
+        hand_reference = Glb.load(references[body_id])
+        canonical_hands = HANDS.extract(hand_reference, shell_joints)
+        canonical_hand_points = np.concatenate([
+            canonical_hands[zone]["POSITION"] for zone in HANDS.HAND_ZONES])
+        source_face_points = source.accessor(
+            source_face["attributes"]["POSITION"]).astype(np.float64)
         out_points = np.unique(np.round(np.concatenate(
             [glb.accessor(p["attributes"]["POSITION"]).astype(np.float64)
              for p in skin_primitives]), 6), axis=0)
-        src_points = np.unique(np.round(np.concatenate(
-            [source.accessor(p["attributes"]["POSITION"]).astype(np.float64)
-             for p in source_primitives]), 6), axis=0)
+        expected_points = np.unique(np.round(np.concatenate(
+            [source_non_hand_points, source_face_points, canonical_hand_points]), 6),
+            axis=0)
         render_tris = sum(glb.json["accessors"][p["indices"]]["count"]
                           for p in primitives) // 3
         geometry_tris = sum(glb.json["accessors"][p["indices"]]["count"]
                             for p in skin_primitives) // 3
-        src_tris = sum(source.json["accessors"][p["indices"]]["count"]
-                       for p in source_primitives) // 3
+        refined_source_tris = sum(
+            source.json["accessors"][p["indices"]]["count"]
+            for p in source_primitives) // 3
+        expected_hybrid_tris = (
+            len(source_non_hand_faces)
+            + source.json["accessors"][source_face["indices"]]["count"] // 3
+            + sum(len(canonical_hands[zone]["indices"])
+                  for zone in HANDS.HAND_ZONES))
+        by_material = {
+            glb.json["materials"][primitive["material"]]["name"]: primitive
+            for primitive in primitives}
+        canonical_hands_exact = {}
+        for zone in HANDS.HAND_ZONES:
+            primitive = by_material.get(BZ.material_name(zone))
+            expected_hand = canonical_hands[zone]
+            canonical_hands_exact[zone] = bool(
+                primitive is not None
+                and all(np.array_equal(
+                    glb.accessor(primitive["attributes"][attribute]),
+                    expected_hand[attribute])
+                    for attribute in ("POSITION", "NORMAL", "JOINTS_0", "WEIGHTS_0"))
+                and np.array_equal(
+                    glb.accessor(primitive["indices"]).reshape(-1),
+                    expected_hand["indices"].reshape(-1)))
 
         overlay_ok = len(overlay_slots) == 1
         overlay_inflate_delta = float("inf")
@@ -135,18 +202,20 @@ def main() -> None:
             "inverse_bind_max_delta": float(np.abs(ibm - shell_ibm).max()),
             "index_accessor_types": sorted(index_types),
             "skin_material_variants": len(skin_pbr),
-            "welded_points_identical_to_source": bool(
-                out_points.shape == src_points.shape
-                and np.array_equal(out_points, src_points)),
+            "welded_points_match_hybrid_sources": bool(
+                out_points.shape == expected_points.shape
+                and np.array_equal(out_points, expected_points)),
+            "canonical_hands_exact": canonical_hands_exact,
             "source_geometry_triangles": geometry_tris,
+            "expected_hybrid_triangles": expected_hybrid_tris,
+            "refined_source_triangles": refined_source_tris,
             "triangles": render_tris,
-            "source_triangles": src_tris,
             "face_overlay_count": len(overlay_slots),
             "face_overlay_alpha_blend": overlay_alpha_blend,
             "face_overlay_omits_vertex_color": overlay_omits_colour,
             "face_overlay_inflate_max_delta_m": overlay_inflate_delta,
             "stature_m": round(float(out_points[:, 1].max()), 6),
-            "source_stature_m": round(float(src_points[:, 1].max()), 6),
+            "expected_stature_m": round(float(expected_points[:, 1].max()), 6),
         }
         bodies[body_id] = entry
         if not entry["materials_exact"]:
@@ -164,11 +233,16 @@ def main() -> None:
         if entry["skin_material_variants"] != 1:
             failures.append(f"{body_id}: zone materials are not visually identical "
                             f"({entry['skin_material_variants']} PBR variants)")
-        if not entry["welded_points_identical_to_source"]:
-            failures.append(f"{body_id}: opaque skin vertex set differs from its source")
-        if geometry_tris != src_tris:
+        if not entry["welded_points_match_hybrid_sources"]:
             failures.append(
-                f"{body_id}: opaque geometry has {geometry_tris} triangles vs source {src_tris}")
+                f"{body_id}: opaque skin vertex set differs from refined body + canonical hands")
+        if not all(entry["canonical_hands_exact"].values()):
+            failures.append(
+                f"{body_id}: canonical hand graft drifted {entry['canonical_hands_exact']}")
+        if geometry_tris != expected_hybrid_tris:
+            failures.append(
+                f"{body_id}: opaque geometry has {geometry_tris} triangles vs hybrid "
+                f"sources {expected_hybrid_tris}")
         if entry["face_overlay_count"] != 1:
             failures.append(
                 f"{body_id}: expected one transparent face overlay, got {entry['face_overlay_count']}")
@@ -180,9 +254,9 @@ def main() -> None:
             failures.append(
                 f"{body_id}: face overlay inflate drift "
                 f"{entry['face_overlay_inflate_max_delta_m']:.2e} m")
-        if entry["stature_m"] != entry["source_stature_m"]:
-            failures.append(f"{body_id}: stature {entry['stature_m']} != source "
-                            f"{entry['source_stature_m']}")
+        if entry["stature_m"] != entry["expected_stature_m"]:
+            failures.append(f"{body_id}: stature {entry['stature_m']} != expected "
+                            f"{entry['expected_stature_m']}")
     report["bodies"] = bodies
 
     male = hashlib.sha256(open(CFG.RUNTIME_BODY["male"], "rb").read()).hexdigest()
@@ -227,8 +301,10 @@ def main() -> None:
         print(f"[verify] {body_id}: materials exact {entry['materials_exact']}, "
               f"joints {entry['joints_match_shell']}, clips {entry['clips_match_shell']}, "
               f"ibm delta {entry['inverse_bind_max_delta']:.2e}, "
-              f"skin points identical {entry['welded_points_identical_to_source']}, "
-              f"opaque tris {entry['source_geometry_triangles']}=={entry['source_triangles']}, "
+              f"hybrid points {entry['welded_points_match_hybrid_sources']}, "
+              f"canonical hands {entry['canonical_hands_exact']}, "
+              f"opaque tris {entry['source_geometry_triangles']}=="
+              f"{entry['expected_hybrid_triangles']}, "
               f"render tris {entry['triangles']}, "
               f"face inflate delta {entry['face_overlay_inflate_max_delta_m']:.2e}, "
               f"stature {entry['stature_m']}")

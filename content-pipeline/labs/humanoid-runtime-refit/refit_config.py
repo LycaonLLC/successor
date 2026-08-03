@@ -22,10 +22,12 @@ REPORT_DIR = os.path.join(LAB_DIR, "reports")
 PROOF_DIR = os.path.join(LAB_DIR, "proof")
 
 # The FINAL reviewed bodies from Bunker's `body-refine-20260802` lane. These
-# exact geometry-and-skin artifacts carry the hand-shaped shared-topology heads
-# and neck grafts, verified SWG hands, and the final body-transition pass. They
-# intentionally carry no clips: promotion copies the hash-pinned 47-clip bank
-# from `RUNTIME_SHELL` without re-exporting it.
+# exact geometry-and-skin artifacts carry the hand-shaped shared-topology heads,
+# neck grafts, and final body-transition pass. Their replacement hand meshes
+# remain source evidence but are not promoted: they separate at the wrist under
+# authored clips, so `canonical_hands.py` restores the pinned runtime hands.
+# The refinement files intentionally carry no clips; promotion copies the
+# hash-pinned 47-clip bank from `RUNTIME_SHELL` without re-exporting it.
 #
 # Source commit: d3fdfa2831bf938c0d9c8bf06f8796a00a935af5
 SOURCE_DIR = os.path.join(LAB_DIR, "source")
