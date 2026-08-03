@@ -484,18 +484,48 @@ def prop_manifest(asset_id, metrics, bake_info, glb_path: Path):
     }
 
 
+# Read-only references. Each entry records the exact path AND the sha256 of the
+# bytes that were actually consulted, resolved at build time, so a later reader
+# can tell whether the reference has moved on since this asset was made.
+BUILDKIT = Path("/home/lycaon/dev/worktrees/successor-buildkit-20260730"
+                "/tools/successor/assets/buildkit-opus5")
+HUMANOID = Path("/home/lycaon/dev/worktrees/successor-humanoid-runtime-refit-20260802"
+                "/client-3d/public/assets/pawn-pack")
+
 PROVENANCE_INPUTS = [
-    {"path": "tools/successor/assets/buildkit-opus5/ (successor-buildkit-20260730 worktree)",
-     "purpose": "style authority: sinter/panel/screed/roofmetal/bronze/gunmetal material register and heavy-base-over-light-skin tectonics"},
-    {"path": "tools/successor/assets/buildkit-opus5/runtime-buildings/modular/home_modular_{starter,wing,court}.glb",
-     "purpose": "promoted modular runtime reference for silhouette density, façade articulation and payload budget"},
-    {"path": "client-3d/public/assets/pawn-pack/pawn_male.glb (successor-humanoid-runtime-refit-20260802 worktree)",
-     "purpose": "approved humanoid source posed and frozen into the occupied vat; rig and clips discarded"},
+    {"path": str(BUILDKIT / "src") + " + style-reference/",
+     "purpose": "style authority: sinter/panel/screed/roofmetal/bronze/gunmetal "
+                "material register and heavy-base-over-light-skin tectonics"},
+    {"path": str(BUILDKIT / "runtime-buildings/modular/home_modular_starter.glb"),
+     "purpose": "promoted modular runtime reference for silhouette density, "
+                "facade articulation and payload budget"},
+    {"path": str(BUILDKIT / "runtime-buildings/modular/home_modular_wing.glb"),
+     "purpose": "promoted modular runtime reference"},
+    {"path": str(BUILDKIT / "runtime-buildings/modular/home_modular_court.glb"),
+     "purpose": "promoted modular runtime reference"},
+    {"path": str(HUMANOID / "pawn_male.glb"),
+     "purpose": "approved humanoid source, posed and frozen into the occupied "
+                "vat; armature and all 47 clips discarded before export"},
     {"path": "client-3d/public/assets/world-items/cloning_facility_collision.json",
-     "purpose": "frozen structural collision contract (nine named wall proxies + door box)"},
+     "purpose": "frozen structural collision contract (nine named wall proxies "
+                "plus the closed-door box), reproduced unchanged"},
     {"path": "client-3d/src/render/props.ts",
-     "purpose": "runtime material contract: textured world props render unlit, so the base colour must carry the lit read"},
+     "purpose": "runtime material contract: textured world props render unlit, "
+                "so the base colour must carry the lit read"},
 ]
+
+
+def _resolved_inputs(extra=None):
+    out = []
+    for entry in PROVENANCE_INPUTS + list(extra or []):
+        record = dict(entry)
+        candidate = Path(entry["path"])
+        if not candidate.is_absolute():
+            candidate = REPO / entry["path"]
+        if candidate.is_file():
+            record["sha256"] = sha256_of(candidate)
+        out.append(record)
+    return out
 
 
 def write_provenance(asset_id, glb_path: Path, tri_count: int, description: str,
@@ -517,7 +547,7 @@ def write_provenance(asset_id, glb_path: Path, tri_count: int, description: str,
         "gate_report": f".game-lab/{LAB.name}/gate.json",
         "tool": {"name": "blender-bpy-headless", "version": bpy.app.version_string,
                  "tool_snapshot_id": f"blender-{bpy.app.version_string}"},
-        "input_assets": PROVENANCE_INPUTS + list(extra_inputs or []),
+        "input_assets": _resolved_inputs(extra_inputs),
         "human_edits": [],
         "prompt": {
             "text": description,
