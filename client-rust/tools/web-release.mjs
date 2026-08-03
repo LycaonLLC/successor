@@ -79,8 +79,13 @@ releaseShim = releaseShim.replace(
 releaseShim = releaseShim
   .replace('new URLSearchParams(location.search).has("disable-half-float")', "false")
   .replace(
-    /        const params = new URLSearchParams\(window\.location\.search\);[\s\S]*?        if \(demoSelector === 0\) await waitForHostedLaunch\(\);/u,
-    "        const demoSelector = 0;\n        await waitForHostedLaunch();",
+    /        const params = new URLSearchParams\(window\.location\.search\);[\s\S]*?        window\.__successorRenderReady = false;/u,
+    `        const demoSelector = 0;
+        await fetchInitialAssets();
+        showLoading("CONNECTING", "WAITING FOR LAUNCH", 1);
+        await waitForHostedLaunch();
+        showLoading("ENTERING WORLD", "BUILDING SCENE", 1);
+        window.__successorRenderReady = false;`,
   );
 if (/URLSearchParams|__SUCCESSOR_LAUNCH_CONTEXT|params\.get\("launch"\)|params\.get\("demo"\)/u.test(releaseShim)) throw new Error("release shim contains a URL launch or developer probe path");
 await writeFile(join(out, "successor.js"), releaseShim);
@@ -89,6 +94,8 @@ const sliceRoot = resolve(repo, "client/public/successor-slice");
 await cp(sliceRoot, join(out, "successor-slice"), { recursive: true });
 const pawnPackRoot = resolve(repo, "client-3d/public/assets/pawn-pack");
 await cp(pawnPackRoot, join(out, "assets/pawn-pack"), { recursive: true });
+const audioRoot = resolve(repo, "client/public/successor-audio");
+await cp(audioRoot, join(out, "successor-audio"), { recursive: true });
 await mkdir(join(out, "render"), { recursive: true });
 const propsMapping = resolve(repo, "client-3d/src/render/props-mapping.json");
 await cp(propsMapping, join(out, "render/props-mapping.json"));
@@ -101,6 +108,16 @@ for (const document of sourceDocs.filter(path => extname(path) === ".json")) {
     if (RUNTIME_EXTENSIONS.has(extname(clean).toLowerCase()) && !clean.startsWith("successor-slice/")) references.add(clean);
   }
 }
+const rustSources = [resolve(root, "source/app/src/pawn/creatures.rs")];
+for (const source of rustSources) {
+  const text = await readFile(source, "utf8");
+  for (const match of text.matchAll(/["']\/?((?:assets|successor-audio)\/[^"'?#]+\.(?:glb|gltf|png|jpe?g|webp|mp3|ogg|wav))["']/giu)) {
+    references.add(match[1]);
+  }
+}
+for (const category of ["mineral", "chemical", "gas", "water"]) references.add(`assets/world-items/extractor_${category}.glb`);
+references.add("assets/world-items/podtent_scout.glb");
+references.add("assets/world-items/campfire_scout.glb");
 const publicRoots = [resolve(repo, "client-3d/public"), resolve(repo, "client/public")];
 const candidates = (await Promise.all(publicRoots.map(path => filesUnder(path)))).flat();
 for (const reference of [...references].sort()) {
@@ -132,6 +149,11 @@ for (const path of await filesUnder(out)) {
   const name = relative(out, path).split(sep).join("/");
   inventory.push({ path: name, bytes: bytes.byteLength, sha256: sha256(bytes), contentType: CONTENT_TYPES.get(extname(name).toLowerCase()) ?? "application/octet-stream" });
 }
+const initialAssets = inventory
+  .map(file => file.path)
+  .filter(path => path.startsWith("assets/") || path.startsWith("render/") || path.startsWith("successor-audio/") || path.startsWith("successor-slice/"))
+  .sort();
+if (initialAssets.length === 0) throw new Error("initial asset stream is empty");
 const manifest = {
   schema: "successor.rust-web-release.v1",
   sourceCommit: options.source_commit,
@@ -141,6 +163,7 @@ const manifest = {
   gameOrigin: options.game_origin,
   chatOrigin: options.chat_origin,
   files: inventory,
+  initialAssets,
 };
 await writeFile(join(out, "release-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(JSON.stringify({ out, files: inventory.length, bytes: inventory.reduce((sum, file) => sum + file.bytes, 0), manifestSha256: sha256(Buffer.from(JSON.stringify(manifest))) }, null, 2));

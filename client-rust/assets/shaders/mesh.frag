@@ -40,6 +40,7 @@ uniform vec3 u_pointPositions[32];
 uniform float u_pointRadii[32];
 uniform vec3 u_pointColors[32];
 uniform float u_pointIntensities[32];
+uniform vec2 u_cutaway;
 
 out vec4 frag;
 
@@ -61,6 +62,10 @@ float shadowFactor(vec4 lp) {
 }
 
 void main() {
+    if (v_worldPos.y > u_cutaway.x && u_cutaway.y > 0.0) {
+        float cutawayDither = fract(sin(dot(floor(gl_FragCoord.xy), vec2(12.9898, 78.233))) * 43758.5453);
+        if (cutawayDither < u_cutaway.y) discard;
+    }
     vec2 screenUv = gl_FragCoord.xy / u_screenSize;
     if (u_transparentPass == 1) {
         float opaqueDepth = texture(u_opaqueDepth, screenUv).r;

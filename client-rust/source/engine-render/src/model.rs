@@ -42,13 +42,21 @@ struct TextureCacheEntry {
     srgb: bool,
     uploaded: TextureId,
 }
+/// PawnForge's shipped humanoid rigs use 50 joints. Keeping the shader palette
+/// at that authored maximum leaves room for the other vertex uniforms on
+/// WebGL2 implementations that expose only the required 256 uniform vectors.
+const MAX_SKIN_JOINTS: usize = 50;
 
 pub fn upload_glb<G: Gpu>(
     renderer: &mut Renderer,
     gpu: &mut G,
     document: &GlbDocument,
 ) -> Result<UploadedModel, ModelUploadError> {
-    if document.skins.iter().any(|skin| skin.joints.len() > 64) {
+    if document
+        .skins
+        .iter()
+        .any(|skin| skin.joints.len() > MAX_SKIN_JOINTS)
+    {
         return Err(ModelUploadError::JointPalette);
     }
     let mut uploaded = UploadedModel {

@@ -11,8 +11,8 @@ use successor_engine_core::ecs::{HasStorage, WorldOps};
 use successor_engine_core::math::{Mat4, Vec3};
 
 use crate::components::{
-    CamTarget, Camera, CompositeQuad, DirectionalLight, MeshRenderer, PointLight, Projection,
-    RectNorm, TextOverlay, Transform,
+    CamTarget, Camera, CompositeQuad, DirectionalLight, HeightCutaway, MeshRenderer, PointLight,
+    Projection, RectNorm, TextOverlay, Transform,
 };
 use crate::gi::{GiOccluder, GiVolume, GiWorkCounters};
 use crate::gpu::{
@@ -56,6 +56,7 @@ pub trait RenderWorld:
     WorldOps
     + HasStorage<Transform>
     + HasStorage<MeshRenderer>
+    + HasStorage<HeightCutaway>
     + HasStorage<Camera>
     + HasStorage<DirectionalLight>
     + HasStorage<PointLight>
@@ -68,6 +69,7 @@ impl<W> RenderWorld for W where
     W: WorldOps
         + HasStorage<Transform>
         + HasStorage<MeshRenderer>
+        + HasStorage<HeightCutaway>
         + HasStorage<Camera>
         + HasStorage<DirectionalLight>
         + HasStorage<PointLight>
@@ -98,6 +100,7 @@ struct DrawRecord {
     entity_generation: u64,
     mesh: MeshRenderer,
     transform: Transform,
+    cutaway: HeightCutaway,
 }
 
 #[derive(Clone, Copy)]
@@ -1289,6 +1292,10 @@ impl Renderer {
                     entity_generation: entity.generation,
                     mesh: *mesh,
                     transform: *transform,
+                    cutaway: world
+                        .get_component::<HeightCutaway>(entity)
+                        .copied()
+                        .unwrap_or_default(),
                 });
             }
         }
@@ -2523,6 +2530,13 @@ impl Renderer {
             self.uniforms.push(Uniform {
                 name: "u_model",
                 value: UniformValue::Mat4(model),
+            });
+            self.uniforms.push(Uniform {
+                name: "u_cutaway",
+                value: UniformValue::Vec2([
+                    record.cutaway.cutoff_y,
+                    record.cutaway.amount.clamp(0.0, 1.0),
+                ]),
             });
             if matches!(mode, DrawMode::Forward | DrawMode::Transparent) {
                 for light in &mut self.scene_lights {

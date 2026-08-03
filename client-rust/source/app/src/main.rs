@@ -2122,7 +2122,9 @@ mod connected {
                 } else if auto_walk {
                     (0, -1, false)
                 } else {
-                    let (dx, dy, held_sprint) = movement::intent_from_keys(plat::is_key_down);
+                    let (manual_dx, manual_dy, held_sprint) =
+                        movement::intent_from_keys(plat::is_key_down);
+                    let (dx, dy) = scene.navigation_intent(manual_dx, manual_dy);
                     (dx, dy, held_sprint || scene.sprint_toggled())
                 };
                 let actor_dead = scene

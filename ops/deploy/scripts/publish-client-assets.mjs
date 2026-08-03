@@ -99,6 +99,26 @@ export function assertRequiredRustRuntimeAssets(releaseId, paths) {
   if (missing.length > 0) throw new Error(`Rust runtime is missing required assets: ${missing.join(", ")}`);
   return true;
 }
+async function assertRustReleaseManifest(root, releaseId, entries) {
+  if (!releaseId.startsWith("successor-rust-")) return true;
+  const path = join(root, "release-manifest.json");
+  const release = JSON.parse(await readFile(path, "utf8"));
+  if (release.clientReleaseId !== releaseId) throw new Error("Rust release manifest identity mismatch");
+  if (!Array.isArray(release.files) || !Array.isArray(release.initialAssets) || release.initialAssets.length === 0) {
+    throw new Error("Rust release manifest requires files[] and a non-empty initialAssets[]");
+  }
+  const published = new Map(entries.map((entry) => [entry.path, entry]));
+  for (const expected of release.files) {
+    const actual = published.get(expected.path);
+    if (!actual || actual.size !== expected.bytes || actual.sha256 !== expected.sha256) {
+      throw new Error(`Rust release inventory mismatch: ${expected.path}`);
+    }
+  }
+  for (const initial of release.initialAssets) {
+    if (!published.has(initial)) throw new Error(`Rust initial asset is not published: ${initial}`);
+  }
+  return true;
+}
 
 function localPath(value, origin, field) {
   if (typeof value !== "string") throw new Error(`dist/current.json ${field} must be a URL`);
@@ -138,6 +158,7 @@ export async function buildManifest(dist, cdnOrigin, storeOrigin) {
     entries.push({ path, sha256: digest, size: bytes.length, content_type: contentType(path) });
   }
   assertRequiredRustRuntimeAssets(sourcePointer.releaseId, entries.map((entry) => entry.path));
+  await assertRustReleaseManifest(root, sourcePointer.releaseId, entries);
   const inventory = { schema: "successor-client-assets.v1", release_id: sourcePointer.releaseId, files: entries };
   const inventoryCanonical = `${JSON.stringify(inventory, null, 2)}\n`;
   const manifestSha256 = sha256(Buffer.from(inventoryCanonical));

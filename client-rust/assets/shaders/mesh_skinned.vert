@@ -10,7 +10,7 @@ layout(location = 6) in vec4 a_weights;
 uniform mat4 u_model;
 uniform mat4 u_viewProj;
 uniform mat4 u_lightViewProj;
-uniform mat4 u_joints[64];
+uniform mat4 u_joints[50];
 out vec3 v_normal;
 out vec4 v_lightPos;
 out vec2 v_uv;

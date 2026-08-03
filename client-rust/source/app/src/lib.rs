@@ -149,8 +149,8 @@ impl AssetCatalog {
 }
 use successor_engine_core::world;
 use successor_engine_render::components::{
-    Camera, CompositeQuad, DirectionalLight, MeshRenderer, ModelRef, PointLight, TextOverlay,
-    Transform,
+    Camera, CompositeQuad, DirectionalLight, HeightCutaway, MeshRenderer, ModelRef, PointLight,
+    TextOverlay, Transform,
 };
 
 // The concrete ECS world: the render component set (Transform/Mesh/Camera/…)
@@ -159,6 +159,7 @@ world! { pub struct GameWorld {
     transform: Transform,
     model: ModelRef,
     mesh: MeshRenderer,
+    cutaway: HeightCutaway,
     camera: Camera,
     light: DirectionalLight,
     point_light: PointLight,
@@ -415,7 +416,9 @@ mod web_runtime {
             return;
         }
 
-        let (dx, dy, held_sprint) = movement::intent_from_keys(successor_platform::is_key_down);
+        let (manual_dx, manual_dy, held_sprint) =
+            movement::intent_from_keys(successor_platform::is_key_down);
+        let (dx, dy) = scene.navigation_intent(manual_dx, manual_dy);
         let intent = (dx, dy, held_sprint || scene.sprint_toggled());
         scene.set_move_intent(intent.0, intent.1, intent.2);
         let last = LAST_MOVE.get_mut().copied().unwrap_or((0, 0, false));

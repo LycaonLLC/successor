@@ -1,8 +1,8 @@
 # Successor Current Deployment
 
-Status: re-observed and beta-promoted on 2026-08-02 UTC after immutable Rust
-WebGL2 publication, exact-release authority admission, authority replacement,
-site promotion, and public launch-path verification.
+Status: re-observed and beta-promoted on 2026-08-02 UTC after correcting
+first-load launch-ticket timing, admitting the exact Rust client release, and
+promoting the matching site and beta pointers independently.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -13,12 +13,12 @@ operator procedures live in `OPERATIONS.md`.
 
 | Surface | Public address | Current identity |
 | --- | --- | --- |
-| Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-c5e239c-20260802` |
+| Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-254cc62-20260802` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@66b355075afb9351` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@254cc626622b1f0b` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | deployment source `66b355075afb9351c0925ca32349ece96268deb2` |
+| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `254cc626622b1f0badf1cc612a5fa59c505a7487` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -32,9 +32,9 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`66b355075afb9351c0925ca32349ece96268deb2`, client
-`successor-rust-beta@66b355075afb9351`, and immutable publication inventory
-SHA-256 `c84af1195a31ac7b61854cb29628e4a53506413ed0f6af547045ff19b422661a`.
+`254cc626622b1f0badf1cc612a5fa59c505a7487`, client
+`successor-rust-beta@254cc626622b1f0b`, and immutable publication inventory
+SHA-256 `9ee9d39a01a426ebb42f314df60ab4c0b5b50832bbab6627c0e41c247ff0e1a1`.
 The previous dry runs and superseded beta candidates are not release
 identities.
 
@@ -42,11 +42,11 @@ identities.
 
 The authenticated S3 pointer contains:
 
-- release: `site-c5e239c-20260802`
-- source commit: `c5e239c3af74ac93121a6e8492308c1769cc1f8a`
+- release: `site-254cc62-20260802`
+- source commit: `254cc626622b1f0badf1cc612a5fa59c505a7487`
 - manifest SHA-256:
-  `8a4a36b2ee3f0f368425d49efb187b8fc6ebd76b4359491e471d301ba5455610`
-- release prefix: `site/releases/site-c5e239c-20260802`
+  `5b67d31f55acea8830a00e228e7e34f1dd055fb34a4dc2a05a5fb0f94abd23ec`
+- release prefix: `site/releases/site-254cc62-20260802`
 - inventory: 49 files
 
 The site suite passed 174/174 tests, followed by its TypeScript/Vite build
@@ -92,22 +92,37 @@ selection/creation hands directly into the 3D client.
 
 The independent beta pointer is:
 
-- source commit: `66b355075afb9351c0925ca32349ece96268deb2`
-- client release: `successor-rust-beta@66b355075afb9351`
+- source commit: `254cc626622b1f0badf1cc612a5fa59c505a7487`
+- client release: `successor-rust-beta@254cc626622b1f0b`
 - manifest SHA-256:
-  `c84af1195a31ac7b61854cb29628e4a53506413ed0f6af547045ff19b422661a`
+  `9ee9d39a01a426ebb42f314df60ab4c0b5b50832bbab6627c0e41c247ff0e1a1`
 - release-builder manifest SHA-256:
-  `81fb220d6f842adc50652677cffd94cad242c0e1aab255ea36a48c16acc5b6d2`
+  `928bea8ae8bca11995c8d33fbf3e8c0032943dc030381f6425b2bfd3d12785f8`
 - immutable entry:
-  `https://d2kf3ri6r74a0m.cloudfront.net/releases/c84af1195a31ac7b61854cb29628e4a53506413ed0f6af547045ff19b422661a/index.html`
+  `https://d2kf3ri6r74a0m.cloudfront.net/releases/9ee9d39a01a426ebb42f314df60ab4c0b5b50832bbab6627c0e41c247ff0e1a1/index.html`
 
-The public `/beta/` route loaded this exact iframe, minted a ticket for the
-verification Scout, loaded both required authored pawn bodies with HTTP 200,
-and received HTTP 200 from `/matchmake/joinOrCreate/game` with the beta release
-presented. Browser proof observed no missing-body request, HTTP 403, fatal
-runtime state, or render-loop error. The release builder now includes the
-complete pawn pack, and publication fails closed when either required body is
-absent. The stable pointer remained `successor-alpha@cdab7dccacc1d75c`.
+The first-load HTTP 525 failure was an expired launch ticket: the site minted
+the ticket before constructing the iframe, while the Rust client downloaded
+its complete initial asset closure before matchmaking. The client now
+preloads first and announces readiness afterward; the authenticated site
+mints and delivers the launch context only in response to that exact-origin,
+exact-window readiness message. Duplicate readiness messages reuse the
+in-memory envelope rather than minting another ticket.
+
+The site suite passed 174/174 tests and its production build passed. The
+mandatory Rust client gates passed with zero steady-state frame allocations.
+In a fresh public headless launch of this immutable release, asset downloads
+began immediately with no ticket request. The site minted the ticket at
+57.574 seconds, after preload readiness; matchmaking then returned HTTP 204
+and HTTP 200 at 58.043 and 58.166 seconds. No HTTP 525 occurred. The stable
+pointer remained `successor-alpha@cdab7dccacc1d75c`.
+
+A post-promotion stable `/play/` attempt reached the unchanged stable
+`successor-alpha@cdab7dccacc1d75c` pointer, but the current stable client sent
+a matchmake request rejected by the authority as HTTP 400
+`{"error":"invalid matchmake body"}`. This is an observed pre-existing
+stable-client/authority contract failure, not a successful stable player
+journey; the beta promotion did not move the stable pointer.
 
 ## Authority and durable state
 

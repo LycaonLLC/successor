@@ -320,38 +320,11 @@ export function initPlayPage(
           // of /camp, not an unclean WebSocket disappearance.
           await retireLiveFrame();
 
-          const ticket = runtime.clientReleaseId === undefined
-            ? await api.playTicket(characterId)
-            : await api.playTicket(characterId, runtime.clientReleaseId);
-          if (!ticket.ok) {
-            if (button) setBusy(button, false);
-            restoreDirectEntrySurface(stage instanceof HTMLElement ? stage : null);
-            if (ticket.error.kind === "unavailable") {
-              showApiStatus(doc, ticket.error);
-              setFormStatus(form, "Service unreachable — see the notice above.", "error");
-            } else {
-              setFormStatus(form, ticket.error.message, "error");
-            }
-            return;
-          }
-          let pendingContext: LaunchContext | null = ticket.value;
-          const releaseMismatch = (
-            runtime.clientReleaseId !== undefined
-            && pendingContext.release.client !== runtime.clientReleaseId
-          ) || (
-            runtime.serverReleaseId !== undefined
-            && pendingContext.release.server !== runtime.serverReleaseId
-          );
-          if (!isLaunchContext(pendingContext) || releaseMismatch) {
-            if (button) setBusy(button, false);
-            restoreDirectEntrySurface(stage instanceof HTMLElement ? stage : null);
-            if (resultNote) {
-              resultNote.hidden = false;
-              resultNote.textContent =
-                "The server answered with an entry format this client does not understand. The tickets expire unused — try again or reload the page.";
-            }
-            return;
-          }
+          // The immutable client must finish its cold asset preload before the
+          // short-lived capabilities are minted. Otherwise a first visit can
+          // spend both tickets while downloading the release and reach the
+          // authority only after they have expired.
+          let pendingContext: LaunchContext | null = null;
 
           // Hand off to the immutable client iframe. The context travels over
           // postMessage to the exact origin and window only — never in the URL,
@@ -370,6 +343,7 @@ export function initPlayPage(
           // in-memory envelope. A fast cached iframe can otherwise miss the
           // first cross-origin delivery and wait forever on a blank frame.
           let launched = false;
+          let ticketRequestInFlight = false;
           let macroBridge: MacroPortBridge | null = null;
           let readyDeadline: number | null = null;
           const session: LiveFrameSession = {
@@ -399,59 +373,97 @@ export function initPlayPage(
                 reason === "session-replaced" ? SESSION_REPLACED_NOTICE : LAUNCH_FAILED_NOTICE;
             }
           };
+          const prepareLaunch = async (): Promise<void> => {
+            if (launched || ticketRequestInFlight) return;
+            ticketRequestInFlight = true;
+            const ticket = runtime.clientReleaseId === undefined
+              ? await api.playTicket(characterId)
+              : await api.playTicket(characterId, runtime.clientReleaseId);
+            ticketRequestInFlight = false;
+            if (liveFrame !== session || !iframe.isConnected) return;
+            if (!ticket.ok) {
+              fail();
+              if (ticket.error.kind === "unavailable") {
+                showApiStatus(doc, ticket.error);
+                setFormStatus(form, "Service unreachable — see the notice above.", "error");
+              } else {
+                setFormStatus(form, ticket.error.message, "error");
+              }
+              return;
+            }
+            const launch = ticket.value;
+            const releaseMismatch = (
+              runtime.clientReleaseId !== undefined
+              && launch.release.client !== runtime.clientReleaseId
+            ) || (
+              runtime.serverReleaseId !== undefined
+              && launch.release.server !== runtime.serverReleaseId
+            );
+            if (!isLaunchContext(launch) || releaseMismatch) {
+              fail();
+              if (resultNote) {
+                resultNote.hidden = false;
+                resultNote.textContent =
+                  "The server answered with an entry format this client does not understand. The tickets expire unused — try again or reload the page.";
+              }
+              return;
+            }
+            pendingContext = launch;
+            iframe.contentWindow?.postMessage(
+              { type: LAUNCH_MESSAGE_TYPE, launch },
+              clientOrigin,
+            );
+            launched = true;
+            // Character-bound macro data remains disabled for beta until
+            // the Rust client consumes the established MessagePort contract.
+            if (options.enableMacroBridge !== false) {
+              macroBridge?.dispose();
+              macroBridge = attachMacroPortBridge({
+                api,
+                iframe,
+                clientOrigin,
+                characterId: launch.characterId,
+              });
+            }
+            iframe.focus({ preventScroll: true });
+            if (button) setBusy(button, false);
+            setFormStatus(form, "Handed off to the client.", "success");
+          };
           const onMessage = (message: MessageEvent): void => {
             if (message.origin !== clientOrigin || message.source !== iframe.contentWindow) return;
             const data: unknown = message.data;
             if (data === null || typeof data !== "object" || !("type" in data)) return;
             if (
               data.type === CLIENT_READY_TYPE
-              && pendingContext !== null
               && (
                 runtime.clientReleaseId === undefined
                 || ("releaseId" in data && data.releaseId === runtime.clientReleaseId)
               )
             ) {
-              const launch = pendingContext;
-              // Keep the bounded listener and envelope alive while this exact
-              // child continues to retry. The ticket is minted once and never
-              // leaves memory; duplicate READY does not create another launch.
-              iframe.contentWindow?.postMessage(
-                { type: LAUNCH_MESSAGE_TYPE, launch },
-                clientOrigin,
-              );
-              if (!launched) {
-                launched = true;
-                // Character-bound macro data remains disabled for beta until
-                // the Rust client consumes the established MessagePort contract.
-                if (options.enableMacroBridge !== false) {
-                  macroBridge?.dispose();
-                  macroBridge = attachMacroPortBridge({
-                    api,
-                    iframe,
-                    clientOrigin,
-                    characterId: launch.characterId,
-                  });
-                }
-                // The launch form deliberately focused the character selector.
-                // Transfer keyboard ownership to the cross-origin client only
-                // after its authenticated READY handshake, so Enter, WASD, and
-                // window hotkeys work without a sacrificial click in the frame.
-                iframe.focus({ preventScroll: true });
-                if (button) setBusy(button, false);
-                setFormStatus(form, "Handed off to the client.", "success");
+              if (pendingContext !== null) {
+                iframe.contentWindow?.postMessage(
+                  { type: LAUNCH_MESSAGE_TYPE, launch: pendingContext },
+                  clientOrigin,
+                );
+              } else {
+                void prepareLaunch();
               }
             } else if (data.type === LAUNCH_FAILED_TYPE) {
               fail("reason" in data ? data.reason : undefined);
             }
           };
           window.addEventListener("message", onMessage);
+          // A cold Rust release currently streams the authored asset closure
+          // before READY. Keep this bounded without expiring in normal first
+          // loads; tickets are not minted until READY arrives.
           readyDeadline = window.setTimeout(() => {
             if (launched) {
               pendingContext = null;
               readyDeadline = null;
+            } else {
+              fail();
             }
-            else fail();
-          }, 30_000);
+          }, 15 * 60_000);
           liveFrame = session;
           if (stage) stage.dataset.stageState = "live";
           stage?.removeAttribute("aria-busy");

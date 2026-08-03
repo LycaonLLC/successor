@@ -20,7 +20,9 @@ use successor_engine_core::ecs::{Entity, WorldOps};
 use successor_engine_core::glb::{self, GlbDocument};
 use successor_engine_core::json::Json;
 use successor_engine_core::math::{vec3, Mat4, Quat, Vec3};
-use successor_engine_render::components::{MaterialId, MeshId, MeshRenderer, SkinRef, Transform};
+use successor_engine_render::components::{
+    HeightCutaway, MaterialId, MeshId, MeshRenderer, SkinRef, Transform,
+};
 use successor_engine_render::gi::GiOccluder;
 use successor_engine_render::gpu::Gpu;
 use successor_engine_render::model::upload_glb;
@@ -50,6 +52,13 @@ struct PropModel {
     height_y: f32,
     /// Index-weighted mean base color, for the GI occluder proxy.
     mean_albedo: [f32; 3],
+}
+struct EnterableProp {
+    entities: Vec<Entity>,
+    region: crate::world::cutaway::RegionMilli,
+    state: crate::world::cutaway::CutawayState,
+    cutoff_y: f32,
+    fade_seconds: f64,
 }
 
 #[derive(Clone, Copy)]
@@ -109,6 +118,8 @@ pub struct PropsLoader {
     spawned: Vec<Entity>,
     /// Area-local cutaway state and its explicitly selected render entities.
     enterables: Vec<EnterableInstance>,
+    /// Legacy whole-prop height cutaways for mappings without reveal prefixes.
+    height_cutaways: Vec<EnterableProp>,
     /// Area-local door state and closed/open transforms.
     doors: Vec<DoorInstance>,
     /// Typed optional-asset degradation (bounded, deduped).
@@ -134,6 +145,7 @@ impl PropsLoader {
             cache: HashMap::new(),
             spawned: Vec::new(),
             enterables: Vec::new(),
+            height_cutaways: Vec::new(),
             doors: Vec::new(),
             issues: Vec::new(),
         })
@@ -157,6 +169,7 @@ impl PropsLoader {
             world.destroy(e);
         }
         self.enterables.clear();
+        self.height_cutaways.clear();
         self.doors.clear();
         world.flush();
     }
@@ -165,12 +178,16 @@ impl PropsLoader {
         self.mapping.get("entries").and_then(|e| e.get(key))
     }
 
-    /// True once the snapshot-driven cutaway decision has stably entered any
-    /// placed enterable. This is intentionally independent of fade progress.
+    /// True once either cutaway path has stably entered a placed interior.
+    /// This is intentionally independent of fade progress.
     pub fn player_inside_enterable(&self) -> bool {
         self.enterables
             .iter()
             .any(|enterable| enterable.cutaway.inside)
+            || self
+                .height_cutaways
+                .iter()
+                .any(|enterable| enterable.state.inside)
     }
 
     /// Synchronize area-local enterable presentation from accepted authority
@@ -368,6 +385,12 @@ impl PropsLoader {
                 let ground_x = cx + sw / 2.0;
                 let ground_z = cy + sh / 2.0;
                 let pos = vec3(ground_x, terrain.height_at(ground_x, ground_z), ground_z);
+
+                let mut instance_entities = if enterable.is_some() && reveal_prefixes.is_none() {
+                    Some(Vec::with_capacity(parts.len()))
+                } else {
+                    None
+                };
                 let placement = Mat4::from_trs(pos, Quat::from_yaw(yaw), vec3(scale, scale, scale));
                 let mut reveal = Vec::new();
                 let mut door_parts = Vec::new();
@@ -381,6 +404,9 @@ impl PropsLoader {
                     };
                     let e = world.spawn();
                     self.spawned.push(e);
+                    if let Some(entities) = instance_entities.as_mut() {
+                        entities.push(e);
+                    }
                     world.set_component(e, transform);
                     let mesh_renderer = MeshRenderer {
                         mesh: part.mesh,
@@ -426,6 +452,20 @@ impl PropsLoader {
                         prop_id: id.to_string(),
                         open: false,
                         parts: door_parts,
+                    });
+                }
+                if let (Some(enterable), Some(entities)) = (enterable, instance_entities) {
+                    self.height_cutaways.push(EnterableProp {
+                        entities,
+                        region: RegionMilli {
+                            x_milli: cx as f64 * 1000.0,
+                            y_milli: cy as f64 * 1000.0,
+                            w_milli: sw as f64 * 1000.0,
+                            h_milli: sh as f64 * 1000.0,
+                        },
+                        state: CutawayState::default(),
+                        cutoff_y: pos.y + hy * scale * (2.0 / 3.0),
+                        fade_seconds: enterable_fade_seconds(enterable),
                     });
                 }
                 occ.push(GiOccluder {
@@ -483,6 +523,41 @@ impl PropsLoader {
         }
         renderer.gi_set_occluders(&occ);
         placed
+    }
+
+    /// Update authored enterable props from the authoritative local player.
+    pub fn update_cutaways(
+        &mut self,
+        world: &mut GameWorld,
+        tick: u64,
+        player_x: f32,
+        player_y: f32,
+        dt: f32,
+    ) {
+        for enterable in &mut self.height_cutaways {
+            crate::world::cutaway::sample(
+                &mut enterable.state,
+                tick as f64,
+                &[enterable.region],
+                player_x as f64 * 1000.0,
+                player_y as f64 * 1000.0,
+            );
+            let amount = crate::world::cutaway::advance_fade(
+                &mut enterable.state,
+                dt as f64,
+                enterable.fade_seconds,
+                false,
+            ) as f32;
+            for entity in &enterable.entities {
+                world.set_component(
+                    *entity,
+                    HeightCutaway {
+                        cutoff_y: enterable.cutoff_y,
+                        amount,
+                    },
+                );
+            }
+        }
     }
 
     /// Ensure a model is cached; `true` when loaded, `false` → typed miss

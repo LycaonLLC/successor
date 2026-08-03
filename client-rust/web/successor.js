@@ -13,6 +13,26 @@ const successorBuild = Object.freeze({
 });
 
 const canvas = document.getElementById("app");
+const loading = document.getElementById("loading");
+const loadingPhase = document.getElementById("loading-phase");
+const loadingBar = document.getElementById("loading-bar");
+const loadingDetail = document.getElementById("loading-detail");
+
+function showLoading(phase, detail = "", fraction = 0) {
+    loadingPhase.textContent = phase;
+    loadingDetail.textContent = detail;
+    loadingBar.style.width = `${Math.max(0, Math.min(1, fraction)) * 100}%`;
+}
+
+function failLoading(error) {
+    loading.classList.add("error");
+    showLoading("UNABLE TO ENTER WORLD", String(error).replaceAll(/[?#].*/g, ""), 0);
+}
+
+function finishLoading() {
+    loading.classList.add("hidden");
+    window.setTimeout(() => loading.remove(), 220);
+}
 const gl = canvas.getContext("webgl2");
 
 let webglContextLost = false;
@@ -62,19 +82,30 @@ window.addEventListener("blur", () => {
 
 let mouseX = 0, mouseY = 0;
 const mouseButtons = new Uint8Array(3);
-canvas.addEventListener("pointermove", e => {
+function updatePointer(e) {
     const r = canvas.getBoundingClientRect();
     mouseX = (e.clientX - r.left) * canvas.width / r.width;
-    mouseY = (r.bottom - e.clientY) * canvas.height / r.height;
-});
+    mouseY = (e.clientY - r.top) * canvas.height / r.height;
+}
+canvas.addEventListener("pointermove", updatePointer);
 canvas.addEventListener("pointerdown", e => {
+    updatePointer(e);
     if (e.button < mouseButtons.length) mouseButtons[e.button] = 1;
+    canvas.setPointerCapture(e.pointerId);
     // A gesture is the only legal point at which web audio may start.
     audioUnlock();
 });
-canvas.addEventListener("pointerup", e => {
+function releasePointer(e) {
+    updatePointer(e);
     if (e.button < mouseButtons.length) mouseButtons[e.button] = 0;
+    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+}
+canvas.addEventListener("pointerup", releasePointer);
+canvas.addEventListener("pointercancel", e => {
+    mouseButtons.fill(0);
+    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
 });
+canvas.addEventListener("lostpointercapture", () => mouseButtons.fill(0));
 const charQueue = [];
 window.addEventListener("keypress", (e) => {
     if (e.key.length === 1) {
@@ -231,6 +262,39 @@ function getString(ptr, len) {
     return new TextDecoder().decode(bytes);
 }
 
+async function fetchInitialAssets() {
+    showLoading("STREAMING WORLD", "READING RELEASE MANIFEST", 0);
+    const manifestResponse = await fetch("release-manifest.json", { cache: "no-store" });
+    if (!manifestResponse.ok) throw new Error(`release manifest ${manifestResponse.status}`);
+    const manifest = await manifestResponse.json();
+    if (!Array.isArray(manifest.initialAssets)) throw new Error("release manifest has no initial asset stream");
+    const files = new Map(manifest.files.map(file => [file.path, file]));
+    const assets = manifest.initialAssets.map(path => {
+        const file = files.get(path);
+        if (!file) throw new Error(`initial asset missing from inventory: ${path}`);
+        return file;
+    });
+    const total = assets.reduce((sum, file) => sum + file.bytes, 0);
+    let loaded = 0;
+    globalThis.__successorFetchCache = new Map();
+    let next = 0;
+    const worker = async () => {
+        while (next < assets.length) {
+            const file = assets[next++];
+            const response = await fetch(file.path);
+            if (!response.ok) throw new Error(`asset ${response.status}: ${file.path}`);
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            if (bytes.byteLength !== file.bytes) throw new Error(`asset size mismatch: ${file.path}`);
+            globalThis.__successorFetchCache.set(file.path, bytes);
+            loaded += bytes.byteLength;
+            const mib = value => (value / 1048576).toFixed(1);
+            showLoading("STREAMING WORLD", `${mib(loaded)} / ${mib(total)} MiB`, total > 0 ? loaded / total : 1);
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(6, assets.length) }, worker));
+}
+
+let firstWorldFrame = false;
 const importObject = {
     env: {
         // --- WebGL2 Functions ---
@@ -542,6 +606,7 @@ const importObject = {
             try {
                 if (!globalThis.__successorFetchCache) globalThis.__successorFetchCache = new Map();
                 const cache = globalThis.__successorFetchCache;
+
                 let bytes = cache.get(url);
                 if (!bytes) {
                     const xhr = new XMLHttpRequest();
@@ -591,7 +656,12 @@ fetch("successor.wasm")
             : demoName === "terrain-material"
                 ? (params.get("biome") === "forest" ? 3 : 2)
                 : 0;
-        if (demoSelector === 0) await waitForHostedLaunch();
+        if (demoSelector === 0) {
+            await fetchInitialAssets();
+            showLoading("CONNECTING", "WAITING FOR LAUNCH", 1);
+            await waitForHostedLaunch();
+            showLoading("ENTERING WORLD", "BUILDING SCENE", 1);
+        }
         window.__successorRenderReady = false;
         window.__successorRenderError = null;
         window.__successorRenderProbe = null;
@@ -658,6 +728,10 @@ fetch("successor.wasm")
                     window.__successorNetState = state;
                     if (state === 4 && renderedFrames > 2) {
                         window.__successorRenderReady = true;
+                        if (!firstWorldFrame) {
+                            firstWorldFrame = true;
+                            finishLoading();
+                        }
                     }
                     if (typeof wasmExports.net_fatal === "function" && wasmExports.net_fatal() === 1) {
                         throw new Error("connected runtime entered fatal state");
@@ -684,6 +758,7 @@ fetch("successor.wasm")
                 }
             } catch (error) {
                 window.__successorRenderError = String(error);
+                failLoading(error);
                 console.error("render loop failed:", error);
                 return;
             }
@@ -695,4 +770,5 @@ fetch("successor.wasm")
         console.error("WASM instantiation failed:", err);
         window.__successorRenderReady = false;
         window.__successorRenderError = String(err);
+        failLoading(err);
     });
