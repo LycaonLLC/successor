@@ -11,7 +11,7 @@ uniform int u_hasTangent;
 #ifdef SKINNED
 layout(location = 5) in vec4 a_joints;
 layout(location = 6) in vec4 a_weights;
-uniform mat4 u_joints[64];
+uniform mat4 u_joints[50];
 #endif
 #ifdef INSTANCED
 layout(location = 7) in vec4 a_instance0;
