@@ -1,8 +1,8 @@
 # Successor Current Deployment
 
 Status: re-observed and beta-promoted on 2026-08-02 UTC after immutable Rust
-WebGL2 publication, exact-release authority admission, authority replacement,
-site promotion, and public launch-path verification.
+WebGL2 publication, exact-release authority admission, independent site
+promotion, and public beta launch-path verification.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -15,10 +15,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-c5e239c-20260802` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@66b355075afb9351` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@67687fe833fd3382` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | deployment source `66b355075afb9351c0925ca32349ece96268deb2` |
+| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `67687fe833fd33827056d1c6ca0a6c7c414f6acc` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -32,9 +32,9 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`66b355075afb9351c0925ca32349ece96268deb2`, client
-`successor-rust-beta@66b355075afb9351`, and immutable publication inventory
-SHA-256 `c84af1195a31ac7b61854cb29628e4a53506413ed0f6af547045ff19b422661a`.
+`67687fe833fd33827056d1c6ca0a6c7c414f6acc`, client
+`successor-rust-beta@67687fe833fd3382`, and immutable publication inventory
+SHA-256 `0539e01749a268be9bcc5de38595d134c9451b4297d6fa882d302f2d56d25fb6`.
 The previous dry runs and superseded beta candidates are not release
 identities.
 
@@ -92,22 +92,30 @@ selection/creation hands directly into the 3D client.
 
 The independent beta pointer is:
 
-- source commit: `66b355075afb9351c0925ca32349ece96268deb2`
-- client release: `successor-rust-beta@66b355075afb9351`
+- source commit: `67687fe833fd33827056d1c6ca0a6c7c414f6acc`
+- client release: `successor-rust-beta@67687fe833fd3382`
 - manifest SHA-256:
-  `c84af1195a31ac7b61854cb29628e4a53506413ed0f6af547045ff19b422661a`
+  `0539e01749a268be9bcc5de38595d134c9451b4297d6fa882d302f2d56d25fb6`
 - release-builder manifest SHA-256:
-  `81fb220d6f842adc50652677cffd94cad242c0e1aab255ea36a48c16acc5b6d2`
+  `9c4ce422fad51bc82d16744314c4fa1a438247c9d549de069bed1a3b55e1b3bf`
 - immutable entry:
-  `https://d2kf3ri6r74a0m.cloudfront.net/releases/c84af1195a31ac7b61854cb29628e4a53506413ed0f6af547045ff19b422661a/index.html`
+  `https://d2kf3ri6r74a0m.cloudfront.net/releases/0539e01749a268be9bcc5de38595d134c9451b4297d6fa882d302f2d56d25fb6/index.html`
 
-The public `/beta/` route loaded this exact iframe, minted a ticket for the
-verification Scout, loaded both required authored pawn bodies with HTTP 200,
-and received HTTP 200 from `/matchmake/joinOrCreate/game` with the beta release
-presented. Browser proof observed no missing-body request, HTTP 403, fatal
-runtime state, or render-loop error. The release builder now includes the
-complete pawn pack, and publication fails closed when either required body is
-absent. The stable pointer remained `successor-alpha@cdab7dccacc1d75c`.
+The public `/beta/` route loaded this exact iframe, minted a fresh ticket for
+`Beta-Rook`, completed the loading overlay, rendered a 1440 by 900 WebGL2
+canvas, and received HTTP 204 then HTTP 200 from
+`/matchmake/joinOrCreate/game`. The final journey observed no HTTP 403,
+page error, or render-loop error; canvas clicks exercised both sidebar and
+world coordinates. The release inventory includes the complete pawn pack,
+the Rust creature catalog, extractor variants, and camp structures. The stable
+pointer remained `successor-alpha@cdab7dccacc1d75c`.
+
+A post-promotion stable `/play/` attempt reached the unchanged stable
+`successor-alpha@cdab7dccacc1d75c` pointer, but the current stable client sent
+a matchmake request rejected by the authority as HTTP 400
+`{"error":"invalid matchmake body"}`. This is an observed pre-existing
+stable-client/authority contract failure, not a successful stable player
+journey; the beta promotion did not move the stable pointer.
 
 ## Authority and durable state
 
