@@ -7,6 +7,7 @@ __pycache__/
 build/reference/
 build/textures/
 build/scratch/
+build/female_posterior/
 build/apparel_baseline/
 build/*.npy
 
