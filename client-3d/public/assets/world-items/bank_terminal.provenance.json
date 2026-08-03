@@ -38,14 +38,14 @@
     "denylist_audit": "passed: no franchise/IP terms in names, materials, node names, or artifacts",
     "text": "Hand-authored parametric part program (no generative model): Dustgate outdoor bank terminal kiosk \u2014 corbel-supported armored steel head over a cast column, brass side rails, hooded amber ledger screen behind glass, 12-key keypad with a glowing accept key, credit-chip slot, receipt slit with a protruding stub, and an open dispenser tray. Grounded at y=0, 2.06 m tall at pawn scale."
   },
-  "regeneration_command": "/snap/bin/blender -b --factory-startup --python-exit-code 1 -P tools/successor/assets/build_cloning_facility.py",
+  "regeneration_command": "/snap/bin/blender -b --factory-startup --python-exit-code 1 -P tools/successor/assets/build_bank_terminal.py",
   "rights": {
     "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
     "source_license": "Successor proprietary project asset; all rights reserved"
   },
   "schema": "successor-asset-provenance/1",
   "seed": null,
-  "source_blend_or_script": "tools/successor/assets/build_cloning_facility.py (deterministic parametric part program; no .blend needed)",
+  "source_blend_or_script": "tools/successor/assets/build_bank_terminal.py (deterministic parametric part program; no .blend needed)",
   "tool": {
     "name": "blender-bpy-headless",
     "tool_snapshot_id": "blender-5.2.0",

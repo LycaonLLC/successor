@@ -3,53 +3,65 @@
     "human_approvals": [],
     "produced_by": [
       {
-        "agent_instance_id": "CloneFacilityAsset",
-        "model": "Fable 5",
+        "agent_instance_id": "CloneFacilityOpus5",
+        "model": "Opus 5",
         "provider": "anthropic",
         "role": "content-author",
-        "run_id": "cloning-facility-20260716"
+        "run_id": "cloning-facility-opus5-20260803"
       }
     ],
     "reviewed_by_agents": [
       {
-        "agent_instance_id": "CloneFacilityAsset",
-        "notes": "numeric parsed-GLB gates + multi-angle render review in .game-lab/cloning-facility-20260716/renders/",
+        "agent_instance_id": "CloneFacilityOpus5",
+        "notes": "numeric gate: {\"footprint_matches_spec\": true, \"height_in_range\": true, \"root_node_present\": true, \"tri_budget\": true, \"textures_embedded\": true, \"atlas_material_present\": true, \"no_animations\": true, \"sits_on_grade\": true}",
         "role": "judge"
       }
     ]
   },
-  "asset_hash": "sha256:f7d03b0715d08dddfb18b1c37f7235cce1b7bb05aab5043e87f9c5ec3ca4809f",
+  "asset_hash": "sha256:a80270f416040b68a47b152d834bba4760ec7362546bc9b883e13a372878bbbd",
   "asset_id": "clone_terminal",
   "asset_kind": "model_glb",
   "asset_path": "client-3d/public/assets/world-items/clone_terminal.glb",
-  "gate_report": ".game-lab/cloning-facility-20260716/gate.json",
+  "gate_report": ".game-lab/cloning-facility-opus5-20260803/gate.json",
   "human_edits": [],
   "input_assets": [
     {
-      "path": "client-3d/public/assets/world-items/house_h1_manifest.json",
-      "purpose": "structural_reference (shoulder-house language + door contract)"
+      "path": "tools/successor/assets/buildkit-opus5/ (successor-buildkit-20260730 worktree)",
+      "purpose": "style authority: sinter/panel/screed/roofmetal/bronze/gunmetal material register and heavy-base-over-light-skin tectonics"
     },
     {
-      "path": "tools/successor/extract-structure-collision.mjs",
-      "purpose": "collision_sidecar_contract"
+      "path": "tools/successor/assets/buildkit-opus5/runtime-buildings/modular/home_modular_{starter,wing,court}.glb",
+      "purpose": "promoted modular runtime reference for silhouette density, fa\u00e7ade articulation and payload budget"
+    },
+    {
+      "path": "client-3d/public/assets/pawn-pack/pawn_male.glb (successor-humanoid-runtime-refit-20260802 worktree)",
+      "purpose": "approved humanoid source posed and frozen into the occupied vat; rig and clips discarded"
+    },
+    {
+      "path": "client-3d/public/assets/world-items/cloning_facility_collision.json",
+      "purpose": "frozen structural collision contract (nine named wall proxies + door box)"
+    },
+    {
+      "path": "client-3d/src/render/props.ts",
+      "purpose": "runtime material contract: textured world props render unlit, so the base colour must carry the lit read"
     }
   ],
   "prompt": {
-    "denylist_audit": "passed: no franchise/IP terms in names, materials, node names, or artifacts",
-    "text": "Hand-authored parametric part program (no generative model): Dustgate indoor clone terminal \u2014 clinical enamel spine with a steel crown band, neck-mounted angled cyan readout, palm-rest tray with a tag-reader ring, status lights, anchored base pads, floor cable foot with a collar. Grounded at y=0, ~1.74 m tall at pawn scale."
+    "denylist_audit": "passed: no franchise or trademark terms in node names, material names, textures or artifacts; the entry crest and console graphics are authored pictograms with no lettering",
+    "text": "Clone control console: splayed gunmetal foot with a cable gland, enamel column with a bronze datum, bronze-edged deck carrying a raked switch bank, palm reader and sample dock, and a raked display head whose emissive face carries an authored pictogram readout - body chart with growth fill, viability ring, vitals traces and bay-status pips, with no lettering."
   },
-  "regeneration_command": "/snap/bin/blender -b --factory-startup --python-exit-code 1 -P tools/successor/assets/build_cloning_facility.py",
+  "regeneration_command": "/snap/bin/blender -b --factory-startup -noaudio --python-exit-code 1 -P tools/successor/assets/cloning-facility-opus5/src/build_clone_suite.py",
   "rights": {
     "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
     "source_license": "Successor proprietary project asset; all rights reserved"
   },
   "schema": "successor-asset-provenance/1",
   "seed": null,
-  "source_blend_or_script": "tools/successor/assets/build_cloning_facility.py (deterministic parametric part program; no .blend needed)",
+  "source_blend_or_script": "tools/successor/assets/cloning-facility-opus5/src/ (deterministic parametric part program; checkpoint .blend in blend/)",
   "tool": {
     "name": "blender-bpy-headless",
-    "tool_snapshot_id": "blender-5.2.0",
-    "version": "5.2.0"
+    "tool_snapshot_id": "blender-5.2.0 LTS",
+    "version": "5.2.0 LTS"
   },
-  "tri_count": 748
+  "tri_count": 832
 }

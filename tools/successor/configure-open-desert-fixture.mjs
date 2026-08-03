@@ -369,8 +369,13 @@ function openDesertLayout(center) {
     bankTerminal: { x: marketCell.x + 3, y: marketCell.y + 3 },
     tradeTerminal: { x: marketCell.x + 6, y: marketCell.y + 3 },
     paTerminal: { x: marketCell.x + 9, y: marketCell.y + 3 },
+    // Both sit inside the cloning facility. The terminal is the operator island
+    // at the centre of the hall; the pod completes the vat bank in the back-left
+    // corner. The pod used to stand two cells inside the portal, directly in the
+    // entry lane, where a solid 1x1 blocker meant a pawn walking straight in
+    // stopped against it -- see tools/successor/assets/cloning-facility-opus5.
     cloneTerminal: { x: facilityCell.x + 5, y: facilityCell.y + 3 },
-    clonePod: { x: facilityCell.x + 5, y: facilityCell.y + 5 },
+    clonePod: { x: facilityCell.x + 2, y: facilityCell.y + 1 },
   };
   const pointsInsideArea = [
     layout.playerSpawn,

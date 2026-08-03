@@ -1,0 +1,61 @@
+{
+  "asset": {
+    "bytes": 961848,
+    "file": "clone_pod.glb",
+    "images": [
+      {
+        "bytes": 137419,
+        "embedded": true,
+        "mime": "image/png",
+        "name": "clone_pod_normal"
+      },
+      {
+        "bytes": 342169,
+        "embedded": true,
+        "mime": "image/jpeg",
+        "name": "clone_pod_basecolor"
+      },
+      {
+        "bytes": 244358,
+        "embedded": true,
+        "mime": "image/png",
+        "name": "clone_pod_orm"
+      }
+    ],
+    "sha256": "sha256:615e9de43249217429a6994d31178ce0eeb908ce0c8a54c8c68b87ed94230eb7"
+  },
+  "bake": {
+    "atlasObjects": 1,
+    "baseColorCarriesLighting": true,
+    "runtimeSpecialObjects": 3,
+    "uvCoverage": 0.5163
+  },
+  "bbox_span_m": [
+    0.95,
+    2.7239,
+    0.95
+  ],
+  "footprint_m": [
+    0.95,
+    0.95
+  ],
+  "front": "+Z",
+  "height_range_m": [
+    2.55,
+    2.8
+  ],
+  "materials": [
+    "CF_Body",
+    "CF_Fluid",
+    "CF_GlassClear",
+    "CF_Glow",
+    "CF_GlowAmber",
+    "CF_GlowWarm"
+  ],
+  "prop": "clone_pod",
+  "root_node": "Gear_clone_pod",
+  "runtime_scale_at_1x1_cell": 1.052632,
+  "schema": "successor.runtime-prop-manifest.v1",
+  "tri_count": 3690,
+  "units": "m"
+}

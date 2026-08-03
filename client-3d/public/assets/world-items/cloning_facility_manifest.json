@@ -1,7 +1,45 @@
 {
+  "asset": {
+    "bytes": 4921376,
+    "file": "cloning_facility.glb",
+    "images": [
+      {
+        "bytes": 21421,
+        "embedded": true,
+        "mime": "image/png",
+        "name": "cloning_facility_normal"
+      },
+      {
+        "bytes": 1695616,
+        "embedded": true,
+        "mime": "image/jpeg",
+        "name": "cloning_facility_basecolor"
+      },
+      {
+        "bytes": 222800,
+        "embedded": true,
+        "mime": "image/png",
+        "name": "cloning_facility_orm"
+      },
+      {
+        "bytes": 14117,
+        "embedded": true,
+        "mime": "image/png",
+        "name": "clone_screen_emissive"
+      }
+    ],
+    "sha256": "sha256:d70eb11b646a6e210ea7af833627d6e504b3b1b4f810cbd350579d3524486619"
+  },
+  "bake": {
+    "atlasObjects": 17,
+    "baseColorCarriesLighting": true,
+    "reason": "client-3d world props render textured materials with an unlit MeshBasicMaterial, so irradiance and AO have to be in the base colour or they do not exist in game",
+    "runtimeSpecialObjects": 20,
+    "uvCoverage": 0.5214
+  },
   "bbox_span_m": [
     9.5,
-    5.26,
+    6.18,
     7.6
   ],
   "building": "cloning_facility",
@@ -9,9 +47,15 @@
     2.3,
     2.42
   ],
+  "collision": {
+    "boxes": 10,
+    "door_boxes": 1,
+    "sha256": "sha256:71362762c62fa698df5c1bb57ad2273a3434db732c4e53151be890343a4d3ec9",
+    "structure_boxes": 9
+  },
   "collisionProxy": {
     "sidecar": "cloning_facility_collision.json",
-    "source": "P",
+    "source": "cf_spec.STRUCTURAL_WALLS",
     "structuralOnly": true
   },
   "cutaway": {
@@ -55,6 +99,10 @@
   ],
   "floorHeightM": 0.02,
   "floorTopY": 0.02,
+  "footprintCells": [
+    10,
+    8
+  ],
   "front": "+Z",
   "interiorRegions": [
     {
@@ -67,20 +115,25 @@
     }
   ],
   "interior_clear_height_m": 3.05,
+  "label": "Dustgate Clone Vault",
   "materials": [
-    "HK_Brass",
-    "HK_Clad",
-    "HK_Clad2",
-    "HK_Door",
-    "HK_Floor",
-    "HK_Frame",
-    "HK_Glow",
-    "HK_Roof",
-    "HK_Shell",
-    "HK_Steel",
-    "HK_Trim"
+    "CF_Body",
+    "CF_Fluid",
+    "CF_Glass",
+    "CF_GlassClear",
+    "CF_Glow",
+    "CF_GlowAmber",
+    "CF_GlowWarm",
+    "CF_Screen"
   ],
+  "occupant": {
+    "authored_height_m": 1.6387,
+    "runtime_height_m": 1.725,
+    "source": "pawn-pack/pawn_male.glb (read-only, rig discarded)"
+  },
+  "runtimeKey": "cloning_facility",
   "runtime_scale_at_10x8_cells": 1.052632,
-  "tri_count": 5170,
+  "schema": "successor.runtime-building-manifest.v1",
+  "tri_count": 40658,
   "units": "m"
 }
