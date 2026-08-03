@@ -33,6 +33,7 @@ const lowboughCityId = "lowbough";
 const dustgateTerminalPropId = "travel-terminal-dustgate";
 const lowboughTerminalPropId = "travel-terminal-lowbough";
 const bankTerminalPropId = "dustgate-bank-terminal";
+const commerceFacilityPropId = "dustgate-commerce-facility";
 const cloningFacilityPropId = "dustgate-cloning-facility";
 const cloneTerminalPropId = "dustgate-clone-terminal";
 const clonePodPropId = "dustgate-clone-pod";
@@ -273,95 +274,112 @@ function areas() {
 }
 
 function openDesertLayout(center) {
-  const houseSize = { w: 5, h: 4 };
-  const houseCollision = shelterHouseCollision({ cellSize: houseSize, rotation: shelterHouseRotation });
-  const houseCell = {
-    x: Math.round(center - houseCollision.safeExterior.xMilli / 1000),
-    y: Math.round(center - houseCollision.safeExterior.yMilli / 1000),
-  };
-  const facilitySize = { w: 10, h: 8 };
-  const facilityCollision = structureCollisionFromSidecar({ glbName: "cloning_facility", cellSize: facilitySize, rotation: 0 });
-  if (!facilityCollision.door) throw new Error("cloning_facility sidecar carries no door box");
-  const facilityDoorPoints = deriveStructureDoorPoints({
-    walls: facilityCollision.walls,
-    door: facilityCollision.door,
-    cellSize: facilitySize,
+  const starterSize = { w: 8, h: 6 };
+  const starterCollision = enterableStructureCollision({
+    glbName: "home_modular_starter",
+    cellSize: starterSize,
+    rotation: shelterHouseRotation,
   });
-  const expectedFloorTopM = 0.02 * (facilitySize.w / 9.5);
-  if (Math.abs(facilityCollision.floorTopM - expectedFloorTopM) > 1e-12) {
-    throw new Error(`cloning facility floor contract drifted: expected ${expectedFloorTopM}, got ${facilityCollision.floorTopM}`);
+  const courtSize = { w: 10, h: 8 };
+  const courtCollision = enterableStructureCollision({
+    glbName: "home_modular_court",
+    cellSize: courtSize,
+    rotation: 0,
+  });
+  const wingSize = { w: 12, h: 10 };
+  const wingCollision = enterableStructureCollision({
+    glbName: "home_modular_wing",
+    cellSize: wingSize,
+    rotation: 0,
+  });
+  const facilitySize = { w: 10, h: 8 };
+  const facilityCollision = enterableStructureCollision({
+    glbName: "cloning_facility",
+    cellSize: facilitySize,
+    rotation: 0,
+  });
+  const expectedFacilityFloorTopM = 0.02 * (facilitySize.w / 9.5);
+  if (Math.abs(facilityCollision.floorTopM - expectedFacilityFloorTopM) > 1e-12) {
+    throw new Error(`cloning facility floor contract drifted: expected ${expectedFacilityFloorTopM}, got ${facilityCollision.floorTopM}`);
   }
-  if (facilityCollision.walls.length !== 9) {
-    throw new Error(`cloning_facility structural proxy must preserve nine walls (got ${facilityCollision.walls.length})`);
+  if (facilityCollision.collisionBounds.length < 9) {
+    throw new Error(`cloning_facility structural proxy must preserve its authored blockers (got ${facilityCollision.collisionBounds.length})`);
   }
 
-  const commerceSize = { w: 12, h: 9 };
-  const commerceCollision = structureCollisionFromSidecar({ glbName: "commerce_facility", cellSize: commerceSize, rotation: 0 });
-  assertPromisedCellsClear(commerceCollision, commerceSize);
-  if (!commerceCollision.door) throw new Error("commerce_facility sidecar carries no door box");
-  if (commerceCollision.walls.length === 0) throw new Error("commerce_facility sidecar carries no wall boxes");
-  if (commerceCollision.furniture.length !== 15 || commerceCollision.furniture.some((box) => !box.id)) {
-    throw new Error(`commerce_facility must carry 15 named furniture blockers (got ${commerceCollision.furniture.length})`);
-  }
-  const commerceDoorPoints = deriveStructureDoorPoints({
-    walls: commerceCollision.walls,
-    door: commerceCollision.door,
-    cellSize: commerceSize,
+  const marketSize = { w: 12, h: 9 };
+  const marketCollision = enterableStructureCollision({
+    glbName: "valley_market",
+    cellSize: marketSize,
+    rotation: 0,
   });
+  assertPromisedCellsClear(marketCollision, marketSize);
+  if (marketCollision.furniture.length !== 27 || marketCollision.furniture.some((box) => !box.id)) {
+    throw new Error(`valley_market must carry 27 named furniture blockers (got ${marketCollision.furniture.length})`);
+  }
+
+  const starterCell = { x: center, y: center };
   const facilityCell = { x: center + 1, y: center - 13 };
-  const commerceCell = { x: center - 12, y: center - 14 };
+  const marketCell = { x: center - 12, y: center - 14 };
+  const courtCell = { x: center - 19, y: center + 8 };
+  const wingCell = { x: center + 7, y: center + 8 };
   const toWorld = (cell, point) => ({
     x: cell.x + point.xMilli / 1000,
     y: cell.y + point.yMilli / 1000,
   });
-  const house = {
-    cell: houseCell,
-    size: houseSize,
-    rotation: shelterHouseRotation,
-    collisionBounds: houseCollision.collisionBounds,
-    door: houseCollision.door,
-  };
-  const facility = {
-    cell: facilityCell,
-    size: facilitySize,
-    rotation: 0,
-    collisionBounds: facilityCollision.walls,
-    interiorRegions: facilityCollision.interiorRegions,
-    floorTopM: facilityCollision.floorTopM,
-    door: { blocker: facilityCollision.door, interactRadiusCells: 3.1 },
-    safeExterior: facilityDoorPoints.exterior,
-    safeInterior: facilityDoorPoints.interior,
-  };
-  const commerce = {
-    cell: commerceCell,
-    size: commerceSize,
-    rotation: 0,
-    collisionBounds: [...commerceCollision.walls, ...commerceCollision.furniture],
-    interiorRegions: commerceCollision.interiorRegions,
-    floorTopM: commerceCollision.floorTopM ?? 0,
-    door: { blocker: commerceCollision.door, interactRadiusCells: 3.1 },
-    safeExterior: commerceDoorPoints.exterior,
-    safeInterior: commerceDoorPoints.interior,
-  };
+  const building = (cell, size, rotation, collision) => ({
+    cell,
+    size,
+    rotation,
+    collisionBounds: collision.collisionBounds,
+    interiorRegions: collision.interiorRegions,
+    floorTopM: collision.floorTopM,
+    door: collision.door,
+    safeExterior: collision.safeExterior,
+    safeInterior: collision.safeInterior,
+  });
+  const starter = building(starterCell, starterSize, shelterHouseRotation, starterCollision);
+  const facility = building(facilityCell, facilitySize, 0, facilityCollision);
+  const market = building(marketCell, marketSize, 0, marketCollision);
+  const court = building(courtCell, courtSize, 0, courtCollision);
+  const wing = building(wingCell, wingSize, 0, wingCollision);
+  const namedBuildings = { starter, facility, market, court, wing };
+  for (const [leftId, left] of Object.entries(namedBuildings)) {
+    for (const [rightId, right] of Object.entries(namedBuildings)) {
+      if (leftId >= rightId) continue;
+      if (rectsOverlap(propFootprintRect(left), propFootprintRect(right))) {
+        throw new Error(`Dustgate building footprints overlap: ${leftId}/${rightId}`);
+      }
+    }
+  }
+
   const cloneRespawn = { x: facilityCell.x + 6, y: facilityCell.y + 4 };
   const cloneRespawnLocal = { xMilli: 6000, yMilli: 4000 };
   if (!structurePointIsClear(cloneRespawnLocal, facility.collisionBounds, facility.door.blocker)) {
-    throw new Error(`reviewed clone respawn local (6,4) is blocked by facility collision`);
+    throw new Error("reviewed clone respawn local (6,4) is blocked by facility collision");
   }
   const layout = {
     center: { x: center, y: center },
-    house,
+    starter,
     facility,
-    commerce,
-    playerSpawn: nearestClearLayoutCell(toWorld(houseCell, houseCollision.safeExterior), house, "exterior"),
+    market,
+    court,
+    wing,
+    playerSpawn: nearestClearLayoutCell(toWorld(starterCell, starterCollision.safeExterior), starter, "exterior"),
     cloneRespawn,
-    bankTerminal: { x: center - 9, y: center - 11 },
-    tradeTerminal: { x: center - 6, y: center - 11 },
-    paTerminal: { x: center - 3, y: center - 11 },
+    bankTerminal: { x: marketCell.x + 3, y: marketCell.y + 3 },
+    tradeTerminal: { x: marketCell.x + 6, y: marketCell.y + 3 },
+    paTerminal: { x: marketCell.x + 9, y: marketCell.y + 3 },
     cloneTerminal: { x: facilityCell.x + 5, y: facilityCell.y + 3 },
     clonePod: { x: facilityCell.x + 5, y: facilityCell.y + 5 },
   };
-  const pointsInsideArea = [layout.playerSpawn, layout.cloneRespawn].every((point) => point.x >= 1 && point.x <= areaSize - 2
+  const pointsInsideArea = [
+    layout.playerSpawn,
+    layout.cloneRespawn,
+    ...Object.values(namedBuildings).flatMap(({ cell, size }) => [
+      cell,
+      { x: cell.x + size.w, y: cell.y + size.h },
+    ]),
+  ].every((point) => point.x >= 1 && point.x <= areaSize - 2
     && point.y >= 1 && point.y <= areaSize - 2);
   if (!pointsInsideArea) throw new Error(`open-desert center layout exceeds area bounds: ${JSON.stringify(layout)}`);
   return layout;
@@ -797,6 +815,19 @@ function inventoryRows(zones = []) {
     inventoryRow("player:field-pack", "Iron Slug", 1101, 0, 120),
     inventoryRow("player:field-pack", "Slugthrower", 3101, 0, 1),
     inventoryRow("player:field-pack", "Vibrosword", 3103, 0, 1),
+    inventoryRow("player:field-pack", "Plasma Sword", 3104, 0, 1),
+    inventoryRow("player:field-pack", "Scrapline Machete", 3105, 0, 1),
+    inventoryRow("player:field-pack", "Field Saber", 3106, 0, 1),
+    inventoryRow("player:field-pack", "Quarry Chopper", 3107, 0, 1),
+    inventoryRow("player:field-pack", "STEN Mk II", 3111, 0, 1),
+    inventoryRow("player:field-pack", "Kiln Energy Cell Carbine", 3112, 0, 1),
+    inventoryRow("player:field-pack", "Lightning Carbine", 3121, 0, 1),
+    inventoryRow("player:field-pack", "Badge Bolt Pistol", 3122, 0, 1),
+    inventoryRow("player:field-pack", "Slagrail Vanguard", 3123, 0, 1),
+    inventoryRow("player:field-pack", "Coilgate Scatter", 3124, 0, 1),
+    inventoryRow("player:field-pack", "Kiln Long Pattern", 3125, 0, 1),
+    inventoryRow("player:field-pack", "Bastion LMG", 3126, 0, 1),
+    inventoryRow("player:field-pack", "Flare Net Launcher", 3127, 0, 1),
     inventoryRow("player:field-pack", "Personal Shield Generator", 1004, 0, 1),
     ...zones
       .filter((zone) => zone.templateId === "open-desert-rogue-trooper")
@@ -853,7 +884,10 @@ function assertStableFixtureGeometry(slice) {
     cloningFacilityPropId,
     cloneTerminalPropId,
     clonePodPropId,
-    "open-desert-shelter-house",
+    commerceFacilityPropId,
+    "dustgate-home-starter",
+    "dustgate-home-court",
+    "dustgate-home-wing",
   ]);
   for (const id of functionalIds) {
     if (!slice.props.some((prop) => prop.id === id)) throw new Error(`functional prop ${id} missing`);
@@ -950,7 +984,7 @@ function inventoryRow(container, item, itemId, variantId, quantity) {
 function assertPromisedCellsClear(collision, cellSize) {
   const promised = collision.contract?.terminal_cells_kept_clear;
   if (!promised || typeof promised !== "object") {
-    throw new Error("commerce collision sidecar must declare terminal_cells_kept_clear");
+    throw new Error("market collision sidecar must declare terminal_cells_kept_clear");
   }
   for (const [terminalId, cell] of Object.entries(promised)) {
     if (!Array.isArray(cell) || cell.length !== 2 || !cell.every(Number.isInteger)) {
@@ -961,7 +995,8 @@ function assertPromisedCellsClear(collision, cellSize) {
     const cellMaxX = (col + 1) * 1000;
     const cellMinY = row * 1000;
     const cellMaxY = (row + 1) * 1000;
-    const blockers = [...collision.walls, ...collision.furniture, collision.door].filter(Boolean);
+    const doorBlocker = collision.door?.blocker ?? collision.door;
+    const blockers = [...collision.walls, ...collision.furniture, doorBlocker].filter(Boolean);
     const overlap = blockers.find((box) => (
       Math.min(box.xMilli + box.wMilli, cellMaxX) > Math.max(box.xMilli, cellMinX)
       && Math.min(box.yMilli + box.hMilli, cellMaxY) > Math.max(box.yMilli, cellMinY)
@@ -987,37 +1022,26 @@ function structureCollisionFromSidecar({ glbName, cellSize, rotation = 0 }) {
   return { ...transformStructureCollision(sidecar, cellSize, rotation), contract: sidecar.contract };
 }
 
-function shelterHouseCollision({ cellSize, rotation }) {
-  const { walls, door } = structureCollisionFromSidecar({ glbName: "house_h1", cellSize, rotation });
-  if (!door) throw new Error("house_h1 sidecar carries no door box");
-  const doorPoints = deriveStructureDoorPoints({ walls, door, cellSize });
-  const covered = (point) => walls.some((box) => box.xMilli <= point.xMilli && point.xMilli < box.xMilli + box.wMilli
-    && box.yMilli <= point.yMilli && point.yMilli < box.yMilli + box.hMilli);
-  const maxXMilli = cellSize.w * 1000;
-  const maxYMilli = cellSize.h * 1000;
-  const boxesInsideProp = [...walls, door].every((box) => box.xMilli >= 0 && box.yMilli >= 0
-    && box.xMilli + box.wMilli <= maxXMilli && box.yMilli + box.hMilli <= maxYMilli);
-  const interiorInsideProp = doorPoints.interior.xMilli > 0 && doorPoints.interior.xMilli < maxXMilli
-    && doorPoints.interior.yMilli > 0 && doorPoints.interior.yMilli < maxYMilli;
-  const exteriorOutsideProp = doorPoints.exterior.xMilli < 0 || doorPoints.exterior.xMilli > maxXMilli
-    || doorPoints.exterior.yMilli < 0 || doorPoints.exterior.yMilli > maxYMilli;
-  const invariants = {
-    "wall boxes present": walls.length > 0,
-    "boxes inside prop rect": boxesInsideProp,
-    "portal open at door center": !covered(doorPoints.doorCenter),
-    "safe interior inside prop": interiorInsideProp,
-    "safe exterior outside prop": exteriorOutsideProp,
-  };
-  const failures = Object.entries(invariants).filter(([, ok]) => !ok).map(([name]) => name);
-  if (failures.length > 0) {
-    throw new Error(`house_h1 collision invariants failed at ${rotation} degrees: ${failures.join(", ")} — walls=${JSON.stringify(walls.slice(0, 8))} door=${JSON.stringify(door)}`);
+function enterableStructureCollision({ glbName, cellSize, rotation }) {
+  const collision = structureCollisionFromSidecar({ glbName, cellSize, rotation });
+  if (!collision.door) throw new Error(`${glbName} sidecar carries no exterior door box`);
+  if (collision.walls.length === 0) throw new Error(`${glbName} sidecar carries no wall boxes`);
+  if (!Array.isArray(collision.interiorRegions) || collision.interiorRegions.length === 0) {
+    throw new Error(`${glbName} sidecar carries no interior regions`);
   }
+  if (!Number.isFinite(collision.floorTopM)) {
+    throw new Error(`${glbName} sidecar carries no finite floor top`);
+  }
+  const doorPoints = deriveStructureDoorPoints({
+    walls: collision.walls,
+    door: collision.door,
+    cellSize,
+  });
   return {
-    collisionBounds: walls,
+    ...collision,
+    collisionBounds: [...collision.walls, ...collision.furniture],
     door: {
-      blocker: door,
-      // Covers the immediate threshold on both sides so a sprinting player can
-      // close the door after crossing without server tick ordering rejecting it.
+      blocker: collision.door,
       interactRadiusCells: 3.1,
     },
     safeExterior: doorPoints.exterior,
@@ -1027,26 +1051,33 @@ function shelterHouseCollision({ cellSize, rotation }) {
 
 
 function props(center, layout, zones) {
-  const house = layout.house;
+  const enterableBuilding = (id, label, assetKey, building) => worldProp({
+    id,
+    label,
+    kind: "building",
+    assetKey,
+    cell: { ...building.cell },
+    size: { ...building.size },
+    solid: false,
+    interactive: false,
+    shelter: true,
+    collisionBounds: building.collisionBounds,
+    interiorRegions: building.interiorRegions,
+    door: building.door,
+    enterable: {
+      floorHeightM: building.floorTopM,
+      interiorBounds: building.interiorRegions.map(
+        ({ xMilli, yMilli, wMilli, hMilli }) => ({ xMilli, yMilli, wMilli, hMilli }),
+      ),
+    },
+    rotation: building.rotation === 0 ? undefined : building.rotation,
+  });
   const serviceProps = [
-    worldProp({
-      id: cloningFacilityPropId, label: "Dustgate Cloning Facility", kind: "building", assetKey: "cloning_facility",
-      cell: { ...layout.facility.cell }, size: { ...layout.facility.size }, solid: false, interactive: false, shelter: true,
-      collisionBounds: layout.facility.collisionBounds, interiorRegions: layout.facility.interiorRegions, door: layout.facility.door,
-      enterable: {
-        floorHeightM: layout.facility.floorTopM,
-        interiorBounds: layout.facility.interiorRegions.map(({ xMilli, yMilli, wMilli, hMilli }) => ({ xMilli, yMilli, wMilli, hMilli })),
-      },
-    }),
-    worldProp({
-      id: "dustgate-commerce-facility", label: "Dustgate Commerce Facility", kind: "building", assetKey: "commerce_facility",
-      cell: { ...layout.commerce.cell }, size: { ...layout.commerce.size }, solid: false, interactive: false, shelter: true,
-      collisionBounds: layout.commerce.collisionBounds, interiorRegions: layout.commerce.interiorRegions, door: layout.commerce.door,
-      enterable: {
-        floorHeightM: layout.commerce.floorTopM,
-        interiorBounds: layout.commerce.interiorRegions.map(({ xMilli, yMilli, wMilli, hMilli }) => ({ xMilli, yMilli, wMilli, hMilli })),
-      },
-    }),
+    enterableBuilding(cloningFacilityPropId, "Dustgate Cloning Facility", "cloning_facility", layout.facility),
+    enterableBuilding(commerceFacilityPropId, "Valley Market", "valley_market", layout.market),
+    enterableBuilding("dustgate-home-starter", "Modular Starter Home", "home_modular_starter", layout.starter),
+    enterableBuilding("dustgate-home-court", "Modular Court Home", "home_modular_court", layout.court),
+    enterableBuilding("dustgate-home-wing", "Modular Wing Home", "home_modular_wing", layout.wing),
     terminalProp(bankTerminalPropId, "Dustgate Bank Terminal", "bank_terminal_civic", "bank_terminal", layout.bankTerminal, "bank_terminal"),
     terminalProp("dustgate-trade-terminal", "Dustgate Trade Terminal", "trade_terminal", "trade_terminal", layout.tradeTerminal, "trade_terminal"),
     terminalProp("dustgate-pa-terminal", "Dustgate PA Terminal", "pa_terminal", "pa_terminal", layout.paTerminal, "pa_terminal"),
@@ -1054,12 +1085,6 @@ function props(center, layout, zones) {
     travelTerminal(lowboughTerminalPropId, "Travel Terminal — Lowbough", verdanceAreaId, { x: center + 12, y: center }),
     terminalProp(cloneTerminalPropId, "Clone Terminal", "clone_terminal", "clone_terminal", layout.cloneTerminal, "clone_terminal"),
     terminalProp(clonePodPropId, "Clone Pod", "clone_pod", "clone_pod", layout.clonePod, "clone_pod"),
-    worldProp({
-      id: "open-desert-shelter-house", label: "Shelter House", kind: "prop", assetKey: "house_shoulder",
-      cell: { ...house.cell }, size: { ...house.size }, solid: false, interactive: false, shelter: true,
-      collisionBounds: house.collisionBounds, door: house.door, enterable: { floorHeightM: 0.14736842105263157 },
-      rotation: house.rotation === 0 ? undefined : house.rotation,
-    }),
   ];
   return [
     ...serviceProps,
@@ -1207,9 +1232,11 @@ function layoutFromSlice(slice) {
     if (!prop) throw new Error(`layoutFromSlice missing ${id}`);
     return prop;
   };
-  const commerce = requireProp("dustgate-commerce-facility");
+  const market = requireProp(commerceFacilityPropId);
   const facility = requireProp("dustgate-cloning-facility");
-  const house = requireProp("open-desert-shelter-house");
+  const starter = requireProp("dustgate-home-starter");
+  const court = requireProp("dustgate-home-court");
+  const wing = requireProp("dustgate-home-wing");
   const player = (slice.actors ?? []).find((actor) => actor.id === "player");
   if (!player) throw new Error("layoutFromSlice missing player");
   return {
@@ -1220,9 +1247,11 @@ function layoutFromSlice(slice) {
     paTerminal: { ...requireProp("dustgate-pa-terminal").cell },
     cloneTerminal: { ...requireProp("dustgate-clone-terminal").cell },
     clonePod: { ...requireProp("dustgate-clone-pod").cell },
-    commerce: { cell: { ...commerce.cell }, size: { ...commerce.size } },
+    market: { cell: { ...market.cell }, size: { ...market.size } },
     facility: { cell: { ...facility.cell }, size: { ...facility.size } },
-    house: { cell: { ...house.cell }, size: { ...house.size } },
+    starter: { cell: { ...starter.cell }, size: { ...starter.size } },
+    court: { cell: { ...court.cell }, size: { ...court.size } },
+    wing: { cell: { ...wing.cell }, size: { ...wing.size } },
   };
 }
 
@@ -1249,9 +1278,11 @@ function dustgateOccupationClearanceRects(layout) {
   addCell("clone-terminal", layout.cloneTerminal, 1);
   addCell("clone-pod", layout.clonePod, 1);
   for (const [id, building] of [
-    ["commerce-facility", layout.commerce],
+    ["valley-market", layout.market],
     ["cloning-facility", layout.facility],
-    ["shelter-house", layout.house],
+    ["modular-starter", layout.starter],
+    ["modular-court", layout.court],
+    ["modular-wing", layout.wing],
   ]) {
     rects.push({
       id: `${id}-footprint`,
@@ -1264,12 +1295,12 @@ function dustgateOccupationClearanceRects(layout) {
     });
   }
   rects.push({
-    id: "commerce-door-mouth",
+    id: "market-door-mouth",
     rect: {
-      x0: layout.commerce.cell.x + 4,
-      y0: layout.commerce.cell.y + layout.commerce.size.h,
-      x1: layout.commerce.cell.x + 8,
-      y1: layout.commerce.cell.y + layout.commerce.size.h + 3,
+      x0: layout.market.cell.x + 4,
+      y0: layout.market.cell.y + layout.market.size.h,
+      x1: layout.market.cell.x + 8,
+      y1: layout.market.cell.y + layout.market.size.h + 3,
     },
   });
   rects.push({

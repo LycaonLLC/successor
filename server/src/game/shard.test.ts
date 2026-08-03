@@ -515,6 +515,7 @@ describe("GameShard", () => {
         hair_mat: "hair_umber",
         face,
       },
+      sprite: "adventurer-premium-female",
     };
     const submittedActors: RustAuthorityActorUpsertInput[] = [];
     const internals = shard as unknown as {
@@ -544,6 +545,7 @@ describe("GameShard", () => {
               direction: actor.direction,
             }),
             appearance: actor.appearance,
+            sprite: actor.sprite,
           },
           inventory: [],
           reservations: [],
@@ -559,7 +561,9 @@ describe("GameShard", () => {
       shard.connect(socket, identity);
       await waitFor(() => socket.sent.some((packet) => JSON.parse(packet).type === "game.hello"));
       expect(submittedActors.at(-1)?.appearance?.face).toEqual(face);
+      expect(submittedActors.at(-1)?.sprite).toBe("adventurer-premium-female");
       expect(helloActor(socket, identity.actorId)?.appearance.face).toEqual(face);
+      expect(helloActor(socket, identity.actorId)?.sprite).toBe("adventurer-premium-female");
     } finally {
       shard.close();
     }
@@ -10310,6 +10314,12 @@ describe("GameShard", () => {
         ["quarry-probe", "quarry-chopper", 3107, "quarry-chopper"],
         ["kiln-probe", "wpn-carbine", 3112, "wpn-carbine"],
         ["lightning-probe", "lightning-carbine", 3121, "lightning-carbine"],
+        ["pistol-probe", "wpn-pistol", 3122, "wpn-pistol"],
+        ["assault-probe", "wpn-assault", 3123, "wpn-assault"],
+        ["shotgun-probe", "wpn-shotgun", 3124, "wpn-shotgun"],
+        ["sniper-probe", "wpn-sniper", 3125, "wpn-sniper"],
+        ["heavy-probe", "wpn-heavy", 3126, "wpn-heavy"],
+        ["launcher-probe", "wpn-launcher", 3127, "wpn-launcher"],
       ] as const;
       internals.applyRustAuthorityTickOutput({
         schema: "successor.rust-authority-bridge-tick.v1",
@@ -10346,6 +10356,48 @@ describe("GameShard", () => {
           weaponItemId: itemId,
         });
       }
+    } finally {
+      shard.close();
+    }
+  });
+
+  it("equips concrete ranged inventory items by id and preserves item variants", () => {
+    const shard = testShard({ slicePath: currentRuntimeSlicePath, snapshotIntervalMs: 10_000 });
+    try {
+      const concreteWeapons = [
+        [3122, "wpn-pistol"],
+        [3123, "wpn-assault"],
+        [3124, "wpn-shotgun"],
+        [3125, "wpn-sniper"],
+        [3126, "wpn-heavy"],
+        [3127, "wpn-launcher"],
+      ] as const;
+      for (const [index, [itemId, weaponId]] of concreteWeapons.entries()) {
+        const variantId = 80_000 + index;
+        const granted = shard.submitCommandForTest("player", envelope(index * 2 + 1, {
+          DebugGiveItem: { item_id: itemId, variant_id: variantId, quantity: 1 },
+        }), undefined, true);
+        expect(granted.receipt).toMatchObject({ accepted: true });
+
+        const equipped = shard.submitCommandForTest("player", envelope(index * 2 + 2, {
+          SetEquippedWeapon: {
+            weapon_id: weaponId,
+            weapon_item_id: itemId,
+            weapon_variant_id: variantId,
+          },
+        }));
+        expect(equipped.receipt).toMatchObject({ accepted: true });
+        expect(shard.snapshotFor("player").actors.player?.weapon).toMatchObject({
+          weaponId,
+          weaponItemId: itemId,
+          weaponVariantId: variantId,
+        });
+      }
+
+      const retired = shard.submitCommandForTest("player", envelope(99, {
+        SetEquippedWeapon: { weapon_item_id: 3113 },
+      }));
+      expect(retired.receipt).toMatchObject({ accepted: false, reasonCode: "unknown_item" });
     } finally {
       shard.close();
     }

@@ -1,0 +1,95 @@
+{
+  "generator": "successor content-pipeline/labs/humanoid-runtime-refit/verify_body_zones.py",
+  "checks": {
+    "vocabulary": {
+      "typescript": [
+        "torso",
+        "pelvis",
+        "neck",
+        "head",
+        "left_upper_arm",
+        "right_upper_arm",
+        "left_forearm",
+        "right_forearm",
+        "left_hand",
+        "right_hand",
+        "left_thigh",
+        "right_thigh",
+        "left_calf",
+        "right_calf",
+        "left_foot",
+        "right_foot"
+      ],
+      "lab": [
+        "torso",
+        "pelvis",
+        "neck",
+        "head",
+        "left_upper_arm",
+        "right_upper_arm",
+        "left_forearm",
+        "right_forearm",
+        "left_hand",
+        "right_hand",
+        "left_thigh",
+        "right_thigh",
+        "left_calf",
+        "right_calf",
+        "left_foot",
+        "right_foot"
+      ],
+      "match": true
+    },
+    "rust_vocabulary": {
+      "missing": []
+    },
+    "pawn_male_bare.glb": {
+      "matches_male": true
+    },
+    "manifest": {
+      "items": 99,
+      "with_hide_body_zones": 2,
+      "with_glb_female": 98,
+      "unknown_zones": [],
+      "non_canonical_order": [],
+      "missing_female_files": []
+    }
+  },
+  "bodies": {
+    "male": {
+      "path": "client-3d/public/assets/pawn-pack/pawn_male.glb",
+      "sha256": "adb7d47da62748fbc857f682994c0faf4aac43975be205218c27d3a93e749485",
+      "materials_exact": true,
+      "joints_match_shell": true,
+      "clips_match_shell": true,
+      "inverse_bind_max_delta": 0.0,
+      "index_accessor_types": [
+        "SCALAR"
+      ],
+      "skin_material_variants": 1,
+      "welded_points_identical_to_source": true,
+      "triangles": 1632,
+      "source_triangles": 1632,
+      "stature_m": 1.7525,
+      "source_stature_m": 1.7525
+    },
+    "female": {
+      "path": "client-3d/public/assets/pawn-pack/pawn_female.glb",
+      "sha256": "9dc6e6a189bf581d0d996090cf9fd32a92c69dded3eebc22813e109a7606ebf0",
+      "materials_exact": true,
+      "joints_match_shell": true,
+      "clips_match_shell": true,
+      "inverse_bind_max_delta": 0.0,
+      "index_accessor_types": [
+        "SCALAR"
+      ],
+      "skin_material_variants": 1,
+      "welded_points_identical_to_source": true,
+      "triangles": 1840,
+      "source_triangles": 1840,
+      "stature_m": 1.7525,
+      "source_stature_m": 1.7525
+    }
+  },
+  "failures": []
+}

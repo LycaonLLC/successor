@@ -1,6 +1,6 @@
 //! SPLICE — gene/crop splice bench UI.
 
-use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{WindowAction, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
@@ -15,8 +15,8 @@ pub struct SpliceModel {
 impl SpliceModel {
     pub fn sample() -> Self {
         Self {
-            parent_a: Some("TATOOINE MELON SEED".into()),
-            parent_b: Some("CORELLIAN CORN SPORE".into()),
+            parent_a: Some("DUSTMELON SEED".into()),
+            parent_b: Some("VERDANCE CORN SPORE".into()),
             result_preview: Some("HYBRID SWEET-CORN MELON SEED".into()),
             can_combine: true,
         }
@@ -47,7 +47,7 @@ pub fn draw(
     ui.text("PARENT GENE A", x, start_y, 1.8, DIM);
     let slot_a_y = start_y + 16.0;
     ui.rect(x, slot_a_y, w, slot_h, SLOT);
-    ui.border(x, slot_a_y, w, slot_h, 1.0, SLOT_EDGE);
+
     if let Some(name) = &model.parent_a {
         ui.text(name, x + 10.0, slot_a_y + 12.0, 1.8, TEXT);
     } else {
@@ -65,7 +65,7 @@ pub fn draw(
     ui.text("PARENT GENE B", x, slot_b_label_y, 1.8, DIM);
     let slot_b_y = slot_b_label_y + 16.0;
     ui.rect(x, slot_b_y, w, slot_h, SLOT);
-    ui.border(x, slot_b_y, w, slot_h, 1.0, SLOT_EDGE);
+
     if let Some(name) = &model.parent_b {
         ui.text(name, x + 10.0, slot_b_y + 12.0, 1.8, TEXT);
     } else {
@@ -83,7 +83,7 @@ pub fn draw(
     ui.text("SPLICE PREVIEW", x, preview_label_y, 1.8, ACCENT);
     let preview_y = preview_label_y + 16.0;
     ui.rect(x, preview_y, w, slot_h, SLOT);
-    ui.border(x, preview_y, w, slot_h, 1.0, ACCENT);
+
     if let Some(name) = &model.result_preview {
         ui.text(name, x + 10.0, preview_y + 12.0, 1.8, ACCENT);
     } else {

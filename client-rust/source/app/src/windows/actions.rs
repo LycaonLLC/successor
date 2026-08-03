@@ -1,6 +1,6 @@
 //! ACTIONS — action/ability browser UI.
 
-use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{WindowAction, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::UiBuilder;
 
@@ -104,10 +104,8 @@ pub fn draw(
         } else {
             SLOT
         };
-        let border_color = if resp.hovered { ACCENT } else { SLOT_EDGE };
 
         ui.rect(ax, ay, col_w, row_h, bg_color);
-        ui.border(ax, ay, col_w, row_h, 1.0, border_color);
 
         // Icon
         if let Some((icol, irow)) = icons.cell(&action.icon_key) {

@@ -1,5 +1,5 @@
 //! LOOT — Lootable container/corpse content view.
-use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{WindowAction, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
@@ -70,7 +70,6 @@ pub fn draw(
 
             // Draw item row background / border
             ui.rect(x + 8.0, iy, w - 16.0, 30.0, SLOT);
-            ui.border(x + 8.0, iy, w - 16.0, 30.0, 1.0, SLOT_EDGE);
 
             // Icon
             if let Some((col, row)) = icons.cell(&item.kind) {

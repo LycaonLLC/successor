@@ -6,6 +6,7 @@
 //! renderer is generic `Renderer<G: Gpu>`, so calls monomorphize with no dynamic
 //! dispatch. Handles are opaque `u32` newtypes minted by the backend.
 
+use alloc::collections::BTreeMap;
 #[cfg(feature = "std")]
 use alloc::vec::Vec;
 
@@ -392,6 +393,9 @@ pub trait Gpu {
     fn render_target_color(&self, rt: RenderTargetId) -> Option<TextureId>;
     /// The sampleable depth texture of a render target (shadow sampling).
     fn render_target_depth(&self, rt: RenderTargetId) -> Option<TextureId>;
+    /// Actual attachment dimensions. Camera projection and viewport must use
+    /// these dimensions; screen-size heuristics distort non-square portraits.
+    fn render_target_size(&self, rt: RenderTargetId) -> Option<(u32, u32)>;
 
     fn begin_pass(&mut self, target: PassTarget, viewport: RectPx, clear: ClearSpec);
     fn set_pipeline(&mut self, program: ProgramId, state: &PipelineState);
@@ -475,6 +479,7 @@ pub struct MockGpu {
     pub log: Vec<MockCall>,
     pub error: Option<GpuError>,
     pub caps: GpuCaps,
+    render_target_sizes: BTreeMap<u32, (u32, u32)>,
 }
 
 #[cfg(feature = "std")]
@@ -558,14 +563,19 @@ impl Gpu for MockGpu {
         TextureId(self.mint())
     }
     fn bind_texture_array(&mut self, _slot: u32, _tex: TextureId) {}
-    fn create_render_target(&mut self, _d: &RenderTargetDesc) -> RenderTargetId {
-        RenderTargetId(self.mint())
+    fn create_render_target(&mut self, d: &RenderTargetDesc) -> RenderTargetId {
+        let id = RenderTargetId(self.mint());
+        self.render_target_sizes.insert(id.0, (d.width, d.height));
+        id
     }
     fn render_target_color(&self, rt: RenderTargetId) -> Option<TextureId> {
         Some(TextureId(rt.0 + 100_000))
     }
     fn render_target_depth(&self, rt: RenderTargetId) -> Option<TextureId> {
         Some(TextureId(rt.0 + 200_000))
+    }
+    fn render_target_size(&self, rt: RenderTargetId) -> Option<(u32, u32)> {
+        self.render_target_sizes.get(&rt.0).copied()
     }
     fn begin_pass(&mut self, target: PassTarget, viewport: RectPx, _clear: ClearSpec) {
         self.log.push(MockCall::BeginPass { target, viewport });
@@ -629,14 +639,17 @@ impl Gpu for MockGpu {
         self.log.push(MockCall::GenMips3d);
     }
     fn bind_texture_3d(&mut self, _slot: u32, _tex: TextureId) {}
-    fn create_render_target_mrt(&mut self, _d: &MrtDesc) -> RenderTargetId {
+    fn create_render_target_mrt(&mut self, d: &MrtDesc) -> RenderTargetId {
         self.log.push(MockCall::CreateMrt);
-        RenderTargetId(self.mint())
+        let id = RenderTargetId(self.mint());
+        self.render_target_sizes.insert(id.0, (d.width, d.height));
+        id
     }
     fn render_target_color_n(&self, rt: RenderTargetId, index: usize) -> Option<TextureId> {
         Some(TextureId(rt.0 + 100_000 + index as u32))
     }
-    fn delete_render_target(&mut self, _rt: RenderTargetId) {
+    fn delete_render_target(&mut self, rt: RenderTargetId) {
+        self.render_target_sizes.remove(&rt.0);
         self.log.push(MockCall::DeleteRenderTarget);
     }
     fn end_pass(&mut self) {
@@ -651,6 +664,7 @@ impl Gpu for MockGpu {
 #[derive(Default)]
 pub struct NullGpu {
     next: u32,
+    render_target_sizes: BTreeMap<u32, (u32, u32)>,
 }
 
 impl NullGpu {
@@ -671,14 +685,19 @@ impl Gpu for NullGpu {
     fn create_texture(&mut self, _d: &TextureDesc, _data: Option<&[u8]>) -> TextureId {
         TextureId(self.mint())
     }
-    fn create_render_target(&mut self, _d: &RenderTargetDesc) -> RenderTargetId {
-        RenderTargetId(self.mint())
+    fn create_render_target(&mut self, d: &RenderTargetDesc) -> RenderTargetId {
+        let id = RenderTargetId(self.mint());
+        self.render_target_sizes.insert(id.0, (d.width, d.height));
+        id
     }
     fn render_target_color(&self, rt: RenderTargetId) -> Option<TextureId> {
         Some(TextureId(rt.0))
     }
     fn render_target_depth(&self, rt: RenderTargetId) -> Option<TextureId> {
         Some(TextureId(rt.0))
+    }
+    fn render_target_size(&self, rt: RenderTargetId) -> Option<(u32, u32)> {
+        self.render_target_sizes.get(&rt.0).copied()
     }
     fn begin_pass(&mut self, _t: PassTarget, _v: RectPx, _c: ClearSpec) {}
     fn set_pipeline(&mut self, _p: ProgramId, _s: &PipelineState) {}
@@ -688,11 +707,16 @@ impl Gpu for NullGpu {
     fn create_texture_3d(&mut self, _d: &Texture3dDesc, _data: Option<&[u8]>) -> TextureId {
         TextureId(self.mint())
     }
-    fn create_render_target_mrt(&mut self, _d: &MrtDesc) -> RenderTargetId {
-        RenderTargetId(self.mint())
+    fn create_render_target_mrt(&mut self, d: &MrtDesc) -> RenderTargetId {
+        let id = RenderTargetId(self.mint());
+        self.render_target_sizes.insert(id.0, (d.width, d.height));
+        id
     }
     fn render_target_color_n(&self, rt: RenderTargetId, _index: usize) -> Option<TextureId> {
         Some(TextureId(rt.0))
+    }
+    fn delete_render_target(&mut self, rt: RenderTargetId) {
+        self.render_target_sizes.remove(&rt.0);
     }
     fn end_pass(&mut self) {}
 }

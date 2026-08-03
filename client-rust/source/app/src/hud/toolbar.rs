@@ -400,7 +400,7 @@ pub fn draw_dock(
             pal.bg_panel
         };
         ui.rect(x, y, btn, btn, fill);
-        ui.border(x, y, btn, btn, 1.0, pal.hairline);
+
         if let Some((col, row)) = icons.cell(icon) {
             ui.icon(col, row, x + 6.0, y + 6.0, btn - 12.0, btn - 12.0, pal.ink);
         }
@@ -425,7 +425,7 @@ pub fn draw_dock(
     // Theme-cycle swatch (OPTIONS keeps the full named picker).
     let resp = ui.interact(x, y + gap, btn, btn * 0.5);
     ui.rect(x, y + gap, btn, btn * 0.5, pal.accent);
-    ui.border(x, y + gap, btn, btn * 0.5, 1.0, pal.hairline);
+
     if resp.clicked && !captured {
         out.push(HudAction::CycleTheme);
     }
@@ -480,12 +480,9 @@ pub fn draw_toolbar(
             pal.bg_panel
         };
         ui.rect(slot_x, y, SLOT_PX, SLOT_PX, fill);
-        let edge = if assigning && resp.hovered {
-            pal.accent
-        } else {
-            pal.hairline
-        };
-        ui.border(slot_x, y, SLOT_PX, SLOT_PX, 1.0, edge);
+        if assigning && resp.hovered {
+            ui.rect(slot_x, y + SLOT_PX - 2.0, SLOT_PX, 2.0, pal.accent);
+        }
 
         // Glyph.
         match toolbar.doc.slots[slot].as_ref() {
@@ -577,7 +574,6 @@ pub fn draw_toolbar(
         if toolbar.drag_started {
             // Ghost glyph under the cursor.
             ui.rect(mx - 12.0, my - 12.0, 24.0, 24.0, pal.accent_soft);
-            ui.border(mx - 12.0, my - 12.0, 24.0, 24.0, 1.0, pal.accent);
         }
     }
 

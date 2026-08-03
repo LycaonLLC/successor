@@ -50,7 +50,10 @@ impl GlbScene {
         };
 
         let uploaded = successor_engine_render::model::upload_glb(&mut renderer, gpu, &doc)
-            .map_err(|_| glb::GlbError::Unsupported("model upload"))?;
+            .map_err(|error| {
+                eprintln!("GLB model upload failed: {error:?}");
+                glb::GlbError::Unsupported("model upload")
+            })?;
 
         let mut aabb_min = vec3(f32::MAX, f32::MAX, f32::MAX);
         let mut aabb_max = vec3(f32::MIN, f32::MIN, f32::MIN);

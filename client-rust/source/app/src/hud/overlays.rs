@@ -260,7 +260,7 @@ fn draw_bubble(ui: &mut UiBuilder, pal: &Palette, bubble: &Bubble, x: f32, y: f3
     let alpha = fade_in.min(fade_out);
 
     ui.rect(bx, by, w, h, alpha_scale(pal.bg_panel, alpha));
-    ui.border(bx, by, w, h, 1.0, alpha_scale(pal.hairline, alpha));
+
     // Anchor nib.
     ui.rect(x - 2.0, by + h, 4.0, 4.0, alpha_scale(pal.hairline, alpha));
     for (i, line) in bubble.lines.iter().enumerate() {
@@ -317,19 +317,21 @@ pub fn draw_nameplate(
     if name.is_empty() {
         return;
     }
-    let px = 1.5;
+    let px = 1.7;
     let tint = relation.tint(pal);
     let nw = UiBuilder::text_width(name, px);
+    ui.text(name, x - nw * 0.5 + 1.0, y + 1.0, px, [0, 0, 0, 210]);
     ui.text(name, x - nw * 0.5, y, px, tint);
-    let mut line_y = y + 12.0;
+    let mut line_y = y + 14.0;
     if let Some(desc) = descriptor.filter(|desc| !desc.is_empty()) {
-        let dw = UiBuilder::text_width(desc, 1.2);
-        ui.text(desc, x - dw * 0.5, line_y, 1.2, pal.ink_dim);
-        line_y += 10.0;
+        let dw = UiBuilder::text_width(desc, 1.35);
+        ui.text(desc, x - dw * 0.5 + 1.0, line_y + 1.0, 1.35, [0, 0, 0, 210]);
+        ui.text(desc, x - dw * 0.5, line_y, 1.35, pal.ink_dim);
+        line_y += 11.0;
     }
     if let Some(tag) = life_tag {
-        let tw = UiBuilder::text_width(tag, 1.3);
-        ui.text(tag, x - tw * 0.5, line_y, 1.3, pal.danger);
+        let tw = UiBuilder::text_width(tag, 1.4);
+        ui.text(tag, x - tw * 0.5, line_y, 1.4, pal.danger);
     }
 }
 

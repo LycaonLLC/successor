@@ -5,7 +5,7 @@
 //! Emits `WindowAction::SetProfessionTitle(<title id>)` — the host maps it
 //! onto `ClientCommand::SetProfessionTitle { title_id }`.
 
-use super::{WindowAction, WindowModel, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{WindowAction, WindowModel, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
@@ -14,7 +14,7 @@ fn bar(ui: &mut UiBuilder, x: f32, y: f32, w: f32, frac: f32, fill: [u8; 4], lab
     if frac > 0.0 {
         ui.rect(x, y, w * frac.clamp(0.0, 1.0), 16.0, fill);
     }
-    ui.border(x, y, w, 16.0, 1.0, SLOT_EDGE);
+
     ui.text(label, x + 4.0, y + 2.0, 1.6, TEXT);
 }
 

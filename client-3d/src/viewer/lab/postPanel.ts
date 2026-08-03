@@ -70,12 +70,13 @@ const POST_BOOL_SPECS: readonly { key: keyof Ps2PostDials; label: string }[] = [
 
 const BONE_TINT_CHANNELS = ["R", "G", "B"] as const;
 
-const WEAPON_AXIS_GROUPS: readonly { key: "posOffset" | "rotOffsetDeg" | "foregripContactOffset" | "stowPosOffset" | "stowRotOffsetDeg"; label: string; min: number; max: number; step: number }[] = [
+const WEAPON_AXIS_GROUPS: readonly { key: "posOffset" | "rotOffsetDeg" | "foregripContactOffset" | "stowPosDelta" | "stowRotDeltaDeg"; label: string; min: number; max: number; step: number }[] = [
   { key: "posOffset", label: "mount pos", min: -0.2, max: 0.2, step: 0.001 },
   { key: "rotOffsetDeg", label: "mount rot °", min: -45, max: 45, step: 0.5 },
   { key: "foregripContactOffset", label: "foregrip contact", min: -0.2, max: 0.2, step: 0.001 },
-  { key: "stowPosOffset", label: "stow pos", min: -0.6, max: 0.6, step: 0.005 },
-  { key: "stowRotOffsetDeg", label: "stow rot °", min: -180, max: 180, step: 1 },
+  // Deltas ON TOP of the equipped model's authored stow socket; 0 = authored.
+  { key: "stowPosDelta", label: "stow pos Δ", min: -0.4, max: 0.4, step: 0.005 },
+  { key: "stowRotDeltaDeg", label: "stow rot Δ°", min: -180, max: 180, step: 1 },
 ];
 
 const WEAPON_SCALAR_SPECS: readonly { key: "yawStrength" | "maxYawCorrectionRad" | "restingYawRad"; label: string; min: number; max: number; step: number }[] = [

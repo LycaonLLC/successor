@@ -158,6 +158,8 @@ export interface GameSessionIdentity {
   /** Hosted control-plane first-entry marker, committed after local durability. */
   pendingFirstEntryCommit?: { entryNonce: string; shardId: string; releaseId: string };
   appearance?: GameActorAppearanceSnapshot;
+  /** Durable humanoid body route encoded as the canonical player sprite. */
+  sprite?: string;
   /** Creator worn wardrobe set (validated by the character store). */
   worn?: GameActorWornPiece[];
   /** Durable creator palette cache, including unequipped pieces. */
@@ -2029,6 +2031,7 @@ export class GameShard {
     actor.label = actor.displayName;
     if (applyIdentitySeed) {
       actor.appearance = identity.appearance ? cloneActorAppearance(identity.appearance) : actor.appearance;
+      if (identity.sprite) actor.sprite = identity.sprite;
       if (identity.wornColors) actor.wornColors = cloneWornColors(identity.wornColors);
       actor.worn = identity.worn ? cloneActorWorn(identity.worn) : actor.worn;
     }
@@ -5909,6 +5912,7 @@ export class GameShard {
     const applyGameplaySeed = options.applyGameplaySeed ?? true;
     if (applyGameplaySeed) {
       actor.appearance = identity.appearance ? cloneActorAppearance(identity.appearance) : actor.appearance ?? cloneActorAppearance(defaultActorAppearance);
+      if (identity.sprite) actor.sprite = identity.sprite;
       if (identity.worn) actor.worn = cloneActorWorn(identity.worn);
       if (identity.professionIds !== undefined) actor.professionIds = normalizeProfessionIds(identity.professionIds);
       if (identity.skillBoxIds !== undefined) actor.skillBoxIds = normalizeSkillBoxIds(identity.skillBoxIds);
@@ -6450,8 +6454,18 @@ export class GameShard {
     if ("SetEquippedWeapon" in command) {
       const requestedWeaponId = command.SetEquippedWeapon.weapon_id;
       const weaponItemId = Math.max(0, Math.trunc(command.SetEquippedWeapon.weapon_item_id ?? 0));
-      const weaponVariantId = Math.max(0, Math.trunc(command.SetEquippedWeapon.weapon_variant_id ?? 0));
+      const requestedWeaponVariantId = command.SetEquippedWeapon.weapon_variant_id;
+      const weaponVariantId = requestedWeaponVariantId === undefined
+        ? undefined
+        : Math.max(0, Math.trunc(requestedWeaponVariantId));
       const itemWeaponId = weaponItemId > 0 ? authorityWeaponIdForInventoryItemId(weaponItemId) : null;
+      const ownedWeaponRows = weaponItemId > 0
+        ? this.inventory.filter((row) => (
+          row.itemId === weaponItemId
+          && this.actorOwnsInventoryContainer(actor.id, row.container)
+          && row.available > 0
+        ))
+        : [];
       if (weaponItemId > 0 && !itemWeaponId) {
         return { accepted: false, reasonCode: "unknown_item", events: [] };
       }
@@ -6462,10 +6476,16 @@ export class GameShard {
         return { accepted: false, reasonCode: "unknown_weapon", events: [] };
       } else if (requestedWeaponId && itemWeaponId && requestedWeaponId !== itemWeaponId) {
         return { accepted: false, reasonCode: "no_weapon_equipped", events: [] };
-      } else if (weaponItemId > 0 && !this.inventory.some((row) => row.itemId === weaponItemId && this.actorOwnsInventoryContainer(actor.id, row.container) && row.available > 0)) {
+      } else if (weaponItemId > 0 && ownedWeaponRows.length === 0) {
         return { accepted: false, reasonCode: "item_unavailable", events: [] };
       } else {
-        actor.weapon = authorityActorWeaponSnapshot(weaponId, weaponItemId, weaponVariantId);
+        const resolvedWeaponVariantId = weaponItemId > 0
+          ? weaponVariantId ?? Math.min(...ownedWeaponRows.map((row) => row.variantId))
+          : 0;
+        if (weaponItemId > 0 && !ownedWeaponRows.some((row) => row.variantId === resolvedWeaponVariantId)) {
+          return { accepted: false, reasonCode: "item_unavailable", events: [] };
+        }
+        actor.weapon = authorityActorWeaponSnapshot(weaponId, weaponItemId, resolvedWeaponVariantId);
       }
       this.dirtyActorIds.add(actor.id);
       return { accepted: true, events: [] };
@@ -10968,6 +10988,18 @@ function authorityWeaponIdForInventoryItemId(itemId: number | undefined): Author
       return "wpn-carbine";
     case 3121:
       return "lightning-carbine";
+    case 3122:
+      return "wpn-pistol";
+    case 3123:
+      return "wpn-assault";
+    case 3124:
+      return "wpn-shotgun";
+    case 3125:
+      return "wpn-sniper";
+    case 3126:
+      return "wpn-heavy";
+    case 3127:
+      return "wpn-launcher";
     default:
       return null;
   }
@@ -11075,6 +11107,18 @@ function inventoryItemNameForId(itemId: number): string | null {
       return "Kiln Energy Cell Carbine";
     case 3121:
       return "Lightning Carbine";
+    case 3122:
+      return "Badge Bolt Pistol";
+    case 3123:
+      return "Slagrail Vanguard";
+    case 3124:
+      return "Coilgate Scatter";
+    case 3125:
+      return "Kiln Long Pattern";
+    case 3126:
+      return "Bastion LMG";
+    case 3127:
+      return "Flare Net Launcher";
     case 7103:
       return "Combat Helm";
     case 4001:

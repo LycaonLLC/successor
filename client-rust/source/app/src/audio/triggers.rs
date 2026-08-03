@@ -161,6 +161,25 @@ pub fn ambience_one_shot(biome: Biome, is_day: bool, roll: u32) -> &'static str 
         (Biome::Forest, true) => FOREST_DAY[(roll as usize) % FOREST_DAY.len()],
     }
 }
+/// Canonical open-desert score selection. Combat alternates only when a new
+/// combat session starts; callers keep the selected index stable until combat
+/// ends so frame updates never restart or thrash the music loop.
+pub fn open_desert_music_id(is_day: bool, in_combat: bool, combat_index: u32) -> &'static str {
+    if in_combat {
+        if combat_index.is_multiple_of(2) {
+            "music_combat_sandstorm_run_loop"
+        } else {
+            "music_combat_red_dunes_loop"
+        }
+    } else if is_day {
+        "music_desert_day_dust_silent_world_loop"
+    } else {
+        "music_desert_night_sleeping_city_loop"
+    }
+}
+
+/// Low settlement bed shared with the browser open-desert profile.
+pub const SETTLEMENT_LOOP: &str = "settlement_murmur_loop";
 
 /// Weather loop clip for the current streamed weather, if any.
 pub fn weather_loop_id(
@@ -251,6 +270,47 @@ mod tests {
             assert!(ambience_one_shot(Biome::Desert, true, roll).starts_with("amb_"));
             assert!(ambience_one_shot(Biome::Forest, true, roll).starts_with("amb_"));
             assert!(ambience_one_shot(Biome::Desert, false, roll).starts_with("amb_night"));
+        }
+    }
+
+    #[test]
+    fn open_desert_score_tracks_day_night_and_stable_combat_rotation() {
+        assert_eq!(
+            open_desert_music_id(true, false, 0),
+            "music_desert_day_dust_silent_world_loop"
+        );
+        assert_eq!(
+            open_desert_music_id(false, false, 0),
+            "music_desert_night_sleeping_city_loop"
+        );
+        assert_eq!(
+            open_desert_music_id(true, true, 0),
+            "music_combat_sandstorm_run_loop"
+        );
+        assert_eq!(
+            open_desert_music_id(false, true, 1),
+            "music_combat_red_dunes_loop"
+        );
+    }
+
+    #[test]
+    fn open_desert_score_ids_map_to_real_loop_clips() {
+        let Some(mut p) = player() else {
+            return;
+        };
+        for (index, id) in [
+            open_desert_music_id(true, false, 0),
+            open_desert_music_id(false, false, 0),
+            open_desert_music_id(true, true, 0),
+            open_desert_music_id(true, true, 1),
+            SETTLEMENT_LOOP,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let key = 0x4155_4400 + index as u32;
+            assert!(p.play_loop(id, key, None, 1.0), "missing loop {id}");
+            p.stop_loop(key);
         }
     }
 }

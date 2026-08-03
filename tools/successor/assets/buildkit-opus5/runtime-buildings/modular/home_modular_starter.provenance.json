@@ -6,20 +6,20 @@
       "sha256": "1e37247d787b0e2e17cbb9ab142b1e776f7cc4e034f23069b581994ccef9af78"
     },
     "glb": {
-      "bytes": 7874120,
+      "bytes": 8681892,
       "path": "home_modular_starter.glb",
-      "sha256": "032363b5e4558f279bd71f4ad0d94e44f65f87cff21cee963184546f6a35588f"
+      "sha256": "167bc8d83ab745c1a888a755873eebae635e9660f8107272efbfeb19c7ddd8e2"
     },
     "manifest": {
       "bytes": 3139,
       "path": "home_modular_starter_manifest.json",
-      "sha256": "05785e8b9c217b93dc56e0f058da8ecc6e51b4a3834398c0bd479ab211bca9a7"
+      "sha256": "5f5f30e5dd6da7730f7fa6904cf57373345b7ea8466aa65f60c1254534b6e185"
     }
   },
   "asset": {
-    "bytes": 7874120,
+    "bytes": 8681892,
     "path": "home_modular_starter.glb",
-    "sha256": "sha256:032363b5e4558f279bd71f4ad0d94e44f65f87cff21cee963184546f6a35588f"
+    "sha256": "sha256:167bc8d83ab745c1a888a755873eebae635e9660f8107272efbfeb19c7ddd8e2"
   },
   "asset_id": "home_modular_starter",
   "contract": {
@@ -35,7 +35,7 @@
   "generator": {
     "lod": 0,
     "path": "src/package_runtime_buildings.py",
-    "sha256": "13be669e4cb44b83ee75f36402145d7f1b083b4e7f33ca62310f05c8a757105e"
+    "sha256": "5f6e4f4d2c9f2f37fc2e4bdd4391a140e04ad2af7820bcc6a407395e74b7c9e1"
   },
   "modules": [
     {
@@ -653,6 +653,7 @@
   "pack": {
     "colour_accessors_quantized": 489,
     "images_embedded": 0,
+    "pngs_normalized_rgba8": 30,
     "unique_image_bytes": 0
   },
   "runtime_key": "home_modular_starter",
@@ -661,7 +662,7 @@
   "sources": [
     {
       "path": "src/package_runtime_buildings.py",
-      "sha256": "13be669e4cb44b83ee75f36402145d7f1b083b4e7f33ca62310f05c8a757105e"
+      "sha256": "5f6e4f4d2c9f2f37fc2e4bdd4391a140e04ad2af7820bcc6a407395e74b7c9e1"
     },
     {
       "path": "src/assemble_home.py",

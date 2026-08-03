@@ -102,6 +102,12 @@ pub(super) const fn weapon_id_for_inventory_item(item_id: u32) -> Option<Authori
         STEN_MK2_ITEM_ID => Some(AuthorityWeaponId::WpnSmg),
         KILN_ENERGY_CELL_ITEM_ID => Some(AuthorityWeaponId::WpnCarbine),
         LIGHTNING_CARBINE_ITEM_ID => Some(AuthorityWeaponId::LightningCarbine),
+        BADGE_BOLT_PISTOL_ITEM_ID => Some(AuthorityWeaponId::WpnPistol),
+        SLAGRAIL_VANGUARD_ITEM_ID => Some(AuthorityWeaponId::WpnAssault),
+        COILGATE_SCATTER_ITEM_ID => Some(AuthorityWeaponId::WpnShotgun),
+        KILN_LONG_PATTERN_ITEM_ID => Some(AuthorityWeaponId::WpnSniper),
+        BASTION_LMG_ITEM_ID => Some(AuthorityWeaponId::WpnHeavy),
+        FLARE_NET_LAUNCHER_ITEM_ID => Some(AuthorityWeaponId::WpnLauncher),
         _ => None,
     }
 }
@@ -117,16 +123,16 @@ pub(super) const fn canonical_inventory_item_for_weapon_id(
         AuthorityWeaponId::ScraplineMachete => Some(SCRAPLINE_MACHETE_ITEM_ID),
         AuthorityWeaponId::FieldSaber => Some(FIELD_SABER_ITEM_ID),
         AuthorityWeaponId::QuarryChopper => Some(QUARRY_CHOPPER_ITEM_ID),
-        AuthorityWeaponId::LightningCarbine => Some(LIGHTNING_CARBINE_ITEM_ID),
-        AuthorityWeaponId::Unarmed => None,
-        AuthorityWeaponId::WpnPistol
-        | AuthorityWeaponId::WpnAssault
-        | AuthorityWeaponId::WpnShotgun
-        | AuthorityWeaponId::WpnSniper
-        | AuthorityWeaponId::WpnHeavy
-        | AuthorityWeaponId::WpnLauncher => None,
+        AuthorityWeaponId::WpnPistol => Some(BADGE_BOLT_PISTOL_ITEM_ID),
         AuthorityWeaponId::WpnSmg => Some(STEN_MK2_ITEM_ID),
         AuthorityWeaponId::WpnCarbine => Some(KILN_ENERGY_CELL_ITEM_ID),
+        AuthorityWeaponId::LightningCarbine => Some(LIGHTNING_CARBINE_ITEM_ID),
+        AuthorityWeaponId::WpnAssault => Some(SLAGRAIL_VANGUARD_ITEM_ID),
+        AuthorityWeaponId::WpnShotgun => Some(COILGATE_SCATTER_ITEM_ID),
+        AuthorityWeaponId::WpnSniper => Some(KILN_LONG_PATTERN_ITEM_ID),
+        AuthorityWeaponId::WpnHeavy => Some(BASTION_LMG_ITEM_ID),
+        AuthorityWeaponId::WpnLauncher => Some(FLARE_NET_LAUNCHER_ITEM_ID),
+        AuthorityWeaponId::Unarmed => None,
     }
 }
 
@@ -440,6 +446,12 @@ pub(super) fn inventory_item_name(item_id: u32) -> Option<&'static str> {
         STEN_MK2_ITEM_ID => Some("STEN Mk II"),
         KILN_ENERGY_CELL_ITEM_ID => Some("Kiln Energy Cell Carbine"),
         LIGHTNING_CARBINE_ITEM_ID => Some("Lightning Carbine"),
+        BADGE_BOLT_PISTOL_ITEM_ID => Some("Badge Bolt Pistol"),
+        SLAGRAIL_VANGUARD_ITEM_ID => Some("Slagrail Vanguard"),
+        COILGATE_SCATTER_ITEM_ID => Some("Coilgate Scatter"),
+        KILN_LONG_PATTERN_ITEM_ID => Some("Kiln Long Pattern"),
+        BASTION_LMG_ITEM_ID => Some("Bastion LMG"),
+        FLARE_NET_LAUNCHER_ITEM_ID => Some("Flare Net Launcher"),
         COMBAT_HELM_ITEM_ID => Some("Combat Helm"),
         CREDIT_CHIP_ITEM_ID => Some("Credit Chip"),
         // Bio-Engineer seeds (6_0xx), tools + reagents (6_2xx) — bioengineer-design.md §0.5.
@@ -618,28 +630,62 @@ mod catalog_tests {
     }
 
     #[test]
-    fn approved_ranged_items_are_the_only_standard_rows_in_3110_band() {
-        assert_eq!(
-            weapon_id_for_inventory_item(STEN_MK2_ITEM_ID),
-            Some(AuthorityWeaponId::WpnSmg)
-        );
-        assert_eq!(
-            weapon_id_for_inventory_item(KILN_ENERGY_CELL_ITEM_ID),
-            Some(AuthorityWeaponId::WpnCarbine)
-        );
-        assert_eq!(inventory_item_name(STEN_MK2_ITEM_ID), Some("STEN Mk II"));
-        assert_eq!(
-            inventory_item_name(KILN_ENERGY_CELL_ITEM_ID),
-            Some("Kiln Energy Cell Carbine")
-        );
-        assert_eq!(
-            canonical_inventory_item_for_weapon_id(AuthorityWeaponId::WpnSmg),
-            Some(STEN_MK2_ITEM_ID)
-        );
-        assert_eq!(
-            canonical_inventory_item_for_weapon_id(AuthorityWeaponId::WpnCarbine),
-            Some(KILN_ENERGY_CELL_ITEM_ID)
-        );
+    fn concrete_ranged_items_have_canonical_inventory_rows() {
+        let concrete_items = [
+            (STEN_MK2_ITEM_ID, AuthorityWeaponId::WpnSmg, "STEN Mk II"),
+            (
+                KILN_ENERGY_CELL_ITEM_ID,
+                AuthorityWeaponId::WpnCarbine,
+                "Kiln Energy Cell Carbine",
+            ),
+            (
+                LIGHTNING_CARBINE_ITEM_ID,
+                AuthorityWeaponId::LightningCarbine,
+                "Lightning Carbine",
+            ),
+            (
+                BADGE_BOLT_PISTOL_ITEM_ID,
+                AuthorityWeaponId::WpnPistol,
+                "Badge Bolt Pistol",
+            ),
+            (
+                SLAGRAIL_VANGUARD_ITEM_ID,
+                AuthorityWeaponId::WpnAssault,
+                "Slagrail Vanguard",
+            ),
+            (
+                COILGATE_SCATTER_ITEM_ID,
+                AuthorityWeaponId::WpnShotgun,
+                "Coilgate Scatter",
+            ),
+            (
+                KILN_LONG_PATTERN_ITEM_ID,
+                AuthorityWeaponId::WpnSniper,
+                "Kiln Long Pattern",
+            ),
+            (
+                BASTION_LMG_ITEM_ID,
+                AuthorityWeaponId::WpnHeavy,
+                "Bastion LMG",
+            ),
+            (
+                FLARE_NET_LAUNCHER_ITEM_ID,
+                AuthorityWeaponId::WpnLauncher,
+                "Flare Net Launcher",
+            ),
+        ];
+        for (item_id, weapon_id, name) in concrete_items {
+            assert_eq!(weapon_id_for_inventory_item(item_id), Some(weapon_id));
+            assert_eq!(inventory_item_name(item_id), Some(name));
+            assert_eq!(
+                canonical_inventory_item_for_weapon_id(weapon_id),
+                Some(item_id)
+            );
+            assert_eq!(
+                SliceAuthorityState::inventory_stack_cap_for_item(item_id, 99),
+                PERSONAL_SHIELD_GENERATOR_STACK_CAP
+            );
+        }
 
         let retired_item_ids = [3_110, 3_113, 3_114, 3_115, 3_116, 3_117];
         let loot_variant = encode_loot_variant(LootTier::Marked, 0);
@@ -655,20 +701,6 @@ mod catalog_tests {
             assert!(
                 rolled_loot_item_name(item_id, loot_variant).is_none(),
                 "retired item {item_id} must not have a loot path"
-            );
-        }
-
-        for weapon_id in [
-            AuthorityWeaponId::WpnPistol,
-            AuthorityWeaponId::WpnAssault,
-            AuthorityWeaponId::WpnShotgun,
-            AuthorityWeaponId::WpnSniper,
-            AuthorityWeaponId::WpnHeavy,
-            AuthorityWeaponId::WpnLauncher,
-        ] {
-            assert!(
-                canonical_inventory_item_for_weapon_id(weapon_id).is_none(),
-                "abstract weapon {weapon_id:?} must not migrate to an inventory row"
             );
         }
     }

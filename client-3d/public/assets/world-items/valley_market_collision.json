@@ -1,0 +1,641 @@
+{
+  "schema": "successor.structure-collision.v3",
+  "source": "valley_market.glb",
+  "generatedBy": "tools/successor/assets/market-opus5-rebuild/src/package_runtime.mjs",
+  "contract": {
+    "runtimeKey": "valley_market",
+    "footprint_cells": [
+      12,
+      9
+    ],
+    "cell_m": 0.95,
+    "floor_top_y_m": 0.02,
+    "entry_facing": "south",
+    "entry_axis": "+Z",
+    "structuralRoles": [
+      "authored_shell",
+      "service_wall",
+      "niches",
+      "flank_recesses",
+      "entry_structure"
+    ],
+    "furnitureRoles": [
+      "authored_furnished_interior",
+      "trainer_consultation",
+      "back_of_house",
+      "service_hardware"
+    ],
+    "decorativeExcluded": [
+      "roof",
+      "clerestory",
+      "trim",
+      "lights",
+      "loose_visual_props"
+    ],
+    "terminal_cells_kept_clear": {
+      "bank_terminal_civic": [
+        3,
+        3
+      ],
+      "trade_terminal": [
+        6,
+        3
+      ],
+      "pa_terminal": [
+        9,
+        3
+      ],
+      "trainer_npc": [
+        10,
+        6
+      ]
+    }
+  },
+  "footprint": {
+    "minX": -5.7,
+    "minZ": -4.275,
+    "maxX": 5.7,
+    "maxZ": 4.275,
+    "spanX": 11.4,
+    "spanZ": 8.55,
+    "centerX": 0,
+    "centerZ": 0
+  },
+  "floor": {
+    "topY": 0.02,
+    "slabThicknessM": 0.32
+  },
+  "walls": [
+    {
+      "id": "shell__wall_west_0",
+      "minX": -5.56,
+      "minZ": 2.6,
+      "maxX": -5.22,
+      "maxZ": 3.12
+    },
+    {
+      "id": "shell__wall_west_1",
+      "minX": -5.56,
+      "minZ": -3.95,
+      "maxX": -5.22,
+      "maxZ": -1.34
+    },
+    {
+      "id": "shell__wall_west_back_0",
+      "minX": -5.08,
+      "minZ": -1.34,
+      "maxX": -4.92,
+      "maxZ": 2.6
+    },
+    {
+      "id": "shell__wall_east_0",
+      "minX": 5.22,
+      "minZ": 2.66,
+      "maxX": 5.56,
+      "maxZ": 4.06
+    },
+    {
+      "id": "shell__wall_east_1",
+      "minX": 5.22,
+      "minZ": -2.24,
+      "maxX": 5.56,
+      "maxZ": 0.62
+    },
+    {
+      "id": "shell__wall_east_2",
+      "minX": 5.22,
+      "minZ": -3.95,
+      "maxX": 5.56,
+      "maxZ": -3.66
+    },
+    {
+      "id": "shell__wall_east_back_0",
+      "minX": 4.94,
+      "minZ": 0.62,
+      "maxX": 5.1,
+      "maxZ": 2.66
+    },
+    {
+      "id": "shell__wall_east_back_1",
+      "minX": 5.22,
+      "minZ": -3.66,
+      "maxX": 5.32,
+      "maxZ": -2.24
+    },
+    {
+      "id": "shell__cheek_w0_s",
+      "minX": -5.56,
+      "minZ": 2.6,
+      "maxX": -4.92,
+      "maxZ": 2.94
+    },
+    {
+      "id": "shell__cheek_w0_n",
+      "minX": -5.56,
+      "minZ": -1.68,
+      "maxX": -4.92,
+      "maxZ": -1.34
+    },
+    {
+      "id": "shell__cheek_e0_s",
+      "minX": 4.94,
+      "minZ": 2.66,
+      "maxX": 5.56,
+      "maxZ": 3
+    },
+    {
+      "id": "shell__cheek_e0_n",
+      "minX": 4.94,
+      "minZ": 0.28,
+      "maxX": 5.56,
+      "maxZ": 0.62
+    },
+    {
+      "id": "shell__cheek_e1_s",
+      "minX": 5.22,
+      "minZ": -2.24,
+      "maxX": 5.56,
+      "maxZ": -1.9
+    },
+    {
+      "id": "shell__cheek_e1_n",
+      "minX": 5.22,
+      "minZ": -4,
+      "maxX": 5.56,
+      "maxZ": -3.66
+    },
+    {
+      "id": "shell__arc_pier",
+      "minX": -5.56,
+      "minZ": 0.68,
+      "maxX": -5.08,
+      "maxZ": 1.04
+    },
+    {
+      "id": "shell__plb_mullion",
+      "minX": 5.32,
+      "minZ": -3.23,
+      "maxX": 5.56,
+      "maxZ": -2.94
+    },
+    {
+      "id": "shell__wall_north_w",
+      "minX": -5.56,
+      "minZ": -3.95,
+      "maxX": 0.725,
+      "maxZ": -3.61
+    },
+    {
+      "id": "shell__wall_north_e",
+      "minX": 1.875,
+      "minZ": -3.95,
+      "maxX": 5.56,
+      "maxZ": -3.61
+    },
+    {
+      "id": "shell__wall_south_w",
+      "minX": -5.56,
+      "minZ": 2.78,
+      "maxX": -1.72,
+      "maxZ": 3.12
+    },
+    {
+      "id": "shell__wall_south_e",
+      "minX": 1.12,
+      "minZ": 2.78,
+      "maxX": 2.72,
+      "maxZ": 3.12
+    },
+    {
+      "id": "shell__bay_south",
+      "minX": 2.72,
+      "minZ": 3.72,
+      "maxX": 5.56,
+      "maxZ": 4.06
+    },
+    {
+      "id": "shell__bay_west",
+      "minX": 2.72,
+      "minZ": 2.78,
+      "maxX": 3.06,
+      "maxZ": 4.06
+    },
+    {
+      "id": "shell__hood_pier_w",
+      "minX": -2.2,
+      "minZ": 3.12,
+      "maxX": -1.72,
+      "maxZ": 4.16
+    },
+    {
+      "id": "shell__hood_pier_e",
+      "minX": 1.12,
+      "minZ": 3.12,
+      "maxX": 1.6,
+      "maxZ": 4.16
+    },
+    {
+      "id": "shell__loggia_pier_0",
+      "minX": -5.53,
+      "minZ": 3.75,
+      "maxX": -5.07,
+      "maxZ": 4.21
+    },
+    {
+      "id": "shell__loggia_pier_1",
+      "minX": -4.05,
+      "minZ": 3.79,
+      "maxX": -3.67,
+      "maxZ": 4.17
+    },
+    {
+      "id": "shell__loggia_pier_2",
+      "minX": -2.78,
+      "minZ": 3.82,
+      "maxX": -2.46,
+      "maxZ": 4.14
+    },
+    {
+      "id": "shell__lowcorner_corner_sw",
+      "minX": -5.645,
+      "minZ": 2.78,
+      "maxX": -5.22,
+      "maxZ": 3.205
+    },
+    {
+      "id": "shell__lowcorner_corner_nw",
+      "minX": -5.645,
+      "minZ": -4.035,
+      "maxX": -5.22,
+      "maxZ": -3.61
+    },
+    {
+      "id": "shell__lowcorner_corner_ne",
+      "minX": 5.22,
+      "minZ": -4.035,
+      "maxX": 5.645,
+      "maxZ": -3.61
+    },
+    {
+      "id": "shell__lowcorner_corner_bay_se",
+      "minX": 5.22,
+      "minZ": 3.72,
+      "maxX": 5.645,
+      "maxZ": 4.145
+    },
+    {
+      "id": "shell__lowcorner_corner_bay_sw",
+      "minX": 2.635,
+      "minZ": 3.72,
+      "maxX": 3.06,
+      "maxZ": 4.145
+    },
+    {
+      "id": "shell__lowcorner_corner_bay_re",
+      "minX": 2.635,
+      "minZ": 2.78,
+      "maxX": 3.06,
+      "maxZ": 3.205
+    },
+    {
+      "id": "shell__west_buttress",
+      "minX": -5.66,
+      "minZ": -2.02,
+      "maxX": -5.56,
+      "maxZ": -1.34
+    },
+    {
+      "id": "shell__service_wall_0",
+      "minX": -5.22,
+      "minZ": -2.19,
+      "maxX": -5.135,
+      "maxZ": -1.85
+    },
+    {
+      "id": "shell__service_wall_1",
+      "minX": -4.185,
+      "minZ": -2.19,
+      "maxX": -3.045,
+      "maxZ": -1.85
+    },
+    {
+      "id": "shell__service_wall_2",
+      "minX": -1.705,
+      "minZ": -2.19,
+      "maxX": -0.195,
+      "maxZ": -1.85
+    },
+    {
+      "id": "shell__service_wall_3",
+      "minX": 1.145,
+      "minZ": -2.19,
+      "maxX": 2.655,
+      "maxZ": -1.85
+    },
+    {
+      "id": "shell__service_wall_4",
+      "minX": 3.995,
+      "minZ": -2.19,
+      "maxX": 5.22,
+      "maxZ": -1.85
+    },
+    {
+      "id": "shell__niche_bank_cheek_w",
+      "minX": -3.215,
+      "minZ": -2.32,
+      "maxX": -3.045,
+      "maxZ": -2.19
+    },
+    {
+      "id": "shell__niche_bank_cheek_e",
+      "minX": -1.705,
+      "minZ": -2.32,
+      "maxX": -1.535,
+      "maxZ": -2.19
+    },
+    {
+      "id": "shell__niche_bank_back",
+      "minX": -3.045,
+      "minZ": -2.45,
+      "maxX": -1.705,
+      "maxZ": -2.32
+    },
+    {
+      "id": "shell__niche_trade_cheek_w",
+      "minX": -0.365,
+      "minZ": -2.32,
+      "maxX": -0.195,
+      "maxZ": -2.19
+    },
+    {
+      "id": "shell__niche_trade_cheek_e",
+      "minX": 1.145,
+      "minZ": -2.32,
+      "maxX": 1.315,
+      "maxZ": -2.19
+    },
+    {
+      "id": "shell__niche_trade_back",
+      "minX": -0.195,
+      "minZ": -2.45,
+      "maxX": 1.145,
+      "maxZ": -2.32
+    },
+    {
+      "id": "shell__niche_assoc_cheek_w",
+      "minX": 2.485,
+      "minZ": -2.32,
+      "maxX": 2.655,
+      "maxZ": -2.19
+    },
+    {
+      "id": "shell__niche_assoc_cheek_e",
+      "minX": 3.995,
+      "minZ": -2.32,
+      "maxX": 4.165,
+      "maxZ": -2.19
+    },
+    {
+      "id": "shell__niche_assoc_back",
+      "minX": 2.655,
+      "minZ": -2.45,
+      "maxX": 3.995,
+      "maxZ": -2.32
+    }
+  ],
+  "furniture": [
+    {
+      "id": "fixture__dock_bank_fin_w",
+      "minX": -3.19,
+      "minZ": -1.85,
+      "maxX": -3.07,
+      "maxZ": -1.5
+    },
+    {
+      "id": "fixture__dock_bank_fin_e",
+      "minX": -1.68,
+      "minZ": -1.85,
+      "maxX": -1.56,
+      "maxZ": -1.5
+    },
+    {
+      "id": "fixture__dock_bank_drawer",
+      "minX": -3.475,
+      "minZ": -1.85,
+      "maxX": -3.075,
+      "maxZ": -1.6
+    },
+    {
+      "id": "fixture__dock_bank_ledge",
+      "minX": -1.705,
+      "minZ": -1.85,
+      "maxX": -1.245,
+      "maxZ": -1.51
+    },
+    {
+      "id": "fixture__dock_trade_leg_w",
+      "minX": -0.465,
+      "minZ": -1.66,
+      "maxX": -0.405,
+      "maxZ": -1.6
+    },
+    {
+      "id": "fixture__dock_trade_leg_e",
+      "minX": 1.355,
+      "minZ": -1.66,
+      "maxX": 1.415,
+      "maxZ": -1.6
+    },
+    {
+      "id": "fixture__dock_trade_shelf",
+      "minX": 1.225,
+      "minZ": -1.85,
+      "maxX": 1.625,
+      "maxZ": -1.55
+    },
+    {
+      "id": "fixture__dock_assoc_notice",
+      "minX": 2.135,
+      "minZ": -1.85,
+      "maxX": 2.715,
+      "maxZ": -1.76
+    },
+    {
+      "id": "fixture__dock_assoc_bench",
+      "minX": 3.955,
+      "minZ": -1.85,
+      "maxX": 4.495,
+      "maxZ": -1.45
+    },
+    {
+      "id": "fixture__vendor_counter",
+      "minX": -4.92,
+      "minZ": -1.12,
+      "maxX": -4.18,
+      "maxZ": 2.2
+    },
+    {
+      "id": "fixture__goods_counter",
+      "minX": -5.46,
+      "minZ": -1.19,
+      "maxX": -5.08,
+      "maxZ": 0.13
+    },
+    {
+      "id": "fixture__stock_ledge",
+      "minX": -5.46,
+      "minZ": 1.1,
+      "maxX": -5.08,
+      "maxZ": 2.34
+    },
+    {
+      "id": "fixture__water_basin",
+      "minX": 5.1,
+      "minZ": 1.43,
+      "maxX": 5.55,
+      "maxZ": 2.29
+    },
+    {
+      "id": "fixture__isolator_cabinet",
+      "minX": 5.32,
+      "minZ": -3.57,
+      "maxX": 5.55,
+      "maxZ": -3.23
+    },
+    {
+      "id": "fixture__trainer_table",
+      "minX": 3.5,
+      "minZ": 2.5,
+      "maxX": 4.9,
+      "maxZ": 2.92
+    },
+    {
+      "id": "fixture__trainer_credenza",
+      "minX": 3.1,
+      "minZ": 3.34,
+      "maxX": 3.86,
+      "maxZ": 3.66
+    },
+    {
+      "id": "fixture__boh_bench",
+      "minX": 4.21,
+      "minZ": -2.57,
+      "maxX": 5.25,
+      "maxZ": -2.2
+    },
+    {
+      "id": "fixture__boh_shelving",
+      "minX": -4.14,
+      "minZ": -2.57,
+      "maxX": -3.26,
+      "maxZ": -2.2
+    },
+    {
+      "id": "fixture__boh_switchgear",
+      "minX": 4.95,
+      "minZ": -3.55,
+      "maxX": 5.22,
+      "maxZ": -2.75
+    },
+    {
+      "id": "fixture__boh_filter_0",
+      "minX": -1.395,
+      "minZ": -2.575,
+      "maxX": -0.985,
+      "maxZ": -2.165
+    },
+    {
+      "id": "fixture__boh_filter_1",
+      "minX": -0.915,
+      "minZ": -2.575,
+      "maxX": -0.505,
+      "maxZ": -2.165
+    },
+    {
+      "id": "fixture__boh_valve_panel",
+      "minX": -0.3,
+      "minZ": -2.57,
+      "maxX": 0.04,
+      "maxZ": -2.45
+    },
+    {
+      "id": "fixture__boh_ladder",
+      "minX": -2.55,
+      "minZ": -3.61,
+      "maxX": -2.05,
+      "maxZ": -3.5
+    },
+    {
+      "id": "fixture__nook_bench",
+      "minX": 4.69,
+      "minZ": -1.2,
+      "maxX": 5.22,
+      "maxZ": 0.08
+    },
+    {
+      "id": "fixture__queue_rail",
+      "minX": -1.59,
+      "minZ": 1.51,
+      "maxX": 1.69,
+      "maxZ": 1.59
+    },
+    {
+      "id": "fixture__loggia_ledge",
+      "minX": -5.25,
+      "minZ": 3.33,
+      "maxX": -2.95,
+      "maxZ": 3.95
+    },
+    {
+      "id": "fixture__loggia_bench",
+      "minX": -3.75,
+      "minZ": 3.32,
+      "maxX": -2.65,
+      "maxZ": 3.76
+    }
+  ],
+  "door": {
+    "node": "door_slide",
+    "closed": {
+      "id": "closed_door_panel",
+      "minX": -1.52,
+      "minZ": 2.66,
+      "maxX": 0.92,
+      "maxZ": 2.75
+    }
+  },
+  "interiorRegions": [
+    {
+      "id": "hall",
+      "minX": -5.22,
+      "minZ": -1.85,
+      "maxX": 5.22,
+      "maxZ": 2.7800000000000002,
+      "floorTopY": 0.02
+    },
+    {
+      "id": "back_of_house",
+      "minX": -5.22,
+      "minZ": -3.6100000000000003,
+      "maxX": 5.22,
+      "maxZ": -2.32,
+      "floorTopY": 0.02
+    },
+    {
+      "id": "trainer_bay",
+      "minX": 3.06,
+      "minZ": 2.7800000000000002,
+      "maxX": 5.22,
+      "maxZ": 3.7199999999999998,
+      "floorTopY": 0.02
+    }
+  ],
+  "sourceCollision": {
+    "file": "market_house.collision.json",
+    "sha256": "sha256:4fc7c186fc5dcb7da97e51939958bbf3fc1ebdfa88b90a91d6ce4ba0d74d0e4d",
+    "authored_box_count": 81,
+    "body_height_max_m": 1.85,
+    "body_height_box_count": 76,
+    "excluded_overhead_box_count": 5
+  }
+}

@@ -10,7 +10,7 @@
 // - Per-instance skinned bodies are produced with SkeletonUtils.clone().
 // - The uniform scale constant that maps the cooked 1.7525 m body onto the
 //   ~1.7-unit contract height lives here (ONE constant, applied at instance root).
-import { AnimationClip, Bone, Group, Quaternion, Vector3 } from "three";
+import { AnimationClip, Bone, Group, Quaternion, SkinnedMesh, Vector3, type Object3D } from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { SUCCESSOR_3D_CONFIG } from "../config";
@@ -19,12 +19,65 @@ import { gearDescriptionFor } from "../ui/inventory/itemCopy";
 import { registerKnownGearIds, get as getStoredGearIds } from "../ui/inventory/equippedGearStore";
 import { registerPawnPackEquipmentIds } from "../render/equipmentSlots";
 import { WARDROBE_PIECES } from "./wardrobe.gen";
-import { toClipLayer } from "./pawnRigTypes";
+import {
+  toClipLayer,
+  type SlugthrowerAttachSpec,
+  type SupportArmSpec,
+  type TorsoYawRecipe,
+  type VibroswordAttachSpec,
+  type WeaponStowSpec,
+} from "./pawnRigTypes";
 import { requireRuntimePublicPath } from "@successor/client/src/slice-core/runtimePublicPaths";
 
 export type PawnBody = "male" | "female";
 export type ClipLayer = "base" | "upper" | "hand" | "montage" | "arm";
 export type PawnEquipmentLayer = "Armor" | "Under";
+
+/** Canonical skin-coverage vocabulary shared by authored equipment and both runtimes. */
+export const PAWN_BODY_ZONES = [
+  "torso",
+  "pelvis",
+  "neck",
+  "head",
+  "left_upper_arm",
+  "right_upper_arm",
+  "left_forearm",
+  "right_forearm",
+  "left_hand",
+  "right_hand",
+  "left_thigh",
+  "right_thigh",
+  "left_calf",
+  "right_calf",
+  "left_foot",
+  "right_foot",
+] as const;
+export type PawnBodyZone = (typeof PAWN_BODY_ZONES)[number];
+export type PawnBodyZoneMask = number;
+
+const pawnBodyZoneMaskByName: Readonly<Record<PawnBodyZone, PawnBodyZoneMask>> = Object.freeze({
+  torso: 1 << 0,
+  pelvis: 1 << 1,
+  neck: 1 << 2,
+  head: 1 << 3,
+  left_upper_arm: 1 << 4,
+  right_upper_arm: 1 << 5,
+  left_forearm: 1 << 6,
+  right_forearm: 1 << 7,
+  left_hand: 1 << 8,
+  right_hand: 1 << 9,
+  left_thigh: 1 << 10,
+  right_thigh: 1 << 11,
+  left_calf: 1 << 12,
+  right_calf: 1 << 13,
+  left_foot: 1 << 14,
+  right_foot: 1 << 15,
+});
+
+export function isPawnBodyZone(value: string): value is PawnBodyZone {
+  return Object.prototype.hasOwnProperty.call(pawnBodyZoneMaskByName, value);
+}
+
 
 export interface PawnEquipmentPaletteZone {
   /** Zone key from the wardrobe taxonomy (e.g. "body", "straps"). */
@@ -44,8 +97,12 @@ export interface PawnEquipmentItem {
   group: string;
   slot: string;
   glb: string;
+  glbFemale?: string;
   mat?: string;
   requires: readonly string[];
+  /** Segmented skin primitives this item fully encloses. Unknown manifest
+   * values are reported and omitted while the pack loads. */
+  hideBodyZones?: readonly PawnBodyZone[];
   /** Dye zones (wardrobe pieces only): player colors map onto atlas slots. */
   palette?: { zones: readonly PawnEquipmentPaletteZone[] };
   /** Asset-Lab-only items (fit trials, prototypes): shown in the viewer,
@@ -70,12 +127,15 @@ export interface PawnEquipmentLookup {
   readonly itemIds: readonly string[];
   /** Helmet ids in deterministic sort order, reused by remote/default resolution. */
   readonly helmetIds: readonly string[];
+  /** Item coverage bits, precomputed once when the equipment manifest loads. */
+  readonly hideBodyZoneMaskById: ReadonlyMap<string, PawnBodyZoneMask>;
 }
 
 export interface PawnEquipmentPack {
   basePath: string;
   items: readonly PawnEquipmentItem[];
   scenes: ReadonlyMap<string, Group>;
+  femaleScenes?: ReadonlyMap<string, Group>;
   /** Precomputed equipment indexes. Legacy hand-built test packs may omit it. */
   readonly lookup?: PawnEquipmentLookup;
 }
@@ -87,11 +147,15 @@ export function buildPawnEquipmentLookup(equipment: PawnEquipmentPack): PawnEqui
   const availableIds = new Set<string>();
   const itemIds: string[] = [];
   const helmetIds: string[] = [];
+  const hideBodyZoneMaskById = new Map<string, PawnBodyZoneMask>();
   for (const item of equipment.items) {
     itemById.set(item.id, item);
     availableIds.add(item.id);
     itemIds.push(item.id);
     if (item.slot === "armor_helmet") helmetIds.push(item.id);
+    let hideBodyZoneMask = 0;
+    for (const zone of item.hideBodyZones ?? []) hideBodyZoneMask |= pawnBodyZoneMaskByName[zone];
+    if (hideBodyZoneMask !== 0) hideBodyZoneMaskById.set(item.id, hideBodyZoneMask);
   }
   helmetIds.sort();
   return Object.freeze({
@@ -99,6 +163,7 @@ export function buildPawnEquipmentLookup(equipment: PawnEquipmentPack): PawnEqui
     availableIds,
     itemIds: Object.freeze(itemIds),
     helmetIds: Object.freeze(helmetIds),
+    hideBodyZoneMaskById,
   });
 }
 
@@ -110,6 +175,62 @@ export function pawnEquipmentLookupFor(equipment: PawnEquipmentPack): PawnEquipm
   const lookup = buildPawnEquipmentLookup(equipment);
   equipmentLookupCache.set(equipment, lookup);
   return lookup;
+}
+
+/** Resolve the exact equipped set's segmented-skin coverage without creating
+ * a per-pawn Set. Both body sex variants use the same manifest vocabulary. */
+export function resolvePawnBodyZoneMask(
+  equipment: PawnEquipmentPack,
+  itemIds: readonly string[],
+  lookup: PawnEquipmentLookup = pawnEquipmentLookupFor(equipment),
+): PawnBodyZoneMask {
+  let hiddenZones = 0;
+  for (let i = 0; i < itemIds.length; i += 1) {
+    hiddenZones |= lookup.hideBodyZoneMaskById.get(itemIds[i]!) ?? 0;
+  }
+  return hiddenZones;
+}
+
+/** A segmented body primitive discovered once from an unmodified body clone. */
+export interface PawnBodyZoneMesh {
+  readonly mesh: SkinnedMesh;
+  readonly zoneMask: PawnBodyZoneMask;
+  readonly initialVisible: boolean;
+}
+
+/** Cache only exact `BodyZone_<canonical-zone>` skinned body primitives. */
+export function collectPawnBodyZoneMeshes(bodyRoot: Object3D): PawnBodyZoneMesh[] {
+  const bodyZoneMeshes: PawnBodyZoneMesh[] = [];
+  bodyRoot.traverse((object) => {
+    if (!(object instanceof SkinnedMesh)) return;
+    const material = Array.isArray(object.material)
+      ? object.material.length === 1 ? object.material[0]! : null
+      : object.material;
+    if (!material) return;
+    const materialName = material.name;
+    if (!materialName.startsWith("BodyZone_")) return;
+    const zone = materialName.slice("BodyZone_".length);
+    if (!isPawnBodyZone(zone)) return;
+    bodyZoneMeshes.push({
+      mesh: object,
+      zoneMask: pawnBodyZoneMaskByName[zone],
+      initialVisible: object.visible,
+    });
+  });
+  return bodyZoneMeshes;
+}
+
+/** Apply a spawn/appearance-time coverage mask and restore zones no longer
+ * claimed by an equipped item. Apparel is never part of this cached list. */
+export function applyPawnBodyZoneMask(
+  bodyZoneMeshes: readonly PawnBodyZoneMesh[],
+  hiddenZones: PawnBodyZoneMask,
+): void {
+  for (let i = 0; i < bodyZoneMeshes.length; i += 1) {
+    const bodyZoneMesh = bodyZoneMeshes[i]!;
+    bodyZoneMesh.mesh.visible = bodyZoneMesh.initialVisible
+      && (hiddenZones & bodyZoneMesh.zoneMask) === 0;
+  }
 }
 
 export interface PawnClipMeta {
@@ -125,42 +246,15 @@ export interface PawnClipMeta {
   events: Record<string, number>;
 }
 
-export interface SlugthrowerAttachSpec {
-  /** hand_r-local mount transform — USER-TUNED, applied verbatim. */
-  mountPos: Vector3;
-  mountQuat: Quaternion;
-  /** Sockets in weapon-GLB-local glTF space. */
-  sockets: {
-    grip: Vector3;
-    foregrip: Vector3;
-    muzzle: Vector3;
-    stock: Vector3;
-  };
-  nodes: { frame: string; mag?: string };
-  scale?: number;
-  silhouetteClass?: string;
-}
-
-export interface VibroswordAttachSpec {
-  /** hand_r-local mount transform — USER-TUNED, applied verbatim. */
-  mountPos: Vector3;
-  mountQuat: Quaternion;
-  /** Sockets in vibrosword-GLB-local glTF space. */
-  sockets: {
-    guardPlane: Vector3;
-    wrapTop: Vector3;
-    wrapMid: Vector3;
-    wrapBottom: Vector3;
-    pommel: Vector3;
-  };
-  nodes: { frame: string };
-}
-
-export interface TorsoYawRecipe {
-  /** boneName -> weight (spine_01 .25, spine_03 .60, neck_01 .15). */
-  weights: ReadonlyArray<readonly [string, number]>;
-  maxRad: number;
-}
+// The attach-spec contract lives in pawnRigTypes so the loader, the rigs and
+// the Asset Lab all extend ONE definition; re-exported here because most
+// consumers import the pack surface.
+export type {
+  SlugthrowerAttachSpec,
+  VibroswordAttachSpec,
+  WeaponStowSpec,
+  TorsoYawRecipe,
+} from "./pawnRigTypes";
 
 export interface WeaponModel {
   scene: Group;
@@ -272,6 +366,7 @@ interface VibroswordAttachJson {
   sockets: Record<string, [number, number, number]>;
   nodes: { frame: string };
   mount_hand_r_local: { pos: [number, number, number]; quat: [number, number, number, number] };
+  stow_socket?: WeaponStowSocketJson;
 }
 
 interface PawnEquipmentManifestJson {
@@ -282,12 +377,14 @@ interface PawnEquipmentManifestJson {
     group: string;
     slot: string;
     glb: string;
+    glbFemale?: string;
     mat?: string;
     requires?: string[];
     palette?: { zones: Array<{ key: string; family: string; slots: string[]; default: string }> };
     viewerOnly?: boolean;
     authorityItemId?: number;
     rigidAnchorBone?: string;
+    hideBodyZones?: string[];
   }>;
 }
 
@@ -381,7 +478,9 @@ export function isPawnEquipmentManifestJson(value: unknown): value is PawnEquipm
       && typeof item.group === "string"
       && typeof item.slot === "string"
       && typeof item.glb === "string"
+      && (item.glbFemale === undefined || typeof item.glbFemale === "string")
       && (item.requires === undefined || isStringArray(item.requires))
+      && (item.hideBodyZones === undefined || isStringArray(item.hideBodyZones))
       && (item.palette === undefined || isPaletteJson(item.palette))
       && (item.authorityItemId === undefined
         || (typeof item.authorityItemId === "number" && Number.isInteger(item.authorityItemId) && item.authorityItemId > 0))
@@ -405,6 +504,18 @@ async function fetchOptionalEquipmentManifest(basePath: string): Promise<PawnEqu
   return parsed;
 }
 
+// Optional-equipment degradation follows the special-body path below: emit
+// each invalid manifest declaration once, retain the item, and expose no
+// guessed skin coverage.
+const warnedUnknownEquipmentHideBodyZones = new Set<string>();
+
+function reportUnknownEquipmentHideBodyZone(itemId: string, zone: string): void {
+  const key = `${itemId}\u0000${zone}`;
+  if (warnedUnknownEquipmentHideBodyZones.has(key)) return;
+  warnedUnknownEquipmentHideBodyZones.add(key);
+  console.warn(`pawn pack: equipment "${itemId}" declares unknown hideBodyZones entry "${zone}"; ignoring it`);
+}
+
 async function loadEquipmentPack(loader: GLTFLoader, basePath: string): Promise<PawnEquipmentPack> {
   const manifest = await fetchOptionalEquipmentManifest(basePath);
   if (!manifest) {
@@ -416,22 +527,40 @@ async function loadEquipmentPack(loader: GLTFLoader, basePath: string): Promise<
   // opts them into the transient pack via ?slotColorProof=1 so the same runtime
   // surfaces can prove a trial garment without making it regular wardrobe.
   const includeViewerOnly = includeViewerOnlyEquipment();
-  const items = manifest.items
-    .filter((item) => includeViewerOnly || item.viewerOnly !== true)
-    .map(toPawnEquipmentItem);
+  const manifestItems = manifest.items.map((item) => toPawnEquipmentItem(item, reportUnknownEquipmentHideBodyZone));
+  const items = manifestItems
+    .filter((item) => includeViewerOnly || item.viewerOnly !== true);
   const scenes = new Map<string, Group>();
+  const femaleScenes = new Map<string, Group>();
   await Promise.all(items.map(async (item) => {
-    const gltf = await loader.loadAsync(requireRuntimePublicPath(`${basePath}/${item.glb}`));
-    scenes.set(item.id, gltf.scene);
+    const [baseGltf, femaleGltf] = await Promise.all([
+      loader.loadAsync(requireRuntimePublicPath(`${basePath}/${item.glb}`)),
+      item.glbFemale
+        ? loader.loadAsync(requireRuntimePublicPath(`${basePath}/${item.glbFemale}`))
+        : Promise.resolve(null),
+    ]);
+    scenes.set(item.id, baseGltf.scene);
+    if (femaleGltf) femaleScenes.set(item.id, femaleGltf.scene);
   }));
-  const equipment = { basePath, items, scenes };
+  const equipment = { basePath, items, scenes, femaleScenes };
   return { ...equipment, lookup: buildPawnEquipmentLookup(equipment) };
 }
 
 /** Manifest JSON → runtime item. Exported for the manifest contract test:
  * dropping a field here (rigidAnchorBone especially) would silently demote a
  * rigid accessory to the SkinnedMesh route, which attaches nothing. */
-export function toPawnEquipmentItem(item: PawnEquipmentManifestJson["items"][number]): PawnEquipmentItem {
+export function toPawnEquipmentItem(
+  item: PawnEquipmentManifestJson["items"][number],
+  reportUnknownBodyZone?: (itemId: string, zone: string) => void,
+): PawnEquipmentItem {
+  const hideBodyZones: PawnBodyZone[] = [];
+  for (const zone of item.hideBodyZones ?? []) {
+    if (isPawnBodyZone(zone)) {
+      hideBodyZones.push(zone);
+    } else {
+      reportUnknownBodyZone?.(item.id, zone);
+    }
+  }
   return {
     id: item.id,
     name: item.name,
@@ -439,8 +568,10 @@ export function toPawnEquipmentItem(item: PawnEquipmentManifestJson["items"][num
     group: item.group,
     slot: item.slot,
     glb: item.glb,
+    glbFemale: item.glbFemale,
     mat: item.mat,
     requires: item.requires ?? [],
+    ...(hideBodyZones.length > 0 ? { hideBodyZones: Object.freeze(hideBodyZones) } : {}),
     ...(item.palette ? { palette: { zones: item.palette.zones.map((zone) => ({ ...zone, slots: [...zone.slots] })) } } : {}),
     viewerOnly: item.viewerOnly,
     ...(item.authorityItemId !== undefined ? { authorityItemId: item.authorityItemId } : {}),
@@ -525,12 +656,26 @@ export function buildWardrobeCatalog(
   return entries;
 }
 
+interface WeaponStowSocketJson {
+  pos?: [number, number, number];
+  rot_deg?: [number, number, number];
+  arc_lift?: number;
+}
+
+interface SupportArmJson {
+  min_elbow_bend_deg?: number;
+  shoulder_advance_max_m?: number;
+  elbow_pole_deg?: number;
+}
+
 interface WeaponAttachJson {
   sockets: Record<string, [number, number, number]>;
   nodes: { frame: string; mag?: string };
   mount_hand_r_local: { pos: [number, number, number]; quat: [number, number, number, number] };
   scale_to_pawn?: number;
   silhouette_class?: string;
+  stow_socket?: WeaponStowSocketJson;
+  hold?: { resting_yaw_deg?: number; support_arm?: SupportArmJson };
 }
 
 interface WeaponsManifestJson {
@@ -549,8 +694,63 @@ function isWeaponsManifestJson(value: unknown): value is WeaponsManifestJson {
       && typeof it.class === "string");
 }
 
+function isTriple(value: unknown): value is [number, number, number] {
+  return Array.isArray(value) && value.length === 3 && value.every((n) => typeof n === "number" && Number.isFinite(n));
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+/** Hard rails on the authored hold posture: an arm, not a pretzel. */
+const MAX_SUPPORT_BEND_DEG = 80;
+const MAX_SHOULDER_ADVANCE_M = 0.12;
+
+/**
+ * `hold.support_arm` is only honoured when it carries BOTH a bend floor and a
+ * pole angle: together they are the posture, and rolling an elbow with nothing
+ * holding the bend would spin a straight arm about its own axis. A partial or
+ * malformed block falls through to the legacy unposed solve, the same way
+ * `stow_socket` falls through to the class default. Values are clamped to
+ * anatomical rails so a bad edit cannot dislocate the shoulder.
+ */
+function parseSupportArm(json: SupportArmJson | undefined): SupportArmSpec | undefined {
+  if (!json || !isFiniteNumber(json.min_elbow_bend_deg) || !isFiniteNumber(json.elbow_pole_deg)) {
+    return undefined;
+  }
+  const advance = json.shoulder_advance_max_m;
+  const toRad = Math.PI / 180;
+  return {
+    minBendRad: Math.min(MAX_SUPPORT_BEND_DEG, Math.max(0, json.min_elbow_bend_deg)) * toRad,
+    poleRad: json.elbow_pole_deg * toRad,
+    shoulderAdvanceMaxM: isFiniteNumber(advance)
+      ? Math.min(MAX_SHOULDER_ADVANCE_M, Math.max(0, advance))
+      : 0,
+  };
+}
+
+/**
+ * `stow_socket` is only honoured when it carries BOTH a position and a
+ * rotation. A partial or malformed block falls through to the class default
+ * rather than half-applying, so a bad edit can never silently produce a
+ * weapon floating at the spine origin.
+ */
+function parseStowSocket(json: WeaponStowSocketJson | undefined, fallbackArcLift: number): WeaponStowSpec | undefined {
+  if (!json || !isTriple(json.pos) || !isTriple(json.rot_deg)) return undefined;
+  return {
+    pos: toVector3(json.pos),
+    rotDeg: toVector3(json.rot_deg),
+    arcLift: isFiniteNumber(json.arc_lift) ? json.arc_lift : fallbackArcLift,
+  };
+}
+
 function parseWeaponAttach(json: WeaponAttachJson, silhouetteClass: string): SlugthrowerAttachSpec {
   const s = json.sockets;
+  const melee = (json.silhouette_class ?? silhouetteClass) === "melee";
+  const stowDefaults = melee
+    ? SUCCESSOR_3D_CONFIG.pawnPack.swordStow
+    : SUCCESSOR_3D_CONFIG.pawnPack.weaponStow;
+  const restingYawDeg = json.hold?.resting_yaw_deg;
   return {
     mountPos: toVector3(json.mount_hand_r_local.pos),
     mountQuat: new Quaternion(...json.mount_hand_r_local.quat),
@@ -559,10 +759,14 @@ function parseWeaponAttach(json: WeaponAttachJson, silhouetteClass: string): Slu
       foregrip: toVector3(s.foregrip ?? s.grip ?? [0, 0, 0.25]),
       muzzle: toVector3(s.muzzle ?? [0, 0, 0.44]),
       stock: toVector3(s.stock ?? [0, 0, -0.41]),
+      foregripContact: isTriple(s.foregrip_contact) ? toVector3(s.foregrip_contact) : undefined,
     },
     nodes: { frame: json.nodes.frame, mag: json.nodes.mag },
     scale: json.scale_to_pawn ?? 1,
     silhouetteClass: json.silhouette_class ?? silhouetteClass,
+    stow: parseStowSocket(json.stow_socket, stowDefaults.arcLift),
+    restingYawRad: isFiniteNumber(restingYawDeg) ? restingYawDeg * (Math.PI / 180) : undefined,
+    supportArm: parseSupportArm(json.hold?.support_arm),
   };
 }
 
@@ -724,6 +928,7 @@ export async function loadPawnPack(): Promise<PawnPack> {
       pommel: toVector3(vibroswordAttach.sockets.pommel ?? [0, 0, -0.39]),
     },
     nodes: vibroswordAttach.nodes,
+    stow: parseStowSocket(vibroswordAttach.stow_socket, SUCCESSOR_3D_CONFIG.pawnPack.swordStow.arcLift),
   };
   return {
     bodies: { male: maleGltf.scene, female: femaleGltf.scene },
@@ -747,11 +952,11 @@ export async function loadPawnPack(): Promise<PawnPack> {
 /** Clone a skinned pawn body for one actor instance (bones + skinned mesh rebind). */
 export function clonePawnBody(pack: PawnPack, body: PawnBody, options: PawnBodyCloneOptions = {}): Group {
   const source = options.bare ? pack.bareBodies?.[body] ?? pack.bodies[body] : pack.bodies[body];
-  const root = cloneSkeleton(source);
-  if (root instanceof Group) return root;
-  const group = new Group();
-  group.add(root);
-  return group;
+  const cloned = cloneSkeleton(source);
+  const root = cloned instanceof Group ? cloned : new Group();
+  if (cloned !== root) root.add(cloned);
+  root.userData.successorPawnBody = body;
+  return root;
 }
 
 /** Clone a non-player humanoid that is rig-compatible with the shared pack. */

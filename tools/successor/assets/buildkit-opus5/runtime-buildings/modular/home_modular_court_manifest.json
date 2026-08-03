@@ -1,12 +1,12 @@
 {
   "asset": {
-    "bytes": 8337816,
+    "bytes": 9015332,
     "file": "home_modular_court.glb",
     "images": {
       "external_image_uri_count": 0,
       "image_count": 27
     },
-    "sha256": "sha256:4fbc8e48b136846e32c28a3373dcca2f0ab515d2a1464e69ae25f83dd580458a"
+    "sha256": "sha256:49264de5adaf417556ac6df1ec937b4aee18bed2c6e88c976683e1eb34c3ecc0"
   },
   "bbox_span_m": [
     9.968,

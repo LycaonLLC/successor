@@ -1128,6 +1128,12 @@ impl Renderer {
         crate::components::MaterialId((self.materials.len() - 1) as u32)
     }
 
+    pub fn material_desc(&self, id: crate::components::MaterialId) -> Option<MaterialDesc> {
+        self.materials
+            .get(id.0 as usize)
+            .map(|material| material.desc)
+    }
+
     pub fn update_material_desc(&mut self, id: crate::components::MaterialId, desc: MaterialDesc) {
         if let Some(material) = self.materials.get_mut(id.0 as usize) {
             material.desc = desc;
@@ -2294,15 +2300,18 @@ impl Renderer {
     ) {
         let (target, vp) = match cam.target {
             CamTarget::Screen(rect) => (PassTarget::Screen, viewport_px(rect, screen_w, screen_h)),
-            CamTarget::Texture(rt) => (
-                PassTarget::RenderTarget(rt),
-                RectPx {
-                    x: 0,
-                    y: 0,
-                    w: rt_side(screen_w),
-                    h: rt_side(screen_w),
-                },
-            ),
+            CamTarget::Texture(rt) => {
+                let (width, height) = gpu.render_target_size(rt).unwrap_or((256, 256));
+                (
+                    PassTarget::RenderTarget(rt),
+                    RectPx {
+                        x: 0,
+                        y: 0,
+                        w: width as i32,
+                        h: height as i32,
+                    },
+                )
+            }
         };
         let aspect = if vp.h != 0 {
             vp.w as f32 / vp.h as f32
@@ -2417,7 +2426,9 @@ impl Renderer {
             if meshes.get(mesh.mesh.0 as usize).is_none() {
                 continue;
             }
-            if visible_only && (mesh.viewport_mask & (1u32 << viewport_id)) == 0 {
+            if mesh.viewport_mask == 0
+                || (visible_only && (mesh.viewport_mask & (1u32 << viewport_id)) == 0)
+            {
                 continue;
             }
             let material = materials.get(mesh.material.0 as usize).copied();
@@ -2930,6 +2941,18 @@ impl Renderer {
         }
     }
 
+    /// Repaint render-target quads over a later UI stage. Connected windows use
+    /// this after their opaque chrome so portraits cannot sit behind world HUD.
+    pub fn render_composites_overlay<G: Gpu, W: RenderWorld>(
+        &mut self,
+        gpu: &mut G,
+        world: &mut W,
+        screen_w: u32,
+        screen_h: u32,
+    ) {
+        self.composite_pass(gpu, world, screen_w, screen_h);
+    }
+
     fn composite_pass<G: Gpu, W: RenderWorld>(
         &mut self,
         gpu: &mut G,
@@ -2965,7 +2988,7 @@ impl Renderer {
                 depth_write: false,
                 cull: Cull::None,
                 color_write: true,
-                blend: false,
+                blend: true,
                 additive: false,
             },
         );
@@ -3151,11 +3174,6 @@ fn viewport_px(rect: RectNorm, w: u32, h: u32) -> RectPx {
         w: (rect.w * w as f32) as i32,
         h: (rect.h * h as f32) as i32,
     }
-}
-
-/// RTT square side derived from the screen width bucket (256 for small screens).
-fn rt_side(_screen_w: u32) -> i32 {
-    256
 }
 
 fn push_quad_ndc(out: &mut Vec<f32>, rect: RectNorm) {

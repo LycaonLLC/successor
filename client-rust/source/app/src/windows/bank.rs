@@ -1,5 +1,5 @@
 //! BANK — Kiosk-style bank vault content view.
-use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{WindowAction, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
@@ -93,7 +93,6 @@ pub fn draw(
                 break;
             }
             ui.rect(col_mine_x, iy, col_w, 28.0, SLOT);
-            ui.border(col_mine_x, iy, col_w, 28.0, 1.0, SLOT_EDGE);
 
             if let Some((col, row)) = icons.cell(&item.kind) {
                 ui.icon(col, row, col_mine_x + 4.0, iy + 4.0, 20.0, 20.0, TEXT);
@@ -128,7 +127,6 @@ pub fn draw(
                 break;
             }
             ui.rect(col_vault_x, vy, col_w, 28.0, SLOT);
-            ui.border(col_vault_x, vy, col_w, 28.0, 1.0, SLOT_EDGE);
 
             if let Some((col, row)) = icons.cell(&item.kind) {
                 ui.icon(col, row, col_vault_x + 4.0, vy + 4.0, 20.0, 20.0, TEXT);

@@ -46,7 +46,7 @@ fn gauge(
         let fill = if g.low() { pal.danger } else { pal.accent };
         ui.rect(x, track_y, w * frac, 8.0, fill);
     }
-    ui.border(x, track_y, w, 8.0, 1.0, pal.hairline);
+
     ui.text(value_text, x + w + 8.0, y + 6.0, 1.8, pal.ink);
 }
 
@@ -160,7 +160,6 @@ pub fn draw_status_plate(
                 pal.ink_dim
             };
             ui.rect(x + 8.0, bar_y, bar_w * fill, 6.0, tint);
-            ui.border(x + 8.0, bar_y, bar_w, 6.0, 1.0, pal.hairline);
         } else if weapon.magazine_size > 0 {
             // One pip per round (≤48); reload sweeps the pips back in.
             let count = weapon.magazine_size.min(MAX_PIPS);
@@ -229,7 +228,7 @@ pub fn draw_target_plate(ui: &mut UiBuilder, pal: &Palette, target: &TargetHud, 
     if hp.frac() > 0.0 {
         ui.rect(x + 10.0, bar_y, (w - 20.0) * hp.frac(), 8.0, pal.danger);
     }
-    ui.border(x + 10.0, bar_y, w - 20.0, 8.0, 1.0, pal.hairline);
+
     // State chips (max 4).
     let mut cx = x + 10.0;
     for chip in &target.chips {
@@ -239,7 +238,7 @@ pub fn draw_target_plate(ui: &mut UiBuilder, pal: &Palette, target: &TargetHud, 
         }
         let tint = if chip.danger { pal.danger } else { pal.ink_dim };
         ui.rect(cx, y + 58.0, cw, 14.0, pal.bg_cell);
-        ui.border(cx, y + 58.0, cw, 14.0, 1.0, pal.hairline);
+
         ui.text(&chip.label, cx + 4.0, y + 61.0, 1.4, tint);
         cx += cw + 6.0;
     }
@@ -370,7 +369,7 @@ fn draw_banner_line(ui: &mut UiBuilder, pal: &Palette, banner: &BannerHud, cx: f
     let x = cx - w * 0.5;
     let tint = if banner.bad { pal.danger } else { pal.accent };
     ui.rect(x, y, w, 20.0, pal.bg_panel);
-    ui.border(x, y, w, 20.0, 1.0, tint);
+
     ui.text(&banner.text, x + 9.0, y + 4.0, 1.7, tint);
 }
 
@@ -409,7 +408,7 @@ pub fn draw_first_steps(ui: &mut UiBuilder, pal: &Palette, st: &HudState, x: f32
         if !row.key.is_empty() {
             let kw = UiBuilder::text_width(&row.key, 1.5) + 6.0;
             ui.rect(x, ry, kw, 13.0, pal.bg_cell);
-            ui.border(x, ry, kw, 13.0, 1.0, pal.hairline);
+
             ui.text(&row.key, x + 3.0, ry + 2.0, 1.5, pal.accent);
             ui.text(&row.text, x + kw + 6.0, ry + 2.0, 1.5, tint);
         } else {

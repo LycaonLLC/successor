@@ -366,9 +366,11 @@ pub struct GameActorPatch {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GameActorAppearance {
-    #[serde(rename = "skinTone")]
+    #[serde(rename = "skin")]
     pub skin_tone: Option<String>,
     pub hair: Option<String>,
+    #[serde(rename = "hair_mat")]
+    pub hair_material: Option<String>,
     pub face: Option<serde_json::Value>,
 }
 
@@ -377,7 +379,7 @@ pub struct GameActorAppearance {
 #[serde(default)]
 pub struct GameActorWorn {
     pub slot: Option<String>,
-    #[serde(rename = "itemId")]
+    #[serde(rename = "item")]
     pub item_id: Option<String>,
     #[serde(default)]
     pub colors: Vec<String>,
@@ -389,8 +391,22 @@ pub struct GameActorWorn {
 pub struct GameActorWeapon {
     #[serde(rename = "weaponId")]
     pub weapon_id: Option<String>,
+    #[serde(rename = "weaponItemId")]
+    pub weapon_item_id: Option<i64>,
+    #[serde(rename = "weaponVariantId")]
+    pub weapon_variant_id: Option<i64>,
+    #[serde(rename = "ammoType")]
+    pub ammo_type: Option<String>,
+    #[serde(rename = "loadedRounds")]
+    pub loaded_rounds: Option<i64>,
+    #[serde(rename = "magazineSize")]
+    pub magazine_size: Option<i64>,
+    #[serde(rename = "reloadUntilTick")]
+    pub reload_until_tick: Option<i64>,
     #[serde(rename = "reloadRemainingTicks")]
     pub reload_remaining_ticks: Option<i64>,
+    #[serde(rename = "reloadTotalTicks")]
+    pub reload_total_ticks: Option<i64>,
 }
 
 /// Compact per-tick move delta: `[netId, qx, qy, direction]` (positions are
@@ -626,9 +642,11 @@ mod actor_tests {
             "maxVitals":{"health":100,"action":100,"spirit":100},
             "lifeState":"alive","lifecycleSeq":3,
             "sprite":null,"role":"player","posture":"stand",
-            "appearance":{"skinTone":"#cc9978","hair":"hair_short"},
-            "worn":[{"slot":"chest","itemId":"jacket_1","colors":["#334455"]}],
-            "weapon":{"weaponId":"slugthrower","reloadRemainingTicks":0},
+            "appearance":{"skin":"#cc9978","hair":"hair_short","hair_mat":"hair_raven"},
+            "worn":[{"slot":"chest","item":"jacket_1","colors":["#334455"]}],
+            "weapon":{"weaponId":"slugthrower","weaponItemId":3101,"weaponVariantId":2,
+                "ammoType":"slug_iron","loadedRounds":12,"magazineSize":30,
+                "reloadUntilTick":910,"reloadRemainingTicks":10,"reloadTotalTicks":30},
             "factionId":"raiders","pvpStatus":"overt","credits":250
         }"##;
         let a: GameActorSnapshot = serde_json::from_str(json).expect("decode");
@@ -641,12 +659,25 @@ mod actor_tests {
             a.appearance.as_ref().unwrap().hair.as_deref(),
             Some("hair_short")
         );
+        assert_eq!(
+            a.appearance.as_ref().unwrap().hair_material.as_deref(),
+            Some("hair_raven")
+        );
         assert_eq!(a.worn.len(), 1);
         assert_eq!(a.worn[0].item_id.as_deref(), Some("jacket_1"));
         assert_eq!(
             a.weapon.as_ref().unwrap().weapon_id.as_deref(),
             Some("slugthrower")
         );
+        let weapon = a.weapon.as_ref().unwrap();
+        assert_eq!(weapon.weapon_item_id, Some(3101));
+        assert_eq!(weapon.weapon_variant_id, Some(2));
+        assert_eq!(weapon.ammo_type.as_deref(), Some("slug_iron"));
+        assert_eq!(weapon.loaded_rounds, Some(12));
+        assert_eq!(weapon.magazine_size, Some(30));
+        assert_eq!(weapon.reload_until_tick, Some(910));
+        assert_eq!(weapon.reload_remaining_ticks, Some(10));
+        assert_eq!(weapon.reload_total_ticks, Some(30));
         assert_eq!(a.max_vitals.health, 100.0);
         assert_eq!(a.credits, Some(250));
         assert_eq!(a.pvp_status.as_deref(), Some("overt"));

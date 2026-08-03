@@ -8,7 +8,7 @@
 //! cell `(col,row)` supplied by the host, never an icon id the engine can't
 //! resolve.
 
-use crate::ui::UiBuilder;
+use crate::ui::{RectangleStyle, UiBuilder};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -17,6 +17,8 @@ use alloc::vec::Vec;
 pub const TITLE_H: f32 = 26.0;
 /// Bottom-right resize gadget size (px).
 pub const RESIZE_H: f32 = 16.0;
+const EDGE_ATTRACTION_THRESHOLD: f32 = 4.0;
+const DOUBLE_CLICK_MS: u64 = 350;
 
 #[derive(Clone)]
 struct Win {
@@ -31,6 +33,8 @@ struct Win {
     min_h: f32,
     open: bool,
     z: u32,
+    restore_rect: Option<[f32; 4]>,
+    maximized: bool,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -53,7 +57,7 @@ struct Drag {
 /// Colors + metrics for window chrome.
 #[derive(Clone, Copy, Debug)]
 pub struct WindowStyle {
-    pub body: [u8; 4],
+    pub frame: RectangleStyle,
     pub title_bar: [u8; 4],
     pub title_bar_focused: [u8; 4],
     pub edge: [u8; 4],
@@ -65,13 +69,27 @@ pub struct WindowStyle {
 impl Default for WindowStyle {
     fn default() -> Self {
         Self {
-            body: [14, 18, 26, 235],
-            title_bar: [26, 34, 48, 240],
-            title_bar_focused: [46, 62, 86, 245],
-            edge: [110, 140, 172, 255],
-            text: [214, 226, 240, 255],
-            close: [220, 120, 110, 255],
-            resize: [120, 150, 180, 255],
+            frame: RectangleStyle {
+                north: [42, 116, 124, 190],
+                south: [22, 58, 63, 170],
+                east: [28, 76, 82, 175],
+                west: [32, 88, 94, 180],
+                center: [6, 12, 13, 238],
+                north_east: [42, 116, 124, 190],
+                north_west: [42, 116, 124, 190],
+                south_east: [22, 58, 63, 170],
+                south_west: [22, 58, 63, 170],
+                west_width: 1.0,
+                east_width: 1.0,
+                north_height: 1.0,
+                south_height: 1.0,
+            },
+            title_bar: [7, 15, 17, 244],
+            title_bar_focused: [8, 27, 30, 248],
+            edge: [54, 151, 160, 190],
+            text: [220, 234, 235, 255],
+            close: [211, 104, 88, 255],
+            resize: [94, 154, 160, 190],
         }
     }
 }
@@ -83,6 +101,7 @@ pub struct WindowManager {
     sw: f32,
     sh: f32,
     captured: bool,
+    last_title_click: Option<(usize, u64)>,
 }
 
 impl Default for WindowManager {
@@ -100,6 +119,7 @@ impl WindowManager {
             sw: 1.0,
             sh: 1.0,
             captured: false,
+            last_title_click: None,
         }
     }
 
@@ -129,6 +149,8 @@ impl WindowManager {
             min_h,
             open: false,
             z: self.z,
+            restore_rect: None,
+            maximized: false,
         });
     }
 
@@ -138,6 +160,14 @@ impl WindowManager {
 
     pub fn is_open(&self, id: &str) -> bool {
         self.find(id).map(|i| self.wins[i].open).unwrap_or(false)
+    }
+
+    /// Current outer bounds for a registered window, whether open or closed.
+    pub fn rect(&self, id: &str) -> Option<[f32; 4]> {
+        self.find(id).map(|i| {
+            let win = &self.wins[i];
+            [win.x, win.y, win.w, win.h]
+        })
     }
 
     pub fn open(&mut self, id: &str) {
@@ -202,84 +232,172 @@ impl WindowManager {
         w.y = w.y.clamp(0.0, (vh - TITLE_H).max(0.0));
     }
 
-    /// Resolve pointer interaction (focus, move, resize, close) for this frame.
-    /// Call once, before drawing, with the framebuffer size.
-    pub fn update(&mut self, ui: &UiBuilder, screen_w: u32, screen_h: u32) {
+    fn snap_move(&mut self, idx: usize) {
+        let (mut x, mut y, w, h) = {
+            let win = &self.wins[idx];
+            (win.x, win.y, win.w, win.h)
+        };
+        let mut left = 0.0;
+        let mut right = self.sw;
+        let mut top = 0.0;
+        let mut bottom = self.sh;
+        for (other_idx, other) in self.wins.iter().enumerate() {
+            if other_idx == idx || !other.open {
+                continue;
+            }
+            let horizontal_overlap = other.x < x + w && other.x + other.w > x;
+            if horizontal_overlap {
+                let other_bottom = other.y + other.h;
+                if other_bottom > top && (other_bottom - y).abs() < (top - y).abs() {
+                    top = other_bottom;
+                }
+                if other.y < bottom && (other.y - (y + h)).abs() < (bottom - (y + h)).abs() {
+                    bottom = other.y;
+                }
+            }
+            let vertical_overlap = other.y < y + h && other.y + other.h > y;
+            if vertical_overlap {
+                let other_right = other.x + other.w;
+                if other_right > left && (other_right - x).abs() < (left - x).abs() {
+                    left = other_right;
+                }
+                if other.x < right && (other.x - (x + w)).abs() < (right - (x + w)).abs() {
+                    right = other.x;
+                }
+            }
+        }
+        if (x + w - right).abs() < EDGE_ATTRACTION_THRESHOLD {
+            x = right - w;
+        }
+        if (x - left).abs() < EDGE_ATTRACTION_THRESHOLD {
+            x = left;
+        }
+        if (y + h - bottom).abs() < EDGE_ATTRACTION_THRESHOLD {
+            y = bottom - h;
+        }
+        if (y - top).abs() < EDGE_ATTRACTION_THRESHOLD {
+            y = top;
+        }
+        self.wins[idx].x = x;
+        self.wins[idx].y = y;
+    }
+
+    fn toggle_maximize_idx(&mut self, idx: usize) {
+        let win = &mut self.wins[idx];
+        if win.maximized {
+            if let Some([x, y, w, h]) = win.restore_rect.take() {
+                win.x = x;
+                win.y = y;
+                win.w = w;
+                win.h = h;
+            }
+            win.maximized = false;
+        } else {
+            win.restore_rect = Some([win.x, win.y, win.w, win.h]);
+            win.x = 0.0;
+            win.y = 0.0;
+            win.w = self.sw;
+            win.h = self.sh;
+            win.maximized = true;
+        }
+    }
+
+    /// Resolve focus, move, resize, close, maximize, and workspace-edge snap.
+    pub fn update_at(&mut self, ui: &UiBuilder, screen_w: u32, screen_h: u32, now_ms: u64) {
         self.sw = screen_w.max(1) as f32;
         self.sh = screen_h.max(1) as f32;
         self.captured = false;
         let (mx, my) = ui.mouse();
-        let down = ui.interact(0.0, 0.0, self.sw, self.sh).held; // any-down proxy
+        let down = ui.interact(0.0, 0.0, self.sw, self.sh).held;
 
-        // Continue or end an active drag.
-        if let Some(d) = &self.drag {
+        if self.drag.is_some() {
             if !down {
                 self.drag = None;
             } else {
-                let idx = d.idx;
-                let (dx, dy) = (mx - d.mx0, my - d.my0);
-                match d.mode {
+                let (idx, mode, mx0, my0, bx, by, bw, bh) = {
+                    let d = self.drag.as_ref().expect("drag checked");
+                    (d.idx, d.mode, d.mx0, d.my0, d.bx, d.by, d.bw, d.bh)
+                };
+                let (dx, dy) = (mx - mx0, my - my0);
+                match mode {
                     DragMode::Move => {
-                        self.wins[idx].x = d.bx + dx;
-                        self.wins[idx].y = d.by + dy;
+                        self.wins[idx].x = bx + dx;
+                        self.wins[idx].y = by + dy;
                     }
                     DragMode::Resize => {
-                        self.wins[idx].w = d.bw + dx;
-                        self.wins[idx].h = d.bh + dy;
+                        self.wins[idx].w = bw + dx;
+                        self.wins[idx].h = bh + dy;
+                        self.wins[idx].maximized = false;
                     }
                 }
                 self.clamp(idx);
+                if mode == DragMode::Move {
+                    self.snap_move(idx);
+                }
                 self.captured = true;
                 return;
             }
         }
 
-        // New press: hit the topmost open window first.
-        let press = ui.interact(0.0, 0.0, self.sw, self.sh).pressed;
-        if !press {
+        if !ui.interact(0.0, 0.0, self.sw, self.sh).pressed {
             return;
         }
-        let mut order = self.z_order();
-        order.reverse(); // front-to-back
-        for idx in order {
-            let (x, y, w, h) = {
-                let win = &self.wins[idx];
-                (win.x, win.y, win.w, win.h)
-            };
-            if !UiBuilder::hit(x, y, w, h, mx, my) {
-                continue;
-            }
-            self.bring_to_front(idx);
-            self.captured = true;
-            // Close box: right end of the title strip.
-            let cb = TITLE_H;
-            if UiBuilder::hit(x + w - cb, y, cb, TITLE_H, mx, my) {
-                self.wins[idx].open = false;
-                return;
-            }
-            // Resize gadget: bottom-right corner.
-            if UiBuilder::hit(
-                x + w - RESIZE_H,
-                y + h - RESIZE_H,
-                RESIZE_H,
-                RESIZE_H,
-                mx,
-                my,
-            ) {
-                self.drag = Some(Drag {
-                    idx,
-                    mode: DragMode::Resize,
-                    mx0: mx,
-                    my0: my,
-                    bx: x,
-                    by: y,
-                    bw: w,
-                    bh: h,
-                });
-                return;
-            }
-            // Title strip: move.
-            if UiBuilder::hit(x, y, w - cb, TITLE_H, mx, my) {
+        let target = self
+            .wins
+            .iter()
+            .enumerate()
+            .filter(|(_, win)| win.open && UiBuilder::hit(win.x, win.y, win.w, win.h, mx, my))
+            .max_by_key(|(_, win)| win.z)
+            .map(|(idx, _)| idx);
+        let Some(idx) = target else {
+            return;
+        };
+        let (x, y, w, h) = {
+            let win = &self.wins[idx];
+            (win.x, win.y, win.w, win.h)
+        };
+        self.bring_to_front(idx);
+        self.captured = true;
+        let cb = TITLE_H;
+        if UiBuilder::hit(x + w - cb, y, cb, TITLE_H, mx, my) {
+            self.wins[idx].open = false;
+            self.drag = None;
+            return;
+        }
+        if UiBuilder::hit(x + w - cb * 2.0, y, cb, TITLE_H, mx, my) {
+            self.toggle_maximize_idx(idx);
+            self.last_title_click = None;
+            return;
+        }
+        if UiBuilder::hit(
+            x + w - RESIZE_H,
+            y + h - RESIZE_H,
+            RESIZE_H,
+            RESIZE_H,
+            mx,
+            my,
+        ) {
+            self.drag = Some(Drag {
+                idx,
+                mode: DragMode::Resize,
+                mx0: mx,
+                my0: my,
+                bx: x,
+                by: y,
+                bw: w,
+                bh: h,
+            });
+            return;
+        }
+        if UiBuilder::hit(x, y, w - cb * 2.0, TITLE_H, mx, my) {
+            let double = self.last_title_click.is_some_and(|(last_idx, last_ms)| {
+                last_idx == idx && now_ms.saturating_sub(last_ms) <= DOUBLE_CLICK_MS
+            });
+            if double {
+                self.toggle_maximize_idx(idx);
+                self.last_title_click = None;
+            } else {
+                self.last_title_click = Some((idx, now_ms));
                 self.drag = Some(Drag {
                     idx,
                     mode: DragMode::Move,
@@ -291,8 +409,12 @@ impl WindowManager {
                     bh: h,
                 });
             }
-            return; // topmost hit consumes the press
         }
+    }
+
+    /// Compatibility entry for deterministic tests that do not model time.
+    pub fn update(&mut self, ui: &UiBuilder, screen_w: u32, screen_h: u32) {
+        self.update_at(ui, screen_w, screen_h, 0);
     }
 
     /// Whether this frame's pointer press/drag landed on a window (so the host
@@ -306,9 +428,10 @@ impl WindowManager {
     pub fn draw_chrome(&self, ui: &mut UiBuilder, idx: usize, style: WindowStyle) -> [f32; 4] {
         let win = &self.wins[idx];
         let focused = self.wins.iter().filter(|w| w.open).map(|w| w.z).max() == Some(win.z);
-        // Body.
-        ui.rect(win.x, win.y, win.w, win.h, style.body);
-        ui.border(win.x, win.y, win.w, win.h, 1.5, style.edge);
+        // One quiet outer edge and a soft shadow; content establishes its own
+        // hierarchy through spacing and fill rather than nested outlines.
+        ui.rect(win.x + 3.0, win.y + 4.0, win.w, win.h, [0, 0, 0, 76]);
+        ui.nine_slice(win.x, win.y, win.w, win.h, &style.frame);
         // Title bar.
         let tb = if focused {
             style.title_bar_focused
@@ -316,6 +439,9 @@ impl WindowManager {
             style.title_bar
         };
         ui.rect(win.x, win.y, win.w, TITLE_H, tb);
+        if focused {
+            ui.rect(win.x, win.y + TITLE_H - 1.0, win.w, 1.0, style.edge);
+        }
         let mut tx = win.x + 8.0;
         if let Some((col, row)) = win.icon {
             ui.icon(
@@ -347,14 +473,29 @@ impl WindowManager {
             px,
             style.close,
         );
-        // Resize gadget.
-        ui.rect(
-            win.x + win.w - RESIZE_H,
-            win.y + win.h - RESIZE_H,
-            RESIZE_H,
-            RESIZE_H,
-            style.resize,
+        // Minimal maximize glyph: a single corner, not another framed box.
+        let mx = cx - cb;
+        ui.line(
+            mx + 8.0,
+            win.y + 8.0,
+            mx + cb - 8.0,
+            win.y + 8.0,
+            1.2,
+            style.text,
         );
+        ui.line(
+            mx + cb - 8.0,
+            win.y + 8.0,
+            mx + cb - 8.0,
+            win.y + 15.0,
+            1.2,
+            style.text,
+        );
+        // Two short corner strokes preserve resize affordance without a badge.
+        let rx = win.x + win.w;
+        let ry = win.y + win.h;
+        ui.line(rx - 11.0, ry - 3.0, rx - 3.0, ry - 11.0, 1.2, style.resize);
+        ui.line(rx - 7.0, ry - 3.0, rx - 3.0, ry - 7.0, 1.2, style.resize);
         // Content rect (below title, padded).
         let pad = 6.0;
         [
@@ -477,5 +618,53 @@ mod tests {
         ui.begin(1280, 720);
         m.update(&ui, 1280, 720);
         assert!(!m.is_open("inv"), "close box closed the window");
+    }
+
+    #[test]
+    fn moving_window_snaps_to_workspace_edge() {
+        let mut m = wm();
+        m.open("inv");
+        let mut ui = UiBuilder::new(ATLAS);
+        ui.set_input(110.0, 110.0, true);
+        ui.begin(1280, 720);
+        m.update(&ui, 1280, 720);
+        ui.set_input(12.0, 110.0, true);
+        ui.begin(1280, 720);
+        m.update(&ui, 1280, 720);
+        let win = &m.wins[m.find("inv").unwrap()];
+        assert_eq!(win.x, 0.0, "two-pixel edge gap should attract");
+    }
+
+    #[test]
+    fn title_double_click_maximizes_and_restores() {
+        let mut m = wm();
+        m.open("inv");
+        let mut ui = UiBuilder::new(ATLAS);
+        ui.set_input(110.0, 110.0, true);
+        ui.begin(1280, 720);
+        m.update_at(&ui, 1280, 720, 100);
+        ui.set_input(110.0, 110.0, false);
+        ui.begin(1280, 720);
+        m.update_at(&ui, 1280, 720, 140);
+        ui.set_input(110.0, 110.0, true);
+        ui.begin(1280, 720);
+        m.update_at(&ui, 1280, 720, 200);
+        let win = &m.wins[m.find("inv").unwrap()];
+        assert_eq!([win.x, win.y, win.w, win.h], [0.0, 0.0, 1280.0, 720.0]);
+
+        ui.set_input(10.0, 10.0, false);
+        ui.begin(1280, 720);
+        m.update_at(&ui, 1280, 720, 240);
+        ui.set_input(10.0, 10.0, true);
+        ui.begin(1280, 720);
+        m.update_at(&ui, 1280, 720, 500);
+        ui.set_input(10.0, 10.0, false);
+        ui.begin(1280, 720);
+        m.update_at(&ui, 1280, 720, 540);
+        ui.set_input(10.0, 10.0, true);
+        ui.begin(1280, 720);
+        m.update_at(&ui, 1280, 720, 600);
+        let win = &m.wins[m.find("inv").unwrap()];
+        assert_eq!([win.x, win.y, win.w, win.h], [100.0, 100.0, 300.0, 200.0]);
     }
 }

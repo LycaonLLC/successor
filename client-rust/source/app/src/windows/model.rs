@@ -61,6 +61,19 @@ impl ItemKind {
             ItemKind::Item => "item-item",
         }
     }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            ItemKind::Weapon => "WEAPON",
+            ItemKind::Ammo => "AMMO",
+            ItemKind::Medical => "MEDICAL",
+            ItemKind::Resource => "RESOURCE",
+            ItemKind::Tool => "TOOL",
+            ItemKind::Gear => "GEAR",
+            ItemKind::Currency => "CURRENCY",
+            ItemKind::Item => "ITEM",
+        }
+    }
 }
 
 /// Rust-authoritative resource stat block (wire `GameResourceStats`,
@@ -147,7 +160,10 @@ impl InventoryRow {
             || name.contains("BATTERY")
         {
             ItemKind::Tool
-        } else if name.contains("PISTOL")
+        } else if matches!(
+            self.item_id,
+            3101 | 3103..=3107 | 3111 | 3112 | 3121..=3127
+        ) || name.contains("PISTOL")
             || name.contains("RIFLE")
             || name.contains("CARBINE")
             || name.contains("SWORD")
@@ -686,6 +702,7 @@ pub struct WeaponState {
     pub loaded_rounds: i64,
     pub magazine_size: i64,
     pub reload_remaining_ticks: i64,
+    pub reload_total_ticks: i64,
 }
 
 /// Wire `GameActorStatusSnapshot`.

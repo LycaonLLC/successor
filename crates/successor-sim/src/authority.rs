@@ -379,6 +379,12 @@ const COMBAT_HELM_ITEM_ID: u32 = 7_103;
 const STEN_MK2_ITEM_ID: u32 = 3_111;
 const KILN_ENERGY_CELL_ITEM_ID: u32 = 3_112;
 const LIGHTNING_CARBINE_ITEM_ID: u32 = 3_121;
+const BADGE_BOLT_PISTOL_ITEM_ID: u32 = 3_122;
+const SLAGRAIL_VANGUARD_ITEM_ID: u32 = 3_123;
+const COILGATE_SCATTER_ITEM_ID: u32 = 3_124;
+const KILN_LONG_PATTERN_ITEM_ID: u32 = 3_125;
+const BASTION_LMG_ITEM_ID: u32 = 3_126;
+const FLARE_NET_LAUNCHER_ITEM_ID: u32 = 3_127;
 // Credit Chip: a PHYSICAL, lootable/tradeable currency item whose `quantity` IS
 // its credit value (owner ruling 2026-07-08). Redeemed into the scalar
 // `professions.credits` balance via RedeemCreditChip; split/merge like any stack.

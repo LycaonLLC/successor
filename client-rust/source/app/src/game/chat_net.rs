@@ -4,6 +4,7 @@ pub enum ChatChannel {
     Local,
     Zone,
     Global,
+    Combat,
     Trade,
     Party,
     Guild,
@@ -18,6 +19,7 @@ impl ChatChannel {
             ChatChannel::Local => "local",
             ChatChannel::Zone => "zone",
             ChatChannel::Global => "global",
+            ChatChannel::Combat => "combat",
             ChatChannel::Trade => "trade",
             ChatChannel::Party => "party",
             ChatChannel::Guild => "guild",
@@ -33,6 +35,7 @@ impl ChatChannel {
             "local" => Some(ChatChannel::Local),
             "zone" => Some(ChatChannel::Zone),
             "global" => Some(ChatChannel::Global),
+            "combat" => Some(ChatChannel::Combat),
             "trade" => Some(ChatChannel::Trade),
             "party" => Some(ChatChannel::Party),
             "guild" => Some(ChatChannel::Guild),
@@ -41,6 +44,15 @@ impl ChatChannel {
             _ => None,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ChatView {
+    #[default]
+    All,
+    Global,
+    Combat,
+    Friends,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -232,11 +244,14 @@ impl ChatConnection {
             return None;
         }
         self.state = ChatConnectionState::Authenticating;
-        Some(serde_json::json!({
-            "type":"chat.authenticate",
-            "chatTicket":value,
-            "release":client_release,
-        }).to_string())
+        Some(
+            serde_json::json!({
+                "type":"chat.authenticate",
+                "chatTicket":value,
+                "release":client_release,
+            })
+            .to_string(),
+        )
     }
     pub fn authenticated(&mut self) {
         self.state = ChatConnectionState::SyncingHistory;
@@ -335,7 +350,8 @@ pub struct ChatClient {
     pub connection: ChatConnection,
     pub friends: Vec<String>,
     pub ignored: Vec<String>,
-    pub active_channel: ChatChannel,
+    pub active_view: ChatView,
+    pub send_channel: ChatChannel,
     pub last_error: Option<String>,
     pub presence: Option<String>,
 }
@@ -348,7 +364,8 @@ impl ChatClient {
             connection: ChatConnection::new(String::new()),
             friends: Vec::new(),
             ignored: Vec::new(),
-            active_channel: ChatChannel::All,
+            active_view: ChatView::All,
+            send_channel: ChatChannel::Local,
             last_error: None,
             presence: None,
         }
@@ -386,7 +403,7 @@ impl ChatClient {
         serde_json::json!({"type":"ping","requestId":request_id}).to_string()
     }
     pub fn submit_input(&mut self, input: &str) -> ChatCommand {
-        parse_input(self.active_channel, input)
+        parse_input(self.send_channel, input)
     }
     /// Encode a parsed line using the server's chat-room vocabulary.
     pub fn command_frame(&mut self, command: ChatCommand) -> Option<String> {

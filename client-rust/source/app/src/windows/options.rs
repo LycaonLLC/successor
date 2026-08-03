@@ -86,21 +86,11 @@ pub fn draw(
         let bx = x + 130.0 + i as f32 * (sw_px + 8.0);
         let resp = ui.interact(bx, cy, sw_px, sw_px);
         ui.rect(bx, cy, sw_px, sw_px, theme.accent);
-        let edge = if i == model.theme_index {
-            TEXT
+        if i == model.theme_index {
+            ui.rect(bx, cy + sw_px + 2.0, sw_px, 2.0, ACCENT);
         } else if resp.hovered {
-            ACCENT
-        } else {
-            SLOT_EDGE
-        };
-        ui.border(
-            bx,
-            cy,
-            sw_px,
-            sw_px,
-            if i == model.theme_index { 2.0 } else { 1.0 },
-            edge,
-        );
+            ui.rect(bx + 5.0, cy + sw_px + 2.0, sw_px - 10.0, 2.0, DIM);
+        }
         if resp.hovered {
             ui.text(THEME_LABELS[i], x + 130.0, cy + sw_px + 3.0, 1.3, DIM);
         }
@@ -174,7 +164,7 @@ pub fn draw(
         }
         let key_label = code_glyph(&model.toolbar_binds[slot]);
         ui.rect(x + 158.0, cy, 44.0, 16.0, SLOT);
-        ui.border(x + 158.0, cy, 44.0, 16.0, 1.0, SLOT_EDGE);
+
         let klw = UiBuilder::text_width(key_label, 1.5);
         ui.text(
             key_label,
@@ -217,14 +207,7 @@ pub fn draw(
             18.0,
             if active { [70, 92, 120, 240] } else { SLOT },
         );
-        ui.border(
-            bx,
-            cy,
-            bw,
-            18.0,
-            1.0,
-            if active { ACCENT } else { SLOT_EDGE },
-        );
+
         ui.text(&label, bx + 7.0, cy + 4.0, 1.5, TEXT);
         if resp.clicked && !active {
             out.push(WindowAction::SetSplitSnap(step));
@@ -292,9 +275,18 @@ mod tests {
     #[test]
     fn snap_segment_emits_step() {
         let (mut ui, model, icons) = setup();
-        // Segment origins from x+130: widths 23,23,32,41,32,41 with 6px gaps →
-        // the 1K button spans [373,405) at y 480..498.
-        let out = click(&mut ui, &model, &icons, 100.0 + 273.0 + 16.0, 480.0 + 9.0);
+        let mut button_x = 100.0 + 130.0;
+        for label in ["1", "5", "10", "100"] {
+            button_x += UiBuilder::text_width(label, 1.5) + 14.0 + 6.0;
+        }
+        let button_w = UiBuilder::text_width("1K", 1.5) + 14.0;
+        let out = click(
+            &mut ui,
+            &model,
+            &icons,
+            button_x + button_w * 0.5,
+            480.0 + 9.0,
+        );
         assert_eq!(out, vec![WindowAction::SetSplitSnap(1000)]);
     }
 

@@ -85,7 +85,6 @@ pub fn draw(
             button_style.fill
         };
         ui.rect(x + 10.0, cur_y, w - 20.0, row_h, fill);
-        ui.border(x + 10.0, cur_y, w - 20.0, row_h, 1.0, button_style.edge);
 
         // Text inside the row:
         // Left: Name

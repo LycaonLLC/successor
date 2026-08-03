@@ -146,12 +146,7 @@ fn reads_skin_joints_normalized_u16_weights_and_ibm() {
     assert_eq!(prim.joints, vec![[0, 1, 0, 0]]);
     assert_eq!(
         prim.weights,
-        vec![[
-            32_768.0 / 65_535.0,
-            32_767.0 / 65_535.0,
-            0.0,
-            0.0
-        ]]
+        vec![[32_768.0 / 65_535.0, 32_767.0 / 65_535.0, 0.0, 0.0]]
     );
     assert_eq!(doc.skins[0].joints, vec![1, 2]);
     assert_eq!(doc.skins[0].inverse_bind.len(), 2);

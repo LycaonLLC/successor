@@ -1,6 +1,6 @@
 //! CLONING — clone facility bind / respawn UI.
 
-use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{WindowAction, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
@@ -107,14 +107,6 @@ pub fn draw(
 
         let bg_color = if is_selected { [46, 62, 86, 235] } else { SLOT };
         ui.rect(x, ry, w, row_h - 4.0, bg_color);
-        ui.border(
-            x,
-            ry,
-            w,
-            row_h - 4.0,
-            1.0,
-            if is_selected { ACCENT } else { SLOT_EDGE },
-        );
 
         // Name and zone
         ui.text(&fac.name, x + 8.0, ry + 6.0, 1.8, TEXT);

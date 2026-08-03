@@ -7,9 +7,65 @@
 //! uppercase. The text pass emits one small quad per lit pixel, reusing the
 //! existing solid-quad text shader (no atlas texture required).
 
+use alloc::vec::Vec;
+
 /// Glyph cell dimensions in pixels (5 wide, 7 tall) + 1px inter-glyph advance.
 pub const GLYPH_W: u32 = 5;
 pub const GLYPH_H: u32 = 7;
+/// Shared text advance in legacy `px` units. Kept fixed so existing HUD
+/// geometry remains allocation-free while the rendered glyphs are antialiased.
+pub const GLYPH_ADVANCE: f32 = 5.5;
+
+/// PT Sans advance estimate in legacy `px` units. Runtime drawing uses the
+/// exact rasterized advance; this allocation-free table keeps static layout
+/// measurement within a fraction of a pixel for the supported ASCII UI set.
+pub fn text_advance(ch: char) -> f32 {
+    let em = match ch {
+        ' ' => 0.30,
+        'I' | 'i' | 'l' | '!' | '|' | '\'' | '.' | ',' | ':' | ';' => 0.28,
+        'f' | 'j' | 'r' | 't' | '(' | ')' | '[' | ']' => 0.36,
+        'm' | 'w' => 0.78,
+        'M' | 'W' => 0.84,
+        '-' | '_' | '/' | '\\' => 0.40,
+        '0'..='9' => 0.54,
+        'A'..='Z' => 0.60,
+        'a'..='z' => 0.50,
+        _ => 0.55,
+    };
+    em * 8.75
+}
+
+/// One pre-rasterized glyph inside the shared UI texture atlas.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct RasterGlyph {
+    pub ch: char,
+    pub uv: (f32, f32, f32, f32),
+    pub width: f32,
+    pub height: f32,
+    pub xmin: f32,
+    pub ymin: f32,
+    pub advance: f32,
+}
+
+/// Startup-built scalable font metadata. Glyph coverage lives in the same
+/// texture as UI icons, preserving the renderer's single blended UI pass.
+#[derive(Clone, Debug)]
+pub struct RasterFont {
+    pub source_px: f32,
+    pub ascent: f32,
+    pub line_height: f32,
+    pub glyphs: Vec<RasterGlyph>,
+}
+
+impl RasterFont {
+    pub fn glyph(&self, ch: char) -> Option<RasterGlyph> {
+        self.glyphs
+            .iter()
+            .find(|glyph| glyph.ch == ch)
+            .copied()
+            .or_else(|| self.glyphs.iter().find(|glyph| glyph.ch == '?').copied())
+    }
+}
 
 /// Row bitmaps for a character, or `None` for unmapped (rendered blank).
 pub fn glyph(ch: char) -> Option<[u8; 7]> {

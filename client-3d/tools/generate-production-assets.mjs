@@ -9,7 +9,8 @@ const packageDir = path.resolve(here, "..");
 const defaultRepoRoot = path.resolve(packageDir, "..");
 export const DEFAULT_STAGING_DIR = path.join(packageDir, ".generated", "production-assets");
 export const PRODUCTION_MANIFEST_NAME = "production-asset-manifest.json";
-export const PUBLIC_RELEASE_BUDGET = Object.freeze({ maxFiles: 420, maxBytes: 230_000_000 });
+// Four furnished starting-town buildings replace two light prototypes.
+export const PUBLIC_RELEASE_BUDGET = Object.freeze({ maxFiles: 425, maxBytes: 270_000_000 });
 
 const PAWN_CORE_FILES = [
   "game_pack.json",

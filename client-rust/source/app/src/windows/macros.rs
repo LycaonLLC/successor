@@ -1,6 +1,6 @@
 //! MACROS — macro/scripting bench UI.
 
-use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{WindowAction, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use std::cell::RefCell;
 use successor_engine_render::ui::{ButtonStyle, TextField, UiBuilder};
@@ -116,14 +116,6 @@ pub fn draw(
         let is_selected = model.selected_index == Some(i);
         let bg_color = if is_selected { [46, 62, 86, 235] } else { SLOT };
         ui.rect(x, ry, left_w, row_h - 4.0, bg_color);
-        ui.border(
-            x,
-            ry,
-            left_w,
-            row_h - 4.0,
-            1.0,
-            if is_selected { ACCENT } else { SLOT_EDGE },
-        );
 
         // Name and first line preview
         ui.text(&item.name, x + 6.0, ry + 4.0, 1.6, TEXT);

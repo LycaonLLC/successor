@@ -186,7 +186,31 @@ fn main() {
 
     if mode.as_deref() == Some("pawns") {
         let screenshot = arg_value(&args, "--screenshot");
-        run_pawns(frames, screenshot.as_deref());
+        let camera_distance = arg_value(&args, "--camera-distance")
+            .and_then(|value| value.parse::<f32>().ok())
+            .unwrap_or(6.0)
+            .clamp(1.5, 20.0);
+        let camera_height = arg_value(&args, "--camera-height")
+            .and_then(|value| value.parse::<f32>().ok())
+            .unwrap_or(1.5)
+            .clamp(-2.0, 10.0);
+        let camera_yaw = arg_value(&args, "--camera-yaw-deg")
+            .and_then(|value| value.parse::<f32>().ok())
+            .unwrap_or(0.0)
+            .to_radians();
+        let orbit_speed = if args.iter().any(|arg| arg == "--camera-static") {
+            0.0
+        } else {
+            0.01
+        };
+        run_pawns(
+            frames,
+            screenshot.as_deref(),
+            camera_distance,
+            camera_height,
+            camera_yaw,
+            orbit_speed,
+        );
         return;
     }
 
@@ -381,7 +405,7 @@ fn run_windowed(frames: u64, screenshot: Option<&str>, gpu_stats_json: Option<&s
     scene
         .renderer
         .set_ui_atlas(&mut gpu, icons.meta.width, icons.meta.height, &icons.rgba);
-    let mut ui = successor_engine_render::ui::UiBuilder::new(icons.meta);
+    let mut ui = icons.ui_builder();
     let mut graphics_tuner = successor_client::graphics_tuning::GraphicsTuner::new();
     let total = frames.max(1);
     let mut frame = 0u64;
@@ -455,7 +479,6 @@ fn run_windowed(frames: u64, screenshot: Option<&str>, gpu_stats_json: Option<&s
 fn run_ui(frames: u64, screenshot: Option<&str>) {
     use successor_client::hud;
     use successor_engine_render::gpu::Gpu;
-    use successor_engine_render::ui::UiBuilder;
     use successor_engine_render::window::{WindowManager, WindowStyle};
     if !successor_platform::init("Successor UI", demo::SCREEN_W as i32, demo::SCREEN_H as i32) {
         eprintln!("platform init failed (no display?)");
@@ -468,7 +491,7 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
     scene
         .renderer
         .set_ui_atlas(&mut gpu, icons.meta.width, icons.meta.height, &icons.rgba);
-    let mut ui = UiBuilder::new(icons.meta);
+    let mut ui = icons.ui_builder();
     let mut hud_state = hud::HudState::default();
     let mut toolbar = hud::toolbar::Toolbar::new(hud::toolbar::ToolbarDoc::blank());
     // Demo-only slot seeding so the bar photographs occupied (connected mode
@@ -561,7 +584,12 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
                 .expect("render failed");
             ui.begin(w as u32, h as u32);
             // Windows resolve pointer first (topmost consumes drag/close/focus).
-            wm.update(&ui, w as u32, h as u32);
+            wm.update_at(
+                &ui,
+                w as u32,
+                h as u32,
+                successor_platform::now_ms().max(0.0) as u64,
+            );
             let captured = wm.pointer_captured();
             hud_actions.clear();
             let mut hud_frame = hud::HudFrame {
@@ -1496,8 +1524,15 @@ fn run_props(frames: u64, screenshot: Option<&str>) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn run_pawns(frames: u64, screenshot: Option<&str>) {
-    use successor_client::pawn::scene::PawnScene;
+fn run_pawns(
+    frames: u64,
+    screenshot: Option<&str>,
+    camera_distance: f32,
+    camera_height: f32,
+    camera_yaw: f32,
+    orbit_speed: f32,
+) {
+    use successor_client::pawn::scene::{PawnScene, PawnView};
     use successor_engine_render::gpu::Gpu;
     let path = "../client-3d/public/assets/pawn-pack/pawn_male.glb";
     let bytes = match std::fs::read(path) {
@@ -1517,7 +1552,16 @@ fn run_pawns(frames: u64, screenshot: Option<&str>) {
     }
     let mut gpu = successor_platform::create_gpu();
     let _ = &mut gpu as &mut dyn Gpu;
-    let mut scene = match PawnScene::build(&mut gpu, &bytes) {
+    let mut scene = match PawnScene::build(
+        &mut gpu,
+        &bytes,
+        PawnView {
+            distance: camera_distance,
+            height: camera_height,
+            yaw_radians: camera_yaw,
+            orbit_speed,
+        },
+    ) {
         Ok(s) => s,
         Err(()) => {
             eprintln!("pawn scene build failed");
@@ -1682,6 +1726,7 @@ mod connected {
     };
     use successor_engine_core::input::Key;
     use successor_engine_render::gpu::Gpu;
+    use successor_engine_render::ui::TextField;
     use successor_platform as plat;
 
     use std::path::PathBuf;
@@ -1919,6 +1964,10 @@ mod connected {
             });
         let mut last_intent = (0i32, 0i32, false);
         let mut chat_buf = Vec::with_capacity(64 * 1024);
+        let mut chat_input = TextField::new(320);
+        let mut chat_enter_was_down = false;
+        let mut chat_backspace_was_down = false;
+        let mut chat_escape_was_down = false;
         let mut view_sent = false;
         let mut frame: u64 = 0;
         #[cfg(feature = "alloc-count")]
@@ -2029,13 +2078,46 @@ mod connected {
                 }
                 view_sent = true;
             }
+            while let Some(c) = plat::poll_text_input() {
+                if chat_input.focused {
+                    chat_input.insert(c);
+                }
+            }
+            let enter_down = plat::is_key_down(Key::Enter);
+            let backspace_down = plat::is_key_down(Key::Backspace);
+            let escape_down = plat::is_key_down(Key::Escape);
+            let enter_pressed = enter_down && !chat_enter_was_down;
+            let backspace_pressed = backspace_down && !chat_backspace_was_down;
+            let escape_pressed = escape_down && !chat_escape_was_down;
+            chat_enter_was_down = enter_down;
+            chat_backspace_was_down = backspace_down;
+            chat_escape_was_down = escape_down;
+            if escape_pressed {
+                chat_input.focused = false;
+            } else if enter_pressed {
+                if chat_input.focused && !chat_input.text.trim().is_empty() {
+                    let line = chat_input.text.clone();
+                    let command = chat_client.submit_input(&line);
+                    if let Some(payload) = chat_client.command_frame(command) {
+                        if let Some(socket) = chat_ws.as_mut() {
+                            plat::ws_send(socket, payload.as_bytes());
+                            chat_input.clear();
+                        }
+                    }
+                } else {
+                    chat_input.focused = true;
+                }
+            } else if backspace_pressed && chat_input.focused {
+                chat_input.backspace();
+            }
+
             scene.handle_tuning_toggle(plat::is_key_down(Key::Backquote));
 
             // Connected input is translated into gameplay actions, then queued
             // with fresh ids. UI/window keys are consumed by the scene locally.
             scene.set_move_intent(0, 0, false);
             if sess.state() == SessionState::Ready {
-                let intent = if scene.tuning_open() {
+                let intent = if scene.tuning_open() || chat_input.focused {
                     (0, 0, false)
                 } else if auto_walk {
                     (0, -1, false)
@@ -2063,21 +2145,23 @@ mod connected {
                         sprint: intent.2,
                     });
                 }
-                for key in [
-                    Key::I,
-                    Key::C,
-                    Key::Semicolon,
-                    Key::O,
-                    Key::Tab,
-                    Key::V,
-                    Key::X,
-                    Key::N,
-                    Key::R,
-                    Key::F,
-                    Key::Space,
-                ] {
-                    if let Some(action) = scene.handle_key(key, plat::is_key_down(key)) {
-                        let _ = scene.dispatch_gameplay_action(action);
+                if !chat_input.focused {
+                    for key in [
+                        Key::I,
+                        Key::C,
+                        Key::Semicolon,
+                        Key::O,
+                        Key::Tab,
+                        Key::V,
+                        Key::X,
+                        Key::N,
+                        Key::R,
+                        Key::F,
+                        Key::Space,
+                    ] {
+                        if let Some(action) = scene.handle_key(key, plat::is_key_down(key)) {
+                            let _ = scene.dispatch_gameplay_action(action);
+                        }
                     }
                 }
                 let (mx, my) = plat::mouse_position();
@@ -2158,7 +2242,15 @@ mod connected {
             successor_engine_core::rt::alloc::reset_alloc_count();
             if w > 0 && h > 0 {
                 let mut read_asset = |stable_id: &str| app.platform.read_asset(stable_id).ok();
-                scene.frame(&mut gpu, w as u32, h as u32, 1.0 / 60.0, &mut read_asset);
+                scene.frame(
+                    &mut gpu,
+                    w as u32,
+                    h as u32,
+                    1.0 / 60.0,
+                    &mut read_asset,
+                    &mut chat_client,
+                    &mut chat_input,
+                );
                 #[cfg(feature = "alloc-count")]
                 {
                     let actor_count = scene.actor_count();

@@ -15,12 +15,34 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use serde_json::Value;
 use successor_client_proto::packets::{
-    GameActorPatch, GameActorSnapshot, GameCommandReceipt, GameCounters, GameShardDelta,
-    GameShardSnapshot,
+    GameActorPatch, GameActorSnapshot, GameActorVitals, GameCommandReceipt, GameCounters,
+    GameShardDelta, GameShardSnapshot,
 };
 
 const RECEIPT_DEDUPE_MAX: usize = 512;
 const MOVE_QUANTIZATION: f32 = 100.0;
+fn compact_bool(value: &Value) -> Option<bool> {
+    value.as_bool().or_else(|| match value.as_i64() {
+        Some(0) => Some(false),
+        Some(1) => Some(true),
+        _ => None,
+    })
+}
+
+fn compact_vitals(value: &Value) -> Option<GameActorVitals> {
+    let values = value.as_array()?;
+    if values.len() != 3 {
+        return None;
+    }
+    let health = values[0].as_f64()? as f32;
+    let action = values[1].as_f64()? as f32;
+    let spirit = values[2].as_f64()? as f32;
+    (health.is_finite() && action.is_finite() && spirit.is_finite()).then_some(GameActorVitals {
+        health,
+        action,
+        spirit,
+    })
+}
 
 #[derive(Default, Clone)]
 pub struct AuthorityStore {
@@ -244,341 +266,258 @@ impl AuthorityStore {
     }
 
     fn apply_compact_patch(&mut self, id: &str, row: &Value) -> bool {
-        let Some(v) = row.as_array() else {
-            return false;
-        };
-        if v.len() != 52 {
-            return false;
-        }
-        let Some(a) = self.actors.get_mut(id) else {
-            return false;
-        };
-        if let Some(x) = v[1].as_str() {
-            a.area_id = x.into()
-        } else if !v[1].is_null() {
-            return false;
-        }
-        if !v[2].is_null() {
-            let Some(x) = v[2].as_f64() else { return false };
-            if !x.is_finite() {
-                return false;
-            };
-            a.x = x as f32
-        }
-        if !v[3].is_null() {
-            let Some(x) = v[3].as_f64() else { return false };
-            if !x.is_finite() {
-                return false;
-            };
-            a.y = x as f32
-        }
-        if !v[4].is_null() {
-            let Some(x) = v[4].as_u64().and_then(|n| u8::try_from(n).ok()) else {
-                return false;
-            };
-            if x > 3 {
-                return false;
-            };
-            a.direction = direction_from_compact(x)
-        }
-        if !v[5].is_null() {
-            let Some(x) = v[5].as_u64() else { return false };
-            a.life_state = life_from_compact(x).into()
-        }
-        if let Some(x) = v[6].as_i64() {
-            a.lifecycle_seq = x
-        } else if !v[6].is_null() {
-            return false;
-        }
-        if !v[7].is_null() {
-            a.vitals = match serde_json::from_value(v[7].clone()) {
-                Ok(x) => x,
-                Err(_) => return false,
+        fn update_string(value: &Value, target: &mut String) -> bool {
+            if value.is_null() {
+                true
+            } else if let Some(value) = value.as_str() {
+                target.clear();
+                target.push_str(value);
+                true
+            } else {
+                false
             }
         }
-        if !v[8].is_null() {
-            a.max_vitals = match serde_json::from_value(v[8].clone()) {
-                Ok(x) => x,
-                Err(_) => return false,
+
+        fn update_optional_string(value: &Value, target: &mut Option<String>) -> bool {
+            if value.is_null() {
+                true
+            } else if let Some(value) = value.as_str() {
+                *target = Some(value.to_owned());
+                true
+            } else {
+                false
             }
         }
-        if v[10].is_null() {
-        } else if let Some(x) = v[10].as_array() {
-            a.statuses = x.clone()
-        } else {
+
+        // Compact nullable fields use `false` for "unchanged" and `null` for
+        // "clear". `GameActorPatch::Option<T>` cannot represent both states.
+        fn update_nullable_string(value: &Value, target: &mut Option<String>) -> bool {
+            if value == &Value::Bool(false) {
+                true
+            } else if value.is_null() {
+                *target = None;
+                true
+            } else if let Some(value) = value.as_str() {
+                *target = Some(value.to_owned());
+                true
+            } else {
+                false
+            }
+        }
+
+        fn update_optional_i64(value: &Value, target: &mut Option<i64>) -> bool {
+            if value.is_null() {
+                true
+            } else if let Some(value) = value.as_i64() {
+                *target = Some(value);
+                true
+            } else {
+                false
+            }
+        }
+
+        fn update_optional_bool(value: &Value, target: &mut Option<bool>) -> bool {
+            if value.is_null() {
+                true
+            } else if let Some(value) = compact_bool(value) {
+                *target = Some(value);
+                true
+            } else {
+                false
+            }
+        }
+
+        let Some(values) = row.as_array() else {
+            return false;
+        };
+        if values.len() != 52 || values[0].as_str() != Some(id) {
             return false;
         }
-        if v[19].is_string() {
-            a.label = v[19].as_str().unwrap().into()
-        } else if !v[19].is_null() {
+        if let Some(sequence) = values[6].as_i64() {
+            if self.actor_is_stale(id, sequence) {
+                return true;
+            }
+        } else if !values[6].is_null() {
             return false;
         }
-        if v[41].is_string() {
-            a.display_name = v[41].as_str().unwrap().into()
-        } else if v[41].is_null() {
-            a.display_name.clear()
-        } else {
+        let Some(actor) = self.actors.get_mut(id) else {
+            return false;
+        };
+
+        if !update_string(&values[1], &mut actor.area_id) {
             return false;
         }
-        if v[42].is_boolean() {
-            a.link_dead = v[42].as_bool().unwrap()
-        } else if !v[42].is_null() {
+        if !values[2].is_null() {
+            let Some(value) = values[2].as_f64() else {
+                return false;
+            };
+            if !value.is_finite() {
+                return false;
+            }
+            actor.x = value as f32;
+        }
+        if !values[3].is_null() {
+            let Some(value) = values[3].as_f64() else {
+                return false;
+            };
+            if !value.is_finite() {
+                return false;
+            }
+            actor.y = value as f32;
+        }
+        if !values[4].is_null() {
+            let Some(value) = values[4]
+                .as_u64()
+                .and_then(|value| u8::try_from(value).ok())
+            else {
+                return false;
+            };
+            if value > 3 {
+                return false;
+            }
+            actor.direction = direction_from_compact(value);
+        }
+        if !values[5].is_null() {
+            let Some(value) = values[5].as_u64() else {
+                return false;
+            };
+            actor.life_state = life_from_compact(value).to_owned();
+        }
+        if let Some(sequence) = values[6].as_i64() {
+            actor.lifecycle_seq = sequence;
+        }
+        if !values[7].is_null() {
+            let Some(vitals) = compact_vitals(&values[7]) else {
+                return false;
+            };
+            actor.vitals = vitals;
+        }
+        if !values[8].is_null() {
+            let Some(max_vitals) = compact_vitals(&values[8]) else {
+                return false;
+            };
+            actor.max_vitals = max_vitals;
+        }
+        if !values[9].is_null() {
+            actor.bleed = Some(values[9].clone());
+        }
+        if !values[10].is_null() {
+            actor.statuses = match serde_json::from_value(values[10].clone()) {
+                Ok(value) => value,
+                Err(_) => return false,
+            };
+        }
+        if !update_optional_i64(&values[11], &mut actor.body_vanish_at_tick)
+            || !update_optional_i64(&values[12], &mut actor.respawn_at_tick)
+        {
             return false;
         }
-        if v[11].is_null() {
-        } else if let Some(x) = v[11].as_i64() {
-            a.body_vanish_at_tick = Some(x)
-        } else {
+        if !values[13].is_null() {
+            actor.professions = match serde_json::from_value(values[13].clone()) {
+                Ok(value) => value,
+                Err(_) => return false,
+            };
+        }
+        if !values[14].is_null() {
+            actor.active_title = Some(values[14].clone());
+        }
+        if !update_optional_i64(&values[15], &mut actor.skill_points_used)
+            || !update_optional_i64(&values[16], &mut actor.skill_points_cap)
+            || !update_optional_i64(&values[17], &mut actor.credits)
+        {
             return false;
         }
-        if v[12].is_null() {
-            a.respawn_at_tick = None
-        } else if let Some(x) = v[12].as_i64() {
-            a.respawn_at_tick = Some(x)
-        } else {
+        if values[18] != Value::Bool(false) {
+            actor.personal_shield = if values[18].is_null() {
+                None
+            } else {
+                Some(values[18].clone())
+            };
+        }
+        if !update_string(&values[19], &mut actor.label)
+            || !update_optional_string(&values[20], &mut actor.sprite)
+            || !update_optional_string(&values[21], &mut actor.role)
+            || !update_nullable_string(&values[22], &mut actor.player_organization_id)
+            || !update_nullable_string(&values[23], &mut actor.player_organization_tag)
+        {
             return false;
         }
-        if v[13].is_null() {
-            a.professions.clear()
-        } else if let Ok(x) = serde_json::from_value(v[13].clone()) {
-            a.professions = x
-        } else {
+        if values[24] != Value::Bool(false) {
+            actor.weapon = if values[24].is_null() {
+                None
+            } else {
+                match serde_json::from_value(values[24].clone()) {
+                    Ok(value) => Some(value),
+                    Err(_) => return false,
+                }
+            };
+        }
+        if !update_nullable_string(&values[25], &mut actor.faction_id)
+            || !update_nullable_string(&values[26], &mut actor.social_group)
+            || !update_nullable_string(&values[27], &mut actor.pvp_status)
+            || !update_optional_i64(&values[28], &mut actor.shot_spread_degrees_milli)
+            || !update_optional_string(&values[29], &mut actor.posture)
+            || !update_optional_i64(&values[30], &mut actor.posture_until_tick)
+        {
             return false;
         }
-        if v[14].is_null() {
-            a.active_title = None
-        } else {
-            a.active_title = Some(v[14].clone())
+        if values[31] != Value::Bool(false) {
+            actor.combat_queue = if values[31].is_null() {
+                None
+            } else {
+                Some(values[31].clone())
+            };
         }
-        if v[15].is_null() {
-            a.skill_points_used = None
-        } else if let Some(x) = v[15].as_i64() {
-            a.skill_points_used = Some(x)
-        } else {
+        if !update_optional_bool(&values[32], &mut actor.in_combat)
+            || !update_optional_i64(&values[33], &mut actor.clone_sickness_remaining_ms)
+            || !update_optional_bool(&values[34], &mut actor.peace_requested)
+            || !update_optional_string(&values[35], &mut actor.ai_attitude)
+            || !update_nullable_string(&values[36], &mut actor.engagement_target_id)
+            || !update_optional_bool(&values[37], &mut actor.lootable)
+            || !update_optional_bool(&values[38], &mut actor.has_loot)
+            || !update_nullable_string(&values[39], &mut actor.loot_rights_actor_id)
+            || !update_optional_i64(&values[40], &mut actor.body_vanish_tick)
+            || !update_optional_i64(&values[41], &mut actor.incap_remaining_ms)
+            || !update_optional_i64(&values[42], &mut actor.incap_count)
+            || !update_optional_i64(&values[43], &mut actor.incap_window_ms)
+        {
             return false;
         }
-        if v[16].is_null() {
-            a.skill_points_cap = None
-        } else if let Some(x) = v[16].as_i64() {
-            a.skill_points_cap = Some(x)
-        } else {
+        if !update_string(&values[44], &mut actor.display_name) {
             return false;
         }
-        if v[17].is_null() {
-            a.credits = None
-        } else if let Some(x) = v[17].as_i64() {
-            a.credits = Some(x)
-        } else {
+        if !values[45].is_null() {
+            let Some(value) = compact_bool(&values[45]) else {
+                return false;
+            };
+            actor.link_dead = value;
+        }
+        if !values[46].is_null() {
+            actor.appearance = match serde_json::from_value(values[46].clone()) {
+                Ok(value) => Some(value),
+                Err(_) => return false,
+            };
+        }
+        if !update_optional_i64(&values[47], &mut actor.next_sample_tick) {
             return false;
         }
-        if v[18].is_null() || v[18] == Value::Bool(false) {
-            a.personal_shield = None
-        } else {
-            a.personal_shield = Some(v[18].clone())
+        if !values[48].is_null() {
+            actor.worn = match serde_json::from_value(values[48].clone()) {
+                Ok(value) => value,
+                Err(_) => return false,
+            };
         }
-        if v[20].is_null() {
-            a.sprite = None
-        } else if let Some(x) = v[20].as_str() {
-            a.sprite = Some(x.into())
-        } else {
+        if !update_optional_bool(&values[49], &mut actor.will_auto_aggro)
+            || !update_optional_string(&values[50], &mut actor.descriptor)
+        {
             return false;
         }
-        if v[21].is_null() {
-            a.role = None
-        } else if let Some(x) = v[21].as_str() {
-            a.role = Some(x.into())
-        } else {
-            return false;
-        }
-        if v[22].is_null() || v[22] == Value::Bool(false) {
-            a.player_organization_id = None
-        } else if let Some(x) = v[22].as_str() {
-            a.player_organization_id = Some(x.into())
-        } else {
-            return false;
-        }
-        if v[23].is_null() || v[23] == Value::Bool(false) {
-            a.player_organization_tag = None
-        } else if let Some(x) = v[23].as_str() {
-            a.player_organization_tag = Some(x.into())
-        } else {
-            return false;
-        }
-        if v[24].is_null() || v[24] == Value::Bool(false) {
-            a.weapon = None
-        } else if let Ok(x) = serde_json::from_value(v[24].clone()) {
-            a.weapon = Some(x)
-        } else {
-            return false;
-        }
-        if v[25].is_null() {
-            a.shot_spread_degrees_milli = None
-        } else if let Some(x) = v[25].as_i64() {
-            a.shot_spread_degrees_milli = Some(x)
-        } else {
-            return false;
-        }
-        if v[26].is_null() {
-            a.posture = None
-        } else if let Some(x) = v[26].as_str() {
-            a.posture = Some(x.into())
-        } else {
-            return false;
-        }
-        if v[27].is_null() {
-            a.posture_until_tick = None
-        } else if let Some(x) = v[27].as_i64() {
-            a.posture_until_tick = Some(x)
-        } else {
-            return false;
-        }
-        if v[28].is_null() || v[28] == Value::Bool(false) {
-            a.combat_queue = None
-        } else {
-            a.combat_queue = Some(v[28].clone())
-        }
-        if v[29].is_null() {
-            a.in_combat = None
-        } else if let Some(x) = v[29].as_bool() {
-            a.in_combat = Some(x)
-        } else {
-            return false;
-        }
-        if v[30].is_null() {
-            a.clone_sickness_remaining_ms = None
-        } else if let Some(x) = v[30].as_i64() {
-            a.clone_sickness_remaining_ms = Some(x)
-        } else {
-            return false;
-        }
-        if v[31].is_null() {
-            a.peace_requested = None
-        } else if let Some(x) = v[31].as_bool() {
-            a.peace_requested = Some(x)
-        } else {
-            return false;
-        }
-        if v[32].is_null() {
-            a.ai_attitude = None
-        } else if let Some(x) = v[32].as_str() {
-            a.ai_attitude = Some(x.into())
-        } else {
-            return false;
-        }
-        if v[33].is_null() || v[33] == Value::Bool(false) {
-            a.engagement_target_id = None
-        } else if let Some(x) = v[33].as_str() {
-            a.engagement_target_id = Some(x.into())
-        } else {
-            return false;
-        }
-        if v[34].is_null() {
-            a.lootable = None
-        } else if let Some(x) = v[34].as_bool() {
-            a.lootable = Some(x)
-        } else {
-            return false;
-        }
-        if v[35].is_null() {
-            a.has_loot = None
-        } else if let Some(x) = v[35].as_bool() {
-            a.has_loot = Some(x)
-        } else {
-            return false;
-        }
-        if v[36].is_null() || v[36] == Value::Bool(false) {
-            a.loot_rights_actor_id = None
-        } else if let Some(x) = v[36].as_str() {
-            a.loot_rights_actor_id = Some(x.into())
-        } else {
-            return false;
-        }
-        if v[37].is_null() {
-            a.body_vanish_tick = None
-        } else if let Some(x) = v[37].as_i64() {
-            a.body_vanish_tick = Some(x)
-        } else {
-            return false;
-        }
-        if v[38].is_null() {
-            a.incap_remaining_ms = None
-        } else if let Some(x) = v[38].as_i64() {
-            a.incap_remaining_ms = Some(x)
-        } else {
-            return false;
-        }
-        if v[39].is_null() {
-            a.incap_count = None
-        } else if let Some(x) = v[39].as_i64() {
-            a.incap_count = Some(x)
-        } else {
-            return false;
-        }
-        if v[40].is_null() {
-            a.incap_window_ms = None
-        } else if let Some(x) = v[40].as_i64() {
-            a.incap_window_ms = Some(x)
-        } else {
-            return false;
-        }
-        if v[43].is_null() {
-            a.appearance = None
-        } else if let Ok(x) = serde_json::from_value(v[43].clone()) {
-            a.appearance = Some(x)
-        } else {
-            return false;
-        }
-        if v[44].is_null() {
-            a.next_sample_tick = None
-        } else if let Some(x) = v[44].as_i64() {
-            a.next_sample_tick = Some(x)
-        } else {
-            return false;
-        }
-        if v[45].is_null() {
-            a.worn.clear()
-        } else if let Ok(x) = serde_json::from_value(v[45].clone()) {
-            a.worn = x
-        } else {
-            return false;
-        }
-        if v[46].is_null() {
-            a.will_auto_aggro = None
-        } else if let Some(x) = v[46].as_bool() {
-            a.will_auto_aggro = Some(x)
-        } else {
-            return false;
-        }
-        if v[47].is_null() {
-            a.descriptor = None
-        } else if let Some(x) = v[47].as_str() {
-            a.descriptor = Some(x.into())
-        } else {
-            return false;
-        }
-        if v[48].is_null() {
-            a.worn.clear()
-        } else if let Ok(x) = serde_json::from_value(v[48].clone()) {
-            a.worn = x
-        } else {
-            return false;
-        }
-        if v[49].is_null() {
-            a.will_auto_aggro = None
-        } else if let Some(x) = v[49].as_bool() {
-            a.will_auto_aggro = Some(x)
-        } else {
-            return false;
-        }
-        if v[50].is_null() {
-            a.descriptor = None
-        } else if let Some(x) = v[50].as_str() {
-            a.descriptor = Some(x.into())
-        } else {
-            return false;
-        }
-        if !v[51].is_null() {
-            a.mobility = Some(v[51].clone())
+        if !values[51].is_null() {
+            let Some(locked) = compact_bool(&values[51]) else {
+                return false;
+            };
+            actor.sprint_recovery_locked = Some(locked);
+            actor.mobility = Some(serde_json::json!({ "sprintRecoveryLocked": locked }));
         }
         true
     }
@@ -875,6 +814,37 @@ fn compact_snapshot(row: &Value) -> Result<GameActorSnapshot, ()> {
     ] {
         put(&mut o, k, &a[i]);
     }
+    let vitals = compact_vitals(&a[8]).ok_or(())?;
+    o.insert(
+        "vitals".into(),
+        serde_json::json!({
+            "health": vitals.health,
+            "action": vitals.action,
+            "spirit": vitals.spirit,
+        }),
+    );
+    let max_vitals = compact_vitals(&a[9]).ok_or(())?;
+    o.insert(
+        "maxVitals".into(),
+        serde_json::json!({
+            "health": max_vitals.health,
+            "action": max_vitals.action,
+            "spirit": max_vitals.spirit,
+        }),
+    );
+    for (index, key) in [
+        (32, "inCombat"),
+        (34, "peaceRequested"),
+        (37, "lootable"),
+        (38, "hasLoot"),
+        (45, "linkDead"),
+        (49, "willAutoAggro"),
+    ] {
+        o.insert(key.into(), Value::Bool(compact_bool(&a[index]).ok_or(())?));
+    }
+    if a[48].is_null() {
+        o.insert("worn".into(), Value::Array(Vec::new()));
+    }
     let d = a[5]
         .as_u64()
         .and_then(|v| u8::try_from(v).ok())
@@ -891,8 +861,15 @@ fn compact_snapshot(row: &Value) -> Result<GameActorSnapshot, ()> {
         "lifeState",
         &Value::String(life_from_compact(l).into()),
     );
-    put(&mut o, "sprintRecoveryLocked", &a[51]);
-    put(&mut o, "mobility", &a[51]);
+    let sprint_recovery_locked = compact_bool(&a[51]).ok_or(())?;
+    o.insert(
+        "sprintRecoveryLocked".into(),
+        Value::Bool(sprint_recovery_locked),
+    );
+    o.insert(
+        "mobility".into(),
+        serde_json::json!({ "sprintRecoveryLocked": sprint_recovery_locked }),
+    );
     serde_json::from_value(Value::Object(o)).map_err(|_| ())
 }
 fn compact_patch(row: &Value) -> Result<(String, Value), ()> {
@@ -907,7 +884,10 @@ fn compact_patch(row: &Value) -> Result<(String, Value), ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use successor_client_proto::packets::{GameActorNetRef, GameActorVitals, GameCompactActorMove};
+    use successor_client_proto::packets::{
+        GameActorNetRef, GameActorVitals, GameCompactActorMove, GameCompactActorPatch,
+        GameCompactActorSnapshot,
+    };
 
     fn actor(id: &str, x: f32, y: f32, seq: i64) -> GameActorSnapshot {
         GameActorSnapshot {
@@ -963,6 +943,132 @@ mod tests {
         assert!(!store.actors.contains_key("me"));
         assert_eq!(store.actors.get("bob").unwrap().x, 9.0);
         assert_eq!(store.tick, 2);
+    }
+    #[test]
+    fn current_compact_actor_schema_decodes_snapshot_and_weapon_patch() {
+        let mut snapshot_row = vec![Value::Null; 52];
+        snapshot_row[0] = serde_json::json!("rogue");
+        snapshot_row[1] = serde_json::json!("Wrenn Vale");
+        snapshot_row[2] = serde_json::json!("open-desert-overworld");
+        snapshot_row[3] = serde_json::json!(611.0);
+        snapshot_row[4] = serde_json::json!(570.0);
+        snapshot_row[5] = serde_json::json!(3);
+        snapshot_row[6] = serde_json::json!(0);
+        snapshot_row[7] = serde_json::json!(1);
+        snapshot_row[8] = serde_json::json!([74.0, 73.0, 68.0]);
+        snapshot_row[9] = serde_json::json!([100.0, 100.0, 100.0]);
+        snapshot_row[11] = serde_json::json!([]);
+        snapshot_row[12] = serde_json::json!("rogue_troopers");
+        snapshot_row[13] = serde_json::json!("open_desert_rogues");
+        snapshot_row[14] = serde_json::json!("overt");
+        snapshot_row[15] = serde_json::json!(0);
+        snapshot_row[16] = serde_json::json!(0);
+        snapshot_row[17] = serde_json::json!([]);
+        snapshot_row[19] = serde_json::json!(0);
+        snapshot_row[20] = serde_json::json!(0);
+        snapshot_row[21] = serde_json::json!(0);
+        snapshot_row[24] = serde_json::json!("skirmisher");
+        snapshot_row[27] = serde_json::json!({
+            "weaponId": "vibrosword",
+            "weaponItemId": 3103,
+            "weaponVariantId": 0,
+            "ammoType": "melee",
+            "loadedRounds": 1,
+            "magazineSize": 1,
+            "reloadRemainingTicks": 0,
+            "reloadTotalTicks": 1
+        });
+        snapshot_row[28] = serde_json::json!(0);
+        snapshot_row[29] = serde_json::json!("standing");
+        snapshot_row[30] = serde_json::json!(0);
+        snapshot_row[32] = serde_json::json!(0);
+        snapshot_row[33] = serde_json::json!(0);
+        snapshot_row[34] = serde_json::json!(0);
+        snapshot_row[37] = serde_json::json!(0);
+        snapshot_row[38] = serde_json::json!(0);
+        snapshot_row[40] = serde_json::json!(0);
+        snapshot_row[41] = serde_json::json!(0);
+        snapshot_row[42] = serde_json::json!(0);
+        snapshot_row[43] = serde_json::json!(0);
+        snapshot_row[44] = serde_json::json!("Wrenn Vale");
+        snapshot_row[45] = serde_json::json!(0);
+        snapshot_row[46] = serde_json::json!({
+            "skin": "#c78f62",
+            "hair": "hair_mop",
+            "hair_mat": "hair_raven"
+        });
+        snapshot_row[47] = serde_json::json!(0);
+        snapshot_row[48] = serde_json::json!([{
+            "item": "under_bodysuit",
+            "colors": ["#89cff0"]
+        }]);
+        snapshot_row[49] = serde_json::json!(0);
+        snapshot_row[50] = serde_json::json!("a rogue drifter");
+        snapshot_row[51] = serde_json::json!(0);
+
+        let mut store = AuthorityStore::new();
+        let mut snapshot_delta = GameShardDelta {
+            tick: 2,
+            ..Default::default()
+        };
+        snapshot_delta
+            .compact_actors
+            .push(GameCompactActorSnapshot(snapshot_row));
+        store.apply_delta(&snapshot_delta);
+
+        let rogue = store.actors.get("rogue").expect("compact actor accepted");
+        assert_eq!(rogue.vitals.health, 74.0);
+        assert_eq!(rogue.faction_id.as_deref(), Some("rogue_troopers"));
+        assert_eq!(rogue.pvp_status.as_deref(), Some("overt"));
+        assert_eq!(rogue.role.as_deref(), Some("skirmisher"));
+        assert_eq!(
+            rogue
+                .appearance
+                .as_ref()
+                .and_then(|appearance| appearance.skin_tone.as_deref()),
+            Some("#c78f62")
+        );
+        assert_eq!(
+            rogue
+                .appearance
+                .as_ref()
+                .and_then(|appearance| appearance.hair_material.as_deref()),
+            Some("hair_raven")
+        );
+        assert_eq!(rogue.worn[0].item_id.as_deref(), Some("under_bodysuit"));
+        assert_eq!(rogue.worn[0].colors, ["#89cff0"]);
+        assert_eq!(rogue.sprint_recovery_locked, Some(false));
+
+        let mut patch_row = vec![Value::Null; 52];
+        patch_row[0] = serde_json::json!("rogue");
+        for index in [18, 22, 23, 24, 25, 26, 27, 31, 36, 39] {
+            patch_row[index] = Value::Bool(false);
+        }
+        patch_row[24] = serde_json::json!({
+            "weaponId": "wpn-launcher",
+            "weaponItemId": 3127,
+            "weaponVariantId": 0,
+            "ammoType": "slug_iron",
+            "loadedRounds": 30,
+            "magazineSize": 30,
+            "reloadRemainingTicks": 0,
+            "reloadTotalTicks": 60
+        });
+        let mut patch_delta = GameShardDelta {
+            tick: 3,
+            ..Default::default()
+        };
+        patch_delta
+            .compact_actor_patches
+            .push(GameCompactActorPatch(patch_row));
+        store.apply_delta(&patch_delta);
+
+        let rogue = store.actors.get("rogue").expect("patched actor retained");
+        let weapon = rogue.weapon.as_ref().expect("weapon patch applied");
+        assert_eq!(weapon.weapon_id.as_deref(), Some("wpn-launcher"));
+        assert_eq!(weapon.weapon_item_id, Some(3127));
+        assert_eq!(rogue.faction_id.as_deref(), Some("rogue_troopers"));
+        assert_eq!(rogue.vitals.health, 74.0);
     }
 
     #[test]

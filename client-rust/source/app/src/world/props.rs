@@ -11,6 +11,9 @@
 
 use std::collections::HashMap;
 
+use serde_json::Value;
+
+use super::cutaway::{self, CutawayState, RegionMilli};
 use super::streamed::WorldAssetIssue;
 use crate::GameWorld;
 use successor_engine_core::ecs::{Entity, WorldOps};
@@ -30,10 +33,17 @@ struct PropPart {
     mesh: MeshId,
     material: MaterialId,
     local: Mat4,
+    /// Source GLB node, retained so per-placement metadata can select only
+    /// authored roof/wall/door parts after the model is cached.
+    node_index: usize,
 }
 
 struct PropModel {
     parts: Vec<PropPart>,
+    /// Names and ancestry stay alongside the baked parts; GLB node identity
+    /// must survive upload because enterable metadata names source nodes.
+    node_names: Vec<Option<String>>,
+    node_parents: Vec<Option<usize>>,
     footprint_x: f32,
     footprint_z: f32,
     /// Post-recenter AABB height (min-Y..max-Y), for the GI occluder proxy.
@@ -42,12 +52,65 @@ struct PropModel {
     mean_albedo: [f32; 3],
 }
 
+#[derive(Clone, Copy)]
+struct PlacedPart {
+    part: PropPart,
+    reveal: bool,
+    door: bool,
+}
+
+/// The original renderer component for a selectively hidden reveal part.
+/// `MeshRenderer` only exposes a viewport mask, so toggling that scalar avoids
+/// material clones and all component-storage allocations during updates.
+#[derive(Clone, Copy)]
+struct RevealEntity {
+    entity: Entity,
+    renderer: MeshRenderer,
+}
+
+#[derive(Clone, Copy)]
+struct DoorPart {
+    entity: Entity,
+    /// The decomposed placement * baked-local pose, copied verbatim on close.
+    closed: Transform,
+    /// Fully-open pose calculated once at placement, never per frame.
+    open: Transform,
+}
+
+struct DoorInstance {
+    prop_id: String,
+    open: bool,
+    parts: Vec<DoorPart>,
+}
+
+struct EnterableInstance {
+    cell_x: f32,
+    cell_z: f32,
+    regions: Vec<RegionMilli>,
+    reveal: Vec<RevealEntity>,
+    cutaway: CutawayState,
+    /// Kept from mapping even though this renderer has no entity-local alpha
+    /// override that would avoid mutating shared cached materials.
+    fade_seconds: f64,
+}
+
+#[derive(Clone, Copy)]
+struct SlideDoor<'a> {
+    node: &'a str,
+    axis: Vec3,
+    distance: f32,
+}
+
 pub struct PropsLoader {
     mapping: Json,
     asset_base: String,
     cache: HashMap<String, Option<PropModel>>,
     /// Entities spawned by the last `load` calls (released by `clear`).
     spawned: Vec<Entity>,
+    /// Area-local cutaway state and its explicitly selected render entities.
+    enterables: Vec<EnterableInstance>,
+    /// Area-local door state and closed/open transforms.
+    doors: Vec<DoorInstance>,
     /// Typed optional-asset degradation (bounded, deduped).
     issues: Vec<WorldAssetIssue>,
 }
@@ -70,6 +133,8 @@ impl PropsLoader {
             asset_base,
             cache: HashMap::new(),
             spawned: Vec::new(),
+            enterables: Vec::new(),
+            doors: Vec::new(),
             issues: Vec::new(),
         })
     }
@@ -85,16 +150,72 @@ impl PropsLoader {
         }
     }
 
-    /// Release every entity spawned by prior `load` calls (area transition).
+    /// Release every entity and area-local presentation record from prior
+    /// `load` calls (area transition).
     pub fn clear(&mut self, world: &mut GameWorld) {
         for e in self.spawned.drain(..) {
             world.destroy(e);
         }
+        self.enterables.clear();
+        self.doors.clear();
         world.flush();
     }
 
     fn entry(&self, key: &str) -> Option<&Json> {
         self.mapping.get("entries").and_then(|e| e.get(key))
+    }
+
+    /// True once the snapshot-driven cutaway decision has stably entered any
+    /// placed enterable. This is intentionally independent of fade progress.
+    pub fn player_inside_enterable(&self) -> bool {
+        self.enterables
+            .iter()
+            .any(|enterable| enterable.cutaway.inside)
+    }
+
+    /// Synchronize area-local enterable presentation from accepted authority
+    /// data. The loop owns no temporary collections and only touches renderer
+    /// components when a stable cutaway or door state changes.
+    pub fn sync_enterable_presentation(
+        &mut self,
+        world: &mut GameWorld,
+        snapshot_tick: u64,
+        player_world_x: f32,
+        player_world_z: f32,
+        prop_states: &HashMap<String, Value>,
+    ) {
+        let player_cell_x = player_world_x / WORLD_UNITS_PER_CELL;
+        let player_cell_z = player_world_z / WORLD_UNITS_PER_CELL;
+        for enterable in &mut self.enterables {
+            if sample_enterable(
+                &mut enterable.cutaway,
+                snapshot_tick,
+                &enterable.regions,
+                enterable.cell_x,
+                enterable.cell_z,
+                player_cell_x,
+                player_cell_z,
+                enterable.fade_seconds,
+            ) {
+                set_reveal_visible(world, &enterable.reveal, !enterable.cutaway.inside);
+            }
+        }
+        for door in &mut self.doors {
+            let open = prop_states
+                .get(&door.prop_id)
+                .and_then(|state| state.get("doorOpen"))
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            if open == door.open {
+                continue;
+            }
+            door.open = open;
+            for part in &door.parts {
+                if let Some(transform) = world.get_component::<Transform>(part.entity) {
+                    *transform = door_pose(part.closed, part.open, open);
+                }
+            }
+        }
     }
 
     /// Place every visible prop of one area from a parsed slice into the
@@ -136,24 +257,28 @@ impl PropsLoader {
                 .cloned();
 
             let id = prop.get("id").and_then(Json::as_str).unwrap_or("");
-            let (cx, cy) = prop
+            let (cell_x, cell_z) = prop
                 .get("cell")
                 .map(|cell| {
                     (
-                        cell.get("x").and_then(Json::as_f32).unwrap_or(0.0) * WORLD_UNITS_PER_CELL,
-                        cell.get("y").and_then(Json::as_f32).unwrap_or(0.0) * WORLD_UNITS_PER_CELL,
+                        cell.get("x").and_then(Json::as_f32).unwrap_or(0.0),
+                        cell.get("y").and_then(Json::as_f32).unwrap_or(0.0),
                     )
                 })
                 .unwrap_or((0.0, 0.0));
-            let (sw, sh) = prop
+            let cx = cell_x * WORLD_UNITS_PER_CELL;
+            let cy = cell_z * WORLD_UNITS_PER_CELL;
+            let (size_w_cells, size_h_cells) = prop
                 .get("size")
                 .map(|size| {
                     (
-                        size.get("w").and_then(Json::as_f32).unwrap_or(1.0) * WORLD_UNITS_PER_CELL,
-                        size.get("h").and_then(Json::as_f32).unwrap_or(1.0) * WORLD_UNITS_PER_CELL,
+                        size.get("w").and_then(Json::as_f32).unwrap_or(1.0),
+                        size.get("h").and_then(Json::as_f32).unwrap_or(1.0),
                     )
                 })
                 .unwrap_or((1.0, 1.0));
+            let sw = size_w_cells * WORLD_UNITS_PER_CELL;
+            let sh = size_h_cells * WORLD_UNITS_PER_CELL;
             let rotation = prop.get("rotation").and_then(Json::as_f32).unwrap_or(0.0);
 
             let Some(entry) = entry else { continue };
@@ -200,48 +325,108 @@ impl PropsLoader {
                     self.spawned.push(e);
                     continue;
                 }
-                let model = self.cache.get(glb_ref).unwrap().as_ref().unwrap();
-                let (fx, fz, hy, alb) = (
-                    model.footprint_x,
-                    model.footprint_z,
-                    model.height_y,
-                    model.mean_albedo,
-                );
-                let (yaw, scale) = placement(
-                    rotation,
-                    random_yaw,
-                    id,
-                    sw,
-                    sh,
-                    model.footprint_x,
-                    model.footprint_z,
-                );
+                let enterable = entry.get("enterable");
+                let reveal_prefixes = enterable.and_then(enterable_reveal_prefixes);
+                let slide_door = parse_slide_door(&entry);
+                let (fx, fz, hy, alb, parts) = {
+                    let model = self.cache.get(glb_ref).unwrap().as_ref().unwrap();
+                    let parts: Vec<PlacedPart> = model
+                        .parts
+                        .iter()
+                        .copied()
+                        .map(|part| PlacedPart {
+                            reveal: reveal_prefixes.is_some_and(|prefixes| {
+                                part_matches_reveal_prefixes(
+                                    &model.node_names,
+                                    &model.node_parents,
+                                    part.node_index,
+                                    prefixes,
+                                    slide_door.map(|door| door.node),
+                                )
+                            }),
+                            door: slide_door.is_some_and(|door| {
+                                node_or_ancestor_matches(
+                                    &model.node_names,
+                                    &model.node_parents,
+                                    part.node_index,
+                                    |name| name == door.node,
+                                )
+                            }),
+                            part,
+                        })
+                        .collect();
+                    (
+                        model.footprint_x,
+                        model.footprint_z,
+                        model.height_y,
+                        model.mean_albedo,
+                        parts,
+                    )
+                };
+                let (fit_x, fit_z) = fit_footprint(&entry, fx, fz);
+                let (yaw, scale) = placement(rotation, random_yaw, id, sw, sh, fit_x, fit_z);
                 let ground_x = cx + sw / 2.0;
                 let ground_z = cy + sh / 2.0;
                 let pos = vec3(ground_x, terrain.height_at(ground_x, ground_z), ground_z);
-                let parts = model.parts.clone();
                 let placement = Mat4::from_trs(pos, Quat::from_yaw(yaw), vec3(scale, scale, scale));
-                for part in parts {
+                let mut reveal = Vec::new();
+                let mut door_parts = Vec::new();
+                for placed_part in parts {
+                    let part = placed_part.part;
                     let (part_pos, part_rot, part_scale) = placement.mul(part.local).to_trs();
+                    let transform = Transform {
+                        pos: part_pos,
+                        rot: part_rot,
+                        scale: part_scale,
+                    };
                     let e = world.spawn();
                     self.spawned.push(e);
-                    world.set_component(
-                        e,
-                        Transform {
-                            pos: part_pos,
-                            rot: part_rot,
-                            scale: part_scale,
-                        },
-                    );
-                    world.set_component(
-                        e,
-                        MeshRenderer {
-                            mesh: part.mesh,
-                            material: part.material,
-                            viewport_mask: mask,
-                            skin: SkinRef::NONE,
-                        },
-                    );
+                    world.set_component(e, transform);
+                    let mesh_renderer = MeshRenderer {
+                        mesh: part.mesh,
+                        material: part.material,
+                        viewport_mask: mask,
+                        skin: SkinRef::NONE,
+                    };
+                    world.set_component(e, mesh_renderer);
+                    if placed_part.reveal {
+                        reveal.push(RevealEntity {
+                            entity: e,
+                            renderer: mesh_renderer,
+                        });
+                    }
+                    if placed_part.door {
+                        if let Some(door) = slide_door {
+                            door_parts.push(DoorPart {
+                                entity: e,
+                                closed: transform,
+                                open: door_open_transform(
+                                    transform,
+                                    yaw,
+                                    scale,
+                                    door.axis,
+                                    door.distance,
+                                ),
+                            });
+                        }
+                    }
+                }
+                if let (Some(enterable), Some(_)) = (enterable, reveal_prefixes) {
+                    self.enterables.push(EnterableInstance {
+                        cell_x,
+                        cell_z,
+                        regions: placed_interior_regions(prop, size_w_cells, size_h_cells),
+                        reveal,
+                        cutaway: CutawayState::default(),
+                        fade_seconds: enterable_fade_seconds(enterable),
+                    });
+                }
+                if !door_parts.is_empty() {
+                    self.doors.push(DoorInstance {
+                        prop_id: id.to_string(),
+                        open: false,
+                        parts: door_parts,
+                    });
                 }
                 occ.push(GiOccluder {
                     center: [pos.x, pos.y + hy * scale * 0.5, pos.z],
@@ -331,6 +516,250 @@ impl PropsLoader {
     }
 }
 
+/// `enterable` opts an entry into the current presentation convention only
+/// when it supplies actual, non-empty node prefixes. Legacy mappings therefore
+/// retain their old presentation rather than falling back to a whole-prop hide.
+fn enterable_reveal_prefixes(enterable: &Json) -> Option<&[Json]> {
+    let prefixes = enterable.get("revealPrefixes").and_then(Json::as_array)?;
+    prefixes
+        .iter()
+        .filter_map(Json::as_str)
+        .any(|prefix| !prefix.is_empty())
+        .then_some(prefixes)
+}
+
+fn enterable_fade_seconds(enterable: &Json) -> f64 {
+    let seconds = enterable
+        .get("fadeSeconds")
+        .and_then(Json::as_f64)
+        .unwrap_or(0.25);
+    if seconds.is_finite() {
+        seconds.max(0.01)
+    } else {
+        0.25
+    }
+}
+
+fn parse_slide_door(entry: &Json) -> Option<SlideDoor<'_>> {
+    let door = entry.get("slideDoor")?;
+    let node = door.get("node").and_then(Json::as_str)?;
+    if node.is_empty() {
+        return None;
+    }
+    let axis = door.get("axisLocal").and_then(Json::as_array)?;
+    if axis.len() != 3 {
+        return None;
+    }
+    let axis = vec3(axis[0].as_f32()?, axis[1].as_f32()?, axis[2].as_f32()?);
+    if !axis.x.is_finite() || !axis.y.is_finite() || !axis.z.is_finite() {
+        return None;
+    }
+    let axis = axis.normalize();
+    if axis == Vec3::ZERO {
+        return None;
+    }
+    let distance = door.get("distance").and_then(Json::as_f32)?;
+    if !distance.is_finite() || distance <= 0.0 {
+        return None;
+    }
+    Some(SlideDoor {
+        node,
+        axis,
+        distance,
+    })
+}
+
+/// Top-level `interiorRegions` is the placed collision authoring; nested
+/// `enterable.interiorBounds` is the compatible snapshot form. Both are
+/// post-rotation prop-local milli-cell AABBs, so sampling must not rotate them
+/// again. A mapped enterable with neither retains the legacy footprint region.
+fn placed_interior_regions(prop: &Json, size_w_cells: f32, size_h_cells: f32) -> Vec<RegionMilli> {
+    let mut regions = Vec::new();
+    if let Some(values) = prop.get("interiorRegions").and_then(Json::as_array) {
+        append_regions(&mut regions, values);
+    }
+    if regions.is_empty() {
+        if let Some(values) = prop
+            .get("enterable")
+            .and_then(|enterable| enterable.get("interiorBounds"))
+            .and_then(Json::as_array)
+        {
+            append_regions(&mut regions, values);
+        }
+    }
+    if regions.is_empty() {
+        let w_milli = f64::from(size_w_cells).max(0.0) * 1000.0;
+        let h_milli = f64::from(size_h_cells).max(0.0) * 1000.0;
+        if w_milli > 0.0 && h_milli > 0.0 {
+            regions.push(RegionMilli {
+                x_milli: 0.0,
+                y_milli: 0.0,
+                w_milli,
+                h_milli,
+            });
+        }
+    }
+    regions
+}
+
+fn append_regions(out: &mut Vec<RegionMilli>, values: &[Json]) {
+    for value in values {
+        let (Some(x_milli), Some(y_milli), Some(w_milli), Some(h_milli)) = (
+            value.get("xMilli").and_then(Json::as_f64),
+            value.get("yMilli").and_then(Json::as_f64),
+            value.get("wMilli").and_then(Json::as_f64),
+            value.get("hMilli").and_then(Json::as_f64),
+        ) else {
+            continue;
+        };
+        if x_milli.is_finite()
+            && y_milli.is_finite()
+            && w_milli.is_finite()
+            && h_milli.is_finite()
+            && w_milli > 0.0
+            && h_milli > 0.0
+        {
+            out.push(RegionMilli {
+                x_milli,
+                y_milli,
+                w_milli,
+                h_milli,
+            });
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn sample_enterable(
+    state: &mut CutawayState,
+    snapshot_tick: u64,
+    regions: &[RegionMilli],
+    cell_x: f32,
+    cell_z: f32,
+    player_cell_x: f32,
+    player_cell_z: f32,
+    fade_seconds: f64,
+) -> bool {
+    let was_inside = state.inside;
+    cutaway::sample(
+        state,
+        snapshot_tick as f64,
+        regions,
+        (f64::from(player_cell_x) - f64::from(cell_x)) * 1000.0,
+        (f64::from(player_cell_z) - f64::from(cell_z)) * 1000.0,
+    );
+    if state.inside == was_inside {
+        return false;
+    }
+    // `MeshRenderer` has no entity-local alpha channel. Its materials are
+    // cached and shared by all prop instances, so changing opacity would fade
+    // unrelated parts. Snap the existing fade machine at its stable decision
+    // boundary and toggle only the explicit reveal entities' viewport masks.
+    cutaway::advance_fade(state, 0.0, fade_seconds, true);
+    true
+}
+
+fn set_reveal_visible(world: &mut GameWorld, reveal: &[RevealEntity], visible: bool) {
+    for record in reveal {
+        if let Some(renderer) = world.get_component::<MeshRenderer>(record.entity) {
+            if visible {
+                *renderer = record.renderer;
+            } else {
+                renderer.viewport_mask = 0;
+            }
+        }
+    }
+}
+
+/// Applies the placement's yaw and uniform fit scale to a node-local door
+/// axis. The supplied closed transform is never recomputed, so closing writes
+/// its exact original bytes back to the entity.
+fn door_open_transform(
+    closed: Transform,
+    placement_yaw: f32,
+    placement_scale: f32,
+    axis_local: Vec3,
+    distance: f32,
+) -> Transform {
+    let offset = Mat4::from_trs(
+        Vec3::ZERO,
+        Quat::from_yaw(placement_yaw),
+        vec3(placement_scale, placement_scale, placement_scale),
+    )
+    .transform_point(axis_local.normalize().scale(distance));
+    Transform {
+        pos: closed.pos.add(offset),
+        ..closed
+    }
+}
+
+fn door_pose(closed: Transform, open: Transform, is_open: bool) -> Transform {
+    if is_open {
+        open
+    } else {
+        closed
+    }
+}
+
+/// Prefix selection walks GLB ancestry so a mesh beneath a named group is
+/// selected. Floors and gameplay doors are never reveal candidates, even if a
+/// malformed mapping happens to mention their parent group.
+fn part_matches_reveal_prefixes(
+    node_names: &[Option<String>],
+    node_parents: &[Option<usize>],
+    node_index: usize,
+    prefixes: &[Json],
+    door_node: Option<&str>,
+) -> bool {
+    if node_or_ancestor_matches(node_names, node_parents, node_index, |name| {
+        name.starts_with("door_slide") || door_node.is_some_and(|door| name == door)
+    }) {
+        return false;
+    }
+    if node_or_ancestor_matches(node_names, node_parents, node_index, |name| {
+        ascii_contains_ignore_case(name, "floor")
+    }) {
+        return false;
+    }
+    node_or_ancestor_matches(node_names, node_parents, node_index, |name| {
+        prefixes
+            .iter()
+            .filter_map(Json::as_str)
+            .any(|prefix| !prefix.is_empty() && name.starts_with(prefix))
+    })
+}
+
+fn node_or_ancestor_matches(
+    node_names: &[Option<String>],
+    node_parents: &[Option<usize>],
+    node_index: usize,
+    mut matches: impl FnMut(&str) -> bool,
+) -> bool {
+    let mut current = Some(node_index);
+    for _ in 0..node_names.len() {
+        let Some(index) = current else {
+            break;
+        };
+        if let Some(Some(name)) = node_names.get(index) {
+            if matches(name) {
+                return true;
+            }
+        }
+        current = node_parents.get(index).copied().flatten();
+    }
+    false
+}
+
+fn ascii_contains_ignore_case(haystack: &str, needle: &str) -> bool {
+    let needle = needle.as_bytes();
+    haystack.as_bytes().windows(needle.len()).any(|candidate| {
+        candidate
+            .iter()
+            .zip(needle)
+            .all(|(left, right)| left.to_ascii_lowercase() == right.to_ascii_lowercase())
+    })
+}
+
 /// Build visual-ground and detail-scatter exclusions from authoritative
 /// building cells. Small props do not flatten the landscape; only structures
 /// whose placement contract owns a footprint do. `area_id = None` spans every
@@ -377,6 +806,23 @@ pub fn building_terrain_exclusions(
         });
     }
     exclusions
+}
+
+fn fit_footprint(entry: &Json, measured_x: f32, measured_z: f32) -> (f32, f32) {
+    let Some(values) = entry.get("fitFootprintM").and_then(Json::as_array) else {
+        return (measured_x, measured_z);
+    };
+    if values.len() != 2 {
+        return (measured_x, measured_z);
+    }
+    let (Some(x), Some(z)) = (values[0].as_f32(), values[1].as_f32()) else {
+        return (measured_x, measured_z);
+    };
+    if x > 0.0 && z > 0.0 {
+        (x, z)
+    } else {
+        (measured_x, measured_z)
+    }
 }
 
 /// composePlacement: yaw + uniform fit scale.
@@ -433,6 +879,8 @@ fn upload_model<G: Gpu>(
     doc: &GlbDocument,
 ) -> Option<PropModel> {
     let globals = node_globals(doc);
+    let node_names = doc.nodes.iter().map(|node| node.name.clone()).collect();
+    let parents = node_parents(doc);
     // First pass: AABB over baked positions.
     let mut min = vec3(f32::MAX, f32::MAX, f32::MAX);
     let mut max = vec3(f32::MIN, f32::MIN, f32::MIN);
@@ -491,6 +939,7 @@ fn upload_model<G: Gpu>(
                 mesh: primitive.mesh,
                 material: primitive.material,
                 local: recenter.mul(globals[node_index]),
+                node_index,
             });
         }
     }
@@ -505,6 +954,8 @@ fn upload_model<G: Gpu>(
     };
     Some(PropModel {
         parts,
+        node_names,
+        node_parents: parents,
         footprint_x: (max.x - min.x).max(0.01),
         footprint_z: (max.z - min.z).max(0.01),
         height_y: (max.y - min.y).max(0.01),
@@ -541,6 +992,18 @@ fn node_globals(doc: &GlbDocument) -> Vec<Mat4> {
         }
     }
     globals
+}
+
+fn node_parents(doc: &GlbDocument) -> Vec<Option<usize>> {
+    let mut parents = vec![None; doc.nodes.len()];
+    for (parent, node) in doc.nodes.iter().enumerate() {
+        for &child in &node.children {
+            if child < parents.len() && parents[child].is_none() {
+                parents[child] = Some(parent);
+            }
+        }
+    }
+    parents
 }
 
 fn placeholder_cube<G: Gpu>(renderer: &mut Renderer, gpu: &mut G) -> MeshId {
@@ -738,6 +1201,13 @@ mod tests {
         assert_eq!(yaw, 0.0);
         assert!((scale - 0.5).abs() < 1e-4);
     }
+    #[test]
+    fn authored_occupancy_footprint_ignores_decorative_overhangs() {
+        let entry = Json::parse(r#"{"fitFootprintM":[7.6,5.7]}"#).expect("mapping entry");
+        assert_eq!(fit_footprint(&entry, 8.056, 7.454), (7.6, 5.7));
+        let fallback = Json::parse("{}").expect("mapping entry");
+        assert_eq!(fit_footprint(&fallback, 8.056, 7.454), (8.056, 7.454));
+    }
 
     #[test]
     fn rotation_90_yaw() {
@@ -769,6 +1239,180 @@ mod tests {
         );
     }
 
+    #[test]
+    fn enterable_prefixes_select_only_authored_shell_parts() {
+        let names = vec![
+            Some("root".to_string()),
+            Some("roof__shell".to_string()),
+            Some("wall_front__frame".to_string()),
+            Some("floor__slab".to_string()),
+            Some("door_slide__leaf".to_string()),
+            Some("interior__counter".to_string()),
+            Some("wall_back__far".to_string()),
+            Some("trim__roof_child".to_string()),
+        ];
+        let parents = vec![
+            None,
+            Some(0),
+            Some(0),
+            Some(0),
+            Some(0),
+            Some(0),
+            Some(0),
+            Some(1),
+        ];
+        let enterable =
+            Json::parse(r#"{"revealPrefixes":["roof__","wall_front__","wall_right__"]}"#)
+                .expect("enterable mapping");
+        let prefixes = enterable_reveal_prefixes(&enterable).expect("reveal prefixes");
+
+        assert!(part_matches_reveal_prefixes(
+            &names,
+            &parents,
+            1,
+            prefixes,
+            Some("door_slide")
+        ));
+        assert!(part_matches_reveal_prefixes(
+            &names,
+            &parents,
+            2,
+            prefixes,
+            Some("door_slide")
+        ));
+        assert!(part_matches_reveal_prefixes(
+            &names,
+            &parents,
+            7,
+            prefixes,
+            Some("door_slide")
+        ));
+        for node in [3, 4, 5, 6] {
+            assert!(!part_matches_reveal_prefixes(
+                &names,
+                &parents,
+                node,
+                prefixes,
+                Some("door_slide")
+            ));
+        }
+    }
+
+    #[test]
+    fn placed_regions_prefer_collision_authoring_then_snapshot_bounds() {
+        let placed = Json::parse(
+            r#"{
+                "interiorRegions":[{"xMilli":579,"yMilli":579,"wMilli":8842,"hMilli":7000}],
+                "enterable":{"interiorBounds":[{"xMilli":1,"yMilli":2,"wMilli":3,"hMilli":4}]}
+            }"#,
+        )
+        .expect("placed prop");
+        assert_eq!(
+            placed_interior_regions(&placed, 10.0, 8.0),
+            vec![RegionMilli {
+                x_milli: 579.0,
+                y_milli: 579.0,
+                w_milli: 8842.0,
+                h_milli: 7000.0,
+            }]
+        );
+
+        let snapshot = Json::parse(
+            r#"{"enterable":{"interiorBounds":[{"xMilli":505,"yMilli":2553,"wMilli":8490,"hMilli":2447}]}}"#,
+        )
+        .expect("snapshot prop");
+        assert_eq!(
+            placed_interior_regions(&snapshot, 10.0, 8.0),
+            vec![RegionMilli {
+                x_milli: 505.0,
+                y_milli: 2553.0,
+                w_milli: 8490.0,
+                h_milli: 2447.0,
+            }]
+        );
+    }
+
+    #[test]
+    fn stable_entry_exit_hides_and_restores_only_reveal_renderers() {
+        let mut world = GameWorld::new();
+        let reveal_entity = world.spawn();
+        let reveal_renderer = MeshRenderer {
+            mesh: MeshId(7),
+            material: MaterialId(11),
+            viewport_mask: 0b101,
+            skin: SkinRef::NONE,
+        };
+        world.set_component(reveal_entity, reveal_renderer);
+        let kept_entity = world.spawn();
+        let kept_renderer = MeshRenderer {
+            mesh: MeshId(8),
+            material: MaterialId(12),
+            viewport_mask: 0b001,
+            skin: SkinRef::NONE,
+        };
+        world.set_component(kept_entity, kept_renderer);
+        let reveal = [RevealEntity {
+            entity: reveal_entity,
+            renderer: reveal_renderer,
+        }];
+        let regions = [RegionMilli {
+            x_milli: 0.0,
+            y_milli: 0.0,
+            w_milli: 1000.0,
+            h_milli: 1000.0,
+        }];
+        let mut state = CutawayState::default();
+
+        assert!(!sample_enterable(
+            &mut state, 1, &regions, 10.0, 20.0, 10.5, 20.5, 0.25
+        ));
+        assert!(sample_enterable(
+            &mut state, 2, &regions, 10.0, 20.0, 10.5, 20.5, 0.25
+        ));
+        set_reveal_visible(&mut world, &reveal, !state.inside);
+        let hidden = *world
+            .get_component::<MeshRenderer>(reveal_entity)
+            .expect("reveal mesh remains allocation-free");
+        assert_eq!(hidden.viewport_mask, 0);
+        let kept_after_entry = *world
+            .get_component::<MeshRenderer>(kept_entity)
+            .expect("unrelated mesh stays rendered");
+        assert_eq!(kept_after_entry, kept_renderer);
+
+        assert!(!sample_enterable(
+            &mut state, 3, &regions, 10.0, 20.0, 12.0, 22.0, 0.25
+        ));
+        assert!(sample_enterable(
+            &mut state, 4, &regions, 10.0, 20.0, 12.0, 22.0, 0.25
+        ));
+        set_reveal_visible(&mut world, &reveal, !state.inside);
+        let restored = *world
+            .get_component::<MeshRenderer>(reveal_entity)
+            .expect("reveal renderer restores on exit");
+        assert_eq!(restored, reveal_renderer);
+    }
+
+    #[test]
+    fn door_open_applies_placement_yaw_scale_and_close_is_exact() {
+        let closed = Transform {
+            pos: vec3(10.0, 1.5, 20.0),
+            rot: Quat::from_yaw(0.37),
+            scale: vec3(1.2, 0.9, 1.1),
+        };
+        let open = door_open_transform(
+            closed,
+            core::f32::consts::FRAC_PI_2,
+            2.0,
+            vec3(2.0, 0.0, 0.0),
+            3.0,
+        );
+        assert!((open.pos.x - 10.0).abs() < 1e-5);
+        assert!((open.pos.y - 1.5).abs() < 1e-5);
+        assert!((open.pos.z - 14.0).abs() < 1e-5);
+        assert_eq!(open.rot, closed.rot);
+        assert_eq!(open.scale, closed.scale);
+        assert_eq!(door_pose(closed, open, false), closed);
+    }
     #[test]
     fn parse_hex_basic() {
         assert_eq!(parse_hex("#ff0000"), [1.0, 0.0, 0.0, 1.0]);

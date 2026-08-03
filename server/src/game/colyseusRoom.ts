@@ -5,6 +5,7 @@ import { redeemStandaloneLaunch, type StandaloneLaunchStore } from "../auth/stan
 import type { LaunchSessionRevocationSink, RuntimeAuthConfig } from "../auth/runtime.js";
 import {
   characterAppearanceToActorAppearance,
+  characterSpriteForAppearance,
   characterWornToActorWorn,
   normalizeCharacterName,
   normalizeInitialProfessionId,
@@ -390,6 +391,7 @@ export async function identityFromOptions(
       entitlement: ticketIdentity.entitlement,
       pendingFirstEntryCommit: hostedFirstEntryCommit,
       appearance: characterAppearanceToActorAppearance(character.appearance),
+      sprite: characterSpriteForAppearance(character.appearance),
       worn: characterWornToActorWorn(character.worn),
       wornColors: cloneWornColors(character.wornColors),
       ...authoritySeed,
@@ -429,6 +431,7 @@ export async function identityFromOptions(
         : { returningCharacter: character.worldEntryClaimed }),
       ownerRef: character.ownerRef,
       appearance: characterAppearanceToActorAppearance(character.appearance),
+      sprite: characterSpriteForAppearance(character.appearance),
       worn: characterWornToActorWorn(character.worn),
       wornColors: cloneWornColors(character.wornColors),
       ...authoritySeed,

@@ -149,7 +149,7 @@ fn ingredient_bar(
         };
         ui.rect(x, y, w * frac.clamp(0.0, 1.0), 18.0, fill_color);
     }
-    ui.border(x, y, w, 18.0, 1.0, SLOT_EDGE);
+
     let bar_text = format!("{} {}/{}", label.to_uppercase(), carried, required);
     ui.text(&bar_text, x + 6.0, y + 3.0, 1.6, TEXT);
 }
@@ -187,15 +187,6 @@ pub fn draw(
             SLOT
         };
         ui.rect(x, ry, list_w, 40.0, fill);
-        let border_col = if selected { ACCENT } else { SLOT_EDGE };
-        ui.border(
-            x,
-            ry,
-            list_w,
-            40.0,
-            if selected { 1.5 } else { 1.0 },
-            border_col,
-        );
 
         // Name
         let name_col = if craftable { ACCENT } else { TEXT };
@@ -230,7 +221,6 @@ pub fn draw(
     // ── Selected Recipe Detail Panel ─────────────────────────────────────
     let dx = x + list_w + 8.0;
     ui.rect(dx, y, detail_w, h, [10, 14, 20, 210]);
-    ui.border(dx, y, detail_w, h, 1.0, SLOT_EDGE);
 
     let selected_recipe = model
         .selected_recipe_id
@@ -243,7 +233,6 @@ pub fn draw(
         let slot_x = dx + 8.0;
         let slot_y = y + 8.0;
         ui.rect(slot_x, slot_y, slot_size, slot_size, SLOT);
-        ui.border(slot_x, slot_y, slot_size, slot_size, 1.0, SLOT_EDGE);
 
         // Choose icon based on category
         let icon_key = match recipe.category.as_str() {

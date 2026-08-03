@@ -22,6 +22,16 @@
       -0.028,
       -0.095
     ],
+    "foregrip": [
+      0,
+      -0.028,
+      -0.095
+    ],
+    "foregrip_contact": [
+      0,
+      -0.095,
+      -0.075
+    ],
     "muzzle": [
       0,
       0,
@@ -71,7 +81,9 @@
       -45,
       0
     ],
+    "arc_lift": 0.14,
     "derivation": "Copied from accepted STEN back-carry contract; geometry-independent root mount."
   },
-  "provenance": "reset-zero-01 modular family; textured via STEN 2048 atlas bake pattern (bake_modular.py, deterministic)."
+  "provenance": "reset-zero-01 modular family; textured via STEN 2048 atlas bake pattern (bake_modular.py, deterministic).",
+  "support_hand_derivation": "Intentional two-hand CUP, replacing a floating left hand. The Badge Bolt authors no foregrip, so the shared two-hand fallback aimed the support wrist at `grip` - the socket the FIRING hand already owns - and the left hand rendered splayed in mid-air beside the slide (measured +1.4 mm off every module, nearest surface Module_receiver). There is no handguard on a 0.26 m pistol to cup, so the support hand wraps the firing hand instead: the wrist target sits on the weapon centreline inside the lower-front of Module_grip (grip spans y -0.129..-0.028, z -0.147..-0.069), which seats the support palm under the firing fingers against the magazine baseplate. Swept 36 candidates across idle/walk/run/fire in the live Lab; this one holds the wrist in firm contact (-5.5 mm inside Module_grip, vs the accepted Kiln carbine's -2.9 mm) in every pose while keeping the forearm 106 mm clear of the slide."
 }

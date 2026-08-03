@@ -1,93 +1,196 @@
-use super::chat_net::{ChatChannel, ChatClient};
+use super::chat_net::{ChatChannel, ChatClient, ChatConnectionState, ChatMessage, ChatView};
 use successor_engine_render::font::{GLYPH_H, GLYPH_W};
-use successor_engine_render::ui::{TextField, UiBuilder};
+use successor_engine_render::ui::{ButtonStyle, TextField, UiBuilder};
 
 /// Returns a distinct tint per channel.
 pub fn channel_color(ch: ChatChannel) -> [u8; 4] {
     match ch {
-        ChatChannel::All => [255, 255, 255, 255],     // white
-        ChatChannel::Local => [255, 255, 255, 255],   // white
-        ChatChannel::Zone => [72, 214, 230, 255],     // teal (#48d6e6)
-        ChatChannel::Global => [240, 196, 96, 255],   // gold (#f0c460)
-        ChatChannel::Trade => [100, 220, 120, 255],   // green
-        ChatChannel::Party => [100, 160, 240, 255],   // blue
-        ChatChannel::Guild => [200, 100, 240, 255],   // purple
+        ChatChannel::All => [255, 255, 255, 255],   // white
+        ChatChannel::Local => [255, 255, 255, 255], // white
+        ChatChannel::Zone => [72, 214, 230, 255],   // teal (#48d6e6)
+        ChatChannel::Global => [240, 196, 96, 255], // gold (#f0c460)
+        ChatChannel::Combat => [236, 112, 96, 255],
+        ChatChannel::Trade => [100, 220, 120, 255], // green
+        ChatChannel::Party => [100, 160, 240, 255], // blue
+        ChatChannel::Guild => [200, 100, 240, 255], // purple
         ChatChannel::Whisper => [230, 100, 230, 255], // magenta
-        ChatChannel::System => [150, 150, 150, 255],  // grey
+        ChatChannel::System => [150, 150, 150, 255], // grey
     }
 }
 
-/// Draws a translucent panel listing the last messages, plus input field if open.
+/// Draw the persistent lower-left chat console. Channel tabs and history stay
+/// visible while the text field is unfocused; Enter or a click gives it focus.
 #[allow(clippy::too_many_arguments)]
 pub fn draw_chat_pane(
     ui: &mut UiBuilder,
-    client: &ChatClient,
+    client: &mut ChatClient,
     input: &mut TextField,
-    open: bool,
     x: f32,
     y: f32,
     w: f32,
     h: f32,
 ) {
-    // 1. Draw translucent background panel
-    // Translucent panel: fill = [18, 24, 34, 180], edge = [80, 100, 122, 255]
-    ui.panel(x, y, w, h, [18, 24, 34, 180], [80, 100, 122, 255]);
+    let fill = [6, 12, 13, 220];
+    let cell = [9, 18, 20, 235];
+    let edge = [38, 82, 89, 240];
+    let accent = [59, 211, 225, 255];
+    let dim = [111, 150, 157, 255];
+    let ink = [220, 234, 235, 255];
+    ui.panel(x, y, w, h, fill, edge);
 
-    let px = 1.5;
-    let char_w = (GLYPH_W as f32 + 1.0) * px; // 6 * 1.5 = 9.0
-    let glyph_h_scaled = (GLYPH_H as f32) * px; // 7 * 1.5 = 10.5
-
-    let input_h = 20.0;
-    let padding = 5.0;
-
-    let mut msg_area_bottom = y + h - padding;
-
-    // 2. Draw text edit input row at the bottom if open
-    if open {
-        let input_y = y + h - input_h - padding;
-        let input_w = w - padding * 2.0;
-        ui.text_field(input, x + padding, input_y, input_w, input_h, px, true);
-        msg_area_bottom = input_y - padding;
+    let tabs = [
+        (ChatView::All, "ALL"),
+        (ChatView::Global, "GLOBAL"),
+        (ChatView::Combat, "COMBAT"),
+        (ChatView::Friends, "FRIENDS"),
+    ];
+    let tab_w = (w - 10.0) / tabs.len() as f32;
+    for (index, (view, label)) in tabs.into_iter().enumerate() {
+        let tab_x = x + 5.0 + index as f32 * tab_w;
+        let active = client.active_view == view;
+        let tint = if active { ink } else { dim };
+        let tw = UiBuilder::text_width(label, 1.45);
+        ui.text(label, tab_x + (tab_w - tw) * 0.5, y + 7.0, 1.45, tint);
+        if active {
+            ui.rect(tab_x + 3.0, y + 25.0, tab_w - 6.0, 2.0, accent);
+        }
+        if ui.interact(tab_x, y + 3.0, tab_w, 26.0).clicked {
+            client.active_view = view;
+        }
     }
 
-    // 3. Draw chat messages newest at bottom, going upwards
-    let recent_msgs = client.recent();
-    let line_spacing = 3.5;
-    let line_h = glyph_h_scaled + line_spacing; // 14.0
+    let px = 1.4;
+    let line_h = 16.0;
+    let padding = 6.0;
+    let input_h = 24.0;
+    let input_y = y + h - input_h - padding;
+    let channel_w = 92.0;
+    let channel_style = ButtonStyle {
+        fill: cell,
+        hover: [18, 40, 44, 245],
+        active: [25, 61, 67, 255],
+        edge,
+        text: dim,
+    };
+    if ui.button(
+        x + padding,
+        input_y,
+        channel_w,
+        input_h,
+        channel_label(client.send_channel),
+        channel_style,
+    ) {
+        client.send_channel = next_send_channel(client.send_channel);
+    }
+    ui.text_field(
+        input,
+        x + padding + channel_w + 6.0,
+        input_y,
+        w - padding * 2.0 - channel_w - 6.0,
+        input_h,
+        px,
+        input.focused,
+    );
 
-    let max_chars = ((w - padding * 2.0) / char_w).floor() as usize;
-
-    let mut current_y = msg_area_bottom - line_h;
-
-    for msg in recent_msgs.iter().rev() {
-        if current_y < y + padding {
-            break;
-        }
-
-        let ch_tag = msg.channel.as_str().to_uppercase();
-        let display_str = if msg.sender.is_empty() {
-            format!("[{}] {}", ch_tag, msg.text)
+    let rows = ((input_y - (y + 32.0)) / line_h).floor().max(0.0) as usize;
+    let visible_count = client
+        .history
+        .iter()
+        .filter(|message| message_visible(client, message))
+        .count();
+    let skip = visible_count.saturating_sub(rows);
+    let mut line_y = y + 34.0;
+    let char_w = UiBuilder::text_width("M", px);
+    for msg in client
+        .history
+        .iter()
+        .filter(|message| message_visible(client, message))
+        .skip(skip)
+        .take(rows)
+    {
+        let prefix = if msg.sender.is_empty() {
+            channel_label(msg.channel)
         } else {
-            format!("[{}] {}: {}", ch_tag, msg.sender, msg.text)
+            msg.sender.as_str()
         };
-
-        // Truncate if exceeds width
-        let mut display_str = display_str;
-        if display_str.chars().count() > max_chars && max_chars > 3 {
-            let truncated: String = display_str.chars().take(max_chars - 3).collect();
-            display_str = format!("{}...", truncated);
+        let tint = channel_color(msg.channel);
+        let mut tx = x + padding + 10.0;
+        ui.rect(x + padding, line_y - 1.0, 3.0, line_h - 2.0, tint);
+        ui.text(prefix, tx, line_y, px, tint);
+        tx += UiBuilder::text_width(prefix, px) + char_w;
+        let remaining = ((x + w - padding - tx) / char_w).floor().max(0.0) as usize;
+        if remaining > 0 {
+            let (body, clipped) = char_prefix(&msg.text, remaining.saturating_sub(3));
+            ui.text(body, tx, line_y, px, ink);
+            if clipped {
+                ui.text("...", tx + UiBuilder::text_width(body, px), line_y, px, dim);
+            }
         }
+        line_y += line_h;
+    }
 
-        let color = channel_color(msg.channel);
-        ui.text(
-            &display_str,
-            x + padding,
-            current_y + line_spacing * 0.5,
-            px,
-            color,
-        );
+    if visible_count == 0 {
+        let status = match client.connection.state {
+            ChatConnectionState::Online => "CHAT LIVE",
+            ChatConnectionState::Connecting
+            | ChatConnectionState::Authenticating
+            | ChatConnectionState::SyncingHistory
+            | ChatConnectionState::Reconnecting => "CHAT CONNECTING",
+            ChatConnectionState::Offline
+            | ChatConnectionState::Degraded
+            | ChatConnectionState::Exhausted => "CHAT DEGRADED",
+        };
+        ui.text(status, x + padding + 10.0, line_y, 1.25, dim);
+    }
+}
 
-        current_y -= line_h;
+fn channel_label(channel: ChatChannel) -> &'static str {
+    match channel {
+        ChatChannel::All => "ALL",
+        ChatChannel::Local => "LOCAL",
+        ChatChannel::Zone => "ZONE",
+        ChatChannel::Global => "GLOBAL",
+        ChatChannel::Combat => "COMBAT",
+        ChatChannel::Trade => "TRADE",
+        ChatChannel::Party => "PARTY",
+        ChatChannel::Guild => "GUILD",
+        ChatChannel::Whisper => "WHISPER",
+        ChatChannel::System => "SYSTEM",
+    }
+}
+
+fn next_send_channel(channel: ChatChannel) -> ChatChannel {
+    match channel {
+        ChatChannel::Local => ChatChannel::Global,
+        ChatChannel::Global => ChatChannel::Party,
+        ChatChannel::Party => ChatChannel::Guild,
+        ChatChannel::Guild => ChatChannel::Trade,
+        ChatChannel::Trade => ChatChannel::Local,
+        _ => ChatChannel::Local,
+    }
+}
+
+fn message_visible(client: &ChatClient, message: &ChatMessage) -> bool {
+    match client.active_view {
+        ChatView::All => true,
+        ChatView::Global => matches!(message.channel, ChatChannel::Global | ChatChannel::Zone),
+        ChatView::Combat => message.channel == ChatChannel::Combat,
+        ChatView::Friends => {
+            matches!(
+                message.channel,
+                ChatChannel::Whisper | ChatChannel::Party | ChatChannel::Guild
+            ) || client
+                .friends
+                .iter()
+                .any(|friend| friend == &message.sender)
+        }
+    }
+}
+
+fn char_prefix(text: &str, max_chars: usize) -> (&str, bool) {
+    match text.char_indices().nth(max_chars) {
+        Some((byte, _)) => (&text[..byte], true),
+        None => (text, false),
     }
 }
 
@@ -166,9 +269,7 @@ mod tests {
 
         // 1. Draw empty chat pane and record baseline quads
         ui.begin(800, 600);
-        draw_chat_pane(
-            &mut ui, &client, &mut input, false, 10.0, 10.0, 300.0, 200.0,
-        );
+        draw_chat_pane(&mut ui, &mut client, &mut input, 10.0, 10.0, 300.0, 200.0);
         let baseline_quads = ui.quads;
         assert!(
             baseline_quads > 0,
@@ -176,7 +277,11 @@ mod tests {
         );
 
         // 2. Build a ChatClient in tests via its real API + on_incoming a JSON frame
-        let json_str = client.compose(ChatChannel::Local, "HELLO", None);
+        let json_str = client.compose(
+            ChatChannel::Local,
+            "HELLO FROM THE MARKET TERMINAL, TRAVELER",
+            None,
+        );
         let mut val: serde_json::Value = serde_json::from_str(&json_str).unwrap();
         val["sender"] = serde_json::json!("ZARA");
         let json_str_with_sender = serde_json::to_string(&val).unwrap();
@@ -184,9 +289,7 @@ mod tests {
 
         // 3. Draw chat pane with 1 message
         ui.begin(800, 600);
-        draw_chat_pane(
-            &mut ui, &client, &mut input, false, 10.0, 10.0, 300.0, 200.0,
-        );
+        draw_chat_pane(&mut ui, &mut client, &mut input, 10.0, 10.0, 300.0, 200.0);
         let new_quads = ui.quads;
 
         // 4. Assert quads grew and that the message is rendered (new_quads > baseline_quads)

@@ -1,0 +1,143 @@
+{
+  "generator": "successor content-pipeline/labs/humanoid-runtime-refit/verify_starter_fit.py",
+  "open_rim_limit_mm": 1.0,
+  "excess_depth_limit_mm": 1.0,
+  "collar_band_mm": 20.0,
+  "required_hidden_zones": [
+    "left_foot",
+    "right_foot"
+  ],
+  "bodies": {
+    "male": {
+      "suit": "client-3d/public/assets/pawn-pack/equipment/Under/under_bodysuit.glb",
+      "boots": "client-3d/public/assets/pawn-pack/equipment/Under/boots_canvas_ankle.glb",
+      "suit_hidden_zones": [
+        "left_calf",
+        "left_forearm",
+        "left_thigh",
+        "left_upper_arm",
+        "pelvis",
+        "right_calf",
+        "right_forearm",
+        "right_thigh",
+        "right_upper_arm",
+        "torso"
+      ],
+      "loadout_hidden_zones": [
+        "left_calf",
+        "left_foot",
+        "left_forearm",
+        "left_thigh",
+        "left_upper_arm",
+        "pelvis",
+        "right_calf",
+        "right_foot",
+        "right_forearm",
+        "right_thigh",
+        "right_upper_arm",
+        "torso"
+      ],
+      "foot_zones_hidden": [
+        "left_foot",
+        "right_foot"
+      ],
+      "depth_mm": {
+        "suit_excess_depth_mm": -0.918,
+        "suit_depth_mm": -25.977,
+        "bare_body_depth_mm": -25.415,
+        "bare_leg_contact_mm": -22.91,
+        "boots_into_suit_away_from_collar_mm": -29.739,
+        "boots_into_suit_at_collar_mm": -2.302,
+        "hidden_skin_penetration_mm": -0.968
+      },
+      "counts": {
+        "suit_vs_visible_pairs": 123,
+        "bare_vs_visible_pairs": 120,
+        "boots_vs_suit_pairs": 93,
+        "suit_rim_gap_mm": 0.0,
+        "boot_rim_gap_mm": 0.583
+      },
+      "worst_pose": {
+        "suit_excess_depth_mm": "kneel_loop@0.5",
+        "suit_depth_mm": "crouch_idle@0.5",
+        "bare_body_depth_mm": "run_f@0.2",
+        "bare_leg_contact_mm": "meditate_loop@0.5",
+        "boots_into_suit_away_from_collar_mm": "meditate_loop@0.5",
+        "boots_into_suit_at_collar_mm": "meditate_loop@0.5",
+        "hidden_skin_penetration_mm": "crouch_idle@0.5",
+        "suit_vs_visible_pairs": "meditate_loop@0.5",
+        "bare_vs_visible_pairs": "meditate_loop@0.5",
+        "boots_vs_suit_pairs": "meditate_loop@0.5",
+        "suit_rim_gap_mm": null,
+        "boot_rim_gap_mm": "meditate_loop@0.5"
+      },
+      "boot_suit_allowance_mm": 34.91
+    },
+    "female": {
+      "suit": "client-3d/public/assets/pawn-pack/equipment/Female/Under/under_bodysuit.glb",
+      "boots": "client-3d/public/assets/pawn-pack/equipment/Female/Under/boots_canvas_ankle.glb",
+      "suit_hidden_zones": [
+        "left_calf",
+        "left_forearm",
+        "left_thigh",
+        "left_upper_arm",
+        "pelvis",
+        "right_calf",
+        "right_forearm",
+        "right_thigh",
+        "right_upper_arm",
+        "torso"
+      ],
+      "loadout_hidden_zones": [
+        "left_calf",
+        "left_foot",
+        "left_forearm",
+        "left_thigh",
+        "left_upper_arm",
+        "pelvis",
+        "right_calf",
+        "right_foot",
+        "right_forearm",
+        "right_thigh",
+        "right_upper_arm",
+        "torso"
+      ],
+      "foot_zones_hidden": [
+        "left_foot",
+        "right_foot"
+      ],
+      "depth_mm": {
+        "suit_excess_depth_mm": -0.892,
+        "suit_depth_mm": -11.863,
+        "bare_body_depth_mm": -12.286,
+        "bare_leg_contact_mm": -20.291,
+        "boots_into_suit_away_from_collar_mm": -9.876,
+        "boots_into_suit_at_collar_mm": -2.865,
+        "hidden_skin_penetration_mm": -0.963
+      },
+      "counts": {
+        "suit_vs_visible_pairs": 132,
+        "bare_vs_visible_pairs": 130,
+        "boots_vs_suit_pairs": 76,
+        "suit_rim_gap_mm": 0.0,
+        "boot_rim_gap_mm": 0.0
+      },
+      "worst_pose": {
+        "suit_excess_depth_mm": "walk_f@0.75",
+        "suit_depth_mm": "death_f@0.6",
+        "bare_body_depth_mm": "death_f@0.6",
+        "bare_leg_contact_mm": "meditate_loop@0.5",
+        "boots_into_suit_away_from_collar_mm": "meditate_loop@0.5",
+        "boots_into_suit_at_collar_mm": "meditate_loop@0.5",
+        "hidden_skin_penetration_mm": "crouch_idle@0.5",
+        "suit_vs_visible_pairs": "meditate_loop@0.5",
+        "bare_vs_visible_pairs": "meditate_loop@0.5",
+        "boots_vs_suit_pairs": "meditate_loop@0.5",
+        "suit_rim_gap_mm": null,
+        "boot_rim_gap_mm": null
+      },
+      "boot_suit_allowance_mm": 32.291
+    }
+  },
+  "failures": []
+}

@@ -1,0 +1,38 @@
+{
+  "machine": "darwin-arm64-apple-m5-pro",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "date": "2026-08-02",
+  "benches": {
+    "ecs/query1/4096": {
+      "median_ns": 17499.43
+    },
+    "ecs/query2/4096": {
+      "median_ns": 59968.63
+    },
+    "ecs/spawn-set/4096": {
+      "median_ns": 232529.0
+    },
+    "math/mat4-mul/1024": {
+      "median_ns": 34129.49
+    },
+    "render/build-drawlist/4096": {
+      "median_ns": 1140353.37
+    }
+  },
+  "sizes": {
+    "native_stripped": 2553128,
+    "wasm_stripped": 2464385
+  },
+  "runtime": {
+    "frame_p50_ms": 1.8934,
+    "frame_p99_ms": 2.5717,
+    "peak_rss_bytes": 11452416,
+    "frame_allocs_steady": 0
+  },
+  "render": {
+    "render_gpu_p99_ms": 6.013625
+  },
+  "terrain": {
+    "render_gpu_p99_ms": 6.548875
+  }
+}

@@ -398,9 +398,7 @@ fn read_weights(bin: &[u8], av: &AccessorView) -> Result<Vec<f32>, GlbError> {
                 CT_U8 if av.normalized => {
                     f32::from(*bin.get(base + c).ok_or(GlbError::OutOfRange)?) / 255.0
                 }
-                CT_U16 if av.normalized => {
-                    f32::from(rd_u16(bin, base + c * 2)?) / 65_535.0
-                }
+                CT_U16 if av.normalized => f32::from(rd_u16(bin, base + c * 2)?) / 65_535.0,
                 _ => return Err(GlbError::BadAccessor),
             };
             out.push(value);
@@ -439,9 +437,7 @@ fn read_colors(bin: &[u8], av: &AccessorView) -> Result<Vec<[u8; 4]>, GlbError> 
         let mut color = [255u8; 4];
         for (component, slot) in color.iter_mut().enumerate().take(av.num_comps) {
             *slot = match av.comp_type {
-                CT_U8 => *bin
-                    .get(base + component)
-                    .ok_or(GlbError::OutOfRange)?,
+                CT_U8 => *bin.get(base + component).ok_or(GlbError::OutOfRange)?,
                 CT_U16 => {
                     let value = rd_u16(bin, base + component * component_size)?;
                     ((u32::from(value) * 255 + 32_767) / 65_535) as u8
@@ -745,10 +741,7 @@ fn parse_meshes(gltf: &Json, bin: &[u8]) -> Result<Vec<GlbMesh>, GlbError> {
                 prim.joints = read_joints(bin, &resolve_accessor(gltf, i, bin.len())?)?;
             }
             if let Some(i) = u(attrs, "WEIGHTS_0") {
-                prim.weights = chunk4(&read_weights(
-                    bin,
-                    &resolve_accessor(gltf, i, bin.len())?,
-                )?);
+                prim.weights = chunk4(&read_weights(bin, &resolve_accessor(gltf, i, bin.len())?)?);
             }
             if let Some(i) = u(p, "indices") {
                 prim.indices = read_indices(bin, &resolve_accessor(gltf, i, bin.len())?)?;

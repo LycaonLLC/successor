@@ -6,14 +6,51 @@
 //! in projected coordinates. Dot clicks take priority over ground clicks
 //! (`CLICK_GRAB_PX`); ground clicks inside the scope request a relative move.
 
+use core::fmt::{self, Write};
+
+struct TextBuffer {
+    bytes: [u8; 48],
+    len: usize,
+}
+
+impl TextBuffer {
+    fn new() -> Self {
+        Self {
+            bytes: [0; 48],
+            len: 0,
+        }
+    }
+
+    fn as_str(&self) -> &str {
+        core::str::from_utf8(&self.bytes[..self.len]).expect("formatted radar text is UTF-8")
+    }
+}
+
+impl Write for TextBuffer {
+    fn write_str(&mut self, value: &str) -> fmt::Result {
+        let available = self.bytes.len().saturating_sub(self.len);
+        if value.len() > available {
+            return Err(fmt::Error);
+        }
+        self.bytes[self.len..self.len + value.len()].copy_from_slice(value.as_bytes());
+        self.len += value.len();
+        Ok(())
+    }
+}
+
 use successor_engine_render::ui::UiBuilder;
 
 use super::{HudAction, HudState, Palette, RadarClass};
 
 /// World radius the scope covers (cells).
 pub const RADIUS_CELLS: f32 = 96.0;
-/// Scope plate size (px).
-pub const SIZE_PX: f32 = 156.0;
+/// Instrument card width and total height.
+pub const PANEL_W: f32 = 156.0;
+pub const PANEL_H: f32 = 184.0;
+/// Square occupied by the circular scope inside the card.
+pub const SIZE_PX: f32 = 142.0;
+const SCOPE_X: f32 = (PANEL_W - SIZE_PX) * 0.5;
+const SCOPE_Y: f32 = 24.0;
 /// Click grab radius around a dot — dot priority over ground clicks.
 pub const CLICK_GRAB_PX: f32 = 11.0;
 /// Visible instrument circle radius (px).
@@ -106,68 +143,81 @@ pub fn draw_radar(
     captured: bool,
     out: &mut Vec<HudAction>,
 ) {
-    let c = SIZE_PX / 2.0;
-    ui.panel(x, y, SIZE_PX, SIZE_PX, pal.bg_panel, pal.hairline);
+    let c = SIZE_PX * 0.5;
+    ui.panel(x, y, PANEL_W, PANEL_H, pal.bg_panel, pal.hairline);
+    ui.text("RADAR", x + 8.0, y + 6.0, 1.55, pal.ink_dim);
+    let range = "96c";
+    ui.text(
+        range,
+        x + PANEL_W - UiBuilder::text_width(range, 1.45) - 8.0,
+        y + 7.0,
+        1.45,
+        pal.ink_dim,
+    );
 
-    // Scope face: concentric rings + cross grid, drawn as thin rects.
-    let cx = x + c;
-    let cy = y + c;
-    ui.rect(x + 6.0, cy - 0.5, SIZE_PX - 12.0, 1.0, pal.hairline);
-    ui.rect(cx - 0.5, y + 6.0, 1.0, SIZE_PX - 12.0, pal.hairline);
-    // Rim: approximate the circle with short segments (cheap, static count).
+    let scope_x = x + SCOPE_X;
+    let scope_y = y + SCOPE_Y;
+    let cx = scope_x + c;
+    let cy = scope_y + c;
     let rim = SCOPE_RIM_PX;
-    let segments = 36;
-    for i in 0..segments {
-        let a0 = (i as f32) / segments as f32 * core::f32::consts::TAU;
-        let px = cx + a0.cos() * rim;
-        let py = cy + a0.sin() * rim;
-        ui.rect(px - 1.0, py - 1.0, 2.0, 2.0, pal.hairline);
-    }
-    // Half-radius ring.
-    for i in 0..24 {
-        let a0 = (i as f32) / 24.0 * core::f32::consts::TAU;
-        let px = cx + a0.cos() * rim * 0.5;
-        let py = cy + a0.sin() * rim * 0.5;
-        ui.rect(px - 0.5, py - 0.5, 1.0, 1.0, pal.hairline);
-    }
-    // Cardinals: N locked up.
-    ui.text("N", cx - 3.0, y + 8.0, 1.4, pal.accent);
-    ui.text("S", cx - 3.0, y + SIZE_PX - 18.0, 1.4, pal.ink_dim);
-    ui.text("W", x + 8.0, cy - 5.0, 1.4, pal.ink_dim);
-    ui.text("E", x + SIZE_PX - 14.0, cy - 5.0, 1.4, pal.ink_dim);
+    let grid = [pal.hairline[0], pal.hairline[1], pal.hairline[2], 100];
+    ui.line(cx - rim, cy, cx + rim, cy, 0.8, grid);
+    ui.line(cx, cy - rim, cx, cy + rim, 0.8, grid);
+    ui.ring(cx, cy, rim, 72, 1.2, pal.hairline);
+    ui.ring(cx, cy, rim - 3.0, 72, 0.6, grid);
+    ui.ring(cx, cy, rim * 0.66, 56, 0.7, grid);
+    ui.ring(cx, cy, rim * 0.33, 40, 0.7, grid);
 
-    // Waypoint chevrons (amber, clamped to rim with bearing preserved).
+    ui.text("N", cx - 3.0, scope_y + 5.0, 1.4, pal.accent);
+    ui.text("S", cx - 3.0, scope_y + SIZE_PX - 16.0, 1.4, pal.ink_dim);
+    ui.text("W", scope_x + 5.0, cy - 5.0, 1.4, pal.ink_dim);
+    ui.text("E", scope_x + SIZE_PX - 12.0, cy - 5.0, 1.4, pal.ink_dim);
+
     for wp in &st.radar_waypoints {
         let plotted = plot_contact(wp.dx_cells, wp.dy_cells);
         let px = cx + plotted.sx;
         let py = cy + plotted.sy;
-        ui.rect(px - 2.0, py - 2.0, 4.0, 1.5, [232, 168, 74, 255]);
-        ui.rect(px - 2.0, py - 2.0, 1.5, 4.0, [232, 168, 74, 255]);
+        ui.line(px - 3.0, py + 2.0, px, py - 2.0, 1.4, [232, 168, 74, 255]);
+        ui.line(px, py - 2.0, px + 3.0, py + 2.0, 1.4, [232, 168, 74, 255]);
     }
 
-    // Contacts.
     for contact in &st.radar_contacts {
         let plotted = plot_contact(contact.dx_cells, contact.dy_cells);
         let tint = class_tint(contact.class, pal);
         let px = cx + plotted.sx;
         let py = cy + plotted.sy;
         if plotted.clamped {
-            // Rim tick for out-of-range contacts.
-            ui.rect(px - 1.0, py - 1.0, 2.0, 2.0, tint);
+            ui.ring(px, py, 2.0, 12, 1.0, tint);
         } else {
+            let mut glow = tint;
+            glow[3] = 90;
+            ui.ring(px, py, 4.0, 16, 2.0, glow);
             ui.rect(px - 2.0, py - 2.0, 4.0, 4.0, tint);
         }
     }
 
-    // Player blip at center.
+    ui.ring(cx, cy, 5.0, 20, 2.0, [42, 225, 231, 80]);
     ui.rect(cx - 2.0, cy - 2.0, 4.0, 4.0, pal.accent);
+    let mut coords = TextBuffer::new();
+    if let Some((east, north)) = st.position {
+        let _ = write!(&mut coords, "E {:.0}  ·  N {:.0}", east, north);
+    } else {
+        let _ = coords.write_str("E —  ·  N —");
+    }
+    let coord_w = UiBuilder::text_width(coords.as_str(), 1.35);
+    ui.text(
+        coords.as_str(),
+        x + (PANEL_W - coord_w) * 0.5,
+        y + PANEL_H - 15.0,
+        1.35,
+        pal.ink_dim,
+    );
 
-    // Click routing (dot priority, then ground move).
     if !captured {
-        let resp = ui.interact(x, y, SIZE_PX, SIZE_PX);
+        let resp = ui.interact(scope_x, scope_y, SIZE_PX, SIZE_PX);
         if resp.clicked {
             let (mx, my) = ui.mouse();
-            if let Some(action) = click_action(st, mx - x, my - y) {
+            if let Some(action) = click_action(st, mx - scope_x, my - scope_y) {
                 out.push(action);
             }
         }

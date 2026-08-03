@@ -1,5 +1,5 @@
 //! TRADE — Secure two-party item exchange content view.
-use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{WindowAction, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
@@ -84,7 +84,6 @@ pub fn draw(
                 break;
             }
             ui.rect(col_my_x, iy, col_w, 28.0, SLOT);
-            ui.border(col_my_x, iy, col_w, 28.0, 1.0, SLOT_EDGE);
 
             if let Some((col, row)) = icons.cell(&item.kind) {
                 ui.icon(col, row, col_my_x + 4.0, iy + 4.0, 20.0, 20.0, TEXT);
@@ -121,7 +120,6 @@ pub fn draw(
                 break;
             }
             ui.rect(col_my_x, oy, col_w, 28.0, SLOT);
-            ui.border(col_my_x, oy, col_w, 28.0, 1.0, SLOT_EDGE);
 
             if let Some((col, row)) = icons.cell(&item.kind) {
                 ui.icon(col, row, col_my_x + 4.0, oy + 4.0, 20.0, 20.0, TEXT);
@@ -149,7 +147,6 @@ pub fn draw(
                 break;
             }
             ui.rect(col_their_x, ty, col_w, 28.0, SLOT);
-            ui.border(col_their_x, ty, col_w, 28.0, 1.0, SLOT_EDGE);
 
             if let Some((col, row)) = icons.cell(&item.kind) {
                 ui.icon(col, row, col_their_x + 4.0, ty + 4.0, 20.0, 20.0, TEXT);

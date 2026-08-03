@@ -1,12 +1,12 @@
 {
   "asset": {
-    "bytes": 7874120,
+    "bytes": 8681892,
     "file": "home_modular_starter.glb",
     "images": {
       "external_image_uri_count": 0,
       "image_count": 30
     },
-    "sha256": "sha256:032363b5e4558f279bd71f4ad0d94e44f65f87cff21cee963184546f6a35588f"
+    "sha256": "sha256:167bc8d83ab745c1a888a755873eebae635e9660f8107272efbfeb19c7ddd8e2"
   },
   "bbox_span_m": [
     8.056,

@@ -1,0 +1,229 @@
+{
+  "schema": "successor.runtime-building-manifest.v1",
+  "building": "valley_market",
+  "runtimeKey": "valley_market",
+  "label": "Valley Market",
+  "units": "m",
+  "front": "+Z",
+  "footprintCells": [
+    12,
+    9
+  ],
+  "footprint_max_m": [
+    11.4,
+    8.55
+  ],
+  "runtime_scale_at_12x9_cells": 1.0526315789473684,
+  "floorHeightM": 0.02,
+  "floorTopY": 0.02,
+  "exteriorEntry": {
+    "facing": "south",
+    "frontAxis": "+Z",
+    "doorNode": "door_slide",
+    "doorCells": [
+      [
+        4,
+        7
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        6,
+        7
+      ]
+    ]
+  },
+  "door": {
+    "node": "door_slide",
+    "node_parent": null,
+    "movable_child": "door_slide__leaf",
+    "local_axis": "X",
+    "closed_local_x_m": 0,
+    "open_local_x_m": -2.6,
+    "travel_abs_m": 2.6,
+    "direction": "opens toward -X (asset west) in local space",
+    "clips": [
+      "door_open",
+      "door_close"
+    ],
+    "clip_seconds": 0.8,
+    "fps": 30,
+    "frames": [
+      0,
+      24
+    ],
+    "leaf_size_m": [
+      2.44,
+      2.52,
+      0.09
+    ],
+    "opening_size_m": [
+      2.2,
+      2.4
+    ],
+    "axisLocal": [
+      -1,
+      0,
+      0
+    ],
+    "slide_axis_local": [
+      -1,
+      0,
+      0
+    ],
+    "slide_distance_m": 2.6,
+    "facing": "south"
+  },
+  "door_cells": [
+    [
+      4,
+      7
+    ],
+    [
+      5,
+      7
+    ],
+    [
+      6,
+      7
+    ]
+  ],
+  "service_anchor_cells": {
+    "bank_terminal_civic": [
+      3,
+      3
+    ],
+    "trade_terminal": [
+      6,
+      3
+    ],
+    "pa_terminal": [
+      9,
+      3
+    ],
+    "trainer_npc": [
+      10,
+      6
+    ]
+  },
+  "promised_clear_cells": {
+    "bank_terminal_civic": [
+      3,
+      3
+    ],
+    "trade_terminal": [
+      6,
+      3
+    ],
+    "pa_terminal": [
+      9,
+      3
+    ],
+    "trainer_npc": [
+      10,
+      6
+    ]
+  },
+  "collisionProxy": {
+    "source": "valley_market",
+    "sidecar": "valley_market_collision.json",
+    "structuralOnly": false,
+    "includesFurniture": true,
+    "wallCount": 48,
+    "furnitureCount": 27
+  },
+  "cutaway": {
+    "faces": {
+      "front": "wall_front__",
+      "back": "wall_back__",
+      "left": "wall_left__",
+      "right": "wall_right__"
+    },
+    "hide": [
+      "roof__",
+      "wall_front__",
+      "wall_back__",
+      "wall_left__",
+      "wall_right__"
+    ],
+    "revealPrefixes": [
+      "roof__",
+      "wall_front__",
+      "wall_back__",
+      "wall_left__",
+      "wall_right__"
+    ],
+    "keep": [
+      "floor__",
+      "interior__"
+    ],
+    "stub_by_face": true
+  },
+  "interiorRegions": [
+    {
+      "id": "hall",
+      "minX": -5.22,
+      "minZ": -1.85,
+      "maxX": 5.22,
+      "maxZ": 2.7800000000000002,
+      "floorTopY": 0.02
+    },
+    {
+      "id": "back_of_house",
+      "minX": -5.22,
+      "minZ": -3.6100000000000003,
+      "maxX": 5.22,
+      "maxZ": -2.32,
+      "floorTopY": 0.02
+    },
+    {
+      "id": "trainer_bay",
+      "minX": 3.06,
+      "minZ": 2.7800000000000002,
+      "maxX": 5.22,
+      "maxZ": 3.7199999999999998,
+      "floorTopY": 0.02
+    }
+  ],
+  "bbox_span_m": [
+    11.378,
+    7.13,
+    8.524
+  ],
+  "tri_count": 75456,
+  "materials": [
+    "MKT_Brass",
+    "MKT_Ceramic",
+    "MKT_Glass",
+    "MKT_LampCyan",
+    "MKT_LampKey",
+    "MKT_LampWarm",
+    "MKT_Plaster",
+    "MKT_RoofMetal",
+    "MKT_Screed",
+    "MKT_Seal",
+    "MKT_Sinter",
+    "MKT_Steel"
+  ],
+  "asset": {
+    "file": "valley_market.glb",
+    "bytes": 9724088,
+    "sha256": "sha256:1f4e5e0d52e4fe504dcd70ed7b6590e45dc5c2cb69781ac7bab7e530ca40a1a3",
+    "images": {
+      "image_count": 41,
+      "external_image_uri_count": 0
+    }
+  },
+  "source": {
+    "furnished_glb": "market_house_furnished.glb",
+    "furnished_sha256": "sha256:1f4e5e0d52e4fe504dcd70ed7b6590e45dc5c2cb69781ac7bab7e530ca40a1a3",
+    "generator": "tools/successor/assets/market-opus5-rebuild/src/build_market.py",
+    "generator_sha256": "sha256:917c2ee9756a4e0d88add914fd12d96081805482511badcc30db0dcc06977635",
+    "post_export": "src/post_gltf.mjs (occlusion wiring + unused-attribute prune)",
+    "git_rev": "751d6650",
+    "authored_clearance_check_count": 23,
+    "authored_clearance_issues": []
+  }
+}

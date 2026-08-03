@@ -14,6 +14,7 @@ import { WARDROBE_PALETTES, WARDROBE_PIECES } from "./wardrobe.gen.js";
  */
 
 const appearance = {
+  body: "male" as const,
   skinTone: "#aabbcc",
   hair: "hair_mop" as const,
   hairMat: "hair_raven",

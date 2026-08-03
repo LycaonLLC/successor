@@ -18,6 +18,8 @@ struct RenderTarget {
     fbo: u32,
     colors: Vec<TextureId>,
     depth_tex: Option<TextureId>,
+    width: u32,
+    height: u32,
 }
 
 pub struct GlGpu {
@@ -377,6 +379,8 @@ impl Gpu for GlGpu {
             fbo,
             colors: color_tex.into_iter().collect(),
             depth_tex,
+            width: desc.width,
+            height: desc.height,
         });
 
         RenderTargetId(rt_idx)
@@ -398,6 +402,11 @@ impl Gpu for GlGpu {
         } else {
             None
         }
+    }
+
+    fn render_target_size(&self, rt: RenderTargetId) -> Option<(u32, u32)> {
+        let target = self.render_targets.get(rt.0 as usize - 1)?;
+        (target.fbo != 0).then_some((target.width, target.height))
     }
 
     fn begin_pass(&mut self, target: PassTarget, viewport: RectPx, clear: ClearSpec) {
@@ -898,6 +907,8 @@ impl Gpu for GlGpu {
             fbo,
             colors,
             depth_tex,
+            width: desc.width,
+            height: desc.height,
         });
         RenderTargetId(rt_idx)
     }

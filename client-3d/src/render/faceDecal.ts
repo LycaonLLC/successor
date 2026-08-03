@@ -229,19 +229,24 @@ export function attachPawnFaceDecal(
   attachedOut?: Object3D[],
 ): void {
   if (!face) return;
-  let sourceMesh: SkinnedMesh | null = null;
+  const candidates: SkinnedMesh[] = [];
   bodyRoot.traverse((object) => {
-    if (!sourceMesh && object instanceof SkinnedMesh) sourceMesh = object;
+    if (object instanceof SkinnedMesh) candidates.push(object);
   });
-  if (!sourceMesh) return;
-  const body = sourceMesh as SkinnedMesh;
-
-  let overlayGeometry = faceOverlayGeometryCache.get(body.geometry.uuid);
-  if (overlayGeometry === undefined) {
-    overlayGeometry = buildFaceOverlayGeometry(body);
-    faceOverlayGeometryCache.set(body.geometry.uuid, overlayGeometry);
+  let body: SkinnedMesh | null = null;
+  let overlayGeometry: BufferGeometry | null = null;
+  for (const candidate of candidates) {
+    let candidateGeometry = faceOverlayGeometryCache.get(candidate.geometry.uuid);
+    if (candidateGeometry === undefined) {
+      candidateGeometry = buildFaceOverlayGeometry(candidate);
+      faceOverlayGeometryCache.set(candidate.geometry.uuid, candidateGeometry);
+    }
+    if (!candidateGeometry) continue;
+    body = candidate;
+    overlayGeometry = candidateGeometry;
+    break;
   }
-  if (!overlayGeometry) return;
+  if (!body || !overlayGeometry) return;
 
   const entry = facePaintEntry(face, faceSignature(face));
   const overlay = new SkinnedMesh(overlayGeometry, entry.material);

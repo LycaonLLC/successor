@@ -165,6 +165,55 @@ describe("buildInventoryViewModel weapon items", () => {
     expect(weaponIdForInventoryItemId(3103)).toBe("vibrosword");
     expect(modelPathForItemId(3103)).toBe("/assets/pawn-pack/vibrosword.glb");
   });
+
+  it("classifies every concrete weapon presentation and emits its exact inventory identity", () => {
+    const weaponPresentations = [
+      [3101, "Slugthrower", "slugthrower", "/assets/pawn-pack/weapons/custom/wpn_smg_sten_mk2.glb"],
+      [3103, "Vibrosword", "vibrosword", "/assets/pawn-pack/vibrosword.glb"],
+      [3104, "Plasma Sword", "vibrosword", "/assets/pawn-pack/plasma_hilt.glb"],
+      [3105, "Scrapline Machete", "scrapline-machete", "/assets/pawn-pack/weapons/custom/scrapline_machete.glb"],
+      [3106, "Field Saber", "field-saber", "/assets/pawn-pack/weapons/custom/field_saber.glb"],
+      [3107, "Quarry Chopper", "quarry-chopper", "/assets/pawn-pack/weapons/custom/quarry_chopper.glb"],
+      [3111, "STEN Mk II", "wpn-smg", "/assets/pawn-pack/weapons/custom/wpn_smg_sten_mk2.glb"],
+      [3112, "Kiln Energy Cell Carbine", "wpn-carbine", "/assets/pawn-pack/weapons/custom/wpn_carbine_kiln.glb"],
+      [3121, "Lightning Carbine", "lightning-carbine", "/assets/pawn-pack/weapons/custom/lightning_carbine.glb"],
+      [3122, "Badge Bolt Pistol", "wpn-pistol", "/assets/pawn-pack/weapons/custom/wpn_pistol_badge_bolt.glb"],
+      [3123, "Slagrail Vanguard", "wpn-assault", "/assets/pawn-pack/weapons/custom/wpn_rifle_slagrail_vanguard.glb"],
+      [3124, "Coilgate Scatter", "wpn-shotgun", "/assets/pawn-pack/weapons/custom/wpn_shotgun_coilgate_scatter.glb"],
+      [3125, "Kiln Long Pattern", "wpn-sniper", "/assets/pawn-pack/weapons/custom/wpn_carbine_kiln.glb"],
+      [3126, "Bastion LMG", "wpn-heavy", "/assets/pawn-pack/weapons/custom/wpn_heavy_bastion_lmg.glb"],
+      [3127, "Flare Net Launcher", "wpn-launcher", "/assets/pawn-pack/weapons/custom/wpn_launcher_flare_net.glb"],
+    ] as const;
+    const state = playState(weaponPresentations.map(([itemId, item]) => ({
+      container: "player:field-pack",
+      item,
+      itemId,
+      variantId: 0,
+      quantity: 1,
+      reserved: 0,
+      available: 1,
+      stackId: itemId,
+    })));
+    state.serverAuthority.enabled = true;
+    state.loadout.activeWeaponId = null;
+    state.loadout.equipped.longGun = null;
+    const slice = sliceWithInventory(state.inventory);
+    const inventory = buildInventoryViewModel(state, { open: true, selectedKey: null, hoveredKey: null });
+
+    expect(inventory.items).toHaveLength(15);
+    for (const [itemId, label, weaponId, glb] of weaponPresentations) {
+      const item = inventory.items.find((candidate) => candidate.itemId === itemId);
+      expect(item).toMatchObject({ label, category: "weapon", glb, equipped: false });
+      expect(item ? applyInventoryAction(state, slice, item) : "missing", `equip ${itemId}`).toBe("equipped");
+      expect(state.authorityCommands.pending.at(-1)?.command).toEqual({
+        SetEquippedWeapon: {
+          weapon_id: weaponId,
+          weapon_item_id: itemId,
+          weapon_variant_id: 0,
+        },
+      });
+    }
+  });
 });
 
 describe("inventory model safety path", () => {

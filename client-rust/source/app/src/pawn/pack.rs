@@ -29,6 +29,7 @@ pub struct PawnTemplate {
 /// GPU-resident parts (one per `BakedPart`).
 pub struct PawnGpuParts {
     pub parts: Vec<(MeshId, MaterialId)>,
+    pub material_names: Vec<Option<String>>,
 }
 
 impl PawnTemplate {
@@ -121,19 +122,30 @@ impl PawnTemplate {
     pub fn upload<G: Gpu>(&self, gpu: &mut G, renderer: &mut Renderer) -> PawnGpuParts {
         let uploaded = successor_engine_render::model::upload_glb(renderer, gpu, &self.doc)
             .expect("parsed pawn document must upload");
-        let parts = uploaded
+        let (parts, material_names) = uploaded
             .primitives
             .into_iter()
-            .filter(|part| {
-                self.doc
+            .filter_map(|part| {
+                let primitive = self
+                    .doc
                     .meshes
-                    .get(part.source_mesh)
-                    .and_then(|mesh| mesh.primitives.get(part.source_primitive))
-                    .is_some_and(|primitive| !primitive.joints.is_empty())
+                    .get(part.source_mesh)?
+                    .primitives
+                    .get(part.source_primitive)?;
+                if primitive.joints.is_empty() {
+                    return None;
+                }
+                let material_name = primitive
+                    .material
+                    .and_then(|index| self.doc.materials.get(index))
+                    .and_then(|material| material.name.clone());
+                Some(((part.mesh, part.material), material_name))
             })
-            .map(|part| (part.mesh, part.material))
-            .collect();
-        PawnGpuParts { parts }
+            .unzip();
+        PawnGpuParts {
+            parts,
+            material_names,
+        }
     }
 }
 

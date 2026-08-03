@@ -532,41 +532,66 @@ pub fn clone_terminal(
     }
 }
 
+pub fn converse_preview_rect(rect: [f32; 4]) -> [f32; 4] {
+    let [x, y, _, _] = rect;
+    [x, y, 82.0, 136.0]
+}
+
 pub fn converse(
     ui: &mut UiBuilder,
     rect: [f32; 4],
     model: &WindowModel,
     out: &mut Vec<WindowAction>,
 ) {
-    let [x, _, w, h] = rect;
-    let mut y = title(ui, rect, "CONVERSE / TRAINER");
+    let [x, y, w, h] = rect;
     let Some(npc) = &model.converse.npc else {
         unavailable(ui, x, y, "NO DIALOGUE TARGET");
         return;
     };
-    ui.text(&npc.name, x, y, 1.8, TEXT);
-    y += 24.0;
-    for delivery in model.converse.deliveries.iter().rev().take(4).rev() {
-        if y + 20.0 > rect[1] + h {
-            return;
-        }
-        ui.text(
-            &format!("{}: {}", delivery.speaker, delivery.body),
-            x,
-            y,
-            1.5,
-            TEXT,
-        );
-        y += 20.0;
+    let preview = converse_preview_rect(rect);
+    ui.rect(
+        preview[0],
+        preview[1],
+        preview[2],
+        preview[3],
+        [4, 10, 10, 24],
+    );
+
+    let name_w = UiBuilder::text_width(&npc.name, 1.45);
+    ui.text(
+        &npc.name,
+        x + (preview[2] - name_w) * 0.5,
+        y + preview[3] + 8.0,
+        1.45,
+        TEXT,
+    );
+    ui.text("TRAINER", x + 26.0, y + preview[3] + 27.0, 1.1, DIM);
+
+    let dialogue_x = x + preview[2] + 10.0;
+    let dialogue_w = w - preview[2] - 10.0;
+    ui.rect(dialogue_x, y, dialogue_w, 102.0, [6, 13, 14, 220]);
+
+    if let Some(delivery) = model.converse.deliveries.last() {
+        ui.text(&delivery.body, dialogue_x + 8.0, y + 9.0, 1.45, TEXT);
+    } else {
+        ui.text("State your business.", dialogue_x + 8.0, y + 9.0, 1.45, DIM);
     }
-    for (goal_id, label) in model.converse.career_goals.iter().take(4) {
+
+    let mut response_y = y + 118.0;
+    let mut number = 1usize;
+    for (goal_id, label) in model.converse.career_goals.iter().take(3) {
         let active = model.converse.career_goal_id.as_deref() == Some(goal_id.as_str());
+        let text = if active {
+            format!("{}  ACTIVE CAREER GOAL", number)
+        } else {
+            format!("{}  {}", number, label)
+        };
         if ui.button(
-            x,
-            y,
-            w,
-            24.0,
-            if active { "ACTIVE CAREER GOAL" } else { label },
+            dialogue_x,
+            response_y,
+            dialogue_w,
+            23.0,
+            &text,
             ButtonStyle::default(),
         ) && !active
         {
@@ -575,15 +600,17 @@ pub fn converse(
                 trainer_actor_id: npc.actor_id.clone(),
             }));
         }
-        y += 28.0;
+        number += 1;
+        response_y += 26.0;
     }
-    for skill in model.converse.teachable.iter().take(4) {
+    for skill in model.converse.teachable.iter().take(3) {
+        let text = format!("{}  LEARN {}", number, skill.label);
         if ui.button(
-            x,
-            y,
-            w,
-            24.0,
-            &format!("LEARN {}", skill.label),
+            dialogue_x,
+            response_y,
+            dialogue_w,
+            23.0,
+            &text,
             ButtonStyle::default(),
         ) {
             out.push(WindowAction::Command(ClientCommand::PurchaseSkillBox {
@@ -591,16 +618,19 @@ pub fn converse(
                 trainer_actor_id: npc.actor_id.clone(),
             }));
         }
-        y += 28.0;
+        number += 1;
+        response_y += 26.0;
     }
-    if ui.button(
-        x,
-        y,
-        w,
-        24.0,
-        "REQUEST STARTER TOOL",
-        ButtonStyle::default(),
-    ) {
+    if response_y + 23.0 < y + h
+        && ui.button(
+            dialogue_x,
+            response_y,
+            dialogue_w,
+            23.0,
+            &format!("{}  REQUEST STARTER TOOL", number),
+            ButtonStyle::default(),
+        )
+    {
         out.push(WindowAction::Command(ClientCommand::RequestStarterTool {
             trainer_actor_id: npc.actor_id.clone(),
         }));
@@ -690,33 +720,83 @@ pub fn travel(
     }
 }
 
+pub fn examine_preview_rect(rect: [f32; 4]) -> [f32; 4] {
+    let [x, y, w, h] = rect;
+    let preview_h = (h * 0.54).max(170.0);
+    let preview_w = (preview_h * 0.60).min(w);
+    [x + (w - preview_w) * 0.5, y, preview_w, preview_h]
+}
+
+pub fn examine_item_preview_rect(rect: [f32; 4]) -> [f32; 4] {
+    let [x, y, w, h] = rect;
+    [x, y, w, w.min((h * 0.62).max(190.0))]
+}
+
 pub fn examine(
     ui: &mut UiBuilder,
     rect: [f32; 4],
     model: &WindowModel,
     out: &mut Vec<WindowAction>,
 ) {
-    let [x, _, w, _] = rect;
-    let mut y = title(ui, rect, "EXAMINE");
+    let [x, y, w, h] = rect;
     if let Some(actor) = &model.examine.actor {
-        ui.text(&actor.name, x, y, 2.0, TEXT);
-        y += 22.0;
+        let preview = examine_preview_rect(rect);
+        ui.rect(
+            preview[0],
+            preview[1],
+            preview[2],
+            preview[3],
+            [4, 10, 10, 24],
+        );
+
+        let info_y = y + preview[3] + 10.0;
+        ui.text(&actor.name, x + 8.0, info_y, 1.8, TEXT);
         ui.text(
-            &format!(
-                "{} · HP {:.0}/{:.0} · {}",
-                actor.descriptor,
-                actor.health,
-                actor.health_max,
-                actor.life_state.to_ascii_uppercase()
-            ),
-            x,
-            y,
-            1.6,
+            &actor.descriptor.to_ascii_uppercase(),
+            x + 8.0,
+            info_y + 23.0,
+            1.1,
             DIM,
         );
-        y += 28.0;
+        ui.text(
+            &actor.life_state.to_ascii_uppercase(),
+            x + 8.0,
+            info_y + 42.0,
+            1.2,
+            TEXT,
+        );
+        let gauge_y = info_y + 65.0;
+        ui.text("HEALTH", x + 8.0, gauge_y, 1.05, DIM);
+        let ratio = if actor.health_max > 0.0 {
+            (actor.health / actor.health_max).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        ui.rect(x + 58.0, gauge_y + 1.0, w - 98.0, 7.0, [8, 24, 26, 235]);
+        ui.rect(x + 58.0, gauge_y + 1.0, (w - 98.0) * ratio, 7.0, ACCENT);
+        ui.text(
+            &format!("{:.0}/{:.0}", actor.health, actor.health_max),
+            x + w - 36.0,
+            gauge_y,
+            1.05,
+            TEXT,
+        );
+        let faction = actor
+            .faction_id
+            .as_deref()
+            .unwrap_or("UNKNOWN")
+            .to_ascii_uppercase();
+        ui.text("FACTION", x + 8.0, gauge_y + 22.0, 1.05, DIM);
+        ui.text(&faction, x + 58.0, gauge_y + 22.0, 1.05, TEXT);
         if actor.life_state != "alive"
-            && ui.button(x, y, w, 24.0, "REVIVE / STABILIZE", ButtonStyle::default())
+            && ui.button(
+                x + 8.0,
+                y + h - 28.0,
+                w - 16.0,
+                22.0,
+                "REVIVE / STABILIZE",
+                ButtonStyle::default(),
+            )
         {
             out.push(WindowAction::Command(ClientCommand::ReviveActor {
                 target_actor_id: actor.actor_id.clone(),
@@ -725,15 +805,46 @@ pub fn examine(
         return;
     }
     if let Some(item) = &model.examine.item {
-        ui.text(&item.item, x, y, 2.0, TEXT);
-        y += 24.0;
+        let preview = examine_item_preview_rect(rect);
+        ui.rect(
+            preview[0],
+            preview[1],
+            preview[2],
+            preview[3],
+            [4, 10, 10, 18],
+        );
+        let info_y = preview[1] + preview[3] + 10.0;
+        ui.text(&item.item, x + 6.0, info_y, 1.8, TEXT);
         ui.text(
-            &format!("QTY {} · VARIANT {}", item.quantity, item.variant_id),
-            x,
-            y,
-            1.6,
+            &format!(
+                "{} · QTY {} · VARIANT {}",
+                item.kind().label(),
+                item.quantity,
+                item.variant_id
+            ),
+            x + 6.0,
+            info_y + 23.0,
+            1.15,
             DIM,
         );
+        if let Some(potency) = item.potency {
+            ui.text(
+                &format!("POTENCY {potency}"),
+                x + 6.0,
+                info_y + 43.0,
+                1.15,
+                TEXT,
+            );
+        }
+        if let Some(purity) = item.purity {
+            ui.text(
+                &format!("PURITY {purity}"),
+                x + w * 0.5,
+                info_y + 43.0,
+                1.15,
+                TEXT,
+            );
+        }
         return;
     }
     if let Some((_, label)) = &model.examine.prop {

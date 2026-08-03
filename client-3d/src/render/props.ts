@@ -93,6 +93,11 @@ interface MappingEntry {
   interactable?: boolean;
   enterable?: MappingEnterable;
   /**
+   * Authored occupancy footprint in GLB metres. Use this instead of the full
+   * render AABB when decorative eaves/aprons extend beyond gameplay bounds.
+   */
+  fitFootprintM?: readonly number[];
+  /**
    * XYZ Euler correction, in degrees, applied to the imported asset root
    * before bounds/recentering. Use this only to reconcile an authored GLB's
    * axes with the runtime's Y-up, +Z-facing prop convention.
@@ -1311,10 +1316,15 @@ export class WorldPropsRenderer {
       const interiorReveal = enterableClass === "reveal";
       parts.push({ geometry: object.geometry as BufferGeometry, material, localMatrix, role, preHinge, postHinge, interiorReveal, enterableClass });
     });
+    const [footprintX, footprintZ] = resolvePropFitFootprint(
+      tmpSize.x,
+      tmpSize.z,
+      entry?.fitFootprintM,
+    );
     return {
       parts,
-      footprintX: Math.max(0.001, tmpSize.x),
-      footprintZ: Math.max(0.001, tmpSize.z),
+      footprintX,
+      footprintZ,
       hasLid,
       animatedScreen,
       enterable: entry?.enterable ?? null,
@@ -1429,6 +1439,19 @@ export class WorldPropsRenderer {
     this.materialCache.set(key, material);
     return material;
   }
+}
+
+export function resolvePropFitFootprint(
+  measuredX: number,
+  measuredZ: number,
+  authored?: readonly number[],
+): [number, number] {
+  const x = authored?.[0];
+  const z = authored?.[1];
+  if (typeof x === "number" && typeof z === "number" && Number.isFinite(x) && Number.isFinite(z) && x > 0 && z > 0) {
+    return [x, z];
+  }
+  return [Math.max(0.001, measuredX), Math.max(0.001, measuredZ)];
 }
 
 function composePlacement(

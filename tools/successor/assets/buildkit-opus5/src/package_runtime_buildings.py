@@ -22,6 +22,7 @@ import os
 import struct
 import sys
 import tempfile
+import zlib
 from pathlib import Path
 from typing import Any
 
@@ -700,6 +701,298 @@ def _glb_document(path: Path) -> tuple[dict[str, Any], bytearray]:
     return document, binary
 
 
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+PNG_CHANNELS = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}
+
+
+def _png_chunks(payload: bytes, label: str) -> list[tuple[bytes, bytes]]:
+    if not payload.startswith(PNG_SIGNATURE):
+        raise RuntimeError(f"{label}: image is not a PNG")
+    offset = len(PNG_SIGNATURE)
+    chunks: list[tuple[bytes, bytes]] = []
+    saw_iend = False
+    while offset < len(payload):
+        if offset + 12 > len(payload):
+            raise RuntimeError(f"{label}: truncated PNG chunk")
+        length = struct.unpack_from(">I", payload, offset)[0]
+        kind = payload[offset + 4:offset + 8]
+        data_start = offset + 8
+        data_end = data_start + length
+        if data_end + 4 > len(payload):
+            raise RuntimeError(f"{label}: PNG chunk exceeds image bytes")
+        data = payload[data_start:data_end]
+        expected_crc = struct.unpack_from(">I", payload, data_end)[0]
+        actual_crc = zlib.crc32(kind + data) & 0xFFFFFFFF
+        if actual_crc != expected_crc:
+            raise RuntimeError(f"{label}: PNG CRC mismatch in {kind!r}")
+        chunks.append((kind, data))
+        offset = data_end + 4
+        if kind == b"IEND":
+            saw_iend = True
+            break
+    if not saw_iend or offset != len(payload):
+        raise RuntimeError(f"{label}: malformed PNG terminator")
+    return chunks
+
+
+def _png_header(chunks: list[tuple[bytes, bytes]], label: str) -> tuple[int, int, int, int]:
+    if not chunks or chunks[0][0] != b"IHDR" or len(chunks[0][1]) != 13:
+        raise RuntimeError(f"{label}: PNG has no valid IHDR")
+    width, height, depth, color_type, compression, filtering, interlace = struct.unpack(
+        ">IIBBBBB", chunks[0][1]
+    )
+    allowed_depths = {
+        0: {1, 2, 4, 8, 16},
+        2: {8, 16},
+        3: {1, 2, 4, 8},
+        4: {8, 16},
+        6: {8, 16},
+    }
+    if (
+        not width
+        or not height
+        or color_type not in PNG_CHANNELS
+        or depth not in allowed_depths[color_type]
+        or compression != 0
+        or filtering != 0
+        or interlace != 0
+    ):
+        raise RuntimeError(f"{label}: unsupported PNG IHDR")
+    return width, height, depth, color_type
+
+
+def _paeth(left: int, up: int, upper_left: int) -> int:
+    prediction = left + up - upper_left
+    p_left = abs(prediction - left)
+    p_up = abs(prediction - up)
+    p_upper_left = abs(prediction - upper_left)
+    if p_left <= p_up and p_left <= p_upper_left:
+        return left
+    return up if p_up <= p_upper_left else upper_left
+
+
+def _unfilter_png_rows(
+    compressed: bytes, width: int, height: int, depth: int, color_type: int, label: str
+) -> list[bytes]:
+    channels = PNG_CHANNELS[color_type]
+    row_bytes = (width * channels * depth + 7) // 8
+    filter_bytes_per_pixel = max(1, (channels * depth + 7) // 8)
+    try:
+        decoded = zlib.decompress(compressed)
+    except zlib.error as error:
+        raise RuntimeError(f"{label}: PNG IDAT cannot be decompressed") from error
+    expected = height * (row_bytes + 1)
+    if len(decoded) != expected:
+        raise RuntimeError(f"{label}: PNG scanline byte count is invalid")
+    rows: list[bytes] = []
+    prior = bytearray(row_bytes)
+    offset = 0
+    for row_index in range(height):
+        filter_type = decoded[offset]
+        current = bytearray(decoded[offset + 1:offset + 1 + row_bytes])
+        offset += row_bytes + 1
+        if filter_type not in range(5):
+            raise RuntimeError(f"{label}: PNG row {row_index} uses unknown filter")
+        for index in range(row_bytes):
+            left = current[index - filter_bytes_per_pixel] if index >= filter_bytes_per_pixel else 0
+            up = prior[index]
+            upper_left = prior[index - filter_bytes_per_pixel] if index >= filter_bytes_per_pixel else 0
+            if filter_type == 1:
+                current[index] = (current[index] + left) & 0xFF
+            elif filter_type == 2:
+                current[index] = (current[index] + up) & 0xFF
+            elif filter_type == 3:
+                current[index] = (current[index] + ((left + up) >> 1)) & 0xFF
+            elif filter_type == 4:
+                current[index] = (current[index] + _paeth(left, up, upper_left)) & 0xFF
+        rows.append(bytes(current))
+        prior = current
+    return rows
+
+
+def _png_samples(row: bytes, count: int, depth: int, label: str) -> list[int]:
+    if depth == 8:
+        if len(row) != count:
+            raise RuntimeError(f"{label}: PNG sample row has the wrong length")
+        return list(row)
+    if depth == 16:
+        if len(row) != count * 2:
+            raise RuntimeError(f"{label}: PNG 16-bit sample row has the wrong length")
+        return [struct.unpack_from(">H", row, index * 2)[0] for index in range(count)]
+    samples: list[int] = []
+    mask = (1 << depth) - 1
+    for value in row:
+        for shift in range(8 - depth, -1, -depth):
+            samples.append((value >> shift) & mask)
+            if len(samples) == count:
+                return samples
+    if len(samples) != count:
+        raise RuntimeError(f"{label}: PNG packed sample row is truncated")
+    return samples
+
+
+def _sample_u8(value: int, depth: int) -> int:
+    if depth == 8:
+        return value
+    if depth == 16:
+        return value >> 8
+    return (value * 255 + ((1 << depth) - 1) // 2) // ((1 << depth) - 1)
+
+
+def _png_chunk(kind: bytes, data: bytes) -> bytes:
+    return (
+        struct.pack(">I", len(data))
+        + kind
+        + data
+        + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    )
+
+
+def _normalize_png_rgba(payload: bytes, label: str) -> bytes:
+    """Decode a non-interlaced PNG exactly, then emit canonical 8-bit RGBA PNG."""
+    chunks = _png_chunks(payload, label)
+    width, height, depth, color_type = _png_header(chunks, label)
+    palette_data = next((data for kind, data in chunks if kind == b"PLTE"), None)
+    transparency = next((data for kind, data in chunks if kind == b"tRNS"), None)
+    compressed = b"".join(data for kind, data in chunks if kind == b"IDAT")
+    if not compressed:
+        raise RuntimeError(f"{label}: PNG has no IDAT")
+    if color_type == 3:
+        if palette_data is None or len(palette_data) % 3:
+            raise RuntimeError(f"{label}: indexed PNG has no valid palette")
+        palette = [tuple(palette_data[index:index + 3]) for index in range(0, len(palette_data), 3)]
+    else:
+        palette = []
+    rows = _unfilter_png_rows(compressed, width, height, depth, color_type, label)
+    channels = PNG_CHANNELS[color_type]
+    rgba = bytearray()
+    for row in rows:
+        samples = _png_samples(row, width * channels, depth, label)
+        for pixel in range(width):
+            offset = pixel * channels
+            if color_type == 0:
+                gray = samples[offset]
+                alpha = 0 if transparency and gray == int.from_bytes(transparency[:2], "big") else 255
+                rgba.extend((_sample_u8(gray, depth),) * 3 + (alpha,))
+            elif color_type == 2:
+                rgb = samples[offset:offset + 3]
+                transparent = tuple(samples[offset:offset + 3]) == tuple(
+                    int.from_bytes(transparency[index:index + 2], "big")
+                    for index in range(0, min(len(transparency or b""), 6), 2)
+                ) if transparency else False
+                rgba.extend(tuple(_sample_u8(value, depth) for value in rgb) + (0 if transparent else 255,))
+            elif color_type == 3:
+                index = samples[offset]
+                if index >= len(palette):
+                    raise RuntimeError(f"{label}: palette index {index} is out of range")
+                alpha = transparency[index] if transparency and index < len(transparency) else 255
+                rgba.extend(palette[index] + (alpha,))
+            elif color_type == 4:
+                rgba.extend((_sample_u8(samples[offset], depth),) * 3 + (_sample_u8(samples[offset + 1], depth),))
+            else:
+                rgba.extend(tuple(_sample_u8(value, depth) for value in samples[offset:offset + 4]))
+    raw = bytearray()
+    row_bytes = width * 4
+    for row_index in range(height):
+        raw.append(0)
+        start = row_index * row_bytes
+        raw.extend(rgba[start:start + row_bytes])
+    header = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    return PNG_SIGNATURE + _png_chunk(b"IHDR", header) + _png_chunk(
+        b"IDAT", zlib.compress(bytes(raw), level=9)
+    ) + _png_chunk(b"IEND", b"")
+
+
+def _image_view_payload(
+    document: dict[str, Any], binary: bytearray, image: dict[str, Any], label: str
+) -> tuple[int, bytes]:
+    view_index = image.get("bufferView")
+    views = document.get("bufferViews", [])
+    if not isinstance(view_index, int) or not 0 <= view_index < len(views):
+        raise RuntimeError(f"{label}: image has no valid bufferView")
+    view = views[view_index]
+    offset = view.get("byteOffset", 0)
+    length = view.get("byteLength")
+    if not isinstance(offset, int) or not isinstance(length, int) or offset < 0 or length < 1:
+        raise RuntimeError(f"{label}: image bufferView bounds are invalid")
+    payload = bytes(binary[offset:offset + length])
+    if len(payload) != length:
+        raise RuntimeError(f"{label}: image payload exceeds GLB binary chunk")
+    return view_index, payload
+
+
+def _rewrite_buffer_views(
+    document: dict[str, Any], binary: bytearray, replacements: dict[int, bytes], label: str
+) -> bytearray:
+    """Rewrite all views once so normalized images do not retain duplicate bytes."""
+    rewritten = bytearray()
+    views = document.get("bufferViews", [])
+    replacement_views = []
+    for index, source_view in enumerate(views):
+        offset = source_view.get("byteOffset", 0)
+        length = source_view.get("byteLength")
+        if not isinstance(offset, int) or not isinstance(length, int) or offset < 0 or length < 0:
+            raise RuntimeError(f"{label}: bufferView {index} bounds are invalid")
+        source_payload = bytes(binary[offset:offset + length])
+        if len(source_payload) != length:
+            raise RuntimeError(f"{label}: bufferView {index} exceeds GLB binary chunk")
+        payload = replacements.get(index, source_payload)
+        RuntimePacker._align4(rewritten)
+        view = copy.deepcopy(source_view)
+        view["buffer"] = 0
+        view["byteOffset"] = len(rewritten)
+        view["byteLength"] = len(payload)
+        replacement_views.append(view)
+        rewritten.extend(payload)
+    document["bufferViews"] = replacement_views
+    return rewritten
+
+
+def _normalize_runtime_pngs(path: Path) -> int:
+    """Normalize final embedded PNGs to the Rust loader's 8-bit RGBA contract."""
+    document, binary = _glb_document(path)
+    replacements: dict[int, bytes] = {}
+    png_count = 0
+    for index, image in enumerate(document.get("images", [])):
+        if image.get("mimeType") != "image/png":
+            continue
+        label = f"{_relative(path)}: PNG image {index}"
+        view_index, payload = _image_view_payload(document, binary, image, label)
+        normalized = _normalize_png_rgba(payload, label)
+        prior = replacements.get(view_index)
+        if prior is not None and prior != normalized:
+            raise RuntimeError(f"{label}: shared image bufferView normalizes inconsistently")
+        replacements[view_index] = normalized
+        png_count += 1
+    if not png_count:
+        raise RuntimeError(f"{_relative(path)}: package has no PNG images to normalize")
+    binary = _rewrite_buffer_views(document, binary, replacements, _relative(path))
+    RuntimePacker._write_glb(path, document, binary)
+    return png_count
+
+
+def _validate_runtime_pngs(document: dict[str, Any], binary: bytearray, path: Path) -> int:
+    count = 0
+    for index, image in enumerate(document.get("images", [])):
+        if image.get("mimeType") != "image/png":
+            continue
+        _view, payload = _image_view_payload(
+            document, binary, image, f"{_relative(path)}: PNG image {index}"
+        )
+        _width, _height, depth, color_type = _png_header(
+            _png_chunks(payload, f"{_relative(path)}: PNG image {index}"),
+            f"{_relative(path)}: PNG image {index}",
+        )
+        if depth != 8 or color_type != 6:
+            raise RuntimeError(
+                f"{_relative(path)}: PNG image {index} is {depth}-bit color type {color_type}, expected 8-bit RGBA"
+            )
+        count += 1
+    if not count:
+        raise RuntimeError(f"{_relative(path)}: package has no PNG images")
+    return count
+
+
 def _append_source_view(
     destination: dict[str, Any], destination_binary: bytearray,
     source: dict[str, Any], source_binary: bytearray, source_index: int,
@@ -956,6 +1249,8 @@ def _validate_plan_glb(
 ) -> dict[str, Any]:
     document, binary = _glb_document(path)
     images = _validate_embedded_images(document, path)
+    if _validate_runtime_pngs(document, binary, path) != images:
+        raise RuntimeError(f"{_relative(path)}: embedded PNG count drifted")
     node_names = _node_names(document)
     _validate_prefixes(node_names)
     missing = [marker for marker in _furnished_placement_markers(inputs)
@@ -1313,6 +1608,7 @@ def _build_package(spec: dict[str, Any], output_dir: Path) -> dict[str, Any]:
         _export_raw_glb(raw_glb)
         pack_report = RuntimePacker.pack_file(raw_glb, paths["glb"])
     _inject_entry_animations(paths["glb"], entry_record["glb"], entry)
+    pngs_normalized = _normalize_runtime_pngs(paths["glb"])
 
     glb_validation = _validate_plan_glb(
         paths["glb"], inputs, spec["footprint_cells"], entry
@@ -1368,6 +1664,7 @@ def _build_package(spec: dict[str, Any], output_dir: Path) -> dict[str, Any]:
             "colour_accessors_quantized": pack_report["colour_accessors_quantized"],
             "images_embedded": pack_report["images_embedded"],
             "unique_image_bytes": pack_report["unique_image_bytes"],
+            "pngs_normalized_rgba8": pngs_normalized,
         },
     }
     _write_json(paths["provenance"], provenance)

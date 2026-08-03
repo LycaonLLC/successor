@@ -54,7 +54,6 @@ pub fn draw(
     // ── Header (radar-style) ─────────────────────────────────────────────
     let header_h = 44.0;
     ui.rect(x, y, w, header_h, [10, 14, 20, 210]);
-    ui.border(x, y, w, header_h, 1.0, SLOT_EDGE);
 
     // Survey icon (using "survey" key)
     if let Some((col, row)) = icons.cell("survey") {
@@ -96,7 +95,6 @@ pub fn draw(
                 fill_color,
             );
         }
-        ui.border(bar_x, ry + 2.0, bar_w, 14.0, 1.0, SLOT_EDGE);
 
         // Percentage text next to bar
         let pct_text = format!("{:.1}%", res.concentration * 100.0);

@@ -8,7 +8,7 @@
 //! boxes never emit; the deny reason is the authoritative copy from the
 //! projection.
 
-use super::{WindowAction, WindowModel, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{WindowAction, WindowModel, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::UiBuilder;
 
@@ -81,14 +81,7 @@ pub fn draw(
                 SLOT
             };
             ui.rect(x, cy, w, 34.0, fill);
-            ui.border(
-                x,
-                cy,
-                w,
-                34.0,
-                1.0,
-                if b.trained { ACCENT } else { SLOT_EDGE },
-            );
+
             let text_col = if b.trained {
                 ACCENT
             } else if b.available {

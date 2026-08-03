@@ -12,6 +12,7 @@ pub mod game;
 pub mod glb_scene;
 pub mod graphics_tuning;
 pub mod hud;
+mod item_preview;
 pub mod material_parity;
 pub mod net;
 pub mod pawn;
@@ -479,10 +480,14 @@ mod web_runtime {
                         .expect("terrain render failed");
                 }
             } else if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) == 0 {
-                if let Some(scene) = CONNECTED_SCENE.get_mut() {
+                if let (Some(scene), Some(chat_client), Some(chat_input)) = (
+                    CONNECTED_SCENE.get_mut(),
+                    CHAT_CLIENT.get_mut(),
+                    CHAT_INPUT.get_mut(),
+                ) {
                     let dt = CONNECTED_DT.get_mut().copied().unwrap_or(1.0 / 60.0);
                     let mut read_asset = read_web_asset;
-                    scene.frame(gpu, w, h, dt, &mut read_asset);
+                    scene.frame(gpu, w, h, dt, &mut read_asset, chat_client, chat_input);
                 }
             } else if let Some(scene) = SCENE.get_mut() {
                 scene
@@ -540,6 +545,7 @@ mod web_runtime {
     static SESSION: GlobalCell<Session> = GlobalCell::new();
     static WS: GlobalCell<successor_platform::WsHandle> = GlobalCell::new();
     static CHAT_CLIENT: GlobalCell<ChatClient> = GlobalCell::new();
+    static CHAT_INPUT: GlobalCell<successor_engine_render::ui::TextField> = GlobalCell::new();
     static CHAT_TICKET: GlobalCell<Option<String>> = GlobalCell::new();
     static CHAT_WS: GlobalCell<successor_platform::WsHandle> = GlobalCell::new();
     static CLIENT_RELEASE: GlobalCell<String> = GlobalCell::new();
@@ -596,8 +602,9 @@ mod web_runtime {
         }
         let mut chat_client = ChatClient::with_endpoint(128, chat_endpoint.clone());
         chat_client.connection.begin();
+        CHAT_CLIENT.set(chat_client);
+        CHAT_INPUT.set(successor_engine_render::ui::TextField::new(320));
         if let Ok(chat_ws) = successor_platform::ws_connect(&chat_endpoint) {
-            CHAT_CLIENT.set(chat_client);
             CHAT_TICKET.set(Some(chat_ticket));
             CHAT_WS.set(chat_ws);
             CLIENT_RELEASE.set(client_release);
@@ -734,8 +741,8 @@ mod web_runtime {
                     }
                 }
                 successor_platform::WsEvent::Frame(length) => {
-                    let _ = chat_client
-                        .on_incoming(&String::from_utf8_lossy(&chat_buffer[..length]));
+                    let _ =
+                        chat_client.on_incoming(&String::from_utf8_lossy(&chat_buffer[..length]));
                     if chat_client.connection.state == ChatConnectionState::SyncingHistory {
                         let frame = chat_client.history_request(100);
                         successor_platform::ws_send(chat_socket, frame.as_bytes());

@@ -1,6 +1,6 @@
 # Successor Current Project State
 
-Status: current implementation inventory as of 2026-07-31, after the
+Status: current implementation inventory as of 2026-08-02, after the
 2026-07-29 public-alpha release. Exact public hashes and pointers live in
 `CURRENT_DEPLOYMENT.md`.
 
@@ -16,8 +16,8 @@ The current release includes:
 - full-viewport browser play with no page content below the game;
 - a parent-owned exit/full-view control and ordinary visible cursor;
 - automatic keyboard focus, Enter-to-chat, and clean character switching;
-- exact creator appearance through roster, Rust checkpoint, relog, and world
-  rendering;
+- exact creator body, face, hair, and color appearance through roster, Rust
+  checkpoint, relog, and world rendering;
 - local, zone, and global chat in the graphical HUD and terminal client;
 - in-place world travel with inventory, equipment, skills, professions,
   vitals, credits, and appearance continuity;
@@ -170,9 +170,9 @@ terminals in both areas. Runtime characters cannot claim an authored actor id.
 The fixture and map bundle are byte-stable generated source:
 
 - slice SHA-256:
-  `69a19db8289b0d4711ccca5d4febef39b8dcd2ef662f9f70539935e49af8680e`
+  `bd489338c0d65535f4fc1d8cfe7f0dcb3f532ced7f658c756c39913ffea00c02`
 - map-bundle SHA-256:
-  `01df5d1d178a8199b5bbd62f7e2107f017f5ae2ba1ca45081bb0ecdbb8f65795`
+  `df23df6a59f555040f607b7ac5218d0472e6921df2132b2ed2828f2daedf9ef5`
 
 The authority and clients have working foundations for roster/appearance,
 inventory/equipment, professions, combat and life state, surveying and
@@ -184,8 +184,9 @@ or presentation is finished.
 ## Character and durability contract
 
 The file-backed `successor.character-store.v2` record owns roster/profile
-metadata, complete appearance, bounded character records, and the one-way
-first-entry marker. Rust owns durable gameplay state. The checkpoint contains
+metadata, complete appearance including a canonical `male`/`female` body route,
+bounded character records, and the one-way first-entry marker. Rust owns
+durable gameplay state. The checkpoint contains
 inventory, equipment, position, vitals, profession and skill state, credits,
 recipes, and other actor progress.
 
@@ -262,7 +263,11 @@ picker or require a second click. Opening `/play/` directly still presents the
 picker as a recovery path. This source behavior is not public until a new site
 release is promoted.
 
-The face compositor uses a runtime-cut skinned overlay from the PawnForge body
+The creator exposes the two canonical PawnForge humanoid bodies. The persisted
+choice deterministically selects `adventurer-premium-male` or
+`adventurer-premium-female` in the authority, browser client, and native client;
+both share the same 50-joint/47-clip runtime contract and fixed starter outfit.
+The face compositor uses a runtime-cut skinned overlay from the selected body
 mesh. It shares the body skeleton and renders exact stored styles/colors in
 world pawns, roster dolls, paper dolls, and portraits.
 

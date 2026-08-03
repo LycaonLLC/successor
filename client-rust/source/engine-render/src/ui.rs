@@ -8,7 +8,7 @@
 //! NDC here. The buffer is caller-owned and cleared per frame → no per-frame
 //! heap growth once warmed.
 
-use crate::font::{glyph, GLYPH_H, GLYPH_W};
+use crate::font::{glyph, text_advance, RasterFont, GLYPH_H, GLYPH_W};
 use alloc::vec::Vec;
 
 /// Layout of the baked icon atlas (from `icons.json`).
@@ -31,12 +31,33 @@ impl AtlasMeta {
     }
 }
 
+/// Fixed-cost immediate-mode skin for a nine-slice rectangle.
+/// The center is painted first, then corners, then edges; each region stretches
+/// independently and no geometry is allocated after warmup.
+#[derive(Clone, Copy, Debug)]
+pub struct RectangleStyle {
+    pub north: [u8; 4],
+    pub south: [u8; 4],
+    pub east: [u8; 4],
+    pub west: [u8; 4],
+    pub center: [u8; 4],
+    pub north_east: [u8; 4],
+    pub north_west: [u8; 4],
+    pub south_east: [u8; 4],
+    pub south_west: [u8; 4],
+    pub west_width: f32,
+    pub east_width: f32,
+    pub north_height: f32,
+    pub south_height: f32,
+}
+
 pub struct UiBuilder {
     pub buf: Vec<f32>,
     pub quads: u32,
     sw: f32,
     sh: f32,
     atlas: AtlasMeta,
+    font: Option<RasterFont>,
     // Input for this frame (screen px + button edges).
     mx: f32,
     my: f32,
@@ -55,6 +76,7 @@ impl UiBuilder {
             sw: 1.0,
             sh: 1.0,
             atlas,
+            font: None,
             mx: 0.0,
             my: 0.0,
             mdown: false,
@@ -63,6 +85,13 @@ impl UiBuilder {
             prev_down: false,
             input_enabled: true,
         }
+    }
+
+    /// Attach a startup-rasterized font packed into the UI icon atlas.
+    pub fn new_with_font(atlas: AtlasMeta, font: RasterFont) -> Self {
+        let mut ui = Self::new(atlas);
+        ui.font = Some(font);
+        ui
     }
 
     /// Feed this frame's pointer state (screen px, left-button held). Call
@@ -131,6 +160,77 @@ impl UiBuilder {
         self.quads += 1;
     }
 
+    fn push_solid_quad(&mut self, points: [(f32, f32); 4], c: [u8; 4]) {
+        let col = [
+            c[0] as f32 / 255.0,
+            c[1] as f32 / 255.0,
+            c[2] as f32 / 255.0,
+            c[3] as f32 / 255.0,
+        ];
+        for index in [0usize, 1, 2, 0, 2, 3] {
+            let (x, y) = points[index];
+            self.buf.extend_from_slice(&[
+                self.ndc_x(x),
+                self.ndc_y(y),
+                -1.0,
+                -1.0,
+                col[0],
+                col[1],
+                col[2],
+                col[3],
+            ]);
+        }
+        self.quads += 1;
+    }
+
+    /// Solid antialiased-by-MSAA line segment with arbitrary orientation.
+    pub fn line(&mut self, x0: f32, y0: f32, x1: f32, y1: f32, thickness: f32, rgba: [u8; 4]) {
+        let dx = x1 - x0;
+        let dy = y1 - y0;
+        let length = libm::sqrtf(dx * dx + dy * dy);
+        if length <= f32::EPSILON || thickness <= 0.0 {
+            return;
+        }
+        let half = thickness * 0.5;
+        let nx = -dy / length * half;
+        let ny = dx / length * half;
+        self.push_solid_quad(
+            [
+                (x0 + nx, y0 + ny),
+                (x1 + nx, y1 + ny),
+                (x1 - nx, y1 - ny),
+                (x0 - nx, y0 - ny),
+            ],
+            rgba,
+        );
+    }
+
+    /// Fixed-segment circular stroke. Intended for instruments, not arbitrary
+    /// vector art; it emits exactly `segments` quads without heap growth.
+    pub fn ring(
+        &mut self,
+        cx: f32,
+        cy: f32,
+        radius: f32,
+        segments: u32,
+        thickness: f32,
+        rgba: [u8; 4],
+    ) {
+        if segments < 3 || radius <= 0.0 {
+            return;
+        }
+        let mut x0 = cx + radius;
+        let mut y0 = cy;
+        for index in 1..=segments {
+            let angle = index as f32 / segments as f32 * core::f32::consts::TAU;
+            let x1 = cx + libm::cosf(angle) * radius;
+            let y1 = cy + libm::sinf(angle) * radius;
+            self.line(x0, y0, x1, y1, thickness, rgba);
+            x0 = x1;
+            y0 = y1;
+        }
+    }
+
     /// Filled rectangle (screen px, top-left origin).
     pub fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, rgba: [u8; 4]) {
         self.push_quad(x, y, w, h, (-1.0, -1.0, -1.0, -1.0), rgba);
@@ -144,16 +244,57 @@ impl UiBuilder {
         self.rect(x + w - t, y, t, h, rgba); // right
     }
 
-    /// A panel: filled body plus a border.
-    pub fn panel(&mut self, x: f32, y: f32, w: f32, h: f32, fill: [u8; 4], edge: [u8; 4]) {
+    /// A filled panel. Callers that need a semantic rail or focus indicator
+    /// draw that one accent explicitly instead of framing every surface.
+    pub fn panel(&mut self, x: f32, y: f32, w: f32, h: f32, fill: [u8; 4], _edge: [u8; 4]) {
         self.rect(x, y, w, h, fill);
-        self.border(x, y, w, h, 1.5, edge);
+    }
+
+    /// Render the nine independently stretched regions of a rectangle style.
+    /// The center is painted first, followed by corners and edges.
+    pub fn nine_slice(&mut self, x: f32, y: f32, w: f32, h: f32, style: &RectangleStyle) {
+        let west = style.west_width.max(0.0).min(w * 0.5);
+        let east = style.east_width.max(0.0).min(w * 0.5);
+        let north = style.north_height.max(0.0).min(h * 0.5);
+        let south = style.south_height.max(0.0).min(h * 0.5);
+        let center_w = (w - west - east).max(0.0);
+        let center_h = (h - north - south).max(0.0);
+
+        if center_w > 0.0 && center_h > 0.0 {
+            self.rect(x + west, y + north, center_w, center_h, style.center);
+        }
+        if east > 0.0 && north > 0.0 {
+            self.rect(x + w - east, y, east, north, style.north_east);
+        }
+        if west > 0.0 && north > 0.0 {
+            self.rect(x, y, west, north, style.north_west);
+        }
+        if east > 0.0 && south > 0.0 {
+            self.rect(x + w - east, y + h - south, east, south, style.south_east);
+        }
+        if west > 0.0 && south > 0.0 {
+            self.rect(x, y + h - south, west, south, style.south_west);
+        }
+        if west > 0.0 && center_h > 0.0 {
+            self.rect(x, y + north, west, center_h, style.west);
+        }
+        if east > 0.0 && center_h > 0.0 {
+            self.rect(x + w - east, y + north, east, center_h, style.east);
+        }
+        if north > 0.0 && center_w > 0.0 {
+            self.rect(x + west, y, center_w, north, style.north);
+        }
+        if south > 0.0 && center_w > 0.0 {
+            self.rect(x + west, y + h - south, center_w, south, style.south);
+        }
     }
 
     /// Draw `text` at `(x, y)` (top-left) with a glyph pixel size of `px`
     /// (each 5×7 dot is `px`×`px`). Returns the advanced x cursor.
     pub fn text(&mut self, text: &str, x: f32, y: f32, px: f32, rgba: [u8; 4]) -> f32 {
-        let cell_w = (GLYPH_W as f32 + 1.0) * px;
+        if self.font.is_some() {
+            return self.raster_text(text, x, y, px, rgba);
+        }
         let mut cursor = x;
         for ch in text.chars() {
             if let Some(rows) = glyph(ch) {
@@ -166,14 +307,44 @@ impl UiBuilder {
                     }
                 }
             }
-            cursor += cell_w;
+            cursor += text_advance(ch) * px;
+        }
+        cursor
+    }
+
+    fn raster_text(&mut self, text: &str, x: f32, y: f32, px: f32, rgba: [u8; 4]) -> f32 {
+        let (ascent, line_height) = {
+            let font = self.font.as_ref().expect("raster font checked");
+            (font.ascent, font.line_height)
+        };
+        let target_height = 8.75 * px;
+        let scale = target_height / line_height.max(1.0);
+        let mut cursor = x;
+        for ch in text.chars() {
+            if let Some(glyph) = self.font.as_ref().and_then(|font| font.glyph(ch)) {
+                if glyph.width > 0.0 && glyph.height > 0.0 {
+                    let gx = cursor + glyph.xmin * scale;
+                    let gy = y + (ascent - (glyph.ymin + glyph.height)) * scale;
+                    self.push_quad(
+                        gx,
+                        gy,
+                        glyph.width * scale,
+                        glyph.height * scale,
+                        glyph.uv,
+                        rgba,
+                    );
+                }
+                cursor += glyph.advance * scale;
+            } else {
+                cursor += text_advance(ch) * px;
+            }
         }
         cursor
     }
 
     /// Pixel width a string will occupy at glyph size `px`.
     pub fn text_width(text: &str, px: f32) -> f32 {
-        text.chars().count() as f32 * (GLYPH_W as f32 + 1.0) * px
+        text.chars().map(text_advance).sum::<f32>() * px
     }
 
     /// An icon from the baked atlas, scaled into `w`×`h` at `(x, y)`, tinted.
@@ -203,8 +374,8 @@ impl UiBuilder {
         }
     }
 
-    /// A labeled button. Draws a hover/press-tinted body + border + centered
-    /// text and returns whether it was clicked (released inside) this frame.
+    /// A labeled button. Draws a hover/press-tinted body + centered text and
+    /// returns whether it was clicked (released inside) this frame.
     pub fn button(
         &mut self,
         x: f32,
@@ -223,7 +394,6 @@ impl UiBuilder {
             style.fill
         };
         self.rect(x, y, w, h, fill);
-        self.border(x, y, w, h, 1.0, style.edge);
         // Size the 5×7 label so it fits the button: glyph height = 7·px must fit
         // ~half the height, and the whole label width = n·6·px must fit ~85% of
         // the width — take the smaller so long labels ("UNEQUIP") never overflow.
@@ -258,7 +428,6 @@ impl UiBuilder {
             style.fill
         };
         self.rect(x, y, size, size, fill);
-        self.border(x, y, size, size, 1.0, style.edge);
         let pad = size * 0.18;
         self.icon(
             col,
@@ -349,14 +518,6 @@ impl UiBuilder {
             } else {
                 [236, 192, 92, 255]
             },
-        );
-        self.border(
-            thumb_x,
-            y + (h - thumb) * 0.5,
-            thumb,
-            thumb,
-            1.0,
-            [100, 78, 42, 255],
         );
         changed
     }
@@ -517,6 +678,40 @@ mod tests {
         assert_eq!(ui.buf.len(), 6 * 8);
         // uv.x sentinel < 0 for solid quads.
         assert!(ui.buf[2] < 0.0);
+    }
+
+    #[test]
+    fn nine_slice_emits_center_corners_then_edges() {
+        let mut ui = UiBuilder::new(ATLAS);
+        ui.begin(100, 50);
+        let style = RectangleStyle {
+            north: [1, 1, 1, 255],
+            south: [2, 2, 2, 255],
+            east: [3, 3, 3, 255],
+            west: [4, 4, 4, 255],
+            center: [10, 20, 30, 40],
+            north_east: [6, 6, 6, 255],
+            north_west: [7, 7, 7, 255],
+            south_east: [8, 8, 8, 255],
+            south_west: [9, 9, 9, 255],
+            west_width: 5.0,
+            east_width: 5.0,
+            north_height: 4.0,
+            south_height: 4.0,
+        };
+        ui.nine_slice(0.0, 0.0, 100.0, 50.0, &style);
+        assert_eq!(ui.quads, 9);
+        assert!((ui.buf[4] - 10.0 / 255.0).abs() < 1e-6);
+        assert!((ui.buf[7] - 40.0 / 255.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn ring_emits_one_oriented_quad_per_segment() {
+        let mut ui = UiBuilder::new(ATLAS);
+        ui.begin(100, 100);
+        ui.ring(50.0, 50.0, 40.0, 32, 1.0, [255; 4]);
+        assert_eq!(ui.quads, 32);
+        assert_eq!(ui.buf.len(), 32 * 6 * 8);
     }
 
     #[test]

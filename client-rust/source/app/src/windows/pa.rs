@@ -1,6 +1,6 @@
 //! PERSONAL ARMOR — status/energy readout + ability grid.
 
-use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{WindowAction, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
@@ -79,7 +79,6 @@ pub fn draw(
         let fill_w = bar_w * (model.energy / model.energy_max.max(1.0)).clamp(0.0, 1.0);
         ui.rect(x, bar_y, fill_w, 20.0, [86, 156, 210, 235]);
     }
-    ui.border(x, bar_y, bar_w, 20.0, 1.0, SLOT_EDGE);
 
     let energy_text = format!(
         "ENERGY: {}/{}",

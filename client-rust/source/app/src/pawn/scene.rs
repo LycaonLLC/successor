@@ -12,8 +12,9 @@ use successor_engine_render::gpu::{ClearSpec, Gpu};
 use successor_engine_render::primitives;
 use successor_engine_render::renderer::Renderer;
 
-use super::animator::{PawnAnimator, WeaponLane};
+use super::animator::{weapon_hand_bone, PawnAnimator, WeaponLane};
 use super::appearance::{faction_tinted, skin_tint};
+use super::catalog::parse_weapon_hand_spec;
 use super::pack::{PawnGpuParts, PawnTemplate};
 use crate::GameWorld;
 
@@ -32,6 +33,8 @@ struct WeaponRig {
     entities: Vec<(Entity, Mat4)>,
     actor_index: usize,
     hand: usize,
+    mount: Mat4,
+    foregrip: Vec3,
 }
 
 pub struct PawnScene {
@@ -43,12 +46,31 @@ pub struct PawnScene {
     weapon: Option<WeaponRig>,
     camera: Entity,
     center: Vec3,
-    orbit: f32,
+    view: PawnView,
+}
+
+#[derive(Clone, Copy)]
+pub struct PawnView {
+    pub distance: f32,
+    pub height: f32,
+    pub yaw_radians: f32,
+    pub orbit_speed: f32,
+}
+
+impl PawnView {
+    fn eye(self, center: Vec3, frame: u64) -> Vec3 {
+        let angle = self.yaw_radians + frame as f32 * self.orbit_speed;
+        center.add(vec3(
+            angle.sin() * self.distance,
+            self.height,
+            angle.cos() * self.distance,
+        ))
+    }
 }
 
 impl PawnScene {
     #[allow(clippy::result_unit_err)]
-    pub fn build<G: Gpu>(gpu: &mut G, bytes: &[u8]) -> Result<PawnScene, ()> {
+    pub fn build<G: Gpu>(gpu: &mut G, bytes: &[u8], view: PawnView) -> Result<PawnScene, ()> {
         let template = PawnTemplate::from_bytes(bytes).map_err(|_| ())?;
         let pawn_scale = template
             .uniform_scale_for_height(crate::world::ADULT_PAWN_HEIGHT_METERS)
@@ -78,15 +100,21 @@ impl PawnScene {
         for (i, (speed, lane, against, faction, skin)) in specs.iter().enumerate() {
             let base = skin_tint(*skin);
             let color = faction_tinted(base, *faction);
-            let material =
-                renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
-                    base_color: color,
-                    blend: (color)[3] < 1.0,
-                    ..successor_engine_render::renderer::MaterialDesc::default()
-                });
             let x = i as f32 * 1.6 - (specs.len() as f32 - 1.0) * 0.8;
             let mut entities = Vec::new();
-            for (mesh, _mat) in &gpu_parts.parts {
+            for ((mesh, authored_material), material_name) in
+                gpu_parts.parts.iter().zip(&gpu_parts.material_names)
+            {
+                let material = if material_name.as_deref() == Some("RB_Face") {
+                    *authored_material
+                } else {
+                    let mut desc = renderer
+                        .material_desc(*authored_material)
+                        .unwrap_or_default();
+                    desc.base_color = color;
+                    desc.blend = color[3] < 1.0;
+                    renderer.add_material_desc(desc)
+                };
                 let e = world.spawn();
                 world.set_component(
                     e,
@@ -193,7 +221,6 @@ impl PawnScene {
             },
         );
 
-        let orbit = 6.0f32;
         let camera = world.spawn();
         world.set_component(
             camera,
@@ -210,7 +237,7 @@ impl PawnScene {
                     color: Some([0.09, 0.10, 0.12, 1.0]),
                     depth: Some(1.0),
                 },
-                eye: center.add(vec3(0.0, 1.5, orbit)),
+                eye: view.eye(center, 0),
                 look_at: center,
                 up: Vec3::Y,
             },
@@ -228,25 +255,19 @@ impl PawnScene {
             weapon,
             camera,
             center,
-            orbit,
+            view,
         })
     }
 
     pub fn animate(&mut self, frame: u64) {
         let dt = 1.0 / 60.0;
-        // Slow orbit.
-        let angle = frame as f32 * 0.01;
-        let eye = self.center.add(vec3(
-            angle.sin() * self.orbit,
-            1.5,
-            angle.cos() * self.orbit,
-        ));
+        let eye = self.view.eye(self.center, frame);
         if let Some(cam) = self.world.get_component::<Camera>(self.camera) {
             cam.eye = eye;
         }
         self.renderer.begin_skin_frame();
         for (idx, actor) in self.actors.iter_mut().enumerate() {
-            let palette = actor.animator.update(
+            actor.animator.update(
                 &mut self.template,
                 actor.lane,
                 actor.speed,
@@ -254,6 +275,18 @@ impl PawnScene {
                 actor.alive,
                 dt,
             );
+            if actor.alive {
+                if let Some(rig) = &self.weapon {
+                    if rig.actor_index == idx {
+                        actor.animator.apply_rifle_support_ik(
+                            &mut self.template,
+                            rig.mount,
+                            rig.foregrip,
+                        );
+                    }
+                }
+            }
+            let palette = actor.animator.palette();
             let count = palette.len() as u32;
             let offset = self.renderer.push_skin_palette(palette);
             for &e in &actor.entities {
@@ -270,7 +303,8 @@ impl PawnScene {
                         Quat::IDENTITY,
                         vec3(self.pawn_scale, self.pawn_scale, self.pawn_scale),
                     )
-                    .mul(bone);
+                    .mul(bone)
+                    .mul(rig.mount);
                     for &(entity, local) in &rig.entities {
                         let (t, r, s) = world_mat.mul(local).to_trs();
                         if let Some(tr) = self.world.get_component::<Transform>(entity) {
@@ -296,12 +330,11 @@ fn load_weapon<G: Gpu>(
     actors: &[PawnActor],
 ) -> Option<WeaponRig> {
     let actor_index = actors.iter().position(|a| a.lane == WeaponLane::Rifle)?;
-    let hand = template
-        .skeleton
-        .find_bone("RightHand")
-        .or_else(|| template.skeleton.find_bone("Hand"))
-        .or_else(|| template.skeleton.find_bone("hand"))?;
+    let hand = weapon_hand_bone(template)?;
     let bytes = std::fs::read("../client-3d/public/assets/pawn-pack/slugthrower.glb").ok()?;
+    let mount_bytes =
+        std::fs::read("../client-3d/public/assets/pawn-pack/slugthrower_attach.json").ok()?;
+    let hand_spec = parse_weapon_hand_spec(&mount_bytes)?;
     let parts = super::pack::upload_static_parts(gpu, renderer, &bytes).ok()?;
     let mut entities = Vec::new();
     for (mesh, material, local) in parts {
@@ -323,5 +356,7 @@ fn load_weapon<G: Gpu>(
         entities,
         actor_index,
         hand,
+        mount: hand_spec.mount,
+        foregrip: hand_spec.foregrip,
     })
 }

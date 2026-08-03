@@ -138,8 +138,8 @@ mod tests {
 
         // Main screen camera (viewport 0) and minimap RTT camera (viewport 1).
         let rt = gpu.create_render_target(&super::gpu::RenderTargetDesc {
-            width: 256,
-            height: 256,
+            width: 384,
+            height: 640,
             color: true,
             depth: true,
             filter: super::gpu::Filter::Nearest,
@@ -295,6 +295,11 @@ mod tests {
                 _ => None,
             })
             .collect();
+        assert_eq!(
+            (begin_passes[1].1.w, begin_passes[1].1.h),
+            (384, 640),
+            "RTT camera uses its attachment aspect instead of a square screen heuristic",
+        );
         assert_eq!(begin_passes[6].1.w, 640);
         assert_eq!(begin_passes[6].1.h, 360);
         assert_eq!(begin_passes[10].0, PassTarget::Screen);
@@ -869,6 +874,31 @@ mod tests {
             .iter()
             .filter(|call| matches!(call, MockCall::Draw { .. }))
             .count()
+    }
+
+    #[test]
+    fn zero_viewport_mask_skips_camera_and_shadow_passes() {
+        let (mut gpu, mut renderer, mut world, mesh, material) = deferred_scene();
+        let hidden = world.spawn();
+        world.set_component(hidden, Transform::default());
+        world.set_component(
+            hidden,
+            MeshRenderer {
+                mesh,
+                material,
+                viewport_mask: 0,
+                ..Default::default()
+            },
+        );
+        gpu.log.clear();
+        renderer
+            .render(&mut gpu, &mut world, 640, 480)
+            .expect("render failed");
+        assert_eq!(
+            shadow_pass_draws(&gpu),
+            1,
+            "fully hidden entities must not leave depth-only shadows"
+        );
     }
 
     #[test]

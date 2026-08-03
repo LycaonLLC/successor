@@ -12,7 +12,7 @@
 use std::collections::HashMap;
 
 use successor_client_proto::packets::{
-    GameCommandReceipt, GameServerPacket, GameShardDelta, GameShardSnapshot,
+    GameActorSnapshot, GameCommandReceipt, GameServerPacket, GameShardDelta, GameShardSnapshot,
 };
 use successor_engine_core::ecs::{Entity, WorldOps};
 use successor_engine_core::input::Key;
@@ -21,7 +21,7 @@ use successor_engine_render::components::{
     CamTarget, Camera, CompositeQuad, DirectionalLight, MeshRenderer, Projection, RectNorm,
     SkinRef, Transform,
 };
-use successor_engine_render::gpu::{ClearSpec, Filter, Gpu, RenderTargetDesc};
+use successor_engine_render::gpu::{ClearSpec, Filter, Gpu, RenderTargetDesc, RenderTargetId};
 use successor_engine_render::renderer::Renderer;
 use successor_engine_render::{environment, fx::glow_sprite};
 use successor_net::ClientCommand;
@@ -34,9 +34,10 @@ use crate::game::interp::ActorInterp;
 use crate::game::movement;
 use crate::game::prediction::MovePredictor;
 use crate::hud::{self, HudState, Icons};
-use crate::pawn::animator::{PawnAnimator, WeaponLane};
+use crate::item_preview::ItemPreviewRenderer;
+use crate::pawn::animator::{weapon_hand_bone, PawnAnimator, WeaponLane};
 use crate::pawn::appearance::{faction_tinted, skin_tint, weapon_lane};
-use crate::pawn::catalog::{rig_for_weapon_id, route_for, BodyRoute, PawnCatalog};
+use crate::pawn::catalog::{route_for, BodyRoute, PawnCatalog, SupportArmPosture};
 use crate::world::area::{biome_for_area, effective_world_seed};
 use crate::world::chunks::TerrainStreamer;
 use crate::world::environs::Environs;
@@ -46,10 +47,83 @@ use crate::world::terrain::Biome;
 use crate::world::{ADULT_PAWN_HEIGHT_METERS, WORLD_UNITS_PER_CELL};
 use crate::GameWorld;
 
+#[derive(Clone, Copy)]
+struct HeldWeaponRig {
+    mount: Mat4,
+    grip: Vec3,
+    foregrip: Vec3,
+    muzzle: Vec3,
+    foregrip_contact: Vec3,
+    resting_yaw_rad: f32,
+    support_arm: Option<SupportArmPosture>,
+    support_hand: bool,
+}
+
 /// A rigid weapon attachment, updated from its animated hand socket each frame.
 struct WeaponAttachment {
     entities: Vec<(Entity, Mat4)>,
     hand: usize,
+    held: HeldWeaponRig,
+    plasma_blade: Option<Entity>,
+    stow: Option<(usize, Mat4, f32)>,
+    stow_blend: f32,
+    stow_target: bool,
+    stow_seconds: f32,
+    ik_weight: f32,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+struct WornPresentation {
+    item_id: String,
+    colors: Vec<String>,
+}
+
+#[derive(Clone)]
+struct PawnPresentation {
+    skin: Option<String>,
+    faction: Option<String>,
+    sprite: Option<String>,
+    role: Option<String>,
+    hair: Option<String>,
+    hair_material: Option<String>,
+    worn: Vec<WornPresentation>,
+    weapon: Option<String>,
+    weapon_item_id: Option<i64>,
+}
+
+impl PawnPresentation {
+    fn matches(&self, actor: &GameActorSnapshot) -> bool {
+        let appearance = actor.appearance.as_ref();
+        let mut actor_worn = actor.worn.iter().filter_map(|piece| {
+            piece
+                .item_id
+                .as_deref()
+                .map(|item_id| (item_id, &piece.colors))
+        });
+        let worn_matches = self.worn.iter().all(|expected| {
+            actor_worn.next().is_some_and(|(item_id, colors)| {
+                item_id == expected.item_id && colors == &expected.colors
+            })
+        }) && actor_worn.next().is_none();
+        self.skin.as_deref() == appearance.and_then(|value| value.skin_tone.as_deref())
+            && self.faction.as_deref() == actor.faction_id.as_deref()
+            && self.sprite.as_deref() == actor.sprite.as_deref()
+            && self.role.as_deref() == actor.role.as_deref()
+            && self.hair.as_deref() == appearance.and_then(|value| value.hair.as_deref())
+            && self.hair_material.as_deref()
+                == appearance.and_then(|value| value.hair_material.as_deref())
+            && worn_matches
+            && self.weapon.as_deref()
+                == actor
+                    .weapon
+                    .as_ref()
+                    .and_then(|weapon| weapon.weapon_id.as_deref())
+            && self.weapon_item_id
+                == actor
+                    .weapon
+                    .as_ref()
+                    .and_then(|weapon| weapon.weapon_item_id)
+    }
 }
 
 /// A rendered pawn for one live actor: one entity per body/equipment part.
@@ -57,6 +131,7 @@ struct ActorPawn {
     id: String,
     name: String,
     descriptor: Option<String>,
+    presentation: PawnPresentation,
     entities: Vec<Entity>,
     weapon: Option<WeaponAttachment>,
     animator: PawnAnimator,
@@ -87,8 +162,11 @@ struct LiveActor {
     sprite: Option<String>,
     role: Option<String>,
     hair: Option<String>,
-    worn: Vec<String>,
+    hair_material: Option<String>,
+    worn: Vec<WornPresentation>,
     weapon: Option<String>,
+    weapon_item_id: Option<i64>,
+    in_combat: bool,
     alive: bool,
     lifecycle_seq: i64,
 }
@@ -113,11 +191,15 @@ pub struct ConnectedScene {
     streamed_world: StreamedWorld,
     pawns: HashMap<String, ActorPawn>,
     missing_pawns: Vec<String>,
+    stale_pawns: Vec<String>,
     center: Vec3,
     follow: Entity,
     sun: Entity,
-    minimap: Entity,
     combat_fx: CombatFx,
+    paperdoll_camera: Entity,
+    paperdoll_quad: Entity,
+    paperdoll_target: RenderTargetId,
+    item_previews: ItemPreviewRenderer,
     fx_buf: Vec<f32>,
     icons: Icons,
     ui: successor_engine_render::ui::UiBuilder,
@@ -137,8 +219,11 @@ pub struct ConnectedScene {
     pending_bug_report: Option<serde_json::Value>,
     bug_report_sequence: u32,
     right_was_down: bool,
+    hud_right_was_down: bool,
     framebuffer: (u32, u32),
     selected_actor_id: Option<String>,
+    selected_inventory: Option<(String, String)>,
+    context_menu: Option<(f32, f32)>,
     left_was_down: bool,
     pointer_prev: (f32, f32),
     zoom_percent: f32,
@@ -159,6 +244,20 @@ pub struct ConnectedScene {
     sfx: crate::audio::SfxPlayer,
     #[cfg(not(target_arch = "wasm32"))]
     weather_audio: Option<&'static str>,
+    #[cfg(not(target_arch = "wasm32"))]
+    music_audio: Option<&'static str>,
+    #[cfg(not(target_arch = "wasm32"))]
+    music_combat_index: u32,
+    #[cfg(not(target_arch = "wasm32"))]
+    music_was_in_combat: bool,
+    #[cfg(not(target_arch = "wasm32"))]
+    settlement_audio: bool,
+    #[cfg(not(target_arch = "wasm32"))]
+    footstep_distance: f32,
+    #[cfg(not(target_arch = "wasm32"))]
+    footstep_index: u32,
+    #[cfg(not(target_arch = "wasm32"))]
+    footstep_position: Option<(f32, f32)>,
     #[cfg(not(target_arch = "wasm32"))]
     ambience_timer: f32,
     #[cfg(not(target_arch = "wasm32"))]
@@ -181,6 +280,19 @@ fn follow_eye(ground: Vec3) -> Vec3 {
     let distance = 96.0;
     let pitch = 60.0_f32.to_radians();
     follow_focus(ground).add(vec3(0.0, distance * pitch.sin(), distance * pitch.cos()))
+}
+
+fn window_geometry(id: &str, index: usize) -> ([f32; 4], f32, f32) {
+    match id {
+        "inventory" => ([180.0, 78.0, 760.0, 540.0], 620.0, 440.0),
+        "character" => ([250.0, 68.0, 520.0, 610.0], 440.0, 500.0),
+        "examine" => ([850.0, 110.0, 360.0, 500.0], 320.0, 420.0),
+        "converse" => ([143.0, 136.0, 390.0, 385.0], 360.0, 340.0),
+        _ => {
+            let offset = (index % 6) as f32 * 34.0;
+            ([330.0 + offset, 96.0 + offset, 520.0, 390.0], 320.0, 240.0)
+        }
+    }
 }
 
 impl ConnectedScene {
@@ -246,7 +358,9 @@ impl ConnectedScene {
             },
         );
 
-        // Follow camera (screen) + minimap (RTT → composite corner).
+        // Follow camera. The tactical radar is rendered by the HUD from
+        // authority contacts; a second live world view duplicated it, obscured
+        // the top-right instrument and cost an avoidable render pass.
         let follow = world.spawn();
         world.set_component(
             follow,
@@ -268,83 +382,35 @@ impl ConnectedScene {
                 up: Vec3::Y,
             },
         );
-        let rt = gpu.create_render_target(&RenderTargetDesc {
-            width: 256,
-            height: 256,
+        let paperdoll_target = gpu.create_render_target(&RenderTargetDesc {
+            width: 384,
+            height: 640,
             color: true,
             depth: true,
             filter: Filter::Linear,
         });
-        let minimap = world.spawn();
-        world.set_component(
-            minimap,
-            Camera {
-                viewport_id: 1,
-                order: -1,
-                projection: Projection::Ortho {
-                    half_height: 40.0,
-                    near: 0.1,
-                    far: 400.0,
-                },
-                target: CamTarget::Texture(rt),
-                clear: ClearSpec {
-                    color: Some([0.06, 0.07, 0.05, 1.0]),
-                    depth: Some(1.0),
-                },
-                eye: center.add(vec3(0.0, 160.0, 0.0)),
-                look_at: center,
-                up: vec3(0.0, 0.0, -1.0),
-            },
-        );
-        let cq = world.spawn();
-        world.set_component(
-            cq,
-            CompositeQuad {
-                source: rt,
-                rect: RectNorm {
-                    x: 0.76,
-                    y: 0.74,
-                    w: 0.23,
-                    h: 0.23,
-                },
-                order: 0,
-            },
-        );
+        let paperdoll_camera = world.spawn();
+        let paperdoll_quad = world.spawn();
 
+        let item_previews = ItemPreviewRenderer::new(gpu, &mut world);
         // Combat FX + HUD.
         let glow = glow_sprite(64);
         renderer.set_particle_atlas(gpu, 64, 64, &glow);
         let icons = Icons::load();
         renderer.set_ui_atlas(gpu, icons.meta.width, icons.meta.height, &icons.rgba);
-        let ui = successor_engine_render::ui::UiBuilder::new(icons.meta);
+        let ui = icons.ui_builder();
         // Interactive window manager: register the game windows with cascaded
         // bounds + toolbar icons (opened from the action bar).
         let mut wm = successor_engine_render::window::WindowManager::new();
         let mut window_index = 0usize;
         for (id, title, icon, _) in crate::hud::PERMANENT_WINDOWS {
-            let ox = 360.0 + (window_index % 6) as f32 * 40.0;
-            let oy = 120.0 + (window_index % 6) as f32 * 40.0;
-            wm.register(
-                id,
-                title,
-                icons.cell(icon),
-                [ox, oy, 380.0, 300.0],
-                220.0,
-                150.0,
-            );
+            let (bounds, min_w, min_h) = window_geometry(id, window_index);
+            wm.register(id, title, icons.cell(icon), bounds, min_w, min_h);
             window_index += 1;
         }
         for (id, title, icon) in crate::hud::CONTEXT_WINDOWS {
-            let ox = 360.0 + (window_index % 6) as f32 * 40.0;
-            let oy = 120.0 + (window_index % 6) as f32 * 40.0;
-            wm.register(
-                id,
-                title,
-                icons.cell(icon),
-                [ox, oy, 380.0, 300.0],
-                220.0,
-                150.0,
-            );
+            let (bounds, min_w, min_h) = window_geometry(id, window_index);
+            wm.register(id, title, icons.cell(icon), bounds, min_w, min_h);
             window_index += 1;
         }
         let weather = successor_engine_render::weather::Weather::new(0x0d3d);
@@ -367,13 +433,17 @@ impl ConnectedScene {
             terrain: streamer,
             pawns: HashMap::new(),
             missing_pawns: Vec::with_capacity(32),
+            stale_pawns: Vec::with_capacity(8),
             follow,
             slice,
             props_loader: loader,
             sun,
             loaded_area_id: String::new(),
             streamed_world: StreamedWorld::new(),
-            minimap,
+            paperdoll_camera,
+            paperdoll_quad,
+            paperdoll_target,
+            item_previews,
             combat_fx: CombatFx::new(0x51ce_57ed),
             fx_buf: Vec::with_capacity(64 * 1024),
             icons,
@@ -393,6 +463,7 @@ impl ConnectedScene {
             preferences_dirty: false,
             pending_bug_report: None,
             bug_report_sequence: 0,
+            hud_right_was_down: false,
             right_was_down: false,
             left_was_down: false,
             pointer_prev: (0.0, 0.0),
@@ -401,6 +472,8 @@ impl ConnectedScene {
             sprint_toggle: false,
             framebuffer: (1280, 720),
             selected_actor_id: None,
+            selected_inventory: None,
+            context_menu: None,
             wm,
             window_order: Vec::with_capacity(32),
             window_id_scratch: String::with_capacity(32),
@@ -417,6 +490,20 @@ impl ConnectedScene {
             sfx,
             #[cfg(not(target_arch = "wasm32"))]
             weather_audio: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            music_audio: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            music_combat_index: 0,
+            #[cfg(not(target_arch = "wasm32"))]
+            music_was_in_combat: false,
+            #[cfg(not(target_arch = "wasm32"))]
+            settlement_audio: false,
+            #[cfg(not(target_arch = "wasm32"))]
+            footstep_distance: 0.0,
+            #[cfg(not(target_arch = "wasm32"))]
+            footstep_index: 0,
+            #[cfg(not(target_arch = "wasm32"))]
+            footstep_position: None,
             #[cfg(not(target_arch = "wasm32"))]
             ambience_timer: 1.0,
             #[cfg(not(target_arch = "wasm32"))]
@@ -560,6 +647,7 @@ impl ConnectedScene {
         let player_cell = player.map(|actor| (actor.x, actor.y)).unwrap_or((0.0, 0.0));
         let mut context = ProjectContext {
             selected_actor_id: self.selected_actor_id.clone(),
+            selected_inventory: self.selected_inventory.clone(),
             pending,
             now_ms: successor_platform::now_ms(),
             ..ProjectContext::default()
@@ -804,8 +892,14 @@ impl ConnectedScene {
             self.selected_actor_id.as_deref(),
         );
         if let Some(weapon) = &self.win_model.character.player.weapon {
-            let melee = weapon.weapon_id.contains("sword") || weapon.weapon_id.contains("melee");
+            let melee = weapon.ammo_type == "melee";
             let reloading = weapon.reload_remaining_ticks > 0;
+            let recovery_frac = if reloading && weapon.reload_total_ticks > 0 {
+                1.0 - (weapon.reload_remaining_ticks as f32 / weapon.reload_total_ticks as f32)
+                    .clamp(0.0, 1.0)
+            } else {
+                1.0
+            };
             self.hud_state.weapon = Some(hud::WeaponHud {
                 label: weapon.weapon_id.replace(['_', '-'], " ").to_uppercase(),
                 melee,
@@ -827,9 +921,9 @@ impl ConnectedScene {
                     )
                 },
                 reloading,
-                reload_frac: if reloading { 0.0 } else { 1.0 },
+                reload_frac: recovery_frac,
                 swing_ready: !reloading,
-                swing_frac: if reloading { 0.0 } else { 1.0 },
+                swing_frac: recovery_frac,
             });
         }
         self.hud_state.group_members = self
@@ -896,6 +990,7 @@ impl ConnectedScene {
                 until_ms: successor_platform::now_ms() as u64 + 2_000,
             });
         let dialogue_floor = self.last_dialogue_tick;
+        let mut received_dialogue = false;
         for delivery in self
             .win_model
             .converse
@@ -905,7 +1000,11 @@ impl ConnectedScene {
         {
             self.overlays
                 .push_bubble(&delivery.actor_id, &delivery.body);
+            received_dialogue = true;
             self.last_dialogue_tick = self.last_dialogue_tick.max(delivery.tick);
+        }
+        if received_dialogue && self.win_model.converse.npc.is_some() {
+            self.wm.open("converse");
         }
         self.hud_state.interact = if let Some((_, kind)) = self.nearest_interaction_prop() {
             Some(hud::InteractHud {
@@ -1024,7 +1123,7 @@ impl ConnectedScene {
     /// Install the authenticated session queue. Until installed, command
     /// intents are rejected visibly rather than assigned a synthetic identity.
     pub fn pointer_captured(&self) -> bool {
-        self.graphics_tuner.is_open() || self.wm.pointer_captured()
+        self.graphics_tuner.is_open() || self.wm.pointer_captured() || self.context_menu.is_some()
     }
     pub fn set_command_queue(&mut self, queue: CommandQueue) {
         self.command_queue = Some(queue);
@@ -1040,6 +1139,7 @@ impl ConnectedScene {
         self.pending_window_commands = previous.pending_window_commands.clone();
         self.window_rejection = previous.window_rejection.clone();
         self.selected_actor_id = previous.selected_actor_id.clone();
+        self.selected_inventory = previous.selected_inventory.clone();
         self.zoom_percent = previous.zoom_percent;
         self.sprint_toggle = previous.sprint_toggle;
         self.theme_index = previous.theme_index;
@@ -1151,20 +1251,38 @@ impl ConnectedScene {
             })
             .filter_map(|prop| {
                 let cell = prop.get("cell")?;
-                let x = cell
+                let cell_x = cell
                     .get("x")
                     .and_then(successor_engine_core::json::Json::as_f32)?;
-                let y = cell
+                let cell_y = cell
                     .get("y")
                     .and_then(successor_engine_core::json::Json::as_f32)?;
-                let distance = ((x - player.x).powi(2) + (y - player.y).powi(2)).sqrt();
                 let id = prop
                     .get("id")
                     .and_then(successor_engine_core::json::Json::as_str)?;
-                let kind = prop
+                let mut kind = prop
                     .get("kind")
                     .and_then(successor_engine_core::json::Json::as_str)?;
-                (distance <= 2.5).then_some((id.to_string(), kind.to_string(), distance))
+                let (target_x, target_y, radius) = if let Some(door) = prop.get("door") {
+                    let blocker = door.get("blocker")?;
+                    let x_milli = blocker.get("xMilli")?.as_f32()?;
+                    let y_milli = blocker.get("yMilli")?.as_f32()?;
+                    let w_milli = blocker.get("wMilli")?.as_f32()?;
+                    let h_milli = blocker.get("hMilli")?.as_f32()?;
+                    kind = "door";
+                    (
+                        cell_x + (x_milli + w_milli * 0.5) / 1_000.0,
+                        cell_y + (y_milli + h_milli * 0.5) / 1_000.0,
+                        door.get("interactRadiusCells")
+                            .and_then(successor_engine_core::json::Json::as_f32)
+                            .unwrap_or(2.5),
+                    )
+                } else {
+                    (cell_x, cell_y, 2.5)
+                };
+                let distance =
+                    ((target_x - player.x).powi(2) + (target_y - player.y).powi(2)).sqrt();
+                (distance <= radius).then_some((id.to_string(), kind.to_string(), distance))
             })
             .min_by(|left, right| left.2.total_cmp(&right.2))
             .map(|(id, kind, _)| (id, kind))
@@ -1248,12 +1366,40 @@ impl ConnectedScene {
                 })
             }
             Key::Space => {
-                let target = self
-                    .store
-                    .actors
-                    .keys()
-                    .find(|id| id.as_str() != self.store.player_actor_id)
-                    .cloned()?;
+                let player = self.store.actors.get(&self.store.player_actor_id);
+                let player_faction = player.and_then(|actor| actor.faction_id.as_deref());
+                let player_position = player.map(|actor| (actor.x, actor.y)).unwrap_or_default();
+                let selected_target = self
+                    .selected_actor_id
+                    .as_ref()
+                    .filter(|id| id.as_str() != self.store.player_actor_id)
+                    .filter(|id| {
+                        self.store
+                            .actors
+                            .get(id.as_str())
+                            .is_some_and(|actor| actor.life_state == "alive")
+                    })
+                    .cloned();
+                let target = selected_target.or_else(|| {
+                    self.store
+                        .actors
+                        .values()
+                        .filter(|actor| {
+                            actor.id != self.store.player_actor_id
+                                && actor.life_state == "alive"
+                                && (actor.pvp_status.as_deref() == Some("overt")
+                                    || actor.role.as_deref() == Some("skirmisher"))
+                                && actor.faction_id.as_deref() != player_faction
+                        })
+                        .min_by(|left, right| {
+                            let left_distance = (left.x - player_position.0).powi(2)
+                                + (left.y - player_position.1).powi(2);
+                            let right_distance = (right.x - player_position.0).powi(2)
+                                + (right.y - player_position.1).powi(2);
+                            left_distance.total_cmp(&right_distance)
+                        })
+                        .map(|actor| actor.id.clone())
+                })?;
                 return Some(actions::GameplayAction::Attack {
                     action_id: "basic_shot".into(),
                     target_actor_id: target,
@@ -1400,7 +1546,9 @@ impl ConnectedScene {
         if right_pressed && !left {
             if let Some(target_id) = picked_actor.clone() {
                 self.selected_actor_id = Some(target_id.clone());
+                self.selected_inventory = None;
                 self.project_windows();
+                self.context_menu = Some((x, y));
                 return Some(actions::GameplayAction::Interact {
                     verb: "radial".into(),
                     target_id,
@@ -1426,10 +1574,12 @@ impl ConnectedScene {
         }
         if let Some(target_id) = picked_actor {
             self.selected_actor_id = Some(target_id);
+            self.selected_inventory = None;
             self.project_windows();
             return None;
         }
         self.selected_actor_id = None;
+        self.selected_inventory = None;
         self.project_windows();
         let center_x = self.framebuffer.0 as f32 * 0.5;
         let center_y = self.framebuffer.1 as f32 * 0.5;
@@ -1468,17 +1618,23 @@ impl ConnectedScene {
     }
     pub fn settle_command(&mut self, command_id: u64, accepted: bool, reason: Option<String>) {
         #[cfg(not(target_arch = "wasm32"))]
-        let accepted_door = accepted
-            && self.command_queue.as_ref().is_some_and(|queue| {
-                queue.pending_envelopes().any(|envelope| {
-                    envelope.command_id == command_id
-                        && matches!(
-                            envelope.command,
+        let accepted_audio = accepted
+            .then(|| {
+                self.command_queue
+                    .as_ref()?
+                    .pending_envelopes()
+                    .find_map(|envelope| {
+                        (envelope.command_id == command_id).then_some(match envelope.command {
                             ClientCommand::ToggleDoor { .. }
-                                | ClientCommand::BuildToggleDoor { .. }
-                        )
-                })
-            });
+                            | ClientCommand::BuildToggleDoor { .. } => {
+                                Some(crate::audio::DOOR_CLIP)
+                            }
+                            ClientCommand::ReloadWeapon { .. } => Some(crate::audio::RELOAD_CLIP),
+                            _ => None,
+                        })?
+                    })
+            })
+            .flatten();
         if let Some(queue) = self.command_queue.as_mut() {
             queue.settle(command_id);
         }
@@ -1489,8 +1645,8 @@ impl ConnectedScene {
             reason_code: reason.clone(),
         });
         #[cfg(not(target_arch = "wasm32"))]
-        if accepted_door {
-            self.sfx.play_ui(crate::audio::DOOR_CLIP);
+        if let Some(clip) = accepted_audio {
+            self.sfx.play_ui(clip);
         }
         if !accepted {
             self.window_rejection = Some(reason.unwrap_or_else(|| "command rejected".into()));
@@ -1501,7 +1657,21 @@ impl ConnectedScene {
         use crate::windows::WindowLocalAction::*;
         match local {
             Close => self.window_rejection = Some("local: close".into()),
-            Select(id) => self.window_rejection = Some(format!("local: select {id}")),
+            Select(id) => {
+                self.selected_inventory =
+                    crate::windows::inventory::selected_identity().or_else(|| {
+                        self.win_model
+                            .inventory
+                            .rows
+                            .iter()
+                            .find(|row| row.item_id == id && !row.in_exchange())
+                            .map(|row| (row.container.clone(), row.stack_id.clone()))
+                    });
+                self.selected_actor_id = None;
+                self.context_menu = None;
+                self.window_rejection = Some(format!("local: select {id}"));
+                self.project_windows();
+            }
             OpenWindow(id) => self.wm.open(&id),
             SetTheme(i) => {
                 self.theme_index = i % hud::THEME_COUNT;
@@ -1793,7 +1963,7 @@ impl ConnectedScene {
         } else {
             BodyRoute::Human { female: false }
         };
-        let (part_meshes, scale, joints, hand, animator) = {
+        let (body_parts, scale, joints, hand, animator) = {
             let body = self
                 .pawn_catalog
                 .body_mut(route)
@@ -1801,21 +1971,21 @@ impl ConnectedScene {
             (
                 body.part_meshes
                     .iter()
-                    .map(|(mesh, _)| *mesh)
+                    .zip(&body.part_material_names)
+                    .map(|((mesh, material), name)| (*mesh, *material, name.clone()))
                     .collect::<Vec<_>>(),
                 body.scale,
                 body.template.joint_count(),
-                body.template
-                    .skeleton
-                    .find_bone("RightHand")
-                    .or_else(|| body.template.skeleton.find_bone("Hand"))
-                    .or_else(|| body.template.skeleton.find_bone("hand")),
+                weapon_hand_bone(&body.template),
                 PawnAnimator::new(&body.template),
             )
         };
 
-        let mut equipment_ids = actor.worn.clone();
-        if equipment_ids.is_empty() && matches!(route, BodyRoute::Human { .. }) {
+        let mut equipment = actor.worn.clone();
+        if equipment.is_empty()
+            && matches!(route, BodyRoute::Human { .. })
+            && actor.role.as_deref() != Some("player")
+        {
             let mut defaults = Vec::new();
             self.pawn_catalog.default_outfit(
                 &actor.id,
@@ -1823,36 +1993,100 @@ impl ConnectedScene {
                 actor.hair.as_deref(),
                 &mut defaults,
             );
-            equipment_ids.extend(defaults.into_iter().map(str::to_string));
+            equipment.extend(defaults.into_iter().map(|item_id| WornPresentation {
+                item_id: item_id.to_string(),
+                colors: Vec::new(),
+            }));
         }
-        let mut equipment_meshes = Vec::new();
-        for item_id in &equipment_ids {
-            if let Some(piece) = self.pawn_catalog.equipment_piece(
-                gpu,
-                &mut self.renderer,
-                read_asset,
-                item_id,
-                joints,
-            ) {
-                equipment_meshes.extend(piece.part_meshes.iter().copied());
+        if let Some(hair) = actor
+            .hair
+            .as_deref()
+            .filter(|item_id| self.pawn_catalog.knows_equipment(item_id))
+        {
+            if !equipment.iter().any(|piece| piece.item_id == hair) {
+                equipment.push(WornPresentation {
+                    item_id: hair.to_string(),
+                    colors: Vec::new(),
+                });
             }
         }
+        let mut equipment_meshes = Vec::new();
+        let mut attached_equipment_ids = Vec::with_capacity(equipment.len());
+        for worn_piece in &equipment {
+            let loaded = self
+                .pawn_catalog
+                .equipment_piece(
+                    gpu,
+                    &mut self.renderer,
+                    read_asset,
+                    &worn_piece.item_id,
+                    joints,
+                    matches!(route, BodyRoute::Human { female: true }),
+                )
+                .map(|piece| (piece.part_meshes.clone(), piece.part_material_names.clone()));
+            let Some((part_meshes, material_names)) = loaded else {
+                continue;
+            };
+            if part_meshes.is_empty() {
+                continue;
+            }
+            for ((mesh, authored_material), material_name) in
+                part_meshes.into_iter().zip(material_names)
+            {
+                let material = self
+                    .pawn_catalog
+                    .equipment_part_color(
+                        &worn_piece.item_id,
+                        material_name.as_deref(),
+                        &worn_piece.colors,
+                        actor.hair_material.as_deref(),
+                    )
+                    .map(|color| {
+                        let mut desc = self
+                            .renderer
+                            .material_desc(authored_material)
+                            .unwrap_or_default();
+                        desc.base_color = color;
+                        desc.blend = color[3] < 1.0;
+                        self.renderer.add_material_desc(desc)
+                    })
+                    .unwrap_or(authored_material);
+                equipment_meshes.push((mesh, material));
+            }
+            attached_equipment_ids.push(worn_piece.item_id.as_str());
+        }
+        // Coverage is only defined for the standard human bodies. A failed
+        // special-body load may fall back to this mesh, but must retain its
+        // pre-existing special/creature presentation semantics. Only renderable
+        // apparel can claim skin, so an optional-asset degradation stays whole.
+        let hidden_body_zones = if matches!(requested, BodyRoute::Human { .. }) {
+            self.pawn_catalog.hidden_body_zones(attached_equipment_ids)
+        } else {
+            Default::default()
+        };
 
         let base = skin_tint(actor.skin.as_deref());
         let color = faction_tinted(base, faction);
-        let body_material =
-            self.renderer
-                .add_material_desc(successor_engine_render::renderer::MaterialDesc {
-                    base_color: color,
-                    blend: color[3] < 1.0,
-                    ..successor_engine_render::renderer::MaterialDesc::default()
-                });
-        let mut entities = Vec::with_capacity(part_meshes.len() + equipment_meshes.len());
-        for (mesh, material) in part_meshes
-            .into_iter()
-            .map(|mesh| (mesh, body_material))
-            .chain(equipment_meshes)
-        {
+        let mut tinted_body_parts = Vec::with_capacity(body_parts.len());
+        for (mesh, authored_material, material_name) in body_parts {
+            if hidden_body_zones.hides_material_name(material_name.as_deref()) {
+                continue;
+            }
+            let material = if material_name.as_deref() == Some("RB_Face") {
+                authored_material
+            } else {
+                let mut desc = self
+                    .renderer
+                    .material_desc(authored_material)
+                    .unwrap_or_default();
+                desc.base_color = color;
+                desc.blend = color[3] < 1.0;
+                self.renderer.add_material_desc(desc)
+            };
+            tinted_body_parts.push((mesh, material));
+        }
+        let mut entities = Vec::with_capacity(tinted_body_parts.len() + equipment_meshes.len());
+        for (mesh, material) in tinted_body_parts.into_iter().chain(equipment_meshes) {
             let e = self.world.spawn();
             self.world.set_component(
                 e,
@@ -1867,23 +2101,66 @@ impl ConnectedScene {
                 MeshRenderer {
                     mesh,
                     material,
-                    viewport_mask: 0b11,
+                    viewport_mask: 0b1,
                     skin: SkinRef::NONE,
                 },
             );
             entities.push(e);
         }
 
-        let weapon = rig_for_weapon_id(actor.weapon.as_deref())
-            .and_then(|kind| {
-                self.pawn_catalog
-                    .weapon_rig(gpu, &mut self.renderer, read_asset, kind)
-                    .map(|rig| rig.parts.clone())
+        let resolved_weapon = self
+            .pawn_catalog
+            .weapon_rig_for(
+                gpu,
+                &mut self.renderer,
+                read_asset,
+                actor.weapon.as_deref(),
+                actor.weapon_item_id,
+            )
+            .map(|rig| {
+                (
+                    rig.parts.clone(),
+                    HeldWeaponRig {
+                        mount: rig.mount,
+                        grip: rig.grip,
+                        foregrip: rig.foregrip,
+                        muzzle: rig.muzzle,
+                        foregrip_contact: rig.foregrip_contact,
+                        resting_yaw_rad: rig.resting_yaw_rad,
+                        support_arm: rig.support_arm,
+                        support_hand: rig.support_hand,
+                    },
+                    rig.melee,
+                    rig.plasma_blade_part,
+                    rig.stow.clone(),
+                )
+            });
+        let lane = resolved_weapon
+            .as_ref()
+            .map(|(_, _, melee, _, _)| {
+                if *melee {
+                    WeaponLane::Melee
+                } else {
+                    WeaponLane::Rifle
+                }
             })
+            .unwrap_or_else(|| weapon_lane(actor.weapon.as_deref()));
+        let stow = resolved_weapon
+            .as_ref()
+            .and_then(|(_, _, _, _, stow)| stow.as_ref())
+            .and_then(|stow| {
+                self.pawn_catalog
+                    .body_mut(route)
+                    .and_then(|body| body.template.skeleton.find_bone(&stow.bone))
+                    .map(|bone| (bone, stow.mount, stow.arc_lift))
+            });
+        let weapon = resolved_weapon
+            .map(|(parts, held, _, plasma_blade_part, _)| (parts, held, plasma_blade_part))
             .zip(hand)
-            .map(|(parts, hand)| {
+            .map(|((parts, held, plasma_blade_part), hand)| {
                 let mut weapon_entities = Vec::with_capacity(parts.len());
-                for (mesh, material, local) in parts {
+                let mut plasma_blade = None;
+                for (part_index, (mesh, material, local)) in parts.into_iter().enumerate() {
                     let entity = self.world.spawn();
                     let (pos, rot, part_scale) = local.to_trs();
                     self.world.set_component(
@@ -1899,15 +2176,33 @@ impl ConnectedScene {
                         MeshRenderer {
                             mesh,
                             material,
-                            viewport_mask: 0b11,
+                            viewport_mask: 0b1,
                             skin: SkinRef::NONE,
                         },
                     );
+                    if plasma_blade_part == Some(part_index) {
+                        plasma_blade = Some(entity);
+                    }
                     weapon_entities.push((entity, local));
                 }
                 WeaponAttachment {
                     entities: weapon_entities,
                     hand,
+                    held,
+                    plasma_blade,
+                    stow,
+                    stow_blend: if stow.is_some() && !actor.in_combat {
+                        1.0
+                    } else {
+                        0.0
+                    },
+                    stow_target: stow.is_some() && !actor.in_combat,
+                    stow_seconds: 0.28,
+                    ik_weight: if stow.is_some() && !actor.in_combat {
+                        0.0
+                    } else {
+                        1.0
+                    },
                 }
             });
 
@@ -1921,11 +2216,22 @@ impl ConnectedScene {
                     .as_deref()
                     .map(|role| hud::sanitize_text(role, 32))
                     .filter(|role| !role.is_empty()),
+                presentation: PawnPresentation {
+                    skin: actor.skin.clone(),
+                    faction: actor.faction.clone(),
+                    sprite: actor.sprite.clone(),
+                    role: actor.role.clone(),
+                    hair: actor.hair.clone(),
+                    hair_material: actor.hair_material.clone(),
+                    worn: actor.worn.clone(),
+                    weapon: actor.weapon.clone(),
+                    weapon_item_id: actor.weapon_item_id,
+                },
                 entities,
                 weapon,
                 animator,
                 route,
-                lane: weapon_lane(actor.weapon.as_deref()),
+                lane,
                 scale,
                 interp: {
                     let mut interp = ActorInterp::new();
@@ -1993,6 +2299,7 @@ impl ConnectedScene {
 
     /// Per-frame: reconcile pawns with the authoritative actor set, animate, and
     /// render the full scene + FX + HUD.
+    #[allow(clippy::too_many_arguments)]
     pub fn frame<G: Gpu>(
         &mut self,
         gpu: &mut G,
@@ -2000,6 +2307,8 @@ impl ConnectedScene {
         h: u32,
         dt: f32,
         read_asset: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
+        chat_client: &mut crate::game::chat_net::ChatClient,
+        chat_input: &mut successor_engine_render::ui::TextField,
     ) {
         self.framebuffer = (w, h);
         self.sync_active_area(gpu, read_asset);
@@ -2014,21 +2323,39 @@ impl ConnectedScene {
             self.dispatch_gameplay_action(action);
         }
         self.macro_actions = macro_actions;
+        let paperdoll_window =
+            if self.wm.is_open("examine") && self.win_model.examine.actor.is_some() {
+                Some("examine")
+            } else if self.wm.is_open("converse") && self.win_model.converse.npc.is_some() {
+                Some("converse")
+            } else if self.wm.is_open("inventory") {
+                Some("inventory")
+            } else {
+                None
+            };
         // 1) Reconcile pawn set with live actors.
         for p in self.pawns.values_mut() {
             p.present = false;
         }
         self.missing_pawns.clear();
+        self.stale_pawns.clear();
         for (id, actor) in self.store.render_actors() {
             if !self.pawns.contains_key(id) {
                 self.missing_pawns.push(id.clone());
             }
             if let Some(pawn) = self.pawns.get_mut(id) {
+                if !pawn.presentation.matches(actor) {
+                    self.stale_pawns.push(id.clone());
+                    continue;
+                }
                 pawn.present = true;
                 let authority_changed =
                     pawn.target != (actor.x, actor.y) || pawn.lifecycle_seq != actor.lifecycle_seq;
                 pawn.target = (actor.x, actor.y);
                 pawn.alive = actor.life_state == "alive";
+                if let Some(weapon) = pawn.weapon.as_mut() {
+                    weapon.stow_target = weapon.stow.is_some() && !actor.in_combat.unwrap_or(false);
+                }
                 if authority_changed {
                     pawn.lifecycle_seq = actor.lifecycle_seq;
                     if id == &self.player_id {
@@ -2042,6 +2369,20 @@ impl ConnectedScene {
                 }
             }
         }
+        while let Some(id) = self.stale_pawns.pop() {
+            if let Some(pawn) = self.pawns.remove(&id) {
+                for entity in pawn.entities {
+                    self.world.destroy(entity);
+                }
+                if let Some(weapon) = pawn.weapon {
+                    for (entity, _) in weapon.entities {
+                        self.world.destroy(entity);
+                    }
+                }
+            }
+            self.missing_pawns.push(id);
+        }
+        self.world.flush();
         while let Some(id) = self.missing_pawns.pop() {
             let Some(actor) = self.store.actors.get(&id) else {
                 continue;
@@ -2059,15 +2400,29 @@ impl ConnectedScene {
                 sprite: actor.sprite.clone(),
                 role: actor.role.clone(),
                 hair: actor.appearance.as_ref().and_then(|ap| ap.hair.clone()),
+                hair_material: actor
+                    .appearance
+                    .as_ref()
+                    .and_then(|appearance| appearance.hair_material.clone()),
                 worn: actor
                     .worn
                     .iter()
-                    .filter_map(|piece| piece.item_id.clone())
+                    .filter_map(|piece| {
+                        piece.item_id.as_ref().map(|item_id| WornPresentation {
+                            item_id: item_id.clone(),
+                            colors: piece.colors.clone(),
+                        })
+                    })
                     .collect(),
                 weapon: actor
                     .weapon
                     .as_ref()
                     .and_then(|weapon| weapon.weapon_id.clone()),
+                weapon_item_id: actor
+                    .weapon
+                    .as_ref()
+                    .and_then(|weapon| weapon.weapon_item_id),
+                in_combat: actor.in_combat.unwrap_or(false),
                 alive: actor.life_state == "alive",
                 lifecycle_seq: actor.lifecycle_seq,
             };
@@ -2078,6 +2433,22 @@ impl ConnectedScene {
 
         // 2) Animate + place pawns (skinned).
         self.renderer.begin_skin_frame();
+        let paperdoll_actor_id = match paperdoll_window {
+            Some("examine") => self
+                .win_model
+                .examine
+                .actor
+                .as_ref()
+                .map(|actor| actor.actor_id.as_str()),
+            Some("converse") => self
+                .win_model
+                .converse
+                .npc
+                .as_ref()
+                .map(|npc| npc.actor_id.as_str()),
+            Some("inventory") => Some(self.player_id.as_str()),
+            _ => None,
+        };
         for pawn in self.pawns.values_mut() {
             if !pawn.present {
                 for entity in pawn.entities.iter().chain(
@@ -2112,19 +2483,67 @@ impl ConnectedScene {
                 pawn.yaw = (nx - rx).atan2(ny - ry);
             }
             pawn.render_pos = (nx, ny);
+            if let Some(weapon) = pawn.weapon.as_mut() {
+                let step = (dt.max(0.0) / weapon.stow_seconds.max(1.0e-3)).min(1.0);
+                weapon.stow_blend = if weapon.stow_target {
+                    (weapon.stow_blend + step).min(1.0)
+                } else {
+                    (weapon.stow_blend - step).max(0.0)
+                };
+                let ik_target = if weapon.stow_blend < 1.0e-3 { 1.0 } else { 0.0 };
+                let ik_step = (dt.max(0.0) / 0.12).min(1.0);
+                weapon.ik_weight += (ik_target - weapon.ik_weight).clamp(-ik_step, ik_step);
+            }
+            let armed_blend = pawn
+                .weapon
+                .as_ref()
+                .map_or(0.0, |weapon| 1.0 - weapon.stow_blend);
+            let transition = pawn.weapon.as_ref().and_then(|weapon| {
+                (pawn.lane == WeaponLane::Melee
+                    && weapon.stow_blend > 0.0
+                    && weapon.stow_blend < 1.0)
+                    .then_some(if weapon.stow_target {
+                        ("melee_sheath", weapon.stow_blend)
+                    } else {
+                        ("melee_draw", 1.0 - weapon.stow_blend)
+                    })
+            });
 
             let body = self
                 .pawn_catalog
                 .body_mut(pawn.route)
                 .expect("spawned pawn body remains loaded");
-            let palette = pawn.animator.update(
+            pawn.animator.update_weapon_transition(
                 &mut body.template,
                 pawn.lane,
+                armed_blend,
+                transition,
                 pawn.speed,
                 false,
                 pawn.alive,
                 dt,
             );
+            if pawn.alive && pawn.lane == WeaponLane::Rifle {
+                if let Some(weapon) = &pawn.weapon {
+                    if weapon.held.support_hand {
+                        let hand_global = body.template.skeleton.bone_global(weapon.hand);
+                        let held_socket = apply_weapon_bore_correction(
+                            hand_global.mul(weapon.held.mount),
+                            weapon.held,
+                        );
+                        let corrected_mount = hand_global.inverse().mul(held_socket);
+                        pawn.animator.apply_rifle_support_ik_weighted(
+                            &mut body.template,
+                            corrected_mount,
+                            weapon.held.foregrip,
+                            weapon.held.foregrip_contact,
+                            weapon.ik_weight,
+                            weapon.held.support_arm,
+                        );
+                    }
+                }
+            }
+            let palette = pawn.animator.palette();
             let count = palette.len() as u32;
             let offset = self.renderer.push_skin_palette(palette);
             let rotation = Quat::from_axis_angle(Vec3::Y, pawn.yaw);
@@ -2137,23 +2556,65 @@ impl ConnectedScene {
                     transform.rot = rotation;
                 }
                 if let Some(renderer) = self.world.get_component::<MeshRenderer>(*entity) {
+                    renderer.viewport_mask =
+                        if paperdoll_actor_id.is_some_and(|actor_id| actor_id == pawn.id) {
+                            0b11
+                        } else {
+                            0b1
+                        };
                     renderer.skin = SkinRef { offset, count };
                 }
             }
             if let Some(weapon) = &pawn.weapon {
-                let socket = body.template.skeleton.bone_global(weapon.hand);
+                let raw_held_socket = body
+                    .template
+                    .skeleton
+                    .bone_global(weapon.hand)
+                    .mul(weapon.held.mount);
+                let held_socket = if pawn.lane == WeaponLane::Rifle {
+                    apply_weapon_bore_correction(raw_held_socket, weapon.held)
+                } else {
+                    raw_held_socket
+                };
+                let rig_socket = weapon.stow.map_or(held_socket, |(bone, mount, arc_lift)| {
+                    let ease =
+                        weapon.stow_blend * weapon.stow_blend * (3.0 - 2.0 * weapon.stow_blend);
+                    let blended = interpolate_mount(
+                        held_socket,
+                        body.template.skeleton.bone_global(bone).mul(mount),
+                        ease,
+                    );
+                    let (mut pos, rotation, scale) = blended.to_trs();
+                    pos.y += arc_lift * (core::f32::consts::PI * ease).sin();
+                    Mat4::from_trs(pos, rotation, scale)
+                });
                 let actor_world = Mat4::from_trs(
                     vec3(wx, ground_y, wz),
                     rotation,
                     vec3(pawn.scale, pawn.scale, pawn.scale),
                 );
                 for &(entity, local) in &weapon.entities {
+                    let part_local = if weapon.plasma_blade == Some(entity) {
+                        let (_, rotation, scale) = local.to_trs();
+                        Mat4::from_trs(
+                            vec3(0.0, 0.0, 0.09 + 0.375 * armed_blend),
+                            rotation,
+                            vec3(scale.x, scale.y * armed_blend, scale.z),
+                        )
+                    } else {
+                        local
+                    };
                     let (pos, rig_rotation, rig_scale) =
-                        actor_world.mul(socket).mul(local).to_trs();
+                        actor_world.mul(rig_socket).mul(part_local).to_trs();
                     if let Some(transform) = self.world.get_component::<Transform>(entity) {
                         transform.pos = pos;
                         transform.rot = rig_rotation;
                         transform.scale = rig_scale;
+                    }
+                    if let Some(renderer) = self.world.get_component::<MeshRenderer>(entity) {
+                        // Inventory/examine portraits frame the actor silhouette;
+                        // the wielded prop has its own rotating item preview.
+                        renderer.viewport_mask = 0b1;
                     }
                 }
             }
@@ -2167,10 +2628,6 @@ impl ConnectedScene {
         if let Some(cam) = self.world.get_component::<Camera>(self.follow) {
             cam.look_at = focus;
             cam.eye = follow_eye(p);
-        }
-        if let Some(cam) = self.world.get_component::<Camera>(self.minimap) {
-            cam.eye = p.add(vec3(0.0, 160.0, 0.0));
-            cam.look_at = p;
         }
 
         self.streamed_world.sync(
@@ -2220,6 +2677,127 @@ impl ConnectedScene {
         if let Some(camera) = self.world.get_component::<Camera>(self.follow) {
             camera.clear.color = Some([env.fog[0], env.fog[1], env.fog[2], 1.0]);
         }
+        if let Some(paperdoll_window) = paperdoll_window {
+            let paperdoll_actor_id = match paperdoll_window {
+                "examine" => self
+                    .win_model
+                    .examine
+                    .actor
+                    .as_ref()
+                    .map(|actor| actor.actor_id.as_str()),
+                "converse" => self
+                    .win_model
+                    .converse
+                    .npc
+                    .as_ref()
+                    .map(|npc| npc.actor_id.as_str()),
+                "inventory" => Some(self.player_id.as_str()),
+                _ => None,
+            }
+            .expect("open portrait window has an actor");
+            let (portrait_ground, yaw) = self
+                .pawns
+                .get(paperdoll_actor_id)
+                .map(|pawn| {
+                    let wx = (pawn.render_pos.0 + 0.5) * WORLD_UNITS_PER_CELL;
+                    let wz = (pawn.render_pos.1 + 0.5) * WORLD_UNITS_PER_CELL;
+                    (vec3(wx, self.terrain.height_at(wx, wz), wz), pawn.yaw)
+                })
+                .unwrap_or((p, 0.0));
+            let (focus_height, camera_distance, fovy) = match paperdoll_window {
+                "converse" => (1.28, 0.95, 0.58),
+                _ => (0.90, 2.75, 0.68),
+            };
+            let focus = portrait_ground.add(vec3(0.0, focus_height, 0.0));
+            let facing = vec3(yaw.sin(), 0.0, yaw.cos());
+            self.world.set_component(
+                self.paperdoll_camera,
+                Camera {
+                    viewport_id: 1,
+                    order: -1,
+                    projection: Projection::Perspective {
+                        fovy,
+                        near: 0.05,
+                        far: 20.0,
+                    },
+                    target: CamTarget::Texture(self.paperdoll_target),
+                    clear: ClearSpec {
+                        color: Some([0.025, 0.03, 0.027, 1.0]),
+                        depth: Some(1.0),
+                    },
+                    eye: focus
+                        .add(facing.scale(camera_distance))
+                        .add(vec3(0.0, 0.08, 0.0)),
+                    look_at: focus,
+                    up: Vec3::Y,
+                },
+            );
+            if let Some([wx, wy, ww, wh]) = self.wm.rect(paperdoll_window) {
+                let content = [
+                    wx + 6.0,
+                    wy + successor_engine_render::window::TITLE_H + 6.0,
+                    ww - 12.0,
+                    wh - successor_engine_render::window::TITLE_H - 12.0,
+                ];
+                let preview = match paperdoll_window {
+                    "inventory" => crate::windows::inventory::layout(content).preview,
+                    "examine" => crate::windows::live::examine_preview_rect(content),
+                    "converse" => crate::windows::live::converse_preview_rect(content),
+                    _ => content,
+                };
+                self.world.set_component(
+                    self.paperdoll_quad,
+                    CompositeQuad {
+                        source: self.paperdoll_target,
+                        rect: RectNorm {
+                            x: preview[0] / w as f32,
+                            y: 1.0 - (preview[1] + preview[3]) / h as f32,
+                            w: preview[2] / w as f32,
+                            h: preview[3] / h as f32,
+                        },
+                        order: 0,
+                    },
+                );
+            }
+        } else {
+            self.world.remove_component::<Camera>(self.paperdoll_camera);
+            self.world
+                .remove_component::<CompositeQuad>(self.paperdoll_quad);
+        }
+        self.item_previews.sync(
+            gpu,
+            &mut self.renderer,
+            &mut self.world,
+            &self.wm,
+            &self.win_model,
+            w,
+            h,
+            self.sim_time,
+            read_asset,
+        );
+        // Enterable cutaways advance only against the accepted authority tick.
+        // Prefer the same authority actor centre used by the browser renderer;
+        // the rendered camera position is only a startup fallback.
+        let (cutaway_x, cutaway_z) = self
+            .store
+            .actors
+            .get(&self.store.player_actor_id)
+            .map(|actor| {
+                (
+                    (actor.x + 0.5) * WORLD_UNITS_PER_CELL,
+                    (actor.y + 0.5) * WORLD_UNITS_PER_CELL,
+                )
+            })
+            .unwrap_or((p.x, p.z));
+        let snapshot_tick = self.store.tick;
+        let prop_states = &self.store.prop_states;
+        self.props_loader.sync_enterable_presentation(
+            &mut self.world,
+            snapshot_tick,
+            cutaway_x,
+            cutaway_z,
+            prop_states,
+        );
         let active_weather = self.environs.active_weather();
         self.weather
             .set(active_weather.kind, active_weather.strength);
@@ -2230,6 +2808,73 @@ impl ConnectedScene {
             const WEATHER_LOOP_KEY: u32 = 0x5745_4154;
             let listener = Point { x: p.x, y: p.z };
             self.sfx.set_listener(listener);
+            const MUSIC_LOOP_KEY: u32 = 0x4d55_5343;
+            const SETTLEMENT_LOOP_KEY: u32 = 0x5345_5454;
+
+            if let Some((last_x, last_z)) = self.footstep_position {
+                let dx = p.x - last_x;
+                let dz = p.z - last_z;
+                let distance = (dx * dx + dz * dz).sqrt();
+                if (0.002..=2.0).contains(&distance) {
+                    self.footstep_distance += distance;
+                } else if distance > 2.0 {
+                    self.footstep_distance = 0.0;
+                }
+            }
+            self.footstep_position = Some((p.x, p.z));
+            let stride = if self.sprint_toggle || self.move_intent.2 {
+                0.72
+            } else {
+                0.90
+            };
+            if self.footstep_distance >= stride {
+                self.footstep_distance %= stride;
+                let clip = crate::audio::footstep_id(
+                    self.footstep_index,
+                    self.props_loader.player_inside_enterable(),
+                );
+                self.sfx.play_at(clip, listener, SpatialOpts::default());
+                self.footstep_index = self.footstep_index.wrapping_add(1);
+            }
+
+            let in_combat = self
+                .store
+                .actors
+                .get(&self.store.player_actor_id)
+                .and_then(|actor| actor.in_combat)
+                .unwrap_or(false);
+            if in_combat && !self.music_was_in_combat {
+                self.music_combat_index = self.music_combat_index.wrapping_add(1);
+            }
+            self.music_was_in_combat = in_combat;
+            if self.area_id == "open-desert-overworld" {
+                let minute = self.environs.minute_of_day();
+                let is_day = (360.0..1080.0).contains(&minute);
+                let desired_music =
+                    crate::audio::open_desert_music_id(is_day, in_combat, self.music_combat_index);
+                if self.music_audio != Some(desired_music) {
+                    self.sfx.stop_loop(MUSIC_LOOP_KEY);
+                    self.sfx.play_loop(desired_music, MUSIC_LOOP_KEY, None, 1.0);
+                    self.music_audio = Some(desired_music);
+                }
+                if !self.settlement_audio {
+                    self.sfx.play_loop(
+                        crate::audio::SETTLEMENT_LOOP,
+                        SETTLEMENT_LOOP_KEY,
+                        None,
+                        0.14,
+                    );
+                    self.settlement_audio = true;
+                }
+            } else {
+                if self.music_audio.take().is_some() {
+                    self.sfx.stop_loop(MUSIC_LOOP_KEY);
+                }
+                if self.settlement_audio {
+                    self.sfx.stop_loop(SETTLEMENT_LOOP_KEY);
+                    self.settlement_audio = false;
+                }
+            }
             let desired =
                 crate::audio::weather_loop_id(active_weather.kind, active_weather.strength);
             if desired != self.weather_audio {
@@ -2376,14 +3021,14 @@ impl ConnectedScene {
             .draw(&mut self.ui, &palette, w as f32, h as f32, anchor);
         let tuning_open = self.graphics_tuner.is_open();
         self.ui.set_input_enabled(!tuning_open);
-        if !tuning_open {
-            self.wm.update(&self.ui, w, h);
-        }
-        let captured = tuning_open || self.wm.pointer_captured();
         let now_ms = successor_platform::now_ms().max(0.0) as u64;
+        if !tuning_open {
+            self.wm.update_at(&self.ui, w, h, now_ms);
+        }
+        let captured = tuning_open || self.wm.pointer_captured() || self.context_menu.is_some();
         let right_down = successor_platform::mouse_button_down(1);
-        let right_pressed = right_down && !self.right_was_down;
-        self.right_was_down = right_down;
+        let right_pressed = right_down && !self.hud_right_was_down;
+        self.hud_right_was_down = right_down;
         self.hud_actions.clear();
         let mut hud_frame = hud::HudFrame {
             state: &self.hud_state,
@@ -2401,6 +3046,17 @@ impl ConnectedScene {
             h,
             &mut self.hud_actions,
         );
+        self.ui.set_input_enabled(!captured);
+        crate::game::chat_ui::draw_chat_pane(
+            &mut self.ui,
+            chat_client,
+            chat_input,
+            16.0,
+            h as f32 - 122.0,
+            360.0,
+            106.0,
+        );
+        self.ui.set_input_enabled(!tuning_open);
         let mut hud_actions = core::mem::take(&mut self.hud_actions);
         for action in hud_actions.drain(..) {
             match action {
@@ -2453,6 +3109,7 @@ impl ConnectedScene {
                 }
                 hud::HudAction::RadarSelect(actor_id) => {
                     self.selected_actor_id = Some(actor_id);
+                    self.selected_inventory = None;
                     self.project_windows();
                 }
                 hud::HudAction::RadarMove { dx_cells, dy_cells } => {
@@ -2478,7 +3135,13 @@ impl ConnectedScene {
         self.wm.fill_z_order(&mut self.window_order);
         for order_index in 0..self.window_order.len() {
             let index = self.window_order[order_index];
-            let rect = self.wm.draw_chrome(&mut self.ui, index, style);
+            let window_id = self.wm.window_id(index);
+            let model_preview = matches!(window_id, "inventory" | "examine" | "converse");
+            let mut window_style = style;
+            if model_preview {
+                window_style.frame.center = [3, 7, 8, 245];
+            }
+            let rect = self.wm.draw_chrome(&mut self.ui, index, window_style);
             self.window_id_scratch.clear();
             self.window_id_scratch.push_str(self.wm.window_id(index));
             let mut actions = Vec::new();
@@ -2494,12 +3157,159 @@ impl ConnectedScene {
                 self.dispatch_window_action(a);
             }
         }
+        if let Some((menu_x, menu_y)) = self.context_menu {
+            let can_converse = self.selected_actor_id.as_deref().is_some_and(|selected| {
+                self.win_model
+                    .converse
+                    .npc
+                    .as_ref()
+                    .is_some_and(|npc| npc.actor_id == selected)
+            });
+            let rows = if can_converse { 3.0 } else { 2.0 };
+            let menu_w = 138.0;
+            let row_h = 24.0;
+            let x = menu_x.clamp(4.0, (w as f32 - menu_w - 4.0).max(4.0));
+            let y = menu_y.clamp(4.0, (h as f32 - rows * row_h - 4.0).max(4.0));
+            let style = successor_engine_render::ui::ButtonStyle {
+                fill: [6, 13, 14, 242],
+                hover: [14, 39, 43, 250],
+                active: [20, 60, 66, 255],
+                edge: [38, 82, 89, 255],
+                text: [220, 234, 235, 255],
+            };
+            let mut close_menu = false;
+            if self.ui.button(x, y, menu_w, row_h, "Examine", style) {
+                self.wm.open("examine");
+                close_menu = true;
+            }
+            let mut attack_y = y + row_h;
+            if can_converse {
+                if self
+                    .ui
+                    .button(x, attack_y, menu_w, row_h, "Converse", style)
+                {
+                    self.wm.open("converse");
+                    close_menu = true;
+                }
+                attack_y += row_h;
+            }
+            if self.ui.button(x, attack_y, menu_w, row_h, "Attack", style) {
+                if let Some(target_actor_id) = self.selected_actor_id.clone() {
+                    self.dispatch_gameplay_action(actions::GameplayAction::Attack {
+                        action_id: "basic_shot".into(),
+                        target_actor_id,
+                    });
+                }
+                close_menu = true;
+            }
+            let (mx, my) = self.ui.mouse();
+            if self.ui.interact(0.0, 0.0, w as f32, h as f32).pressed
+                && !successor_engine_render::ui::UiBuilder::hit(x, y, menu_w, rows * row_h, mx, my)
+            {
+                close_menu = true;
+            }
+            if close_menu {
+                self.context_menu = None;
+            }
+        }
         self.ui.set_input_enabled(true);
         self.graphics_tuner
             .draw(&mut self.ui, &mut self.renderer, gpu, w, h);
         self.renderer
             .render_ui(gpu, &self.ui.buf, self.ui.quads, w, h);
+        self.renderer
+            .render_composites_overlay(gpu, &mut self.world, w, h);
     }
+}
+
+fn apply_weapon_bore_correction(socket: Mat4, held: HeldWeaponRig) -> Mat4 {
+    let grip = socket.transform_point(held.grip);
+    let bore = socket.transform_point(held.muzzle).sub(grip).normalize();
+    let horizontal_sq = bore.x * bore.x + bore.z * bore.z;
+    if horizontal_sq < 1.0e-8 || bore.y.abs() > 0.995 {
+        return socket;
+    }
+
+    let horizontal_len = horizontal_sq.sqrt();
+    let level_bore = vec3(bore.x / horizontal_len, 0.0, bore.z / horizontal_len);
+    let pitch_axis = Vec3::Y.cross(level_bore).normalize();
+    let pitch = bore.y.clamp(-1.0, 1.0).asin().clamp(-0.6, 0.6);
+
+    let bore_yaw = bore.x.atan2(bore.z);
+    let mut yaw = held.resting_yaw_rad - bore_yaw;
+    while yaw > core::f32::consts::PI {
+        yaw -= core::f32::consts::PI * 2.0;
+    }
+    while yaw < -core::f32::consts::PI {
+        yaw += core::f32::consts::PI * 2.0;
+    }
+    yaw = yaw.clamp(-0.45, 0.45);
+    if pitch.abs() < 1.0e-5 && yaw.abs() < 1.0e-5 {
+        return socket;
+    }
+
+    let correction = Mat4::from_trs(Vec3::ZERO, Quat::from_axis_angle(Vec3::Y, yaw), Vec3::ONE)
+        .mul(Mat4::from_trs(
+            Vec3::ZERO,
+            Quat::from_axis_angle(pitch_axis, pitch),
+            Vec3::ONE,
+        ));
+    Mat4::from_trs(grip, Quat::IDENTITY, Vec3::ONE)
+        .mul(correction)
+        .mul(Mat4::from_trs(grip.scale(-1.0), Quat::IDENTITY, Vec3::ONE))
+        .mul(socket)
+}
+
+fn interpolate_mount(from: Mat4, to: Mat4, t: f32) -> Mat4 {
+    let t = t.clamp(0.0, 1.0);
+    let (from_pos, from_rot, from_scale) = from.to_trs();
+    let (to_pos, to_rot, to_scale) = to.to_trs();
+    Mat4::from_trs(
+        vec3(
+            from_pos.x + (to_pos.x - from_pos.x) * t,
+            from_pos.y + (to_pos.y - from_pos.y) * t,
+            from_pos.z + (to_pos.z - from_pos.z) * t,
+        ),
+        quat_slerp(from_rot, to_rot, t),
+        vec3(
+            from_scale.x + (to_scale.x - from_scale.x) * t,
+            from_scale.y + (to_scale.y - from_scale.y) * t,
+            from_scale.z + (to_scale.z - from_scale.z) * t,
+        ),
+    )
+}
+
+fn quat_slerp(from: Quat, mut to: Quat, t: f32) -> Quat {
+    let mut dot = from.x * to.x + from.y * to.y + from.z * to.z + from.w * to.w;
+    if dot < 0.0 {
+        dot = -dot;
+        to = Quat {
+            x: -to.x,
+            y: -to.y,
+            z: -to.z,
+            w: -to.w,
+        };
+    }
+    if dot > 0.9995 {
+        return Quat {
+            x: from.x + (to.x - from.x) * t,
+            y: from.y + (to.y - from.y) * t,
+            z: from.z + (to.z - from.z) * t,
+            w: from.w + (to.w - from.w) * t,
+        }
+        .normalize();
+    }
+    let theta = dot.clamp(-1.0, 1.0).acos();
+    let sin_theta = theta.sin();
+    let from_weight = ((1.0 - t) * theta).sin() / sin_theta;
+    let to_weight = (t * theta).sin() / sin_theta;
+    Quat {
+        x: from.x * from_weight + to.x * to_weight,
+        y: from.y * from_weight + to.y * to_weight,
+        z: from.z * from_weight + to.z * to_weight,
+        w: from.w * from_weight + to.w * to_weight,
+    }
+    .normalize()
 }
 
 /// Faction id → a tint bias rgb (best-effort; unknown factions untinted).
@@ -2525,5 +3335,98 @@ mod tests {
         assert!((eye.sub(focus).length() - 96.0).abs() < 1.0e-4);
         assert!((eye.x - focus.x).abs() < 1.0e-6);
         assert!(eye.y > focus.y && eye.z > focus.z);
+    }
+
+    #[test]
+    fn weapon_mount_interpolation_reaches_held_and_stowed_endpoints() {
+        let held = Mat4::from_trs(vec3(0.0, 0.0, 0.0), Quat::IDENTITY, vec3(1.0, 1.0, 1.0));
+        let stowed = Mat4::from_trs(
+            vec3(0.16, 0.0, -0.14),
+            Quat::from_axis_angle(Vec3::Y, core::f32::consts::FRAC_PI_2),
+            vec3(1.0, 1.0, 1.0),
+        );
+        assert_eq!(interpolate_mount(held, stowed, 0.0), held);
+        let (end, _, _) = interpolate_mount(held, stowed, 1.0).to_trs();
+        assert!((end.x - 0.16).abs() < 1.0e-5);
+        assert!((end.z + 0.14).abs() < 1.0e-5);
+        let (mid, mid_rotation, _) = interpolate_mount(held, stowed, 0.5).to_trs();
+        assert!((mid.x - 0.08).abs() < 1.0e-5);
+        let norm = mid_rotation.x * mid_rotation.x
+            + mid_rotation.y * mid_rotation.y
+            + mid_rotation.z * mid_rotation.z
+            + mid_rotation.w * mid_rotation.w;
+        assert!((norm - 1.0).abs() < 1.0e-5);
+    }
+
+    #[test]
+    fn bore_correction_levels_pitch_and_rotates_yaw_around_the_grip() {
+        let socket = Mat4::from_trs(
+            vec3(0.4, 1.2, -0.3),
+            Quat::from_axis_angle(vec3(1.0, 0.0, 0.0), -0.24),
+            Vec3::ONE,
+        );
+        let held = HeldWeaponRig {
+            mount: Mat4::IDENTITY,
+            grip: vec3(0.02, 0.01, 0.1),
+            foregrip: vec3(0.0, 0.0, 0.4),
+            muzzle: vec3(0.02, 0.01, 0.9),
+            foregrip_contact: Vec3::ZERO,
+            resting_yaw_rad: 0.12,
+            support_arm: None,
+            support_hand: true,
+        };
+        let grip_before = socket.transform_point(held.grip);
+        let corrected = apply_weapon_bore_correction(socket, held);
+        let grip_after = corrected.transform_point(held.grip);
+        assert!(grip_after.sub(grip_before).length() < 1.0e-5);
+        let bore = corrected.transform_point(held.muzzle).sub(grip_after);
+        assert!(bore.normalize().y.abs() < 1.0e-5);
+        assert!((bore.x.atan2(bore.z) - held.resting_yaw_rad).abs() < 1.0e-5);
+    }
+
+    #[test]
+    fn presentation_identity_detects_live_loadout_changes() {
+        let mut actor: GameActorSnapshot = serde_json::from_str(
+            r##"{
+                "id":"dev-1",
+                "appearance":{"skin":"#cc9978","hair":"hair_short","hair_mat":"hair_raven"},
+                "factionId":"desert-law",
+                "sprite":"wanderer-female",
+                "role":"player",
+                "worn":[{"item":"under_tank","colors":["#89cff0"]}],
+                "weapon":{"weaponId":"wpn-smg","weaponItemId":3111}
+            }"##,
+        )
+        .expect("actor snapshot");
+        let presentation = PawnPresentation {
+            skin: Some("#cc9978".into()),
+            faction: Some("desert-law".into()),
+            sprite: Some("wanderer-female".into()),
+            role: Some("player".into()),
+            hair: Some("hair_short".into()),
+            hair_material: Some("hair_raven".into()),
+            worn: vec![WornPresentation {
+                item_id: "under_tank".into(),
+                colors: vec!["#89cff0".into()],
+            }],
+            weapon: Some("wpn-smg".into()),
+            weapon_item_id: Some(3111),
+        };
+        assert!(presentation.matches(&actor));
+
+        actor.weapon.as_mut().unwrap().weapon_item_id = Some(3112);
+        assert!(
+            !presentation.matches(&actor),
+            "weapon model change respawns"
+        );
+        actor.weapon.as_mut().unwrap().weapon_item_id = Some(3111);
+        actor.worn[0].item_id = Some("under_bodysuit".into());
+        assert!(!presentation.matches(&actor), "wardrobe change respawns");
+        actor.worn[0].item_id = Some("under_tank".into());
+        actor.worn[0].colors[0] = "#303030".into();
+        assert!(
+            !presentation.matches(&actor),
+            "wardrobe color change respawns"
+        );
     }
 }

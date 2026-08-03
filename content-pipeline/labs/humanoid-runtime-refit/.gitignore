@@ -1,0 +1,15 @@
+# Blender autosave siblings
+*.blend1
+
+# Scratch build products. Body shading, texture and reference caches regenerate
+# from the pinned source bodies and are never handoff artifacts.
+__pycache__/
+build/reference/
+build/textures/
+build/scratch/
+build/apparel_baseline/
+build/*.npy
+
+# Individual proof cells are intermediates: proof_renders.py regenerates them
+# and reports/proof_manifest.json records every selected cell's SHA256.
+proof/cells/

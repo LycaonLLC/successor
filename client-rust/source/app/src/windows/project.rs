@@ -88,6 +88,8 @@ pub struct ProjectContext {
     pub planet_id: String,
     /// Selected actor id (trade proposal, group invite, duel, examine).
     pub selected_actor_id: Option<String>,
+    /// Selected held stack `(container, stack_id)` for item examine.
+    pub selected_inventory: Option<(String, String)>,
     /// Player corpse the world layer opened for looting.
     pub loot_corpse_id: Option<String>,
     /// Examined prop `(prop id, label)`.
@@ -157,11 +159,23 @@ pub fn project(
         .get(&store.player_actor_id)
         .or_else(|| store.actors.get(player_id));
     let player_pos = player.map(|a| (a.x, a.y)).unwrap_or((0.0, 0.0));
+    let mut inventory_rows: Vec<InventoryRow> = decode_rows(&store.inventory);
+    if let Some(weapon) = player.and_then(|actor| actor.weapon.as_ref()) {
+        let item_id = weapon.weapon_item_id.unwrap_or(0);
+        let variant_id = weapon.weapon_variant_id.unwrap_or(0);
+        if item_id > 0 {
+            for row in &mut inventory_rows {
+                if i64::from(row.item_id) == item_id && i64::from(row.variant_id) == variant_id {
+                    row.equipped = true;
+                }
+            }
+        }
+    }
 
     // Inventory: wholesale rebuild — a present-empty wire section projects to
     // zero rows, and player-scoped scalars clear when the actor is absent.
     model.inventory = InventoryModel {
-        rows: decode_rows(&store.inventory),
+        rows: inventory_rows,
         reservations: decode_rows(&store.reservations),
         credits: player.and_then(|a| a.credits).unwrap_or(0),
         weapon_label: player
@@ -647,7 +661,7 @@ pub fn project(
         sample_target: None,
     };
 
-    // Examine: current selection joined against the live actor set.
+    // Examine: current actor/item/prop selection joined against live state.
     model.examine = ExamineModel {
         actor: ctx
             .selected_actor_id
@@ -668,7 +682,11 @@ pub fn project(
                 health: a.vitals.health,
                 health_max: a.max_vitals.health,
             }),
-        item: None,
+        item: ctx
+            .selected_inventory
+            .as_ref()
+            .and_then(|(container, stack_id)| model.inventory.row(container, stack_id))
+            .cloned(),
         prop: ctx.examine_prop.clone(),
     };
 
@@ -722,10 +740,13 @@ fn player_summary(a: &GameActorSnapshot) -> PlayerSummary {
         career_goal_id: a.career_goal_id.clone(),
         skill_points_used: a.skill_points_used.unwrap_or(0),
         skill_points_cap: a.skill_points_cap.unwrap_or(0),
-        weapon: a.weapon.as_ref().map(|w| WeaponState {
-            weapon_id: w.weapon_id.clone().unwrap_or_default(),
-            reload_remaining_ticks: w.reload_remaining_ticks.unwrap_or(0),
-            ..WeaponState::default()
+        weapon: a.weapon.as_ref().map(|weapon| WeaponState {
+            weapon_id: weapon.weapon_id.clone().unwrap_or_default(),
+            ammo_type: weapon.ammo_type.clone().unwrap_or_default(),
+            loaded_rounds: weapon.loaded_rounds.unwrap_or(0),
+            magazine_size: weapon.magazine_size.unwrap_or(0),
+            reload_remaining_ticks: weapon.reload_remaining_ticks.unwrap_or(0),
+            reload_total_ticks: weapon.reload_total_ticks.unwrap_or(0),
         }),
         shield: a
             .personal_shield
@@ -777,6 +798,7 @@ mod tests {
                 weapon: Some(GameActorWeapon {
                     weapon_id: Some("weapon_slugthrower_mk2".into()),
                     reload_remaining_ticks: Some(0),
+                    ..Default::default()
                 }),
                 professions: vec![json!({
                     "id": "prospector",
@@ -856,6 +878,55 @@ mod tests {
         // Trained skill boxes surface without a spec join.
         assert_eq!(model.skills.professions.len(), 1);
         assert!(model.skills.professions[0].boxes[0].trained);
+    }
+    #[test]
+    fn equipped_weapon_projects_exact_row_and_magazine_state() {
+        let mut snapshot = live_snapshot();
+        snapshot.actors.get_mut("actor-1").unwrap().weapon = Some(GameActorWeapon {
+            weapon_id: Some("wpn-launcher".into()),
+            weapon_item_id: Some(3127),
+            weapon_variant_id: Some(9),
+            ammo_type: Some("slug_iron".into()),
+            loaded_rounds: Some(6),
+            magazine_size: Some(30),
+            reload_remaining_ticks: Some(15),
+            reload_total_ticks: Some(60),
+            ..Default::default()
+        });
+        snapshot.inventory.push(json!({
+            "container": "actor-1",
+            "stackId": 9,
+            "item": "Flare Net Launcher",
+            "itemId": 3127,
+            "variantId": 9,
+            "quantity": 1,
+            "reserved": 0,
+            "available": 1,
+            "equipped": false
+        }));
+
+        let mut store = AuthorityStore::new();
+        store.apply_snapshot(&snapshot);
+        let mut model = WindowModel::default();
+        project_default(&store, &mut model);
+
+        let row = model
+            .inventory
+            .rows
+            .iter()
+            .find(|row| row.item_id == 3127)
+            .expect("launcher inventory row");
+        assert!(row.equipped);
+        assert_eq!(
+            model.inventory.weapon_label.as_deref(),
+            Some("WPN LAUNCHER")
+        );
+        let weapon = model.player.weapon.as_ref().expect("player weapon");
+        assert_eq!(weapon.ammo_type, "slug_iron");
+        assert_eq!(weapon.loaded_rounds, 6);
+        assert_eq!(weapon.magazine_size, 30);
+        assert_eq!(weapon.reload_remaining_ticks, 15);
+        assert_eq!(weapon.reload_total_ticks, 60);
     }
 
     #[test]

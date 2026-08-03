@@ -37,7 +37,8 @@ pub enum ModelUploadError {
 
 #[derive(Clone, Copy)]
 struct TextureCacheEntry {
-    texture: usize,
+    source: usize,
+    sampler: Option<usize>,
     srgb: bool,
     uploaded: TextureId,
 }
@@ -159,16 +160,18 @@ fn upload_texture<G: Gpu>(
     if reference.tex_coord != 0 {
         return Err(ModelUploadError::TextureIndex);
     }
-    if let Some(entry) = cache
-        .iter()
-        .find(|entry| entry.texture == reference.texture && entry.srgb == srgb)
-    {
-        return Ok(Some(entry.uploaded));
-    }
     let texture = document
         .textures
         .get(reference.texture)
         .ok_or(ModelUploadError::TextureIndex)?;
+    // Blender emits one glTF texture object per material slot even when all
+    // slots reference the same image and sampler. Cache by the actual GPU
+    // resource identity so large modular assemblies do not exhaust handles.
+    if let Some(entry) = cache.iter().find(|entry| {
+        entry.source == texture.source && entry.sampler == texture.sampler && entry.srgb == srgb
+    }) {
+        return Ok(Some(entry.uploaded));
+    }
     let image = document
         .images
         .get(texture.source)
@@ -210,7 +213,8 @@ fn upload_texture<G: Gpu>(
         Some(&decoded.pixels),
     );
     cache.push(TextureCacheEntry {
-        texture: reference.texture,
+        source: texture.source,
+        sampler: texture.sampler,
         srgb,
         uploaded,
     });

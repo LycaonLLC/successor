@@ -1,5 +1,6 @@
 import {
   AmbientLight,
+  type CanvasTexture,
   Color,
   DirectionalLight,
   Group,
@@ -18,13 +19,25 @@ import {
   resolveEquipmentSlotMaterial,
   type EquipmentSlotMaterialSource,
 } from "../../assets/equipmentMaterials";
-import { clonePawnBody, type PawnBody, type PawnEquipmentItem, type PawnPack } from "../../assets/pawnPack";
+import {
+  applyPawnBodyZoneMask,
+  clonePawnBody,
+  collectPawnBodyZoneMeshes,
+  resolvePawnBodyZoneMask,
+  type PawnBody,
+  type PawnEquipmentItem,
+  type PawnPack,
+} from "../../assets/pawnPack";
 import { authoritativeWornKey } from "../../render/equipmentSlots";
 import { MaskedClipCache } from "../../render/anim/maskedClips";
 import { PawnAnimator } from "../../render/anim/PawnAnimator";
 import { attachPawnEquipmentSet, resolveRifleBaseLaneAvailable } from "../../render/pawns";
 import { SlugthrowerRig } from "../../render/weapons/slugthrowerRig";
-import { PlasmaBlade } from "../../render/weapons/plasmaBlade";
+import {
+  PlasmaPresentation,
+  PLASMA_SWORD_COLOR,
+  PLASMA_SWORD_MODEL_KEY,
+} from "../../render/weapons/plasmaPresentation";
 import { makeGlowSprite } from "../../render/fx/particles";
 import { SUCCESSOR_3D_CONFIG } from "../../config";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -58,22 +71,11 @@ function dollSkinMaterialFor(skinTone: string): MeshStandardMaterial {
   return material;
 }
 
-const PLASMA_SWORD_ITEM_ID = 3104;
-const PLASMA_SWORD_COLOR = 0x63f0ff;
-// Hilt scene + glow sprite cached for module lifetime (same policy as the
-// skin material cache); every doll rebuild clones from these.
-let plasmaHiltScenePromise: Promise<Group | null> | null = null;
-let dollGlowSprite: ReturnType<typeof makeGlowSprite> | null = null;
-
-function loadPlasmaHiltScene(): Promise<Group | null> {
-  plasmaHiltScenePromise ??= new GLTFLoader()
-    .loadAsync(`${SUCCESSOR_3D_CONFIG.pawnPack.basePath}/plasma_hilt.glb`)
-    .then((gltf) => gltf.scene, (error: unknown) => {
-      console.warn("paper doll plasma hilt load failed", error);
-      return null;
-    });
-  return plasmaHiltScenePromise;
-}
+// Glow sprite cached for module lifetime (same policy as the skin material
+// cache); every doll rebuild reuses it. The hilt MODEL is no longer loaded
+// here — the plasma sword is a catalogue weapon, so SwordRig welds its hilt
+// through the shared registry exactly as the world pawn does.
+let dollGlowSprite: CanvasTexture | null = null;
 
 export interface PaperDollThemeColors {
   accent: string;
@@ -93,8 +95,7 @@ export class PaperDollRenderer implements TurntableTarget {
   private animator: PawnAnimator | null = null;
   private slugthrower: SlugthrowerRig | null = null;
   private sword: SwordRig | null = null;
-  private plasmaBlade: PlasmaBlade | null = null;
-  private plasmaHilt: Group | null = null;
+  private plasma: PlasmaPresentation | null = null;
   private currentWeaponItemId = 0;
   private currentBody: PawnBody | null = null;
   private currentWeaponId: string | null = null;
@@ -159,6 +160,7 @@ export class PaperDollRenderer implements TurntableTarget {
     // foregrip); the legacy lane needs the support hand posed by IK.
     this.slugthrower?.update(dtSeconds, null, this.rifleBaseLaneAvailable ? "auto" : "on");
     this.sword?.update(dtSeconds);
+    this.plasma?.update(dtSeconds);
 
     const x = Math.max(0, Math.floor(rect.x));
     const y = Math.max(0, Math.floor(canvasHeight - rect.y - rect.height));
@@ -258,7 +260,12 @@ export class PaperDollRenderer implements TurntableTarget {
       : null;
     this.currentEquipmentIds.length = 0;
     for (let i = 0; i < vm.equipmentIds.length; i += 1) this.currentEquipmentIds.push(vm.equipmentIds[i]!);
+    // Appearance hair is independent from inventory headwear.
+    const attachIds = hairId && !vm.equipmentIds.includes(hairId)
+      ? [...vm.equipmentIds, hairId]
+      : vm.equipmentIds;
     const bodyRoot = clonePawnBody(this.pack, vm.body);
+    const bodyZoneMeshes = collectPawnBodyZoneMeshes(bodyRoot);
     bodyRoot.name = `inventory-paper-doll-body:${vm.body}`;
     bodyRoot.scale.setScalar(this.pack.scale);
     this.root.add(bodyRoot);
@@ -276,15 +283,15 @@ export class PaperDollRenderer implements TurntableTarget {
       object.material = skinMaterial;
     });
 
-    // Appearance hair is independent from inventory headwear.
-    const attachIds = hairId && !vm.equipmentIds.includes(hairId)
-      ? [...vm.equipmentIds, hairId]
-      : vm.equipmentIds;
-    attachPawnEquipmentSet(
+    const attachedItemIds = attachPawnEquipmentSet(
       this.pack,
       bodyRoot,
       attachIds,
       (item, source) => this.equipmentMaterial(item, source),
+    );
+    applyPawnBodyZoneMask(
+      bodyZoneMeshes,
+      resolvePawnBodyZoneMask(this.pack.equipment, attachedItemIds),
     );
     attachPawnFaceDecal(bodyRoot, vm.appearance?.face);
     void getEquipmentMaterialSets().then(() => {
@@ -355,21 +362,13 @@ export class PaperDollRenderer implements TurntableTarget {
         this.sword = sword;
         sword.setVisible(true);
         sword.setStowed(pose.stowed, { snap: true });
-        if ((vm.weaponItemId ?? 0) === PLASMA_SWORD_ITEM_ID) {
-          // Plasma presentation (world-pawn mirror, pawns.ts ensurePlasma):
-          // hide the vibro frame, pure-FX blade + hilt clone in the same
-          // weapon frame. Blade lights only when wielded — stowed = retracted.
-          sword.setFrameVisible(false);
+        if (assetKey === PLASMA_SWORD_MODEL_KEY) {
+          // Plasma presentation (world-pawn mirror, pawns.ts syncPlasmaEquip).
+          // The SwordRig already carries the authored plasma hilt model, so
+          // this only adds the pure-effect blade. Blade lights only when
+          // wielded — stowed = retracted.
           dollGlowSprite ??= makeGlowSprite();
-          const blade = new PlasmaBlade(sword.frameRoot(), dollGlowSprite, PLASMA_SWORD_COLOR);
-          blade.setExtension(pose.stowed ? 0 : 1);
-          this.plasmaBlade = blade;
-          void loadPlasmaHiltScene().then((scene) => {
-            if (!scene || this.plasmaBlade !== blade) return;
-            const hilt = scene.clone(true);
-            sword.frameRoot().add(hilt);
-            this.plasmaHilt = hilt;
-          });
+          this.plasma = new PlasmaPresentation(sword, dollGlowSprite, PLASMA_SWORD_COLOR, !pose.stowed);
         }
       }
     }
@@ -382,12 +381,8 @@ export class PaperDollRenderer implements TurntableTarget {
   }
 
   private clearDoll(): void {
-    this.plasmaBlade?.dispose();
-    this.plasmaBlade = null;
-    if (this.plasmaHilt) {
-      this.plasmaHilt.parent?.remove(this.plasmaHilt);
-      this.plasmaHilt = null;
-    }
+    this.plasma?.dispose();
+    this.plasma = null;
     this.slugthrower?.dispose();
     this.slugthrower = null;
     this.sword?.dispose();

@@ -394,8 +394,8 @@ thread_local! {
 }
 
 // Shared chrome palette (mirrors the HUD panel tones).
-pub const TEXT: [u8; 4] = [210, 222, 236, 255];
-pub const DIM: [u8; 4] = [150, 166, 184, 255];
-pub const ACCENT: [u8; 4] = [240, 196, 96, 255];
-pub const SLOT: [u8; 4] = [26, 34, 46, 220];
-pub const SLOT_EDGE: [u8; 4] = [70, 90, 110, 255];
+pub const TEXT: [u8; 4] = [220, 234, 235, 255];
+pub const DIM: [u8; 4] = [111, 150, 157, 255];
+pub const ACCENT: [u8; 4] = [59, 211, 225, 255];
+pub const SLOT: [u8; 4] = [9, 18, 20, 230];
+pub const SLOT_EDGE: [u8; 4] = [38, 82, 89, 240];

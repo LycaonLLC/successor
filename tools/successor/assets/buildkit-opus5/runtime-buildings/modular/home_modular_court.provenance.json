@@ -6,20 +6,20 @@
       "sha256": "b9a86970938c2d423e775f73962ba1cefd71f2a72f895a2c4f11991c42157d47"
     },
     "glb": {
-      "bytes": 8337816,
+      "bytes": 9015332,
       "path": "home_modular_court.glb",
-      "sha256": "4fbc8e48b136846e32c28a3373dcca2f0ab515d2a1464e69ae25f83dd580458a"
+      "sha256": "49264de5adaf417556ac6df1ec937b4aee18bed2c6e88c976683e1eb34c3ecc0"
     },
     "manifest": {
       "bytes": 3123,
       "path": "home_modular_court_manifest.json",
-      "sha256": "582007c9b072fc2fa4e1166878ce27d03e3cc1d13719b5c6c3c7844b858d932a"
+      "sha256": "0c7a7a696836301ca335927b1278cb003ed2400b4ec81aa5f197bc692c9f6c46"
     }
   },
   "asset": {
-    "bytes": 8337816,
+    "bytes": 9015332,
     "path": "home_modular_court.glb",
-    "sha256": "sha256:4fbc8e48b136846e32c28a3373dcca2f0ab515d2a1464e69ae25f83dd580458a"
+    "sha256": "sha256:49264de5adaf417556ac6df1ec937b4aee18bed2c6e88c976683e1eb34c3ecc0"
   },
   "asset_id": "home_modular_court",
   "contract": {
@@ -35,7 +35,7 @@
   "generator": {
     "lod": 0,
     "path": "src/package_runtime_buildings.py",
-    "sha256": "13be669e4cb44b83ee75f36402145d7f1b083b4e7f33ca62310f05c8a757105e"
+    "sha256": "5f6e4f4d2c9f2f37fc2e4bdd4391a140e04ad2af7820bcc6a407395e74b7c9e1"
   },
   "modules": [
     {
@@ -692,6 +692,7 @@
   "pack": {
     "colour_accessors_quantized": 592,
     "images_embedded": 0,
+    "pngs_normalized_rgba8": 27,
     "unique_image_bytes": 0
   },
   "runtime_key": "home_modular_court",
@@ -700,7 +701,7 @@
   "sources": [
     {
       "path": "src/package_runtime_buildings.py",
-      "sha256": "13be669e4cb44b83ee75f36402145d7f1b083b4e7f33ca62310f05c8a757105e"
+      "sha256": "5f6e4f4d2c9f2f37fc2e4bdd4391a140e04ad2af7820bcc6a407395e74b7c9e1"
     },
     {
       "path": "src/assemble_home.py",

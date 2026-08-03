@@ -16,6 +16,7 @@
 //! - [`waypoints`] — character-scoped waypoint store (port of
 //!   `ui/waypoints/store.ts`).
 
+use successor_engine_render::font::{RasterFont, RasterGlyph};
 use successor_engine_render::ui::{AtlasMeta, UiBuilder};
 
 pub mod overlays;
@@ -26,11 +27,17 @@ pub mod waypoints;
 
 const ICONS_A8: &[u8] = include_bytes!("../assets/ui/icons.a8");
 const ICONS_JSON: &str = include_str!("../assets/ui/icons.json");
+const UI_FONT_TTF: &[u8] = include_bytes!("../assets/ui/PT_Sans-Web-Bold.ttf");
+const UI_ATLAS_W: usize = 512;
+const UI_ATLAS_H: usize = 512;
+const UI_FONT_SOURCE_PX: f32 = 32.0;
 
-/// Parsed icon atlas: metadata, the RGBA8 texture bytes, and the id → cell map.
+/// Parsed icon/font atlas: metadata, RGBA8 texture bytes, glyph metrics and
+/// the stable icon-id map. Text and icons share one texture and one UI pass.
 pub struct Icons {
     pub meta: AtlasMeta,
     pub rgba: Vec<u8>,
+    pub font: RasterFont,
     map: Vec<(String, (u32, u32))>,
 }
 
@@ -38,11 +45,13 @@ impl Icons {
     pub fn load() -> Self {
         let v: serde_json::Value = serde_json::from_str(ICONS_JSON).expect("icons.json parse");
         let u = |k: &str| v[k].as_u64().unwrap_or(0) as u32;
+        let icon_w = u("width") as usize;
+        let icon_h = u("height") as usize;
         let meta = AtlasMeta {
             cell: u("cell"),
             cols: u("cols"),
-            width: u("width"),
-            height: u("height"),
+            width: UI_ATLAS_W as u32,
+            height: UI_ATLAS_H as u32,
         };
         let mut map = Vec::new();
         if let Some(arr) = v["icons"].as_array() {
@@ -53,15 +62,88 @@ impl Icons {
                 map.push((id, (col, row)));
             }
         }
-        // Expand single-channel coverage to RGBA8 (white with coverage in alpha).
-        let mut rgba = vec![0u8; ICONS_A8.len() * 4];
-        for (i, &a) in ICONS_A8.iter().enumerate() {
+
+        let mut alpha = vec![0u8; UI_ATLAS_W * UI_ATLAS_H];
+        for row in 0..icon_h {
+            let src = &ICONS_A8[row * icon_w..(row + 1) * icon_w];
+            let dst = &mut alpha[row * UI_ATLAS_W..row * UI_ATLAS_W + icon_w];
+            dst.copy_from_slice(src);
+        }
+
+        let font = fontdue::Font::from_bytes(
+            UI_FONT_TTF,
+            fontdue::FontSettings {
+                collection_index: 0,
+                scale: UI_FONT_SOURCE_PX,
+                load_substitutions: true,
+            },
+        )
+        .expect("PT Sans font parse");
+        let line = font
+            .horizontal_line_metrics(UI_FONT_SOURCE_PX)
+            .expect("PT Sans horizontal metrics");
+        let mut glyphs = Vec::with_capacity(95);
+        let mut atlas_x = 2usize;
+        let mut atlas_y = icon_h + 4;
+        let mut row_h = 0usize;
+        for code in 32u8..=126 {
+            let ch = code as char;
+            let (metrics, bitmap) = font.rasterize(ch, UI_FONT_SOURCE_PX);
+            if atlas_x + metrics.width + 2 > UI_ATLAS_W {
+                atlas_x = 2;
+                atlas_y += row_h + 2;
+                row_h = 0;
+            }
+            assert!(
+                atlas_y + metrics.height + 2 <= UI_ATLAS_H,
+                "UI font atlas overflow"
+            );
+            for row in 0..metrics.height {
+                let src = &bitmap[row * metrics.width..(row + 1) * metrics.width];
+                let start = (atlas_y + row) * UI_ATLAS_W + atlas_x;
+                alpha[start..start + metrics.width].copy_from_slice(src);
+            }
+            glyphs.push(RasterGlyph {
+                ch,
+                uv: (
+                    atlas_x as f32 / UI_ATLAS_W as f32,
+                    atlas_y as f32 / UI_ATLAS_H as f32,
+                    (atlas_x + metrics.width) as f32 / UI_ATLAS_W as f32,
+                    (atlas_y + metrics.height) as f32 / UI_ATLAS_H as f32,
+                ),
+                width: metrics.width as f32,
+                height: metrics.height as f32,
+                xmin: metrics.xmin as f32,
+                ymin: metrics.ymin as f32,
+                advance: metrics.advance_width,
+            });
+            atlas_x += metrics.width + 2;
+            row_h = row_h.max(metrics.height);
+        }
+        let font = RasterFont {
+            source_px: UI_FONT_SOURCE_PX,
+            ascent: line.ascent,
+            line_height: line.new_line_size,
+            glyphs,
+        };
+
+        let mut rgba = vec![0u8; alpha.len() * 4];
+        for (i, &a) in alpha.iter().enumerate() {
             rgba[i * 4] = 255;
             rgba[i * 4 + 1] = 255;
             rgba[i * 4 + 2] = 255;
             rgba[i * 4 + 3] = a;
         }
-        Self { meta, rgba, map }
+        Self {
+            meta,
+            rgba,
+            font,
+            map,
+        }
+    }
+
+    pub fn ui_builder(&self) -> UiBuilder {
+        UiBuilder::new_with_font(self.meta, self.font.clone())
     }
 
     /// Atlas cell `(col, row)` for an icon id.
@@ -866,12 +948,12 @@ pub fn build_hud(
     let pal = frame.palette;
     let st = frame.state;
 
-    // Status plate (bottom-left) + tags.
-    plate::draw_status_plate(ui, &pal, st, 16.0, sh - 178.0, out);
+    // Player and target plates share the top-left information rail, matching
+    // the web client's scan order and leaving the lower-left corner for chat.
+    plate::draw_status_plate(ui, &pal, st, 16.0, 16.0, out);
 
-    // Target plate (top-left, right of the player plate anchor).
     if let Some(target) = &st.target {
-        plate::draw_target_plate(ui, &pal, target, 16.0, 16.0);
+        plate::draw_target_plate(ui, &pal, target, 16.0 + plate::PLATE_W + 10.0, 16.0);
     }
 
     // Group invite toast (top-center) + member rail (under the target plate).
@@ -882,7 +964,7 @@ pub fn build_hud(
         ui,
         &pal,
         st,
-        sw - radar::SIZE_PX - 16.0,
+        sw - radar::PANEL_W - 56.0,
         16.0,
         frame.captured,
         out,
@@ -893,8 +975,8 @@ pub fn build_hud(
         ui,
         &pal,
         st,
-        sw - 232.0 - 10.0,
-        16.0 + radar::SIZE_PX + 24.0,
+        sw - 232.0 - 56.0,
+        16.0 + radar::PANEL_H + 12.0,
         out,
     );
 

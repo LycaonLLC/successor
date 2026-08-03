@@ -171,15 +171,23 @@ forces a `world-transition` checkpoint before the server acknowledges it, then
 refreshes the character-store projection.
 
 The current file format is `successor.character-store.v2`. Every record carries
-its owner, complete appearance (including an explicit nullable face), worn
-projection, position/vitals, profession/profile fields, bounded record kinds,
-world-entry marker, and timestamps. The standalone account database head is
+its owner, complete appearance (explicit `male`/`female` body route and explicit
+nullable face), worn projection, position/vitals, profession/profile fields,
+bounded record kinds, world-entry marker, and timestamps. The standalone
+account database head is
 `alpha-control-bug-reports-v2`; startup has one explicit, checksum-pinned
 upgrade from `alpha-control-current-v1` that preserves accounts and adds the
 player-report ledger. Every browser or device launch carries immutable
 provenance. Older character formats, unknown account migration heads,
 claim-code ownership repair, and synthesized ticket identity are not supported
 inputs.
+
+Character creation requires one of the two canonical PawnForge humanoid bodies.
+The character store persists that choice, and the server projects it
+deterministically as `adventurer-premium-male` or
+`adventurer-premium-female`; clients do not infer body type from names, roles,
+hair, or clothing. Both bodies use the same 50-joint/47-clip runtime contract
+and accept the fixed starter outfit without a separate gameplay identity.
 
 The bridge keeps the wire request names `exportState` and `importState`, but the
 payload is the current-only `authority.checkpoint.v1` schema at version `1`.
@@ -226,7 +234,7 @@ Dapplepod.
 
 The fixture identity string remains
 `planetfall-v5-seed-424242-size-1024-rogues-18-desert-critters-48-verdance-critters-24-areas-open-desert-overworld-verdance-forest-overworld`.
-The compiled slice contains 139 stable logical props/anchors, including the humanoid
+The compiled slice contains 141 stable logical props/anchors, including the humanoid
 camps' solid props, 19 take-only footlockers, sparse 15-prop Dustgate occupation,
 and the interactive factory `dustgate-occupation-workbench` at cell (494, 508).
 Dustgate hammer was removed instead of increasing asset caps. Bank and clone anchors
@@ -236,9 +244,9 @@ are `dustgate-bank-terminal`, `dustgate-cloning-facility`,
 `dustgate-pa-terminal`.
 
 The identity string is unchanged. The checked-in slice hash is
-`69a19db8289b0d4711ccca5d4febef39b8dcd2ef662f9f70539935e49af8680e` and the
+`bd489338c0d65535f4fc1d8cfe7f0dcb3f532ced7f658c756c39913ffea00c02` and the
 map-bundle hash is
-`01df5d1d178a8199b5bbd62f7e2107f017f5ae2ba1ca45081bb0ecdbb8f65795`. The clone
+`df23df6a59f555040f607b7ac5218d0472e6921df2132b2ed2828f2daedf9ef5`. The clone
 facility sits at cell (513, 499), size 10 by 8, yaw 0, on the north edge of the
 Dustgate plaza with its entrance facing south into the plaza. Its authored
 floor is 0.02 m; the runtime floor after the fixture's uniform fit is

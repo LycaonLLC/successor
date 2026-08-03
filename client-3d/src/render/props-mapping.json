@@ -10,7 +10,7 @@
     "skip entries are non-physical logical constructs (ground fill, gather zones, debug cover overlays).",
     "randomYaw applies a deterministic per-prop-id yaw for variety on organic items when the prop has no authored rotation.",
     "megalith_* entries are megalith_kit_v2 bakeoff atoms (pawn-forge/pawnforgev2/_bakeoff/megalith_kit_v2_20260703; banded band_top/mid/base, color-only materials) promoted as camp ruin dressing 2026-07-05.",
-    "house_shoulder: buildings-20260704 H1 Shoulder House, owner-ratified player-structure language.",
+    "Approved enterable settlement buildings use authored fitFootprintM occupancy dimensions so decorative aprons and roof overhangs do not shrink gameplay scale.",
     "Dustgate occupation pack (wave2): everyday-world-props GLBs referenced by absolute public path under /assets/wave-props/ so fixture mapping can promote already-public runtime assets without copying into world-items."
   ],
   "entries": {
@@ -36,12 +36,33 @@
     "megalith_brick_hex_half": { "glb": "megalith_brick_hex_half.glb" },
     "megalith_brick_hex_xl": { "glb": "megalith_brick_hex_xl.glb" },
     "megalith_plinth": { "glb": "megalith_plinth.glb" },
-    "house_shoulder": {
-      "glb": "house_h1.glb",
-      "slideDoor": { "node": "door_slide", "axisLocal": [-1, 0, 0], "distance": 1.22 },
+    "home_modular_starter": {
+      "glb": "home_modular_starter.glb",
+      "fitFootprintM": [7.6, 5.7],
+      "slideDoor": { "node": "door_slide", "axisLocal": [1, 0, 0], "distance": 0.846 },
       "enterable": {
-        "revealPrefixes": ["roof__"],
-        "manifest": "house_h1_manifest.json",
+        "revealPrefixes": ["roof__", "wall_front__", "wall_right__"],
+        "manifest": "home_modular_starter_manifest.json",
+        "fadeSeconds": 0.25
+      }
+    },
+    "home_modular_court": {
+      "glb": "home_modular_court.glb",
+      "fitFootprintM": [9.5, 7.6],
+      "slideDoor": { "node": "door_slide", "axisLocal": [1, 0, 0], "distance": 0.846 },
+      "enterable": {
+        "revealPrefixes": ["roof__", "wall_front__", "wall_right__"],
+        "manifest": "home_modular_court_manifest.json",
+        "fadeSeconds": 0.25
+      }
+    },
+    "home_modular_wing": {
+      "glb": "home_modular_wing.glb",
+      "fitFootprintM": [11.4, 9.5],
+      "slideDoor": { "node": "door_slide", "axisLocal": [1, 0, 0], "distance": 0.846 },
+      "enterable": {
+        "revealPrefixes": ["roof__", "wall_front__", "wall_right__"],
+        "manifest": "home_modular_wing_manifest.json",
         "fadeSeconds": 0.25
       }
     },
@@ -51,14 +72,15 @@
     "bank_terminal_civic": { "glb": "bank_terminal_civic.glb", "interactable": true },
     "trade_terminal": { "glb": "trade_terminal.glb", "interactable": true },
     "pa_terminal": { "glb": "pa_terminal.glb", "interactable": true },
-    "commerce_facility": {
-      "glb": "commerce_facility.glb",
+    "valley_market": {
+      "glb": "valley_market.glb",
+      "fitFootprintM": [11.4, 8.55],
       "enterable": {
         "revealPrefixes": ["roof__", "wall_front__", "wall_right__"],
-        "manifest": "commerce_facility_manifest.json",
+        "manifest": "valley_market_manifest.json",
         "fadeSeconds": 0.25
       },
-      "slideDoor": { "node": "door_slide", "axisLocal": [-1, 0, 0], "distance": 2.58 }
+      "slideDoor": { "node": "door_slide", "axisLocal": [-1, 0, 0], "distance": 2.6 }
     },
     "cloning_facility": {
       "glb": "cloning_facility.glb",
