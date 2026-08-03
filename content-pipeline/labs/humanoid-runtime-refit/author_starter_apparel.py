@@ -151,24 +151,33 @@ class BodySurface:
         welded = BZ.weld(raw_position)
         count = int(welded.max()) + 1
         self.faces = welded[raw_faces]
-        # A welded point is one surface point: its duplicates carry the same
-        # position and the same binding, which is asserted rather than assumed.
+        # Faceted/material seams may duplicate one surface point with slightly
+        # different valid bindings. Collapse those bindings by joint, retain the
+        # strongest four influences, and renormalise. Refusing the split loses
+        # the reviewed head/neck topology; taking the last duplicate creates a
+        # seam whose garment motion depends on primitive order.
         self.position = np.zeros((count, 3))
-        self.joints = np.zeros((count, raw_joints.shape[1]), dtype=np.int64)
-        self.weights = np.zeros((count, raw_weights.shape[1]))
         self.position[welded] = raw_position
-        self.joints[welded] = raw_joints
-        self.weights[welded] = raw_weights
         if not np.allclose(self.position[welded], raw_position, atol=1e-6):
             raise SystemExit(f"{body_id}: welded positions disagree")
-        bound = np.zeros(count, dtype=bool)
-        for index, target in enumerate(welded):
-            if bound[target]:
-                if not (np.array_equal(self.joints[target], raw_joints[index])
-                        and np.allclose(self.weights[target], raw_weights[index], atol=1e-6)):
-                    raise SystemExit(f"{body_id}: split vertex {index} has a "
-                                     "different skin binding than its twin")
-            bound[target] = True
+
+        influence_slots = raw_joints.shape[1]
+        joint_count = len(glb.json["skins"][0]["joints"])
+        blended = np.zeros((count, joint_count), dtype=np.float64)
+        np.add.at(
+            blended,
+            (np.repeat(welded, influence_slots), raw_joints.reshape(-1)),
+            raw_weights.reshape(-1),
+        )
+        strongest = np.argpartition(blended, -influence_slots, axis=1)[:, -influence_slots:]
+        strongest_weights = np.take_along_axis(blended, strongest, axis=1)
+        descending = np.argsort(-strongest_weights, axis=1)
+        self.joints = np.take_along_axis(strongest, descending, axis=1)
+        self.weights = np.take_along_axis(strongest_weights, descending, axis=1)
+        totals = self.weights.sum(axis=1, keepdims=True)
+        if np.any(totals <= 1e-12):
+            raise SystemExit(f"{body_id}: welded skin binding has zero total weight")
+        self.weights /= totals
         self.normal = self._normals(self.position, self.faces, count)
 
     @staticmethod
