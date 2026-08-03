@@ -607,7 +607,7 @@ const importObject = {
         glUniform3f: (loc, x, y, z) => gl.uniform3f(glGet(loc), x, y, z),
         glUniform4f: (loc, x, y, z, w) => gl.uniform4f(glGet(loc), x, y, z, w),
         glUniformMatrix4fv: (loc, count, transpose, ptr) => {
-            const view = new Float32Array(wasmMemory.buffer, ptr, 16);
+            const view = new Float32Array(wasmMemory.buffer, ptr, count * 16);
             gl.uniformMatrix4fv(glGet(loc), transpose !== 0, view);
         },
         glUniform3fv: (loc, count, ptr) => {
