@@ -81,9 +81,9 @@ releaseShim = releaseShim
   .replace(
     /        const params = new URLSearchParams\(window\.location\.search\);[\s\S]*?        window\.__successorRenderReady = false;/u,
     `        const demoSelector = 0;
-        showLoading("CONNECTING", "WAITING FOR LAUNCH", 0);
-        await waitForHostedLaunch();
         await fetchInitialAssets();
+        showLoading("CONNECTING", "WAITING FOR LAUNCH", 1);
+        await waitForHostedLaunch();
         showLoading("ENTERING WORLD", "BUILDING SCENE", 1);
         window.__successorRenderReady = false;`,
   );

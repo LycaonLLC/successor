@@ -657,9 +657,9 @@ fetch("successor.wasm")
                 ? (params.get("biome") === "forest" ? 3 : 2)
                 : 0;
         if (demoSelector === 0) {
-            showLoading("CONNECTING", "WAITING FOR LAUNCH", 0);
-            await waitForHostedLaunch();
             await fetchInitialAssets();
+            showLoading("CONNECTING", "WAITING FOR LAUNCH", 1);
+            await waitForHostedLaunch();
             showLoading("ENTERING WORLD", "BUILDING SCENE", 1);
         }
         window.__successorRenderReady = false;
