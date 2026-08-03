@@ -1,38 +1,38 @@
 {
   "machine": "darwin-arm64-apple-m2-max",
   "rustc": "rustc 1.92.0 (ded5c06cf 2025-12-08)",
-  "date": "2026-08-02",
+  "date": "2026-08-03",
   "benches": {
     "ecs/query1/4096": {
-      "median_ns": 30896.37
+      "median_ns": 29715.74
     },
     "ecs/query2/4096": {
-      "median_ns": 139059.75
+      "median_ns": 141440.09
     },
     "ecs/spawn-set/4096": {
-      "median_ns": 419507.73
+      "median_ns": 403392.76
     },
     "math/mat4-mul/1024": {
-      "median_ns": 61113.0
+      "median_ns": 61164.62
     },
     "render/build-drawlist/4096": {
-      "median_ns": 2038095.82
+      "median_ns": 2098608.5
     }
   },
   "sizes": {
-    "native_stripped": 2058200,
-    "wasm_stripped": 1990897
+    "native_stripped": 2703464,
+    "wasm_stripped": 2761630
   },
   "runtime": {
-    "frame_p50_ms": 3.6536,
-    "frame_p99_ms": 3.9901,
-    "peak_rss_bytes": 9601024,
+    "frame_p50_ms": 3.8589,
+    "frame_p99_ms": 4.1638,
+    "peak_rss_bytes": 9666560,
     "frame_allocs_steady": 0
   },
   "render": {
-    "render_gpu_p99_ms": 4.8315
+    "render_gpu_p99_ms": 5.846959
   },
   "terrain": {
-    "render_gpu_p99_ms": 2.576834
+    "render_gpu_p99_ms": 4.944083
   }
 }

@@ -4,7 +4,6 @@
 //! `GameWorld` and the demo/playable runners. The native binary is `main.rs`;
 //! the wasm cdylib exports live here behind `target_arch = "wasm32"`.
 
-#[cfg(not(target_arch = "wasm32"))]
 pub mod audio;
 pub mod demo;
 pub mod game;
@@ -295,6 +294,8 @@ mod web_runtime {
             stable_id.to_string()
         } else if let Some(path) = stable_id.strip_prefix("successor-slice/") {
             format!("successor-slice/{path}")
+        } else if let Some(path) = stable_id.strip_prefix("successor-audio/") {
+            format!("successor-audio/{path}")
         } else if let Some(path) = stable_id.strip_prefix("render/") {
             format!("render/{path}")
         } else {

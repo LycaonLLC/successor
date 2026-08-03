@@ -17,8 +17,9 @@ use super::pack::PawnTemplate;
 const IDLE_START: f32 = 0.12; // cells/s: above this a stopped pawn starts moving
 const IDLE_STOP: f32 = 0.035; // cells/s: below this a moving pawn returns to idle
 const WALK_RUN_HYSTERESIS: f32 = 0.12;
-const RUN_START: f32 = 2.2; // cells/s: walk→run
+const RUN_START: f32 = 3.2; // cells/s: walk→run
 const RUN_STOP: f32 = RUN_START - WALK_RUN_HYSTERESIS;
+const GAIT_CROSSFADE_SECONDS: f32 = 0.11;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum WeaponLane {
@@ -72,9 +73,14 @@ struct RifleArm {
 
 pub struct PawnAnimator {
     pose: Vec<JointTransform>,
-    transition_pose: Vec<JointTransform>,
+    base_pose: Vec<JointTransform>,
+    gait_from_pose: Vec<JointTransform>,
+    gait_target_pose: Vec<JointTransform>,
     palette: Vec<[f32; 16]>,
-    time: f32,
+    cycle_phase: f32,
+    gait_blend_elapsed: f32,
+    gait_blending: bool,
+    was_full_body_override: bool,
     gait: Gait,
     moving: bool,  // hysteresis latch for idle start/stop
     running: bool, // hysteresis latch for walk/run
@@ -85,9 +91,14 @@ impl PawnAnimator {
     pub fn new(template: &PawnTemplate) -> Self {
         PawnAnimator {
             pose: template.rest_pose(),
-            transition_pose: template.rest_pose(),
+            base_pose: template.rest_pose(),
+            gait_from_pose: template.rest_pose(),
+            gait_target_pose: template.rest_pose(),
             palette: Vec::with_capacity(template.joint_count()),
-            time: 0.0,
+            cycle_phase: 0.0,
+            gait_blend_elapsed: 0.0,
+            gait_blending: false,
+            was_full_body_override: false,
             gait: Gait::Idle,
             moving: false,
             running: false,
@@ -96,12 +107,17 @@ impl PawnAnimator {
     }
 
     /// Update the hysteresis latches and pick the gait for this frame.
-    pub fn resolve_gait(&mut self, speed_cells: f32, against_facing: bool, alive: bool) -> Gait {
+    pub fn resolve_gait(
+        &mut self,
+        speed_cells: f32,
+        against_facing: bool,
+        alive: bool,
+        run_hint: Option<bool>,
+    ) -> Gait {
         if !alive {
             self.gait = Gait::Death;
             return Gait::Death;
         }
-        // Idle start/stop hysteresis.
         if self.moving {
             if speed_cells < IDLE_STOP {
                 self.moving = false;
@@ -118,8 +134,9 @@ impl PawnAnimator {
             self.gait = Gait::WalkB;
             return Gait::WalkB;
         }
-        // Walk/run hysteresis.
-        if self.running {
+        if let Some(run) = run_hint {
+            self.running = run;
+        } else if self.running {
             if speed_cells < RUN_STOP {
                 self.running = false;
             }
@@ -173,37 +190,20 @@ impl PawnAnimator {
         speed_cells: f32,
         against_facing: bool,
         alive: bool,
+        run_hint: Option<bool>,
         dt_seconds: f32,
     ) -> &[[f32; 16]] {
-        self.resolve_gait(speed_cells, against_facing, alive);
-        let clip = self.clip_for(template, lane);
-        // timeScale ≈ movement speed relative to a nominal gait speed, clamped
-        // so slow drift doesn't freeze and fast bursts don't strobe.
-        let nominal = match self.gait {
-            Gait::RunF => 3.5,
-            Gait::WalkF | Gait::WalkB => 1.4,
-            _ => 1.0,
-        };
-        let ts = if matches!(self.gait, Gait::Idle | Gait::Death) {
-            1.0
-        } else {
-            (speed_cells / nominal).clamp(0.5, 1.6)
-        };
-        let duration = template
-            .animation(clip)
-            .map(|a| a.duration.max(0.001))
-            .unwrap_or(1.0);
-        // Death holds on the last frame; others loop.
-        if matches!(self.gait, Gait::Death) {
-            self.time = duration;
-        } else {
-            self.time = (self.time + dt_seconds * ts) % duration;
-        }
-        template.pose_at(clip, self.time, &mut self.pose);
-        template
-            .skeleton
-            .compute_palette(&self.pose, &mut self.palette);
-        &self.palette
+        self.update_weapon_transition(
+            template,
+            lane,
+            1.0,
+            None,
+            speed_cells,
+            against_facing,
+            alive,
+            run_hint,
+            dt_seconds,
+        )
     }
 
     /// Blend unarmed/armed locomotion while a weapon moves between its hand
@@ -219,62 +219,98 @@ impl PawnAnimator {
         speed_cells: f32,
         against_facing: bool,
         alive: bool,
+        run_hint: Option<bool>,
         dt_seconds: f32,
     ) -> &[[f32; 16]] {
-        self.resolve_gait(speed_cells, against_facing, alive);
+        let previous_gait = self.gait;
+        self.resolve_gait(speed_cells, against_facing, alive, run_hint);
         let armed_clip = self.clip_for(template, lane);
         let unarmed_clip = self.clip_for(template, WeaponLane::Unarmed);
-        let nominal = match self.gait {
-            Gait::RunF => 3.5,
-            Gait::WalkF | Gait::WalkB => 1.4,
-            _ => 1.0,
-        };
-        let time_scale = if matches!(self.gait, Gait::Idle | Gait::Death) {
-            1.0
-        } else {
-            (speed_cells / nominal).clamp(0.5, 1.6)
-        };
         let armed_duration = template
             .animation(armed_clip)
             .map(|a| a.duration.max(0.001))
             .unwrap_or(1.0);
-        if matches!(self.gait, Gait::Death) {
-            self.time = armed_duration;
-        } else {
-            self.time = (self.time + dt_seconds * time_scale) % armed_duration;
-        }
-        let phase = (self.time / armed_duration).clamp(0.0, 1.0);
 
-        let transition_applied = transition
-            .filter(|(clip, _)| template.animation(clip).is_some())
-            .map(|(clip, transition_phase)| {
-                let duration = template
-                    .animation(clip)
-                    .map(|a| a.duration.max(0.001))
-                    .unwrap_or(1.0);
-                template.pose_at(
-                    clip,
-                    transition_phase.clamp(0.0, 1.0) * duration,
-                    &mut self.pose,
-                );
-            })
-            .is_some();
-        if !transition_applied {
+        if self.gait == Gait::Death {
+            self.cycle_phase = 1.0;
+            self.gait_blending = false;
+            self.was_full_body_override = false;
+            template.pose_at(armed_clip, armed_duration, &mut self.pose);
+            self.base_pose.copy_from_slice(&self.pose);
+        } else if let Some((clip, transition_phase)) =
+            transition.filter(|(clip, _)| template.animation(clip).is_some())
+        {
+            let duration = template
+                .animation(clip)
+                .map(|a| a.duration.max(0.001))
+                .unwrap_or(1.0);
+            template.pose_at(
+                clip,
+                transition_phase.clamp(0.0, 1.0) * duration,
+                &mut self.pose,
+            );
+            self.base_pose.copy_from_slice(&self.pose);
+            self.was_full_body_override = true;
+        } else {
+            let nominal = match self.gait {
+                Gait::RunF => 3.5,
+                Gait::WalkF | Gait::WalkB => 1.4,
+                _ => 1.0,
+            };
+            let time_scale = if self.gait == Gait::Idle {
+                1.0
+            } else {
+                (speed_cells / nominal).clamp(0.5, 1.6)
+            };
+            self.cycle_phase =
+                (self.cycle_phase + dt_seconds.max(0.0) * time_scale / armed_duration) % 1.0;
+
+            if previous_gait != self.gait || self.was_full_body_override {
+                self.gait_from_pose.copy_from_slice(&self.base_pose);
+                self.gait_blend_elapsed = 0.0;
+                self.gait_blending = true;
+                self.was_full_body_override = false;
+            }
+
             let unarmed_duration = template
                 .animation(unarmed_clip)
                 .map(|a| a.duration.max(0.001))
                 .unwrap_or(1.0);
-            template.pose_at(unarmed_clip, phase * unarmed_duration, &mut self.pose);
-            let weight = armed_blend.clamp(0.0, 1.0);
-            if weight > 0.0 {
+            template.pose_at(
+                unarmed_clip,
+                self.cycle_phase * unarmed_duration,
+                &mut self.gait_target_pose,
+            );
+            let armed_weight = armed_blend.clamp(0.0, 1.0);
+            if armed_weight > 0.0 {
                 template.pose_at(
                     armed_clip,
-                    phase * armed_duration,
-                    &mut self.transition_pose,
+                    self.cycle_phase * armed_duration,
+                    &mut self.pose,
                 );
-                blend_into(&mut self.pose, &self.transition_pose, weight, None);
+                blend_into(
+                    &mut self.gait_target_pose,
+                    &self.pose,
+                    armed_weight,
+                    None,
+                );
             }
+
+            if self.gait_blending {
+                self.gait_blend_elapsed =
+                    (self.gait_blend_elapsed + dt_seconds.max(0.0)).min(GAIT_CROSSFADE_SECONDS);
+                self.pose.copy_from_slice(&self.gait_from_pose);
+                let weight = (self.gait_blend_elapsed / GAIT_CROSSFADE_SECONDS).clamp(0.0, 1.0);
+                blend_into(&mut self.pose, &self.gait_target_pose, weight, None);
+                if weight >= 1.0 {
+                    self.gait_blending = false;
+                }
+            } else {
+                self.pose.copy_from_slice(&self.gait_target_pose);
+            }
+            self.base_pose.copy_from_slice(&self.pose);
         }
+
         template
             .skeleton
             .compute_palette(&self.pose, &mut self.palette);
@@ -629,9 +665,14 @@ mod tests {
     fn anim() -> PawnAnimator {
         PawnAnimator {
             pose: Vec::new(),
-            transition_pose: Vec::new(),
+            base_pose: Vec::new(),
+            gait_from_pose: Vec::new(),
+            gait_target_pose: Vec::new(),
             palette: Vec::new(),
-            time: 0.0,
+            cycle_phase: 0.0,
+            gait_blend_elapsed: 0.0,
+            gait_blending: false,
+            was_full_body_override: false,
             gait: Gait::Idle,
             moving: false,
             running: false,
@@ -642,35 +683,35 @@ mod tests {
     #[test]
     fn idle_below_start_walks_above() {
         let mut a = anim();
-        assert_eq!(a.resolve_gait(0.05, false, true), Gait::Idle);
-        assert_eq!(a.resolve_gait(0.5, false, true), Gait::WalkF);
+        assert_eq!(a.resolve_gait(0.05, false, true, None), Gait::Idle);
+        assert_eq!(a.resolve_gait(0.5, false, true, None), Gait::WalkF);
     }
 
     #[test]
     fn idle_hysteresis_holds_moving_until_stop_threshold() {
         let mut a = anim();
-        a.resolve_gait(1.0, false, true); // moving
+        a.resolve_gait(1.0, false, true, None); // moving
                                           // Between stop (0.035) and start (0.12): stays moving (walk).
-        assert_eq!(a.resolve_gait(0.08, false, true), Gait::WalkF);
+        assert_eq!(a.resolve_gait(0.08, false, true, None), Gait::WalkF);
         // Below stop: idle.
-        assert_eq!(a.resolve_gait(0.01, false, true), Gait::Idle);
+        assert_eq!(a.resolve_gait(0.01, false, true, None), Gait::Idle);
     }
 
     #[test]
     fn run_above_threshold_with_hysteresis() {
         let mut a = anim();
-        assert_eq!(a.resolve_gait(1.5, false, true), Gait::WalkF);
-        assert_eq!(a.resolve_gait(2.3, false, true), Gait::RunF);
-        // Between run stop (2.08) and start (2.2): stays running.
-        assert_eq!(a.resolve_gait(2.15, false, true), Gait::RunF);
-        assert_eq!(a.resolve_gait(2.0, false, true), Gait::WalkF);
+        assert_eq!(a.resolve_gait(1.5, false, true, None), Gait::WalkF);
+        assert_eq!(a.resolve_gait(3.3, false, true, None), Gait::RunF);
+        // Between run stop (3.08) and start (3.2): stays running.
+        assert_eq!(a.resolve_gait(3.15, false, true, None), Gait::RunF);
+        assert_eq!(a.resolve_gait(3.0, false, true, None), Gait::WalkF);
     }
 
     #[test]
     fn backpedal_and_death() {
         let mut a = anim();
-        assert_eq!(a.resolve_gait(1.0, true, true), Gait::WalkB);
-        assert_eq!(a.resolve_gait(1.0, false, false), Gait::Death);
+        assert_eq!(a.resolve_gait(1.0, true, true, None), Gait::WalkB);
+        assert_eq!(a.resolve_gait(1.0, false, false, None), Gait::Death);
     }
 
     #[test]
@@ -693,16 +734,7 @@ mod tests {
         template.pose_at("melee_sheath", duration * 0.5, &mut expected);
 
         let mut animator = PawnAnimator::new(&template);
-        animator.update_weapon_transition(
-            &mut template,
-            WeaponLane::Melee,
-            0.5,
-            Some(("melee_sheath", 0.5)),
-            0.0,
-            false,
-            true,
-            0.0,
-        );
+        animator.update_weapon_transition(&mut template, WeaponLane::Melee, 0.5, Some(("melee_sheath", 0.5)), 0.0, false, true, None, 0.0);
         assert_eq!(animator.pose, expected);
     }
 
@@ -717,7 +749,7 @@ mod tests {
             crate::pawn::catalog::parse_weapon_hand_spec(&attach).expect("rifle hand spec");
         let mut template = PawnTemplate::from_bytes(&body).expect("pawn template");
         let mut animator = PawnAnimator::new(&template);
-        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, 0.0);
+        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, None, 0.0);
         animator.apply_rifle_support_ik(&mut template, hand_spec.mount, hand_spec.foregrip);
 
         let arm = animator.rifle_arm.expect("rifle arm bones");
@@ -837,7 +869,7 @@ mod tests {
             .support_arm
             .expect("launcher authors a hold posture");
 
-        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, 0.0);
+        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, None, 0.0);
         animator.apply_rifle_support_ik_weighted(
             &mut template,
             hand_spec.mount,
@@ -862,7 +894,7 @@ mod tests {
             "expected a collapsed legacy elbow, got {legacy_off_axis} m off axis"
         );
 
-        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, 0.0);
+        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, None, 0.0);
         animator.apply_rifle_support_ik_weighted(
             &mut template,
             hand_spec.mount,
@@ -911,7 +943,7 @@ mod tests {
         let posture = hand_spec
             .support_arm
             .expect("launcher authors a hold posture");
-        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, 0.0);
+        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, None, 0.0);
         let arm = animator.rifle_arm.expect("rifle arm bones");
         // A contact 0.3 m below the support shoulder is deep inside the arm's
         // 0.584 m: this is every pose of every weapon whose support socket was
@@ -941,7 +973,7 @@ mod tests {
             .bone_global(arm.upper)
             .transform_point(Vec3::ZERO);
 
-        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, 0.0);
+        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, None, 0.0);
         animator.apply_rifle_support_ik_weighted(
             &mut template,
             mount,
@@ -960,5 +992,206 @@ mod tests {
             "girdle must not swing for a contact the arm already reaches"
         );
         assert!(posed_shoulder.sub(bare_shoulder).length() < 1.0e-6);
+    }
+    fn pawn_template() -> PawnTemplate {
+        let bytes = std::fs::read("../../../client-3d/public/assets/pawn-pack/pawn_male.glb")
+            .expect("checked-in pawn body");
+        PawnTemplate::from_bytes(&bytes).expect("pawn template")
+    }
+
+    fn pose_delta(a: &[JointTransform], b: &[JointTransform]) -> f32 {
+        a.iter()
+            .zip(b)
+            .map(|(a, b)| {
+                (a.t.x - b.t.x).abs()
+                    + (a.t.y - b.t.y).abs()
+                    + (a.t.z - b.t.z).abs()
+                    + (a.r.x - b.r.x).abs()
+                    + (a.r.y - b.r.y).abs()
+                    + (a.r.z - b.r.z).abs()
+                    + (a.r.w - b.r.w).abs()
+                    + (a.s.x - b.s.x).abs()
+                    + (a.s.y - b.s.y).abs()
+                    + (a.s.z - b.s.z).abs()
+            })
+            .sum()
+    }
+
+    #[test]
+    fn local_run_hint_overrides_oscillating_measured_speed() {
+        let mut animator = anim();
+        assert_eq!(
+            animator.resolve_gait(3.3, false, true, Some(false)),
+            Gait::WalkF
+        );
+        assert_eq!(
+            animator.resolve_gait(3.0, false, true, Some(false)),
+            Gait::WalkF
+        );
+        assert_eq!(
+            animator.resolve_gait(3.3, false, true, Some(true)),
+            Gait::RunF
+        );
+        assert_eq!(
+            animator.resolve_gait(3.0, false, true, Some(true)),
+            Gait::RunF
+        );
+    }
+
+    #[test]
+    fn gait_crossfade_preserves_endpoints_and_interruption_pose() {
+        let mut template = pawn_template();
+        let mut animator = PawnAnimator::new(&template);
+        animator.update(
+            &mut template,
+            WeaponLane::Unarmed,
+            1.4,
+            false,
+            true,
+            Some(false),
+            GAIT_CROSSFADE_SECONDS,
+        );
+        let outgoing = animator.base_pose.clone();
+        animator.update(
+            &mut template,
+            WeaponLane::Unarmed,
+            3.5,
+            false,
+            true,
+            Some(true),
+            0.0,
+        );
+        assert_eq!(animator.base_pose, outgoing, "zero-time frame holds source");
+        animator.update(
+            &mut template,
+            WeaponLane::Unarmed,
+            3.5,
+            false,
+            true,
+            Some(true),
+            GAIT_CROSSFADE_SECONDS * 0.5,
+        );
+        let midpoint = animator.base_pose.clone();
+        assert!(pose_delta(&outgoing, &midpoint) > 1.0e-4);
+        animator.update(
+            &mut template,
+            WeaponLane::Unarmed,
+            3.5,
+            false,
+            true,
+            Some(false),
+            0.0,
+        );
+        assert_eq!(
+            animator.base_pose, midpoint,
+            "interrupted fade snapshots the displayed pose"
+        );
+        animator.update(
+            &mut template,
+            WeaponLane::Unarmed,
+            1.4,
+            false,
+            true,
+            Some(false),
+            GAIT_CROSSFADE_SECONDS,
+        );
+        assert!(!animator.gait_blending);
+    }
+
+    fn transitioned_pose(hz: u32) -> Vec<JointTransform> {
+        let mut template = pawn_template();
+        let mut animator = PawnAnimator::new(&template);
+        animator.update(
+            &mut template,
+            WeaponLane::Unarmed,
+            1.4,
+            false,
+            true,
+            Some(false),
+            GAIT_CROSSFADE_SECONDS,
+        );
+        animator.update(
+            &mut template,
+            WeaponLane::Unarmed,
+            3.5,
+            false,
+            true,
+            Some(true),
+            0.0,
+        );
+        let step = 1.0 / hz as f32;
+        let mut elapsed = 0.0;
+        while elapsed < GAIT_CROSSFADE_SECONDS {
+            let dt = (GAIT_CROSSFADE_SECONDS - elapsed).min(step);
+            animator.update(
+                &mut template,
+                WeaponLane::Unarmed,
+                3.5,
+                false,
+                true,
+                Some(true),
+                dt,
+            );
+            elapsed += dt;
+        }
+        animator.base_pose
+    }
+
+    #[test]
+    fn gait_crossfade_is_frame_rate_independent() {
+        assert!(pose_delta(&transitioned_pose(30), &transitioned_pose(120)) < 1.0e-4);
+    }
+
+    #[test]
+    fn authored_override_fades_out_and_death_holds_final_frame() {
+        let mut template = pawn_template();
+        let mut animator = PawnAnimator::new(&template);
+        animator.update_weapon_transition(
+            &mut template,
+            WeaponLane::Melee,
+            1.0,
+            Some(("melee_draw", 0.6)),
+            1.4,
+            false,
+            true,
+            Some(false),
+            0.0,
+        );
+        let authored = animator.base_pose.clone();
+        animator.update_weapon_transition(
+            &mut template,
+            WeaponLane::Melee,
+            1.0,
+            None,
+            1.4,
+            false,
+            true,
+            Some(false),
+            0.0,
+        );
+        assert_eq!(animator.base_pose, authored);
+        assert!(animator.gait_blending);
+
+        animator.update(
+            &mut template,
+            WeaponLane::Unarmed,
+            0.0,
+            false,
+            false,
+            None,
+            0.0,
+        );
+        let death = animator.base_pose.clone();
+        animator.update(
+            &mut template,
+            WeaponLane::Unarmed,
+            0.0,
+            false,
+            false,
+            None,
+            1.0,
+        );
+        assert_eq!(animator.base_pose, death);
+        assert!(!animator.gait_blending);
     }
 }

@@ -22,6 +22,17 @@ extern "C" {
     fn js_launch_context_len() -> u32;
     fn js_launch_context_copy(ptr: *mut u8, max_len: u32) -> u32;
     fn js_audio_unlock();
+    fn js_audio_play(
+        ptr: *const u8,
+        len: u32,
+        key: u32,
+        gain: f32,
+        pan: f32,
+        looped: u32,
+        polyphony: u32,
+    ) -> u32;
+    fn js_audio_stop(key: u32);
+    fn js_audio_active_voices() -> u32;
 }
 
 fn web_log_sink(s: &str) {
@@ -77,6 +88,35 @@ pub fn launch_context() -> Option<Vec<u8>> {
 
 pub fn unlock_audio() {
     unsafe { js_audio_unlock() }
+}
+
+pub fn audio_play(
+    path: &str,
+    key: u32,
+    gain: f32,
+    pan: f32,
+    looped: bool,
+    polyphony: u32,
+) -> bool {
+    unsafe {
+        js_audio_play(
+            path.as_ptr(),
+            path.len() as u32,
+            key,
+            gain,
+            pan,
+            looped as u32,
+            polyphony,
+        ) != 0
+    }
+}
+
+pub fn audio_stop(key: u32) {
+    unsafe { js_audio_stop(key) }
+}
+
+pub fn audio_active_voices() -> u32 {
+    unsafe { js_audio_active_voices() }
 }
 
 pub fn now_ms() -> f64 {

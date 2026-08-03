@@ -273,6 +273,7 @@ impl PawnScene {
                 actor.speed,
                 actor.against_facing,
                 actor.alive,
+                None,
                 dt,
             );
             if actor.alive {

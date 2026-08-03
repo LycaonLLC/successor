@@ -67,6 +67,7 @@ window.addEventListener("keydown", (e) => {
     if (code !== undefined) {
         keyState[code] = 1;
     }
+    if (e.isTrusted) authorizeAudioGesture();
 });
 
 window.addEventListener("keyup", (e) => {
@@ -92,8 +93,7 @@ canvas.addEventListener("pointerdown", e => {
     updatePointer(e);
     if (e.button < mouseButtons.length) mouseButtons[e.button] = 1;
     canvas.setPointerCapture(e.pointerId);
-    // A gesture is the only legal point at which web audio may start.
-    audioUnlock();
+    if (e.isTrusted) authorizeAudioGesture();
 });
 function releasePointer(e) {
     updatePointer(e);
@@ -235,14 +235,256 @@ function installHostedExitHandler() {
         waitForClose();
     });
 }
+const AUDIO_MANIFEST_PATH = "successor-audio/sfx/manifest.json";
 let audioContext = null;
-function audioUnlock() {
+let audioMaster = null;
+let audioPrepared = false;
+let audioAvailable = false;
+let gestureUnlocked = false;
+let audioSequence = 0;
+const audioBuffers = new Map();
+const audioVoices = new Set();
+const audioVoicesByKey = new Map();
+const pendingAudioLoops = new Map();
+const audioRecent = [];
+const audioErrors = [];
+
+function audioError(path, error) {
+    const cleanPath = String(path).replace(/[?#].*/s, "").slice(0, 180);
+    const name = String(error?.name || "Error").replace(/[?#].*/s, "").slice(0, 48);
+    audioErrors.push(`${cleanPath}:${name}`);
+    if (audioErrors.length > 16) audioErrors.shift();
+}
+
+function ensureAudioContext() {
     if (!audioContext) {
         const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (Ctx) audioContext = new Ctx();
+        if (!Ctx) return null;
+        audioContext = new Ctx();
+        audioMaster = audioContext.createGain();
+        audioMaster.connect(audioContext.destination);
     }
-    if (audioContext && audioContext.state === "suspended") audioContext.resume();
+    return audioContext;
 }
+
+function voiceCursor(voice) {
+    const elapsed = Math.max(0, audioContext.currentTime - voice.startedAt);
+    return voice.looped && voice.duration > 0 ? elapsed % voice.duration : elapsed;
+}
+
+function removeVoice(voice) {
+    if (!audioVoices.delete(voice)) return;
+    const keyed = audioVoicesByKey.get(voice.key);
+    if (keyed) {
+        keyed.delete(voice);
+        if (keyed.size === 0) audioVoicesByKey.delete(voice.key);
+    }
+    updateMasterGain();
+}
+
+function stopVoice(voice) {
+    removeVoice(voice);
+    voice.source.onended = null;
+    try { voice.source.stop(); } catch (_) {}
+}
+
+function greatestCursor(voices) {
+    let selected = null;
+    let cursor = -1;
+    for (const voice of voices) {
+        const candidate = voiceCursor(voice);
+        if (candidate > cursor) {
+            cursor = candidate;
+            selected = voice;
+        }
+    }
+    return selected;
+}
+
+function voiceLimit(polyphony, looped) {
+    const p = Math.max(1, Math.trunc(polyphony));
+    return looped ? p : Math.max(p, Math.min(64, Math.ceil(p * 2.5), p + 12));
+}
+
+function concurrencyGain(count) {
+    return count <= 8 ? 1 : Math.max(0.38, Math.min(1, 1 / Math.sqrt(1 + (count - 8) * 0.72)));
+}
+
+function updateMasterGain() {
+    if (audioMaster) audioMaster.gain.value = concurrencyGain(audioVoices.size);
+}
+
+function audioStop(key) {
+    pendingAudioLoops.delete(key >>> 0);
+    for (const voice of [...(audioVoicesByKey.get(key >>> 0) || [])]) stopVoice(voice);
+}
+
+function audioPlay(path, key, gain, pan, looped, polyphony) {
+    path = String(path);
+    key >>>= 0;
+    gain = Math.max(0, Math.min(4, Number(gain)));
+    pan = Math.max(-1, Math.min(1, Number(pan)));
+    polyphony = Math.max(1, Math.trunc(polyphony));
+    const intent = { path, key, gain, pan, looped: Boolean(looped), polyphony };
+    if (!gestureUnlocked || audioContext?.state !== "running") {
+        if (intent.looped) pendingAudioLoops.set(key, intent);
+        return false;
+    }
+    const buffer = audioBuffers.get(path);
+    if (!buffer) return false;
+    if (intent.looped) audioStop(key);
+    const keyed = audioVoicesByKey.get(key);
+    const limit = voiceLimit(polyphony, intent.looped);
+    if (keyed && keyed.size >= limit) {
+        const victim = greatestCursor(keyed);
+        if (victim) stopVoice(victim);
+    }
+    if (audioVoices.size >= 64) {
+        const victim = greatestCursor(audioVoices);
+        if (victim) stopVoice(victim);
+    }
+    const source = audioContext.createBufferSource();
+    const gainNode = audioContext.createGain();
+    const panNode = audioContext.createStereoPanner();
+    source.buffer = buffer;
+    source.loop = intent.looped;
+    gainNode.gain.value = gain;
+    panNode.pan.value = pan;
+    source.connect(gainNode).connect(panNode).connect(audioMaster);
+    const voice = {
+        source, key, looped: intent.looped, duration: buffer.duration,
+        startedAt: audioContext.currentTime, sequence: ++audioSequence
+    };
+    audioVoices.add(voice);
+    if (!audioVoicesByKey.has(key)) audioVoicesByKey.set(key, new Set());
+    audioVoicesByKey.get(key).add(voice);
+    source.onended = () => removeVoice(voice);
+    updateMasterGain();
+    source.start();
+    audioRecent.push({ path: path.replace(/[?#].*/s, ""), key, gain, pan });
+    if (audioRecent.length > 64) audioRecent.shift();
+    return true;
+}
+
+async function resumeAuthorizedAudio() {
+    const context = ensureAudioContext();
+    if (!context || !gestureUnlocked) return;
+    if (context.state !== "running") await context.resume();
+    if (context.state !== "running") return;
+    const pending = [...pendingAudioLoops.values()];
+    pendingAudioLoops.clear();
+    for (const intent of pending) {
+        audioPlay(intent.path, intent.key, intent.gain, intent.pan, true, intent.polyphony);
+    }
+}
+
+function authorizeAudioGesture() {
+    if (!gestureUnlocked) gestureUnlocked = true;
+    resumeAuthorizedAudio().catch(error => audioError("audio-resume", error));
+}
+
+function audioUnlock() {
+    if (gestureUnlocked) resumeAuthorizedAudio().catch(error => audioError("audio-resume", error));
+}
+
+function normalizedAudioPath(path) {
+    if (typeof path !== "string") return null;
+    const trimmed = path.startsWith("/") ? path.slice(1) : path;
+    if (!trimmed.startsWith("successor-audio/") || trimmed.includes("..") ||
+        trimmed.includes("\\") || trimmed.includes("://") || trimmed.startsWith("/")) return null;
+    return trimmed;
+}
+
+function validateAudioManifest(value) {
+    if (!value || value.schema !== "successor-sfx-manifest-v1" ||
+        !value.buses || typeof value.buses !== "object" || !Array.isArray(value.clips)) {
+        throw new TypeError("invalid audio manifest");
+    }
+    const buses = new Set(Object.keys(value.buses));
+    const ids = new Set();
+    return value.clips.map(clip => {
+        const path = normalizedAudioPath(clip?.path);
+        if (!clip || typeof clip.id !== "string" || !clip.id || ids.has(clip.id) || !path ||
+            !buses.has(clip.bus) || !Number.isFinite(clip.volume) ||
+            !Number.isSafeInteger(clip.polyphony) || clip.polyphony <= 0) {
+            throw new TypeError("invalid audio clip");
+        }
+        ids.add(clip.id);
+        return path;
+    });
+}
+
+function runVoicePolicySelfCheck() {
+    return voiceLimit(4, false) === 10 && voiceLimit(4, true) === 4 &&
+        Math.abs(concurrencyGain(8) - 1) < 1e-9 &&
+        Math.abs(concurrencyGain(9) - 1 / Math.sqrt(1.72)) < 1e-9 &&
+        65 > 64 && [0.1, 0.8, 0.3].reduce((best, value) => value > best ? value : best, -1) === 0.8;
+}
+
+async function prepareWebAudio() {
+    const cache = globalThis.__successorFetchCache;
+    const manifestBytes = cache?.get(AUDIO_MANIFEST_PATH);
+    if (!manifestBytes) throw new Error("audio manifest missing from initial assets");
+    const manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
+    const paths = validateAudioManifest(manifest);
+    const context = ensureAudioContext();
+    audioAvailable = Boolean(context);
+    if (!context) {
+        audioPrepared = true;
+        return;
+    }
+    let next = 0;
+    const worker = async () => {
+        while (next < paths.length) {
+            const path = paths[next++];
+            const bytes = cache.get(path);
+            try {
+                if (!bytes) throw new Error("encoded clip missing");
+                const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+                audioBuffers.set(path, await context.decodeAudioData(copy));
+            } catch (error) {
+                audioError(path, error);
+            } finally {
+                cache.delete(path);
+            }
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(6, paths.length) }, worker));
+    audioPrepared = true;
+}
+
+function deepFreeze(value) {
+    if (value && typeof value === "object" && !Object.isFrozen(value)) {
+        Object.freeze(value);
+        for (const nested of Object.values(value)) deepFreeze(nested);
+    }
+    return value;
+}
+
+Object.defineProperty(window, "__successorAudioProbe", {
+    configurable: false,
+    get: () => deepFreeze({
+        ready: audioPrepared,
+        available: audioAvailable,
+        gestureUnlocked,
+        decodedCount: audioBuffers.size,
+        encodedClipCacheCount: [...(globalThis.__successorFetchCache?.keys() || [])]
+            .filter(path => path.startsWith("successor-audio/") && path.endsWith(".mp3")).length,
+        manifestCachePresent: Boolean(globalThis.__successorFetchCache?.has(AUDIO_MANIFEST_PATH)),
+        activeVoices: audioVoices.size,
+        activeVoiceCountsByKey: [...audioVoicesByKey].map(([key, voices]) => ({ key, count: voices.size }))
+            .sort((a, b) => a.key - b.key),
+        activeLoops: [...audioVoicesByKey].map(([key, voices]) => ({
+            key,
+            activeSourceCount: [...voices].filter(voice => voice.looped).length,
+            sourceSequences: [...voices].filter(voice => voice.looped).map(voice => voice.sequence).sort((a, b) => a - b)
+        })).filter(loop => loop.activeSourceCount > 0).sort((a, b) => a.key - b.key),
+        masterConcurrencyGain: concurrencyGain(audioVoices.size),
+        voicePolicySelfCheck: runVoicePolicySelfCheck(),
+        recent: audioRecent.map(record => ({ ...record })),
+        errors: [...audioErrors]
+    })
+});
 window.__successorAudioState = () => audioContext?.state ?? "locked";
 
 function glGet(id) {
@@ -484,6 +726,10 @@ const importObject = {
             return len;
         },
         js_audio_unlock: () => audioUnlock(),
+        js_audio_play: (ptr, len, key, gain, pan, looped, polyphony) =>
+            audioPlay(getString(ptr, len), key, gain, pan, looped !== 0, polyphony) ? 1 : 0,
+        js_audio_stop: key => audioStop(key),
+        js_audio_active_voices: () => audioVoices.size,
         js_now_ms: () => performance.now(),
         js_is_key_down: (key) => {
             return key < keyState.length ? keyState[key] : 0;
@@ -626,7 +872,7 @@ const importObject = {
                     const len = Math.min(bytes.length, outMaxLen);
                     const dest = new Uint8Array(wasmMemory.buffer, outPtr, len);
                     dest.set(bytes.subarray(0, len));
-                    if (len >= bytes.length) cache.delete(url);
+                    if (len >= bytes.length && url !== AUDIO_MANIFEST_PATH) cache.delete(url);
                     return len;
                 }
                 return bytes.length;
@@ -658,6 +904,7 @@ fetch("successor.wasm")
                 : 0;
         if (demoSelector === 0) {
             await fetchInitialAssets();
+            await prepareWebAudio();
             showLoading("CONNECTING", "WAITING FOR LAUNCH", 1);
             await waitForHostedLaunch();
             showLoading("ENTERING WORLD", "BUILDING SCENE", 1);

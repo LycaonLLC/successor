@@ -240,27 +240,16 @@ pub struct ConnectedScene {
     window_rejection: Option<String>,
     weather: successor_engine_render::weather::Weather,
     environs: Environs,
-    #[cfg(not(target_arch = "wasm32"))]
     sfx: crate::audio::SfxPlayer,
-    #[cfg(not(target_arch = "wasm32"))]
     weather_audio: Option<&'static str>,
-    #[cfg(not(target_arch = "wasm32"))]
     music_audio: Option<&'static str>,
-    #[cfg(not(target_arch = "wasm32"))]
     music_combat_index: u32,
-    #[cfg(not(target_arch = "wasm32"))]
     music_was_in_combat: bool,
-    #[cfg(not(target_arch = "wasm32"))]
     settlement_audio: bool,
-    #[cfg(not(target_arch = "wasm32"))]
     footstep_distance: f32,
-    #[cfg(not(target_arch = "wasm32"))]
     footstep_index: u32,
-    #[cfg(not(target_arch = "wasm32"))]
     footstep_position: Option<(f32, f32)>,
-    #[cfg(not(target_arch = "wasm32"))]
     ambience_timer: f32,
-    #[cfg(not(target_arch = "wasm32"))]
     ambience_roll: u32,
     player_id: String,
     shard_id: String,
@@ -296,6 +285,18 @@ fn window_geometry(id: &str, index: usize) -> ([f32; 4], f32, f32) {
             ([330.0 + offset, 96.0 + offset, 520.0, 390.0], 320.0, 240.0)
         }
     }
+}
+
+fn filtered_gait_speed(previous: f32, displacement_cells: f32, dt_seconds: f32) -> f32 {
+    if dt_seconds <= 0.0 {
+        return previous;
+    }
+    if displacement_cells > 2.0 {
+        return 0.0;
+    }
+    let instantaneous = displacement_cells / dt_seconds;
+    let alpha = 1.0 - (-dt_seconds / 0.05).exp();
+    previous + (instantaneous - previous) * alpha
 }
 
 impl ConnectedScene {
@@ -417,7 +418,6 @@ impl ConnectedScene {
             window_index += 1;
         }
         let weather = successor_engine_render::weather::Weather::new(0x0d3d);
-        #[cfg(not(target_arch = "wasm32"))]
         let sfx = {
             let mut player = crate::audio::SfxPlayer::new();
             if let Some(manifest) = read_asset("successor-audio/sfx/manifest.json")
@@ -489,27 +489,16 @@ impl ConnectedScene {
             player_id: player_id.to_string(),
             shard_id: String::new(),
             environs: Environs::new(),
-            #[cfg(not(target_arch = "wasm32"))]
             sfx,
-            #[cfg(not(target_arch = "wasm32"))]
             weather_audio: None,
-            #[cfg(not(target_arch = "wasm32"))]
             music_audio: None,
-            #[cfg(not(target_arch = "wasm32"))]
             music_combat_index: 0,
-            #[cfg(not(target_arch = "wasm32"))]
             music_was_in_combat: false,
-            #[cfg(not(target_arch = "wasm32"))]
             settlement_audio: false,
-            #[cfg(not(target_arch = "wasm32"))]
             footstep_distance: 0.0,
-            #[cfg(not(target_arch = "wasm32"))]
             footstep_index: 0,
-            #[cfg(not(target_arch = "wasm32"))]
             footstep_position: None,
-            #[cfg(not(target_arch = "wasm32"))]
             ambience_timer: 1.0,
-            #[cfg(not(target_arch = "wasm32"))]
             ambience_roll: 0,
             area_id: String::new(),
             center,
@@ -1154,6 +1143,16 @@ impl ConnectedScene {
         self.shard_id.clone_from(&previous.shard_id);
         self.area_id.clone_from(&previous.area_id);
         self.move_intent = previous.move_intent;
+        self.weather_audio = previous.weather_audio;
+        self.music_audio = previous.music_audio;
+        self.music_combat_index = previous.music_combat_index;
+        self.music_was_in_combat = previous.music_was_in_combat;
+        self.settlement_audio = previous.settlement_audio;
+        self.footstep_distance = previous.footstep_distance;
+        self.footstep_index = previous.footstep_index;
+        self.footstep_position = previous.footstep_position;
+        self.ambience_timer = previous.ambience_timer;
+        self.ambience_roll = previous.ambience_roll;
         self.project_windows();
     }
 
@@ -1439,7 +1438,6 @@ impl ConnectedScene {
         if self.toolbar.press_code(code, &mut self.hud_actions) {
             return None;
         }
-        #[cfg(not(target_arch = "wasm32"))]
         crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::ButtonTick);
         match key {
             Key::I => self.wm.toggle("inventory"),
@@ -1759,7 +1757,6 @@ impl ConnectedScene {
         }
     }
     pub fn settle_command(&mut self, command_id: u64, accepted: bool, reason: Option<String>) {
-        #[cfg(not(target_arch = "wasm32"))]
         let accepted_audio = accepted
             .then(|| {
                 self.command_queue
@@ -1786,7 +1783,6 @@ impl ConnectedScene {
             tick: self.store.tick,
             reason_code: reason.clone(),
         });
-        #[cfg(not(target_arch = "wasm32"))]
         if let Some(clip) = accepted_audio {
             self.sfx.play_ui(clip);
         }
@@ -2007,7 +2003,6 @@ impl ConnectedScene {
                 _ => ("0".to_string(), hud::overlays::FloatTone::Deflect),
             };
             self.overlays.push_float(&ev.target_actor_id, &text, tone);
-            #[cfg(not(target_arch = "wasm32"))]
             crate::audio::play_combat(&mut self.sfx, ev, origin_world, hit_world);
             let e = self.world.spawn();
             self.world.set_component(
@@ -2619,8 +2614,7 @@ impl ConnectedScene {
                 pawn.interp.sample(self.sim_time).unwrap_or(pawn.target)
             };
             let moved = ((nx - rx) * (nx - rx) + (ny - ry) * (ny - ry)).sqrt();
-            let instantaneous_speed = if dt > 0.0 { moved / dt } else { 0.0 };
-            pawn.speed = pawn.speed * 0.72 + instantaneous_speed * 0.28;
+            pawn.speed = filtered_gait_speed(pawn.speed, moved, dt);
             if moved > 1e-4 {
                 pawn.yaw = (nx - rx).atan2(ny - ry);
             }
@@ -2663,6 +2657,7 @@ impl ConnectedScene {
                 pawn.speed,
                 false,
                 pawn.alive,
+                (pawn.id == self.player_id).then_some(self.move_intent.2),
                 dt,
             );
             if pawn.alive && pawn.lane == WeaponLane::Rifle {
@@ -2954,7 +2949,6 @@ impl ConnectedScene {
         self.weather
             .set(active_weather.kind, active_weather.strength);
         self.weather.update(dt);
-        #[cfg(not(target_arch = "wasm32"))]
         {
             use successor_engine_core::audio::{Point, SpatialOpts};
             const WEATHER_LOOP_KEY: u32 = 0x5745_4154;
@@ -3477,6 +3471,23 @@ fn faction_rgb(faction: &str) -> [f32; 3] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn converge_speed(hz: u32) -> f32 {
+        let dt = 1.0 / hz as f32;
+        let mut speed = 0.0;
+        for _ in 0..hz {
+            speed = filtered_gait_speed(speed, 4.0 * dt, dt);
+        }
+        speed
+    }
+
+    #[test]
+    fn gait_speed_filter_is_frame_rate_independent_and_fail_closed() {
+        let at_30 = converge_speed(30);
+        assert!((at_30 - converge_speed(60)).abs() < 1.0e-4);
+        assert!((at_30 - converge_speed(120)).abs() < 1.0e-4);
+        assert_eq!(filtered_gait_speed(2.5, 1.0, 0.0), 2.5);
+        assert_eq!(filtered_gait_speed(2.5, 2.01, 1.0 / 60.0), 0.0);
+    }
 
     #[test]
     fn follow_camera_is_locked_north_up_sixty_degree_ortho() {
