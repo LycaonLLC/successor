@@ -9,7 +9,7 @@
     "tool_snapshot_id": null
   },
   "prompt": {
-    "text": "Promote the final reviewed Successor male body with its hand-shaped shared-topology head and neck graft, verified SWG hands, and exact 50-joint bind rig.",
+    "text": "Promote the final reviewed Successor male body with its hand-shaped shared-topology head and neck graft, verified runtime hands, and exact 50-joint bind rig.",
     "denylist_audit": "passed:tools/denylist/check.sh",
     "negative_terms": []
   },
