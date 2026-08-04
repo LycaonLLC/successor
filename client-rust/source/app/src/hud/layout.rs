@@ -19,6 +19,26 @@ pub const MARGIN: f32 = 6.0;
 /// Gap kept between neighbouring first-run panes.
 pub const GUTTER: f32 = 7.0;
 
+/// Framebuffer the HUD sizes were measured against.
+pub const REFERENCE_W: f32 = 1024.0;
+pub const REFERENCE_H: f32 = 768.0;
+/// Ceiling on growth: past this the HUD is simply large, not more readable.
+const MAX_UI_SCALE: f32 = 2.0;
+
+/// Uniform HUD scale for a framebuffer.
+///
+/// Every pane size here was measured off the original client at 1024x768. Held
+/// at those literal pixels the whole HUD shrinks into a corner of a large
+/// display, so panes grow with the viewport instead. The smaller axis drives
+/// the factor so a wide framebuffer cannot push the bottom band off screen,
+/// and the floor is 1.0: at or below the reference the measured pixels are
+/// used unchanged, which is what the resize-floor contract depends on.
+pub fn ui_scale(viewport_w: f32, viewport_h: f32) -> f32 {
+    let by_width = viewport_w / REFERENCE_W;
+    let by_height = viewport_h / REFERENCE_H;
+    by_width.min(by_height).clamp(1.0, MAX_UI_SCALE)
+}
+
 /// Measured command bar default and source-verified resize floor.
 pub const BAR_W: f32 = 474.0;
 pub const BAR_H: f32 = 64.0;
@@ -101,7 +121,20 @@ fn compact_dimension(floor: f32, default: f32, viewport_w: f32) -> f32 {
 }
 
 /// Resolve first-run HUD geometry for a framebuffer.
+///
+/// The band arithmetic below is written in the measured 1024x768 reference
+/// space. Solving it against a reference-sized viewport and scaling the result
+/// keeps every anchor exact — `(vw / s) * s == vw`, so a flush edge stays flush
+/// — while pane sizes, gutters, and margins all grow together.
 pub fn compute(viewport_w: f32, viewport_h: f32) -> HudLayout {
+    let scale = ui_scale(viewport_w.max(320.0), viewport_h.max(240.0));
+    if scale <= 1.0 {
+        return compute_reference(viewport_w, viewport_h);
+    }
+    compute_reference(viewport_w / scale, viewport_h / scale).scaled(scale)
+}
+
+fn compute_reference(viewport_w: f32, viewport_h: f32) -> HudLayout {
     let vw = viewport_w.max(320.0);
     let vh = viewport_h.max(240.0);
 
@@ -195,6 +228,28 @@ pub fn compute(viewport_w: f32, viewport_h: f32) -> HudLayout {
         chip,
         toast,
         guidance,
+    }
+}
+
+impl HudLayout {
+    /// Multiply every rect and anchor by a uniform factor.
+    fn scaled(self, scale: f32) -> Self {
+        let rect = |r: [f32; 4]| [r[0] * scale, r[1] * scale, r[2] * scale, r[3] * scale];
+        let point = |p: [f32; 2]| [p[0] * scale, p[1] * scale];
+        Self {
+            plate: rect(self.plate),
+            group: rect(self.group),
+            target: rect(self.target),
+            bar: rect(self.bar),
+            radar: rect(self.radar),
+            chat: rect(self.chat),
+            strip: rect(self.strip),
+            queue: rect(self.queue),
+            dock: rect(self.dock),
+            chip: point(self.chip),
+            toast: point(self.toast),
+            guidance: point(self.guidance),
+        }
     }
 }
 
@@ -297,13 +352,23 @@ mod tests {
         assert_eq!(measured.strip[2], STRIP_W);
         assert_eq!(measured.strip[3], STRIP_H);
 
-        // Above the compact band, measured defaults stay fixed. The radar lane
-        // is fixed at every supported framebuffer.
-        assert_eq!(large.bar[2], BAR_W);
-        assert_eq!(large.plate[2], PLATE_W);
-        assert_eq!(large.chat[2], CHAT_W);
-        assert_eq!(large.radar[2], measured.radar[2]);
-        assert_eq!(large.radar[3], measured.radar[3]);
+        // Past the reference the HUD grows with the framebuffer instead of
+        // shrinking into a corner: every pane is the measured pixel size times
+        // the uniform scale, and the radar lane scales with them.
+        let scale = ui_scale(1600.0, 1200.0);
+        assert!(scale > 1.0, "1600x1200 is above the reference");
+        let close = |left: f32, right: f32| (left - right).abs() < 0.01;
+        assert!(close(large.bar[2], BAR_W * scale));
+        assert!(close(large.plate[2], PLATE_W * scale));
+        assert!(close(large.chat[2], CHAT_W * scale));
+        assert!(close(large.radar[2], measured.radar[2] * scale));
+        assert!(close(large.radar[3], measured.radar[3] * scale));
+        // Flush and right-rail anchors survive the scale exactly.
+        assert!(close(large.plate[0], 0.0));
+        assert!(close(
+            large.strip[0] + large.strip[2],
+            1600.0 - MARGIN * scale
+        ));
 
         // A centre-preferred bar may shift right only enough to clear the
         // flush player plate; it never crosses that required gutter.

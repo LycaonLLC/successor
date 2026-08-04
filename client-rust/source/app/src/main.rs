@@ -1745,6 +1745,27 @@ fn environment_flag(name: &str) -> bool {
         )
     })
 }
+
+/// Framebuffer for the connected client: `--size WxH`, else the 1280x720
+/// default. Clamped to a sane floor so a typo cannot open a zero-area window.
+#[cfg(not(target_arch = "wasm32"))]
+fn window_size(args: &[String]) -> (i32, i32) {
+    const DEFAULT: (i32, i32) = (1280, 720);
+    let Some(value) = arg_value(args, "--size") else {
+        return DEFAULT;
+    };
+    let Some((width, height)) = value.split_once(['x', 'X']) else {
+        eprintln!("--size expects WxH, e.g. 1920x1080");
+        std::process::exit(2);
+    };
+    match (width.trim().parse::<i32>(), height.trim().parse::<i32>()) {
+        (Ok(w), Ok(h)) if w >= 320 && h >= 240 => (w, h),
+        _ => {
+            eprintln!("--size expects WxH with width >= 320 and height >= 240");
+            std::process::exit(2);
+        }
+    }
+}
 #[cfg(all(not(target_arch = "wasm32"), feature = "dev-tools"))]
 fn configure_automation(args: &[String]) {
     let control_requested =
@@ -1959,8 +1980,11 @@ mod connected {
         let ws_url = colyseus::build_ws_url(endpoint, &seat);
 
         // 2) Window + GL + the composed connected scene (terrain + props + pawns
-        //    + HUD), driven by the authority store.
-        if !plat::init("Successor (Rust client)", 1280, 720) {
+        //    + HUD), driven by the authority store. `--size WxH` opens the
+        //    window at a chosen framebuffer so capture runs are not pinned to
+        //    the 1280x720 default; the HUD reflows from the live viewport.
+        let (window_w, window_h) = crate::window_size(&std::env::args().collect::<Vec<_>>());
+        if !plat::init("Successor (Rust client)", window_w, window_h) {
             eprintln!("platform init failed (no display?)");
             return 1;
         }
