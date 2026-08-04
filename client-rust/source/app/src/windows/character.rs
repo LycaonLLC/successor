@@ -9,6 +9,16 @@ use super::{WindowAction, WindowModel, ACCENT, DIM, SLOT, TEXT};
 use crate::hud::Icons;
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
+/// Portrait column share of the sheet. The inventory's equipment column takes
+/// the original's 232/468 split; the sheet is text-heavy, so it takes a
+/// narrower slice of the same portrait.
+const PORTRAIT_WIDTH_RATIO: f32 = 0.34;
+const PORTRAIT_MIN_W: f32 = 72.0;
+const PORTRAIT_MAX_W: f32 = 200.0;
+const PORTRAIT_GAP: f32 = 12.0;
+/// Doll viewport aspect, from the original's 225x367 paperdoll rect.
+const DOLL_ASPECT: f32 = 225.0 / 367.0;
+
 fn bar(ui: &mut UiBuilder, x: f32, y: f32, w: f32, frac: f32, fill: [u8; 4], label: &str) {
     ui.rect(x, y, w, 16.0, SLOT);
     if frac > 0.0 {
@@ -18,6 +28,30 @@ fn bar(ui: &mut UiBuilder, x: f32, y: f32, w: f32, frac: f32, fill: [u8; 4], lab
     ui.text(label, x + 4.0, y + 2.0, 1.6, TEXT);
 }
 
+/// Portrait column carrying the live character doll, mirroring the inventory's
+/// equipment column so the same character reads the same way in both windows.
+/// The renderer composites the doll into this rect after the UI pass.
+pub fn preview_rect(rect: [f32; 4]) -> [f32; 4] {
+    let [x, y, w, h] = rect;
+    let column_w = (w * PORTRAIT_WIDTH_RATIO).clamp(PORTRAIT_MIN_W, PORTRAIT_MAX_W);
+    let column_w = column_w.min(w * 0.5);
+    let avail_h = (h - 4.0).max(0.0);
+    let preview_w = column_w.min(avail_h * DOLL_ASPECT);
+    let preview_h = avail_h.min(column_w / DOLL_ASPECT);
+    [x, y + (avail_h - preview_h) * 0.5, preview_w, preview_h]
+}
+
+/// Left edge of the sheet's text column: past the portrait, or the frame edge
+/// when the window is too narrow to carry one.
+fn text_origin(rect: [f32; 4]) -> f32 {
+    let preview = preview_rect(rect);
+    if preview[2] <= PORTRAIT_MIN_W * 0.5 {
+        rect[0]
+    } else {
+        preview[0] + preview[2] + PORTRAIT_GAP
+    }
+}
+
 pub fn draw(
     ui: &mut UiBuilder,
     ctx: super::Ctx,
@@ -25,9 +59,17 @@ pub fn draw(
     _icons: &Icons,
     out: &mut Vec<WindowAction>,
 ) {
-    let [x, y, w, _h] = ctx.rect;
+    let [_, y, _, _] = ctx.rect;
     let c = &model.character;
     let p = &c.player;
+
+    // The live doll composites into the portrait column after the UI pass; the
+    // sheet's text starts past it.
+    let preview = preview_rect(ctx.rect);
+    super::chrome::region(ui, preview);
+    super::chrome::viewer_seat(ui, preview);
+    let x = text_origin(ctx.rect);
+    let w = (ctx.rect[0] + ctx.rect[2] - x).max(0.0);
 
     ui.text(&p.name, x, y, 3.0, ACCENT);
     let title = p
@@ -109,6 +151,9 @@ mod tests {
         }
     }
 
+    /// The sheet frame every case draws into.
+    const RECT: [f32; 4] = [100.0, 100.0, 600.0, 700.0];
+
     use super::*;
     use crate::windows::model::{ProfessionState, ProfessionTitle};
 
@@ -149,30 +194,19 @@ mod tests {
         let icons = Icons::load();
         let model = fixture();
         let mut ui = UiBuilder::new(icons.meta);
-        // rect [100,100,600,700]; 1 profession row ⇒ ty = 100+206+22+16 = 344;
-        // buttons at ty+22 = 366, first button x=100, w=min((600-16)/2,150)=150.
-        let bx = 100.0 + 60.0;
-        let by = 366.0 + 12.0;
+        // 1 profession row ⇒ ty = y + 206 + 22 + 16; buttons sit at ty + 22.
+        // The text column starts past the portrait, so the button's x is
+        // derived from the layout rather than pinned to the frame edge.
+        let bx = text_origin(RECT) + 60.0;
+        let by = 100.0 + 206.0 + 22.0 + 16.0 + 22.0 + 12.0;
         ui.set_input(bx, by, true);
         ui.begin(1280, 900);
         let mut out = Vec::new();
-        draw(
-            &mut ui,
-            test_ctx([100.0, 100.0, 600.0, 700.0]),
-            &model,
-            &icons,
-            &mut out,
-        );
+        draw(&mut ui, test_ctx(RECT), &model, &icons, &mut out);
         ui.set_input(bx, by, false);
         ui.begin(1280, 900);
         out.clear();
-        draw(
-            &mut ui,
-            test_ctx([100.0, 100.0, 600.0, 700.0]),
-            &model,
-            &icons,
-            &mut out,
-        );
+        draw(&mut ui, test_ctx(RECT), &model, &icons, &mut out);
         assert!(
             matches!(
                 out.first(),
@@ -190,23 +224,11 @@ mod tests {
         ui.set_input(160.0, 388.0, true);
         ui.begin(1280, 900);
         let mut out = Vec::new();
-        draw(
-            &mut ui,
-            test_ctx([100.0, 100.0, 600.0, 700.0]),
-            &model,
-            &icons,
-            &mut out,
-        );
+        draw(&mut ui, test_ctx(RECT), &model, &icons, &mut out);
         ui.set_input(160.0, 388.0, false);
         ui.begin(1280, 900);
         out.clear();
-        draw(
-            &mut ui,
-            test_ctx([100.0, 100.0, 600.0, 700.0]),
-            &model,
-            &icons,
-            &mut out,
-        );
+        draw(&mut ui, test_ctx(RECT), &model, &icons, &mut out);
         assert!(
             out.is_empty(),
             "empty projection emits nothing, got {out:?}"

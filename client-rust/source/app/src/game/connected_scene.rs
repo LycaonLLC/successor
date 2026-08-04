@@ -3349,6 +3349,8 @@ impl ConnectedScene {
                 Some("converse")
             } else if self.wm.is_open("inventory") {
                 Some("inventory")
+            } else if self.wm.is_open("character") {
+                Some("character")
             } else {
                 None
             };
@@ -3481,7 +3483,7 @@ impl ConnectedScene {
                 .npc
                 .as_ref()
                 .map(|npc| npc.actor_id.as_str()),
-            Some("inventory") => Some(self.player_id.as_str()),
+            Some("inventory") | Some("character") => Some(self.player_id.as_str()),
             _ => None,
         };
         for pawn in self.pawns.values_mut() {
@@ -3736,7 +3738,7 @@ impl ConnectedScene {
                     .npc
                     .as_ref()
                     .map(|npc| npc.actor_id.as_str()),
-                "inventory" => Some(self.player_id.as_str()),
+                "inventory" | "character" => Some(self.player_id.as_str()),
                 _ => None,
             }
             .expect("open portrait window has an actor");
@@ -3794,6 +3796,7 @@ impl ConnectedScene {
             if let Some(content) = self.wm.content_rect(paperdoll_window) {
                 let preview = match paperdoll_window {
                     "inventory" => crate::windows::inventory::layout(content).preview,
+                    "character" => crate::windows::character::preview_rect(content),
                     "examine" => crate::windows::live::examine_preview_rect(content),
                     "converse" => crate::windows::live::converse_preview_rect(content),
                     _ => content,
