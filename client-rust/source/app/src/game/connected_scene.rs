@@ -423,6 +423,30 @@ const INVENTORY_RADIAL_ANGLES: [f32; 6] = [
     core::f32::consts::FRAC_PI_2 * 1.5,
 ];
 
+// ── Character viewer, matched to the original client's object viewer ────────
+// Values derived from the decompiled `CuiWidget3dObjectListViewer` paperdoll
+// configuration via the SWG oracle: a narrow portrait FOV, a drag that spins
+// the doll, a multiplicative flick decay, and a resting park angle.
+
+/// Viewer field of view: 22.5°, the original's paperdoll FOV. Narrow on
+/// purpose — it keeps the doll portrait-flat instead of wide-angle distorted.
+const PAPERDOLL_FOVY: f32 = core::f32::consts::PI / 8.0;
+/// Yaw applied per pixel of horizontal drag.
+const PAPERDOLL_DRAG_YAW_PER_PX: f32 = 0.010;
+/// Flick decay per 60 Hz frame; resolved against real dt when applied.
+const PAPERDOLL_SPIN_DECAY: f32 = 0.96;
+/// Spin ceiling in rad/s.
+const PAPERDOLL_MAX_SPIN: f32 = 1.0;
+/// Below this the flick is spent and the doll holds where the player left it.
+const PAPERDOLL_SPIN_EPS: f32 = 0.02;
+/// Default viewer offset: zero, so the camera sits in front of the character's
+/// own facing and the doll always presents front-on no matter which way the
+/// pawn is turned in the world. The original's viewers likewise open on a
+/// fixed front view (`ViewerState::new` starts at yaw PI in its own frame);
+/// its 215° resting angle is only where an auto-rotating object parks, and
+/// inventory objects do not auto-rotate unless the player asks them to.
+const PAPERDOLL_RESTING_YAW: f32 = 0.0;
+
 fn draw_inventory_radial_arc(
     ui: &mut successor_engine_render::ui::UiBuilder,
     x: f32,
@@ -606,8 +630,10 @@ pub struct ConnectedScene {
     paperdoll_quad: Entity,
     paperdoll_target: RenderTargetId,
     /// Viewer turntable yaw offset, in radians, applied on top of the pawn's
-    /// own facing. The doll idles slowly and the player can drag it.
+    /// own facing. A drag spins it; the flick then decays and parks.
     paperdoll_yaw: f32,
+    /// Viewer spin velocity in rad/s, decaying after a drag is released.
+    paperdoll_spin: f32,
     /// Pointer x at the start of a viewer drag, while the button is held.
     paperdoll_drag_x: Option<f32>,
     /// Live viewer cell in framebuffer pixels, for drag hit-testing.
@@ -989,7 +1015,8 @@ impl ConnectedScene {
             paperdoll_camera,
             paperdoll_quad,
             paperdoll_target,
-            paperdoll_yaw: 0.0,
+            paperdoll_yaw: PAPERDOLL_RESTING_YAW,
+            paperdoll_spin: 0.0,
             paperdoll_drag_x: None,
             paperdoll_viewport: None,
             item_previews,
@@ -2335,7 +2362,11 @@ impl ConnectedScene {
         });
         if left && (self.paperdoll_drag_x.is_some() || (left_pressed && in_viewer)) {
             if self.paperdoll_drag_x.is_some() {
-                self.paperdoll_yaw += dx * 0.012;
+                let step = dx * PAPERDOLL_DRAG_YAW_PER_PX;
+                self.paperdoll_yaw += step;
+                // Carry the drag as velocity so releasing mid-sweep flicks the
+                // doll on, exactly as the original viewer does.
+                self.paperdoll_spin = (step * 60.0).clamp(-PAPERDOLL_MAX_SPIN, PAPERDOLL_MAX_SPIN);
             }
             self.paperdoll_drag_x = Some(x);
             return None;
@@ -3418,10 +3449,20 @@ impl ConnectedScene {
             self.spawn_pawn(gpu, read_asset, &live, faction);
         }
         self.sim_time += dt.max(0.0);
-        // The viewer idles on a slow turntable whenever it is not being dragged,
-        // so the doll always reads as a live 3D object rather than a still.
+        // Viewer rotation follows the original object viewer: a drag spins the
+        // doll, the flick decays multiplicatively once released, and the doll
+        // then parks at the resting yaw instead of turning forever.
         if self.paperdoll_drag_x.is_none() {
-            self.paperdoll_yaw += dt.max(0.0) * 0.35;
+            let dt = dt.max(0.0);
+            if self.paperdoll_spin.abs() > PAPERDOLL_SPIN_EPS {
+                self.paperdoll_yaw += self.paperdoll_spin * dt;
+                // 0.96 per 60 Hz frame, resolved for this frame's dt.
+                self.paperdoll_spin *= PAPERDOLL_SPIN_DECAY.powf(dt * 60.0);
+            } else {
+                // The flick is spent: the doll holds the angle the player left
+                // it at rather than springing back or turning on its own.
+                self.paperdoll_spin = 0.0;
+            }
         }
         self.paperdoll_yaw = self.paperdoll_yaw.rem_euclid(core::f32::consts::TAU);
 
@@ -3708,13 +3749,21 @@ impl ConnectedScene {
                     (vec3(wx, self.terrain.height_at(wx, wz), wz), pawn.yaw)
                 })
                 .unwrap_or((p, 0.0));
-            let (focus_height, camera_distance, fovy) = match paperdoll_window {
+            // Framing is preserved while adopting the original's 22.5° FOV:
+            // the subject height a camera covers is `2 * d * tan(fovy / 2)`, so
+            // pulling the lens in from the old wide angle means pushing the
+            // camera back by the ratio of those tangents.
+            let (focus_height, prior_distance, prior_fovy): (f32, f32, f32) = match paperdoll_window
+            {
                 "converse" => (1.28, 0.95, 0.58),
                 _ => (0.90, 2.75, 0.68),
             };
+            let camera_distance =
+                prior_distance * (prior_fovy * 0.5).tan() / (PAPERDOLL_FOVY * 0.5).tan();
+            let fovy = PAPERDOLL_FOVY;
             let focus = portrait_ground.add(vec3(0.0, focus_height, 0.0));
-            // Turntable: the viewer idles slowly and a pointer drag inside the
-            // cell spins it, matching the original's draggable object viewer.
+            // Drag spins the doll; the flick decays and parks at the resting
+            // yaw, matching the original's draggable object viewer.
             let orbit = yaw + self.paperdoll_yaw;
             let facing = vec3(orbit.sin(), 0.0, orbit.cos());
             self.world.set_component(
@@ -3728,8 +3777,11 @@ impl ConnectedScene {
                         far: 20.0,
                     },
                     target: CamTarget::Texture(self.paperdoll_target),
+                    // Transparent behind the doll: the original clears only
+                    // depth/stencil for its 3D viewers, leaving the panel
+                    // visible around the character.
                     clear: ClearSpec {
-                        color: Some([0.025, 0.03, 0.027, 1.0]),
+                        color: Some([0.0, 0.0, 0.0, 0.0]),
                         depth: Some(1.0),
                     },
                     eye: focus

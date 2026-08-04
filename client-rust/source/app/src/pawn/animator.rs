@@ -288,12 +288,7 @@ impl PawnAnimator {
                     self.cycle_phase * armed_duration,
                     &mut self.pose,
                 );
-                blend_into(
-                    &mut self.gait_target_pose,
-                    &self.pose,
-                    armed_weight,
-                    None,
-                );
+                blend_into(&mut self.gait_target_pose, &self.pose, armed_weight, None);
             }
 
             if self.gait_blending {
@@ -691,7 +686,7 @@ mod tests {
     fn idle_hysteresis_holds_moving_until_stop_threshold() {
         let mut a = anim();
         a.resolve_gait(1.0, false, true, None); // moving
-                                          // Between stop (0.035) and start (0.12): stays moving (walk).
+                                                // Between stop (0.035) and start (0.12): stays moving (walk).
         assert_eq!(a.resolve_gait(0.08, false, true, None), Gait::WalkF);
         // Below stop: idle.
         assert_eq!(a.resolve_gait(0.01, false, true, None), Gait::Idle);
@@ -734,7 +729,17 @@ mod tests {
         template.pose_at("melee_sheath", duration * 0.5, &mut expected);
 
         let mut animator = PawnAnimator::new(&template);
-        animator.update_weapon_transition(&mut template, WeaponLane::Melee, 0.5, Some(("melee_sheath", 0.5)), 0.0, false, true, None, 0.0);
+        animator.update_weapon_transition(
+            &mut template,
+            WeaponLane::Melee,
+            0.5,
+            Some(("melee_sheath", 0.5)),
+            0.0,
+            false,
+            true,
+            None,
+            0.0,
+        );
         assert_eq!(animator.pose, expected);
     }
 
@@ -749,7 +754,15 @@ mod tests {
             crate::pawn::catalog::parse_weapon_hand_spec(&attach).expect("rifle hand spec");
         let mut template = PawnTemplate::from_bytes(&body).expect("pawn template");
         let mut animator = PawnAnimator::new(&template);
-        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, None, 0.0);
+        animator.update(
+            &mut template,
+            WeaponLane::Rifle,
+            0.0,
+            false,
+            true,
+            None,
+            0.0,
+        );
         animator.apply_rifle_support_ik(&mut template, hand_spec.mount, hand_spec.foregrip);
 
         let arm = animator.rifle_arm.expect("rifle arm bones");
@@ -869,7 +882,15 @@ mod tests {
             .support_arm
             .expect("launcher authors a hold posture");
 
-        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, None, 0.0);
+        animator.update(
+            &mut template,
+            WeaponLane::Rifle,
+            0.0,
+            false,
+            true,
+            None,
+            0.0,
+        );
         animator.apply_rifle_support_ik_weighted(
             &mut template,
             hand_spec.mount,
@@ -894,7 +915,15 @@ mod tests {
             "expected a collapsed legacy elbow, got {legacy_off_axis} m off axis"
         );
 
-        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, None, 0.0);
+        animator.update(
+            &mut template,
+            WeaponLane::Rifle,
+            0.0,
+            false,
+            true,
+            None,
+            0.0,
+        );
         animator.apply_rifle_support_ik_weighted(
             &mut template,
             hand_spec.mount,
@@ -943,7 +972,15 @@ mod tests {
         let posture = hand_spec
             .support_arm
             .expect("launcher authors a hold posture");
-        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, None, 0.0);
+        animator.update(
+            &mut template,
+            WeaponLane::Rifle,
+            0.0,
+            false,
+            true,
+            None,
+            0.0,
+        );
         let arm = animator.rifle_arm.expect("rifle arm bones");
         // A contact 0.3 m below the support shoulder is deep inside the arm's
         // 0.584 m: this is every pose of every weapon whose support socket was
@@ -973,7 +1010,15 @@ mod tests {
             .bone_global(arm.upper)
             .transform_point(Vec3::ZERO);
 
-        animator.update(&mut template, WeaponLane::Rifle, 0.0, false, true, None, 0.0);
+        animator.update(
+            &mut template,
+            WeaponLane::Rifle,
+            0.0,
+            false,
+            true,
+            None,
+            0.0,
+        );
         animator.apply_rifle_support_ik_weighted(
             &mut template,
             mount,

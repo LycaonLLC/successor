@@ -14,9 +14,9 @@
 #[cfg(not(target_arch = "wasm32"))]
 use std::sync::{Arc, Mutex};
 
-use successor_engine_core::audio::{Point, SpatialOpts};
 #[cfg(not(target_arch = "wasm32"))]
 use successor_engine_core::audio::{Mixer, Pcm};
+use successor_engine_core::audio::{Point, SpatialOpts};
 
 pub mod triggers;
 #[cfg(not(target_arch = "wasm32"))]
@@ -109,8 +109,8 @@ fn parse_manifest(manifest_json: &str) -> Result<Vec<ParsedClip>, ()> {
         if id.is_empty() || parsed.iter().any(|known: &ParsedClip| known.id == id) {
             return Err(());
         }
-        let path = normalized_audio_path(clip.get("path").and_then(|v| v.as_str()).ok_or(())?)
-            .ok_or(())?;
+        let path =
+            normalized_audio_path(clip.get("path").and_then(|v| v.as_str()).ok_or(())?).ok_or(())?;
         let bus = clip.get("bus").and_then(|v| v.as_str()).ok_or(())?;
         let bus_gain = parsed_buses
             .iter()
@@ -252,14 +252,7 @@ impl SfxPlayer {
         }
         #[cfg(target_arch = "wasm32")]
         {
-            successor_platform::web::audio_play(
-                &clip.path,
-                key,
-                gain,
-                pan,
-                looped,
-                polyphony,
-            )
+            successor_platform::web::audio_play(&clip.path, key, gain, pan, looped, polyphony)
         }
     }
 
@@ -279,14 +272,7 @@ impl SfxPlayer {
         let Some(clip) = self.clip(id) else {
             return false;
         };
-        self.dispatch(
-            clip,
-            Self::key(id),
-            clip.gain,
-            0.0,
-            false,
-            clip.polyphony,
-        )
+        self.dispatch(clip, Self::key(id), clip.gain, 0.0, false, clip.polyphony)
     }
 
     pub fn play_loop(&mut self, id: &str, key: u32, at: Option<Point>, volume: f32) -> bool {
@@ -474,20 +460,12 @@ mod tests {
             1,
         ))
         .is_err());
-        assert!(parse_manifest(&minimal_manifest(
-            "successor-audio/x.mp3",
-            "ui",
-            "1e400",
-            1,
-        ))
-        .is_err());
-        assert!(parse_manifest(&minimal_manifest(
-            "successor-audio/x.mp3",
-            "ui",
-            "1.0",
-            0,
-        ))
-        .is_err());
+        assert!(
+            parse_manifest(&minimal_manifest("successor-audio/x.mp3", "ui", "1e400", 1,)).is_err()
+        );
+        assert!(
+            parse_manifest(&minimal_manifest("successor-audio/x.mp3", "ui", "1.0", 0,)).is_err()
+        );
         let duplicate = r#"{"schema":"successor-sfx-manifest-v1","buses":{"ui":{"volume":1,"polyphony":1}},"clips":[{"id":"same","path":"successor-audio/a.mp3","bus":"ui","volume":1,"polyphony":1},{"id":"same","path":"successor-audio/b.mp3","bus":"ui","volume":1,"polyphony":1}]}"#;
         assert!(parse_manifest(duplicate).is_err());
     }

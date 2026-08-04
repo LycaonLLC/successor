@@ -30,9 +30,11 @@ thread_local! {
 #[derive(Clone, Copy, Debug)]
 pub struct InventoryLayout {
     pub grid: [f32; 4],
-    /// One shallow footer region shared by the doll, status, and item actions.
+    /// Shallow footer shared by inventory status, economy, and item actions.
     pub footer: [f32; 4],
-    /// Small aspect-correct live player doll retained in the lower-left rail.
+    /// Equipment column on the left, holding the live character doll.
+    pub equipment: [f32; 4],
+    /// The doll viewport itself, inset and aspect-held inside `equipment`.
     pub preview: [f32; 4],
     pub detail: [f32; 4],
 }
@@ -48,6 +50,13 @@ const SCROLLBAR_CHANNEL_W: f32 = 10.0;
 const LIST_ROW_H: f32 = 25.0;
 const LIST_ROW_GAP: f32 = 2.0;
 const USAGE_SEGMENTS: usize = 8;
+/// Equipment column share of the window, from the original's 232/468 content
+/// split, with its 88 px floor and 232 px ceiling.
+const EQUIPMENT_WIDTH_RATIO: f32 = 232.0 / 468.0;
+const EQUIPMENT_MIN_W: f32 = 88.0;
+const EQUIPMENT_MAX_W: f32 = 232.0;
+/// Doll viewport aspect, from the original's 225x367 paperdoll rect.
+const DOLL_ASPECT: f32 = 225.0 / 367.0;
 
 fn current_view() -> InventoryView {
     VIEW.with(|view| view.get())
@@ -71,27 +80,53 @@ fn current_page() -> usize {
     }
 }
 
-/// SWG inventory geometry: the item field owns the window; the live character
-/// doll and selected-stack actions share one shallow footer.
+/// SWG inventory geometry: an equipment column carrying the live character
+/// doll owns the left of the window, the item field owns the right, and one
+/// shallow footer carries status, economy, and the selected stack's actions.
+///
+/// Proportions follow the original's `ui_pda_inventory.inc`: in its shipped
+/// 483x450 window the equipment panel is 232 of 468 content px with an 88 px
+/// floor, and the doll viewport inside it is 225x367 — a tall portrait, not a
+/// thumbnail.
 pub fn layout(rect: [f32; 4]) -> InventoryLayout {
     let [x, y, w, h] = rect;
     let gap = 7.0;
     let footer_h = (h * 0.23).clamp(86.0, 100.0).min((h - 120.0).max(72.0));
     let footer_y = y + h - footer_h;
-    let preview_h = (footer_h - 8.0).min(80.0);
-    let preview_w = preview_h * 0.6;
-    let preview_x = x + 6.0;
-    let detail_x = preview_x + preview_w + 8.0;
+    let body_h = (footer_y - gap - y).max(0.0);
+
+    // Equipment column: the original's 232/468 share, floored at 88 so a
+    // narrow window keeps a usable doll, and never more than half the window.
+    let equipment_w = (w * EQUIPMENT_WIDTH_RATIO)
+        .clamp(EQUIPMENT_MIN_W, EQUIPMENT_MAX_W)
+        .min(w * 0.5);
+    let equipment = [x, y, equipment_w, body_h];
+
+    // The doll holds the original's 225x367 portrait aspect inside that
+    // column, centred, so resizing never stretches the character.
+    let inset = 3.0;
+    let avail_w = (equipment_w - inset * 2.0).max(0.0);
+    let avail_h = (body_h - inset * 2.0).max(0.0);
+    let preview_w = avail_w.min(avail_h * DOLL_ASPECT);
+    let preview_h = if DOLL_ASPECT > 0.0 {
+        avail_h.min(avail_w / DOLL_ASPECT)
+    } else {
+        avail_h
+    };
+    let preview = [
+        x + inset + (avail_w - preview_w) * 0.5,
+        y + inset + (avail_h - preview_h) * 0.5,
+        preview_w,
+        preview_h,
+    ];
+
+    let grid_x = x + equipment_w + gap;
     InventoryLayout {
-        grid: [x, y, w, h - footer_h - gap],
+        grid: [grid_x, y, (x + w - grid_x).max(0.0), body_h],
         footer: [x, footer_y, w, footer_h],
-        preview: [
-            preview_x,
-            footer_y + (footer_h - preview_h) * 0.5,
-            preview_w,
-            preview_h,
-        ],
-        detail: [detail_x, footer_y, x + w - detail_x, footer_h],
+        equipment,
+        preview,
+        detail: [x, footer_y, w, footer_h],
     }
 }
 
@@ -379,16 +414,20 @@ pub fn draw(
     let inv = &model.inventory;
     let panes = layout(rect);
     let [gx, gy, gw, gh] = panes.grid;
-    let [px, py, pw, ph] = panes.preview;
     let view = current_view();
-
-    // One true content region: the item field. Fill plus a single top hairline,
-    // never a box around the grid and never a box per cell.
-    super::chrome::region(ui, [gx, gy, gw, gh]);
 
     let held_count = inv.held().count();
     let capacity = grid_capacity(rect).max(1);
     let (visible_start, visible_end) = visible_held_range(rect, held_count);
+
+    // One true content region: the item field. Fill plus a single top hairline,
+    // never a box around the grid and never a box per cell. Live 3D item icons
+    // composite over this well after the UI pass, so the fill stays whole.
+    super::chrome::region(ui, [gx, gy, gw, gh]);
+    // The equipment column carries the live character doll: its well is the
+    // backdrop the doll composites over, and the seat frames the viewport.
+    super::chrome::region(ui, panes.equipment);
+    super::chrome::viewer_seat(ui, panes.preview);
     let page = visible_start / capacity;
     let page_count = if held_count == 0 {
         0
@@ -435,7 +474,13 @@ pub fn draw(
         match view {
             InventoryView::IconGrid => {
                 ui.text(kind_label(kind), sx + 4.0, sy + 3.0, 1.0, DIM);
-                if let Some((column, glyph_row)) = icons.cell(kind.icon()) {
+                // The original shows a live 3D icon per item. A lane hosts the
+                // first `INVENTORY_LANES` visible cards, and its model is
+                // composited under this cell — drawing the atlas glyph there
+                // too would stamp a flat picture over the model. Cards past the
+                // hosted range keep the glyph as the fallback.
+                let hosted = index < crate::item_preview::INVENTORY_LANES;
+                if let Some((column, glyph_row)) = icons.cell(kind.icon()).filter(|_| !hosted) {
                     let icon_size = (card_w * 0.36)
                         .clamp(14.0, 28.0)
                         .min((card_w - 20.0).max(0.0));
@@ -524,13 +569,10 @@ pub fn draw(
     }
     draw_page_navigation(ui, [gx, gy, gw, gh], page, page_count);
 
-    // The footer is one shallow region: its target, inventory status, economy
-    // snapshot, selected details, and controls all share the same frame.
+    // The footer is one shallow region: inventory status, economy snapshot,
+    // selected details, and controls all share the same frame. The character
+    // doll lives in the equipment column, not down here.
     super::chrome::region(ui, panes.footer);
-    // The renderer composites the live rotating character target into this
-    // cell, so the cell itself stays unpainted — an opaque fill would hide the
-    // doll. A hairline seat marks the lane whether or not a target is hosted.
-    ui.border(px, py, pw, ph, 1.0, super::chrome::HAIRLINE);
     let footer = footer_layout(rect);
     let visible_count = visible_end - visible_start;
     let view_label = match view {

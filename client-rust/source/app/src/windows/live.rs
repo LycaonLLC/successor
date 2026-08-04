@@ -658,6 +658,7 @@ pub fn converse(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec
     };
     let preview = converse_preview_rect(ctx.rect);
     chrome::region(ui, preview);
+    chrome::viewer_seat(ui, preview);
     let name_w = ui.measure_text(&npc.name, metrics.label_px);
     let caption_y = preview[1] + preview[3] + 6.0;
     chrome::text_clipped(
@@ -845,6 +846,7 @@ pub fn examine(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<
     if let Some(actor) = &model.examine.actor {
         let preview = examine_preview_rect(ctx.rect);
         chrome::region(ui, preview);
+        chrome::viewer_seat(ui, preview);
         pane.y = preview[1] + preview[3] + 8.0;
         let revive = if actor.life_state == "alive" {
             None

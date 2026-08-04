@@ -206,6 +206,15 @@ pub fn region(ui: &mut UiBuilder, rect: [f32; 4]) {
     ui.rect(x, y, w, 1.0, RAIL);
 }
 
+/// Hairline seat for a live 3D viewer cell: marks the lane without covering
+/// the composited target inside it.
+pub fn viewer_seat(ui: &mut UiBuilder, rect: [f32; 4]) {
+    let [x, y, w, h] = rect;
+    if w > 0.0 && h > 0.0 {
+        ui.border(x, y, w, h, 1.0, HAIRLINE);
+    }
+}
+
 /// Horizontal value meter (vitals, concentration, progress). Track then fill;
 /// no outline.
 pub fn meter(ui: &mut UiBuilder, x: f32, y: f32, w: f32, h: f32, frac: f32, tint: [u8; 4]) {
@@ -756,5 +765,56 @@ mod tests {
             clicked = row.action(&mut ui, "TAKE");
         }
         assert!(clicked, "release inside the action must report a click");
+    }
+
+    /// True when any emitted triangle covers the framebuffer point `(x, y)`.
+    /// Vertices are `[ndc_x, ndc_y, u, v, r, g, b, a]`.
+    fn covers_point(ui: &UiBuilder, x: f32, y: f32, sw: f32, sh: f32) -> bool {
+        let ndc_x = x / sw * 2.0 - 1.0;
+        let ndc_y = 1.0 - y / sh * 2.0;
+        const STRIDE: usize = 8;
+        ui.buf.chunks_exact(STRIDE * 3).any(|tri| {
+            let p = [
+                (tri[0], tri[1]),
+                (tri[STRIDE], tri[STRIDE + 1]),
+                (tri[STRIDE * 2], tri[STRIDE * 2 + 1]),
+            ];
+            let edge = |a: (f32, f32), b: (f32, f32)| {
+                (b.0 - a.0) * (ndc_y - a.1) - (b.1 - a.1) * (ndc_x - a.0)
+            };
+            let (d0, d1, d2) = (edge(p[0], p[1]), edge(p[1], p[2]), edge(p[2], p[0]));
+            (d0 >= 0.0 && d1 >= 0.0 && d2 >= 0.0) || (d0 <= 0.0 && d1 <= 0.0 && d2 <= 0.0)
+        })
+    }
+
+    #[test]
+    fn a_viewer_seat_frames_its_cell_without_covering_the_model() {
+        // Live 3D viewers composite over the finished panel, so the cell must
+        // be framed, not filled: geometry over its interior would sit on top of
+        // the model the frame is supposed to present.
+        let cell = [10.0, 20.0, 60.0, 70.0];
+        let centre = (cell[0] + cell[2] * 0.5, cell[1] + cell[3] * 0.5);
+
+        let mut seat = builder();
+        seat.begin(1280, 720);
+        viewer_seat(&mut seat, cell);
+        assert!(
+            !covers_point(&seat, centre.0, centre.1, 1280.0, 720.0),
+            "the seat must leave the viewer interior clear"
+        );
+        // It still marks the lane: the top edge is drawn.
+        assert!(covers_point(&seat, centre.0, cell[1] + 0.5, 1280.0, 720.0));
+
+        // A filled region is exactly what must not be used on a viewer cell.
+        let mut filled = builder();
+        filled.begin(1280, 720);
+        region(&mut filled, cell);
+        assert!(covers_point(&filled, centre.0, centre.1, 1280.0, 720.0));
+
+        // A degenerate cell draws nothing at all.
+        let mut empty = builder();
+        empty.begin(1280, 720);
+        viewer_seat(&mut empty, [10.0, 20.0, 0.0, 70.0]);
+        assert_eq!(empty.quads, 0);
     }
 }

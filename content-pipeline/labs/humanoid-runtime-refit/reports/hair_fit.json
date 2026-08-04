@@ -1,0 +1,1591 @@
+{
+  "generator": "successor content-pipeline/labs/humanoid-runtime-refit/verify_hair_fit.py",
+  "contact_band_mm": 2.0,
+  "float_limit_mm": 3.0,
+  "buried_limit_mm": 60.0,
+  "variant_delta_limit_mm": 25.0,
+  "bodies": {
+    "male": {
+      "skull_top_m": 1.7525,
+      "items": {
+        "Hair_Afro": {
+          "nearest_surface_mm": -40.103,
+          "max_depth_mm": 40.103,
+          "contact_fraction": 0.012,
+          "crown_clearance_mm": 53.99,
+          "hair": true,
+          "vertices": 332
+        },
+        "Hair_Crop": {
+          "nearest_surface_mm": -42.751,
+          "max_depth_mm": 42.751,
+          "contact_fraction": 0.0572,
+          "crown_clearance_mm": 14.04,
+          "hair": true,
+          "vertices": 332
+        },
+        "Hair_Mop": {
+          "nearest_surface_mm": -42.813,
+          "max_depth_mm": 42.813,
+          "contact_fraction": 0.0319,
+          "crown_clearance_mm": 12.65,
+          "hair": true,
+          "vertices": 376
+        },
+        "Hat_Warm": {
+          "nearest_surface_mm": -12.243,
+          "max_depth_mm": 12.243,
+          "contact_fraction": 0.0102,
+          "crown_clearance_mm": 123.83,
+          "hair": false,
+          "vertices": 293
+        },
+        "SCFI_Pants_Refit": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0031,
+          "crown_clearance_mm": -694.57,
+          "hair": false,
+          "vertices": 3265
+        },
+        "SCFI_Top_Refit": {
+          "nearest_surface_mm": -5.253,
+          "max_depth_mm": 5.253,
+          "contact_fraction": 0.0079,
+          "crown_clearance_mm": -150.44,
+          "hair": false,
+          "vertices": 4810
+        },
+        "Shorts": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.047,
+          "crown_clearance_mm": -761.29,
+          "hair": false,
+          "vertices": 447
+        },
+        "Tank": {
+          "nearest_surface_mm": -7.443,
+          "max_depth_mm": 7.443,
+          "contact_fraction": 0.1298,
+          "crown_clearance_mm": -224.54,
+          "hair": false,
+          "vertices": 524
+        },
+        "boots_canvas_ankle": {
+          "nearest_surface_mm": 1.798,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.1256,
+          "crown_clearance_mm": -1537.01,
+          "hair": false,
+          "vertices": 223
+        },
+        "boots_combat_sneakers": {
+          "nearest_surface_mm": -19.01,
+          "max_depth_mm": 19.01,
+          "contact_fraction": 0.0179,
+          "crown_clearance_mm": -1621.8,
+          "hair": false,
+          "vertices": 838
+        },
+        "boots_cuffed_runners": {
+          "nearest_surface_mm": -15.627,
+          "max_depth_mm": 15.627,
+          "contact_fraction": 0.0138,
+          "crown_clearance_mm": -1623.5,
+          "hair": false,
+          "vertices": 868
+        },
+        "boots_double_strap": {
+          "nearest_surface_mm": -17.269,
+          "max_depth_mm": 17.269,
+          "contact_fraction": 0.0214,
+          "crown_clearance_mm": -1623.94,
+          "hair": false,
+          "vertices": 1214
+        },
+        "boots_layered_sneakers": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0029,
+          "crown_clearance_mm": -1621.12,
+          "hair": false,
+          "vertices": 682
+        },
+        "boots_reinforced_street": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.072,
+          "crown_clearance_mm": -1627.63,
+          "hair": false,
+          "vertices": 1028
+        },
+        "boots_rubberized_canvas": {
+          "nearest_surface_mm": -8.715,
+          "max_depth_mm": 8.715,
+          "contact_fraction": 0.0196,
+          "crown_clearance_mm": -1623.85,
+          "hair": false,
+          "vertices": 1428
+        },
+        "boots_split_toe": {
+          "nearest_surface_mm": -73.015,
+          "max_depth_mm": 73.015,
+          "contact_fraction": 0.043,
+          "crown_clearance_mm": -1606.44,
+          "hair": false,
+          "vertices": 860
+        },
+        "boots_toe_capped": {
+          "nearest_surface_mm": 1.479,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0714,
+          "crown_clearance_mm": -1623.75,
+          "hair": false,
+          "vertices": 518
+        },
+        "boots_trail_shoes": {
+          "nearest_surface_mm": 1.499,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0596,
+          "crown_clearance_mm": -1626.45,
+          "hair": false,
+          "vertices": 906
+        },
+        "gloves_guarded_leather": {
+          "nearest_surface_mm": 4.416,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -263.01,
+          "hair": false,
+          "vertices": 1125
+        },
+        "gloves_knuckled_half": {
+          "nearest_surface_mm": 5.094,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -282.55,
+          "hair": false,
+          "vertices": 468
+        },
+        "gloves_light_utility": {
+          "nearest_surface_mm": 4.843,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -289.4,
+          "hair": false,
+          "vertices": 763
+        },
+        "gloves_plain_work": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0017,
+          "crown_clearance_mm": -265.24,
+          "hair": false,
+          "vertices": 575
+        },
+        "gloves_plated_handwraps": {
+          "nearest_surface_mm": -13.86,
+          "max_depth_mm": 13.86,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -207.34,
+          "hair": false,
+          "vertices": 795
+        },
+        "gloves_reinforced_knit": {
+          "nearest_surface_mm": 5.221,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -288.4,
+          "hair": false,
+          "vertices": 551
+        },
+        "gloves_tipped_work": {
+          "nearest_surface_mm": 3.595,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -270.34,
+          "hair": false,
+          "vertices": 1178
+        },
+        "hair_banded_mohawk": {
+          "nearest_surface_mm": -19.606,
+          "max_depth_mm": 19.606,
+          "contact_fraction": 0.0422,
+          "crown_clearance_mm": 106.15,
+          "hair": true,
+          "vertices": 1161
+        },
+        "hair_braided_crown": {
+          "nearest_surface_mm": -18.247,
+          "max_depth_mm": 18.247,
+          "contact_fraction": 0.0161,
+          "crown_clearance_mm": 14.04,
+          "hair": true,
+          "vertices": 4480
+        },
+        "hair_cropped_buzz": {
+          "nearest_surface_mm": -17.679,
+          "max_depth_mm": 17.679,
+          "contact_fraction": 0.0552,
+          "crown_clearance_mm": 43.13,
+          "hair": true,
+          "vertices": 1521
+        },
+        "hair_fauxhawk": {
+          "nearest_surface_mm": -21.17,
+          "max_depth_mm": 21.17,
+          "contact_fraction": 0.0144,
+          "crown_clearance_mm": 119.63,
+          "hair": true,
+          "vertices": 1662
+        },
+        "hair_flared_shag": {
+          "nearest_surface_mm": -24.688,
+          "max_depth_mm": 24.688,
+          "contact_fraction": 0.0297,
+          "crown_clearance_mm": 56.78,
+          "hair": true,
+          "vertices": 1617
+        },
+        "hair_flared_wings": {
+          "nearest_surface_mm": -41.262,
+          "max_depth_mm": 41.262,
+          "contact_fraction": 0.0435,
+          "crown_clearance_mm": 79.75,
+          "hair": true,
+          "vertices": 897
+        },
+        "hair_flat_top": {
+          "nearest_surface_mm": -41.86,
+          "max_depth_mm": 41.86,
+          "contact_fraction": 0.0605,
+          "crown_clearance_mm": 31.01,
+          "hair": true,
+          "vertices": 1602
+        },
+        "hair_low_tufts": {
+          "nearest_surface_mm": -32.153,
+          "max_depth_mm": 32.153,
+          "contact_fraction": 0.04,
+          "crown_clearance_mm": 13.55,
+          "hair": true,
+          "vertices": 1151
+        },
+        "hair_messy_crop": {
+          "nearest_surface_mm": -37.409,
+          "max_depth_mm": 37.409,
+          "contact_fraction": 0.022,
+          "crown_clearance_mm": 35.5,
+          "hair": true,
+          "vertices": 1320
+        },
+        "hair_messy_side_part": {
+          "nearest_surface_mm": -33.974,
+          "max_depth_mm": 33.974,
+          "contact_fraction": 0.0384,
+          "crown_clearance_mm": 59.95,
+          "hair": true,
+          "vertices": 1850
+        },
+        "hair_ridge_mohawk": {
+          "nearest_surface_mm": -18.561,
+          "max_depth_mm": 18.561,
+          "contact_fraction": 0.0687,
+          "crown_clearance_mm": 81.5,
+          "hair": true,
+          "vertices": 291
+        },
+        "hair_short_ponytail": {
+          "nearest_surface_mm": -25.223,
+          "max_depth_mm": 25.223,
+          "contact_fraction": 0.0421,
+          "crown_clearance_mm": 39.22,
+          "hair": true,
+          "vertices": 2090
+        },
+        "hair_shoulder_shag": {
+          "nearest_surface_mm": -24.69,
+          "max_depth_mm": 24.69,
+          "contact_fraction": 0.0472,
+          "crown_clearance_mm": 20.73,
+          "hair": true,
+          "vertices": 1780
+        },
+        "hair_side_ponytail": {
+          "nearest_surface_mm": -19.18,
+          "max_depth_mm": 19.18,
+          "contact_fraction": 0.0183,
+          "crown_clearance_mm": 46.64,
+          "hair": true,
+          "vertices": 2737
+        },
+        "hair_side_sweep": {
+          "nearest_surface_mm": -29.451,
+          "max_depth_mm": 29.451,
+          "contact_fraction": 0.0197,
+          "crown_clearance_mm": 85.41,
+          "hair": true,
+          "vertices": 1270
+        },
+        "hair_slicked_crop": {
+          "nearest_surface_mm": -13.732,
+          "max_depth_mm": 13.732,
+          "contact_fraction": 0.0262,
+          "crown_clearance_mm": 32.84,
+          "hair": true,
+          "vertices": 954
+        },
+        "hair_spiked_mohawk": {
+          "nearest_surface_mm": -28.252,
+          "max_depth_mm": 28.252,
+          "contact_fraction": 0.0476,
+          "crown_clearance_mm": 166.11,
+          "hair": true,
+          "vertices": 1722
+        },
+        "hair_spiked_topknot": {
+          "nearest_surface_mm": -29.656,
+          "max_depth_mm": 29.656,
+          "contact_fraction": 0.0556,
+          "crown_clearance_mm": 81.08,
+          "hair": true,
+          "vertices": 1402
+        },
+        "hair_split_mohawk": {
+          "nearest_surface_mm": -10.969,
+          "max_depth_mm": 10.969,
+          "contact_fraction": 0.0211,
+          "crown_clearance_mm": 116.37,
+          "hair": true,
+          "vertices": 1900
+        },
+        "hair_swept_bob": {
+          "nearest_surface_mm": -34.155,
+          "max_depth_mm": 34.155,
+          "contact_fraction": 0.0359,
+          "crown_clearance_mm": 33.83,
+          "hair": true,
+          "vertices": 1558
+        },
+        "hair_swept_spikes": {
+          "nearest_surface_mm": -24.335,
+          "max_depth_mm": 24.335,
+          "contact_fraction": 0.0308,
+          "crown_clearance_mm": 89.55,
+          "hair": true,
+          "vertices": 1524
+        },
+        "hair_textured_crop": {
+          "nearest_surface_mm": -35.501,
+          "max_depth_mm": 35.501,
+          "contact_fraction": 0.0294,
+          "crown_clearance_mm": 45.33,
+          "hair": true,
+          "vertices": 1563
+        },
+        "hair_top_patch": {
+          "nearest_surface_mm": -19.034,
+          "max_depth_mm": 19.034,
+          "contact_fraction": 0.0495,
+          "crown_clearance_mm": 27.25,
+          "hair": true,
+          "vertices": 748
+        },
+        "hair_twin_pigtails": {
+          "nearest_surface_mm": -27.924,
+          "max_depth_mm": 27.924,
+          "contact_fraction": 0.0503,
+          "crown_clearance_mm": 56.97,
+          "hair": true,
+          "vertices": 2523
+        },
+        "legs_gaitered_cargo_pants": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0313,
+          "crown_clearance_mm": -723.71,
+          "hair": false,
+          "vertices": 3517
+        },
+        "legs_layered_shorts": {
+          "nearest_surface_mm": 1.463,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0822,
+          "crown_clearance_mm": -723.58,
+          "hair": false,
+          "vertices": 4100
+        },
+        "legs_layered_wrap_skirt": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0176,
+          "crown_clearance_mm": -705.97,
+          "hair": false,
+          "vertices": 3237
+        },
+        "legs_padded_canvas_trousers": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0435,
+          "crown_clearance_mm": -723.72,
+          "hair": false,
+          "vertices": 3222
+        },
+        "legs_plated_trousers": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0333,
+          "crown_clearance_mm": -723.71,
+          "hair": false,
+          "vertices": 3002
+        },
+        "legs_reinforced_denim_pants": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0527,
+          "crown_clearance_mm": -723.56,
+          "hair": false,
+          "vertices": 3508
+        },
+        "legs_sashed_patrol_pants": {
+          "nearest_surface_mm": 1.46,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0348,
+          "crown_clearance_mm": -723.51,
+          "hair": false,
+          "vertices": 3537
+        },
+        "legs_skirted_workpants": {
+          "nearest_surface_mm": 1.452,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0354,
+          "crown_clearance_mm": -723.65,
+          "hair": false,
+          "vertices": 3188
+        },
+        "legs_strapped_trousers": {
+          "nearest_surface_mm": 1.473,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0622,
+          "crown_clearance_mm": -723.58,
+          "hair": false,
+          "vertices": 4035
+        },
+        "legs_wrapped_workpants": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.008,
+          "crown_clearance_mm": -723.72,
+          "hair": false,
+          "vertices": 3379
+        },
+        "top_frayed_tunic": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0493,
+          "crown_clearance_mm": -223.12,
+          "hair": false,
+          "vertices": 2495
+        },
+        "top_laced_corset_vest": {
+          "nearest_surface_mm": 4.537,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -229.18,
+          "hair": false,
+          "vertices": 2570
+        },
+        "top_padded_leather_vest": {
+          "nearest_surface_mm": 6.462,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -212.71,
+          "hair": false,
+          "vertices": 2339
+        },
+        "top_plated_rig_vest": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0314,
+          "crown_clearance_mm": -212.99,
+          "hair": false,
+          "vertices": 2390
+        },
+        "top_reinforced_crop_vest": {
+          "nearest_surface_mm": 4.695,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -224.6,
+          "hair": false,
+          "vertices": 1548
+        },
+        "top_rigged_tank": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0197,
+          "crown_clearance_mm": -228.36,
+          "hair": false,
+          "vertices": 1675
+        },
+        "top_scrap_plate_tunic": {
+          "nearest_surface_mm": 1.459,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0164,
+          "crown_clearance_mm": -206.38,
+          "hair": false,
+          "vertices": 2320
+        },
+        "top_spiked_leather_vest": {
+          "nearest_surface_mm": 1.473,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0033,
+          "crown_clearance_mm": -197.6,
+          "hair": false,
+          "vertices": 2149
+        },
+        "under_bodysuit": {
+          "nearest_surface_mm": -0.091,
+          "max_depth_mm": 0.091,
+          "contact_fraction": 1.0,
+          "crown_clearance_mm": -223.68,
+          "hair": false,
+          "vertices": 782
+        },
+        "Bicep_L": {
+          "nearest_surface_mm": 1.07,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0208,
+          "crown_clearance_mm": -245.36,
+          "hair": false,
+          "vertices": 144
+        },
+        "Bicep_R": {
+          "nearest_surface_mm": 1.467,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0208,
+          "crown_clearance_mm": -245.37,
+          "hair": false,
+          "vertices": 144
+        },
+        "Gorget": {
+          "nearest_surface_mm": 2.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -150.2,
+          "hair": false,
+          "vertices": 320
+        },
+        "Harness": {
+          "nearest_surface_mm": -25.2,
+          "max_depth_mm": 25.2,
+          "contact_fraction": 0.0395,
+          "crown_clearance_mm": -199.01,
+          "hair": false,
+          "vertices": 988
+        },
+        "Helmet_A": {
+          "nearest_surface_mm": -18.928,
+          "max_depth_mm": 18.928,
+          "contact_fraction": 0.007,
+          "crown_clearance_mm": 32.87,
+          "hair": false,
+          "vertices": 1136
+        },
+        "Helmet_B": {
+          "nearest_surface_mm": -18.28,
+          "max_depth_mm": 18.28,
+          "contact_fraction": 0.0079,
+          "crown_clearance_mm": 34.8,
+          "hair": false,
+          "vertices": 1258
+        },
+        "Helmet_C": {
+          "nearest_surface_mm": -6.387,
+          "max_depth_mm": 6.387,
+          "contact_fraction": 0.0278,
+          "crown_clearance_mm": 30.72,
+          "hair": false,
+          "vertices": 1368
+        },
+        "Helmet_D": {
+          "nearest_surface_mm": -9.65,
+          "max_depth_mm": 9.65,
+          "contact_fraction": 0.0028,
+          "crown_clearance_mm": 83.5,
+          "hair": false,
+          "vertices": 1446
+        },
+        "Helmet_S1": {
+          "nearest_surface_mm": -14.071,
+          "max_depth_mm": 14.071,
+          "contact_fraction": 0.0189,
+          "crown_clearance_mm": 40.72,
+          "hair": false,
+          "vertices": 900
+        },
+        "Helmet_S2": {
+          "nearest_surface_mm": -19.317,
+          "max_depth_mm": 19.317,
+          "contact_fraction": 0.0138,
+          "crown_clearance_mm": 32.02,
+          "hair": false,
+          "vertices": 1446
+        },
+        "Helmet_S3": {
+          "nearest_surface_mm": -12.863,
+          "max_depth_mm": 12.863,
+          "contact_fraction": 0.0249,
+          "crown_clearance_mm": 43.53,
+          "hair": false,
+          "vertices": 1528
+        },
+        "Helmet_V1PORT": {
+          "nearest_surface_mm": -16.336,
+          "max_depth_mm": 16.336,
+          "contact_fraction": 0.0348,
+          "crown_clearance_mm": 40.85,
+          "hair": false,
+          "vertices": 834
+        },
+        "Nape_Reinforcement": {
+          "nearest_surface_mm": 4.645,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -122.22,
+          "hair": false,
+          "vertices": 1268
+        },
+        "Reinforcement": {
+          "nearest_surface_mm": 4.825,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -156.45,
+          "hair": false,
+          "vertices": 160
+        },
+        "trial_back_a": {
+          "nearest_surface_mm": 19.741,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -183.71,
+          "hair": false,
+          "vertices": 1014
+        },
+        "trial_back_b": {
+          "nearest_surface_mm": 5.528,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -254.1,
+          "hair": false,
+          "vertices": 1139
+        },
+        "trial_hair_a": {
+          "nearest_surface_mm": -34.296,
+          "max_depth_mm": 34.296,
+          "contact_fraction": 0.0973,
+          "crown_clearance_mm": 25.08,
+          "hair": true,
+          "vertices": 586
+        },
+        "trial_hair_b": {
+          "nearest_surface_mm": -45.291,
+          "max_depth_mm": 45.291,
+          "contact_fraction": 0.0303,
+          "crown_clearance_mm": 34.36,
+          "hair": true,
+          "vertices": 727
+        },
+        "trial_hair_c": {
+          "nearest_surface_mm": -17.075,
+          "max_depth_mm": 17.075,
+          "contact_fraction": 0.0092,
+          "crown_clearance_mm": 39.74,
+          "hair": true,
+          "vertices": 542
+        },
+        "trial_hair_d": {
+          "nearest_surface_mm": -35.217,
+          "max_depth_mm": 35.217,
+          "contact_fraction": 0.0538,
+          "crown_clearance_mm": 48.47,
+          "hair": true,
+          "vertices": 1544
+        },
+        "trial_helm_a": {
+          "nearest_surface_mm": -67.63,
+          "max_depth_mm": 67.63,
+          "contact_fraction": 0.1169,
+          "crown_clearance_mm": 6.68,
+          "hair": false,
+          "vertices": 556
+        },
+        "trial_helm_b": {
+          "nearest_surface_mm": -61.266,
+          "max_depth_mm": 61.266,
+          "contact_fraction": 0.0528,
+          "crown_clearance_mm": 43.97,
+          "hair": false,
+          "vertices": 587
+        },
+        "trial_helm_c": {
+          "nearest_surface_mm": -31.319,
+          "max_depth_mm": 31.319,
+          "contact_fraction": 0.0489,
+          "crown_clearance_mm": 16.27,
+          "hair": false,
+          "vertices": 368
+        },
+        "trial_helm_d": {
+          "nearest_surface_mm": -62.813,
+          "max_depth_mm": 62.813,
+          "contact_fraction": 0.0777,
+          "crown_clearance_mm": 21.44,
+          "hair": false,
+          "vertices": 618
+        },
+        "trial_hip_back_a": {
+          "nearest_surface_mm": 10.921,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -786.73,
+          "hair": false,
+          "vertices": 234
+        },
+        "trial_hip_front_a": {
+          "nearest_surface_mm": 4.122,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -723.97,
+          "hair": false,
+          "vertices": 581
+        },
+        "trial_hip_side_a": {
+          "nearest_surface_mm": 2.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -777.9,
+          "hair": false,
+          "vertices": 512
+        },
+        "trial_hood_a": {
+          "nearest_surface_mm": -66.247,
+          "max_depth_mm": 66.247,
+          "contact_fraction": 0.0328,
+          "crown_clearance_mm": 50.96,
+          "hair": false,
+          "vertices": 793
+        },
+        "trial_mask_b": {
+          "nearest_surface_mm": -42.413,
+          "max_depth_mm": 42.413,
+          "contact_fraction": 0.0365,
+          "crown_clearance_mm": 16.91,
+          "hair": false,
+          "vertices": 137
+        },
+        "trial_visor_a": {
+          "nearest_surface_mm": -31.799,
+          "max_depth_mm": 31.799,
+          "contact_fraction": 0.0352,
+          "crown_clearance_mm": -109.93,
+          "hair": false,
+          "vertices": 398
+        }
+      }
+    },
+    "female": {
+      "skull_top_m": 1.7525,
+      "items": {
+        "Hair_Afro": {
+          "nearest_surface_mm": -32.487,
+          "max_depth_mm": 32.487,
+          "contact_fraction": 0.0482,
+          "crown_clearance_mm": 49.06,
+          "hair": true,
+          "vertices": 332
+        },
+        "Hair_Crop": {
+          "nearest_surface_mm": -33.074,
+          "max_depth_mm": 33.074,
+          "contact_fraction": 0.0602,
+          "crown_clearance_mm": 11.43,
+          "hair": true,
+          "vertices": 332
+        },
+        "Hair_Mop": {
+          "nearest_surface_mm": -33.024,
+          "max_depth_mm": 33.024,
+          "contact_fraction": 0.0266,
+          "crown_clearance_mm": 10.15,
+          "hair": true,
+          "vertices": 376
+        },
+        "Hat_Warm": {
+          "nearest_surface_mm": -12.333,
+          "max_depth_mm": 12.333,
+          "contact_fraction": 0.0137,
+          "crown_clearance_mm": 114.88,
+          "hair": false,
+          "vertices": 293
+        },
+        "SCFI_Pants_Refit": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0413,
+          "crown_clearance_mm": -694.57,
+          "hair": false,
+          "vertices": 3265
+        },
+        "SCFI_Top_Refit": {
+          "nearest_surface_mm": 1.46,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0067,
+          "crown_clearance_mm": -154.01,
+          "hair": false,
+          "vertices": 4810
+        },
+        "Shorts": {
+          "nearest_surface_mm": -5.018,
+          "max_depth_mm": 5.018,
+          "contact_fraction": 0.3736,
+          "crown_clearance_mm": -761.36,
+          "hair": false,
+          "vertices": 447
+        },
+        "Tank": {
+          "nearest_surface_mm": -8.605,
+          "max_depth_mm": 8.605,
+          "contact_fraction": 0.1469,
+          "crown_clearance_mm": -223.05,
+          "hair": false,
+          "vertices": 524
+        },
+        "boots_canvas_ankle": {
+          "nearest_surface_mm": 1.748,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.1134,
+          "crown_clearance_mm": -1537.58,
+          "hair": false,
+          "vertices": 247
+        },
+        "boots_combat_sneakers": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0024,
+          "crown_clearance_mm": -1622.3,
+          "hair": false,
+          "vertices": 838
+        },
+        "boots_cuffed_runners": {
+          "nearest_surface_mm": 1.488,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0276,
+          "crown_clearance_mm": -1624.3,
+          "hair": false,
+          "vertices": 868
+        },
+        "boots_double_strap": {
+          "nearest_surface_mm": 1.452,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0214,
+          "crown_clearance_mm": -1624.61,
+          "hair": false,
+          "vertices": 1214
+        },
+        "boots_layered_sneakers": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0161,
+          "crown_clearance_mm": -1621.75,
+          "hair": false,
+          "vertices": 682
+        },
+        "boots_reinforced_street": {
+          "nearest_surface_mm": 1.464,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0467,
+          "crown_clearance_mm": -1628.84,
+          "hair": false,
+          "vertices": 1028
+        },
+        "boots_rubberized_canvas": {
+          "nearest_surface_mm": -5.148,
+          "max_depth_mm": 5.148,
+          "contact_fraction": 0.021,
+          "crown_clearance_mm": -1624.75,
+          "hair": false,
+          "vertices": 1428
+        },
+        "boots_split_toe": {
+          "nearest_surface_mm": -3.658,
+          "max_depth_mm": 3.658,
+          "contact_fraction": 0.0209,
+          "crown_clearance_mm": -1607.19,
+          "hair": false,
+          "vertices": 860
+        },
+        "boots_toe_capped": {
+          "nearest_surface_mm": -12.795,
+          "max_depth_mm": 12.795,
+          "contact_fraction": 0.0463,
+          "crown_clearance_mm": -1624.21,
+          "hair": false,
+          "vertices": 518
+        },
+        "boots_trail_shoes": {
+          "nearest_surface_mm": 1.462,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0342,
+          "crown_clearance_mm": -1627.07,
+          "hair": false,
+          "vertices": 906
+        },
+        "gloves_guarded_leather": {
+          "nearest_surface_mm": 4.421,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -259.82,
+          "hair": false,
+          "vertices": 1125
+        },
+        "gloves_knuckled_half": {
+          "nearest_surface_mm": 5.116,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -282.55,
+          "hair": false,
+          "vertices": 468
+        },
+        "gloves_light_utility": {
+          "nearest_surface_mm": -6.967,
+          "max_depth_mm": 6.967,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -289.51,
+          "hair": false,
+          "vertices": 763
+        },
+        "gloves_plain_work": {
+          "nearest_surface_mm": 0.47,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0052,
+          "crown_clearance_mm": -267.69,
+          "hair": false,
+          "vertices": 575
+        },
+        "gloves_plated_handwraps": {
+          "nearest_surface_mm": -41.351,
+          "max_depth_mm": 41.351,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -207.98,
+          "hair": false,
+          "vertices": 795
+        },
+        "gloves_reinforced_knit": {
+          "nearest_surface_mm": -0.086,
+          "max_depth_mm": 0.086,
+          "contact_fraction": 0.0672,
+          "crown_clearance_mm": -288.79,
+          "hair": false,
+          "vertices": 551
+        },
+        "gloves_tipped_work": {
+          "nearest_surface_mm": -14.576,
+          "max_depth_mm": 14.576,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -272.86,
+          "hair": false,
+          "vertices": 1178
+        },
+        "hair_banded_mohawk": {
+          "nearest_surface_mm": -19.356,
+          "max_depth_mm": 19.356,
+          "contact_fraction": 0.0517,
+          "crown_clearance_mm": 98.61,
+          "hair": true,
+          "vertices": 1161
+        },
+        "hair_braided_crown": {
+          "nearest_surface_mm": -21.266,
+          "max_depth_mm": 21.266,
+          "contact_fraction": 0.0257,
+          "crown_clearance_mm": 11.53,
+          "hair": true,
+          "vertices": 4480
+        },
+        "hair_cropped_buzz": {
+          "nearest_surface_mm": -27.18,
+          "max_depth_mm": 27.18,
+          "contact_fraction": 0.075,
+          "crown_clearance_mm": 38.87,
+          "hair": true,
+          "vertices": 1521
+        },
+        "hair_fauxhawk": {
+          "nearest_surface_mm": -21.663,
+          "max_depth_mm": 21.663,
+          "contact_fraction": 0.0181,
+          "crown_clearance_mm": 111.18,
+          "hair": true,
+          "vertices": 1662
+        },
+        "hair_flared_shag": {
+          "nearest_surface_mm": -30.464,
+          "max_depth_mm": 30.464,
+          "contact_fraction": 0.0297,
+          "crown_clearance_mm": 51.87,
+          "hair": true,
+          "vertices": 1617
+        },
+        "hair_flared_wings": {
+          "nearest_surface_mm": -44.843,
+          "max_depth_mm": 44.843,
+          "contact_fraction": 0.0212,
+          "crown_clearance_mm": 73.42,
+          "hair": true,
+          "vertices": 897
+        },
+        "hair_flat_top": {
+          "nearest_surface_mm": -45.603,
+          "max_depth_mm": 45.603,
+          "contact_fraction": 0.0581,
+          "crown_clearance_mm": 27.56,
+          "hair": true,
+          "vertices": 1602
+        },
+        "hair_low_tufts": {
+          "nearest_surface_mm": -36.555,
+          "max_depth_mm": 36.555,
+          "contact_fraction": 0.0634,
+          "crown_clearance_mm": 11.08,
+          "hair": true,
+          "vertices": 1151
+        },
+        "hair_messy_crop": {
+          "nearest_surface_mm": -34.701,
+          "max_depth_mm": 34.701,
+          "contact_fraction": 0.0326,
+          "crown_clearance_mm": 31.63,
+          "hair": true,
+          "vertices": 1320
+        },
+        "hair_messy_side_part": {
+          "nearest_surface_mm": -33.008,
+          "max_depth_mm": 33.008,
+          "contact_fraction": 0.0676,
+          "crown_clearance_mm": 54.85,
+          "hair": true,
+          "vertices": 1850
+        },
+        "hair_ridge_mohawk": {
+          "nearest_surface_mm": -18.896,
+          "max_depth_mm": 18.896,
+          "contact_fraction": 0.1615,
+          "crown_clearance_mm": 75.03,
+          "hair": true,
+          "vertices": 291
+        },
+        "hair_short_ponytail": {
+          "nearest_surface_mm": -24.322,
+          "max_depth_mm": 24.322,
+          "contact_fraction": 0.0488,
+          "crown_clearance_mm": 35.24,
+          "hair": true,
+          "vertices": 2090
+        },
+        "hair_shoulder_shag": {
+          "nearest_surface_mm": -22.813,
+          "max_depth_mm": 22.813,
+          "contact_fraction": 0.0663,
+          "crown_clearance_mm": 17.87,
+          "hair": true,
+          "vertices": 1780
+        },
+        "hair_side_ponytail": {
+          "nearest_surface_mm": -19.756,
+          "max_depth_mm": 19.756,
+          "contact_fraction": 0.0216,
+          "crown_clearance_mm": 42.2,
+          "hair": true,
+          "vertices": 2737
+        },
+        "hair_side_sweep": {
+          "nearest_surface_mm": -26.682,
+          "max_depth_mm": 26.682,
+          "contact_fraction": 0.015,
+          "crown_clearance_mm": 78.98,
+          "hair": true,
+          "vertices": 1270
+        },
+        "hair_slicked_crop": {
+          "nearest_surface_mm": -20.104,
+          "max_depth_mm": 20.104,
+          "contact_fraction": 0.0818,
+          "crown_clearance_mm": 29.38,
+          "hair": true,
+          "vertices": 954
+        },
+        "hair_spiked_mohawk": {
+          "nearest_surface_mm": -27.97,
+          "max_depth_mm": 27.97,
+          "contact_fraction": 0.0383,
+          "crown_clearance_mm": 154.74,
+          "hair": true,
+          "vertices": 1722
+        },
+        "hair_spiked_topknot": {
+          "nearest_surface_mm": -29.652,
+          "max_depth_mm": 29.652,
+          "contact_fraction": 0.0378,
+          "crown_clearance_mm": 74.77,
+          "hair": true,
+          "vertices": 1402
+        },
+        "hair_split_mohawk": {
+          "nearest_surface_mm": -12.113,
+          "max_depth_mm": 12.113,
+          "contact_fraction": 0.0363,
+          "crown_clearance_mm": 108.2,
+          "hair": true,
+          "vertices": 1900
+        },
+        "hair_swept_bob": {
+          "nearest_surface_mm": -25.035,
+          "max_depth_mm": 25.035,
+          "contact_fraction": 0.0372,
+          "crown_clearance_mm": 30.2,
+          "hair": true,
+          "vertices": 1558
+        },
+        "hair_swept_spikes": {
+          "nearest_surface_mm": -30.704,
+          "max_depth_mm": 30.704,
+          "contact_fraction": 0.0302,
+          "crown_clearance_mm": 82.75,
+          "hair": true,
+          "vertices": 1524
+        },
+        "hair_textured_crop": {
+          "nearest_surface_mm": -32.959,
+          "max_depth_mm": 32.959,
+          "contact_fraction": 0.055,
+          "crown_clearance_mm": 40.93,
+          "hair": true,
+          "vertices": 1563
+        },
+        "hair_top_patch": {
+          "nearest_surface_mm": -19.722,
+          "max_depth_mm": 19.722,
+          "contact_fraction": 0.0762,
+          "crown_clearance_mm": 24.02,
+          "hair": true,
+          "vertices": 748
+        },
+        "hair_twin_pigtails": {
+          "nearest_surface_mm": -23.413,
+          "max_depth_mm": 23.413,
+          "contact_fraction": 0.0555,
+          "crown_clearance_mm": 51.93,
+          "hair": true,
+          "vertices": 2523
+        },
+        "legs_gaitered_cargo_pants": {
+          "nearest_surface_mm": 1.485,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0819,
+          "crown_clearance_mm": -723.71,
+          "hair": false,
+          "vertices": 3517
+        },
+        "legs_layered_shorts": {
+          "nearest_surface_mm": 0.485,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.191,
+          "crown_clearance_mm": -723.58,
+          "hair": false,
+          "vertices": 4100
+        },
+        "legs_layered_wrap_skirt": {
+          "nearest_surface_mm": 1.489,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0831,
+          "crown_clearance_mm": -705.97,
+          "hair": false,
+          "vertices": 3237
+        },
+        "legs_padded_canvas_trousers": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0947,
+          "crown_clearance_mm": -723.72,
+          "hair": false,
+          "vertices": 3222
+        },
+        "legs_plated_trousers": {
+          "nearest_surface_mm": 1.33,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.1099,
+          "crown_clearance_mm": -723.71,
+          "hair": false,
+          "vertices": 3002
+        },
+        "legs_reinforced_denim_pants": {
+          "nearest_surface_mm": -14.441,
+          "max_depth_mm": 14.441,
+          "contact_fraction": 0.0773,
+          "crown_clearance_mm": -723.56,
+          "hair": false,
+          "vertices": 3508
+        },
+        "legs_sashed_patrol_pants": {
+          "nearest_surface_mm": 1.478,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0882,
+          "crown_clearance_mm": -723.51,
+          "hair": false,
+          "vertices": 3537
+        },
+        "legs_skirted_workpants": {
+          "nearest_surface_mm": 1.476,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0787,
+          "crown_clearance_mm": -723.65,
+          "hair": false,
+          "vertices": 3188
+        },
+        "legs_strapped_trousers": {
+          "nearest_surface_mm": -0.583,
+          "max_depth_mm": 0.583,
+          "contact_fraction": 0.115,
+          "crown_clearance_mm": -723.58,
+          "hair": false,
+          "vertices": 4035
+        },
+        "legs_wrapped_workpants": {
+          "nearest_surface_mm": 1.478,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0361,
+          "crown_clearance_mm": -723.72,
+          "hair": false,
+          "vertices": 3379
+        },
+        "top_frayed_tunic": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0052,
+          "crown_clearance_mm": -247.07,
+          "hair": false,
+          "vertices": 2495
+        },
+        "top_laced_corset_vest": {
+          "nearest_surface_mm": 4.574,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -241.92,
+          "hair": false,
+          "vertices": 2570
+        },
+        "top_padded_leather_vest": {
+          "nearest_surface_mm": 5.866,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -231.1,
+          "hair": false,
+          "vertices": 2339
+        },
+        "top_plated_rig_vest": {
+          "nearest_surface_mm": 1.5,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0033,
+          "crown_clearance_mm": -212.99,
+          "hair": false,
+          "vertices": 2390
+        },
+        "top_reinforced_crop_vest": {
+          "nearest_surface_mm": 3.8,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -245.34,
+          "hair": false,
+          "vertices": 1548
+        },
+        "top_rigged_tank": {
+          "nearest_surface_mm": 1.479,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0382,
+          "crown_clearance_mm": -243.36,
+          "hair": false,
+          "vertices": 1675
+        },
+        "top_scrap_plate_tunic": {
+          "nearest_surface_mm": 1.364,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0099,
+          "crown_clearance_mm": -225.42,
+          "hair": false,
+          "vertices": 2320
+        },
+        "top_spiked_leather_vest": {
+          "nearest_surface_mm": 1.462,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0023,
+          "crown_clearance_mm": -226.48,
+          "hair": false,
+          "vertices": 2149
+        },
+        "under_bodysuit": {
+          "nearest_surface_mm": -0.091,
+          "max_depth_mm": 0.091,
+          "contact_fraction": 1.0,
+          "crown_clearance_mm": -224.03,
+          "hair": false,
+          "vertices": 817
+        },
+        "Bicep_L": {
+          "nearest_surface_mm": 9.74,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -259.52,
+          "hair": false,
+          "vertices": 144
+        },
+        "Bicep_R": {
+          "nearest_surface_mm": 10.091,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -259.32,
+          "hair": false,
+          "vertices": 144
+        },
+        "Gorget": {
+          "nearest_surface_mm": 14.002,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -156.8,
+          "hair": false,
+          "vertices": 320
+        },
+        "Harness": {
+          "nearest_surface_mm": -25.999,
+          "max_depth_mm": 25.999,
+          "contact_fraction": 0.0648,
+          "crown_clearance_mm": -213.04,
+          "hair": false,
+          "vertices": 988
+        },
+        "Helmet_A": {
+          "nearest_surface_mm": -13.51,
+          "max_depth_mm": 13.51,
+          "contact_fraction": 0.0352,
+          "crown_clearance_mm": 29.24,
+          "hair": false,
+          "vertices": 1136
+        },
+        "Helmet_B": {
+          "nearest_surface_mm": -12.129,
+          "max_depth_mm": 12.129,
+          "contact_fraction": 0.0072,
+          "crown_clearance_mm": 31.03,
+          "hair": false,
+          "vertices": 1258
+        },
+        "Helmet_C": {
+          "nearest_surface_mm": -1.554,
+          "max_depth_mm": 1.554,
+          "contact_fraction": 0.0117,
+          "crown_clearance_mm": 27.21,
+          "hair": false,
+          "vertices": 1368
+        },
+        "Helmet_D": {
+          "nearest_surface_mm": -8.87,
+          "max_depth_mm": 8.87,
+          "contact_fraction": 0.0138,
+          "crown_clearance_mm": 77.01,
+          "hair": false,
+          "vertices": 1446
+        },
+        "Helmet_S1": {
+          "nearest_surface_mm": -9.92,
+          "max_depth_mm": 9.92,
+          "contact_fraction": 0.0167,
+          "crown_clearance_mm": 36.67,
+          "hair": false,
+          "vertices": 900
+        },
+        "Helmet_S2": {
+          "nearest_surface_mm": -13.295,
+          "max_depth_mm": 13.295,
+          "contact_fraction": 0.0228,
+          "crown_clearance_mm": 28.45,
+          "hair": false,
+          "vertices": 1446
+        },
+        "Helmet_S3": {
+          "nearest_surface_mm": -9.024,
+          "max_depth_mm": 9.024,
+          "contact_fraction": 0.0072,
+          "crown_clearance_mm": 39.31,
+          "hair": false,
+          "vertices": 1528
+        },
+        "Helmet_V1PORT": {
+          "nearest_surface_mm": -11.487,
+          "max_depth_mm": 11.487,
+          "contact_fraction": 0.0312,
+          "crown_clearance_mm": 36.75,
+          "hair": false,
+          "vertices": 834
+        },
+        "Nape_Reinforcement": {
+          "nearest_surface_mm": 9.93,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -130.79,
+          "hair": false,
+          "vertices": 1268
+        },
+        "Reinforcement": {
+          "nearest_surface_mm": 18.069,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -159.61,
+          "hair": false,
+          "vertices": 160
+        },
+        "trial_back_a": {
+          "nearest_surface_mm": 22.771,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -174.19,
+          "hair": false,
+          "vertices": 1014
+        },
+        "trial_back_b": {
+          "nearest_surface_mm": 4.907,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -257.1,
+          "hair": false,
+          "vertices": 1139
+        },
+        "trial_hair_a": {
+          "nearest_surface_mm": -31.885,
+          "max_depth_mm": 31.885,
+          "contact_fraction": 0.1126,
+          "crown_clearance_mm": 22.03,
+          "hair": true,
+          "vertices": 586
+        },
+        "trial_hair_b": {
+          "nearest_surface_mm": -45.492,
+          "max_depth_mm": 45.492,
+          "contact_fraction": 0.0399,
+          "crown_clearance_mm": 30.79,
+          "hair": true,
+          "vertices": 727
+        },
+        "trial_hair_c": {
+          "nearest_surface_mm": -23.117,
+          "max_depth_mm": 23.117,
+          "contact_fraction": 0.024,
+          "crown_clearance_mm": 35.64,
+          "hair": true,
+          "vertices": 542
+        },
+        "trial_hair_d": {
+          "nearest_surface_mm": -33.221,
+          "max_depth_mm": 33.221,
+          "contact_fraction": 0.0583,
+          "crown_clearance_mm": 44.04,
+          "hair": true,
+          "vertices": 1544
+        },
+        "trial_helm_a": {
+          "nearest_surface_mm": -66.321,
+          "max_depth_mm": 66.321,
+          "contact_fraction": 0.1888,
+          "crown_clearance_mm": 4.62,
+          "hair": false,
+          "vertices": 556
+        },
+        "trial_helm_b": {
+          "nearest_surface_mm": -63.783,
+          "max_depth_mm": 63.783,
+          "contact_fraction": 0.0375,
+          "crown_clearance_mm": 39.75,
+          "hair": false,
+          "vertices": 587
+        },
+        "trial_helm_c": {
+          "nearest_surface_mm": -31.253,
+          "max_depth_mm": 31.253,
+          "contact_fraction": 0.0326,
+          "crown_clearance_mm": 13.57,
+          "hair": false,
+          "vertices": 368
+        },
+        "trial_helm_d": {
+          "nearest_surface_mm": -53.504,
+          "max_depth_mm": 53.504,
+          "contact_fraction": 0.0987,
+          "crown_clearance_mm": 18.3,
+          "hair": false,
+          "vertices": 618
+        },
+        "trial_hip_back_a": {
+          "nearest_surface_mm": 6.363,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -787.78,
+          "hair": false,
+          "vertices": 234
+        },
+        "trial_hip_front_a": {
+          "nearest_surface_mm": 4.469,
+          "max_depth_mm": 0.0,
+          "contact_fraction": 0.0,
+          "crown_clearance_mm": -725.77,
+          "hair": false,
+          "vertices": 581
+        },
+        "trial_hip_side_a": {
+          "nearest_surface_mm": -7.286,
+          "max_depth_mm": 7.286,
+          "contact_fraction": 0.0039,
+          "crown_clearance_mm": -774.75,
+          "hair": false,
+          "vertices": 512
+        },
+        "trial_hood_a": {
+          "nearest_surface_mm": -62.38,
+          "max_depth_mm": 62.38,
+          "contact_fraction": 0.0252,
+          "crown_clearance_mm": 46.33,
+          "hair": false,
+          "vertices": 793
+        },
+        "trial_mask_b": {
+          "nearest_surface_mm": -32.144,
+          "max_depth_mm": 32.144,
+          "contact_fraction": 0.0438,
+          "crown_clearance_mm": 14.21,
+          "hair": false,
+          "vertices": 137
+        },
+        "trial_visor_a": {
+          "nearest_surface_mm": -22.919,
+          "max_depth_mm": 22.919,
+          "contact_fraction": 0.0603,
+          "crown_clearance_mm": -105.32,
+          "hair": false,
+          "vertices": 398
+        }
+      }
+    }
+  },
+  "failures": [
+    "boots_split_toe: male and female seat 69.4 mm apart (73.0 vs 3.7)",
+    "gloves_plated_handwraps: male and female seat 27.5 mm apart (13.9 vs 41.4)"
+  ]
+}

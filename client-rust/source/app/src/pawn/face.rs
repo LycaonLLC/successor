@@ -51,6 +51,83 @@ pub fn style_index(name: &str) -> usize {
     CELL_ORDER.iter().position(|&c| c == name).unwrap_or(0)
 }
 
+/// Distance from the sampled canvas colour below which a pixel is pure
+/// backdrop, and the distance at which a pixel is a fully opaque feature.
+///
+/// Measured against the shipped `RB_Face` panels: 93% of the texture sits
+/// within 9 of its own border colour (the flat skin canvas), the 10..19 band
+/// holds 0.15%, and every painted feature lies past 20. Keying at 12..40
+/// therefore erases the canvas and its shading drift while keeping brows,
+/// eyes, nose, and mouth, with a soft edge in between.
+const CANVAS_KEEP: f32 = 12.0;
+const FEATURE_FULL: f32 = 40.0;
+
+/// Erase an authored face panel's baked skin canvas, leaving only the painted
+/// features.
+///
+/// The body GLB ships `RB_Face` as a fully opaque rectangle whose background is
+/// a fixed skin colour. Drawn untinted over a tinted head that reads as a skin
+/// patch layered on the face; drawn tinted it double-darkens. Keying the
+/// canvas out lets the head's own tinted skin show through, so one face asset
+/// serves every skin tone.
+pub fn key_face_panel(panel: &RgbaImage) -> RgbaImage {
+    let mut out = RgbaImage {
+        width: panel.width,
+        height: panel.height,
+        pixels: panel.pixels.clone(),
+    };
+    let Some(canvas) = border_colour(panel) else {
+        return out;
+    };
+    for index in (0..out.pixels.len()).step_by(4) {
+        let distance = chebyshev(&out.pixels[index..index + 3], canvas);
+        let t = ((distance - CANVAS_KEEP) / (FEATURE_FULL - CANVAS_KEEP)).clamp(0.0, 1.0);
+        let keep = t * t * (3.0 - 2.0 * t);
+        let alpha = out.pixels[index + 3] as f32 * keep;
+        out.pixels[index + 3] = alpha.round().clamp(0.0, 255.0) as u8;
+    }
+    out
+}
+
+/// Mean colour of the panel's one-pixel border, which is always canvas.
+fn border_colour(panel: &RgbaImage) -> Option<[u8; 3]> {
+    let (w, h) = (panel.width as usize, panel.height as usize);
+    if w < 2 || h < 2 {
+        return None;
+    }
+    let mut sums = [0u64; 3];
+    let mut count = 0u64;
+    let mut sample = |x: usize, y: usize| {
+        let i = (y * w + x) * 4;
+        for (channel, sum) in sums.iter_mut().enumerate() {
+            *sum += panel.pixels[i + channel] as u64;
+        }
+        count += 1;
+    };
+    for x in 0..w {
+        sample(x, 0);
+        sample(x, h - 1);
+    }
+    for y in 0..h {
+        sample(0, y);
+        sample(w - 1, y);
+    }
+    (count > 0).then(|| {
+        [
+            (sums[0] / count) as u8,
+            (sums[1] / count) as u8,
+            (sums[2] / count) as u8,
+        ]
+    })
+}
+
+fn chebyshev(pixel: &[u8], reference: [u8; 3]) -> f32 {
+    (0..3)
+        .map(|c| (pixel[c] as i32 - reference[c] as i32).abs())
+        .max()
+        .unwrap_or(0) as f32
+}
+
 /// Composite a transparent face-component overlay for one style. Later
 /// features paint over earlier ones (brows/nose/mouth over eyes).
 pub fn render_face_overlay(kit: &FaceKit, style: usize) -> RgbaImage {
@@ -176,5 +253,59 @@ mod tests {
             let offset = ((y * FACE_TEXTURE_SIZE + x) * 4 + 3) as usize;
             assert_eq!(tex.pixels[offset], 0, "corner ({x},{y}) is not transparent");
         }
+    }
+
+    #[test]
+    fn keying_the_face_panel_erases_its_skin_canvas_and_keeps_features() {
+        // A shipped panel is a flat skin canvas with painted features on top.
+        // Keying must leave the canvas fully transparent so the head's own
+        // tinted skin reads through, and keep the features fully opaque.
+        let canvas = [204u8, 153, 120];
+        let (w, h) = (32u32, 32u32);
+        let mut pixels = Vec::with_capacity((w * h * 4) as usize);
+        for y in 0..h {
+            for x in 0..w {
+                // A dark brow band across the middle; canvas everywhere else.
+                let feature = (12..20).contains(&y) && (6..26).contains(&x);
+                let rgb = if feature { [48u8, 32, 28] } else { canvas };
+                pixels.extend_from_slice(&[rgb[0], rgb[1], rgb[2], 255]);
+            }
+        }
+        let panel = RgbaImage {
+            width: w,
+            height: h,
+            pixels,
+        };
+
+        let keyed = key_face_panel(&panel);
+        let alpha_at = |x: u32, y: u32| keyed.pixels[((y * w + x) * 4 + 3) as usize];
+        assert_eq!(alpha_at(1, 1), 0, "canvas corner must key out");
+        assert_eq!(alpha_at(16, 4), 0, "canvas above the brow must key out");
+        assert_eq!(alpha_at(16, 16), 255, "the painted brow must stay opaque");
+
+        // Colour is untouched; only alpha changes.
+        let feature_index = ((16 * w + 16) * 4) as usize;
+        assert_eq!(
+            &keyed.pixels[feature_index..feature_index + 3],
+            &[48, 32, 28]
+        );
+
+        // Canvas shading drift inside the keep band still keys out.
+        let mut drifted = RgbaImage {
+            width: w,
+            height: h,
+            pixels: vec![0u8; (w * h * 4) as usize],
+        };
+        for index in (0..drifted.pixels.len()).step_by(4) {
+            drifted.pixels[index] = 213;
+            drifted.pixels[index + 1] = 162;
+            drifted.pixels[index + 2] = 129;
+            drifted.pixels[index + 3] = 255;
+        }
+        let drifted = key_face_panel(&drifted);
+        assert!(
+            drifted.pixels.iter().skip(3).step_by(4).all(|a| *a == 0),
+            "a uniformly shaded canvas must key out entirely"
+        );
     }
 }

@@ -721,6 +721,14 @@ fn run_ui(frames: u64, screenshot: Option<&str>, surface: Option<&str>) {
             scene
                 .renderer
                 .render_ui(&mut gpu, &ui.buf, ui.quads, w as u32, h as u32);
+            // 3D viewers draw over the finished panel, as the original does
+            // after flushing its 2D queue.
+            scene.renderer.render_composites_overlay(
+                &mut gpu,
+                &mut scene.world,
+                w as u32,
+                h as u32,
+            );
         }
         if screenshot.is_some() && frame + 1 == total && w > 0 && h > 0 {
             let rgba = successor_platform::read_pixels_rgba(w, h);

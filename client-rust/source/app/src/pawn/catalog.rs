@@ -202,6 +202,9 @@ pub struct BodyAssets {
     pub part_material_names: Vec<Option<String>>,
 }
 
+/// Material name of the authored face panel drawn over the head.
+const FACE_PANEL_MATERIAL: &str = "RB_Face";
+
 fn load_body<G: Gpu>(
     gpu: &mut G,
     renderer: &mut Renderer,
@@ -214,12 +217,71 @@ fn load_body<G: Gpu>(
         None => 1.0,
     };
     let gpu_parts = template.upload(gpu, renderer);
+    let mut part_meshes = gpu_parts.parts;
+    key_face_panel_material(
+        gpu,
+        renderer,
+        bytes,
+        &gpu_parts.material_names,
+        &mut part_meshes,
+    );
     Some(BodyAssets {
         template,
         scale,
-        part_meshes: gpu_parts.parts,
+        part_meshes,
         part_material_names: gpu_parts.material_names,
     })
+}
+
+/// Replace the face panel's opaque texture with one whose baked skin canvas is
+/// keyed to transparency, so the head's tinted skin shows through and only the
+/// painted features remain. A body without the panel is left untouched.
+fn key_face_panel_material<G: Gpu>(
+    gpu: &mut G,
+    renderer: &mut Renderer,
+    bytes: &[u8],
+    material_names: &[Option<String>],
+    parts: &mut [(MeshId, MaterialId)],
+) {
+    let Some(index) = material_names
+        .iter()
+        .position(|name| name.as_deref() == Some(FACE_PANEL_MATERIAL))
+    else {
+        return;
+    };
+    let Some((_, material)) = parts.get(index).copied() else {
+        return;
+    };
+    let Some(mut desc) = renderer.material_desc(material) else {
+        return;
+    };
+    let Ok(doc) = successor_engine_core::glb::parse(bytes) else {
+        return;
+    };
+    // The panel carries exactly one image: its painted face canvas.
+    let Some(image) = doc.images.first() else {
+        return;
+    };
+    let Ok(decoded) = successor_engine_core::image::decode_png(&image.bytes) else {
+        return;
+    };
+    let keyed = crate::pawn::face::key_face_panel(&decoded);
+    let texture = gpu.create_texture(
+        &successor_engine_render::gpu::TextureDesc {
+            width: keyed.width,
+            height: keyed.height,
+            format: successor_engine_render::gpu::TextureFormat::Srgba8,
+            mag_filter: successor_engine_render::gpu::Filter::Linear,
+            min_filter: successor_engine_render::gpu::MinFilter::LinearMipmapLinear,
+            wrap_s: successor_engine_render::gpu::Wrap::ClampToEdge,
+            wrap_t: successor_engine_render::gpu::Wrap::ClampToEdge,
+            mipmaps: true,
+        },
+        Some(&keyed.pixels),
+    );
+    desc.base_color_texture = Some(texture);
+    desc.blend = true;
+    parts[index].1 = renderer.add_material_desc(desc);
 }
 
 /// A rigid weapon rig model: uploaded static parts + their node-local mats.

@@ -1387,8 +1387,10 @@ impl Renderer {
             }
         }
 
-        // --- composite + text on screen ---
-        self.composite_pass(gpu, world, screen_w, screen_h);
+        // Text sits with the scene. The 3D viewer composites deliberately do
+        // NOT run here: the original flushes its 2D queue and then draws each
+        // 3D viewer over the panel, so viewers are composited by
+        // `composite_viewers` after the UI pass.
         self.text_pass(gpu, world, screen_w, screen_h);
         match gpu.take_error() {
             Some(error) => Err(error),

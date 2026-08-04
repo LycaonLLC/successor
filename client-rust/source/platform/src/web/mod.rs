@@ -143,14 +143,7 @@ pub fn unlock_audio() {
     unsafe { js_audio_unlock() }
 }
 
-pub fn audio_play(
-    path: &str,
-    key: u32,
-    gain: f32,
-    pan: f32,
-    looped: bool,
-    polyphony: u32,
-) -> bool {
+pub fn audio_play(path: &str, key: u32, gain: f32, pan: f32, looped: bool, polyphony: u32) -> bool {
     unsafe {
         js_audio_play(
             path.as_ptr(),

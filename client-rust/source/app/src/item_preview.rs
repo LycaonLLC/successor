@@ -25,11 +25,17 @@ use crate::GameWorld;
 
 const REGISTRY_JSON: &str = include_str!("../../../../client-3d/src/ui/inventory/itemModels.json");
 const UNKNOWN_MODEL: &str = "assets/world-items/supply_cache.glb";
-const INVENTORY_LANES: usize = 15;
+/// Live 3D icon lanes for the held grid. The original renders every inventory
+/// item as a 3D icon rather than a flat picture, so this covers a full default
+/// page; cards past it fall back to the atlas glyph.
+pub const INVENTORY_LANES: usize = 24;
 const EXAMINE_LANE: usize = INVENTORY_LANES;
 const LANE_COUNT: usize = INVENTORY_LANES + 1;
 const FIRST_VIEWPORT: u8 = 2;
-const TARGET_SIZE: u32 = 160;
+/// Grid icons are small on screen; this is already supersampled against a
+/// ~48 px card. The examine viewer is the one that needs real resolution.
+const GRID_TARGET_SIZE: u32 = 96;
+const EXAMINE_TARGET_SIZE: u32 = 256;
 
 #[derive(Clone, Copy)]
 struct ModelPart {
@@ -120,10 +126,15 @@ impl ItemPreviewRenderer {
             },
         );
         let mut lanes = Vec::with_capacity(LANE_COUNT);
-        for _ in 0..LANE_COUNT {
+        for lane_index in 0..LANE_COUNT {
+            let size = if lane_index == EXAMINE_LANE {
+                EXAMINE_TARGET_SIZE
+            } else {
+                GRID_TARGET_SIZE
+            };
             let target = gpu.create_render_target(&RenderTargetDesc {
-                width: TARGET_SIZE,
-                height: TARGET_SIZE,
+                width: size,
+                height: size,
                 color: true,
                 depth: true,
                 filter: Filter::Linear,
@@ -358,8 +369,13 @@ impl ItemPreviewRenderer {
                     far: 20.0,
                 },
                 target: CamTarget::Texture(lane.target),
+                // The original punches the viewer straight through the 2D UI
+                // and clears depth/stencil only, never colour, so the panel
+                // shows behind the model. The equivalent here is a fully
+                // transparent clear: geometry writes its own alpha and the
+                // composite blends the rest away.
                 clear: ClearSpec {
-                    color: Some([0.012, 0.022, 0.024, 1.0]),
+                    color: Some([0.0, 0.0, 0.0, 0.0]),
                     depth: Some(1.0),
                 },
                 eye: vec3(0.0, 0.12, 3.25),
