@@ -3801,6 +3801,7 @@ impl ConnectedScene {
             cutaway_x,
             cutaway_z,
             prop_states,
+            dt,
         );
         let active_weather = self.environs.active_weather();
         self.weather

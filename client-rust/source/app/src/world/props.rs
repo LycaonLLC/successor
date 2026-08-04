@@ -68,13 +68,10 @@ struct PlacedPart {
     door: bool,
 }
 
-/// The original renderer component for a selectively hidden reveal part.
-/// `MeshRenderer` only exposes a viewport mask, so toggling that scalar avoids
-/// material clones and all component-storage allocations during updates.
+/// A roof or wall entity selected by authored enterable metadata.
 #[derive(Clone, Copy)]
 struct RevealEntity {
     entity: Entity,
-    renderer: MeshRenderer,
 }
 
 #[derive(Clone, Copy)]
@@ -98,8 +95,7 @@ struct EnterableInstance {
     regions: Vec<RegionMilli>,
     reveal: Vec<RevealEntity>,
     cutaway: CutawayState,
-    /// Kept from mapping even though this renderer has no entity-local alpha
-    /// override that would avoid mutating shared cached materials.
+    cutoff_y: f32,
     fade_seconds: f64,
 }
 
@@ -129,6 +125,9 @@ pub struct PropsLoader {
 const MAX_PROP_ISSUES: usize = 32;
 /// Explicit missing-asset marker tint (matches the streamed-world pylon).
 const MISSING_TINT: [f32; 4] = [0.9, 0.15, 0.75, 1.0];
+/// Keep the visible interior shell near character height instead of retaining
+/// the upper two thirds of tall authored walls.
+const ENTERABLE_CUTAWAY_HEIGHT_FRACTION: f32 = 0.4;
 
 impl PropsLoader {
     #[allow(clippy::result_unit_err)]
@@ -190,9 +189,8 @@ impl PropsLoader {
                 .any(|enterable| enterable.state.inside)
     }
 
-    /// Synchronize area-local enterable presentation from accepted authority
-    /// data. The loop owns no temporary collections and only touches renderer
-    /// components when a stable cutaway or door state changes.
+    /// Synchronize area-local enterable and door presentation from accepted
+    /// authority data. Cutaway updates reuse placement-time component storage.
     pub fn sync_enterable_presentation(
         &mut self,
         world: &mut GameWorld,
@@ -200,11 +198,12 @@ impl PropsLoader {
         player_world_x: f32,
         player_world_z: f32,
         prop_states: &HashMap<String, Value>,
+        dt: f32,
     ) {
         let player_cell_x = player_world_x / WORLD_UNITS_PER_CELL;
         let player_cell_z = player_world_z / WORLD_UNITS_PER_CELL;
         for enterable in &mut self.enterables {
-            if sample_enterable(
+            let amount = sample_enterable(
                 &mut enterable.cutaway,
                 snapshot_tick,
                 &enterable.regions,
@@ -213,8 +212,16 @@ impl PropsLoader {
                 player_cell_x,
                 player_cell_z,
                 enterable.fade_seconds,
-            ) {
-                set_reveal_visible(world, &enterable.reveal, !enterable.cutaway.inside);
+                dt,
+            );
+            for record in &enterable.reveal {
+                world.set_component(
+                    record.entity,
+                    HeightCutaway {
+                        cutoff_y: enterable.cutoff_y,
+                        amount,
+                    },
+                );
             }
         }
         for door in &mut self.doors {
@@ -385,6 +392,7 @@ impl PropsLoader {
                 let ground_x = cx + sw / 2.0;
                 let ground_z = cy + sh / 2.0;
                 let pos = vec3(ground_x, terrain.height_at(ground_x, ground_z), ground_z);
+                let cutoff_y = enterable_cutoff_y(pos.y, hy, scale);
 
                 let mut instance_entities = if enterable.is_some() && reveal_prefixes.is_none() {
                     Some(Vec::with_capacity(parts.len()))
@@ -416,10 +424,22 @@ impl PropsLoader {
                     };
                     world.set_component(e, mesh_renderer);
                     if placed_part.reveal {
-                        reveal.push(RevealEntity {
-                            entity: e,
-                            renderer: mesh_renderer,
-                        });
+                        world.set_component(
+                            e,
+                            HeightCutaway {
+                                cutoff_y,
+                                amount: 0.0,
+                            },
+                        );
+                        reveal.push(RevealEntity { entity: e });
+                    } else if instance_entities.is_some() {
+                        world.set_component(
+                            e,
+                            HeightCutaway {
+                                cutoff_y,
+                                amount: 0.0,
+                            },
+                        );
                     }
                     if placed_part.door {
                         if let Some(door) = slide_door {
@@ -444,6 +464,7 @@ impl PropsLoader {
                         regions: placed_interior_regions(prop, size_w_cells, size_h_cells),
                         reveal,
                         cutaway: CutawayState::default(),
+                        cutoff_y,
                         fade_seconds: enterable_fade_seconds(enterable),
                     });
                 }
@@ -464,7 +485,7 @@ impl PropsLoader {
                             h_milli: sh as f64 * 1000.0,
                         },
                         state: CutawayState::default(),
-                        cutoff_y: pos.y + hy * scale * (2.0 / 3.0),
+                        cutoff_y,
                         fade_seconds: enterable_fade_seconds(enterable),
                     });
                 }
@@ -615,6 +636,10 @@ fn enterable_fade_seconds(enterable: &Json) -> f64 {
     }
 }
 
+fn enterable_cutoff_y(ground_y: f32, model_height: f32, scale: f32) -> f32 {
+    ground_y + model_height * scale * ENTERABLE_CUTAWAY_HEIGHT_FRACTION
+}
+
 fn parse_slide_door(entry: &Json) -> Option<SlideDoor<'_>> {
     let door = entry.get("slideDoor")?;
     let node = door.get("node").and_then(Json::as_str)?;
@@ -714,8 +739,8 @@ fn sample_enterable(
     player_cell_x: f32,
     player_cell_z: f32,
     fade_seconds: f64,
-) -> bool {
-    let was_inside = state.inside;
+    dt: f32,
+) -> f32 {
     cutaway::sample(
         state,
         snapshot_tick as f64,
@@ -723,27 +748,7 @@ fn sample_enterable(
         (f64::from(player_cell_x) - f64::from(cell_x)) * 1000.0,
         (f64::from(player_cell_z) - f64::from(cell_z)) * 1000.0,
     );
-    if state.inside == was_inside {
-        return false;
-    }
-    // `MeshRenderer` has no entity-local alpha channel. Its materials are
-    // cached and shared by all prop instances, so changing opacity would fade
-    // unrelated parts. Snap the existing fade machine at its stable decision
-    // boundary and toggle only the explicit reveal entities' viewport masks.
-    cutaway::advance_fade(state, 0.0, fade_seconds, true);
-    true
-}
-
-fn set_reveal_visible(world: &mut GameWorld, reveal: &[RevealEntity], visible: bool) {
-    for record in reveal {
-        if let Some(renderer) = world.get_component::<MeshRenderer>(record.entity) {
-            if visible {
-                *renderer = record.renderer;
-            } else {
-                renderer.viewport_mask = 0;
-            }
-        }
-    }
+    cutaway::advance_fade(state, f64::from(dt), fade_seconds, false) as f32
 }
 
 /// Applies the placement's yaw and uniform fit scale to a node-local door
@@ -1408,28 +1413,7 @@ mod tests {
     }
 
     #[test]
-    fn stable_entry_exit_hides_and_restores_only_reveal_renderers() {
-        let mut world = GameWorld::new();
-        let reveal_entity = world.spawn();
-        let reveal_renderer = MeshRenderer {
-            mesh: MeshId(7),
-            material: MaterialId(11),
-            viewport_mask: 0b101,
-            skin: SkinRef::NONE,
-        };
-        world.set_component(reveal_entity, reveal_renderer);
-        let kept_entity = world.spawn();
-        let kept_renderer = MeshRenderer {
-            mesh: MeshId(8),
-            material: MaterialId(12),
-            viewport_mask: 0b001,
-            skin: SkinRef::NONE,
-        };
-        world.set_component(kept_entity, kept_renderer);
-        let reveal = [RevealEntity {
-            entity: reveal_entity,
-            renderer: reveal_renderer,
-        }];
+    fn stable_entry_exit_animates_authored_cutaway_at_lower_height() {
         let regions = [RegionMilli {
             x_milli: 0.0,
             y_milli: 0.0,
@@ -1438,33 +1422,27 @@ mod tests {
         }];
         let mut state = CutawayState::default();
 
-        assert!(!sample_enterable(
-            &mut state, 1, &regions, 10.0, 20.0, 10.5, 20.5, 0.25
-        ));
-        assert!(sample_enterable(
-            &mut state, 2, &regions, 10.0, 20.0, 10.5, 20.5, 0.25
-        ));
-        set_reveal_visible(&mut world, &reveal, !state.inside);
-        let hidden = *world
-            .get_component::<MeshRenderer>(reveal_entity)
-            .expect("reveal mesh remains allocation-free");
-        assert_eq!(hidden.viewport_mask, 0);
-        let kept_after_entry = *world
-            .get_component::<MeshRenderer>(kept_entity)
-            .expect("unrelated mesh stays rendered");
-        assert_eq!(kept_after_entry, kept_renderer);
+        assert_eq!(
+            sample_enterable(&mut state, 1, &regions, 10.0, 20.0, 10.5, 20.5, 0.25, 0.05),
+            0.0
+        );
+        let entering =
+            sample_enterable(&mut state, 2, &regions, 10.0, 20.0, 10.5, 20.5, 0.25, 0.05);
+        assert!(state.inside);
+        assert!(entering > 0.0 && entering < 1.0);
 
-        assert!(!sample_enterable(
-            &mut state, 3, &regions, 10.0, 20.0, 12.0, 22.0, 0.25
-        ));
-        assert!(sample_enterable(
-            &mut state, 4, &regions, 10.0, 20.0, 12.0, 22.0, 0.25
-        ));
-        set_reveal_visible(&mut world, &reveal, !state.inside);
-        let restored = *world
-            .get_component::<MeshRenderer>(reveal_entity)
-            .expect("reveal renderer restores on exit");
-        assert_eq!(restored, reveal_renderer);
+        sample_enterable(&mut state, 2, &regions, 10.0, 20.0, 10.5, 20.5, 0.25, 0.1);
+        let interior = sample_enterable(&mut state, 2, &regions, 10.0, 20.0, 10.5, 20.5, 0.25, 0.1);
+        assert_eq!(interior, 1.0);
+        assert_eq!(enterable_cutoff_y(2.0, 10.0, 0.5), 4.0);
+
+        assert_eq!(
+            sample_enterable(&mut state, 3, &regions, 10.0, 20.0, 12.0, 22.0, 0.25, 0.05),
+            1.0
+        );
+        let exiting = sample_enterable(&mut state, 4, &regions, 10.0, 20.0, 12.0, 22.0, 0.25, 0.05);
+        assert!(!state.inside);
+        assert!(exiting > 0.0 && exiting < 1.0);
     }
 
     #[test]
