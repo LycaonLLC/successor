@@ -1840,9 +1840,9 @@
           "vertices": 817
         },
         "Bicep_L": {
-          "nearest_surface_mm": 9.74,
+          "nearest_surface_mm": 0.891,
           "max_depth_mm": 0.0,
-          "contact_fraction": 0.0,
+          "contact_fraction": 0.0208,
           "crown_clearance_mm": -259.52,
           "scalp_poke_vertices": 0,
           "scalp_covered_vertices": 0,
@@ -1851,9 +1851,9 @@
           "vertices": 144
         },
         "Bicep_R": {
-          "nearest_surface_mm": 10.091,
+          "nearest_surface_mm": 1.212,
           "max_depth_mm": 0.0,
-          "contact_fraction": 0.0,
+          "contact_fraction": 0.0208,
           "crown_clearance_mm": -259.32,
           "scalp_poke_vertices": 0,
           "scalp_covered_vertices": 0,
@@ -1862,7 +1862,7 @@
           "vertices": 144
         },
         "Gorget": {
-          "nearest_surface_mm": 14.002,
+          "nearest_surface_mm": 2.143,
           "max_depth_mm": 0.0,
           "contact_fraction": 0.0,
           "crown_clearance_mm": -156.8,
@@ -1972,7 +1972,7 @@
           "vertices": 834
         },
         "Nape_Reinforcement": {
-          "nearest_surface_mm": 9.93,
+          "nearest_surface_mm": 4.513,
           "max_depth_mm": 0.0,
           "contact_fraction": 0.0,
           "crown_clearance_mm": -130.79,
@@ -1983,7 +1983,7 @@
           "vertices": 1268
         },
         "Reinforcement": {
-          "nearest_surface_mm": 18.069,
+          "nearest_surface_mm": 4.732,
           "max_depth_mm": 0.0,
           "contact_fraction": 0.0,
           "crown_clearance_mm": -159.61,
