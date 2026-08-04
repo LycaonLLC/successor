@@ -654,6 +654,21 @@ impl WindowManager {
         self.captured
     }
 
+    /// Whether an open frame sits under this point right now.
+    ///
+    /// `pointer_captured` only latches on the frame a press is processed, and
+    /// the host reads it before the windows run, so on the press itself it
+    /// still reads false and the click reaches the world behind the panel.
+    /// This is the same hit test the press uses, answerable at any time.
+    pub fn covers(&self, x: f32, y: f32) -> bool {
+        self.wins.iter().any(|win| {
+            win.open
+                && win.interactive
+                && !win.iconified
+                && UiBuilder::hit(win.x, win.y, win.w, win.h, x, y)
+        })
+    }
+
     /// Id of the frontmost open frame (the focused one), if any.
     pub fn focused_id(&self) -> Option<&str> {
         self.focused_index()

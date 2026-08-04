@@ -8,16 +8,26 @@ different failure mode and nothing gated it: a hair cap either
   2. SINKS   -- it is buried so deep that the styled silhouette is swallowed by
      the skull; or
   3. DRIFTS  -- the male and female variants disagree about where the head is,
-     so one body wears it correctly and the other does not.
+     so one body wears it correctly and the other does not; or
+  4. LEAKS   -- the cap is too small or too tight for the skull it was fitted
+     to, so the head pushes out THROUGH the hair and a bare patch of scalp
+     shows inside the style.
 
 Hair is *meant* to intersect the scalp: the cap has to cross the skin surface or
 its rim leaves a slot. So penetration is not the fault -- absence of contact is.
+
+Cases 1-3 are all cap-to-body measures, and none of them can see case 4: every
+cap vertex can rest perfectly on skin while the crown erupts between them. That
+one needs the opposite probe, skull outward, which `scalp_exposure` does.
+
 This measures, per hair per body, against the head/neck skin only:
 
   `contact_fraction`   share of cap vertices within `CONTACT_BAND_MM` of skin.
   `underside_gap_mm`   how far the nearest cap vertex sits ABOVE the scalp.
   `max_depth_mm`       deepest the cap reaches inside the skull.
   `crown_clearance_mm` how far the top of the hair clears the top of the skull.
+  `scalp_poke_vertices` skull points left bare while their neighbours are
+     covered -- a hole in the style rather than its edge.
 
 Bind pose only: hair rides the head joint rigidly, so a pose sweep adds cost
 without adding signal.
@@ -61,6 +71,27 @@ BURIED_LIMIT_MM = 60.0
 #: a head-size margin. The shipped set differs by at most 9.8 mm; a piece that
 #: disagrees by more than this has been fitted to one body only.
 VARIANT_DELTA_LIMIT_MM = 25.0
+#: Where the scalp starts, as a fraction of head-zone height. Below the brow
+#: the skin is face and jaw, which hair is not answerable for.
+BROW_HEIGHT_FRACTION = 0.45
+#: A vertex whose outward normal points this strongly toward the face is part
+#: of the face shell, not the scalp, even when it sits above the brow.
+FACE_NORMAL_LIMIT = 0.5
+#: How far out from the skin a cover probe looks for hair. Anything further
+#: than this is a silhouette the scalp was never behind.
+COVER_PROBE_MM = 80.0
+#: A bare skull vertex counts as a poke-through when at least this share of its
+#: neighbours ARE covered: the cap is present all around it and stops short
+#: only there, which is the hole the player sees. A vertex on the open edge of
+#: the style -- a hairline, a shaved back, the gap beside a ponytail -- has bare
+#: neighbours too and is left alone.
+POKE_NEIGHBOUR_FRACTION = 0.75
+#: The probe samples the scalp at its vertices, so a cap that genuinely
+#: envelops still misses a few along the brow edge of the mask. Measured
+#: against the helmets, which are built to swallow the skull whole: they leave
+#: 5-7. Anything past that is the style itself failing to cover, and the refit
+#: target is zero.
+POKE_LIMIT = 8
 #: Skin zones that define the skull reference the crown is measured against.
 HEAD_ZONES = ("head", "neck")
 
@@ -87,6 +118,89 @@ def is_hair(relative: str) -> bool:
     return "hair" in os.path.basename(relative).lower()
 
 
+def vertex_normals(position, faces, indices):
+    """Area-weighted outward normal per skull vertex, in body space."""
+    accumulated = np.zeros((len(position), 3), dtype=np.float64)
+    corners = position[faces]
+    cross = np.cross(corners[:, 1] - corners[:, 0], corners[:, 2] - corners[:, 0])
+    for slot in range(3):
+        np.add.at(accumulated, faces[:, slot], cross)
+    lengths = np.linalg.norm(accumulated, axis=1)
+    lengths[lengths == 0.0] = 1.0
+    return accumulated[indices] / lengths[indices, None]
+
+
+def vertex_neighbours(faces, indices):
+    """Adjacency among the given vertices, from the faces that share them."""
+    wanted = set(int(index) for index in indices)
+    adjacency: dict[int, set[int]] = {index: set() for index in wanted}
+    for face in faces:
+        for slot, vertex in enumerate(face):
+            vertex = int(vertex)
+            if vertex not in wanted:
+                continue
+            for other in (face[(slot + 1) % 3], face[(slot + 2) % 3]):
+                other = int(other)
+                if other in wanted:
+                    adjacency[vertex].add(other)
+    return adjacency
+
+
+def scalp_vertices(position, indices, normals):
+    """The part of the skull hair is responsible for covering.
+
+    Not the whole head. The face is bare by design and the neck is nobody's
+    job, so probing them reports the open front of a helm as a hole. The scalp
+    is what remains: the cranium above the brow, minus the forward-facing
+    shell that carries the face.
+    """
+    points = position[indices]
+    low, high = float(points[:, 1].min()), float(points[:, 1].max())
+    brow = low + (high - low) * BROW_HEIGHT_FRACTION
+    # Whichever way the face points, it is the axis the head is deepest along.
+    middle = float(np.median(points[:, 2]))
+    forward = 1.0 if float(points[:, 2].max()) - middle >= middle - float(points[:, 2].min()) else -1.0
+    facing = normals[:, 2] * forward
+    return np.where((points[:, 1] >= brow) & (facing < FACE_NORMAL_LIMIT))[0]
+
+
+def scalp_exposure(cap, skull_indices, scalp_slots, position, normals, adjacency):
+    """Skull left bare inside the cap's own footprint.
+
+    The seating measures above all run cap-to-body: they prove the hair TOUCHES
+    the head. None of them can see the opposite defect, where the cap is too
+    small or too tight and the skull pushes out through it -- every cap vertex
+    still rests on skin while the crown pokes into open air. This probes the
+    other direction, skull outward, and reports the holes.
+    """
+    cap_tree = BVHTree.FromPolygons(
+        [tuple(point) for point in cap.position],
+        [tuple(face) for face in cap.faces])
+    reach = COVER_PROBE_MM / 1000.0
+    covered: dict[int, bool] = {}
+    for slot in scalp_slots:
+        index = skull_indices[slot]
+        point = position[index]
+        normal = normals[slot]
+        origin = Vector((float(point[0] + normal[0] * 1.0e-5),
+                         float(point[1] + normal[1] * 1.0e-5),
+                         float(point[2] + normal[2] * 1.0e-5)))
+        hit, _, _, _ = cap_tree.ray_cast(
+            origin, Vector((float(normal[0]), float(normal[1]), float(normal[2]))), reach)
+        covered[int(index)] = hit is not None
+    holes = 0
+    for index, is_covered in covered.items():
+        if is_covered:
+            continue
+        neighbours = adjacency.get(index) or ()
+        if not neighbours:
+            continue
+        share = sum(1 for other in neighbours if covered.get(other)) / len(neighbours)
+        if share >= POKE_NEIGHBOUR_FRACTION:
+            holes += 1
+    return holes, sum(1 for value in covered.values() if value), len(covered)
+
+
 def main() -> None:
     CFG.ensure_dirs()
     report = {"generator": GENERATOR,
@@ -103,8 +217,12 @@ def main() -> None:
         head_faces = np.concatenate([faces for zone, faces
                                      in body.zone_faces.items()
                                      if zone in HEAD_ZONES])
-        skin = body.position[np.unique(head_faces.reshape(-1))]
+        skull_indices = np.unique(head_faces.reshape(-1))
+        skin = body.position[skull_indices]
         skull_top = float(skin[:, 1].max())
+        skull_normals = vertex_normals(body.position, body.faces, skull_indices)
+        scalp_slots = scalp_vertices(body.position, skull_indices, skull_normals)
+        skull_adjacency = vertex_neighbours(head_faces, skull_indices)
         # Signed against the WHOLE body, not just head/neck: a bob or a braid
         # drapes past the jaw onto the shoulders, and measuring only against
         # head skin makes that drape read as though it were buried inside the
@@ -143,10 +261,16 @@ def main() -> None:
             crown_mm = (float(points[:, 1].max()) - skull_top) * 1000.0
             name = os.path.splitext(os.path.basename(relative))[0]
             depth_mm = max(0.0, -nearest_mm)
+            holes, covered, probed = scalp_exposure(
+                cap, skull_indices, scalp_slots, body.position, skull_normals,
+                skull_adjacency)
             items[name] = {"nearest_surface_mm": round(nearest_mm, 3),
                            "max_depth_mm": round(depth_mm, 3),
                            "contact_fraction": round(contact, 4),
                            "crown_clearance_mm": round(crown_mm, 2),
+                           "scalp_poke_vertices": holes,
+                           "scalp_covered_vertices": covered,
+                           "scalp_probed_vertices": probed,
                            "hair": is_hair(relative),
                            "vertices": int(len(points))}
             # Seating limits are a hair contract. A glove or vest is authored
@@ -159,14 +283,20 @@ def main() -> None:
                 elif depth_mm > BURIED_LIMIT_MM:
                     failures.append(f"{body_id}: {name} is buried "
                                     f"{depth_mm:.1f} mm into the body")
+                if holes > POKE_LIMIT:
+                    failures.append(f"{body_id}: {name} lets the skull through "
+                                    f"at {holes} points inside its own cap")
 
         report["bodies"][body_id] = {"skull_top_m": round(skull_top, 5),
                                      "items": items}
         hairs = [v for v in items.values() if v["hair"]]
         seated = sum(1 for v in hairs
                      if v["nearest_surface_mm"] <= FLOAT_LIMIT_MM)
+        leaking = sum(1 for v in hairs
+                      if v["scalp_poke_vertices"] > POKE_LIMIT)
         print(f"[fitcheck] {body_id}: {len(items)} pieces measured, "
-              f"{seated}/{len(hairs)} hairs seated")
+              f"{seated}/{len(hairs)} hairs seated, "
+              f"{leaking}/{len(hairs)} leaking scalp")
 
     # A style ships as two refits of one design. If the variants disagree about
     # how deep the cap sits, the piece was fitted to one body and copied to the

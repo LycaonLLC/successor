@@ -156,6 +156,25 @@ struct ActorPawn {
     present: bool,
 }
 
+/// Motion held across a wardrobe rebuild.
+///
+/// Changing clothes swaps the pawn's meshes, not the person wearing them. The
+/// rebuild destroys the old entities, so a naive respawn hands the actor a
+/// fresh `PawnAnimator` sitting at its bind pose and the arms snap up into a
+/// T-pose while the blend runs. Carrying the animator, gait and interpolation
+/// across the swap keeps the stride unbroken: only the clothing changes.
+struct CarriedMotion {
+    animator: PawnAnimator,
+    route: BodyRoute,
+    lane: WeaponLane,
+    interp: ActorInterp,
+    predictor: MovePredictor,
+    render_pos: (f32, f32),
+    target: (f32, f32),
+    speed: f32,
+    yaw: f32,
+}
+
 struct LiveActor {
     name: String,
     id: String,
@@ -658,6 +677,9 @@ pub struct ConnectedScene {
     streamed_world: StreamedWorld,
     pawns: HashMap<String, ActorPawn>,
     missing_pawns: Vec<String>,
+    /// Motion parked by a wardrobe rebuild, claimed by the respawn that
+    /// follows it in the same frame.
+    carried_motion: HashMap<String, CarriedMotion>,
     stale_pawns: Vec<String>,
     center: Vec3,
     follow: Entity,
@@ -1068,6 +1090,7 @@ impl ConnectedScene {
             store: AuthorityStore::new(),
             pawn_catalog,
             terrain: streamer,
+            carried_motion: HashMap::new(),
             pawns: HashMap::new(),
             missing_pawns: Vec::with_capacity(32),
             stale_pawns: Vec::with_capacity(8),
@@ -2444,7 +2467,13 @@ impl ConnectedScene {
             return None;
         }
         self.paperdoll_drag_x = None;
-        if captured {
+        // A press that lands on a panel belongs to the panel. `captured` alone
+        // cannot say so: it latches while the windows run, which is after the
+        // host has already routed this press, so on the press itself it still
+        // reads false and the click walks a move intent out from under the
+        // open window - which then clears the very selection the player was
+        // about to act on.
+        if captured || self.wm.covers(x, y) {
             return None;
         }
         let picked_actor = if self.framebuffer.0 > 0 && self.framebuffer.1 > 0 {
@@ -3262,6 +3291,42 @@ impl ConnectedScene {
                 }
             });
 
+        // A wardrobe rebuild parked the stride this actor was mid-way through.
+        // Reclaim it when the body underneath is the same one, so a clothing
+        // swap never restarts the animation from its bind pose. A different
+        // body is a different skeleton, and starts clean.
+        let carried = self
+            .carried_motion
+            .remove(&actor.id)
+            .filter(|carried| carried.route == route);
+
+        let (animator, lane, interp, predictor, target, render_pos, speed, yaw) = match carried {
+            Some(carried) => (
+                carried.animator,
+                carried.lane,
+                carried.interp,
+                carried.predictor,
+                carried.target,
+                carried.render_pos,
+                carried.speed,
+                carried.yaw,
+            ),
+            None => {
+                let mut interp = ActorInterp::new();
+                interp.push(self.sim_time, actor.x, actor.y, actor.lifecycle_seq);
+                (
+                    animator,
+                    lane,
+                    interp,
+                    MovePredictor::new(actor.x, actor.y),
+                    (actor.x, actor.y),
+                    (actor.x, actor.y),
+                    0.0,
+                    0.0,
+                )
+            }
+        };
+
         self.pawns.insert(
             actor.id.clone(),
             ActorPawn {
@@ -3294,18 +3359,14 @@ impl ConnectedScene {
                 route,
                 lane,
                 scale,
-                interp: {
-                    let mut interp = ActorInterp::new();
-                    interp.push(self.sim_time, actor.x, actor.y, actor.lifecycle_seq);
-                    interp
-                },
-                predictor: MovePredictor::new(actor.x, actor.y),
+                interp,
+                predictor,
                 lifecycle_seq: actor.lifecycle_seq,
                 alive: actor.alive,
-                target: (actor.x, actor.y),
-                render_pos: (actor.x, actor.y),
-                speed: 0.0,
-                yaw: 0.0,
+                target,
+                render_pos,
+                speed,
+                yaw,
                 present: true,
             },
         );
@@ -3460,6 +3521,20 @@ impl ConnectedScene {
                         self.world.destroy(entity);
                     }
                 }
+                self.carried_motion.insert(
+                    id.clone(),
+                    CarriedMotion {
+                        animator: pawn.animator,
+                        route: pawn.route,
+                        lane: pawn.lane,
+                        interp: pawn.interp,
+                        predictor: pawn.predictor,
+                        render_pos: pawn.render_pos,
+                        target: pawn.target,
+                        speed: pawn.speed,
+                        yaw: pawn.yaw,
+                    },
+                );
             }
             self.missing_pawns.push(id);
         }
