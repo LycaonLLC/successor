@@ -1,8 +1,8 @@
 # Successor Current Deployment
 
-Status: re-observed and beta-promoted on 2026-08-04 UTC after making the Rust
-client's enterable-building cutaway follow the player's head height, admitting
-the exact client release, and promoting the independent beta pointer.
+Status: re-observed and beta-promoted on 2026-08-04 UTC after completing
+enterable-building shell selection and correcting the WebGL point-light
+screen-size uniform upload.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -15,10 +15,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-254cc62-20260802` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@6a0af4780f2c6e21` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@01ebbf8dd2ef973e` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `6a0af4780f2c6e21a3027b378b266a3d75cdf725` |
+| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `01ebbf8dd2ef973e49561fc96053457c8c5e654d` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -92,14 +92,14 @@ selection/creation hands directly into the 3D client.
 
 The independent beta pointer is:
 
-- source commit: `6a0af4780f2c6e21a3027b378b266a3d75cdf725`
-- client release: `successor-rust-beta@6a0af4780f2c6e21`
+- source commit: `01ebbf8dd2ef973e49561fc96053457c8c5e654d`
+- client release: `successor-rust-beta@01ebbf8dd2ef973e`
 - manifest SHA-256:
-  `b0124a24e1b11d2429dfe2a33bec35fd552cd1b360e3d81fb161d10c83347d54`
+  `df92720df7274c4b830a01644991d9dc991b48213a2f7df815e15756bb364c6d`
 - release-builder manifest SHA-256:
-  `72e4e8ac1a69c08a90015962ca3961cd4c346840c635ec96ccd96037671595b7`
+  `e86af10880c981473e1f7128f5532eac92f9bdd5f6ae64dae13d7a6db011932a`
 - immutable entry:
-  `https://d2kf3ri6r74a0m.cloudfront.net/releases/b0124a24e1b11d2429dfe2a33bec35fd552cd1b360e3d81fb161d10c83347d54/index.html`
+  `https://d2kf3ri6r74a0m.cloudfront.net/releases/df92720df7274c4b830a01644991d9dc991b48213a2f7df815e15756bb364c6d/index.html`
 
 The first-load HTTP 525 failure was an expired launch ticket: the site minted
 the ticket before constructing the iframe, while the Rust client downloaded
@@ -172,6 +172,22 @@ immutable client entered the live authority, and the completed 1440 by 900
 frame visibly showed the active lower interior shell around the player. The
 inspected frame SHA-256 is
 `6000395e6942a1101c8b99830e125cc782818a9ee79731710f1cf9f92041ac37`.
+The stable pointer remained `successor-alpha@cdab7dccacc1d75c`.
+
+The corrected 2026-08-04 beta release selects every authored enterable shell
+side (`roof`, front, right, back, and left) and uploads the point-light
+`u_screenSize` uniform as the declared `vec2`, eliminating the observed
+`glUniform4f` `INVALID_OPERATION`. The exact client identity was added to
+`SUCCESSOR_ALPHA_CLIENT_RELEASE_ALLOWLIST` through the provider operator route,
+`successor.service` was restarted, and public readiness returned every check
+true.
+
+An authenticated public `/beta/` journey selected `Beta-Rook`; ticket minting
+returned HTTP 200 with the exact corrected client and server identities. The
+promoted immutable client rendered the live world and the cloning facility's
+complete cutaway at 1440 by 900. Captured console and page errors contained no
+`INVALID_OPERATION` or `glUniform4f`. The inspected frame SHA-256 is
+`6a0395cbc7f5ba6dc39334e488bcaddc11afeb9c51a5e5e26b85e776e50c83dd`.
 The stable pointer remained `successor-alpha@cdab7dccacc1d75c`.
 
 ## Authority and durable state
