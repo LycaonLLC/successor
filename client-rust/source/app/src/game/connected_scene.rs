@@ -2773,6 +2773,7 @@ impl ConnectedScene {
                 self.store.tick,
                 player.x,
                 player.y,
+                p.y,
                 dt,
             );
         }
@@ -2942,6 +2943,7 @@ impl ConnectedScene {
             &mut self.world,
             snapshot_tick,
             cutaway_x,
+            p.y,
             cutaway_z,
             prop_states,
             dt,

@@ -57,7 +57,6 @@ struct EnterableProp {
     entities: Vec<Entity>,
     region: crate::world::cutaway::RegionMilli,
     state: crate::world::cutaway::CutawayState,
-    cutoff_y: f32,
     fade_seconds: f64,
 }
 
@@ -95,7 +94,6 @@ struct EnterableInstance {
     regions: Vec<RegionMilli>,
     reveal: Vec<RevealEntity>,
     cutaway: CutawayState,
-    cutoff_y: f32,
     fade_seconds: f64,
 }
 
@@ -125,9 +123,8 @@ pub struct PropsLoader {
 const MAX_PROP_ISSUES: usize = 32;
 /// Explicit missing-asset marker tint (matches the streamed-world pylon).
 const MISSING_TINT: [f32; 4] = [0.9, 0.15, 0.75, 1.0];
-/// Keep the visible interior shell near character height instead of retaining
-/// the upper two thirds of tall authored walls.
-const ENTERABLE_CUTAWAY_HEIGHT_FRACTION: f32 = 0.4;
+/// Clear the wall slightly above the normalized adult pawn's head.
+const CUTAWAY_HEAD_CLEARANCE_METERS: f32 = 0.2;
 
 impl PropsLoader {
     #[allow(clippy::result_unit_err)]
@@ -196,6 +193,7 @@ impl PropsLoader {
         world: &mut GameWorld,
         snapshot_tick: u64,
         player_world_x: f32,
+        player_world_y: f32,
         player_world_z: f32,
         prop_states: &HashMap<String, Value>,
         dt: f32,
@@ -218,7 +216,7 @@ impl PropsLoader {
                 world.set_component(
                     record.entity,
                     HeightCutaway {
-                        cutoff_y: enterable.cutoff_y,
+                        cutoff_y: player_head_cutoff_y(player_world_y),
                         amount,
                     },
                 );
@@ -392,7 +390,7 @@ impl PropsLoader {
                 let ground_x = cx + sw / 2.0;
                 let ground_z = cy + sh / 2.0;
                 let pos = vec3(ground_x, terrain.height_at(ground_x, ground_z), ground_z);
-                let cutoff_y = enterable_cutoff_y(pos.y, hy, scale);
+                let initial_cutoff_y = player_head_cutoff_y(pos.y);
 
                 let mut instance_entities = if enterable.is_some() && reveal_prefixes.is_none() {
                     Some(Vec::with_capacity(parts.len()))
@@ -427,7 +425,7 @@ impl PropsLoader {
                         world.set_component(
                             e,
                             HeightCutaway {
-                                cutoff_y,
+                                cutoff_y: initial_cutoff_y,
                                 amount: 0.0,
                             },
                         );
@@ -436,7 +434,7 @@ impl PropsLoader {
                         world.set_component(
                             e,
                             HeightCutaway {
-                                cutoff_y,
+                                cutoff_y: initial_cutoff_y,
                                 amount: 0.0,
                             },
                         );
@@ -464,7 +462,6 @@ impl PropsLoader {
                         regions: placed_interior_regions(prop, size_w_cells, size_h_cells),
                         reveal,
                         cutaway: CutawayState::default(),
-                        cutoff_y,
                         fade_seconds: enterable_fade_seconds(enterable),
                     });
                 }
@@ -485,7 +482,6 @@ impl PropsLoader {
                             h_milli: sh as f64 * 1000.0,
                         },
                         state: CutawayState::default(),
-                        cutoff_y,
                         fade_seconds: enterable_fade_seconds(enterable),
                     });
                 }
@@ -553,6 +549,7 @@ impl PropsLoader {
         tick: u64,
         player_x: f32,
         player_y: f32,
+        player_ground_y: f32,
         dt: f32,
     ) {
         for enterable in &mut self.height_cutaways {
@@ -573,7 +570,7 @@ impl PropsLoader {
                 world.set_component(
                     *entity,
                     HeightCutaway {
-                        cutoff_y: enterable.cutoff_y,
+                        cutoff_y: player_head_cutoff_y(player_ground_y),
                         amount,
                     },
                 );
@@ -636,8 +633,8 @@ fn enterable_fade_seconds(enterable: &Json) -> f64 {
     }
 }
 
-fn enterable_cutoff_y(ground_y: f32, model_height: f32, scale: f32) -> f32 {
-    ground_y + model_height * scale * ENTERABLE_CUTAWAY_HEIGHT_FRACTION
+fn player_head_cutoff_y(player_ground_y: f32) -> f32 {
+    player_ground_y + crate::world::ADULT_PAWN_HEIGHT_METERS + CUTAWAY_HEAD_CLEARANCE_METERS
 }
 
 fn parse_slide_door(entry: &Json) -> Option<SlideDoor<'_>> {
@@ -1413,7 +1410,7 @@ mod tests {
     }
 
     #[test]
-    fn stable_entry_exit_animates_authored_cutaway_at_lower_height() {
+    fn stable_entry_exit_animates_cutaway_above_player_head() {
         let regions = [RegionMilli {
             x_milli: 0.0,
             y_milli: 0.0,
@@ -1434,7 +1431,7 @@ mod tests {
         sample_enterable(&mut state, 2, &regions, 10.0, 20.0, 10.5, 20.5, 0.25, 0.1);
         let interior = sample_enterable(&mut state, 2, &regions, 10.0, 20.0, 10.5, 20.5, 0.25, 0.1);
         assert_eq!(interior, 1.0);
-        assert_eq!(enterable_cutoff_y(2.0, 10.0, 0.5), 4.0);
+        assert_eq!(player_head_cutoff_y(2.0), 4.0);
 
         assert_eq!(
             sample_enterable(&mut state, 3, &regions, 10.0, 20.0, 12.0, 22.0, 0.25, 0.05),
