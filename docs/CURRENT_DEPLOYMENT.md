@@ -1,8 +1,8 @@
 # Successor Current Deployment
 
-Status: re-observed and beta-promoted on 2026-08-04 UTC after completing
-enterable-building shell selection and correcting the WebGL point-light
-screen-size uniform upload.
+Status: re-observed and beta-promoted on 2026-08-04 UTC from source
+`67fb09e96a898f37259c47077776c7b04f2909fb`, including modular-building
+cutaway selection and the integrated Rust UI/runtime updates.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -15,10 +15,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-254cc62-20260802` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@01ebbf8dd2ef973e` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@67fb09e96a898f37` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `01ebbf8dd2ef973e49561fc96053457c8c5e654d` |
+| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `67fb09e96a898f37259c47077776c7b04f2909fb` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -32,11 +32,12 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`6a0af4780f2c6e21a3027b378b266a3d75cdf725`, client
-`successor-rust-beta@6a0af4780f2c6e21`, and immutable publication inventory
-SHA-256 `b0124a24e1b11d2429dfe2a33bec35fd552cd1b360e3d81fb161d10c83347d54`.
-The previous dry runs and superseded beta candidates are not release
-identities.
+`67fb09e96a898f37259c47077776c7b04f2909fb`, client
+`successor-rust-beta@67fb09e96a898f37`, immutable publication inventory
+SHA-256 `9ee75835de342bfc624d4dce9a4eb81d212a90f7d78077033d42936cc01770f1`,
+and release-builder manifest SHA-256
+`df9bc617cb3e20c973b1a22c31a6adc8a1ee3f3758bb2668968f810de6b32b6b`.
+Previous dry runs and superseded beta candidates are not release identities.
 
 ## Site
 
@@ -92,14 +93,14 @@ selection/creation hands directly into the 3D client.
 
 The independent beta pointer is:
 
-- source commit: `01ebbf8dd2ef973e49561fc96053457c8c5e654d`
-- client release: `successor-rust-beta@01ebbf8dd2ef973e`
+- source commit: `67fb09e96a898f37259c47077776c7b04f2909fb`
+- client release: `successor-rust-beta@67fb09e96a898f37`
 - manifest SHA-256:
-  `df92720df7274c4b830a01644991d9dc991b48213a2f7df815e15756bb364c6d`
+  `9ee75835de342bfc624d4dce9a4eb81d212a90f7d78077033d42936cc01770f1`
 - release-builder manifest SHA-256:
-  `e86af10880c981473e1f7128f5532eac92f9bdd5f6ae64dae13d7a6db011932a`
+  `df9bc617cb3e20c973b1a22c31a6adc8a1ee3f3758bb2668968f810de6b32b6b`
 - immutable entry:
-  `https://d2kf3ri6r74a0m.cloudfront.net/releases/df92720df7274c4b830a01644991d9dc991b48213a2f7df815e15756bb364c6d/index.html`
+  `https://d2kf3ri6r74a0m.cloudfront.net/releases/9ee75835de342bfc624d4dce9a4eb81d212a90f7d78077033d42936cc01770f1/index.html`
 
 The first-load HTTP 525 failure was an expired launch ticket: the site minted
 the ticket before constructing the iframe, while the Rust client downloaded
@@ -189,6 +190,29 @@ complete cutaway at 1440 by 900. Captured console and page errors contained no
 `INVALID_OPERATION` or `glUniform4f`. The inspected frame SHA-256 is
 `6a0395cbc7f5ba6dc39334e488bcaddc11afeb9c51a5e5e26b85e776e50c83dd`.
 The stable pointer remained `successor-alpha@cdab7dccacc1d75c`.
+
+The 2026-08-04 modular-building release adds literal authored ceiling-name
+selection to the Rust cutaway classifier and includes the integrated
+framebuffer-anchored UI and ticketed-launch corrections. The standalone Rust
+client verification, zero-allocation, runtime, render, terrain, and no_std
+gates passed. The release build initially exposed two source-tree integration
+defects: the model corpus included four preserved Blender authoring files, and
+the public shim retained the new creator-mode query read. The release source
+now excludes only those authoring files from runtime-model parsing and replaces
+creator mode with `false` in production artifacts; the final immutable build
+passed both release checks.
+
+The exact client identity was appended to the authority allowlist through AWS
+Systems Manager and `successor.service` was restarted. Public readiness
+returned every check true. An authenticated 1440 by 900 `/beta/` journey
+selected `Beta-Rook`, loaded the exact immutable entry, visibly rendered the
+live world, and submitted movement. Accepted commands advanced by 11 while
+rejected commands remained at 823; the session returned to zero after the
+browser closed. The inspected post-movement frame SHA-256 is
+`1375aab88eb4ba3570c6d086679b7a372192e75234bc41e2b43e156f3fa26efb`.
+The existing beta exit-control defect remains: clicking Exit hid the control
+but left the iframe connected, so the proof closed the browser tab to retire
+the session. The stable pointer was not moved.
 
 ## Authority and durable state
 
