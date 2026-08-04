@@ -44,6 +44,7 @@ use crate::pawn::appearance::{faction_tinted, skin_tint, weapon_lane};
 use crate::pawn::catalog::{route_for, BodyRoute, PawnCatalog, SupportArmPosture};
 use crate::world::area::{biome_for_area, effective_world_seed};
 use crate::world::chunks::TerrainStreamer;
+use crate::world::collision_debug::CollisionDebugOverlay;
 use crate::world::environs::Environs;
 use crate::world::props::{building_terrain_exclusions, PropsLoader};
 use crate::world::streamed::StreamedWorld;
@@ -673,6 +674,7 @@ pub struct ConnectedScene {
     terrain: TerrainStreamer,
     slice: successor_engine_core::json::Json,
     props_loader: PropsLoader,
+    collision_debug: CollisionDebugOverlay,
     loaded_area_id: String,
     streamed_world: StreamedWorld,
     pawns: HashMap<String, ActorPawn>,
@@ -1083,6 +1085,7 @@ impl ConnectedScene {
             }
             player
         };
+        let collision_debug = CollisionDebugOverlay::new(&mut renderer, gpu);
 
         Ok(Self {
             world,
@@ -1097,6 +1100,7 @@ impl ConnectedScene {
             follow,
             slice,
             props_loader: loader,
+            collision_debug,
             sun,
             loaded_area_id: String::new(),
             streamed_world: StreamedWorld::new(),
@@ -1887,6 +1891,8 @@ impl ConnectedScene {
         self.loot_corpse_id = previous.loot_corpse_id.clone();
         self.zoom_percent = previous.zoom_percent;
         self.sprint_toggle = previous.sprint_toggle;
+        self.collision_debug
+            .set_enabled(&mut self.world, previous.collision_debug.enabled());
         self.theme_index = previous.theme_index;
         self.dust_strength = previous.dust_strength;
         self.split_snap = previous.split_snap;
@@ -1898,6 +1904,7 @@ impl ConnectedScene {
         self.music_combat_index = previous.music_combat_index;
         self.music_was_in_combat = previous.music_was_in_combat;
         self.settlement_audio = previous.settlement_audio;
+        self.loading = previous.loading;
         self.footstep_distance = previous.footstep_distance;
         self.footstep_index = previous.footstep_index;
         self.footstep_position = previous.footstep_position;
@@ -2266,12 +2273,25 @@ impl ConnectedScene {
         hud::window_for_code(Self::key_code(key))
     }
 
+    fn collision_debug_chord(key: Key, shift: bool) -> bool {
+        key == Key::C && shift
+    }
+
     /// gameplay verbs are returned for the host to enqueue through the queue.
-    pub fn handle_key(&mut self, key: Key, down: bool) -> Option<actions::GameplayAction> {
+    pub fn handle_key(
+        &mut self,
+        key: Key,
+        down: bool,
+        shift: bool,
+    ) -> Option<actions::GameplayAction> {
         let index = key as usize;
         let pressed = down && !self.key_was_down[index];
         self.key_was_down[index] = down;
         if !pressed {
+            return None;
+        }
+        if Self::collision_debug_chord(key, shift) {
+            self.collision_debug.toggle(&mut self.world);
             return None;
         }
         if key == Key::Escape {
@@ -3383,6 +3403,7 @@ impl ConnectedScene {
         let area_id = self.area_id.clone();
         let player = self.player_pos();
         self.props_loader.clear(&mut self.world);
+        self.collision_debug.clear_area(&mut self.world);
         self.streamed_world.clear(&mut self.world);
         self.terrain.clear(&mut self.world, &mut self.renderer, gpu);
         let mut terrain = TerrainStreamer::new(
@@ -3410,6 +3431,15 @@ impl ConnectedScene {
             Some(&area_id),
             read_asset,
             0b1,
+        );
+        self.collision_debug.load_area(
+            &mut self.world,
+            &mut self.renderer,
+            gpu,
+            &self.slice,
+            &area_id,
+            &terrain,
+            &self.store.prop_states,
         );
         self.terrain = terrain;
         self.loaded_area_id = area_id;
@@ -4112,6 +4142,18 @@ impl ConnectedScene {
                 self.ambience_timer = 12.0 + (self.ambience_roll % 9) as f32;
             }
         }
+        if self.collision_debug.enabled() {
+            self.collision_debug.sync_dynamic(
+                &mut self.world,
+                &self.area_id,
+                &self.terrain,
+                &self.store.prop_states,
+                self.store.building.as_ref(),
+            );
+            self.collision_debug
+                .update_player(&mut self.world, p.x, p.z, p.y);
+        }
+
         // 5) Render scene → screen (+ minimap composite).
         self.renderer
             .render(gpu, &mut self.world, w, h)
@@ -4993,6 +5035,17 @@ mod tests {
             assert_eq!(ConnectedScene::permanent_window_for_key(key), Some(window));
             assert!(CONNECTED_INPUT_KEYS.contains(&key));
         }
+    }
+
+    #[test]
+    fn shift_c_is_reserved_for_collision_debug_while_plain_c_remains_character() {
+        assert!(ConnectedScene::collision_debug_chord(Key::C, true));
+        assert!(!ConnectedScene::collision_debug_chord(Key::C, false));
+        assert!(!ConnectedScene::collision_debug_chord(Key::I, true));
+        assert_eq!(
+            ConnectedScene::permanent_window_for_key(Key::C),
+            Some("character")
+        );
     }
 
     #[test]

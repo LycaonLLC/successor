@@ -736,8 +736,11 @@ mod web_runtime {
                 sprint: intent.2,
             });
         }
+        let shift_down = successor_platform::is_key_down(Key::LeftShift);
         for key in CONNECTED_INPUT_KEYS {
-            if let Some(action) = scene.handle_key(key, successor_platform::is_key_down(key)) {
+            if let Some(action) =
+                scene.handle_key(key, successor_platform::is_key_down(key), shift_down)
+            {
                 let _ = scene.dispatch_gameplay_action(action);
             }
         }

@@ -2293,19 +2293,24 @@ mod connected {
                 if chat_consumed_escape || chat_input.focused {
                     // Chat owns Escape while editing; keep the scene edge reset
                     // so releasing the key cannot close a window afterward.
-                    let _ = scene.handle_key(Key::Escape, false);
+                    let _ = scene.handle_key(Key::Escape, false, false);
                 } else {
-                    let _ = scene.handle_key(Key::Escape, escape_pressed);
+                    let _ = scene.handle_key(Key::Escape, escape_pressed, false);
                 }
-                if !chat_input.focused {
+                let shift_down = plat::is_key_down(Key::LeftShift);
+                if !chat_input.focused && !scene.tuning_open() {
                     for key in CONNECTED_INPUT_KEYS {
                         if key == Key::Escape {
                             continue;
                         }
-                        if let Some(action) = scene.handle_key(key, plat::is_key_down(key)) {
+                        if let Some(action) =
+                            scene.handle_key(key, plat::is_key_down(key), shift_down)
+                        {
                             let _ = scene.dispatch_gameplay_action(action);
                         }
                     }
+                } else {
+                    let _ = scene.handle_key(Key::C, false, false);
                 }
                 let (mx, my) = plat::mouse_position();
                 if let Some(action) = scene.handle_pointer(

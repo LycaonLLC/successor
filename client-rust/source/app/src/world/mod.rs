@@ -14,6 +14,7 @@ pub const FOLLOW_CAMERA_BACK_METERS: f32 = 21.0;
 pub mod area;
 pub mod camera;
 pub mod chunks;
+pub mod collision_debug;
 pub mod cutaway;
 pub mod environs;
 pub mod flora;
