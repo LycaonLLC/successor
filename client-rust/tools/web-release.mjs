@@ -87,6 +87,7 @@ releaseShim = releaseShim.replace(
   "function takeDevelopmentLaunch() { return \"\"; }\n\n",
 );
 releaseShim = releaseShim
+  .replace('new URLSearchParams(window.location.search).get("mode") === "creator"', "false")
   .replace('new URLSearchParams(location.search).has("disable-half-float")', "false")
   .replace(
     /        const params = new URLSearchParams\(window\.location\.search\);[\s\S]*?        window\.__successorRenderReady = false;/u,
