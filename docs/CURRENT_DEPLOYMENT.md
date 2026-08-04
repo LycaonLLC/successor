@@ -1,8 +1,8 @@
 # Successor Current Deployment
 
-Status: re-observed and beta-promoted on 2026-08-04 UTC after lowering the
-Rust client's enterable-building cutaway, adding its dithered transition,
-admitting the exact client release, and promoting the independent beta pointer.
+Status: re-observed and beta-promoted on 2026-08-04 UTC after making the Rust
+client's enterable-building cutaway follow the player's head height, admitting
+the exact client release, and promoting the independent beta pointer.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -15,10 +15,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-254cc62-20260802` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@891805cd68c22139` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@6a0af4780f2c6e21` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `891805cd68c22139cae80cdcf8201b98529d340e` |
+| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `6a0af4780f2c6e21a3027b378b266a3d75cdf725` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -32,9 +32,9 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`891805cd68c22139cae80cdcf8201b98529d340e`, client
-`successor-rust-beta@891805cd68c22139`, and immutable publication inventory
-SHA-256 `7b4a49c8913e0723819d7b291aa04dc14d1d0f949471d4b90edbf2eb1f5e2f63`.
+`6a0af4780f2c6e21a3027b378b266a3d75cdf725`, client
+`successor-rust-beta@6a0af4780f2c6e21`, and immutable publication inventory
+SHA-256 `b0124a24e1b11d2429dfe2a33bec35fd552cd1b360e3d81fb161d10c83347d54`.
 The previous dry runs and superseded beta candidates are not release
 identities.
 
@@ -92,14 +92,14 @@ selection/creation hands directly into the 3D client.
 
 The independent beta pointer is:
 
-- source commit: `891805cd68c22139cae80cdcf8201b98529d340e`
-- client release: `successor-rust-beta@891805cd68c22139`
+- source commit: `6a0af4780f2c6e21a3027b378b266a3d75cdf725`
+- client release: `successor-rust-beta@6a0af4780f2c6e21`
 - manifest SHA-256:
-  `7b4a49c8913e0723819d7b291aa04dc14d1d0f949471d4b90edbf2eb1f5e2f63`
+  `b0124a24e1b11d2429dfe2a33bec35fd552cd1b360e3d81fb161d10c83347d54`
 - release-builder manifest SHA-256:
-  `07545532b4f52ef147f8eb583873e84e8d05b308e16120db90b8516beeb28928`
+  `72e4e8ac1a69c08a90015962ca3961cd4c346840c635ec96ccd96037671595b7`
 - immutable entry:
-  `https://d2kf3ri6r74a0m.cloudfront.net/releases/7b4a49c8913e0723819d7b291aa04dc14d1d0f949471d4b90edbf2eb1f5e2f63/index.html`
+  `https://d2kf3ri6r74a0m.cloudfront.net/releases/b0124a24e1b11d2429dfe2a33bec35fd552cd1b360e3d81fb161d10c83347d54/index.html`
 
 The first-load HTTP 525 failure was an expired launch ticket: the site minted
 the ticket before constructing the iframe, while the Rust client downloaded
@@ -157,6 +157,22 @@ without removing its iframe in this headless journey. Audio bootstrap presence
 and automated coverage were verified, but the live `AudioContext` state was
 not directly observable from the cross-origin headless frame. These are
 observed residual defects, not successful checks.
+
+The 2026-08-04 head-relative-cutoff release replaces the fitted-model-height
+percentage with the normalized adult pawn head height plus 0.2 m of clearance.
+The cutoff follows the player's terrain elevation and applies to both authored
+selective shells and legacy whole-prop cutaways. The exact release was added to
+`SUCCESSOR_ALPHA_CLIENT_RELEASE_ALLOWLIST` through the provider operator route,
+`successor.service` was restarted, and public readiness returned every check
+true.
+
+An authenticated public `/beta/` journey selected `Beta-Rook`; ticket minting
+returned HTTP 200 with the exact client and server identities, the promoted
+immutable client entered the live authority, and the completed 1440 by 900
+frame visibly showed the active lower interior shell around the player. The
+inspected frame SHA-256 is
+`6000395e6942a1101c8b99830e125cc782818a9ee79731710f1cf9f92041ac37`.
+The stable pointer remained `successor-alpha@cdab7dccacc1d75c`.
 
 ## Authority and durable state
 
