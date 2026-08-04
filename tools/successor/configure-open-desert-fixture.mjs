@@ -1027,6 +1027,52 @@ function structureCollisionFromSidecar({ glbName, cellSize, rotation = 0 }) {
   return { ...transformStructureCollision(sidecar, cellSize, rotation), contract: sidecar.contract };
 }
 
+// A door module ships as one solid wall box with the opening flattened into it,
+// so the aperture the player walks through is paved over by its own module and
+// the leaf's open/closed state changes nothing. Cut every authored aperture out
+// of the wall that swallows it, leaving the fixed panel and jambs solid and
+// handing the opening to the door blocker, which is the thing that toggles.
+// Interior doorways carry no blocker at all, so carving simply opens them.
+function carveDoorApertures(walls, apertures) {
+  const openings = (apertures ?? []).filter(Boolean);
+  if (openings.length === 0) return walls;
+  const swallows = (wall, hole) => (
+    wall.xMilli <= hole.xMilli
+    && wall.xMilli + wall.wMilli >= hole.xMilli + hole.wMilli
+    && wall.yMilli <= hole.yMilli
+    && wall.yMilli + wall.hMilli >= hole.yMilli + hole.hMilli
+  );
+  // A wall runs along whichever axis is longer, so the aperture is cut from
+  // that axis and the wall keeps its thickness on the other.
+  const split = (wall, hole) => {
+    const alongX = wall.wMilli >= wall.hMilli;
+    const pos = alongX ? "xMilli" : "yMilli";
+    const size = alongX ? "wMilli" : "hMilli";
+    const pieces = [];
+    const lead = hole[pos] - wall[pos];
+    if (lead > 0) {
+      pieces.push({ ...wall, id: `${wall.id}__jamb_lo`, [size]: lead });
+    }
+    const tailStart = hole[pos] + hole[size];
+    const tail = wall[pos] + wall[size] - tailStart;
+    if (tail > 0) {
+      pieces.push({ ...wall, id: `${wall.id}__jamb_hi`, [pos]: tailStart, [size]: tail });
+    }
+    return pieces;
+  };
+  let carved = walls;
+  for (const hole of openings) {
+    const next = [];
+    for (const wall of carved) {
+      if (swallows(wall, hole)) next.push(...split(wall, hole));
+      else next.push(wall);
+    }
+    carved = next;
+  }
+  return carved;
+}
+
+
 function enterableStructureCollision({ glbName, cellSize, rotation }) {
   const collision = structureCollisionFromSidecar({ glbName, cellSize, rotation });
   if (!collision.door) throw new Error(`${glbName} sidecar carries no exterior door box`);
@@ -1044,7 +1090,7 @@ function enterableStructureCollision({ glbName, cellSize, rotation }) {
   });
   return {
     ...collision,
-    collisionBounds: [...collision.walls, ...collision.furniture],
+    collisionBounds: [...carveDoorApertures(collision.walls, [collision.door, ...(collision.apertures ?? [])]), ...collision.furniture],
     door: {
       blocker: collision.door,
       interactRadiusCells: 3.1,

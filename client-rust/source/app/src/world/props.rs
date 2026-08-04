@@ -92,6 +92,9 @@ struct EnterableInstance {
     cell_x: f32,
     cell_z: f32,
     regions: Vec<RegionMilli>,
+    /// Height of this interior's floor slab above the area's ground plane. An
+    /// actor inside stands on the slab, not on the terrain underneath it.
+    floor_height: f32,
     reveal: Vec<RevealEntity>,
     cutaway: CutawayState,
     fade_seconds: f64,
@@ -184,6 +187,31 @@ impl PropsLoader {
                 .height_cutaways
                 .iter()
                 .any(|enterable| enterable.state.inside)
+    }
+
+    /// Height an actor at this world point stands at, given the interiors it
+    /// may be inside. `None` outside every interior, where terrain governs.
+    ///
+    /// A building's floor is a slab laid over the terrain, so an actor indoors
+    /// stands on the slab and not on the ground beneath it. Sampling terrain
+    /// alone sinks them into their own floor. This is the same rule the web
+    /// client applies in `enterableFloorYAt`: find the interior containing the
+    /// point and take its floor.
+    pub fn floor_height_at(&self, world_x: f32, world_z: f32) -> Option<f32> {
+        self.enterables.iter().find_map(|enterable| {
+            let local_x = (f64::from(world_x) - f64::from(enterable.cell_x)) * 1000.0;
+            let local_z = (f64::from(world_z) - f64::from(enterable.cell_z)) * 1000.0;
+            enterable
+                .regions
+                .iter()
+                .any(|region| {
+                    local_x >= region.x_milli
+                        && local_x <= region.x_milli + region.w_milli
+                        && local_z >= region.y_milli
+                        && local_z <= region.y_milli + region.h_milli
+                })
+                .then_some(enterable.floor_height)
+        })
     }
 
     /// Synchronize area-local enterable and door presentation from accepted
@@ -462,6 +490,10 @@ impl PropsLoader {
                         cell_x,
                         cell_z,
                         regions: placed_interior_regions(prop, size_w_cells, size_h_cells),
+                        floor_height: enterable
+                            .get("floorHeightM")
+                            .and_then(Json::as_f32)
+                            .unwrap_or(0.0),
                         reveal,
                         cutaway: CutawayState::default(),
                         fade_seconds: enterable_fade_seconds(enterable),

@@ -2267,7 +2267,6 @@ mod connected {
                     .is_some_and(|actor| actor.life_state != "alive");
                 let predicted_intent = if actor_dead { (0, 0, false) } else { intent };
                 scene.set_move_intent(predicted_intent.0, predicted_intent.1, predicted_intent.2);
-                let moving = intent != (0, 0, false);
                 if actor_dead {
                     if last_intent != (0, 0, false) {
                         let _ = scene.release_movement(movement::StopReason::Dead);

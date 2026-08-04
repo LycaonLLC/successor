@@ -4514,9 +4514,16 @@
         {
           "xMilli": 3000,
           "yMilli": 0,
-          "wMilli": 2000,
+          "wMilli": 943,
           "hMilli": 84,
-          "id": "wall_103_door_slide_2c__sintered"
+          "id": "wall_103_door_slide_2c__sintered__jamb_lo"
+        },
+        {
+          "xMilli": 4891,
+          "yMilli": 0,
+          "wMilli": 109,
+          "hMilli": 84,
+          "id": "wall_103_door_slide_2c__sintered__jamb_hi"
         },
         {
           "xMilli": 1000,
@@ -4640,16 +4647,30 @@
         {
           "xMilli": 1000,
           "yMilli": 2916,
-          "wMilli": 2000,
+          "wMilli": 152,
           "hMilli": 168,
-          "id": "wall_123_door_inner_2c__plasterlined"
+          "id": "wall_123_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 2057,
+          "yMilli": 2916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_123_door_inner_2c__plasterlined__jamb_hi"
         },
         {
           "xMilli": 5000,
           "yMilli": 2916,
-          "wMilli": 2000,
+          "wMilli": 152,
           "hMilli": 168,
-          "id": "wall_124_door_inner_2c__plasterlined"
+          "id": "wall_124_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 6057,
+          "yMilli": 2916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_124_door_inner_2c__plasterlined__jamb_hi"
         },
         {
           "xMilli": 0,
@@ -5204,9 +5225,16 @@
         {
           "xMilli": 5000,
           "yMilli": 3916,
-          "wMilli": 2000,
+          "wMilli": 943,
           "hMilli": 168,
-          "id": "wall_137_door_slide_2c__sintered"
+          "id": "wall_137_door_slide_2c__sintered__jamb_lo"
+        },
+        {
+          "xMilli": 6891,
+          "yMilli": 3916,
+          "wMilli": 109,
+          "hMilli": 168,
+          "id": "wall_137_door_slide_2c__sintered__jamb_hi"
         },
         {
           "xMilli": 3916,
@@ -5253,9 +5281,16 @@
         {
           "xMilli": 1000,
           "yMilli": 3916,
-          "wMilli": 2000,
+          "wMilli": 152,
           "hMilli": 168,
-          "id": "wall_145_door_inner_2c__plasterlined"
+          "id": "wall_145_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 2057,
+          "yMilli": 3916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_145_door_inner_2c__plasterlined__jamb_hi"
         },
         {
           "xMilli": 0,
@@ -5281,9 +5316,16 @@
         {
           "xMilli": 1000,
           "yMilli": 1916,
-          "wMilli": 2000,
+          "wMilli": 152,
           "hMilli": 168,
-          "id": "wall_149_door_inner_2c__plasterlined"
+          "id": "wall_149_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 2057,
+          "yMilli": 1916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_149_door_inner_2c__plasterlined__jamb_hi"
         },
         {
           "xMilli": 0,
@@ -5317,8 +5359,15 @@
           "xMilli": 7916,
           "yMilli": 5000,
           "wMilli": 168,
-          "hMilli": 2000,
-          "id": "wall_154_door_inner_2c__panelclad"
+          "hMilli": 943,
+          "id": "wall_154_door_inner_2c__panelclad__jamb_lo"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 6848,
+          "wMilli": 168,
+          "hMilli": 152,
+          "id": "wall_154_door_inner_2c__panelclad__jamb_hi"
         },
         {
           "xMilli": 7844,
@@ -5818,8 +5867,15 @@
           "xMilli": 2916,
           "yMilli": 4000,
           "wMilli": 168,
-          "hMilli": 2000,
-          "id": "wall_155_door_slide_2c__sintered"
+          "hMilli": 109,
+          "id": "wall_155_door_slide_2c__sintered__jamb_lo"
+        },
+        {
+          "xMilli": 2916,
+          "yMilli": 5057,
+          "wMilli": 168,
+          "hMilli": 943,
+          "id": "wall_155_door_slide_2c__sintered__jamb_hi"
         },
         {
           "xMilli": 4000,
@@ -6013,9 +6069,16 @@
         {
           "xMilli": 4000,
           "yMilli": 6916,
-          "wMilli": 2000,
+          "wMilli": 152,
           "hMilli": 168,
-          "id": "wall_185_door_inner_2c__plasterlined"
+          "id": "wall_185_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 5057,
+          "yMilli": 6916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_185_door_inner_2c__plasterlined__jamb_hi"
         },
         {
           "xMilli": 6916,
@@ -6035,8 +6098,15 @@
           "xMilli": 6916,
           "yMilli": 4000,
           "wMilli": 168,
-          "hMilli": 2000,
-          "id": "wall_188_door_inner_2c__plasterlined"
+          "hMilli": 943,
+          "id": "wall_188_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 6916,
+          "yMilli": 5848,
+          "wMilli": 168,
+          "hMilli": 152,
+          "id": "wall_188_door_inner_2c__plasterlined__jamb_hi"
         },
         {
           "xMilli": 6844,
@@ -6062,9 +6132,16 @@
         {
           "xMilli": 4000,
           "yMilli": 2916,
-          "wMilli": 2000,
+          "wMilli": 152,
           "hMilli": 168,
-          "id": "wall_192_door_inner_2c__plasterlined"
+          "id": "wall_192_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 5057,
+          "yMilli": 2916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_192_door_inner_2c__plasterlined__jamb_hi"
         },
         {
           "xMilli": 2844,
@@ -6098,8 +6175,15 @@
           "xMilli": 8916,
           "yMilli": 4000,
           "wMilli": 168,
-          "hMilli": 2000,
-          "id": "wall_197_door_inner_2c__panelclad"
+          "hMilli": 943,
+          "id": "wall_197_door_inner_2c__panelclad__jamb_lo"
+        },
+        {
+          "xMilli": 8916,
+          "yMilli": 5848,
+          "wMilli": 168,
+          "hMilli": 152,
+          "id": "wall_197_door_inner_2c__panelclad__jamb_hi"
         },
         {
           "xMilli": 8844,

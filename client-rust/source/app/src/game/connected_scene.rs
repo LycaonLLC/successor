@@ -778,6 +778,8 @@ pub struct ConnectedScene {
     click_route: Vec<(i32, i32)>,
     click_route_index: usize,
     click_goal: Option<(i32, i32)>,
+    /// Inspection orbit. `None` is the shipped locked camera.
+    debug_camera: Option<DebugCamera>,
 }
 
 fn follow_focus(ground: Vec3) -> Vec3 {
@@ -789,6 +791,57 @@ fn follow_eye(ground: Vec3) -> Vec3 {
     let distance = 96.0;
     let pitch = 60.0_f32.to_radians();
     follow_focus(ground).add(vec3(0.0, distance * pitch.sin(), distance * pitch.cos()))
+}
+
+/// Free orbit for inspection, off by default.
+///
+/// The shipped camera is locked north-up at a fixed pitch, which is correct for
+/// play and useless for judging geometry: you cannot see which way a door
+/// slides, how far it travels, or whether a wall sits where its collision says,
+/// from one angle directly overhead. This orbits the same focus without
+/// touching the game, so the world can be read from any side.
+#[derive(Clone, Copy)]
+struct DebugCamera {
+    yaw: f32,
+    pitch: f32,
+    distance: f32,
+}
+
+impl Default for DebugCamera {
+    fn default() -> Self {
+        // Opens exactly on the shipped view, so switching it on changes nothing
+        // until it is actually moved.
+        Self {
+            yaw: 0.0,
+            pitch: 60.0_f32.to_radians(),
+            distance: 96.0,
+        }
+    }
+}
+
+impl DebugCamera {
+    /// Smallest pitch that still looks down at the ground, and the largest that
+    /// has not flipped over the top.
+    const MIN_PITCH: f32 = 0.12;
+    const MAX_PITCH: f32 = 1.50;
+
+    fn eye(self, ground: Vec3) -> Vec3 {
+        let horizontal = self.distance * self.pitch.cos();
+        follow_focus(ground).add(vec3(
+            horizontal * self.yaw.sin(),
+            self.distance * self.pitch.sin(),
+            horizontal * self.yaw.cos(),
+        ))
+    }
+
+    fn orbit(&mut self, yaw: f32, pitch: f32) {
+        self.yaw = (self.yaw + yaw).rem_euclid(core::f32::consts::TAU);
+        self.pitch = (self.pitch + pitch).clamp(Self::MIN_PITCH, Self::MAX_PITCH);
+    }
+
+    fn dolly(&mut self, factor: f32) {
+        self.distance = (self.distance * factor).clamp(6.0, 240.0);
+    }
 }
 
 /// Registration geometry for a window id. The surface spec owns default bounds
@@ -1175,6 +1228,7 @@ impl ConnectedScene {
             click_route: Vec::new(),
             click_route_index: 0,
             click_goal: None,
+            debug_camera: None,
             loading_screen: {
                 let mut screen =
                     crate::screens::LoadingScreen::new("PLANETFALL", "AWAITING WORLD SNAPSHOT");
@@ -2292,6 +2346,29 @@ impl ConnectedScene {
         }
         if Self::collision_debug_chord(key, shift) {
             self.collision_debug.toggle(&mut self.world);
+            return None;
+        }
+        // Shift+V frees the camera; the arrows then orbit it and Shift+arrow
+        // dollies. Arrows keep driving the player while it is off, so the
+        // inspection controls never sit on top of a gameplay binding.
+        if key == Key::V && shift {
+            self.debug_camera = match self.debug_camera {
+                Some(_) => None,
+                None => Some(DebugCamera::default()),
+            };
+            return None;
+        }
+        if let Some(orbit) = self.debug_camera.as_mut() {
+            const STEP: f32 = 0.12;
+            match (key, shift) {
+                (Key::Left, false) => orbit.orbit(-STEP, 0.0),
+                (Key::Right, false) => orbit.orbit(STEP, 0.0),
+                (Key::Up, false) => orbit.orbit(0.0, STEP),
+                (Key::Down, false) => orbit.orbit(0.0, -STEP),
+                (Key::Up, true) => orbit.dolly(0.85),
+                (Key::Down, true) => orbit.dolly(1.18),
+                _ => return None,
+            }
             return None;
         }
         if key == Key::Escape {
@@ -3767,7 +3844,12 @@ impl ConnectedScene {
             let rotation = Quat::from_axis_angle(Vec3::Y, pawn.yaw);
             let wx = (nx + 0.5) * WORLD_UNITS_PER_CELL;
             let wz = (ny + 0.5) * WORLD_UNITS_PER_CELL;
-            let ground_y = self.terrain.height_at(wx, wz);
+            // A building's floor is a slab over the terrain, so an actor indoors
+            // stands on the slab. Sampling terrain alone sinks them into it.
+            let ground_y = self
+                .props_loader
+                .floor_height_at(wx, wz)
+                .unwrap_or_else(|| self.terrain.height_at(wx, wz));
             let pawn_mask = doll_mask_for(&pawn.id);
             for entity in &pawn.entities {
                 if let Some(transform) = self.world.get_component::<Transform>(*entity) {
@@ -3839,9 +3921,13 @@ impl ConnectedScene {
         let focus = follow_focus(p);
         self.center = p;
         self.renderer.gi_set_focus([p.x, p.y, p.z]);
+        let eye = match self.debug_camera {
+            Some(orbit) => orbit.eye(p),
+            None => follow_eye(p),
+        };
         if let Some(cam) = self.world.get_component::<Camera>(self.follow) {
             cam.look_at = focus;
-            cam.eye = follow_eye(p);
+            cam.eye = eye;
         }
 
         if let Some(player) = self.store.actors.get(&self.store.player_actor_id) {
