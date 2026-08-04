@@ -56,7 +56,10 @@ export async function registerChatRoutes(app: FastifyInstance, options: ChatRout
     }
     if (!devIdentityAllowed()) { socket.close(1008, "session ticket required"); return; }
     const userId = normalizeUserId(query.playerId ?? query.userId ?? "");
-    const displayName = normalizeDisplayName(query.displayName ?? "", userId || "Guest");
+    // Empty fallback on purpose. Defaulting to the user id here would hand the
+    // hub a name that looks supplied, so its live-shard and character-store
+    // lookups would never run and every line would read `char_...`.
+    const displayName = normalizeDisplayName(query.displayName ?? "", "");
     const zoneId = normalizeUserId(query.zoneId ?? query.zone ?? "open-desert") || "open-desert";
     const partyId = query.partyId ? normalizeUserId(query.partyId) : undefined;
     const devOnlyGuildId = query.guildId ? normalizeUserId(query.guildId) : undefined;

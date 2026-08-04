@@ -131,8 +131,16 @@ pub fn draw_chat_pane(
     }
 
     if visible_count == 0 {
+        // An empty tab is a filter result, not a fault. Only report the socket
+        // when it is actually unwell; otherwise name the tab that has nothing
+        // in it, so COMBAT before a fight does not read as a broken client.
         let status = match client.connection.state {
-            ChatConnectionState::Online => "CHAT LIVE",
+            ChatConnectionState::Online => match client.active_view {
+                ChatView::All => "NO MESSAGES YET",
+                ChatView::Global => "NO GLOBAL MESSAGES",
+                ChatView::Combat => "NO COMBAT MESSAGES",
+                ChatView::Friends => "NO FRIEND MESSAGES",
+            },
             ChatConnectionState::Connecting
             | ChatConnectionState::Authenticating
             | ChatConnectionState::SyncingHistory

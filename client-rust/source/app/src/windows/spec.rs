@@ -182,16 +182,21 @@ pub struct Metrics {
 
 impl Density {
     /// Measured original density: generic rows, buttons, and tabs are 19 px,
-    /// labels 12 px, values 13 px, primary text fields 32 px
-    /// (`ui_options.inc`, `ui_auction.inc`). Only the item grid and the prose
-    /// dialogue depart from the 19 px row, and only because their content is
-    /// not a row.
+    /// primary text fields 32 px (`ui_options.inc`, `ui_auction.inc`). Only the
+    /// item grid and the prose dialogue depart from the 19 px row, and only
+    /// because their content is not a row.
+    ///
+    /// Cap heights run one pixel over the original's 12/13/10. The original was
+    /// measured on a 1024x768 CRT; the same literal caps on a modern panel are
+    /// small enough to be a legibility complaint, and the 19 px row absorbs the
+    /// extra pixel without reflowing anything. Row height is NOT scaled with
+    /// them - that is what would move every pane's floor.
     pub const fn metrics(self) -> Metrics {
         // 5x7 glyph scale for a measured cap height.
-        const LABEL: f32 = 12.0 / 7.0;
-        const VALUE: f32 = 13.0 / 7.0;
-        const CAPTION: f32 = 10.0 / 7.0;
-        const HEADING: f32 = 13.0 / 7.0;
+        const LABEL: f32 = 13.0 / 7.0;
+        const VALUE: f32 = 14.0 / 7.0;
+        const CAPTION: f32 = 11.0 / 7.0;
+        const HEADING: f32 = 14.0 / 7.0;
         match self {
             // Item field: cards, not rows. The label strip under a cell keeps
             // the 12 px label; the cell itself is sized by the grid.

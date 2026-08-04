@@ -21,7 +21,7 @@ use successor_net::ClientCommand;
 thread_local! {
     static CRAFT_FILTER: RefCell<TextField> = RefCell::new(TextField::new(32));
     static CRAFT_NAME: RefCell<TextField> = RefCell::new(TextField::new(48));
-    static SELECTED_STAGE: RefCell<Option<usize>> = RefCell::new(None);
+    static SELECTED_STAGE: RefCell<Option<usize>> = const { RefCell::new(None) };
 }
 
 #[cfg(test)]
@@ -138,7 +138,7 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                 }
                 pane.resume(&rows);
             } else {
-                pane.empty(ui, "NO ACTIVE CRAFT SESSION — START BENCH");
+                pane.empty(ui, "NO ACTIVE CRAFT SESSION - START BENCH");
             }
 
             if model.craft.session.is_none() {
@@ -216,7 +216,7 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                 }
                 pane.resume(&rows);
             } else {
-                pane.denied(ui, "NO ACTIVE COMPONENT SLOTS — BEGIN A SCHEMATIC FIRST");
+                pane.denied(ui, "NO ACTIVE COMPONENT SLOTS - BEGIN A SCHEMATIC FIRST");
             }
         }
 
@@ -241,10 +241,10 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                         out.push(WindowAction::Command(ClientCommand::CraftAssemble {}));
                     }
                 } else {
-                    pane.denied(ui, "UNFILLED SLOTS — FILL EVERY SLOT TO ASSEMBLE");
+                    pane.denied(ui, "UNFILLED SLOTS - FILL EVERY SLOT TO ASSEMBLE");
                 }
             } else {
-                pane.denied(ui, "NOT AT ASSEMBLY STAGE — BEGIN A SCHEMATIC FIRST");
+                pane.denied(ui, "NOT AT ASSEMBLY STAGE - BEGIN A SCHEMATIC FIRST");
             }
         }
 
@@ -293,7 +293,7 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                     SELECTED_STAGE.with(|s| *s.borrow_mut() = Some(4));
                 }
             } else {
-                pane.denied(ui, "NOT ASSEMBLED YET — COMPLETE ASSEMBLY FIRST");
+                pane.denied(ui, "NOT ASSEMBLED YET - COMPLETE ASSEMBLY FIRST");
             }
         }
 
@@ -342,7 +342,7 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                     out.push(WindowAction::Command(command));
                 }
             } else {
-                pane.denied(ui, "NOT ASSEMBLED YET — COMPLETE ASSEMBLY FIRST");
+                pane.denied(ui, "NOT ASSEMBLED YET - COMPLETE ASSEMBLY FIRST");
             }
         }
     }

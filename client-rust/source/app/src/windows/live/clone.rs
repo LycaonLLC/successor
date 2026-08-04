@@ -47,7 +47,7 @@ pub fn clone_terminal(
     pane.y += 4.0;
     heading(&mut pane, ui, "CLONING TERMS");
     pane.field(ui, "RESTORES", "PROFESSIONS, XP AND SKILLS");
-    pane.field(ui, "FUNDS", "VAULT PAYS FIRST · WALLET COVERS SHORTFALL");
+    pane.field(ui, "FUNDS", "VAULT PAYS FIRST - WALLET COVERS SHORTFALL");
 
     let save_label = if clone.backup_present {
         "UPDATE SKILL BACKUP"

@@ -539,24 +539,39 @@ pub struct WeaponHud {
     pub swing_frac: f32,
 }
 
+/// Who an actor is to you, as the nameplate and radar read it.
+///
+/// Owner ruling 2026-08-04, and it is the authority over both clients: an NPC
+/// name is white; a corpse is white; a passive attackable NPC is yellow and
+/// turns red once it has been attacked; an aggressive attackable NPC is red; a
+/// neutral player is bright blue; a player in your guild or faction is purple;
+/// and a player open to you in PVP is red.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum RelationHud {
+    /// Will fight you now: aggressive NPC, a provoked passive, or a PVP-open player.
     Hostile,
-    Alerted,
+    /// Attackable but will not start it. Becomes [`RelationHud::Hostile`] once engaged.
+    Attackable,
+    /// Not a combatant, and every corpse.
     #[default]
-    Neutral,
-    Friendly,
-    Grouped,
+    Social,
+    /// Another player with no standing either way.
+    Player,
+    /// Another player in your guild or faction.
+    Allied,
 }
 
 impl RelationHud {
-    pub fn tint(self, pal: &Palette) -> [u8; 4] {
+    /// Relation ink is actor identity, not chrome, so it never follows the
+    /// theme: an ally is the same purple in every palette, and in the web
+    /// client too.
+    pub fn tint(self, _pal: &Palette) -> [u8; 4] {
         match self {
-            RelationHud::Hostile => pal.danger,
-            RelationHud::Alerted => [232, 168, 74, 255],
-            RelationHud::Neutral => pal.ink,
-            RelationHud::Friendly => [110, 214, 130, 255],
-            RelationHud::Grouped => pal.accent,
+            RelationHud::Hostile => [0xd3, 0x3b, 0x32, 255],
+            RelationHud::Attackable => [0xf1, 0xd0, 0x6b, 255],
+            RelationHud::Social => [0xf8, 0xf7, 0xf1, 255],
+            RelationHud::Player => [0x4a, 0xa9, 0xff, 255],
+            RelationHud::Allied => [0xb0, 0x66, 0xff, 255],
         }
     }
 }
@@ -704,6 +719,8 @@ pub struct HudState {
     /// Streamed area id (uppercased for display) — never a hard-coded sector.
     pub area_label: String,
     pub position: Option<(f32, f32)>,
+    pub world_seed: i32,
+    pub biome: crate::world::terrain::Biome,
     pub target: Option<TargetHud>,
     pub group_invite_from: Option<String>,
     pub group_members: Vec<GroupMemberHud>,
@@ -735,6 +752,10 @@ impl HudState {
             .get(&store.player_actor_id)
             .or_else(|| store.actors.get(player_id));
         let player_position = player.map(|actor| (actor.x, actor.y));
+        // Standing is judged against the looking player's own organization.
+        let viewer_org = player
+            .and_then(|actor| actor.player_organization_id.as_deref())
+            .filter(|org| !org.is_empty());
         match player {
             Some(a) => {
                 self.connection = ConnectionHud::Live;
@@ -835,7 +856,7 @@ impl HudState {
                     });
                 }
             }
-            let relation = relation_for(a, player_id);
+            let relation = relation_for(a, player_id, viewer_org);
             if relation == RelationHud::Hostile && chips.len() < TARGET_CHIP_MAX {
                 chips.insert(
                     0,
@@ -927,16 +948,11 @@ impl HudState {
                 if dx * dx + dy * dy > radar::RADIUS_CELLS * radar::RADIUS_CELLS * 4.0 {
                     continue; // beyond twice the scope — never plotted, skip early
                 }
-                let class = match relation_for(a, player_id) {
-                    RelationHud::Hostile | RelationHud::Alerted => RadarClass::Hostile,
-                    RelationHud::Friendly | RelationHud::Grouped => RadarClass::Civilian,
-                    RelationHud::Neutral => {
-                        if a.role.as_deref() == Some("npc") || a.role.as_deref() == Some("trainer")
-                        {
-                            RadarClass::Civilian
-                        } else {
-                            RadarClass::Passive
-                        }
+                let class = match relation_for(a, player_id, viewer_org) {
+                    RelationHud::Hostile => RadarClass::Hostile,
+                    RelationHud::Attackable => RadarClass::Passive,
+                    RelationHud::Social | RelationHud::Player | RelationHud::Allied => {
+                        RadarClass::Civilian
                     }
                 };
                 self.radar_contacts.push(RadarContactHud {
@@ -958,22 +974,60 @@ fn gauge_text(g: &GaugeHud) -> String {
     }
 }
 
-/// Relation classification from streamed actor fields (faction/pvp/social).
+/// Whether an actor fights at all, mirroring `actorRoleProfiles` in
+/// `client/src/slice-core/npcSystem.ts`. Roles the table does not name are
+/// social, which is the safe read: an unknown actor is not painted as a threat.
+fn is_combat_role(role: Option<&str>) -> bool {
+    matches!(role, Some("creature") | Some("range_guard"))
+        || role.is_some_and(|r| r.starts_with("skirmisher"))
+}
+
+fn is_player_role(role: Option<&str>) -> bool {
+    matches!(role, Some("player") | Some("agent_player"))
+}
+
+/// Relation classification from streamed actor fields.
+///
+/// `viewer_org` is the looking player's guild/faction id; without it no actor
+/// can be an ally, which is the correct fallback rather than guessing.
 pub fn relation_for(
     a: &successor_client_proto::packets::GameActorSnapshot,
     _player_id: &str,
+    viewer_org: Option<&str>,
 ) -> RelationHud {
-    if a.pvp_status.as_deref() == Some("hostile") {
-        return RelationHud::Hostile;
+    // A corpse is a corpse whatever it was in life.
+    if matches!(a.life_state.as_str(), "dead" | "downed" | "respawning") {
+        return RelationHud::Social;
     }
-    match a.faction_id.as_deref() {
-        Some("hostile") | Some("raider") | Some("feral") => RelationHud::Hostile,
-        Some("settler") | Some("friendly") => RelationHud::Friendly,
-        _ => match a.social_group.as_deref() {
-            Some("hostile") => RelationHud::Hostile,
-            Some("friendly") => RelationHud::Friendly,
-            _ => RelationHud::Neutral,
-        },
+
+    let role = a.role.as_deref();
+    if is_player_role(role) {
+        if a.pvp_status.as_deref() == Some("hostile") {
+            return RelationHud::Hostile;
+        }
+        let allied = match (viewer_org, a.player_organization_id.as_deref()) {
+            (Some(mine), Some(theirs)) => !mine.is_empty() && mine == theirs,
+            _ => false,
+        };
+        return if allied {
+            RelationHud::Allied
+        } else {
+            RelationHud::Player
+        };
+    }
+
+    if !is_combat_role(role) {
+        return RelationHud::Social;
+    }
+
+    // A passive only reads yellow until it has been drawn into a fight; once
+    // engaged it is as dangerous as anything that opened on sight.
+    let aggressive = a.will_auto_aggro.unwrap_or(false);
+    let engaged = a.in_combat.unwrap_or(false);
+    if aggressive || engaged {
+        RelationHud::Hostile
+    } else {
+        RelationHud::Attackable
     }
 }
 
@@ -1094,6 +1148,16 @@ impl HudSurface {
             HudSurfaceKind::GroundRadar => layout.radar,
         }
     }
+
+    /// Whether first run opens this pane.
+    ///
+    /// The status strip is the one HUD pane that tells the player nothing they
+    /// are not already looking at - shard state and the zone name, parked in
+    /// the bottom-right corner over the world. It stays registered and stays
+    /// reachable, it just does not claim a corner before anyone asks for it.
+    pub fn opens_on_first_run(self) -> bool {
+        !matches!(self.kind, HudSurfaceKind::StatusStrip)
+    }
 }
 
 /// Number of persistent HUD workspace panes.
@@ -1162,7 +1226,7 @@ pub const HUD_SURFACES: [HudSurface; HUD_SURFACE_COUNT] = [
         id: GROUND_RADAR_ID,
         title: GROUND_RADAR_TITLE,
         icon: GROUND_RADAR_ICON,
-        min_size: [161.0, 200.0],
+        min_size: [layout::RADAR_LANE_W, layout::RADAR_LANE_H],
         kind: HudSurfaceKind::GroundRadar,
     },
 ];
@@ -1228,7 +1292,9 @@ fn register_hud_surface(
     if surface.id == GROUND_RADAR_ID {
         manager.set_icon_slot(surface.id, Some(GROUND_RADAR_ICON_SLOT));
     }
-    manager.open(surface.id);
+    if surface.opens_on_first_run() {
+        manager.open(surface.id);
+    }
 }
 
 fn register_hud_surfaces_with_at<F>(
@@ -1663,6 +1729,67 @@ pub fn build_hud(
 mod tests {
     use super::*;
 
+    fn actor(role: &str) -> successor_client_proto::packets::GameActorSnapshot {
+        successor_client_proto::packets::GameActorSnapshot {
+            role: Some(role.to_string()),
+            life_state: "alive".to_string(),
+            ..Default::default()
+        }
+    }
+
+    /// Owner ruling 2026-08-04. Each arm is a distinct in-world read, so they
+    /// are asserted individually rather than as one table.
+    #[test]
+    fn relations_follow_the_owner_ruling() {
+        // An NPC that does not fight, and anything dead, is not a threat read.
+        assert_eq!(relation_for(&actor("profession_trainer"), "me", None), RelationHud::Social);
+        let mut corpse = actor("skirmisher");
+        corpse.will_auto_aggro = Some(true);
+        corpse.life_state = "dead".to_string();
+        assert_eq!(relation_for(&corpse, "me", None), RelationHud::Social);
+
+        // A passive attackable is yellow until something starts a fight.
+        let mut passive = actor("creature");
+        passive.will_auto_aggro = Some(false);
+        assert_eq!(relation_for(&passive, "me", None), RelationHud::Attackable);
+        passive.in_combat = Some(true);
+        assert_eq!(
+            relation_for(&passive, "me", None),
+            RelationHud::Hostile,
+            "a provoked passive must escalate to the hostile read"
+        );
+
+        // Anything that opens on sight is hostile from the start.
+        let mut aggressive = actor("skirmisher_assault");
+        aggressive.will_auto_aggro = Some(true);
+        assert_eq!(relation_for(&aggressive, "me", None), RelationHud::Hostile);
+    }
+
+    #[test]
+    fn player_standing_reads_pvp_then_organization() {
+        let neutral = actor("player");
+        assert_eq!(relation_for(&neutral, "me", None), RelationHud::Player);
+
+        let mut ally = actor("player");
+        ally.player_organization_id = Some("guild-a".to_string());
+        assert_eq!(relation_for(&ally, "me", Some("guild-a")), RelationHud::Allied);
+        assert_eq!(
+            relation_for(&ally, "me", Some("guild-b")),
+            RelationHud::Player,
+            "a different organization is not an ally"
+        );
+        assert_eq!(
+            relation_for(&ally, "me", None),
+            RelationHud::Player,
+            "an unaffiliated viewer has no allies"
+        );
+
+        // PVP outranks shared colours: an open enemy reads red even in-guild.
+        let mut enemy = ally.clone();
+        enemy.pvp_status = Some("hostile".to_string());
+        assert_eq!(relation_for(&enemy, "me", Some("guild-a")), RelationHud::Hostile);
+    }
+
     #[test]
     fn default_state_is_disconnected_and_sample_free() {
         let st = HudState::default();
@@ -1734,7 +1861,12 @@ mod tests {
                     viewport.1
                 );
                 assert_eq!(manager.content_rect(surface.id), Some(expected));
-                assert!(manager.is_open(surface.id));
+                assert_eq!(
+                    manager.is_open(surface.id),
+                    surface.opens_on_first_run(),
+                    "{} first-run visibility drifted",
+                    surface.id
+                );
                 assert!(!manager.has_chrome(surface.id));
                 assert!(!manager.is_interactive(surface.id));
             }

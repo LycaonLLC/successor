@@ -210,6 +210,137 @@ for all of that; it writes `reports/rigid_mount_fit.json` and fails closed.
   journey-proven.
 - Inventory still has no drag-and-drop and no sub-container navigation.
 
+
+## Wave 4 - functional panes, HUD defaults, chat, radar
+
+### The thin panes were filled
+
+`windows/live.rs` was 2063 lines holding 20 surfaces, so no two people could
+edit a surface at once. It is now one file per surface under `windows/live/`
+sharing `live/shared.rs` (the pane cursor, the prose writer, the retained text
+fields). On that footing five surfaces went from a stub line to the content the
+web client has always carried: `bank` had rendered only its out-of-range notice
+even while in range, `converse` only `NO DIALOGUE TARGET`, `survey` four
+resource rows under a 70% empty pane. `craft` and `splice` now run their full
+staged flows.
+
+`trade` mirrors the web `machine.ts` seal rules: any offer change clears both
+seals, and the pane withdraws every mutating control the moment your side is
+sealed, so a stale frame cannot emit a change the server has already sealed
+against.
+
+### What the parity pass got wrong, and what caught it
+
+Worth knowing because the same failure will recur. A first pass produced 100
+lines of client-side trade state machine that nothing called, with 17 assertions
+proving it - a green suite over dead code. It is deleted; the trade tests now
+drive the real pane. Two more classes of defect only a screenshot caught:
+
+- 16 string literals used `-` and `·`. `hud::Icons` bakes ASCII 32..=126, so
+  they rendered as `?` in-game while every test passed.
+  `tools/hygiene/drawable_glyphs.py` is now a hard gate. Player-authored text is
+  deliberately out of its scope.
+- `survey` drew two-line `label_caption` rows into one-line `next()` rows, so
+  each spawn's class line landed on the next spawn's name.
+
+### HUD defaults
+
+- The notification strip no longer opens on first run. It repeated the shard
+  state and zone name into the bottom-right corner over the world; it stays
+  registered and reachable.
+- The target plate is flush top-right, mirroring the player plate's flush
+  top-left, wherever the twelve-slot command bar still fits between them. Below
+  that width it keeps its old lane under the bar rather than overlapping it. The
+  bar's measured 474 px is never narrowed - that would resize every slot.
+- The radar lane is the scope plus the coordinate rail the radar itself draws.
+  It had been reserving a window caption and footer that a chromeless pane never
+  paints: 52 px of dead band around the instrument.
+- Hotkey glyphs under the command bar lost their dark seats. Twelve chips in a
+  row read as a second broken bar under the real one.
+- Body cap heights are 13/14/11 px against the original's 12/13/10. The original
+  was measured on a 1024x768 CRT; the 19 px row absorbs the extra pixel without
+  reflowing anything, and row height is deliberately NOT scaled with it.
+
+### Window chrome
+
+Frames carry a stepped corner bracket, traced from a generated reference sheet
+into vector draw calls rather than shipped as art. Every corner now has exactly
+one mark: bracket top-left and bottom-left, close control top-right, resize grip
+bottom-right. The top bracket's ink follows the caption rail - dark caption ink
+over the focused accent, edge tone over the unfocused rail - because one fixed
+choice vanishes in the other state. The resize grip is three ticks and always
+drawn; a grip you can only find by hovering is a grip players do not know exists.
+
+### Nameplates
+
+Two divergences from the web renderer, both fixed:
+
+- The plate was pushed 8 px BELOW its head anchor and top-anchored, where the
+  web lifts 24 px from a text baseline. It sat on the pawn's head. `y` is now
+  the baseline, `NAMEPLATE_SCREEN_LIFT_PX` mirrors the web constant.
+- Relation ink followed the theme, so a grouped ally was cyan in one palette and
+  teal in another.
+
+Relation colour is now owner-ruled (2026-08-04) and this ruling outranks the web
+client, which does not match it everywhere yet:
+
+| Read | Colour |
+|---|---|
+| NPC, and every corpse | white `#f8f7f1` |
+| Passive attackable NPC | yellow `#f1d06b` |
+| Passive that has been attacked | red |
+| Aggressive attackable NPC | red `#d33b32` |
+| Player, neutral | bright blue `#4aa9ff` |
+| Player, same guild or faction | purple `#b066ff` |
+| Player, PVP open | red |
+
+`RelationHud` variants were renamed to those reads - `Hostile`, `Attackable`,
+`Social`, `Player`, `Allied` - because `Friendly` meaning "neutral player, blue"
+is a trap for the next reader. Classification is by actor `role` against the
+shared `actorRoleProfiles` table, plus `will_auto_aggro`, `in_combat`,
+`pvp_status`, and the viewer's own `player_organization_id`.
+
+### Chat
+
+All four tabs were driven against a live authority. Filtering is correct. Three
+defects found and fixed:
+
+- Every line was attributed to `char_0254efc180a54b6a`. The chat route defaulted
+  `displayName` to the user id before the hub saw it, so the hub's own lookups
+  never ran. The route now passes an empty fallback and the hub resolves the
+  name from the live shard, then the character store, then the raw id.
+  `ChatNameAuthority` is wired from `gameShard.chatDisplayNameForActor`.
+- A `chat.error` marked the whole socket `Degraded`. It is a refusal of ONE
+  request - no guild, rate limited, moderated - and the socket is fine. It now
+  surfaces as a system line, which is also the only way the player learns the
+  message they typed went nowhere.
+- An empty tab reported `CHAT DEGRADED`. An empty tab is a filter result; it now
+  names what is empty and reports the socket only when the socket is unwell.
+
+Global history survived a client restart, so channel persistence is confirmed.
+
+### Radar
+
+The scope was a flat disc with a crosshair and three unlabelled rings. It now
+draws a terrain preview sampled from `world::terrain::sample_terrain` - the same
+function the 3D terrain path uses - on a 32x32 grid cached until the player
+crosses a cell, the zoom step changes, or the palette changes. Plus a world-cell
+grid that slides as you move, and range rings labelled in metres at every step
+of the existing 32/64/96/128/192 ladder.
+
+### Known open from this wave
+
+- `pnpm --dir client-3d build` fails on a pre-existing asset budget:
+  295,462,367 bytes against a 292,000,000 limit, 504 of 510 files. No
+  `client-3d` file was touched in this wave. Raising the limit would hide it.
+- The Rust client still sends no `displayName` in its chat handshake. The server
+  resolves it, so this is redundancy rather than a defect.
+- Functional panes report their own NEEDS-PROJECTION gaps: survey concentration
+  interpolation and scan-disc history, datapad terrain bake and weather storms,
+  macro runtime state, trade item preview.
+- The local authority's state-lock supervisor loses a restart race often enough
+  to notice; clearing `server/.local-state/*.pid` and starting fresh works.
+
 ## Wave 1 — doorways, floors, viewers, character art
 
 ### Character viewers

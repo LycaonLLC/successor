@@ -12,7 +12,7 @@
 //! right rail. At 800×600, the adaptable panes contract toward their measured
 //! floors rather than crossing bands.
 
-use successor_engine_render::window::{BOTTOM_RAIL, SIDE_MARGIN, TOP_RAIL};
+use successor_engine_render::window::SIDE_MARGIN;
 
 /// Screen edge gutter for panes that are not intentionally flush.
 pub const MARGIN: f32 = 6.0;
@@ -87,6 +87,16 @@ pub const RADAR_SIZE: f32 = 148.0;
 pub const RADAR_INSET: f32 = 21.0;
 /// Space between the radar workspace lane and the chat console.
 pub const RADAR_CHAT_GUTTER: f32 = 8.0;
+/// Air above the scope inside its lane. Mirrors `radar::SCOPE_Y`, which is the
+/// inset the radar itself draws at; keeping the lane and the renderer in step
+/// is what stops the scope sitting off-centre in its own pane.
+pub const RADAR_SCOPE_INSET: f32 = 2.0;
+/// The radar's registration lane, and its resize floor: the scope is a fixed
+/// instrument, so the pane that carries it does not usefully shrink. Both the
+/// default and the floor come from here so they cannot drift apart - a floor
+/// above the default silently clamps the pane larger on first run.
+pub const RADAR_LANE_W: f32 = RADAR_SIZE + SIDE_MARGIN * 2.0 + 1.0;
+pub const RADAR_LANE_H: f32 = RADAR_SIZE + super::radar::COORD_RAIL + RADAR_SCOPE_INSET;
 /// Window dock rail (a Successor addition, not a persistent HUD pane).
 pub const DOCK_BTN: f32 = 30.0;
 
@@ -163,24 +173,46 @@ fn compute_reference(viewport_w: f32, viewport_h: f32) -> HudLayout {
 
     let target_w = compact_dimension(TARGET_MIN_W, TARGET_W, vw);
     let target_h = compact_dimension(TARGET_MIN_H, TARGET_H, vw);
-    let target = [vw - MARGIN - target_w, BAR_H + GUTTER, target_w, target_h];
 
+    // The command bar is a fixed twelve-slot rail; narrowing it resizes every
+    // slot, so its measured width is not negotiable and the band is planned
+    // around it.
     let bar_room = (vw - plate_w - GUTTER - MARGIN).max(BAR_MIN_W);
     let bar_w = BAR_W.min(bar_room).max(BAR_MIN_W);
+    let bar_left = plate[0] + plate[2] + GUTTER;
+
+    // Flush top-right, mirroring the player plate's flush top-left: the two are
+    // the same kind of readout - you and your mark - so they take opposite
+    // corners of one band. Only where the bar still fits between them; below
+    // that width the target keeps its old lane under the bar instead of
+    // overlapping it.
+    let shares_top_band = bar_left + bar_w + GUTTER + target_w <= vw;
+    let target = if shares_top_band {
+        [vw - target_w, 0.0, target_w, target_h]
+    } else {
+        [vw - MARGIN - target_w, BAR_H + GUTTER, target_w, target_h]
+    };
+
+    let bar_right_stop = if shares_top_band {
+        target[0] - GUTTER
+    } else {
+        vw - MARGIN
+    };
     let bar_x = ((vw - bar_w) * 0.5)
-        .max(plate[0] + plate[2] + GUTTER)
-        .min(vw - MARGIN - bar_w);
+        .min(bar_right_stop - bar_w)
+        .max(bar_left);
     let bar = [bar_x, 0.0, bar_w, BAR_H];
 
-    // Preserve the radar's pre-existing 148 px instrument lane. The manager
-    // now suppresses workspace chrome, but the surrounding lane still keeps
-    // the scope and coordinate rail at the measured visual position.
+    // The radar is chromeless: the manager suppresses its caption and footer,
+    // so reserving a caption rail and a bottom rail inside its pane only buys
+    // 52 px of dead band around the scope. The lane is the scope plus its own
+    // coordinate readout, nothing more.
     let radar_content_size = RADAR_SIZE.min(vw * 0.3).min(vh * 0.3);
     let radar_w = radar_content_size + SIDE_MARGIN * 2.0 + 1.0;
-    let radar_h = radar_content_size + TOP_RAIL + BOTTOM_RAIL;
+    let radar_h = radar_content_size + super::radar::COORD_RAIL + RADAR_SCOPE_INSET;
     let radar = [
         (RADAR_INSET - SIDE_MARGIN).max(0.0),
-        vh - radar_h,
+        vh - radar_h - MARGIN,
         radar_w,
         radar_h,
     ];
@@ -411,11 +443,12 @@ mod tests {
         assert_eq!(layout.chat[3], CHAT_H);
         assert_eq!(layout.chat[1], 617.0);
 
-        // The registration rect preserves the original instrument lane even
-        // though the manager now suppresses workspace chrome for HUD panes.
-        assert_eq!(layout.radar[2], RADAR_SIZE + SIDE_MARGIN * 2.0 + 1.0);
-        assert_eq!(layout.radar[3], RADAR_SIZE + TOP_RAIL + BOTTOM_RAIL);
-        assert_eq!(layout.radar[1] + layout.radar[3], 768.0);
+        // The radar lane is the scope plus the coordinate rail the radar itself
+        // draws - not a window's caption and footer, which this pane suppresses
+        // and which only ever showed up as dead band around the instrument.
+        assert_eq!(layout.radar[2], RADAR_LANE_W);
+        assert_eq!(layout.radar[3], RADAR_LANE_H);
+        assert_eq!(layout.radar[1] + layout.radar[3], 768.0 - MARGIN);
         assert_eq!(layout.strip, [722.0, 713.0, STRIP_W, STRIP_H]);
     }
 

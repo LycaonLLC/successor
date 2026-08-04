@@ -563,20 +563,12 @@ pub fn draw_toolbar(
         }
 
         // Hotkey label under the slot, as the original prints F1..F12 beneath
-        // the bar. The glyph keeps a small dark seat so it stays legible over
-        // bright terrain without boxing the slot itself.
+        // the bar. No seat behind it: twelve dark chips in a row read as a
+        // second, broken bar under the real one. The glyph carries the accent,
+        // which clears the terrain on its own.
         let key = code_glyph(&toolbar.doc.binds[slot]);
         let key_w = ui.measure_text(key, 1.3);
         let key_x = slot_x + (SLOT_PX - key_w) * 0.5;
-        let mut key_backing = pal.bg_panel;
-        key_backing[3] = 200;
-        ui.rect(
-            key_x - 3.0,
-            y + SLOT_PX + 1.0,
-            key_w + 6.0,
-            KEY_LABEL_H - 2.0,
-            key_backing,
-        );
         ui.text(key, key_x, y + SLOT_PX + 3.0, 1.3, pal.accent);
 
         // Unavailable overlay for verbs while down/dead.

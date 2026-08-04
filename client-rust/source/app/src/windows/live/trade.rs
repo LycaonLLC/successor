@@ -1,187 +1,14 @@
+//! The session is server-authoritative: `TradeSession` arrives over the wire
+//! and this file never advances a stage on its own. What the pane owes the
+//! player is that a sealed offer cannot be mutated from here - every control
+//! that would change the offer disappears the moment `mine.locked` is set, so a
+//! stale frame cannot emit a mutation the server has already sealed against.
+
 use crate::windows::chrome::{self};
 use crate::windows::live::shared::*;
 use crate::windows::{dim, Ctx, WindowAction, WindowModel};
 use successor_engine_render::ui::UiBuilder;
 use successor_net::{ClientCommand, TradeItemSpec};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TradeSideKind {
-    Mine,
-    Theirs,
-}
-
-#[derive(Clone, Debug)]
-pub enum TradeEvent {
-    AddItem { side: TradeSideKind, line: crate::windows::model::TradeItemLine },
-    RemoveItem { side: TradeSideKind, item_id: u32, variant_id: u32 },
-    SetCoin { side: TradeSideKind, amount: i64 },
-    Accept { side: TradeSideKind },
-    Confirm { side: TradeSideKind },
-    Decline { side: TradeSideKind, reason: Option<String> },
-}
-
-/// Pure state machine reducer for secure trade double-lock session protocol.
-/// Mirrors `client-3d/src/ui/trade/machine.ts` exactly.
-pub fn reduce_trade_session(
-    session: &crate::windows::model::TradeSession,
-    event: &TradeEvent,
-) -> crate::windows::model::TradeSession {
-    if session.stage == "executed" || session.stage == "declined" {
-        return session.clone();
-    }
-
-    fn invalidate_locks(
-        mut s: crate::windows::model::TradeSession,
-        side: TradeSideKind,
-        items: Option<Vec<crate::windows::model::TradeItemLine>>,
-        coin: Option<i64>,
-    ) -> crate::windows::model::TradeSession {
-        match side {
-            TradeSideKind::Mine => {
-                if let Some(i) = items {
-                    s.mine.items = i;
-                }
-                if let Some(c) = coin {
-                    s.mine.coin = c;
-                }
-            }
-            TradeSideKind::Theirs => {
-                if let Some(i) = items {
-                    s.theirs.items = i;
-                }
-                if let Some(c) = coin {
-                    s.theirs.coin = c;
-                }
-            }
-        }
-        s.mine.locked = false;
-        s.mine.confirmed = false;
-        s.theirs.locked = false;
-        s.theirs.confirmed = false;
-        s.both_locked = false;
-        s.stage = "negotiating".to_string();
-        s
-    }
-
-    match event {
-        TradeEvent::AddItem { side, line } => {
-            if line.quantity <= 0 {
-                return session.clone();
-            }
-            let side_struct = match side {
-                TradeSideKind::Mine => &session.mine,
-                TradeSideKind::Theirs => &session.theirs,
-            };
-            let existing = side_struct
-                .items
-                .iter()
-                .find(|i| i.item_id == line.item_id && i.variant_id == line.variant_id);
-            if let Some(ex) = existing {
-                if ex.quantity == line.quantity && ex.name == line.name {
-                    return session.clone();
-                }
-            }
-            let mut new_items = side_struct.items.clone();
-            if let Some(pos) = new_items
-                .iter()
-                .position(|i| i.item_id == line.item_id && i.variant_id == line.variant_id)
-            {
-                new_items[pos] = line.clone();
-            } else {
-                new_items.push(line.clone());
-            }
-            invalidate_locks(session.clone(), *side, Some(new_items), None)
-        }
-        TradeEvent::RemoveItem {
-            side,
-            item_id,
-            variant_id,
-        } => {
-            let side_struct = match side {
-                TradeSideKind::Mine => &session.mine,
-                TradeSideKind::Theirs => &session.theirs,
-            };
-            if !side_struct
-                .items
-                .iter()
-                .any(|i| i.item_id == *item_id && i.variant_id == *variant_id)
-            {
-                return session.clone();
-            }
-            let new_items: Vec<_> = side_struct
-                .items
-                .iter()
-                .filter(|i| !(i.item_id == *item_id && i.variant_id == *variant_id))
-                .cloned()
-                .collect();
-            invalidate_locks(session.clone(), *side, Some(new_items), None)
-        }
-        TradeEvent::SetCoin { side, amount } => {
-            if *amount < 0 {
-                return session.clone();
-            }
-            let side_struct = match side {
-                TradeSideKind::Mine => &session.mine,
-                TradeSideKind::Theirs => &session.theirs,
-            };
-            if side_struct.coin == *amount {
-                return session.clone();
-            }
-            invalidate_locks(session.clone(), *side, None, Some(*amount))
-        }
-        TradeEvent::Accept { side } => {
-            let side_struct = match side {
-                TradeSideKind::Mine => &session.mine,
-                TradeSideKind::Theirs => &session.theirs,
-            };
-            if side_struct.locked {
-                return session.clone();
-            }
-            let mut next = session.clone();
-            match side {
-                TradeSideKind::Mine => next.mine.locked = true,
-                TradeSideKind::Theirs => next.theirs.locked = true,
-            }
-            let both = next.mine.locked && next.theirs.locked;
-            next.both_locked = both;
-            next.stage = if both {
-                "confirm".to_string()
-            } else {
-                "negotiating".to_string()
-            };
-            next
-        }
-        TradeEvent::Confirm { side } => {
-            if !session.both_locked {
-                return session.clone();
-            }
-            let side_struct = match side {
-                TradeSideKind::Mine => &session.mine,
-                TradeSideKind::Theirs => &session.theirs,
-            };
-            if side_struct.confirmed {
-                return session.clone();
-            }
-            let mut next = session.clone();
-            match side {
-                TradeSideKind::Mine => next.mine.confirmed = true,
-                TradeSideKind::Theirs => next.theirs.confirmed = true,
-            }
-            if next.mine.confirmed && next.theirs.confirmed {
-                next.stage = "executed".to_string();
-            } else {
-                next.stage = "confirm".to_string();
-            }
-            next
-        }
-        TradeEvent::Decline { side: _, reason } => {
-            let mut next = session.clone();
-            next.stage = "declined".to_string();
-            next.close_reason = Some(reason.clone().unwrap_or_else(|| "declined".to_string()));
-            next
-        }
-    }
-}
 
 pub fn trade(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<WindowAction>) {
     let mut pane = Pane::open(ctx);
@@ -384,107 +211,138 @@ mod tests {
         }
     }
 
-    fn assert_session_eq(a: &TradeSession, b: &TradeSession) {
-        assert_eq!(a.proposal_id, b.proposal_id);
-        assert_eq!(a.partner_actor_id, b.partner_actor_id);
-        assert_eq!(a.both_locked, b.both_locked);
-        assert_eq!(a.stage, b.stage);
-        assert_eq!(a.close_reason, b.close_reason);
-        assert_eq!(a.mine.actor_id, b.mine.actor_id);
-        assert_eq!(a.mine.coin, b.mine.coin);
-        assert_eq!(a.mine.locked, b.mine.locked);
-        assert_eq!(a.mine.confirmed, b.mine.confirmed);
-        assert_eq!(a.mine.items.len(), b.mine.items.len());
-        for (i, j) in a.mine.items.iter().zip(b.mine.items.iter()) {
-            assert_eq!(i.item_id, j.item_id);
-            assert_eq!(i.variant_id, j.variant_id);
-            assert_eq!(i.name, j.name);
-            assert_eq!(i.quantity, j.quantity);
+    /// Every command the pane will emit anywhere in its rect. Sweeping beats
+    /// hand-computed hit points: row layout shifts with the theme's metrics, so
+    /// a fixed coordinate silently stops covering the control it was aimed at
+    /// and the test keeps passing.
+    fn commands_under_sweep(model: &WindowModel) -> Vec<ClientCommand> {
+        let icons = Icons::load();
+        let mut found = Vec::new();
+        let mut y = RECT[1] + 4.0;
+        while y < RECT[1] + RECT[3] {
+            let mut x = RECT[0] + 4.0;
+            while x < RECT[0] + RECT[2] {
+                let mut ui = UiBuilder::new(icons.meta);
+                let mut out = Vec::new();
+                ui.set_input(x, y, true);
+                ui.begin(1280, 900);
+                trade(&mut ui, test_ctx(RECT), model, &mut out);
+                ui.set_input(x, y, false);
+                ui.begin(1280, 900);
+                out.clear();
+                trade(&mut ui, test_ctx(RECT), model, &mut out);
+                for action in out {
+                    let WindowAction::Command(command) = action else {
+                        continue;
+                    };
+                    if !found.contains(&command) {
+                        found.push(command);
+                    }
+                }
+                x += 12.0;
+            }
+            y += 6.0;
         }
-        assert_eq!(a.theirs.actor_id, b.theirs.actor_id);
-        assert_eq!(a.theirs.coin, b.theirs.coin);
-        assert_eq!(a.theirs.locked, b.theirs.locked);
-        assert_eq!(a.theirs.confirmed, b.theirs.confirmed);
-        assert_eq!(a.theirs.items.len(), b.theirs.items.len());
-        for (i, j) in a.theirs.items.iter().zip(b.theirs.items.iter()) {
-            assert_eq!(i.item_id, j.item_id);
-            assert_eq!(i.variant_id, j.variant_id);
-            assert_eq!(i.name, j.name);
-            assert_eq!(i.quantity, j.quantity);
-        }
+        found
     }
 
-    #[test]
-    fn test_trade_machine_offer_staging() {
-        let open = fixture_open_session();
-        let line = TradeItemLine {
+    fn fixture_live_model(locked: bool) -> WindowModel {
+        let mut model = WindowModel::default();
+        let mut session = fixture_open_session();
+        session.mine.locked = locked;
+        session.mine.items = vec![TradeItemLine {
             item_id: 101,
             variant_id: 1,
             name: "VIBROBLADE".to_string(),
-            quantity: 2,
-        };
-        let added = reduce_trade_session(&open, &TradeEvent::AddItem {
-            side: TradeSideKind::Mine,
-            line: line.clone(),
-        });
-        assert_eq!(added.mine.items.len(), 1);
-        assert_eq!(added.mine.items[0].name, "VIBROBLADE");
-
-        // Identical re-add is no-op
-        let readded = reduce_trade_session(&added, &TradeEvent::AddItem {
-            side: TradeSideKind::Mine,
-            line: line.clone(),
-        });
-        assert_session_eq(&readded, &added);
-        // Remove line
-        let removed = reduce_trade_session(&added, &TradeEvent::RemoveItem {
-            side: TradeSideKind::Mine,
-            item_id: 101,
-            variant_id: 1,
-        });
-        assert!(removed.mine.items.is_empty());
+            quantity: 1,
+        }];
+        session.theirs.items = vec![TradeItemLine {
+            item_id: 202,
+            variant_id: 2,
+            name: "SPICE".to_string(),
+            quantity: 4,
+        }];
+        model.trade.offerable = vec![crate::windows::model::InventoryRow {
+            item_id: 303,
+            variant_id: 3,
+            item: "MEDPAC".to_string(),
+            available: 2,
+            ..Default::default()
+        }];
+        model.trade.partner_label = "SOLO TRADER".to_string();
+        model.trade.session = Some(session);
+        model
     }
 
     #[test]
-    fn test_trade_machine_anti_abuse_clears_seals() {
-        let mut s = fixture_open_session();
-        s.mine.locked = true;
-        s.theirs.locked = true;
-        s.both_locked = true;
-        s.stage = "confirm".to_string();
+    fn an_open_offer_exposes_every_negotiation_control() {
+        let found = commands_under_sweep(&fixture_live_model(false));
 
-        // Mutation by either side clears both seals and drops back to negotiating
-        let mutated = reduce_trade_session(&s, &TradeEvent::SetCoin {
-            side: TradeSideKind::Theirs,
-            amount: 500,
-        });
-        assert!(!mutated.mine.locked);
-        assert!(!mutated.theirs.locked);
-        assert!(!mutated.both_locked);
-        assert_eq!(mutated.stage, "negotiating");
+        assert!(
+            found.iter().any(|c| matches!(c, ClientCommand::AddTradeItem { item, .. } if item.item_id == 303)),
+            "inventory rows must offer ADD; got {found:?}"
+        );
+        assert!(
+            found.iter().any(|c| matches!(c, ClientCommand::RemoveTradeItem { item, .. } if item.item_id == 101)),
+            "own offer rows must offer REMOVE; got {found:?}"
+        );
+        assert!(
+            found.iter().any(|c| matches!(c, ClientCommand::SetTradeCoin { .. })),
+            "credit rail must be reachable; got {found:?}"
+        );
+        assert!(
+            found.contains(&ClientCommand::AcceptTrade { proposal_id: 42 }),
+            "commit rail must offer SEAL; got {found:?}"
+        );
     }
 
     #[test]
-    fn test_trade_machine_dual_lock_and_confirm() {
-        let open = fixture_open_session();
-        let one_lock = reduce_trade_session(&open, &TradeEvent::Accept { side: TradeSideKind::Mine });
-        assert!(one_lock.mine.locked);
-        assert!(!one_lock.both_locked);
-        assert_eq!(one_lock.stage, "negotiating");
+    fn sealing_withdraws_every_control_that_would_change_the_offer() {
+        let found = commands_under_sweep(&fixture_live_model(true));
 
-        // Confirm before both locked is refused
-        let invalid_confirm = reduce_trade_session(&one_lock, &TradeEvent::Confirm { side: TradeSideKind::Mine });
-        assert_session_eq(&invalid_confirm, &one_lock);
-        // Second seal opens confirm stage
-        let both_lock = reduce_trade_session(&one_lock, &TradeEvent::Accept { side: TradeSideKind::Theirs });
-        assert!(both_lock.both_locked);
-        assert_eq!(both_lock.stage, "confirm");
+        for command in &found {
+            assert!(
+                !matches!(
+                    command,
+                    ClientCommand::AddTradeItem { .. }
+                        | ClientCommand::RemoveTradeItem { .. }
+                        | ClientCommand::SetTradeCoin { .. }
+                        | ClientCommand::AcceptTrade { .. }
+                ),
+                "a sealed offer must not be mutable from the pane; reached {command:?}"
+            );
+        }
+        assert!(
+            found.contains(&ClientCommand::DeclineTrade { proposal_id: 42 }),
+            "declining must survive the seal; got {found:?}"
+        );
+    }
 
-        // Confirm by both executes
-        let c1 = reduce_trade_session(&both_lock, &TradeEvent::Confirm { side: TradeSideKind::Mine });
-        assert_eq!(c1.stage, "confirm");
-        let c2 = reduce_trade_session(&c1, &TradeEvent::Confirm { side: TradeSideKind::Theirs });
-        assert_eq!(c2.stage, "executed");
+    #[test]
+    fn a_dual_seal_opens_the_confirm_rail() {
+        let mut model = fixture_live_model(true);
+        let session = model.trade.session.as_mut().expect("session");
+        session.theirs.locked = true;
+        session.both_locked = true;
+        session.stage = "confirm".to_string();
+
+        let found = commands_under_sweep(&model);
+
+        assert!(
+            found.contains(&ClientCommand::ConfirmTrade { proposal_id: 42 }),
+            "both seals set must expose CONFIRM SWAP; got {found:?}"
+        );
+    }
+
+    #[test]
+    fn a_live_session_paints_both_offer_columns() {
+        let icons = Icons::load();
+        let mut ui = UiBuilder::new(icons.meta);
+        let mut out = Vec::new();
+        ui.begin(1280, 900);
+        trade(&mut ui, test_ctx(RECT), &fixture_live_model(false), &mut out);
+
+        assert!(ui.quads > 0, "a live trade session must paint its columns");
     }
 
     #[test]

@@ -885,7 +885,7 @@ fn ascii_contains_ignore_case(haystack: &str, needle: &str) -> bool {
         candidate
             .iter()
             .zip(needle)
-            .all(|(left, right)| left.to_ascii_lowercase() == right.to_ascii_lowercase())
+            .all(|(left, right)| left.eq_ignore_ascii_case(right))
     })
 }
 

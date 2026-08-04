@@ -313,6 +313,26 @@ The cross-body delta is the cheap signal: male and female share one 45-joint
 skeleton, so a socket that resolves more than a millimetre apart is a rig
 defect. A grip buried past 30 mm is out the far side of the hand.
 
+### Drawable glyphs — `tools/hygiene/drawable_glyphs.py`
+
+A hard gate inside `tools/hygiene/run.sh`, runnable alone:
+
+```sh
+python3 tools/hygiene/drawable_glyphs.py
+```
+
+`hud::Icons` bakes ASCII 32..=126. A literal outside that range fails nowhere:
+the built-in 5x7 path skips the glyph and advances the cursor, the rasterized
+path substitutes the font's .notdef box, and every unit test still passes. One
+round of that shipped 16 wrong separators across four surfaces, all reading as
+`?` in-game. The gate lists each offending literal and the characters at fault.
+
+It scans only literals that can reach the renderer: assertion messages, logs,
+and `#[cfg(test)]` modules are excluded, as is the renderer's own font table.
+Player-authored text — chat, names, macro bodies — is deliberately out of scope;
+it arrives at runtime, must render as best it can, and never passes through a
+source literal. The separator this codebase draws is ` - `.
+
 ### Debug views in the connected client
 
 - **Shift+C** — collision overlay: blocked cells, prop bounds, door blockers

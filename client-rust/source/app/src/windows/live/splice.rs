@@ -18,7 +18,7 @@ use successor_net::ClientCommand;
 
 thread_local! {
     static SPLICE_NAME: RefCell<TextField> = RefCell::new(TextField::new(48));
-    static SELECTED_STAGE: RefCell<Option<usize>> = RefCell::new(None);
+    static SELECTED_STAGE: RefCell<Option<usize>> = const { RefCell::new(None) };
 }
 
 #[cfg(test)]
@@ -76,7 +76,7 @@ pub fn splice(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                         }));
                     }
                 } else {
-                    pane.denied(ui, "OUT OF RANGE — STEP CLOSER TO SAMPLE");
+                    pane.denied(ui, "OUT OF RANGE - STEP CLOSER TO SAMPLE");
                 }
             }
 
@@ -189,10 +189,10 @@ pub fn splice(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                         out.push(WindowAction::Command(ClientCommand::SpliceAssemble {}));
                     }
                 } else {
-                    pane.denied(ui, "UNSEATED PARENTS — SEAT BOTH PARENT LINES TO ASSEMBLE");
+                    pane.denied(ui, "UNSEATED PARENTS - SEAT BOTH PARENT LINES TO ASSEMBLE");
                 }
             } else {
-                pane.denied(ui, "NO BENCH SESSION — BEGIN SPLICE FIRST");
+                pane.denied(ui, "NO BENCH SESSION - BEGIN SPLICE FIRST");
             }
         }
 
@@ -255,10 +255,10 @@ pub fn splice(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                         }));
                     }
                 } else {
-                    pane.denied(ui, "NOT ASSEMBLED YET — COMPLETE BENCH SEGREGATION FIRST");
+                    pane.denied(ui, "NOT ASSEMBLED YET - COMPLETE BENCH SEGREGATION FIRST");
                 }
             } else {
-                pane.denied(ui, "NO BENCH SESSION — BEGIN SPLICE FIRST");
+                pane.denied(ui, "NO BENCH SESSION - BEGIN SPLICE FIRST");
             }
         }
     }

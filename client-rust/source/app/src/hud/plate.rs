@@ -1092,14 +1092,39 @@ mod tests {
         );
     }
 
+    /// Owner ruling 2026-08-04: NPC and corpse white, passive attackable
+    /// yellow, anything that will fight you red, neutral player bright blue,
+    /// guild/faction ally purple.
     #[test]
-    fn hostility_tint_systematic_mapping() {
+    fn relation_tints_match_the_owner_ruling() {
         let pal = palette(0);
-        assert_eq!(hostility_tint(RelationHud::Hostile, &pal), pal.danger);
-        assert_eq!(hostility_tint(RelationHud::Alerted, &pal), [232, 168, 74, 255]);
-        assert_eq!(hostility_tint(RelationHud::Neutral, &pal), pal.ink);
-        assert_eq!(hostility_tint(RelationHud::Friendly, &pal), [110, 214, 130, 255]);
-        assert_eq!(hostility_tint(RelationHud::Grouped, &pal), pal.accent);
+        assert_eq!(hostility_tint(RelationHud::Hostile, &pal), [0xd3, 0x3b, 0x32, 255]);
+        assert_eq!(hostility_tint(RelationHud::Attackable, &pal), [0xf1, 0xd0, 0x6b, 255]);
+        assert_eq!(hostility_tint(RelationHud::Social, &pal), [0xf8, 0xf7, 0xf1, 255]);
+        assert_eq!(hostility_tint(RelationHud::Player, &pal), [0x4a, 0xa9, 0xff, 255]);
+        assert_eq!(hostility_tint(RelationHud::Allied, &pal), [0xb0, 0x66, 0xff, 255]);
+    }
+
+    /// Relation ink is actor identity, so it must NOT follow the theme - a
+    /// grouped ally reads the same purple in every palette.
+    #[test]
+    fn relation_tints_do_not_follow_the_theme() {
+        for relation in [
+            RelationHud::Hostile,
+            RelationHud::Attackable,
+            RelationHud::Social,
+            RelationHud::Player,
+            RelationHud::Allied,
+        ] {
+            let first = hostility_tint(relation, &palette(0));
+            for theme in 1..crate::hud::THEME_COUNT {
+                assert_eq!(
+                    hostility_tint(relation, &palette(theme)),
+                    first,
+                    "{relation:?} drifted with theme {theme}"
+                );
+            }
+        }
     }
 
     #[test]

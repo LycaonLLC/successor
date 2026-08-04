@@ -1702,6 +1702,8 @@ impl ConnectedScene {
             &self.player_id,
             self.selected_actor_id.as_deref(),
         );
+        self.hud_state.world_seed = effective_world_seed(&self.slice, &self.area_id) as i32;
+        self.hud_state.biome = biome_for_area(&self.slice, &self.area_id);
         if let Some(weapon) = &self.win_model.character.player.weapon {
             let melee = weapon.ammo_type == "melee";
             let reloading = weapon.reload_remaining_ticks > 0;
@@ -2075,6 +2077,18 @@ impl ConnectedScene {
             .collect()
     }
 
+    /// The looking player's guild/faction id, used to tell an allied player
+    /// from a merely neutral one. `None` when unaffiliated, which makes every
+    /// other player neutral rather than guessing at standing.
+    fn viewer_org(&self) -> Option<&str> {
+        self.store
+            .actors
+            .get(&self.store.player_actor_id)
+            .or_else(|| self.store.actors.get(&self.player_id))
+            .and_then(|actor| actor.player_organization_id.as_deref())
+            .filter(|org| !org.is_empty())
+    }
+
     pub fn focused_window_id(&self) -> Option<String> {
         self.wm
             .z_order()
@@ -2200,11 +2214,11 @@ impl ConnectedScene {
                 .store
                 .actors
                 .get(actor_id)
-                .map(|actor| hud::relation_for(actor, &self.player_id))
+                .map(|actor| hud::relation_for(actor, &self.player_id, self.viewer_org()))
                 .is_some_and(|relation| {
                     matches!(
                         relation,
-                        hud::RelationHud::Hostile | hud::RelationHud::Alerted
+                        hud::RelationHud::Hostile | hud::RelationHud::Attackable
                     )
                 });
             // Attack only reads as a promise while something is wielded; the
@@ -4593,6 +4607,14 @@ impl ConnectedScene {
                 (distance <= 24.0).then(|| anchor(actor_id)).flatten()
             });
 
+        // Read once: the loop below holds `self.ui` mutably, and standing does
+        // not change between nameplates in a frame.
+        let viewer_org = store
+            .actors
+            .get(&store.player_actor_id)
+            .or_else(|| store.actors.get(&self.player_id))
+            .and_then(|actor| actor.player_organization_id.as_deref())
+            .filter(|org| !org.is_empty());
         for (actor_id, actor) in store.actors.iter() {
             if actor_id == &self.player_id {
                 continue;
@@ -4624,12 +4646,12 @@ impl ConnectedScene {
                 &palette,
                 name,
                 descriptor,
-                hud::relation_for(actor, &self.player_id),
+                hud::relation_for(actor, &self.player_id, viewer_org),
                 life_tag,
                 self.selected_actor_id.as_deref() == Some(actor_id.as_str()),
                 opacity,
                 screen_x,
-                screen_y + 8.0,
+                screen_y - hud::overlays::NAMEPLATE_SCREEN_LIFT_PX,
             );
         }
 

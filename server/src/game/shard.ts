@@ -5328,6 +5328,13 @@ export class GameShard {
     if (!actor || !Number.isFinite(actor.x) || !Number.isFinite(actor.y)) return null;
     return { areaId: actor.areaId, x: actor.x, y: actor.y };
   }
+  /** Live authority display name, so chat attributes a line to the same name
+   *  the world already draws over that actor. */
+  chatDisplayNameForActor(actorId: string): string | null {
+    const resolvedActorId = this.characterActorIds.get(actorId) ?? actorId;
+    const actor = this.actors.get(resolvedActorId);
+    return actor?.displayName || actor?.label || null;
+  }
   characterHasDurableAuthorityState(characterId: string): boolean {
     const actorId = this.characterActorIds.get(characterId) ?? characterId;
     return this.durableAuthorityStateExistsForJoin(

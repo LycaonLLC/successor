@@ -7,7 +7,8 @@
 //! in projected coordinates. Dot clicks take priority over ground clicks
 //! (`CLICK_GRAB_PX`); ground clicks inside the scope request a relative move.
 
-use core::cell::Cell;
+use core::cell::{Cell, RefCell};
+use crate::world::terrain::{sample_terrain, Biome, TerrainSample};
 use core::fmt::{self, Write};
 
 struct TextBuffer {
@@ -87,9 +88,128 @@ const FACE_ROWS: u32 = 40;
 pub const RANGE_LADDER_CELLS: &[f32] = &[32.0, 64.0, 96.0, 128.0, 192.0];
 pub const DEFAULT_RANGE_INDEX: usize = 2; // 96.0 cells
 
+const PREVIEW_GRID_SIZE: usize = 32;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct TerrainCacheKey {
+    cell_x: i32,
+    cell_z: i32,
+    range_index: usize,
+    seed: i32,
+    biome: Biome,
+    pal: Palette,
+}
+
+struct TerrainPreviewCache {
+    key: Option<TerrainCacheKey>,
+    colors: [[u8; 4]; PREVIEW_GRID_SIZE * PREVIEW_GRID_SIZE],
+    resample_count: usize,
+}
+
+impl TerrainPreviewCache {
+    const fn new() -> Self {
+        Self {
+            key: None,
+            colors: [[0; 4]; PREVIEW_GRID_SIZE * PREVIEW_GRID_SIZE],
+            resample_count: 0,
+        }
+    }
+}
+
 std::thread_local! {
     static CURRENT_RANGE_INDEX: Cell<usize> = const { Cell::new(DEFAULT_RANGE_INDEX) };
     static CAMERA_HEADING_RAD: Cell<f32> = const { Cell::new(0.0) };
+    static TERRAIN_CACHE: RefCell<TerrainPreviewCache> = const { RefCell::new(TerrainPreviewCache::new()) };
+}
+
+pub fn terrain_cache_resample_count() -> usize {
+    TERRAIN_CACHE.with(|c| c.borrow().resample_count)
+}
+
+fn sample_to_tint(sample: &TerrainSample, pal: &Palette) -> [u8; 4] {
+    let b0 = pal.bg_cell[0] as f32;
+    let b1 = pal.bg_cell[1] as f32;
+    let b2 = pal.bg_cell[2] as f32;
+
+    let h0 = pal.hairline[0] as f32;
+    let h1 = pal.hairline[1] as f32;
+    let h2 = pal.hairline[2] as f32;
+
+    let a0 = pal.accent[0] as f32;
+    let a1 = pal.accent[1] as f32;
+    let a2 = pal.accent[2] as f32;
+
+    let d0 = pal.ink_dim[0] as f32;
+    let d1 = pal.ink_dim[1] as f32;
+    let d2 = pal.ink_dim[2] as f32;
+
+    let w0 = sample.weights[0];
+    let w1 = sample.weights[1];
+    let w2 = sample.weights[2];
+
+    let r = (b0 * (0.65 + 0.35 * w0) + h0 * (0.35 * w1) + a0 * (0.30 * w2) + d0 * 0.05) * sample.macro_tint;
+    let g = (b1 * (0.65 + 0.35 * w0) + h1 * (0.35 * w1) + a1 * (0.30 * w2) + d1 * 0.05) * sample.macro_tint;
+    let b = (b2 * (0.65 + 0.35 * w0) + h2 * (0.35 * w1) + a2 * (0.30 * w2) + d2 * 0.05) * sample.macro_tint;
+
+    [
+        r.clamp(0.0, 255.0) as u8,
+        g.clamp(0.0, 255.0) as u8,
+        b.clamp(0.0, 255.0) as u8,
+        pal.bg_cell[3],
+    ]
+}
+
+fn get_or_update_terrain_cache(
+    player_x: f32,
+    player_z: f32,
+    seed: i32,
+    biome: Biome,
+    pal: &Palette,
+) -> [[u8; 4]; PREVIEW_GRID_SIZE * PREVIEW_GRID_SIZE] {
+    let range_index = CURRENT_RANGE_INDEX.with(|c| c.get());
+    let cell_x = player_x.floor() as i32;
+    let cell_z = player_z.floor() as i32;
+    let key = TerrainCacheKey {
+        cell_x,
+        cell_z,
+        range_index,
+        seed,
+        biome,
+        pal: *pal,
+    };
+
+    TERRAIN_CACHE.with(|cache_cell| {
+        let mut cache = cache_cell.borrow_mut();
+        if cache.key != Some(key) {
+            cache.key = Some(key);
+            cache.resample_count += 1;
+            let range_radius = RANGE_LADDER_CELLS[range_index.min(RANGE_LADDER_CELLS.len() - 1)];
+            let step = (2.0 * range_radius) / (PREVIEW_GRID_SIZE as f32);
+            for gy in 0..PREVIEW_GRID_SIZE {
+                let wz = (cell_z as f64 + 0.5) - range_radius as f64 + (gy as f64 + 0.5) * step as f64;
+                for gx in 0..PREVIEW_GRID_SIZE {
+                    let wx = (cell_x as f64 + 0.5) - range_radius as f64 + (gx as f64 + 0.5) * step as f64;
+                    let sample = sample_terrain(seed, wx, wz, biome);
+                    cache.colors[gy * PREVIEW_GRID_SIZE + gx] = sample_to_tint(&sample, pal);
+                }
+            }
+        }
+        cache.colors
+    })
+}
+
+pub fn range_rings_for_radius(radius: f32) -> &'static [f32] {
+    if (radius - 32.0).abs() < 1e-3 {
+        &[16.0, 32.0]
+    } else if (radius - 64.0).abs() < 1e-3 {
+        &[16.0, 32.0, 48.0, 64.0]
+    } else if (radius - 96.0).abs() < 1e-3 {
+        &[24.0, 48.0, 72.0, 96.0]
+    } else if (radius - 128.0).abs() < 1e-3 {
+        &[32.0, 64.0, 96.0, 128.0]
+    } else {
+        &[48.0, 96.0, 144.0, 192.0]
+    }
 }
 
 /// Returns the active scope cell radius.
@@ -273,8 +393,8 @@ pub fn click_action(st: &HudState, click_x: f32, click_y: f32) -> Option<HudActi
 fn class_tint(class: RadarClass, pal: &Palette) -> [u8; 4] {
     let rel = match class {
         RadarClass::Hostile => super::RelationHud::Hostile,
-        RadarClass::Passive => super::RelationHud::Alerted,
-        RadarClass::Civilian => super::RelationHud::Friendly,
+        RadarClass::Passive => super::RelationHud::Attackable,
+        RadarClass::Civilian => super::RelationHud::Social,
     };
     super::plate::hostility_tint(rel, pal)
 }
@@ -299,13 +419,141 @@ pub fn draw_radar(
     let cx = scope_x + c;
     let cy = scope_y + c;
     let rim = c - 1.5;
-    let grid = [pal.hairline[0], pal.hairline[1], pal.hairline[2], 100];
-    fill_scope_face(ui, cx, cy, rim, pal.bg_cell);
-    ui.line(cx - rim, cy, cx + rim, cy, 0.8, grid);
-    ui.line(cx, cy - rim, cx, cy + rim, 0.8, grid);
+    let grid_color = [pal.hairline[0], pal.hairline[1], pal.hairline[2], 90];
+    let range_radius = current_range_radius();
+    let scale = scale_for(scope);
+    let heading = camera_heading();
+    let (sin_h, cos_h) = heading.sin_cos();
+
+    // 1. Terrain preview backdrop clipped to scope circle rim
+    if let Some((player_x, player_z)) = st.position {
+        let colors = get_or_update_terrain_cache(
+            player_x,
+            player_z,
+            st.world_seed,
+            st.biome,
+            pal,
+        );
+        let rows = FACE_ROWS as usize;
+        let step_y = 2.0 * rim / rows as f32;
+        let step_x = 2.0 * rim / rows as f32;
+
+        for row in 0..rows {
+            let top = cy - rim + row as f32 * step_y;
+            let cy_row = top + step_y * 0.5;
+            let dy_rim = (cy_row - cy) / rim;
+            if dy_rim.abs() >= 1.0 {
+                continue;
+            }
+            let half_w = rim * (1.0 - dy_rim * dy_rim).max(0.0).sqrt();
+            if half_w <= 0.4 {
+                continue;
+            }
+
+            for col in 0..rows {
+                let left = cx - rim + col as f32 * step_x;
+                let right = left + step_x;
+                let r_left = left.max(cx - half_w);
+                let r_right = right.min(cx + half_w);
+                if r_right <= r_left {
+                    continue;
+                }
+                let w = r_right - r_left;
+                let cx_col = (r_left + r_right) * 0.5;
+
+                let rx_px = cx_col - cx;
+                let ry_px = cy_row - cy;
+                let rx_cells = rx_px / scale;
+                let ry_cells = ry_px / scale;
+
+                let dx_cells = rx_cells * cos_h + ry_cells * sin_h;
+                let dy_cells = -rx_cells * sin_h + ry_cells * cos_h;
+
+                let gx = (((dx_cells + range_radius) / (2.0 * range_radius) * (PREVIEW_GRID_SIZE as f32))
+                    .floor() as i32)
+                    .clamp(0, (PREVIEW_GRID_SIZE - 1) as i32) as usize;
+                let gy = (((dy_cells + range_radius) / (2.0 * range_radius) * (PREVIEW_GRID_SIZE as f32))
+                    .floor() as i32)
+                    .clamp(0, (PREVIEW_GRID_SIZE - 1) as i32) as usize;
+
+                let color = colors[gy * PREVIEW_GRID_SIZE + gx];
+                ui.rect(r_left, top, w + 0.5, step_y + 0.6, color);
+            }
+        }
+    } else {
+        fill_scope_face(ui, cx, cy, rim, pal.bg_cell);
+    }
+
+    // 2. World cell grid (aligned to world cells, sliding with position)
+    if let Some((player_x, player_z)) = st.position {
+        let grid_step = (range_radius / 4.0).max(8.0);
+        let min_kx = ((player_x - range_radius) / grid_step).floor() as i32;
+        let max_kx = ((player_x + range_radius) / grid_step).ceil() as i32;
+        for k in min_kx..=max_kx {
+            let wx = k as f32 * grid_step;
+            let dx_cells = wx - player_x;
+            let r_cell = dx_cells * scale;
+            if r_cell.abs() < rim {
+                let h = (rim * rim - r_cell * r_cell).max(0.0).sqrt();
+                let x1 = cx + r_cell * cos_h - h * sin_h;
+                let y1 = cy + r_cell * sin_h + h * cos_h;
+                let x2 = cx + r_cell * cos_h + h * sin_h;
+                let y2 = cy + r_cell * sin_h - h * cos_h;
+                ui.line(x1, y1, x2, y2, 0.8, grid_color);
+            }
+        }
+
+        let min_kz = ((player_z - range_radius) / grid_step).floor() as i32;
+        let max_kz = ((player_z + range_radius) / grid_step).ceil() as i32;
+        for k in min_kz..=max_kz {
+            let wz = k as f32 * grid_step;
+            let dy_cells = wz - player_z;
+            let r_cell = dy_cells * scale;
+            if r_cell.abs() < rim {
+                let h = (rim * rim - r_cell * r_cell).max(0.0).sqrt();
+                let x1 = cx - r_cell * sin_h - h * cos_h;
+                let y1 = cy + r_cell * cos_h - h * sin_h;
+                let x2 = cx - r_cell * sin_h + h * cos_h;
+                let y2 = cy + r_cell * cos_h + h * sin_h;
+                ui.line(x1, y1, x2, y2, 0.8, grid_color);
+            }
+        }
+    }
+
+    // Brighter N-S/E-W axis lines on top of grid
+    let axis_color = [pal.hairline[0], pal.hairline[1], pal.hairline[2], 180];
+    ui.line(cx - rim, cy, cx + rim, cy, 1.0, axis_color);
+    ui.line(cx, cy - rim, cx, cy + rim, 1.0, axis_color);
+
+    // Perimeter rim ring
     ui.ring(cx, cy, rim, 72, 1.2, pal.hairline);
-    ui.ring(cx, cy, rim - 3.0, 72, 0.6, grid);
-    ui.ring(cx, cy, rim * 0.66, 56, 0.7, grid);
+    ui.ring(cx, cy, rim - 3.0, 72, 0.6, grid_color);
+
+    // 3. Range rings labelled in metres
+    let rings = range_rings_for_radius(range_radius);
+    let (diag_sin, diag_cos) = (heading + core::f32::consts::FRAC_PI_4).sin_cos();
+    for &r_cells in rings {
+        let r_px = r_cells * scale;
+        if r_px <= rim - 3.0 {
+            ui.ring(cx, cy, r_px, 56, 0.6, grid_color);
+
+            let mut buf = TextBuffer::new();
+            let _ = write!(&mut buf, "{:.0}m", r_cells);
+            let label_str = buf.as_str();
+            let label_w = ui.measure_text(label_str, 0.95);
+
+            let lx = cx + diag_sin * r_px;
+            let ly = cy - diag_cos * r_px;
+
+            ui.text(
+                label_str,
+                lx - label_w * 0.5,
+                ly - 3.5,
+                0.95,
+                pal.ink_dim,
+            );
+        }
+    }
     // Cardinals: mark directions with a rim tick plus glyph, rotating with
     // camera heading to track orientation.
     let heading = camera_heading();
@@ -773,5 +1021,120 @@ mod tests {
 
         set_range_radius(100.0);
         assert_eq!(current_range_radius(), 96.0);
+    }
+
+    #[test]
+    fn preview_cache_not_resampling_when_unmoved() {
+        let pal = crate::hud::palette(0);
+        let count_start = terrain_cache_resample_count();
+        let _ = get_or_update_terrain_cache(100.1, 200.1, 42, Biome::Desert, &pal);
+        let count_after_first = terrain_cache_resample_count();
+        assert!(count_after_first > count_start);
+
+        // Sub-cell movement inside same cell (100, 200) -> NO resample!
+        let _ = get_or_update_terrain_cache(100.4, 200.4, 42, Biome::Desert, &pal);
+        let count_after_subcell = terrain_cache_resample_count();
+        assert_eq!(count_after_subcell, count_after_first, "must not resample when player stayed in cell (100, 200)");
+
+        // Crossing cell boundary to (101, 200) -> resample!
+        let _ = get_or_update_terrain_cache(101.2, 200.1, 42, Biome::Desert, &pal);
+        let count_after_move = terrain_cache_resample_count();
+        assert!(count_after_move > count_after_subcell, "must resample when crossing cell boundary");
+    }
+
+    #[test]
+    fn preview_staying_inside_scope_circle() {
+        let icons = crate::hud::Icons::load();
+        let mut ui = UiBuilder::new(icons.meta);
+        let mut st = HudState::default();
+        st.position = Some((100.0, 200.0));
+        st.world_seed = 42;
+        st.biome = Biome::Desert;
+        let mut out = Vec::new();
+
+        let pane = [0.0, 0.0, 128.0, 128.0];
+        let (scope_x, scope_y, scope) = scope_of(pane);
+        let c = scope * 0.5;
+        let cx = scope_x + c;
+        let cy = scope_y + c;
+        let rim = c - 1.5;
+
+        ui.begin(1280, 720);
+        draw_radar(&mut ui, &crate::hud::palette(0), &st, pane, false, &mut out);
+
+        // Verify rects generated for terrain preview face do not exceed scope rim
+        let rows = FACE_ROWS as usize;
+        let step_y = 2.0 * rim / rows as f32;
+        let step_x = 2.0 * rim / rows as f32;
+
+        for row in 0..rows {
+            let top = cy - rim + row as f32 * step_y;
+            let cy_row = top + step_y * 0.5;
+            let dy_rim = (cy_row - cy) / rim;
+            if dy_rim.abs() >= 1.0 {
+                continue;
+            }
+            let half_w = rim * (1.0 - dy_rim * dy_rim).max(0.0).sqrt();
+
+            for col in 0..rows {
+                let left = cx - rim + col as f32 * step_x;
+                let right = left + step_x;
+                let r_left = left.max(cx - half_w);
+                let r_right = right.min(cx + half_w);
+                if r_right <= r_left {
+                    continue;
+                }
+                assert!(r_left >= cx - half_w - 1e-3, "r_left outside circle");
+                assert!(r_right <= cx + half_w + 1e-3, "r_right outside circle");
+            }
+        }
+    }
+
+    #[test]
+    fn ring_labels_distinct_and_ascii_at_every_ladder_step() {
+        for &radius in RANGE_LADDER_CELLS {
+            let rings = range_rings_for_radius(radius);
+            assert!(!rings.is_empty());
+
+            let mut labels = Vec::new();
+            for &r in rings {
+                let label = format!("{:.0}m", r);
+                for ch in label.chars() {
+                    assert!(ch.is_ascii() && (ch as u8) >= 32 && (ch as u8) <= 126, "label '{label}' must be ASCII 32..=126");
+                }
+                assert!(!labels.contains(&label), "duplicate ring label '{label}' at radius {radius}");
+                labels.push(label);
+            }
+
+            if (radius - 32.0).abs() < 1e-3 {
+                assert_eq!(rings.len(), 2, "32m step must drop intermediate rings to avoid crowding");
+            }
+        }
+    }
+
+    #[test]
+    fn grid_shifting_when_player_position_changes() {
+        let range_radius = 96.0;
+        set_range_radius(range_radius);
+        let scope = 128.0;
+        let scale = scale_for(scope);
+        let grid_step = (range_radius / 4.0).max(8.0);
+
+        let p1_x = 100.0f32;
+        let p2_x = 100.5f32;
+
+        let k = (p1_x / grid_step).floor() as i32 + 1;
+        let wx = k as f32 * grid_step;
+
+        let dx1 = wx - p1_x;
+        let dx2 = wx - p2_x;
+
+        let r_cell1 = dx1 * scale;
+        let r_cell2 = dx2 * scale;
+
+        let shift = (r_cell1 - r_cell2).abs();
+        let expected_shift = (p2_x - p1_x) * scale;
+
+        assert!((shift - expected_shift).abs() < 1e-3, "grid shift {shift} must match player movement {expected_shift}");
     }
 }

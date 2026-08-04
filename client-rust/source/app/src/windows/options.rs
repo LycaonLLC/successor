@@ -413,6 +413,8 @@ mod tests {
         draw(&mut ui, test_ctx(RECT), &model, &icons, &mut out);
         assert!(ui.quads > 0, "options surface draws quads, got {}", ui.quads);
     }
+
+    #[test]
     fn zoom_is_display_only_no_action_path() {
         let (mut ui, model, icons) = setup();
         // Clicking the zoom readout (row at y≈152) emits nothing.

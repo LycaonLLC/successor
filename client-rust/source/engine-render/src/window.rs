@@ -27,6 +27,14 @@ pub const BOTTOM_RAIL: f32 = 23.0;
 pub const SIDE_MARGIN: f32 = 6.0;
 /// Caption close-control footprint — 16x16 in the original.
 pub const CONTROL: f32 = 16.0;
+/// Corner bracket arm length. The original's frames are not a plain rectangle:
+/// each corner carries a stepped bracket that reads as a machined plate edge,
+/// and without it a window is just a box with a caption.
+pub const BRACKET_ARM: f32 = 14.0;
+/// Gap between the outer perimeter and the bracket's inner step.
+pub const BRACKET_INSET: f32 = 4.0;
+/// Length of the 45-degree cut that joins the bracket's two inner arms.
+pub const BRACKET_CHAMFER: f32 = 3.0;
 /// Retained name for the caption strip height used by hosts that compute their
 /// own insets. Prefer [`WindowManager::content_rect`].
 pub const TITLE_H: f32 = TOP_RAIL;
@@ -923,7 +931,6 @@ impl WindowManager {
         ui.rect(win.x + 3.0, win.y + 4.0, win.w, win.h, [0, 0, 0, 96]);
         ui.nine_slice(win.x, win.y, win.w, win.h, &style.frame);
         ui.border(win.x, win.y, win.w, win.h, 1.0, style.edge);
-
         // Caption rail: bright when focused, inset when not. The caption itself
         // is dark ink on the rail, which is what the original does.
         let rail = if focused {
@@ -992,27 +999,85 @@ impl WindowManager {
             style.close,
         );
 
-        if resize_hover {
+        // Stepped brackets over the perimeter. Only drawn when the frame is
+        // large enough that two facing arms cannot meet, otherwise a
+        // floor-sized pane fills with bracket instead of content.
+        //
+        // Every corner carries exactly one mark. Top-right belongs to the close
+        // control and bottom-right to the resize grip, so only the left pair is
+        // bracketed - a bracket laid under either control reads as damage. The
+        // top bracket lands on the caption rail, so its ink follows the rail:
+        // dark caption ink over the focused accent, the edge tone over the
+        // unfocused rail. One fixed choice vanishes in the other state.
+        if win.w > BRACKET_ARM * 2.5 && win.h > BRACKET_ARM * 2.5 {
+            let on_rail = if focused {
+                style.caption_text
+            } else {
+                style.edge
+            };
+            corner_bracket(ui, win.x, win.y, 1.0, 1.0, on_rail);
+            corner_bracket(ui, win.x, bottom, 1.0, -1.0, style.edge);
+        }
+
+        // Three diagonal ticks, always present: a grip you can only find by
+        // hovering is a grip players do not know exists. Hover brightens it to
+        // the resize tone; at rest it sits at the perimeter's own weight.
+        let grip = if resize_hover { style.resize } else { style.edge };
+        for reach in [12.0, 9.0, 6.0] {
             ui.line(
-                right - 12.0,
+                right - reach,
                 bottom - 3.0,
                 right - 3.0,
-                bottom - 12.0,
+                bottom - reach,
                 1.2,
-                style.resize,
-            );
-            ui.line(
-                right - 7.0,
-                bottom - 3.0,
-                right - 3.0,
-                bottom - 7.0,
-                1.2,
-                style.resize,
+                grip,
             );
         }
 
         Self::content_rect_of(win)
     }
+}
+
+/// One stepped corner bracket, drawn from the corner at `(x, y)` inward along
+/// `(dx, dy)` - each of the four is the same shape with its signs flipped.
+///
+/// Two arms trace the perimeter, two more sit `BRACKET_INSET` inside it, and a
+/// 45-degree cut joins the inner pair. The cut is what stops the inner arms
+/// meeting at a second square corner, which would read as a double border
+/// rather than a machined plate.
+fn corner_bracket(ui: &mut UiBuilder, x: f32, y: f32, dx: f32, dy: f32, rgba: [u8; 4]) {
+    let arm = BRACKET_ARM;
+    let inset = BRACKET_INSET;
+    let step = inset + BRACKET_CHAMFER;
+    let t = 1.0;
+
+    ui.line(x, y, x + dx * arm, y, t, rgba);
+    ui.line(x, y, x, y + dy * arm, t, rgba);
+
+    ui.line(
+        x + dx * step,
+        y + dy * inset,
+        x + dx * arm,
+        y + dy * inset,
+        t,
+        rgba,
+    );
+    ui.line(
+        x + dx * inset,
+        y + dy * step,
+        x + dx * inset,
+        y + dy * arm,
+        t,
+        rgba,
+    );
+    ui.line(
+        x + dx * step,
+        y + dy * inset,
+        x + dx * inset,
+        y + dy * step,
+        t,
+        rgba,
+    );
 }
 
 /// Longest prefix of `text` that fits `max_w`, and whether it was cut.

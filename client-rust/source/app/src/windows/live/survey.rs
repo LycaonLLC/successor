@@ -77,11 +77,11 @@ pub fn survey(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
             match rich {
                 Some((rx, ry, _)) => {
                     let spawn_name = result.map(|r| r.spawn_name.as_str()).unwrap_or("UNKNOWN");
-                    let caption = format!("PEAK AT ({rx:.0}, {ry:.0}) · {spawn_name}");
+                    let caption = format!("PEAK AT ({rx:.0}, {ry:.0}) - {spawn_name}");
                     row.label_caption(ui, &family.label, &caption);
                 }
                 None => {
-                    row.label_caption(ui, &family.label, "UNSCANNED · TAKE SAMPLE");
+                    row.label_caption(ui, &family.label, "UNSCANNED - TAKE SAMPLE");
                 }
             }
 
@@ -104,11 +104,12 @@ pub fn survey(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
         if !model.survey.spawns.is_empty() && pane.y + pane.metrics.row_h + 20.0 <= pane.bottom {
             pane.section(ui, "SPAWN TAXONOMY");
             let mut spawn_rows = pane.rows();
+            // `label_caption` writes a name over a class line, so the row has to
+            // carry both. A plain `next` row is one line tall and the class line
+            // lands on top of the following spawn's name.
+            let height = pane.metrics.row_h + 18.0;
             for spawn in &model.survey.spawns {
-                if !spawn_rows.fits(pane.metrics.row_h) {
-                    break;
-                }
-                let Some(mut r) = spawn_rows.next(ui) else {
+                let Some(mut r) = spawn_rows.next_tall(ui, height) else {
                     break;
                 };
 
@@ -122,7 +123,7 @@ pub fn survey(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                     .collect();
 
                 if !active_stats.is_empty() {
-                    r.value(ui, &active_stats.join(" · "));
+                    r.value(ui, &active_stats.join(" - "));
                 }
                 r.label_caption(ui, &spawn.name, &spawn.class_label);
             }
@@ -162,7 +163,7 @@ pub fn survey(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
             } else {
                 "OUT OF REACH"
             };
-            let caption = format!("CELL {}, {} · {}", vm.cell_x, vm.cell_y, reach_note);
+            let caption = format!("CELL {}, {} - {}", vm.cell_x, vm.cell_y, reach_note);
             row.label_tinted(
                 ui,
                 &vm.family_label,
@@ -256,12 +257,10 @@ pub fn survey(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
             let mut camp_rows = pane.rows();
             let mut any_camps = false;
 
+            let camp_h = pane.metrics.row_h + 18.0;
             for camp in &model.survey.camps {
-                if !camp_rows.fits(pane.metrics.row_h) {
-                    break;
-                }
                 any_camps = true;
-                let Some(mut r) = camp_rows.next(ui) else {
+                let Some(mut r) = camp_rows.next_tall(ui, camp_h) else {
                     break;
                 };
 

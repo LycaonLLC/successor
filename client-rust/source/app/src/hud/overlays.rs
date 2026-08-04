@@ -7,6 +7,7 @@
 //! this module stays camera-agnostic. All pools are bounded; expired entries
 //! recycle in place without per-frame heap work.
 
+use successor_engine_render::font::GLYPH_H;
 use successor_engine_render::ui::UiBuilder;
 
 use super::{
@@ -338,9 +339,19 @@ fn draw_float(ui: &mut UiBuilder, pal: &Palette, ft: &FloatText, x: f32, y: f32,
     );
 }
 
+/// Screen-space lift from the head anchor to the name's baseline. Mirrors
+/// `nameplateScreenLiftPx` in `client-3d/src/overlay/nameplates.ts` so a pawn
+/// wears its name at the same height in both clients.
+pub const NAMEPLATE_SCREEN_LIFT_PX: f32 = 24.0;
+
 /// Original-client-shaped nameplate: unboxed centered text, relation color,
 /// parenthesized title/role, and a subtle target bracket. The host owns
 /// visibility and distance opacity.
+///
+/// `y` is the BASELINE the name sits on, matching the web renderer's canvas
+/// `fillText`. The engine's `ui.text` anchors glyph TOPS, so the name is lifted
+/// by its own cap height here; passing a top-anchored y instead dropped the
+/// whole plate a full text height onto the pawn's head.
 #[allow(clippy::too_many_arguments)]
 pub fn draw_nameplate(
     ui: &mut UiBuilder,
@@ -367,17 +378,29 @@ pub fn draw_nameplate(
     };
     let tint = alpha_scale(base_tint, opacity);
     let shadow = alpha_scale([0, 0, 0, 220], opacity);
+    // Cap height of the 5x7 face at this scale. Lifting by it turns the
+    // caller's baseline into the glyph top the engine actually wants.
+    let name_cap = GLYPH_H as f32 * name_px;
+    let name_top = y - name_cap;
     let name_width = ui.measure_text(name, name_px);
     let name_x = x - name_width * 0.5;
-    ui.text(name, name_x + 1.0, y + 1.0, name_px, shadow);
-    ui.text(name, name_x, y, name_px, tint);
+    ui.text(name, name_x + 1.0, name_top + 1.0, name_px, shadow);
+    ui.text(name, name_x, name_top, name_px, tint);
 
     if is_dead {
         let strike_tint = alpha_scale(readable_dim(pal), opacity);
-        ui.line(name_x, y + 6.0, name_x + name_width, y + 6.0, 1.0, strike_tint);
+        let strike_y = name_top + name_cap * 0.5;
+        ui.line(
+            name_x,
+            strike_y,
+            name_x + name_width,
+            strike_y,
+            1.0,
+            strike_tint,
+        );
     }
 
-    let mut line_y = y + 12.0;
+    let mut line_y = y + 2.0;
     let desc_val = descriptor.filter(|value| !value.is_empty());
     if let Some(desc) = desc_val {
         let descriptor_px = 1.2;
@@ -619,8 +642,8 @@ mod tests {
         assert!(ui.quads > 0, "selection indicator draws quads");
         assert_eq!(
             hostility_tint(RelationHud::Hostile, &pal),
-            pal.danger,
-            "hostility tint helper must return danger tint for hostile relation"
+            [0xd3, 0x3b, 0x32, 255],
+            "the overlay must draw the shared hostile ink, not a theme tone"
         );
     }
 
@@ -648,10 +671,13 @@ mod tests {
         let max_w = ui.measure_text("TARGET NAME", 1.45)
             .max(ui.measure_text("DESCRIPTOR", 1.2))
             .max(ui.measure_text("TAG", 1.25));
+        // `y` is the name's baseline, so the plate reaches a full cap height
+        // above it before the bracket's own padding.
+        let name_cap = GLYPH_H as f32 * 1.45;
         let left = x - max_w * 0.5 - 6.0 - 0.5;
         let right = x + max_w * 0.5 + 6.0 + 0.5;
-        let top = y - 3.0 - 0.5;
-        let bottom = y + 32.0 - 0.5; // name + desc + tag
+        let top = y - name_cap - 3.0 - 0.5;
+        let bottom = y + 32.0 - 0.5; // descriptor + tag below the baseline
 
         let mut min_px = f32::MAX;
         let mut max_px = f32::MIN;

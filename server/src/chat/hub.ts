@@ -43,6 +43,8 @@ export interface ChatSocket {
 
 export interface ChatSessionIdentity {
   userId: string;
+  /** May be empty: the hub then names the session from the live shard, then
+   *  the character store, and only falls back to the raw id if neither knows. */
   displayName: string;
   zoneId: string;
   partyId?: string;
@@ -74,6 +76,16 @@ export interface ChatSpatialPosition {
  */
 export interface ChatSpatialAuthority {
   positionForActor(actorId: string): ChatSpatialPosition | null;
+}
+
+/**
+ * Live authority display-name lookup.
+ *
+ * A client may open its chat socket before its actor exists on the shard, so
+ * the name is resolved again on the first message rather than only at connect.
+ */
+export interface ChatNameAuthority {
+  displayNameForActor(actorId: string): string | null;
 }
 
 export interface ChatDevOnlyGuildIdentity {
@@ -121,6 +133,7 @@ export interface ChatHubOptions {
   social?: ChatSocialAdapter;
   guildAuthority?: ChatGuildAuthority;
   spatialAuthority?: ChatSpatialAuthority;
+  nameAuthority?: ChatNameAuthority;
   localRadiusCells?: number;
   sendHelloOnConnect?: boolean;
   sessionRevocations?: LaunchSessionRevocationSink;
@@ -174,6 +187,7 @@ export class ChatHub {
   private readonly social?: ChatSocialAdapter;
   private readonly guildAuthority?: ChatGuildAuthority;
   private readonly spatialAuthority?: ChatSpatialAuthority;
+  private readonly nameAuthority?: ChatNameAuthority;
   private readonly loadedSocialUsers = new Set<string>();
   private readonly friendWatchersByUser = new Map<string, Set<string>>();
   private readonly history = new Map<string, ChatMessage[]>();
@@ -210,6 +224,7 @@ export class ChatHub {
     this.social = options.social;
     this.guildAuthority = options.guildAuthority;
     this.spatialAuthority = options.spatialAuthority;
+    this.nameAuthority = options.nameAuthority;
     this.localRadiusCells = finitePositive(options.localRadiusCells, defaultLocalRadiusCells);
     this.sendHelloOnConnect = options.sendHelloOnConnect ?? true;
     this.sessionRevocations = options.sessionRevocations;
@@ -239,7 +254,12 @@ export class ChatHub {
       throw new Error("too many sessions for user");
     }
 
-    const displayName = normalizeDisplayName(identity.displayName, userId);
+    // A client that does not carry a name in its handshake still has one in the
+    // character store, and the hub already reads that store to name whisper and
+    // friend targets. Without this the fallback is the raw character id, so
+    // every line the player sends is attributed to `char_0254efc180a54b6a`.
+    const claimedName = identity.displayName || this.resolveDisplayName(userId);
+    const displayName = normalizeDisplayName(claimedName, userId);
     const session: ChatSession = {
       id: `s_${this.nextSessionSeq++}`,
       socket,
@@ -477,7 +497,7 @@ export class ChatHub {
       this.error(session, recipients.code, recipients.message, requestId);
       return;
     }
-    const message = this.makeMessage(channel, session.user, moderation.body, this.currentAreaId(session), targetId);
+    const message = this.makeMessage(channel, this.senderFor(session), moderation.body, this.currentAreaId(session), targetId);
     this.rememberHistory(message);
     this.broadcast(recipients.recipients, { type: "chat.message", message });
     this.counters.messagesRouted += 1;
@@ -843,6 +863,37 @@ export class ChatHub {
 
   private resolveTarget(value: string): CharacterRecord | null {
     return this.social?.resolveCharacter(value) ?? null;
+  }
+
+  /**
+   * Best display name for a character id, or "" when nothing knows one.
+   *
+   * The live shard is asked first: it holds the name the world is already
+   * showing over the player's head. The character store is the durable
+   * fallback for a session whose actor is not resident.
+   */
+  private resolveDisplayName(userId: string): string {
+    return this.nameAuthority?.displayNameForActor(userId)
+      || this.resolveTarget(userId)?.name
+      || "";
+  }
+
+  /**
+   * The sender stamped on an outgoing message.
+   *
+   * A client may open its chat socket before its actor exists on the shard, in
+   * which case connect had nothing to resolve and fell back to the raw id.
+   * Retrying on the first message that still carries that fallback upgrades the
+   * session once, so a player never spends a session named `char_...`.
+   */
+  private senderFor(session: ChatSession): ChatUser {
+    if (session.user.displayName !== session.user.id) return session.user;
+    const resolved = this.resolveDisplayName(session.user.id);
+    if (!resolved) return session.user;
+    const displayName = normalizeDisplayName(resolved, session.user.id);
+    session.user = { ...session.user, displayName };
+    this.displayNames.set(session.user.id, displayName);
+    return session.user;
   }
 
 

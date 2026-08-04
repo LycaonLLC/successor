@@ -10,6 +10,7 @@
 #   - cargo clippy --workspace -- -D warnings
 #   - cargo machete (no unused deps)
 #   - cargo test -p successor-sim
+#   - python3 tools/hygiene/drawable_glyphs.py (client literals rasterize)
 #   - node tools/codegen/commands.mjs --check
 #   - pnpm --dir client-3d build
 #   - pnpm --dir server build
@@ -100,6 +101,8 @@ if [[ "$SCOPE" == "all" || "$SCOPE" == "rust" ]]; then
     fi
     run_step   "cargo test -p successor-sim" \
                cargo test -p successor-sim
+    run_step   "drawable glyphs (client literals rasterize)" \
+               python3 tools/hygiene/drawable_glyphs.py
   fi
   echo
 fi

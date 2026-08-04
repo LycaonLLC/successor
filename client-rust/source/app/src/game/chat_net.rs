@@ -510,14 +510,28 @@ impl ChatClient {
                 self.connection.history_loaded(None);
                 None
             }
+            // A `chat.error` is the server refusing ONE request - no guild, rate
+            // limited, moderated. The socket is fine, so it must not be marked
+            // failed: doing that left every empty tab claiming CHAT DEGRADED and
+            // silently closed the gates that require `Online`. Surface it as a
+            // system line instead, which is also the only way the player learns
+            // the message they just typed went nowhere.
             Some("chat.error") => {
-                self.last_error = value
+                let text = value
                     .get("message")
                     .and_then(|v| v.as_str())
-                    .map(bounded_text);
-                self.connection
-                    .failed(self.last_error.as_deref().unwrap_or("chat error"));
-                None
+                    .map(bounded_text)
+                    .unwrap_or_else(|| "Chat request refused.".to_string());
+                self.last_error = Some(text.clone());
+                let msg = ChatMessage {
+                    channel: ChatChannel::System,
+                    sender_id: String::new(),
+                    sender: String::new(),
+                    text,
+                    whisper_to: None,
+                };
+                self.record(&msg);
+                Some(msg)
             }
             Some("friends.snapshot") => {
                 self.friends = value
@@ -607,6 +621,42 @@ mod tests {
             let parsed = ChatChannel::from_str(s).expect("from_str failed");
             assert_eq!(parsed, ch);
         }
+    }
+
+    /// A refused request is not a broken socket. Marking the connection failed
+    /// here made every empty tab read CHAT DEGRADED and closed the gates that
+    /// require `Online`.
+    #[test]
+    fn a_refused_request_stays_online_and_reaches_the_log() {
+        let mut client = ChatClient::new(10);
+        client.on_incoming(r#"{"type":"chat.hello","self":{"id":"a","displayName":"A"}}"#);
+        client.on_incoming(r#"{"type":"chat.history","channel":"local","messages":[]}"#);
+        assert_eq!(client.connection.state, ChatConnectionState::Online);
+
+        let surfaced = client.on_incoming(
+            r#"{"type":"chat.error","code":"no_guild","message":"You are not in a guild."}"#,
+        );
+
+        assert_eq!(client.connection.state, ChatConnectionState::Online);
+        let surfaced = surfaced.expect("a refusal must reach the player");
+        assert_eq!(surfaced.channel, ChatChannel::System);
+        assert_eq!(surfaced.text, "You are not in a guild.");
+        assert!(
+            client.history.iter().any(|m| m.text == "You are not in a guild."),
+            "the refusal must be recorded in the log, not just returned"
+        );
+    }
+
+    /// Transport failure is still a failure - the split must not swallow it.
+    #[test]
+    fn a_transport_failure_still_degrades_the_connection() {
+        let mut client = ChatClient::new(10);
+        client.on_incoming(r#"{"type":"chat.hello","self":{"id":"a","displayName":"A"}}"#);
+        client.on_incoming(r#"{"type":"chat.history","channel":"local","messages":[]}"#);
+
+        client.connection.failed("socket closed");
+
+        assert_eq!(client.connection.state, ChatConnectionState::Degraded);
     }
 
     #[test]

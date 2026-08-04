@@ -8,7 +8,7 @@ use successor_engine_render::ui::UiBuilder;
 use successor_net::ClientCommand;
 
 thread_local! {
-    static BANK_STEP_AMOUNT: Cell<u64> = Cell::new(100);
+    static BANK_STEP_AMOUNT: Cell<u64> = const { Cell::new(100) };
 }
 
 pub fn bank(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<WindowAction>) {
@@ -116,6 +116,39 @@ pub fn bank(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Win
     }
 }
 
+/// District exchange holdings. Drawn as the datapad's DATA pane, so it opens on
+/// a section rule and inherits the datapad's metrics rather than resolving a
+/// surface of its own.
+pub fn exchange(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    metrics: Metrics,
+    model: &WindowModel,
+    out: &mut Vec<WindowAction>,
+) {
+    let [x, y, w, h] = rect;
+    let w = w.max(0.0);
+    let top = chrome::section(ui, x, y, w, "EXCHANGE", metrics);
+    let mut rows = Rows::new([x, top, w, (y + h - top).max(0.0)], metrics);
+    let mut any = false;
+    for row in model.inventory.exchange().take(10) {
+        any = true;
+        let Some(mut list) = rows.next(ui) else { break };
+        if row.quantity > 0 && list.action(ui, "RETRIEVE") {
+            out.push(WindowAction::Command(ClientCommand::RetrieveFromExchange {
+                item_id: row.item_id,
+                variant_id: row.variant_id,
+                quantity: row.quantity as u32,
+            }));
+        }
+        list.value(ui, &qty(row.quantity));
+        list.label(ui, &row.item);
+    }
+    if !any {
+        chrome::empty(ui, x, rows.cursor(), "EXCHANGE EMPTY");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,38 +245,5 @@ mod tests {
         ui.begin(1280, 900);
         out.clear();
         bank(&mut ui, ctx_tab1, &model, &mut out);
-    }
-}
-
-/// District exchange holdings. Drawn as the datapad's DATA pane, so it opens on
-/// a section rule and inherits the datapad's metrics rather than resolving a
-/// surface of its own.
-pub fn exchange(
-    ui: &mut UiBuilder,
-    rect: [f32; 4],
-    metrics: Metrics,
-    model: &WindowModel,
-    out: &mut Vec<WindowAction>,
-) {
-    let [x, y, w, h] = rect;
-    let w = w.max(0.0);
-    let top = chrome::section(ui, x, y, w, "EXCHANGE", metrics);
-    let mut rows = Rows::new([x, top, w, (y + h - top).max(0.0)], metrics);
-    let mut any = false;
-    for row in model.inventory.exchange().take(10) {
-        any = true;
-        let Some(mut list) = rows.next(ui) else { break };
-        if row.quantity > 0 && list.action(ui, "RETRIEVE") {
-            out.push(WindowAction::Command(ClientCommand::RetrieveFromExchange {
-                item_id: row.item_id,
-                variant_id: row.variant_id,
-                quantity: row.quantity as u32,
-            }));
-        }
-        list.value(ui, &qty(row.quantity));
-        list.label(ui, &row.item);
-    }
-    if !any {
-        chrome::empty(ui, x, rows.cursor(), "EXCHANGE EMPTY");
     }
 }

@@ -346,7 +346,7 @@ pub struct LootModel {
 
 // ─────────────────────────────── trade ───────────────────────────────────────
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct TradeItemLine {
     pub item_id: u32,
@@ -355,7 +355,7 @@ pub struct TradeItemLine {
     pub quantity: i64,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct TradeSide {
     pub actor_id: String,
@@ -365,7 +365,7 @@ pub struct TradeSide {
     pub confirmed: bool,
 }
 /// Wire `GameTradeSession` (streamed to both participants).
-#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct TradeSession {
     pub proposal_id: u32,

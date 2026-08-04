@@ -123,14 +123,13 @@ pub fn datapad(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<
             for draft in model.craft.drafts.iter().take(10) {
                 any = true;
                 let Some(mut row) = rows.next(ui) else { break };
-                if model.craft.factory.available && draft.remaining_uses > 0 {
-                    if row.action(ui, "MANUFACTURE") {
+                if model.craft.factory.available && draft.remaining_uses > 0
+                    && row.action(ui, "MANUFACTURE") {
                         out.push(WindowAction::Command(ClientCommand::FactoryManufacture {
                             factory_id: model.craft.factory.prop_id.clone().unwrap_or_default(),
                             schematic_id: draft.id.clone(),
                         }));
                     }
-                }
                 row.value(ui, &format!("USES {}/{}", draft.remaining_uses, draft.max_uses));
                 row.value(ui, &format!("RECIPE {}", draft.recipe_id));
                 row.label(ui, &format!("OUT {} | {}", draft.output_item_id, draft.id));

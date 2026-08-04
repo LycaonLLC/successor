@@ -30,8 +30,9 @@ pub enum TerrainKind {
     Hardpan = 2,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Biome {
+    #[default]
     Desert,
     Forest,
 }
