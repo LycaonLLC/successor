@@ -749,6 +749,7 @@ const WINDOW_LAYOUT_SCHEMA: &str = "successor.window-layout.v1";
 fn restore_window_layout(
     manager: &mut successor_engine_render::window::WindowManager,
     value: Option<&serde_json::Value>,
+    viewport: (f32, f32),
 ) -> [bool; crate::hud::HUD_SURFACE_COUNT] {
     let Some(rows) = value
         .filter(|document| {
@@ -759,6 +760,20 @@ fn restore_window_layout(
     else {
         return [true; crate::hud::HUD_SURFACE_COUNT];
     };
+
+    // HUD panes are edge-anchored furniture, not player-arranged windows: a
+    // rect saved at one framebuffer puts the bottom band mid-screen at any
+    // larger one. When the framebuffer differs from the capture, drop the
+    // saved HUD geometry so every pane re-registers against the live viewport.
+    // A document predating this field is treated as foreign.
+    let hud_geometry_valid = value
+        .and_then(|document| document.get("viewport"))
+        .and_then(serde_json::Value::as_array)
+        .filter(|saved| saved.len() == 2)
+        .and_then(|saved| Some((saved[0].as_f64()?, saved[1].as_f64()?)))
+        .is_some_and(|(w, h)| {
+            (w as f32 - viewport.0).abs() < 0.5 && (h as f32 - viewport.1).abs() < 0.5
+        });
 
     let mut missing_hud = [true; crate::hud::HUD_SURFACE_COUNT];
     let mut open_rows = Vec::new();
@@ -781,11 +796,12 @@ fn restore_window_layout(
             };
             bounds[index] = number as f32;
         }
-        if valid && manager.set_rect(id, bounds) {
-            if let Some(index) = crate::hud::HUD_SURFACES
-                .iter()
-                .position(|surface| surface.id == id)
-            {
+        let is_hud = crate::hud::HUD_SURFACES
+            .iter()
+            .position(|surface| surface.id == id);
+        let apply_geometry = valid && (is_hud.is_none() || hud_geometry_valid);
+        if apply_geometry && manager.set_rect(id, bounds) {
+            if let Some(index) = is_hud {
                 missing_hud[index] = false;
             }
         }
@@ -821,6 +837,7 @@ fn restore_window_layout(
 
 fn save_window_layout(
     manager: &successor_engine_render::window::WindowManager,
+    viewport: (f32, f32),
 ) -> serde_json::Value {
     let mut z_order = Vec::new();
     manager.fill_z_order(&mut z_order);
@@ -848,7 +865,11 @@ fn save_window_layout(
         }
         windows.push(serde_json::Value::Object(row));
     });
-    serde_json::json!({"schema": WINDOW_LAYOUT_SCHEMA, "windows": windows})
+    serde_json::json!({
+        "schema": WINDOW_LAYOUT_SCHEMA,
+        "viewport": [viewport.0, viewport.1],
+        "windows": windows,
+    })
 }
 
 fn filtered_gait_speed(previous: f32, displacement_cells: f32, dt_seconds: f32) -> f32 {
@@ -1714,10 +1735,17 @@ impl ConnectedScene {
             .unwrap_or(100);
         self.waypoints = hud::waypoints::WaypointStore::load(waypoints);
         self.macro_runtime = crate::game::macro_runtime::MacroRuntime::load(macros);
-        self.hud_defaults_pending = restore_window_layout(&mut self.wm, window_layout);
+        let viewport = self.viewport_size();
+        self.hud_defaults_pending = restore_window_layout(&mut self.wm, window_layout, viewport);
         self.window_layout_dirty = false;
         self.preferences_dirty = false;
         self.project_windows();
+    }
+
+    /// Live framebuffer as layout floats: the space every window rect is
+    /// measured in, and the stamp a saved layout is matched against.
+    fn viewport_size(&self) -> (f32, f32) {
+        (self.framebuffer.0 as f32, self.framebuffer.1 as f32)
     }
 
     pub fn take_persisted(&mut self) -> PersistedSections {
@@ -1733,7 +1761,7 @@ impl ConnectedScene {
             local.then(|| serde_json::Value::from(self.split_snap)),
             waypoint.then(|| self.waypoints.save()),
             macros.then(|| self.macro_runtime.save()),
-            window_layout.then(|| save_window_layout(&self.wm)),
+            window_layout.then(|| save_window_layout(&self.wm, self.viewport_size())),
         );
         if waypoint {
             self.waypoints.mark_saved();
@@ -4653,16 +4681,18 @@ mod tests {
             &mut manager,
             Some(&serde_json::json!({
                 "schema": WINDOW_LAYOUT_SCHEMA,
+                "viewport": [1280.0, 720.0],
                 "windows": [
                     {"id": "inventory", "bounds": [33.0, 44.0, 660.0, 521.0]},
                     {"id": "missing", "bounds": [1.0, 2.0, 3.0, 4.0]},
                     {"id": "inventory", "bounds": ["bad", 2.0, 3.0, 4.0]}
                 ]
             })),
+            (1280.0, 720.0),
         );
         assert_eq!(manager.rect("inventory"), Some([33.0, 44.0, 660.0, 521.0]));
 
-        let saved = save_window_layout(&manager);
+        let saved = save_window_layout(&manager, (1280.0, 720.0));
         assert_eq!(
             saved.get("schema").and_then(serde_json::Value::as_str),
             Some(WINDOW_LAYOUT_SCHEMA)
@@ -4687,11 +4717,11 @@ mod tests {
         assert!(source.set_rect(crate::hud::PLAYER_STATUS_ID, [90.0, 70.0, 360.0, 220.0]));
         source.close(crate::hud::TARGET_STATUS_ID);
         source.open(crate::hud::COMMAND_BAR_ID);
-        let saved = save_window_layout(&source);
+        let saved = save_window_layout(&source, viewport);
 
         let mut restored = successor_engine_render::window::WindowManager::new();
         crate::hud::register_hud_surfaces_at(&mut restored, &icons, viewport);
-        let missing = restore_window_layout(&mut restored, Some(&saved));
+        let missing = restore_window_layout(&mut restored, Some(&saved), viewport);
 
         assert_eq!(missing, [false; crate::hud::HUD_SURFACE_COUNT]);
         assert_eq!(
@@ -4704,6 +4734,46 @@ mod tests {
         assert_eq!(
             restored.window_id(*order.last().expect("command bar is open")),
             crate::hud::COMMAND_BAR_ID
+        );
+    }
+
+    #[test]
+    fn hud_surfaces_re_anchor_when_the_framebuffer_changes() {
+        let icons = crate::hud::Icons::load();
+        let small = (1280.0, 720.0);
+        let large = (1728.0, 1052.0);
+
+        let mut source = successor_engine_render::window::WindowManager::new();
+        crate::hud::register_hud_surfaces_at(&mut source, &icons, small);
+        let saved = save_window_layout(&source, small);
+
+        // Same framebuffer: the saved rects are authoritative.
+        let mut same = successor_engine_render::window::WindowManager::new();
+        crate::hud::register_hud_surfaces_at(&mut same, &icons, small);
+        assert_eq!(
+            restore_window_layout(&mut same, Some(&saved), small),
+            [false; crate::hud::HUD_SURFACE_COUNT]
+        );
+
+        // Grown framebuffer: every HUD pane is reported missing so the caller
+        // re-registers it against the live viewport instead of stranding the
+        // bottom band where 720p put it.
+        let mut grown = successor_engine_render::window::WindowManager::new();
+        crate::hud::register_hud_surfaces_at(&mut grown, &icons, large);
+        let before = grown.rect(crate::hud::CHAT_CONSOLE_ID);
+        assert_eq!(
+            restore_window_layout(&mut grown, Some(&saved), large),
+            [true; crate::hud::HUD_SURFACE_COUNT]
+        );
+        assert_eq!(
+            grown.rect(crate::hud::CHAT_CONSOLE_ID),
+            before,
+            "stale 720p geometry must not overwrite the live layout"
+        );
+        let chat = grown.rect(crate::hud::CHAT_CONSOLE_ID).expect("chat rect");
+        assert!(
+            chat[1] + chat[3] > large.1 - 64.0,
+            "chat console stays anchored to the bottom edge, got {chat:?}"
         );
     }
 
