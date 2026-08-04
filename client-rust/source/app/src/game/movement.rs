@@ -6,6 +6,39 @@ use std::collections::{HashMap, VecDeque};
 use successor_engine_core::input::Key;
 use successor_net::{CardinalDirection, ClientCommand, ClientCommandEnvelope, PlayerId, SessionId};
 
+/// Frames between re-announcements of an unchanged intent.
+pub const INTENT_RESEND_FRAMES: u64 = 6;
+
+/// How long a released intent keeps being re-announced.
+///
+/// The authority holds a move intent for one second past its last accepted
+/// update and rate-limits ingress, so a command can simply be refused. Movement
+/// survives that: it re-announces itself while a key is held. A stop does not -
+/// it is a single edge, sent once. Lose that one packet to the rate limiter and
+/// the actor keeps walking on the stale intent until it expires, which is what
+/// a player feels as the character running on after they let go.
+///
+/// So a stop re-announces too, across the authority's own expiry window. Costs
+/// a handful of commands per release, and no single rejection can swallow it.
+pub const STOP_RESEND_FRAMES: u64 = 66;
+
+/// Whether this frame should send the movement intent to the authority.
+pub fn should_send_intent(
+    intent: (i32, i32, bool),
+    last: (i32, i32, bool),
+    frame: u64,
+    frames_since_change: u64,
+) -> bool {
+    if intent != last {
+        return true;
+    }
+    if !frame.is_multiple_of(INTENT_RESEND_FRAMES) {
+        return false;
+    }
+    let stopped = intent == (0, 0, false);
+    !stopped || frames_since_change < STOP_RESEND_FRAMES
+}
+
 /// Directional intent from the current key state. Convention: `+dx` = east
 /// (D/Right), `+dy` = south (S/Down); the authority interprets the axes.
 pub fn intent_from_keys(down: impl Fn(Key) -> bool) -> (i32, i32, bool) {
@@ -289,5 +322,42 @@ mod tests {
         let route = route_grid((0, 0), (1, 1), |x, y| blocked.contains(&(x, y)));
         assert!(route.is_some());
         assert_ne!(route.unwrap().first(), Some(&(1, 1)));
+    }
+
+    #[test]
+    fn a_release_is_re_announced_until_the_authority_intent_expires() {
+        let walking = (1, 0, false);
+        let stopped = (0, 0, false);
+
+        // The edge itself always sends.
+        assert!(should_send_intent(stopped, walking, 600, 0));
+
+        // And the stop keeps being announced across the authority's expiry
+        // window, so one refused command cannot strand the actor walking.
+        let repeats = (0..STOP_RESEND_FRAMES)
+            .filter(|offset| should_send_intent(stopped, stopped, 600 + offset, *offset))
+            .count();
+        assert!(
+            repeats >= 8,
+            "a released key must survive a dropped stop, got {repeats} re-announcements"
+        );
+
+        // Once the intent has expired on the authority there is nothing left to
+        // announce, and an idle player stops paying for commands.
+        assert!(!should_send_intent(
+            stopped,
+            stopped,
+            600,
+            STOP_RESEND_FRAMES
+        ));
+        assert!(!should_send_intent(
+            stopped,
+            stopped,
+            600,
+            STOP_RESEND_FRAMES * 10
+        ));
+
+        // A held key still re-announces forever; that path is unchanged.
+        assert!(should_send_intent(walking, walking, 600, 100_000));
     }
 }

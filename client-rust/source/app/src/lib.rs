@@ -290,6 +290,9 @@ mod web_runtime {
     static CONNECTED_DT: GlobalCell<f32> = GlobalCell::new();
     static VIEW_SENT: GlobalCell<bool> = GlobalCell::new();
     static LAST_MOVE: GlobalCell<(i32, i32, bool)> = GlobalCell::new();
+    /// Frame the move intent last changed, so a release can be re-announced
+    /// across the authority's one-second intent expiry.
+    static LAST_MOVE_FRAME: GlobalCell<u64> = GlobalCell::new();
     static FATAL: GlobalCell<bool> = GlobalCell::new();
     static EXITING: GlobalCell<bool> = GlobalCell::new();
     static CREATOR_MODE: GlobalCell<bool> = GlobalCell::new();
@@ -720,7 +723,11 @@ mod web_runtime {
         let intent = (dx, dy, held_sprint || scene.sprint_toggled());
         scene.set_move_intent(intent.0, intent.1, intent.2);
         let last = LAST_MOVE.get_mut().copied().unwrap_or((0, 0, false));
-        if intent != last || (intent != (0, 0, false) && frame.is_multiple_of(6)) {
+        let changed_at = LAST_MOVE_FRAME.get_mut().copied().unwrap_or(0);
+        if movement::should_send_intent(intent, last, frame, frame.saturating_sub(changed_at)) {
+            if intent != last {
+                LAST_MOVE_FRAME.set(frame);
+            }
             LAST_MOVE.set(intent);
             let _ = scene.dispatch_gameplay_action(actions::GameplayAction::Move {
                 dx: intent.0,

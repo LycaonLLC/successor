@@ -2094,6 +2094,9 @@ mod connected {
                 }
             });
         let mut last_intent = (0i32, 0i32, false);
+        // Frame the intent last changed, so a release can be re-announced
+        // across the authority's one-second intent expiry.
+        let mut last_intent_frame = 0u64;
         let mut chat_buf = Vec::with_capacity(64 * 1024);
         let mut chat_input = TextField::new(320);
         let mut chat_enter_was_down = false;
@@ -2270,7 +2273,15 @@ mod connected {
                         let _ = scene.release_movement(movement::StopReason::Dead);
                         last_intent = (0, 0, false);
                     }
-                } else if intent != last_intent || (moving && frame.is_multiple_of(6)) {
+                } else if movement::should_send_intent(
+                    intent,
+                    last_intent,
+                    frame,
+                    frame.saturating_sub(last_intent_frame),
+                ) {
+                    if intent != last_intent {
+                        last_intent_frame = frame;
+                    }
                     last_intent = intent;
                     let _ = scene.dispatch_gameplay_action(actions::GameplayAction::Move {
                         dx: intent.0,
