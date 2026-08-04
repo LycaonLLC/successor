@@ -1338,9 +1338,10 @@ mod tests {
             Some(0),
             Some(1),
         ];
-        let enterable =
-            Json::parse(r#"{"revealPrefixes":["roof__","wall_front__","wall_right__"]}"#)
-                .expect("enterable mapping");
+        let enterable = Json::parse(
+            r#"{"revealPrefixes":["roof__","wall_front__","wall_right__","wall_back__","wall_left__"]}"#,
+        )
+        .expect("enterable mapping");
         let prefixes = enterable_reveal_prefixes(&enterable).expect("reveal prefixes");
 
         assert!(part_matches_reveal_prefixes(
@@ -1364,7 +1365,14 @@ mod tests {
             prefixes,
             Some("door_slide")
         ));
-        for node in [3, 4, 5, 6] {
+        assert!(part_matches_reveal_prefixes(
+            &names,
+            &parents,
+            6,
+            prefixes,
+            Some("door_slide")
+        ));
+        for node in [3, 4, 5] {
             assert!(!part_matches_reveal_prefixes(
                 &names,
                 &parents,

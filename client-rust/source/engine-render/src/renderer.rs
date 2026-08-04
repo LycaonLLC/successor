@@ -2162,7 +2162,7 @@ impl Renderer {
         });
         self.uniforms.push(Uniform {
             name: "u_screenSize",
-            value: UniformValue::Vec4([gw as f32, gh as f32, 0.0, 0.0]),
+            value: UniformValue::Vec2([gw as f32, gh as f32]),
         });
         self.uniforms.push(Uniform {
             name: "u_exposure",
