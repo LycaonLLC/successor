@@ -1452,8 +1452,12 @@ pub fn build_hud(
     }
 
     // Group invite toast + member rail are transient authority events, not
-    // workspace panes.
-    plate::draw_group(ui, &pal, st, sw, out);
+    // workspace panes. The rail tracks the live plate so a player-moved status
+    // plate keeps its group directly beneath it.
+    let group_rail = player_rect
+        .map(|[px, py, pw, ph]| [px, py + ph + layout::GUTTER, pw, layout::GROUP_H])
+        .unwrap_or_else(|| layout::compute(sw, sh).group);
+    plate::draw_group(ui, &pal, st, sw, group_rail, out);
 
     // Interact chip and toasts stay tied to the live chat pane, so they follow
     // a player-moved console without becoming persistent surfaces themselves.

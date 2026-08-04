@@ -30,7 +30,13 @@ pub const BAR_MIN_H: f32 = 48.0;
 pub const PLATE_W: f32 = super::plate::PLATE_W;
 pub const PLATE_H: f32 = super::plate::PLATE_H;
 pub const PLATE_MIN_W: f32 = 240.0;
-pub const PLATE_MIN_H: f32 = 120.0;
+pub const PLATE_MIN_H: f32 = 78.0;
+/// Group rail: the lane directly beneath the player plate belongs to group
+/// members and nothing else. It is sized for the full chip run so a filling
+/// group never pushes into the panes below.
+pub const GROUP_W: f32 = PLATE_W;
+pub const GROUP_H: f32 = super::plate::GROUP_CHIP_H * super::GROUP_CHIP_MAX as f32
+    + super::plate::GROUP_CHIP_GAP * (super::GROUP_CHIP_MAX as f32 - 1.0);
 /// Target status stays in the top-right rail, beneath the command bar.
 pub const TARGET_W: f32 = 280.0;
 pub const TARGET_H: f32 = 84.0;
@@ -63,6 +69,8 @@ pub const DOCK_BTN: f32 = 30.0;
 pub struct HudLayout {
     /// Player status plate, top-left.
     pub plate: [f32; 4],
+    /// Group member rail, directly beneath the plate.
+    pub group: [f32; 4],
     /// Target plate, top-right beneath the command bar.
     pub target: [f32; 4],
     /// Command bar (toolbar slots), fixed size, top-center.
@@ -103,6 +111,12 @@ pub fn compute(viewport_w: f32, viewport_h: f32) -> HudLayout {
     let plate_w = compact_dimension(PLATE_MIN_W, PLATE_W, vw);
     let plate_h = compact_dimension(PLATE_MIN_H, PLATE_H, vw);
     let plate = [0.0, 0.0, plate_w, plate_h];
+
+    // The lane under the plate is the group's. It shares the plate's column and
+    // stops short of the radar lane so a full group never reaches the bottom
+    // band.
+    let group_y = plate[1] + plate[3] + GUTTER;
+    let group = [plate[0], group_y, plate_w, GROUP_H];
 
     let target_w = compact_dimension(TARGET_MIN_W, TARGET_W, vw);
     let target_h = compact_dimension(TARGET_MIN_H, TARGET_H, vw);
@@ -166,10 +180,11 @@ pub fn compute(viewport_w: f32, viewport_h: f32) -> HudLayout {
     let chip_y = (chat[1] - 26.0).max(bar[1] + bar[3] + GUTTER);
     let chip = [vw * 0.5, chip_y];
     let toast = [vw * 0.5, (chip_y - 24.0).max(bar[1] + bar[3] + GUTTER)];
-    let guidance = [MARGIN, plate[1] + plate[3] + 24.0];
+    let guidance = [MARGIN, group[1] + group[3] + 24.0];
 
     HudLayout {
         plate,
+        group,
         target,
         bar,
         radar,
@@ -191,9 +206,10 @@ fn overlaps(a: [f32; 4], b: [f32; 4]) -> bool {
 impl HudLayout {
     /// Persistent manager-owned defaults, for collision checks and host wiring.
     /// The fixed window-launcher dock is intentionally excluded.
-    pub fn rects(&self) -> [(&'static str, [f32; 4]); 7] {
+    pub fn rects(&self) -> [(&'static str, [f32; 4]); 8] {
         [
             ("plate", self.plate),
+            ("group", self.group),
             ("target", self.target),
             ("bar", self.bar),
             ("radar", self.radar),

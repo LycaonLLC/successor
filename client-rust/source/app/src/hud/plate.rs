@@ -16,8 +16,18 @@ pub const MAX_PIPS: u32 = 48;
 
 /// Measured player-status content well. The renderer reflows its rows within
 /// this manager-owned default and the layout registry uses the same source.
+///
+/// The height is the content, not a reserved block: 4 top pad + 13 tag row +
+/// 17 name/RUN row + 33 pool stack + 3 + 11 weapon label + 6 pip bar + 5 floor.
+/// Nothing else lives in this pane — group members get their own rect directly
+/// beneath it and the target has the top-right rail.
 pub const PLATE_W: f32 = 300.0;
-pub const PLATE_H: f32 = 162.0;
+pub const PLATE_H: f32 = 92.0;
+
+/// One group member chip: name/state row over a health sliver, plus the gap to
+/// the next chip. The reserved group rail is sized from these.
+pub const GROUP_CHIP_H: f32 = 30.0;
+pub const GROUP_CHIP_GAP: f32 = 4.0;
 
 fn button_style(pal: &Palette) -> ButtonStyle {
     ButtonStyle {
@@ -435,11 +445,16 @@ pub fn draw_target_plate(ui: &mut UiBuilder, pal: &Palette, target: &TargetHud, 
 }
 
 /// Group invite toast (top-center) + member rail. Emits GroupAccept/Decline.
+///
+/// `rail` is the reserved group rect directly beneath the player status plate;
+/// members stack down it and stop at its floor rather than running under the
+/// panes below.
 pub fn draw_group(
     ui: &mut UiBuilder,
     pal: &Palette,
     st: &HudState,
     sw: f32,
+    rail: [f32; 4],
     out: &mut Vec<HudAction>,
 ) {
     if let Some(inviter) = &st.group_invite_from {
@@ -462,11 +477,15 @@ pub fn draw_group(
     if st.group_members.is_empty() {
         return;
     }
-    let x = 16.0;
-    let mut y = 110.0;
+    let [x, rail_y, rail_w, rail_h] = rail;
+    let rail_bottom = rail_y + rail_h;
+    let mut y = rail_y;
     for member in st.group_members.iter().take(GROUP_CHIP_MAX) {
-        let w = 180.0;
-        ui.panel(x, y, w, 30.0, pal.bg_panel, pal.hairline);
+        let w = rail_w;
+        if y + GROUP_CHIP_H > rail_bottom {
+            break;
+        }
+        ui.panel(x, y, w, GROUP_CHIP_H, pal.bg_panel, pal.hairline);
         if member.leader {
             ui.rect(x + 4.0, y + 4.0, 4.0, 4.0, pal.accent); // leader pip
         }
@@ -489,10 +508,10 @@ pub fn draw_group(
             let tint = if frac <= 0.25 { pal.danger } else { pal.accent };
             ui.rect(x + 12.0, y + 20.0, (w - 24.0) * frac, 4.0, tint);
         }
-        y += 34.0;
+        y += GROUP_CHIP_H + GROUP_CHIP_GAP;
     }
     let overflow = st.group_members.len().saturating_sub(GROUP_CHIP_MAX);
-    if overflow > 0 {
+    if overflow > 0 && y + 8.0 <= rail_bottom {
         ui.text(&format!("+{overflow} MORE"), x, y + 2.0, 1.4, pal.ink_dim);
     }
 }
@@ -669,12 +688,18 @@ pub fn draw_death_overlay(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hud::{palette, Icons};
+    use crate::hud::{palette, GroupMemberHud, Icons};
     use successor_engine_render::ui::UiBuilder;
 
     fn ui() -> UiBuilder {
         UiBuilder::new(Icons::load().meta)
     }
+
+    /// The reserved group rail from the default 1280x720 layout.
+    const GROUP_RAIL: [f32; 4] = {
+        let l = crate::hud::layout::GROUP_H;
+        [0.0, PLATE_H + crate::hud::layout::GUTTER, PLATE_W, l]
+    };
 
     #[test]
     fn disconnected_plate_draws_without_actions() {
@@ -898,11 +923,54 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw_group(&mut ui, &pal, &st, 1280.0, &mut out);
+        draw_group(&mut ui, &pal, &st, 1280.0, GROUP_RAIL, &mut out);
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw_group(&mut ui, &pal, &st, 1280.0, &mut out);
+        draw_group(&mut ui, &pal, &st, 1280.0, GROUP_RAIL, &mut out);
         assert_eq!(out, vec![HudAction::GroupAccept]);
+    }
+
+    #[test]
+    fn group_rail_stacks_under_the_plate_and_stops_at_its_floor() {
+        // Six members against a rail with room for two: the rail must clip to
+        // its own floor instead of running down over the panes below it.
+        let pal = palette(0);
+        let members: Vec<GroupMemberHud> = (0..6)
+            .map(|i| GroupMemberHud {
+                actor_id: format!("actor-{i}"),
+                name: format!("MEMBER {i}"),
+                leader: i == 0,
+                health_frac: 1.0,
+                down: false,
+                link_dead: false,
+            })
+            .collect();
+        let st = HudState {
+            group_members: members,
+            ..HudState::default()
+        };
+        let short_rail = [0.0, 100.0, 300.0, GROUP_CHIP_H * 2.0 + GROUP_CHIP_GAP];
+
+        let mut short_ui = ui();
+        short_ui.begin(1280, 720);
+        let mut out = Vec::new();
+        draw_group(&mut short_ui, &pal, &st, 1280.0, short_rail, &mut out);
+        let clipped = short_ui.quads;
+
+        let mut full_ui = ui();
+        full_ui.begin(1280, 720);
+        out.clear();
+        draw_group(&mut full_ui, &pal, &st, 1280.0, GROUP_RAIL, &mut out);
+        let full = full_ui.quads;
+
+        // The short rail admits strictly fewer chips than the reserved rail,
+        // and the reserved rail is sized to hold the whole capped run.
+        assert!(clipped < full, "clipped={clipped} full={full}");
+        assert!(
+            GROUP_RAIL[3]
+                >= GROUP_CHIP_H * GROUP_CHIP_MAX as f32
+                    + GROUP_CHIP_GAP * (GROUP_CHIP_MAX as f32 - 1.0)
+        );
     }
 }

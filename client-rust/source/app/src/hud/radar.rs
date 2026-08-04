@@ -76,10 +76,29 @@ const CARDINAL_TICK: f32 = 4.0;
 const CARDINAL_INSET: f32 = 9.5;
 /// Smallest legible scope.
 pub const MIN_SCOPE_PX: f32 = 96.0;
+/// Span rows used to fill the scope face. The draw list is quad-only, so the
+/// disc is assembled from horizontal spans; 40 rows is under a pixel of stair
+/// stepping at the default scope and stays cheap at the resize ceiling.
+const FACE_ROWS: u32 = 40;
 
 /// Plot scale for a scope of `scope_px` across.
 fn scale_for(scope_px: f32) -> f32 {
     (scope_px / 2.0 - 7.0).max(1.0) / RADIUS_CELLS
+}
+
+/// Fill the circular instrument face. The radar also renders chromeless on the
+/// HUD, where no managed window supplies a background — without this the grid,
+/// cardinals and contacts sit directly on the world and stop being readable.
+fn fill_scope_face(ui: &mut UiBuilder, cx: f32, cy: f32, r: f32, rgba: [u8; 4]) {
+    let step = 2.0 * r / FACE_ROWS as f32;
+    for row in 0..FACE_ROWS {
+        let top = cy - r + row as f32 * step;
+        let t = (top + step * 0.5 - cy) / r;
+        let half = r * (1.0 - t * t).max(0.0).sqrt();
+        if half > 0.4 {
+            ui.rect(cx - half, top, half * 2.0, step + 0.6, rgba);
+        }
+    }
 }
 
 /// Scope square for a pane rect: the largest centred circle the pane can hold
@@ -201,6 +220,7 @@ pub fn draw_radar(
     let cy = scope_y + c;
     let rim = c - 1.5;
     let grid = [pal.hairline[0], pal.hairline[1], pal.hairline[2], 100];
+    fill_scope_face(ui, cx, cy, rim, pal.bg_cell);
     ui.line(cx - rim, cy, cx + rim, cy, 0.8, grid);
     ui.line(cx, cy - rim, cx, cy + rim, 0.8, grid);
     ui.ring(cx, cy, rim, 72, 1.2, pal.hairline);
@@ -415,5 +435,29 @@ mod tests {
         );
         assert!(ui.quads > base);
         assert!(out.is_empty());
+    }
+
+    #[test]
+    fn scope_face_is_opaque_so_the_chromeless_radar_is_readable() {
+        // The radar also renders without managed-window chrome. Without its own
+        // face the grid and contacts sit on bare world pixels, so the face must
+        // be a filled disc, not a ring.
+        let mut ui = UiBuilder::new(crate::hud::Icons::load().meta);
+        let st = HudState::default();
+        let mut out = Vec::new();
+        ui.begin(1280, 720);
+        draw_radar(
+            &mut ui,
+            &crate::hud::palette(0),
+            &st,
+            [0.0, 560.0, PANEL_W, PANEL_H],
+            false,
+            &mut out,
+        );
+        assert!(
+            ui.quads >= FACE_ROWS,
+            "scope face missing: {} quads for {FACE_ROWS} span rows",
+            ui.quads
+        );
     }
 }
