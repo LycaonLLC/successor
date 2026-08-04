@@ -11,19 +11,23 @@
 //! Web builds decode through Web Audio and use the same trigger map; the
 //! native decode path stays out of the wasm module.
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::{Arc, Mutex};
 
-use successor_engine_core::audio::{Mixer, Pcm, Point, SpatialOpts};
+use successor_engine_core::audio::{Point, SpatialOpts};
+#[cfg(not(target_arch = "wasm32"))]
+use successor_engine_core::audio::{Mixer, Pcm};
 
 pub mod triggers;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod wav;
 pub use triggers::*;
 
-/// Output sample rate the mixer runs at (manifest assets are 44.1 kHz).
+/// Output sample rate the native mixer runs at (manifest assets are 44.1 kHz).
+#[cfg(not(target_arch = "wasm32"))]
 pub const OUT_RATE: u32 = 44_100;
 
-/// Decode an MP3 byte stream to mono f32 PCM (downmixing channels). Returns the
-/// source sample rate from the first audio frame.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn decode_mp3(bytes: &[u8]) -> Pcm {
     use rmp3::{Decoder, Frame};
     let mut decoder = Decoder::new(bytes);
@@ -42,8 +46,7 @@ pub fn decode_mp3(bytes: &[u8]) -> Pcm {
                 out.extend_from_slice(samples);
             } else {
                 for chunk in samples.chunks_exact(channels) {
-                    let sum: f32 = chunk.iter().sum();
-                    out.push(sum / channels as f32);
+                    out.push(chunk.iter().sum::<f32>() / channels as f32);
                 }
             }
         }
@@ -54,37 +57,108 @@ pub fn decode_mp3(bytes: &[u8]) -> Pcm {
 #[derive(Clone, Debug)]
 struct ClipInfo {
     id: String,
+    #[cfg(target_arch = "wasm32")]
+    path: String,
+    #[cfg(not(target_arch = "wasm32"))]
     bank: usize,
-    volume: f32,
+    gain: f32,
     polyphony: u32,
-    bus: String,
 }
 
-/// The SFX player: owns the clip registry + bus gains over a shared mixer.
+#[derive(Debug)]
+struct ParsedClip {
+    id: String,
+    path: String,
+    gain: f32,
+    polyphony: u32,
+}
+
+fn normalized_audio_path(path: &str) -> Option<&str> {
+    let path = path.strip_prefix('/').unwrap_or(path);
+    (!path.is_empty()
+        && path.starts_with("successor-audio/")
+        && !path.contains("..")
+        && !path.contains('\\')
+        && !path.contains("://")
+        && !path.starts_with('/'))
+    .then_some(path)
+}
+
+fn parse_manifest(manifest_json: &str) -> Result<Vec<ParsedClip>, ()> {
+    let root: serde_json::Value = serde_json::from_str(manifest_json).map_err(|_| ())?;
+    if root.get("schema").and_then(|v| v.as_str()) != Some("successor-sfx-manifest-v1") {
+        return Err(());
+    }
+    let buses = root.get("buses").and_then(|v| v.as_object()).ok_or(())?;
+    let mut parsed_buses = Vec::with_capacity(buses.len());
+    for (name, value) in buses {
+        if name.is_empty() || parsed_buses.iter().any(|(known, _)| known == name) {
+            return Err(());
+        }
+        let gain = value.get("volume").and_then(|v| v.as_f64()).ok_or(())? as f32;
+        let polyphony = value.get("polyphony").and_then(|v| v.as_u64()).ok_or(())?;
+        if !gain.is_finite() || polyphony == 0 || polyphony > u32::MAX as u64 {
+            return Err(());
+        }
+        parsed_buses.push((name.as_str(), gain));
+    }
+    let clips = root.get("clips").and_then(|v| v.as_array()).ok_or(())?;
+    let mut parsed = Vec::with_capacity(clips.len());
+    for clip in clips {
+        let id = clip.get("id").and_then(|v| v.as_str()).ok_or(())?;
+        if id.is_empty() || parsed.iter().any(|known: &ParsedClip| known.id == id) {
+            return Err(());
+        }
+        let path = normalized_audio_path(clip.get("path").and_then(|v| v.as_str()).ok_or(())?)
+            .ok_or(())?;
+        let bus = clip.get("bus").and_then(|v| v.as_str()).ok_or(())?;
+        let bus_gain = parsed_buses
+            .iter()
+            .find(|(name, _)| *name == bus)
+            .map(|(_, gain)| *gain)
+            .ok_or(())?;
+        let clip_gain = clip.get("volume").and_then(|v| v.as_f64()).ok_or(())? as f32;
+        let polyphony = clip.get("polyphony").and_then(|v| v.as_u64()).ok_or(())?;
+        if !clip_gain.is_finite() || polyphony == 0 || polyphony > u32::MAX as u64 {
+            return Err(());
+        }
+        let gain = clip_gain * bus_gain;
+        if !gain.is_finite() {
+            return Err(());
+        }
+        parsed.push(ParsedClip {
+            id: id.to_string(),
+            path: path.to_string(),
+            gain,
+            polyphony: polyphony as u32,
+        });
+    }
+    Ok(parsed)
+}
+
 pub struct SfxPlayer {
+    #[cfg(not(target_arch = "wasm32"))]
     mixer: Arc<Mutex<Mixer>>,
     clips: Vec<ClipInfo>,
-    buses: Vec<(String, f32)>,
     listener: Point,
 }
 
 impl SfxPlayer {
     pub fn new() -> Self {
         Self {
+            #[cfg(not(target_arch = "wasm32"))]
             mixer: Arc::new(Mutex::new(Mixer::new(OUT_RATE, 64))),
             clips: Vec::new(),
-            buses: Vec::new(),
             listener: Point { x: 0.0, y: 0.0 },
         }
     }
 
-    /// Shared handle for the platform device sink: the fill callback locks the
-    /// mixer, mixes one block, and releases (no allocation in the callback).
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn shared_mixer(&self) -> Arc<Mutex<Mixer>> {
         Arc::clone(&self.mixer)
     }
-    /// Lock the mixer, recovering a poisoned guard: audio degrades to the
-    /// last coherent mixer state instead of panicking the frame loop.
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn lock_mixer(&self) -> std::sync::MutexGuard<'_, Mixer> {
         self.mixer
             .lock()
@@ -99,36 +173,19 @@ impl SfxPlayer {
         self.listener
     }
 
-    /// Load a manifest (JSON string), fetching each clip's MP3 bytes through
-    /// `read` (platform asset reader; ids are the manifest `path` values with
-    /// the leading `/` stripped). Missing/failed clips are skipped so a
-    /// partial asset tree still yields a working player — each miss is a
-    /// diagnosable degradation, not a fatal.
     pub fn load_with(
         &mut self,
         manifest_json: &str,
         read: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
     ) -> usize {
-        let v: serde_json::Value = match serde_json::from_str(manifest_json) {
-            Ok(v) => v,
-            Err(_) => return 0,
+        let Ok(parsed) = parse_manifest(manifest_json) else {
+            return 0;
         };
-        if let Some(buses) = v.get("buses").and_then(|b| b.as_object()) {
-            for (name, cfg) in buses {
-                let vol = cfg.get("volume").and_then(|x| x.as_f64()).unwrap_or(1.0) as f32;
-                self.buses.push((name.clone(), vol));
-            }
-        }
-        let mut loaded = 0;
-        if let Some(clips) = v.get("clips").and_then(|c| c.as_array()) {
-            for c in clips {
-                let id = match c.get("id").and_then(|x| x.as_str()) {
-                    Some(s) => s.to_string(),
-                    None => continue,
-                };
-                let path = c.get("path").and_then(|x| x.as_str()).unwrap_or("");
-                let stable_id = path.trim_start_matches('/');
-                let Some(bytes) = read(stable_id) else {
+        self.clips.clear();
+        for clip in parsed {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let Some(bytes) = read(&clip.path) else {
                     continue;
                 };
                 let pcm = decode_mp3(&bytes);
@@ -137,24 +194,27 @@ impl SfxPlayer {
                 }
                 let bank = self.lock_mixer().add_clip(pcm);
                 self.clips.push(ClipInfo {
-                    id,
+                    id: clip.id,
                     bank,
-                    volume: c.get("volume").and_then(|x| x.as_f64()).unwrap_or(1.0) as f32,
-                    polyphony: c.get("polyphony").and_then(|x| x.as_u64()).unwrap_or(4) as u32,
-                    bus: c
-                        .get("bus")
-                        .and_then(|x| x.as_str())
-                        .unwrap_or("")
-                        .to_string(),
+                    gain: clip.gain,
+                    polyphony: clip.polyphony,
                 });
-                loaded += 1;
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                let _ = read;
+                self.clips.push(ClipInfo {
+                    id: clip.id,
+                    path: clip.path,
+                    gain: clip.gain,
+                    polyphony: clip.polyphony,
+                });
             }
         }
-        loaded
+        self.clips.len()
     }
 
-    /// Filesystem-backed load (tests / tools): decodes each MP3 from
-    /// `assets_dir` by file name.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn load(&mut self, manifest_json: &str, assets_dir: &str) -> usize {
         let dir = assets_dir.trim_end_matches('/').to_string();
         self.load_with(manifest_json, &mut |stable_id: &str| {
@@ -164,102 +224,115 @@ impl SfxPlayer {
     }
 
     fn clip(&self, id: &str) -> Option<&ClipInfo> {
-        self.clips.iter().find(|c| c.id == id)
-    }
-    fn bus_volume(&self, bus: &str) -> f32 {
-        self.buses
-            .iter()
-            .find(|(n, _)| n == bus)
-            .map(|(_, v)| *v)
-            .unwrap_or(1.0)
+        self.clips.iter().find(|clip| clip.id == id)
     }
 
-    /// A stable per-clip voice key (FNV-1a of the id) for polyphony accounting.
     fn key(id: &str) -> u32 {
-        let mut h = 0x811c_9dc5u32;
-        for b in id.bytes() {
-            h ^= b as u32;
-            h = h.wrapping_mul(0x0100_0193);
+        let mut hash = 0x811c_9dc5u32;
+        for byte in id.bytes() {
+            hash ^= byte as u32;
+            hash = hash.wrapping_mul(0x0100_0193);
         }
-        h
+        hash
     }
 
-    /// Play a 2-D clip. `at` is the world/sim position; the listener + spatial
-    /// options shape gain + pan. Returns false if the clip is unknown.
+    fn dispatch(
+        &self,
+        clip: &ClipInfo,
+        key: u32,
+        gain: f32,
+        pan: f32,
+        looped: bool,
+        polyphony: u32,
+    ) -> bool {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.lock_mixer()
+                .play(clip.bank, key, gain, pan, 1.0, looped, polyphony)
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            successor_platform::web::audio_play(
+                &clip.path,
+                key,
+                gain,
+                pan,
+                looped,
+                polyphony,
+            )
+        }
+    }
+
     pub fn play_at(&mut self, id: &str, at: Point, opts: SpatialOpts) -> bool {
-        let (bank, base_gain, poly, pan) = match self.clip(id) {
-            Some(c) => {
-                let mix = successor_engine_core::audio::spatial_mix(self.listener, at, opts);
-                (
-                    c.bank,
-                    c.volume * self.bus_volume(&c.bus) * mix.gain,
-                    c.polyphony,
-                    mix.pan,
-                )
-            }
-            None => return false,
+        let Some(clip) = self.clip(id) else {
+            return false;
         };
-        if base_gain <= 0.0 {
-            return true; // culled by distance — nothing to play
-        }
-        self.lock_mixer()
-            .play(bank, Self::key(id), base_gain, pan, 1.0, false, poly)
-    }
-
-    /// Play a non-spatial (UI) clip at full listener-relative gain.
-    pub fn play_ui(&mut self, id: &str) -> bool {
-        let (bank, gain, poly) = match self.clip(id) {
-            Some(c) => (c.bank, c.volume * self.bus_volume(&c.bus), c.polyphony),
-            None => return false,
-        };
-        self.lock_mixer()
-            .play(bank, Self::key(id), gain, 0.0, 1.0, false, poly)
-    }
-
-    /// Start (or keep) a looping clip under an explicit voice key. Gain is
-    /// snapshotted from the given position; callers refresh long-lived loops
-    /// by re-issuing under the same key after `stop_loop`.
-    pub fn play_loop(&mut self, id: &str, key: u32, at: Option<Point>, volume: f32) -> bool {
-        let (bank, gain) = match self.clip(id) {
-            Some(c) => {
-                let spatial = at
-                    .map(|p| {
-                        successor_engine_core::audio::spatial_mix(
-                            self.listener,
-                            p,
-                            SpatialOpts::default(),
-                        )
-                        .gain
-                    })
-                    .unwrap_or(1.0);
-                (
-                    c.bank,
-                    c.volume * self.bus_volume(&c.bus) * spatial * volume,
-                )
-            }
-            None => return false,
-        };
+        let mix = successor_engine_core::audio::spatial_mix(self.listener, at, opts);
+        let gain = clip.gain * mix.gain;
         if gain <= 0.0 {
             return true;
         }
-        self.lock_mixer().play(bank, key, gain, 0.0, 1.0, true, 1)
+        self.dispatch(clip, Self::key(id), gain, mix.pan, false, clip.polyphony)
     }
 
-    /// Stop every voice under `key` (loop teardown; also used to silence
-    /// orphaned loops when their world entity leaves the stream).
+    pub fn play_ui(&mut self, id: &str) -> bool {
+        let Some(clip) = self.clip(id) else {
+            return false;
+        };
+        self.dispatch(
+            clip,
+            Self::key(id),
+            clip.gain,
+            0.0,
+            false,
+            clip.polyphony,
+        )
+    }
+
+    pub fn play_loop(&mut self, id: &str, key: u32, at: Option<Point>, volume: f32) -> bool {
+        let Some(clip) = self.clip(id) else {
+            return false;
+        };
+        let spatial = at
+            .map(|point| {
+                successor_engine_core::audio::spatial_mix(
+                    self.listener,
+                    point,
+                    SpatialOpts::default(),
+                )
+                .gain
+            })
+            .unwrap_or(1.0);
+        let gain = clip.gain * spatial * volume;
+        if gain <= 0.0 {
+            return true;
+        }
+        self.dispatch(clip, key, gain, 0.0, true, 1)
+    }
+
     pub fn stop_loop(&mut self, key: u32) {
+        #[cfg(not(target_arch = "wasm32"))]
         self.lock_mixer().stop_key(key);
+        #[cfg(target_arch = "wasm32")]
+        successor_platform::web::audio_stop(key);
     }
 
     pub fn clip_count(&self) -> usize {
         self.clips.len()
     }
+
     pub fn active_voices(&self) -> usize {
-        self.lock_mixer().active_voices()
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.lock_mixer().active_voices()
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            successor_platform::web::audio_active_voices() as usize
+        }
     }
 
-    /// Render the next block of interleaved-stereo audio (for the offline WAV
-    /// path; the live device sink pulls through `shared_mixer`).
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn render(&mut self, out: &mut [f32]) {
         self.lock_mixer().mix_into(out);
     }
@@ -362,5 +435,60 @@ mod tests {
             block.iter().any(|s| s.abs() > 1e-6),
             "device-sink handle hears the scene's trigger"
         );
+    }
+
+    #[test]
+    fn strict_manifest_parser_preserves_gain_path_and_polyphony() {
+        let manifest = read_manifest().expect("checked-in manifest");
+        let clips = parse_manifest(&manifest).expect("valid manifest");
+        let clip = clips
+            .iter()
+            .find(|clip| clip.id == "ui_panel_open")
+            .expect("UI clip");
+        assert_eq!(clip.path, "successor-audio/sfx/ui_panel_open.mp3");
+        assert!((clip.gain - 0.255).abs() < 1.0e-6);
+        assert_eq!(clip.polyphony, 4);
+    }
+
+    fn minimal_manifest(path: &str, bus: &str, volume: &str, polyphony: u32) -> String {
+        format!(
+            r#"{{"schema":"successor-sfx-manifest-v1","buses":{{"ui":{{"volume":0.75,"polyphony":10}}}},"clips":[{{"id":"clip","path":"{path}","bus":"{bus}","volume":{volume},"polyphony":{polyphony}}}]}}"#
+        )
+    }
+
+    #[test]
+    fn strict_manifest_parser_rejects_invalid_contracts() {
+        assert!(parse_manifest(r#"{"schema":"wrong","buses":{},"clips":[]}"#).is_err());
+        for path in [
+            "../successor-audio/x.mp3",
+            "/../successor-audio/x.mp3",
+            "https://example.test/x.mp3",
+            "//successor-audio/x.mp3",
+        ] {
+            assert!(parse_manifest(&minimal_manifest(path, "ui", "1.0", 1)).is_err());
+        }
+        assert!(parse_manifest(&minimal_manifest(
+            "successor-audio/x.mp3",
+            "unknown",
+            "1.0",
+            1,
+        ))
+        .is_err());
+        assert!(parse_manifest(&minimal_manifest(
+            "successor-audio/x.mp3",
+            "ui",
+            "1e400",
+            1,
+        ))
+        .is_err());
+        assert!(parse_manifest(&minimal_manifest(
+            "successor-audio/x.mp3",
+            "ui",
+            "1.0",
+            0,
+        ))
+        .is_err());
+        let duplicate = r#"{"schema":"successor-sfx-manifest-v1","buses":{"ui":{"volume":1,"polyphony":1}},"clips":[{"id":"same","path":"successor-audio/a.mp3","bus":"ui","volume":1,"polyphony":1},{"id":"same","path":"successor-audio/b.mp3","bus":"ui","volume":1,"polyphony":1}]}"#;
+        assert!(parse_manifest(duplicate).is_err());
     }
 }

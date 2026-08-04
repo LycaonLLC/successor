@@ -15,10 +15,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-254cc62-20260802` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@254cc626622b1f0b` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@83b2a024f4a03bcc` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `254cc626622b1f0badf1cc612a5fa59c505a7487` |
+| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `83b2a024f4a03bcc131a1dfae5689b6610ea2753` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -32,9 +32,9 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`254cc626622b1f0badf1cc612a5fa59c505a7487`, client
-`successor-rust-beta@254cc626622b1f0b`, and immutable publication inventory
-SHA-256 `9ee9d39a01a426ebb42f314df60ab4c0b5b50832bbab6627c0e41c247ff0e1a1`.
+`83b2a024f4a03bcc131a1dfae5689b6610ea2753`, client
+`successor-rust-beta@83b2a024f4a03bcc`, and immutable publication inventory
+SHA-256 `a3a11630a1334d4fb1ddf44a29601f40d47ab2b00af67747c6894d47608010d8`.
 The previous dry runs and superseded beta candidates are not release
 identities.
 
@@ -92,14 +92,14 @@ selection/creation hands directly into the 3D client.
 
 The independent beta pointer is:
 
-- source commit: `254cc626622b1f0badf1cc612a5fa59c505a7487`
-- client release: `successor-rust-beta@254cc626622b1f0b`
+- source commit: `83b2a024f4a03bcc131a1dfae5689b6610ea2753`
+- client release: `successor-rust-beta@83b2a024f4a03bcc`
 - manifest SHA-256:
-  `9ee9d39a01a426ebb42f314df60ab4c0b5b50832bbab6627c0e41c247ff0e1a1`
+  `a3a11630a1334d4fb1ddf44a29601f40d47ab2b00af67747c6894d47608010d8`
 - release-builder manifest SHA-256:
-  `928bea8ae8bca11995c8d33fbf3e8c0032943dc030381f6425b2bfd3d12785f8`
+  `23cc8a54a93f2153b17dbf6ea4de42bc735dbfe9117cc0cba4dea8d01ccb80c0`
 - immutable entry:
-  `https://d2kf3ri6r74a0m.cloudfront.net/releases/9ee9d39a01a426ebb42f314df60ab4c0b5b50832bbab6627c0e41c247ff0e1a1/index.html`
+  `https://d2kf3ri6r74a0m.cloudfront.net/releases/a3a11630a1334d4fb1ddf44a29601f40d47ab2b00af67747c6894d47608010d8/index.html`
 
 The first-load HTTP 525 failure was an expired launch ticket: the site minted
 the ticket before constructing the iframe, while the Rust client downloaded
@@ -109,20 +109,38 @@ mints and delivers the launch context only in response to that exact-origin,
 exact-window readiness message. Duplicate readiness messages reuse the
 in-memory envelope rather than minting another ticket.
 
-The site suite passed 174/174 tests and its production build passed. The
-mandatory Rust client gates passed with zero steady-state frame allocations.
-In a fresh public headless launch of this immutable release, asset downloads
-began immediately with no ticket request. The site minted the ticket at
-57.574 seconds, after preload readiness; matchmaking then returned HTTP 204
-and HTTP 200 at 58.043 and 58.166 seconds. No HTTP 525 occurred. The stable
-pointer remained `successor-alpha@cdab7dccacc1d75c`.
+The mandatory Rust client gates passed with zero steady-state frame
+allocations. The release adds blended gait transitions and enables the Web
+Audio bootstrap in the public artifact. The authority allowlist was extended
+with the exact beta client identity, then `successor.service` was restarted;
+public readiness again reported every check true.
 
-A post-promotion stable `/play/` attempt reached the unchanged stable
-`successor-alpha@cdab7dccacc1d75c` pointer, but the current stable client sent
-a matchmake request rejected by the authority as HTTP 400
-`{"error":"invalid matchmake body"}`. This is an observed pre-existing
-stable-client/authority contract failure, not a successful stable player
-journey; the beta promotion did not move the stable pointer.
+The public pointer returned the exact promoted source, client, manifest, and
+server protocol identities. An authenticated beta journey minted a ticket
+with HTTP 200, completed matchmaking with HTTP 204 then HTTP 200, rendered the
+world at 1440 by 900, resized to 1100 by 700, and moved the selected actor.
+Accepted commands and receipts both advanced by 12. Forced WebGL2 context loss
+and restoration emitted both expected events and left the context live. A
+page reload minted fresh tickets and completed a second 200/204/200 entry.
+The redacted proof record has SHA-256
+`eada44e716f928d7c427fca5254fad4021eaf657583960c5cccccd8bd646dbbb`.
+
+The current release repairs the WebGL matrix-array bridge: skinned draws now
+upload all `count * 16` floats instead of only the first joint matrix. The
+authority accepted the exact release after its allowlist update and clean
+restart. A public authenticated Chromium journey loaded the promoted immutable
+entry with no failed requests or render error, visibly rendered the selected
+player pawn and its equipment in the live world, and visibly moved that pawn
+under keyboard input. The redacted proof record has SHA-256
+`5b5cf77c2b5b58702031ab8d50361d51b5263b45c74a79e1781d568071dc780f`.
+
+The stable pointer remained `successor-alpha@cdab7dccacc1d75c`. Its repeated
+public `/play/` journey still reached HTTP 204 then failed HTTP 400
+`{"error":"invalid matchmake body"}`. The beta exit control also disappeared
+without removing its iframe in this headless journey. Audio bootstrap presence
+and automated coverage were verified, but the live `AudioContext` state was
+not directly observable from the cross-origin headless frame. These are
+observed residual defects, not successful checks.
 
 ## Authority and durable state
 

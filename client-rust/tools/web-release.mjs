@@ -62,6 +62,16 @@ await cp(resolve(root, "target/wasm32-unknown-unknown/release/successor_client.w
 await cp(resolve(root, "web/index.html"), join(out, "index.html"));
 
 const sourceShim = await readFile(resolve(root, "web/successor.js"), "utf8");
+const assertBootstrapOrder = (shim, label) => {
+  const calls = ["await fetchInitialAssets();", "await prepareWebAudio();", "await waitForHostedLaunch();"];
+  const positions = calls.map(call => {
+    const first = shim.indexOf(call);
+    if (first < 0 || first !== shim.lastIndexOf(call)) throw new Error(`${label} shim must contain exactly one ${call}`);
+    return first;
+  });
+  if (!(positions[0] < positions[1] && positions[1] < positions[2])) throw new Error(`${label} shim bootstrap is reordered`);
+};
+assertBootstrapOrder(sourceShim, "source");
 const developmentBlock = /const successorBuild = Object\.freeze\(\{[\s\S]*?\n\}\);/u;
 if (!developmentBlock.test(sourceShim)) throw new Error("web build configuration block not found");
 let releaseShim = sourceShim.replace(developmentBlock, `const successorBuild = Object.freeze(${JSON.stringify({
@@ -82,11 +92,13 @@ releaseShim = releaseShim
     /        const params = new URLSearchParams\(window\.location\.search\);[\s\S]*?        window\.__successorRenderReady = false;/u,
     `        const demoSelector = 0;
         await fetchInitialAssets();
+        await prepareWebAudio();
         showLoading("CONNECTING", "WAITING FOR LAUNCH", 1);
         await waitForHostedLaunch();
         showLoading("ENTERING WORLD", "BUILDING SCENE", 1);
         window.__successorRenderReady = false;`,
   );
+assertBootstrapOrder(releaseShim, "release");
 if (/URLSearchParams|__SUCCESSOR_LAUNCH_CONTEXT|params\.get\("launch"\)|params\.get\("demo"\)/u.test(releaseShim)) throw new Error("release shim contains a URL launch or developer probe path");
 await writeFile(join(out, "successor.js"), releaseShim);
 
