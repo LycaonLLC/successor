@@ -1937,8 +1937,15 @@ mod connected {
         let http_endpoint = endpoint
             .replacen("wss://", "https://", 1)
             .replacen("ws://", "http://", 1);
+        // A standalone authority validates the ticketed body strictly as
+        // `{gameTicket, release}`: `characterId` is carried inside the ticket,
+        // and an extra or missing key is rejected outright. Dev identity keeps
+        // the unticketed shape, which only a non-standalone shard accepts.
         let opts = if let Some(ticket) = game_ticket.as_deref() {
-            json!({ "characterId": player_id, "gameTicket": ticket })
+            json!({
+                "gameTicket": ticket,
+                "release": client_release.clone().unwrap_or_default(),
+            })
         } else {
             json!({ "playerId": player_id, "actorId": actor_id })
         };
