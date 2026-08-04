@@ -41,7 +41,8 @@
       "fitFootprintM": [7.6, 5.7],
       "slideDoor": { "node": "door_slide", "axisLocal": [1, 0, 0], "distance": 0.846 },
       "enterable": {
-        "revealPrefixes": ["roof__", "wall_front__", "wall_right__", "wall_back__", "wall_left__"],
+        "revealPrefixes": ["roof__", "wall_front__", "wall_right__", "wall_back__", "wall_left__", "wall_court__"],
+        "revealNameIncludes": ["_ceiling_"],
         "manifest": "home_modular_starter_manifest.json",
         "fadeSeconds": 0.25
       }
@@ -51,7 +52,8 @@
       "fitFootprintM": [9.5, 7.6],
       "slideDoor": { "node": "door_slide", "axisLocal": [1, 0, 0], "distance": 0.846 },
       "enterable": {
-        "revealPrefixes": ["roof__", "wall_front__", "wall_right__", "wall_back__", "wall_left__"],
+        "revealPrefixes": ["roof__", "wall_front__", "wall_right__", "wall_back__", "wall_left__", "wall_court__"],
+        "revealNameIncludes": ["_ceiling_"],
         "manifest": "home_modular_court_manifest.json",
         "fadeSeconds": 0.25
       }
@@ -61,7 +63,8 @@
       "fitFootprintM": [11.4, 9.5],
       "slideDoor": { "node": "door_slide", "axisLocal": [1, 0, 0], "distance": 0.846 },
       "enterable": {
-        "revealPrefixes": ["roof__", "wall_front__", "wall_right__", "wall_back__", "wall_left__"],
+        "revealPrefixes": ["roof__", "wall_front__", "wall_right__", "wall_back__", "wall_left__", "wall_court__"],
+        "revealNameIncludes": ["_ceiling_"],
         "manifest": "home_modular_wing_manifest.json",
         "fadeSeconds": 0.25
       }
