@@ -1,8 +1,8 @@
 # Successor Current Deployment
 
-Status: re-observed and beta-promoted on 2026-08-02 UTC after correcting
-first-load launch-ticket timing, admitting the exact Rust client release, and
-promoting the matching site and beta pointers independently.
+Status: re-observed and beta-promoted on 2026-08-04 UTC after lowering the
+Rust client's enterable-building cutaway, adding its dithered transition,
+admitting the exact client release, and promoting the independent beta pointer.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -15,10 +15,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-254cc62-20260802` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@83b2a024f4a03bcc` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@891805cd68c22139` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `83b2a024f4a03bcc131a1dfae5689b6610ea2753` |
+| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `891805cd68c22139cae80cdcf8201b98529d340e` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -32,9 +32,9 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`83b2a024f4a03bcc131a1dfae5689b6610ea2753`, client
-`successor-rust-beta@83b2a024f4a03bcc`, and immutable publication inventory
-SHA-256 `a3a11630a1334d4fb1ddf44a29601f40d47ab2b00af67747c6894d47608010d8`.
+`891805cd68c22139cae80cdcf8201b98529d340e`, client
+`successor-rust-beta@891805cd68c22139`, and immutable publication inventory
+SHA-256 `7b4a49c8913e0723819d7b291aa04dc14d1d0f949471d4b90edbf2eb1f5e2f63`.
 The previous dry runs and superseded beta candidates are not release
 identities.
 
@@ -92,14 +92,14 @@ selection/creation hands directly into the 3D client.
 
 The independent beta pointer is:
 
-- source commit: `83b2a024f4a03bcc131a1dfae5689b6610ea2753`
-- client release: `successor-rust-beta@83b2a024f4a03bcc`
+- source commit: `891805cd68c22139cae80cdcf8201b98529d340e`
+- client release: `successor-rust-beta@891805cd68c22139`
 - manifest SHA-256:
-  `a3a11630a1334d4fb1ddf44a29601f40d47ab2b00af67747c6894d47608010d8`
+  `7b4a49c8913e0723819d7b291aa04dc14d1d0f949471d4b90edbf2eb1f5e2f63`
 - release-builder manifest SHA-256:
-  `23cc8a54a93f2153b17dbf6ea4de42bc735dbfe9117cc0cba4dea8d01ccb80c0`
+  `07545532b4f52ef147f8eb583873e84e8d05b308e16120db90b8516beeb28928`
 - immutable entry:
-  `https://d2kf3ri6r74a0m.cloudfront.net/releases/a3a11630a1334d4fb1ddf44a29601f40d47ab2b00af67747c6894d47608010d8/index.html`
+  `https://d2kf3ri6r74a0m.cloudfront.net/releases/7b4a49c8913e0723819d7b291aa04dc14d1d0f949471d4b90edbf2eb1f5e2f63/index.html`
 
 The first-load HTTP 525 failure was an expired launch ticket: the site minted
 the ticket before constructing the iframe, while the Rust client downloaded
@@ -133,6 +133,22 @@ entry with no failed requests or render error, visibly rendered the selected
 player pawn and its equipment in the live world, and visibly moved that pawn
 under keyboard input. The redacted proof record has SHA-256
 `5b5cf77c2b5b58702031ab8d50361d51b5263b45c74a79e1781d568071dc780f`.
+
+The 2026-08-04 beta release lowers the enterable-building shell cutoff from
+two thirds to 40 percent of fitted model height and replaces instant authored
+roof/wall hiding with the renderer's smoothstep-driven screen-space dither.
+The mandatory standalone-client gates passed, including zero standard and
+connected steady-state frame allocations. The exact release was added to the
+authority allowlist through the provider operator route, `successor.service`
+was restarted, and public readiness returned every check true.
+
+An authenticated 1440 by 900 Chromium journey selected `Beta-Rook`, loaded the
+promoted immutable entry, completed the authority connection, moved through
+the Dustgate cloning-facility doorway, and visibly rendered the lower interior
+shell around the player. The completed frame reported no render error; the
+authority accepted movement commands, then returned to zero sessions after
+the page closed. The inspected frame SHA-256 is
+`d8fa7873805c8aece4459458c58ae3ac466a65b8f9ef45923ae591330bef4bde`.
 
 The stable pointer remained `successor-alpha@cdab7dccacc1d75c`. Its repeated
 public `/play/` journey still reached HTTP 204 then failed HTTP 400
