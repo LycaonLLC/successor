@@ -5,10 +5,10 @@
 //! structs, so window layout stays deterministic and unit-testable and the
 //! decode itself is exercised by feeding wire-shaped JSON in tests.
 //!
-//! The demo executable and isolated UI tests seed state through these same
-//! decoders, so fixtures cannot drift from the wire contract. Connected mode
-//! never uses `sample()` (it is intentionally empty) — the live sections are
-//! rebuilt from the accepted store by `windows::project::project`.
+//! Isolated UI tests seed these plain structs directly. `WindowModel::visual_sample`
+//! is an explicitly named presentation fixture for the pointerless UI demo;
+//! connected mode uses neither fixture and rebuilds live sections from the
+//! accepted store via `windows::project::project`.
 
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
@@ -200,12 +200,12 @@ impl InventoryRow {
             || self.item_key.as_deref() == Some("credit_chip")
     }
 
-    /// Ticket destination "PLANET · CITY" from `metadata.travelTicket`.
+    /// Ticket destination "PLANET / CITY" from `metadata.travelTicket`.
     pub fn ticket_destination(&self) -> Option<String> {
         let t = self.metadata.as_ref()?.get("travelTicket")?;
         let planet = t.get("toPlanetId").and_then(|v| v.as_str()).unwrap_or("?");
         let city = t.get("toCityId").and_then(|v| v.as_str()).unwrap_or("?");
-        Some(format!("{} · {}", planet, city).to_ascii_uppercase())
+        Some(format!("{} / {}", planet, city).to_ascii_uppercase())
     }
 
     /// True when this stack sits in the district exchange stockpile.
@@ -1365,10 +1365,10 @@ pub struct ReceiptView {
 }
 
 impl ReceiptView {
-    /// Reference deny copy: `DENIED · REASON CODE`.
+    /// Reference deny copy: `DENIED / REASON CODE`.
     pub fn denied_copy(&self) -> String {
         format!(
-            "DENIED · {}",
+            "DENIED / {}",
             self.reason_code
                 .as_deref()
                 .unwrap_or("unspecified")
@@ -1464,9 +1464,134 @@ pub struct WindowModel {
 }
 
 impl WindowModel {
-    /// Empty model for explicit developer demos and isolated UI tests.
-    /// Connected mode must populate this from the accepted authority frame.
+    /// Empty model for unavailable-state developer demos and isolated UI tests.
+    /// Connected mode populates this from the accepted authority frame.
     pub fn sample() -> Self {
         Self::default()
+    }
+
+    /// Explicit visual-only fixture for pointerless `--demo ui` captures.
+    ///
+    /// It intentionally carries no connection claim. Connected clients keep
+    /// using the authority projection, while `sample()` remains empty so tests
+    /// cannot accidentally inherit presentation data.
+    pub fn visual_sample() -> Self {
+        Self {
+            connected: false,
+            inventory: InventoryModel {
+                credits: 2_750,
+                weapon_label: Some("SLUGTHROWER PISTOL".into()),
+                rows: vec![
+                    InventoryRow {
+                        container: "player:field-pack".into(),
+                        stack_id: "demo-sidearm".into(),
+                        item: "Slugthrower Pistol".into(),
+                        item_id: 3101,
+                        quantity: 1,
+                        available: 1,
+                        equipped: true,
+                        item_key: Some("slugthrower_pistol".into()),
+                        ..Default::default()
+                    },
+                    InventoryRow {
+                        container: "player:field-pack".into(),
+                        stack_id: "demo-stim".into(),
+                        item: "Field Stim".into(),
+                        item_id: 1101,
+                        quantity: 4,
+                        available: 4,
+                        potency: Some(45),
+                        item_key: Some("field_stim".into()),
+                        ..Default::default()
+                    },
+                    InventoryRow {
+                        container: "player:field-pack".into(),
+                        stack_id: "demo-ammo".into(),
+                        item: "Power Cell Ammo".into(),
+                        item_id: 2201,
+                        quantity: 180,
+                        reserved: 20,
+                        available: 160,
+                        item_key: Some("power_cell_ammo".into()),
+                        ..Default::default()
+                    },
+                    InventoryRow {
+                        container: "player:field-pack".into(),
+                        stack_id: "demo-survey-tool".into(),
+                        item: "Survey Tool".into(),
+                        item_id: 4201,
+                        quantity: 1,
+                        available: 1,
+                        item_key: Some("survey_tool".into()),
+                        ..Default::default()
+                    },
+                    InventoryRow {
+                        container: "player:field-pack".into(),
+                        stack_id: "demo-copper".into(),
+                        item: "Copper Ore".into(),
+                        item_id: 5101,
+                        quantity: 64,
+                        available: 64,
+                        purity: Some(87),
+                        resource_stats: Some(ResourceStats {
+                            chemical_purity: 87,
+                            ..Default::default()
+                        }),
+                        item_key: Some("resource_copper_ore".into()),
+                        ..Default::default()
+                    },
+                    InventoryRow {
+                        container: "player:field-pack".into(),
+                        stack_id: "demo-jacket".into(),
+                        item: "Scout Jacket".into(),
+                        item_id: 6101,
+                        quantity: 1,
+                        available: 1,
+                        colors: vec!["desert".into()],
+                        item_key: Some("scout_jacket".into()),
+                        ..Default::default()
+                    },
+                    InventoryRow {
+                        container: "player:field-pack".into(),
+                        stack_id: "demo-credit-chip".into(),
+                        item: "Credit Chip".into(),
+                        item_id: 7101,
+                        quantity: 2,
+                        available: 2,
+                        item_key: Some("credit_chip".into()),
+                        ..Default::default()
+                    },
+                    InventoryRow {
+                        container: "player:field-pack".into(),
+                        stack_id: "demo-ticket".into(),
+                        item: "Travel Ticket".into(),
+                        item_id: 8101,
+                        quantity: 1,
+                        available: 1,
+                        item_key: Some("travel_ticket".into()),
+                        ..Default::default()
+                    },
+                    InventoryRow {
+                        container: "player:field-pack".into(),
+                        stack_id: "demo-battery".into(),
+                        item: "Battery Pack".into(),
+                        item_id: 9101,
+                        quantity: 3,
+                        available: 3,
+                        item_key: Some("battery_pack".into()),
+                        ..Default::default()
+                    },
+                ],
+                ..Default::default()
+            },
+            bank: BankModel {
+                bank: Some(BankSnapshot {
+                    credits: 18_450,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
     }
 }

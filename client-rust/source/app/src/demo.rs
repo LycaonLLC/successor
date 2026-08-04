@@ -30,6 +30,10 @@ pub struct Scene {
     pub world: GameWorld,
     pub renderer: Renderer,
     portrait_cam: successor_engine_core::ecs::Entity,
+    /// Spinning portrait target, reused as the UI demo's live paperdoll.
+    portrait_target: RenderTargetId,
+    /// Composite quad that places the paperdoll inside a UI pane.
+    paperdoll_quad: successor_engine_core::ecs::Entity,
     transparent: Vec<successor_engine_core::ecs::Entity>,
 }
 
@@ -50,8 +54,19 @@ impl Stats {
     }
 }
 
-/// Build the standard scene, creating GPU resources through `gpu`.
+/// Build the standard performance/reference scene, including its corner
+/// render-target composites and diagnostic text overlay.
 pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
+    build_scene_with_fixture_overlays(gpu, true)
+}
+
+/// Build the same world behind an interactive UI capture, without synthetic
+/// portrait/minimap cards or diagnostic text colliding with product chrome.
+pub fn build_ui_scene<G: Gpu>(gpu: &mut G) -> Scene {
+    build_scene_with_fixture_overlays(gpu, false)
+}
+
+fn build_scene_with_fixture_overlays<G: Gpu>(gpu: &mut G, fixture_overlays: bool) -> Scene {
     let mut renderer = crate::configured_renderer(gpu).expect("renderer initialization failed");
     let mut world = GameWorld::new();
     renderer.gi_set_focus([31.5, 0.0, 31.5]);
@@ -258,51 +273,56 @@ pub fn build_scene<G: Gpu>(gpu: &mut G) -> Scene {
         },
     );
 
-    // Composite the two RTs into corners.
-    let q1 = world.spawn();
-    world.set_component(
-        q1,
-        CompositeQuad {
-            source: rt_minimap,
-            rect: RectNorm {
-                x: 0.75,
-                y: 0.74,
-                w: 0.24,
-                h: 0.24,
+    if fixture_overlays {
+        // Composite the two RTs into corners for the renderer performance gate.
+        let q1 = world.spawn();
+        world.set_component(
+            q1,
+            CompositeQuad {
+                source: rt_minimap,
+                rect: RectNorm {
+                    x: 0.75,
+                    y: 0.74,
+                    w: 0.24,
+                    h: 0.24,
+                },
+                order: 0,
             },
-            order: 0,
-        },
-    );
-    let q2 = world.spawn();
-    world.set_component(
-        q2,
-        CompositeQuad {
-            source: rt_portrait,
-            rect: RectNorm {
-                x: 0.01,
-                y: 0.01,
-                w: 0.20,
-                h: 0.20,
+        );
+        let q2 = world.spawn();
+        world.set_component(
+            q2,
+            CompositeQuad {
+                source: rt_portrait,
+                rect: RectNorm {
+                    x: 0.01,
+                    y: 0.01,
+                    w: 0.20,
+                    h: 0.20,
+                },
+                order: 1,
             },
-            order: 1,
-        },
-    );
+        );
 
-    // HUD line.
-    let hud = world.spawn();
-    world.set_component(
-        hud,
-        TextOverlay::new(
-            "successor rust client",
-            Vec2 { x: 0.02, y: 0.05 },
-            [220, 230, 240, 255],
-        ),
-    );
+        let hud = world.spawn();
+        world.set_component(
+            hud,
+            TextOverlay::new(
+                "successor rust client",
+                Vec2 { x: 0.02, y: 0.05 },
+                [220, 230, 240, 255],
+            ),
+        );
+    }
+
+    let paperdoll_quad = world.spawn();
 
     Scene {
         world,
         renderer,
         portrait_cam: portrait,
+        portrait_target: rt_portrait,
+        paperdoll_quad,
         transparent,
     }
 }
@@ -333,6 +353,30 @@ impl Scene {
             let r = 3.0;
             cam.eye = vec3(31.5 + t.cos() * r, 1.4, 31.5 + t.sin() * r);
         }
+    }
+
+    /// Place the spinning portrait target inside a UI pane, in framebuffer
+    /// pixels. `None` removes it. The UI demo uses this so an inventory or
+    /// examine capture shows the same live rotating doll connected mode draws.
+    pub fn set_paperdoll_viewport(&mut self, rect: Option<[f32; 4]>, screen_w: f32, screen_h: f32) {
+        let Some([x, y, w, h]) = rect.filter(|r| r[2] > 1.0 && r[3] > 1.0) else {
+            self.world
+                .remove_component::<CompositeQuad>(self.paperdoll_quad);
+            return;
+        };
+        self.world.set_component(
+            self.paperdoll_quad,
+            CompositeQuad {
+                source: self.portrait_target,
+                rect: RectNorm {
+                    x: x / screen_w,
+                    y: 1.0 - (y + h) / screen_h,
+                    w: w / screen_w,
+                    h: h / screen_h,
+                },
+                order: 0,
+            },
+        );
     }
 
     pub fn render<G: Gpu>(&mut self, gpu: &mut G) {

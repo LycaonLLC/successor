@@ -1143,6 +1143,7 @@ name = "successor-client"
 version = "0.0.1"
 dependencies = [
  "fontdue",
+ "libm",
  "rmp3",
  "serde",
  "serde_json",

@@ -175,12 +175,11 @@ impl ItemPreviewRenderer {
                     if lane_index >= INVENTORY_LANES {
                         break;
                     }
-                    let Some(card) = crate::windows::inventory::grid_card_rect(content, item_index)
+                    let Some(preview) =
+                        crate::windows::inventory::grid_preview_rect(content, item_index)
                     else {
                         break;
                     };
-                    let size = (card[2] - 10.0).min(card[3] - 36.0);
-                    let preview = [card[0] + (card[2] - size) * 0.5, card[1] + 8.0, size, size];
                     let path = self.changed_path(lane_index, row);
                     self.sync_lane(
                         lane_index,

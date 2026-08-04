@@ -116,6 +116,31 @@ pub fn http_endpoint(endpoint: &str) -> String {
         .replacen("ws://", "http://", 1)
 }
 
+/// Builds the local-development chat socket alongside a game endpoint.
+pub fn dev_chat_endpoint(endpoint: &str, player_id: &str) -> Option<String> {
+    if !(endpoint.starts_with("ws://") || endpoint.starts_with("wss://")) {
+        return None;
+    }
+    let authority_start = endpoint.find("://")? + 3;
+    let authority_end = endpoint[authority_start..]
+        .find(['/', '?', '#'])
+        .map(|offset| authority_start + offset)
+        .unwrap_or(endpoint.len());
+    let origin = &endpoint[..authority_end];
+    let mut encoded = String::with_capacity(player_id.len());
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    for byte in player_id.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            encoded.push(byte as char);
+        } else {
+            encoded.push('%');
+            encoded.push(HEX[(byte >> 4) as usize] as char);
+            encoded.push(HEX[(byte & 0x0f) as usize] as char);
+        }
+    }
+    Some(format!("{origin}/chat/ws?playerId={encoded}"))
+}
+
 /// Builds the Colyseus matchmaker POST path for a room.
 pub fn matchmake_path(room: &str) -> String {
     format!("/matchmake/joinOrCreate/{}", room)
@@ -173,6 +198,19 @@ mod tests {
             http_endpoint("https://example.com/"),
             "https://example.com/"
         );
+    }
+
+    #[test]
+    fn test_dev_chat_endpoint() {
+        assert_eq!(
+            dev_chat_endpoint("ws://127.0.0.1:28093/game?ticket=ignored", "dev one"),
+            Some("ws://127.0.0.1:28093/chat/ws?playerId=dev%20one".into())
+        );
+        assert_eq!(
+            dev_chat_endpoint("wss://example.test", "dev-1"),
+            Some("wss://example.test/chat/ws?playerId=dev-1".into())
+        );
+        assert!(dev_chat_endpoint("https://example.test", "dev-1").is_none());
     }
 
     #[test]

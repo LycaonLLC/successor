@@ -109,13 +109,13 @@ impl WaypointStore {
         if self.list.len() >= MAX_WAYPOINTS {
             return MutationResult {
                 ok: false,
-                status: format!("WAYPOINT CAP {MAX_WAYPOINTS}/{MAX_WAYPOINTS} — DELETE ONE FIRST"),
+                status: format!("WAYPOINT CAP {MAX_WAYPOINTS}/{MAX_WAYPOINTS} - DELETE ONE FIRST"),
             };
         }
         if !x.is_finite() || !y.is_finite() || area_id.trim().is_empty() {
             return MutationResult {
                 ok: false,
-                status: "WAYPOINT DENIED — BAD LOCATION".into(),
+                status: "WAYPOINT DENIED - BAD LOCATION".into(),
             };
         }
         self.id_seq += 1;

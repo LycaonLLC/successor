@@ -9,6 +9,13 @@
 //!       `make runtime-check` / `make check-allocs`.
 //!   successor --demo parity-basic --gl
 //!       Opens a GL window (visual QA) and renders the scene until closed.
+//!   successor --demo ui [--surface actions|inventory|...] [--screenshot PATH]
+//!       Captures one registered movable/resizable surface over clean game HUD.
+//!   successor --demo pregame [--stage entry|connecting|roster|roster-empty|
+//!                                     create-profile|create-summary|loading]
+//!                            [--frames N] [--screenshot PATH]
+//!       Opens a GL window on the pregame flow (login → roster → creation).
+//!       Presentation only: no socket, no launch context, no roster authority.
 //!   successor --endpoint ws://127.0.0.1:28093 --player-id dev-1 --actor-id dev-1
 //!       (Playable slice — wired in the PlayableSlice phase.)
 
@@ -216,7 +223,18 @@ fn main() {
 
     if mode.as_deref() == Some("ui") {
         let screenshot = arg_value(&args, "--screenshot");
-        run_ui(frames, screenshot.as_deref());
+        let surface = arg_value(&args, "--surface");
+        run_ui(frames, screenshot.as_deref(), surface.as_deref());
+        return;
+    }
+
+    // Pregame parity host. Presentation only: it drives `screens.rs` with a
+    // local demo roster and never touches launch/auth authority.
+    #[cfg(not(target_arch = "wasm32"))]
+    if mode.as_deref() == Some("pregame") {
+        let screenshot = arg_value(&args, "--screenshot");
+        let stage = arg_value(&args, "--stage");
+        run_pregame(frames, screenshot.as_deref(), stage.as_deref());
         return;
     }
 
@@ -258,7 +276,12 @@ fn main() {
         return;
     }
 
-    eprintln!("successor: no mode selected. Try `--demo parity-basic [--gl] [--frames N] [--stats-json PATH] [--assert-zero-allocs]`.");
+    eprintln!(
+        "successor: no mode selected. Try `--demo parity-basic [--gl] [--frames N] \
+         [--stats-json PATH] [--assert-zero-allocs]`, or `--demo pregame \
+         [--stage entry|connecting|roster|roster-empty|create-profile|create-summary|loading] \
+         [--frames N] [--screenshot PATH]`."
+    );
     std::process::exit(2);
 }
 
@@ -476,7 +499,7 @@ fn run_windowed(frames: u64, screenshot: Option<&str>, gpu_stats_json: Option<&s
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn run_ui(frames: u64, screenshot: Option<&str>) {
+fn run_ui(frames: u64, screenshot: Option<&str>, surface: Option<&str>) {
     use successor_client::hud;
     use successor_engine_render::gpu::Gpu;
     use successor_engine_render::window::{WindowManager, WindowStyle};
@@ -486,7 +509,7 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
     }
     let mut gpu = successor_platform::create_gpu();
     let _ = &mut gpu as &mut dyn Gpu;
-    let mut scene = demo::build_scene(&mut gpu);
+    let mut scene = demo::build_ui_scene(&mut gpu);
     let icons = hud::Icons::load();
     scene
         .renderer
@@ -507,55 +530,89 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
         .assign(4, hud::toolbar::SlotRef::Action("window:inventory".into()));
     let mut hud_actions: Vec<hud::HudAction> = Vec::with_capacity(8);
     let mut right_was_down = false;
-    let win_model = successor_client::windows::WindowModel::sample();
-    // Register the demo windows with cascaded default bounds + toolbar icons.
-    let mut wm = WindowManager::new();
-    for (i, (id, title, icon)) in hud::DEMO_WINDOWS.iter().enumerate() {
-        let ox = 360.0 + (i % 6) as f32 * 40.0;
-        let oy = 140.0 + (i % 6) as f32 * 40.0;
-        wm.register(
-            id,
-            title,
-            icons.cell(icon),
-            [ox, oy, 380.0, 300.0],
-            220.0,
-            150.0,
-        );
+    let win_model = successor_client::windows::WindowModel::visual_sample();
+    // This fixture lives only in the `--demo ui` host; it is not a connected
+    // projection. Pointerless inventory captures seed a concrete first stack
+    // so the footer shows its details and authority-shaped actions.
+    successor_client::windows::inventory::clear_selection();
+    if surface == Some("inventory") {
+        if let Some(row) = win_model.inventory.held().next() {
+            successor_client::windows::inventory::select_identity(&row.container, &row.stack_id);
+        }
     }
-    // A screenshot run is pointer-less, so seed some open state so the chrome +
-    // content + focused text edit are captured; a live run drives them for real.
+    // The demo consumes the same geometry registry as connected mode; a
+    // screenshot is therefore proof of the shipping defaults, not a second
+    // cascade policy.
+    let mut wm = WindowManager::new();
+    for (id, title, icon) in hud::DEMO_WINDOWS {
+        let (rect, min_w, min_h) = successor_client::windows::spec::geometry(
+            id,
+            demo::SCREEN_W as f32,
+            demo::SCREEN_H as f32,
+        );
+        wm.register(id, title, icons.cell(icon), rect, min_w, min_h);
+    }
+    hud::register_hud_surfaces_at(
+        &mut wm,
+        &icons,
+        (demo::SCREEN_W as f32, demo::SCREEN_H as f32),
+    );
+    // A screenshot run is pointer-less, so seed one requested surface plus
+    // representative live HUD state. One window at a time keeps overlap from
+    // obscuring the component being reviewed. Pool depths come from the
+    // original client's own authority export (`world-entry` checkpoint:
+    // health 700, action 900, mind 1000), so the triple bar photographs at
+    // real proportions instead of invented ones.
     if screenshot.is_some() {
-        wm.open("loot");
-        wm.open("converse");
-        wm.open("clone");
-        wm.open("craft");
+        wm.open(surface.unwrap_or("actions"));
         hud_state.connection = hud::ConnectionHud::Live;
-        hud_state.fine_text = "LIVE · 3 IN FIELD".into();
+        hud_state.fine_text = "LIVE / 3 IN FIELD".into();
         hud_state.name = "DEMO OPERATIVE".into();
         hud_state.health = hud::GaugeHud {
-            value: 88.0,
-            max: 100.0,
+            value: 616.0,
+            max: 700.0,
         };
         hud_state.action = hud::GaugeHud {
-            value: 64.0,
-            max: 120.0,
+            value: 540.0,
+            max: 900.0,
         };
         hud_state.spirit = hud::GaugeHud {
-            value: 100.0,
-            max: 100.0,
+            value: 1000.0,
+            max: 1000.0,
         };
-        hud_state.health_text = "88".into();
-        hud_state.action_text = "64".into();
-        hud_state.spirit_text = "100".into();
+        hud_state.health_text = "616".into();
+        hud_state.action_text = "540".into();
+        hud_state.spirit_text = "1000".into();
         hud_state.area_label = "OPEN-DESERT".into();
+        hud_state.weapon = Some(hud::WeaponHud {
+            label: "SLUGTHROWER PISTOL".into(),
+            melee: false,
+            magazine_size: 8,
+            loaded_rounds: 6,
+            rounds_text: "6/8 - 24".into(),
+            reloading: false,
+            reload_frac: 0.0,
+            swing_ready: false,
+            swing_frac: 0.0,
+        });
         hud_state.target = Some(hud::TargetHud {
             actor_id: "raider".into(),
             name: "RAIDER SCOUT".into(),
             relation: hud::RelationHud::Hostile,
             health: hud::GaugeHud {
-                value: 62.0,
-                max: 100.0,
+                value: 434.0,
+                max: 700.0,
             },
+            action: Some(hud::GaugeHud {
+                value: 720.0,
+                max: 900.0,
+            }),
+            spirit: Some(hud::GaugeHud {
+                value: 850.0,
+                max: 1000.0,
+            }),
+            distance_m: Some(23.0),
+            level: None,
             alive: true,
             stamp: None,
             chips: vec![hud::ChipHud {
@@ -578,11 +635,30 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
         while successor_platform::poll_text_input().is_some() {}
         let (w, h) = successor_platform::framebuffer_size();
         if w > 0 && h > 0 {
+            // The live rotating paperdoll fills whichever open pane owns a
+            // viewer cell, so a UI capture shows the same doll connected mode
+            // composites behind that cell.
+            let paperdoll_pane = ["inventory", "examine", "converse"]
+                .into_iter()
+                .find(|id| wm.is_open(id) && !wm.is_iconified(id))
+                .and_then(|id| wm.content_rect(id).map(|content| (id, content)))
+                .map(|(id, content)| match id {
+                    "examine" => successor_client::windows::live::examine_preview_rect(content),
+                    "converse" => successor_client::windows::live::converse_preview_rect(content),
+                    _ => successor_client::windows::inventory::layout(content).preview,
+                });
+            scene.set_paperdoll_viewport(paperdoll_pane, w as f32, h as f32);
             scene
                 .renderer
                 .render(&mut gpu, &mut scene.world, w as u32, h as u32)
                 .expect("render failed");
             ui.begin(w as u32, h as u32);
+            // HUD panes are locked by default. Their right-click context
+            // toggle is intentionally separate from left-button manager input,
+            // so normal gameplay clicks pass straight through.
+            let hud_lock_changed = right_pressed
+                .then(|| hud::toggle_hud_surface_lock_at(&mut wm, mx, my))
+                .flatten();
             // Windows resolve pointer first (topmost consumes drag/close/focus).
             wm.update_at(
                 &ui,
@@ -590,12 +666,15 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
                 h as u32,
                 successor_platform::now_ms().max(0.0) as u64,
             );
-            let captured = wm.pointer_captured();
+            let captured = wm.pointer_captured() || hud_lock_changed.is_some();
+            ui.set_input_enabled(!captured);
+            let palette = hud::palette(0);
             hud_actions.clear();
             let mut hud_frame = hud::HudFrame {
                 state: &hud_state,
                 toolbar: &mut toolbar,
-                palette: hud::palette(0),
+                chat: None,
+                palette,
                 now_ms: successor_platform::now_ms().max(0.0) as u64,
                 captured,
                 right_pressed,
@@ -604,22 +683,28 @@ fn run_ui(frames: u64, screenshot: Option<&str>) {
                 &mut ui,
                 &icons,
                 &mut hud_frame,
+                &wm,
                 w as u32,
                 h as u32,
                 &mut hud_actions,
             );
-            for action in &hud_actions {
+            ui.set_input_enabled(true);
+            for action in hud_actions.drain(..) {
                 match action {
                     hud::HudAction::ToggleWindow(id) => wm.toggle(id),
                     hud::HudAction::OpenWindow(id) => wm.open(id),
                     other => println!("ui action: {other:?}"),
                 }
             }
-            // Draw open windows back-to-front over the HUD.
+            // Draw open windows back-to-front over the HUD. HUD panes already
+            // drew their own content and layout affordance in `build_hud`.
             let style = WindowStyle::default();
             for idx in wm.z_order() {
-                let rect = wm.draw_chrome(&mut ui, idx, style);
                 let id = wm.window_id(idx).to_string();
+                let rect = wm.draw_chrome(&mut ui, idx, style);
+                if hud::is_hud_surface(&id) {
+                    continue;
+                }
                 // Demo windows discard emitted intents (no live authority to
                 // route them to); inventory examine selection is window-local.
                 let mut actions = Vec::new();
@@ -1717,7 +1802,7 @@ mod connected {
     use successor_client::game::actions;
     use successor_client::game::chat_net::{ChatClient, ChatConnectionState};
     use successor_client::game::command_queue::CommandQueue;
-    use successor_client::game::connected_scene::ConnectedScene;
+    use successor_client::game::connected_scene::{ConnectedScene, CONNECTED_INPUT_KEYS};
     use successor_client::game::movement;
     use successor_client_proto::colyseus;
     use successor_client_proto::packets::GameServerPacket;
@@ -1744,13 +1829,14 @@ mod connected {
         auto_walk: bool,
         assert_zero: bool,
     ) -> i32 {
+        let chat_endpoint = successor_client::net::connect::dev_chat_endpoint(endpoint, player_id);
         run_inner(
             endpoint,
             player_id,
             actor_id,
             None,
             None,
-            None,
+            chat_endpoint,
             None,
             None,
             max_frames,
@@ -1891,6 +1977,11 @@ mod connected {
             SettingsScope::Character,
             "macros",
         );
+        let window_layout = successor_client::persist::load_section(
+            &app.platform,
+            SettingsScope::Local,
+            "windowLayout",
+        );
         let mut read_asset = |stable_id: &str| app.platform.read_asset(stable_id).ok();
         let mut scene = match ConnectedScene::build(&mut gpu, player_id, &mut read_asset) {
             Ok(s) => s,
@@ -1906,6 +1997,7 @@ mod connected {
             split_snap.as_ref(),
             waypoints.as_ref(),
             macros.as_ref(),
+            window_layout.as_ref(),
         );
         let audio_mixer = scene.audio_mixer();
         let _audio_output = if assert_zero {
@@ -1988,11 +2080,10 @@ mod connected {
                 for _ in 0..64 {
                     match plat::ws_poll(socket, &mut chat_buf) {
                         plat::WsEvent::Frame(n) => {
-                            let _ =
-                                chat_client.on_incoming(&String::from_utf8_lossy(&chat_buf[..n]));
-                            if chat_client.connection.state == ChatConnectionState::SyncingHistory {
-                                let frame = chat_client.history_request(100);
-                                plat::ws_send(socket, frame.as_bytes());
+                            if let Some(message) =
+                                chat_client.on_incoming(&String::from_utf8_lossy(&chat_buf[..n]))
+                            {
+                                scene.ingest_chat_message(&message);
                             }
                         }
                         plat::WsEvent::None => break,
@@ -2042,6 +2133,7 @@ mod connected {
                                 return 2;
                             }
                             app.mode = AppMode::Connected;
+                            scene.set_loading(false);
                             scene.on_snapshot(&hello.snapshot);
                         }
                         SessionOut::Emit(SessionEvent::Packet(packet)) => {
@@ -2092,7 +2184,8 @@ mod connected {
             chat_enter_was_down = enter_down;
             chat_backspace_was_down = backspace_down;
             chat_escape_was_down = escape_down;
-            if escape_pressed {
+            let chat_consumed_escape = escape_pressed && chat_input.focused;
+            if chat_consumed_escape {
                 chat_input.focused = false;
             } else if enter_pressed {
                 if chat_input.focused && !chat_input.text.trim().is_empty() {
@@ -2147,20 +2240,18 @@ mod connected {
                         sprint: intent.2,
                     });
                 }
+                if chat_consumed_escape || chat_input.focused {
+                    // Chat owns Escape while editing; keep the scene edge reset
+                    // so releasing the key cannot close a window afterward.
+                    let _ = scene.handle_key(Key::Escape, false);
+                } else {
+                    let _ = scene.handle_key(Key::Escape, escape_pressed);
+                }
                 if !chat_input.focused {
-                    for key in [
-                        Key::I,
-                        Key::C,
-                        Key::Semicolon,
-                        Key::O,
-                        Key::Tab,
-                        Key::V,
-                        Key::X,
-                        Key::N,
-                        Key::R,
-                        Key::F,
-                        Key::Space,
-                    ] {
+                    for key in CONNECTED_INPUT_KEYS {
+                        if key == Key::Escape {
+                            continue;
+                        }
                         if let Some(action) = scene.handle_key(key, plat::is_key_down(key)) {
                             let _ = scene.dispatch_gameplay_action(action);
                         }
@@ -2279,13 +2370,15 @@ mod connected {
                     plat::ws_send(&mut ws, &frame);
                 }
             }
-            let (theme, toolbar, split_snap, waypoints, macros) = scene.take_persisted();
+            let (theme, toolbar, split_snap, waypoints, macros, window_layout) =
+                scene.take_persisted();
             for (scope, key, value) in [
                 (SettingsScope::Local, "theme", theme),
                 (SettingsScope::Local, "toolbar", toolbar),
                 (SettingsScope::Local, "splitSnap", split_snap),
                 (SettingsScope::Character, "waypoints", waypoints),
                 (SettingsScope::Character, "macros", macros),
+                (SettingsScope::Local, "windowLayout", window_layout),
             ] {
                 if let Some(value) = value {
                     if let Err(error) = successor_client::persist::store_section(
@@ -2498,4 +2591,368 @@ fn run_model_corpus() {
     if unsupported + decode_errors + transform_errors + skipped != 0 {
         std::process::exit(1);
     }
+}
+
+/// Pregame parity host — renders the entry → roster → creation flow from
+/// `screens.rs` against a local demo roster so the surfaces can be exercised
+/// and photographed without a server.
+///
+/// **Auth invariant:** this is a `--demo` mode, so it is already behind the
+/// `dev-tools` gate in `main`. It never opens a socket and never constructs a
+/// `LaunchEnvelope`; the `Connect` intent is printed and answered with a local
+/// simulated link, and `SelectCharacter` / `CreateCharacter` are printed and
+/// acknowledged on-screen. Ordinary native launch still requires
+/// `--launch-context` and the production ticket path, untouched by this code.
+#[cfg(not(target_arch = "wasm32"))]
+fn run_pregame(frames: u64, screenshot: Option<&str>, stage: Option<&str>) {
+    use successor_client::hud;
+    use successor_client::screens::{
+        CharacterScreen, CharacterStage, EntryScreen, LoadingScreen, RosterEntry, ScreenAction,
+    };
+    use successor_engine_core::input::Key;
+    use successor_engine_render::gpu::{ClearSpec, Gpu, PassTarget, RectPx};
+    use successor_platform as plat;
+
+    /// Which surface the host is showing. The demo owns this transition table;
+    /// each screen owns its own internal stages.
+    enum Phase {
+        Entry(EntryScreen),
+        Character(Box<CharacterScreen>),
+        Loading(LoadingScreen),
+    }
+
+    // Demo rows are presentation-only: they carry no host stable id, which is
+    // exactly what `selected_stable_id()` reports as absent.
+    fn demo_roster() -> Vec<RosterEntry> {
+        vec![
+            RosterEntry {
+                name: "Sarath Halvex".into(),
+                lineage: "TERRAN".into(),
+                vocation: "MARKSMAN".into(),
+                location: "OPEN-DESERT".into(),
+                played: "31H 12M".into(),
+                ..Default::default()
+            },
+            RosterEntry {
+                name: "Velira Okoro".into(),
+                lineage: "IRIDIAN".into(),
+                vocation: "SCOUT".into(),
+                location: "SALT FLATS".into(),
+                played: "8H 40M".into(),
+                ..Default::default()
+            },
+            RosterEntry {
+                name: "Tordan Moss".into(),
+                lineage: "VOSKAN".into(),
+                vocation: "TECHNICIAN".into(),
+                location: "TIDEWORKS".into(),
+                played: "112H 05M".into(),
+                ..Default::default()
+            },
+        ]
+    }
+
+    let stage = stage.unwrap_or("entry");
+    let known = [
+        "entry",
+        "connecting",
+        "roster",
+        "roster-empty",
+        "create-profile",
+        "create-summary",
+        "loading",
+    ];
+    if !known.contains(&stage) {
+        eprintln!(
+            "--demo pregame --stage must be one of: {}",
+            known.join(", ")
+        );
+        std::process::exit(2);
+    }
+
+    // Seed the requested stage directly so a pointer-less screenshot run can
+    // photograph any surface in the flow.
+    let mut phase = match stage {
+        "connecting" => {
+            let mut entry = EntryScreen::new();
+            entry.begin_connecting();
+            Phase::Entry(entry)
+        }
+        "entry" => Phase::Entry(EntryScreen::new()),
+        "loading" => {
+            let mut screen = LoadingScreen::default();
+            screen.set_indeterminate(true);
+            Phase::Loading(screen)
+        }
+        other => {
+            let roster = if other == "roster-empty" {
+                Vec::new()
+            } else {
+                demo_roster()
+            };
+            let mut screen = CharacterScreen::with_entries(roster);
+            screen.set_stage(match other {
+                "create-profile" => CharacterStage::CreateProfile,
+                "create-summary" => CharacterStage::CreateIdentity,
+                _ => CharacterStage::Roster,
+            });
+            if other == "create-summary" {
+                screen.draft.lineage = 2;
+                screen.draft.vocation = 1;
+                screen.draft.build = 0.62;
+                screen.draft.generate();
+            }
+            Phase::Character(Box::new(screen))
+        }
+    };
+
+    if !plat::init(
+        "Successor Pregame",
+        demo::SCREEN_W as i32,
+        demo::SCREEN_H as i32,
+    ) {
+        eprintln!("platform init failed (no display?)");
+        std::process::exit(1);
+    }
+    let mut gpu = plat::create_gpu();
+    let mut renderer =
+        successor_client::configured_renderer(&mut gpu).expect("renderer initialization failed");
+    let icons = hud::Icons::load();
+    renderer.set_ui_atlas(&mut gpu, icons.meta.width, icons.meta.height, &icons.rgba);
+    let mut ui = icons.ui_builder();
+
+    println!(
+        "pregame demo: stage={stage} (presentation only — no network, no launch context)\n  \
+         mouse: click to interact · TAB / SHIFT+TAB: field focus · UP / DOWN: roster\n  \
+         ENTER: confirm · ESC: back one step · typing edits the focused field"
+    );
+
+    // Simulated link: the demo answers its own Connect intent after a beat so
+    // the connecting surface is observable, then hands over a local roster.
+    let mut link_deadline: Option<f64> = None;
+    let mut tab_was = false;
+    let (mut enter_was, mut back_was, mut esc_was) = (false, false, false);
+    let (mut up_was, mut down_was) = (false, false);
+
+    let total = frames.max(1);
+    let mut frame = 0u64;
+    let mut quit = false;
+    while !plat::should_quit() && frame < total && !quit {
+        plat::begin_frame();
+        let now = plat::now_ms().max(0.0);
+        let (w, h) = plat::framebuffer_size();
+        if w <= 0 || h <= 0 {
+            plat::end_frame();
+            frame += 1;
+            continue;
+        }
+
+        // A screenshot run has no pointer; park it off-surface so nothing
+        // photographs in a hover state.
+        let (mx, my) = if screenshot.is_some() {
+            (-1.0, -1.0)
+        } else {
+            plat::mouse_position()
+        };
+        ui.set_input(mx, my, screenshot.is_none() && plat::mouse_button_down(0));
+
+        let shift = plat::is_key_down(Key::LeftShift);
+        let tab = plat::is_key_down(Key::Tab);
+        let tab_edge = tab && !tab_was;
+        tab_was = tab;
+        let enter = plat::is_key_down(Key::Enter);
+        let enter_edge = enter && !enter_was;
+        enter_was = enter;
+        let backspace = plat::is_key_down(Key::Backspace);
+        let backspace_edge = backspace && !back_was;
+        back_was = backspace;
+        let escape = plat::is_key_down(Key::Escape);
+        let escape_edge = escape && !esc_was;
+        esc_was = escape;
+        let up = plat::is_key_down(Key::Up);
+        let up_edge = up && !up_was;
+        up_was = up;
+        let down = plat::is_key_down(Key::Down);
+        let down_edge = down && !down_was;
+        down_was = down;
+
+        let fw = w as f32;
+        let fh = h as f32;
+        let dt = 1.0 / 60.0;
+
+        // Keyboard + text routing, then draw, then act on the emitted intent.
+        let mut action = None;
+        match &mut phase {
+            Phase::Entry(entry) => {
+                entry.tick(dt);
+                while let Some(c) = plat::poll_text_input() {
+                    entry.input_char(c);
+                }
+                if tab_edge {
+                    if shift {
+                        entry.focus_prev();
+                    } else {
+                        entry.focus_next();
+                    }
+                }
+                if backspace_edge {
+                    entry.backspace();
+                }
+                if escape_edge {
+                    entry.reset();
+                    link_deadline = None;
+                }
+
+                ui.begin(w as u32, h as u32);
+                action = entry.draw(&mut ui, fw, fh);
+                if enter_edge && action.is_none() {
+                    action = Some(ScreenAction::Connect(entry.join_options()));
+                    entry.begin_connecting();
+                }
+            }
+            Phase::Character(screen) => {
+                screen.tick(dt);
+                while let Some(c) = plat::poll_text_input() {
+                    screen.input_char(c);
+                }
+                if tab_edge {
+                    if shift {
+                        screen.focus_prev();
+                    } else {
+                        screen.focus_next();
+                    }
+                }
+                if backspace_edge {
+                    screen.backspace();
+                }
+                if up_edge {
+                    screen.move_selection(-1, fw, fh);
+                }
+                if down_edge {
+                    screen.move_selection(1, fw, fh);
+                }
+                if escape_edge {
+                    match screen.stage() {
+                        CharacterStage::CreateIdentity => {
+                            screen.set_stage(CharacterStage::CreateProfile)
+                        }
+                        CharacterStage::CreateProfile => screen.set_stage(CharacterStage::Roster),
+                        CharacterStage::Roster => action = Some(ScreenAction::Back),
+                    }
+                }
+
+                ui.begin(w as u32, h as u32);
+                let drawn = screen.draw(&mut ui, fw, fh);
+                if drawn.is_some() {
+                    action = drawn;
+                }
+            }
+            Phase::Loading(screen) => {
+                screen.tick(dt);
+                if escape_edge {
+                    action = Some(ScreenAction::Back);
+                }
+                ui.begin(w as u32, h as u32);
+                let drawn = screen.draw(&mut ui, fw, fh);
+                if drawn.is_some() {
+                    action = drawn;
+                }
+            }
+        }
+
+        match action {
+            Some(ScreenAction::Connect(opts)) => {
+                println!(
+                    "pregame: CONNECT intent endpoint={} player={} (demo simulates the link)",
+                    opts.endpoint, opts.player_id
+                );
+                link_deadline = Some(now + 1400.0);
+            }
+            Some(ScreenAction::CancelConnect) => {
+                println!("pregame: link attempt cancelled");
+                link_deadline = None;
+            }
+            Some(ScreenAction::SelectCharacter(index)) => {
+                println!("pregame: SELECT character #{index} (no authority to route to)");
+                if let Phase::Character(screen) = &mut phase {
+                    let name = screen
+                        .roster
+                        .get(index)
+                        .map(|entry| entry.name.clone())
+                        .unwrap_or_default();
+                    screen.set_status(format!(
+                        "HANDOFF WOULD ENTER WORLD AS {}",
+                        name.to_uppercase()
+                    ));
+                }
+            }
+            Some(ScreenAction::CreateCharacter(name)) => {
+                println!("pregame: CREATE character '{name}' (no authority to route to)");
+                if let Phase::Character(screen) = &mut phase {
+                    let upper = name.to_uppercase();
+                    screen.roster.push(RosterEntry {
+                        name,
+                        lineage: screen.draft.lineage().name.to_string(),
+                        vocation: screen.draft.vocation().to_string(),
+                        location: screen.draft.lineage().home.to_string(),
+                        played: "NEW".into(),
+                        ..Default::default()
+                    });
+                    screen.draft = Default::default();
+                    screen.set_stage(CharacterStage::Roster);
+                    screen.set_status(format!("{upper} FILED TO THE LOCAL DEMO ROSTER"));
+                }
+            }
+            Some(ScreenAction::Back) => match &phase {
+                Phase::Entry(_) => {
+                    println!("pregame: BACK from entry — leaving the flow");
+                    quit = true;
+                }
+                Phase::Character(_) | Phase::Loading(_) => {
+                    println!("pregame: BACK to entry");
+                    phase = Phase::Entry(EntryScreen::new());
+                    link_deadline = None;
+                }
+            },
+            Some(ScreenAction::Quit) => {
+                println!("pregame: QUIT");
+                quit = true;
+            }
+            None => {}
+        }
+
+        // Simulated link completes → hand over to the character surfaces.
+        if let Some(deadline) = link_deadline {
+            if now >= deadline {
+                link_deadline = None;
+                println!("pregame: simulated link established — showing demo roster");
+                phase = Phase::Character(Box::new(CharacterScreen::with_entries(demo_roster())));
+            }
+        }
+
+        gpu.begin_pass(
+            PassTarget::Screen,
+            RectPx { x: 0, y: 0, w, h },
+            ClearSpec {
+                color: Some([0.012, 0.027, 0.039, 1.0]),
+                depth: Some(1.0),
+            },
+        );
+        gpu.end_pass();
+        renderer.render_ui(&mut gpu, &ui.buf, ui.quads, w as u32, h as u32);
+
+        if let Some(path) = screenshot {
+            if frame + 1 == total {
+                let rgba = plat::read_pixels_rgba(w, h);
+                write_bmp(path, &rgba, w as u32, h as u32).unwrap_or_else(|error| {
+                    eprintln!("screenshot failed: {error}");
+                    std::process::exit(1);
+                });
+                println!("screenshot written: {path} ({w}x{h})");
+            }
+        }
+        plat::end_frame();
+        frame += 1;
+    }
+    plat::deinit();
 }

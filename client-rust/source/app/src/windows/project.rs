@@ -1144,7 +1144,7 @@ mod tests {
         let last = model.receipts.last.clone().expect("receipt view");
         assert_eq!(last.kind, "BankWithdrawCredits");
         assert_eq!(last.at_ms, 1000.0);
-        assert_eq!(last.denied_copy(), "DENIED · INSUFFICIENT FUNDS");
+        assert_eq!(last.denied_copy(), "DENIED / INSUFFICIENT FUNDS");
 
         // Re-projection keeps the first-observed stamp and resolved kind even
         // after the envelope left the queue.

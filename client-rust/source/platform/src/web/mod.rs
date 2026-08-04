@@ -21,6 +21,13 @@ extern "C" {
     fn js_mouse_button_down(button: u32) -> u32;
     fn js_launch_context_len() -> u32;
     fn js_launch_context_copy(ptr: *mut u8, max_len: u32) -> u32;
+    fn js_creator_mode() -> u32;
+    fn js_creator_ready();
+    fn js_creator_message_len() -> u32;
+    fn js_creator_message_copy(ptr: *mut u8, max_len: u32) -> u32;
+    fn js_creator_message_discard();
+    fn js_creator_post_create(ptr: *const u8, len: u32) -> u32;
+    fn js_creator_post_select(ptr: *const u8, len: u32) -> u32;
     fn js_audio_unlock();
 }
 
@@ -73,6 +80,52 @@ pub fn launch_context() -> Option<Vec<u8>> {
     let mut bytes = vec![0; len];
     let copied = unsafe { js_launch_context_copy(bytes.as_mut_ptr(), len as u32) } as usize;
     (copied == len).then_some(bytes)
+}
+
+/// Creator parent bridge is only active for the public `?mode=creator` child
+/// surface. It cannot become an alternate launch or account path.
+pub fn creator_mode() -> bool {
+    unsafe { js_creator_mode() != 0 }
+}
+
+/// Announce the child after its Rust creator state is ready to receive the
+/// parent’s bounded roster projection.
+pub fn creator_ready() {
+    unsafe { js_creator_ready() }
+}
+
+/// Takes one normalized parent message. The JavaScript bridge enforces exact
+/// source/origin and a fixed queue; this is a second byte bound before parsing.
+pub fn take_creator_message() -> Option<Vec<u8>> {
+    const MAX_MESSAGE_BYTES: usize = 16 * 1024;
+    let len = unsafe { js_creator_message_len() } as usize;
+    if len == 0 {
+        return None;
+    }
+    if len > MAX_MESSAGE_BYTES {
+        unsafe { js_creator_message_discard() };
+        return None;
+    }
+    let mut bytes = vec![0; len];
+    let copied = unsafe { js_creator_message_copy(bytes.as_mut_ptr(), len as u32) } as usize;
+    (copied == len).then_some(bytes)
+}
+
+/// Sends the fixed creator-create envelope. JavaScript parses and rebuilds it
+/// before `postMessage`, so arbitrary fields can never cross the iframe fence.
+pub fn post_creator_create(message: &str) -> bool {
+    const MAX_CREATE_BYTES: usize = 4 * 1024;
+    !message.is_empty()
+        && message.len() <= MAX_CREATE_BYTES
+        && unsafe { js_creator_post_create(message.as_ptr(), message.len() as u32) != 0 }
+}
+
+/// Sends a stable, bounded opaque character id for the parent’s one-shot
+/// handoff. The browser side validates it again before it leaves the frame.
+pub fn post_creator_select(character_id: &str) -> bool {
+    !character_id.is_empty()
+        && character_id.len() <= 128
+        && unsafe { js_creator_post_select(character_id.as_ptr(), character_id.len() as u32) != 0 }
 }
 
 pub fn unlock_audio() {

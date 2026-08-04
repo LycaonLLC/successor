@@ -347,10 +347,59 @@ impl UiBuilder {
         text.chars().map(text_advance).sum::<f32>() * px
     }
 
+    /// Width produced by this builder's active font path.
+    ///
+    /// Raster text uses proportional glyph advances; callers positioning text
+    /// must use this instead of the fixed 5×7 fallback estimate.
+    pub fn measure_text(&self, text: &str, px: f32) -> f32 {
+        let Some(font) = self.font.as_ref() else {
+            return Self::text_width(text, px);
+        };
+        let scale = 8.75 * px / font.line_height.max(1.0);
+        text.chars()
+            .map(|ch| {
+                font.glyph(ch)
+                    .map_or_else(|| text_advance(ch) * px, |glyph| glyph.advance * scale)
+            })
+            .sum()
+    }
+
     /// An icon from the baked atlas, scaled into `w`×`h` at `(x, y)`, tinted.
     #[allow(clippy::too_many_arguments)]
     pub fn icon(&mut self, col: u32, row: u32, x: f32, y: f32, w: f32, h: f32, rgba: [u8; 4]) {
         let uv = self.atlas.uv(col, row);
+        self.push_quad(x, y, w, h, uv, rgba);
+    }
+
+    /// Full-color atlas region, scaled into `w`×`h` at `(x, y)`.
+    ///
+    /// The encoded U offset selects the fragment shader's RGBA sampling path;
+    /// this keeps authored art in the same pass as coverage-tinted icons.
+    #[allow(clippy::too_many_arguments)]
+    pub fn image_uv(
+        &mut self,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        uv: (f32, f32, f32, f32),
+        rgba: [u8; 4],
+    ) {
+        let encoded = (uv.0 + 2.0, uv.1, uv.2 + 2.0, uv.3);
+        self.push_quad(x, y, w, h, encoded, rgba);
+    }
+
+    /// Coverage-only atlas region, tinted by `rgba`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn mask_uv(
+        &mut self,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        uv: (f32, f32, f32, f32),
+        rgba: [u8; 4],
+    ) {
         self.push_quad(x, y, w, h, uv, rgba);
     }
 
@@ -401,7 +450,7 @@ impl UiBuilder {
         let px_h = (h * 0.5) / GLYPH_H as f32;
         let px_w = (w * 0.85) / (n * (GLYPH_W as f32 + 1.0));
         let px = px_h.min(px_w).max(1.0);
-        let tw = Self::text_width(label, px);
+        let tw = self.measure_text(label, px);
         let tx = x + (w - tw) * 0.5;
         let ty = y + (h - GLYPH_H as f32 * px) * 0.5;
         self.text(label, tx, ty, px, style.text);
@@ -444,7 +493,7 @@ impl UiBuilder {
     /// A compact checkbox with a text label. Returns true when the value
     /// changed this frame.
     pub fn checkbox(&mut self, x: f32, y: f32, size: f32, label: &str, value: &mut bool) -> bool {
-        let label_w = Self::text_width(label, 1.5);
+        let label_w = self.measure_text(label, 1.5);
         let response = self.interact(x, y, size + 8.0 + label_w, size);
         let changed = response.clicked;
         if changed {
@@ -732,6 +781,24 @@ mod tests {
         // Icon quad uv.x is >= 0 (first cell col 1 → 32/256 = 0.125).
         assert!(ui.buf[2] >= 0.0);
         assert!((ui.buf[2] - 0.125).abs() < 1e-5);
+    }
+
+    #[test]
+    fn authored_image_encodes_the_rgba_sampling_path() {
+        let mut ui = UiBuilder::new(ATLAS);
+        ui.begin(800, 600);
+        ui.image_uv(10.0, 20.0, 200.0, 120.0, (0.25, 0.5, 0.75, 1.0), [255; 4]);
+        assert_eq!(ui.quads, 1);
+        assert!((ui.buf[2] - 2.25).abs() < 1e-5);
+        assert!((ui.buf[3] - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn authored_mask_keeps_the_coverage_sampling_path() {
+        let mut ui = UiBuilder::new(ATLAS);
+        ui.begin(800, 600);
+        ui.mask_uv(10.0, 20.0, 20.0, 20.0, (0.25, 0.5, 0.75, 1.0), [255; 4]);
+        assert!((ui.buf[2] - 0.25).abs() < 1e-5);
     }
 
     #[test]

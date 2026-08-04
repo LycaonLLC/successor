@@ -45,6 +45,7 @@ function boundedString(value: unknown, max: number): value is string {
 function copyAppearance(value: unknown): CharacterAppearance | null {
   if (value === null || typeof value !== "object") return null;
   const v = value as Record<string, unknown>;
+  if (v.body !== "male" && v.body !== "female") return null;
   if (!boundedString(v.skinTone, 64) || !boundedString(v.hairMat, 64)) return null;
   if (v.hair !== null && !boundedString(v.hair, 64)) return null;
   let face: CharacterFaceConfig | null = null;
@@ -63,7 +64,7 @@ function copyAppearance(value: unknown): CharacterAppearance | null {
       lipColor: f.lipColor as string,
     };
   }
-  return { skinTone: v.skinTone, hair: v.hair === null ? null : (v.hair as string), hairMat: v.hairMat, face };
+  return { body: v.body, skinTone: v.skinTone, hair: v.hair === null ? null : (v.hair as string), hairMat: v.hairMat, face };
 }
 
 export interface CreatorCreateMessage {
@@ -99,8 +100,9 @@ export function safeRosterCharacter(character: Character): Record<string, unknow
     worldEntryClaimed: character.worldEntryClaimed === true,
   };
   if (character.appearance) {
-    const { skinTone, hair, hairMat, face } = character.appearance;
+    const { body, skinTone, hair, hairMat, face } = character.appearance;
     safe.appearance = {
+      body,
       skinTone,
       hair,
       hairMat,

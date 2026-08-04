@@ -18,6 +18,8 @@ pub const BUBBLE_MS_PER_CHAR: f32 = 56.0;
 pub const BUBBLE_FADE_IN_MS: f32 = 120.0;
 pub const BUBBLE_FADE_OUT_MS: f32 = 320.0;
 pub const BUBBLE_MAX_STACK: usize = 3;
+pub const BUBBLE_ACTOR_MAX: usize = 16;
+pub const BUBBLE_POOL_MAX: usize = BUBBLE_MAX_STACK * BUBBLE_ACTOR_MAX;
 /// Bubble body cap before wrap (sanitized chars).
 pub const BUBBLE_TEXT_MAX: usize = 160;
 pub const BUBBLE_MAX_LINES: usize = 4;
@@ -137,7 +139,7 @@ pub struct Overlays {
 impl Overlays {
     pub fn new() -> Self {
         Self {
-            bubbles: Vec::with_capacity(BUBBLE_MAX_STACK),
+            bubbles: Vec::with_capacity(BUBBLE_POOL_MAX),
             floats: Vec::with_capacity(FLOAT_POOL_MAX),
         }
     }
@@ -159,7 +161,16 @@ impl Overlays {
                 total_ms: ttl,
             },
         );
-        self.bubbles.truncate(BUBBLE_MAX_STACK);
+        let mut actor_count = 0usize;
+        self.bubbles.retain(|bubble| {
+            if bubble.actor_id == actor_id {
+                actor_count += 1;
+                actor_count <= BUBBLE_MAX_STACK
+            } else {
+                true
+            }
+        });
+        self.bubbles.truncate(BUBBLE_POOL_MAX);
     }
 
     /// Enqueue floating combat/status text over an actor (bounded pool —
@@ -214,9 +225,14 @@ impl Overlays {
         sh: f32,
         anchor: F,
     ) {
-        for bubble in self.bubbles.iter().rev() {
+        for (index, bubble) in self.bubbles.iter().enumerate() {
             if let Some((x, y)) = anchor(&bubble.actor_id) {
-                draw_bubble(ui, pal, bubble, x, y, sw);
+                let stack_offset = self.bubbles[..index]
+                    .iter()
+                    .filter(|newer| newer.actor_id == bubble.actor_id)
+                    .map(|newer| bubble_dimensions(ui, newer).1 + 5.0)
+                    .sum::<f32>();
+                draw_bubble(ui, bubble, x, y - stack_offset, sw);
             }
         }
         for ft in &self.floats {
@@ -236,40 +252,59 @@ fn alpha_scale(color: [u8; 4], alpha: f32) -> [u8; 4] {
     ]
 }
 
-/// One speech bubble above a pawn, clamped to the screen edges. Fade-in and
-/// fade-out follow the reference timings.
-fn draw_bubble(ui: &mut UiBuilder, pal: &Palette, bubble: &Bubble, x: f32, y: f32, sw: f32) {
-    let px = 1.5;
-    let line_h = 7.0 * px + 3.0;
+/// Original-client speech bubble: centered black prose on a translucent pale
+/// rectangle with a tapered spout. It is clamped to the screen and fades at
+/// the same ingress/egress timings as the runtime contract.
+fn bubble_dimensions(ui: &UiBuilder, bubble: &Bubble) -> (f32, f32) {
+    let text_px = 1.5;
+    let line_h = 7.0 * text_px + 3.0;
     let widest = bubble
         .lines
         .iter()
-        .map(|l| UiBuilder::text_width(l, px))
+        .map(|line| ui.measure_text(line, text_px))
         .fold(0.0f32, f32::max);
-    let pad_x = 8.0;
-    let pad_y = 6.0;
-    let w = widest + pad_x * 2.0;
-    let h = bubble.lines.len() as f32 * line_h + pad_y * 2.0 - 3.0;
-    let mut bx = x - w * 0.5;
-    bx = bx.clamp(4.0, (sw - w - 4.0).max(4.0));
-    let by = (y - h - 6.0).max(4.0);
+    (widest + 16.0, bubble.lines.len() as f32 * line_h + 9.0)
+}
+
+fn draw_bubble(ui: &mut UiBuilder, bubble: &Bubble, x: f32, y: f32, screen_w: f32) {
+    let text_px = 1.5;
+    let line_h = 7.0 * text_px + 3.0;
+    let (width, height) = bubble_dimensions(ui, bubble);
+    let mut bubble_x = x - width * 0.5;
+    bubble_x = bubble_x.clamp(4.0, (screen_w - width - 4.0).max(4.0));
+    let bubble_y = (y - height - 7.0).max(4.0);
 
     let lived = bubble.total_ms - bubble.ttl_ms;
     let fade_in = (lived / BUBBLE_FADE_IN_MS).clamp(0.0, 1.0);
     let fade_out = (bubble.ttl_ms / BUBBLE_FADE_OUT_MS).clamp(0.0, 1.0);
     let alpha = fade_in.min(fade_out);
+    let background = alpha_scale([214, 222, 211, 202], alpha);
+    let edge = alpha_scale([242, 247, 237, 226], alpha);
+    let ink = alpha_scale([14, 20, 20, 255], alpha);
 
-    ui.rect(bx, by, w, h, alpha_scale(pal.bg_panel, alpha));
+    ui.rect(
+        bubble_x + 2.0,
+        bubble_y + 3.0,
+        width,
+        height,
+        alpha_scale([0, 0, 0, 76], alpha),
+    );
+    ui.rect(bubble_x, bubble_y, width, height, background);
+    ui.border(bubble_x, bubble_y, width, height, 1.0, edge);
 
-    // Anchor nib.
-    ui.rect(x - 2.0, by + h, 4.0, 4.0, alpha_scale(pal.hairline, alpha));
-    for (i, line) in bubble.lines.iter().enumerate() {
+    let tail_x = x.clamp(bubble_x + 8.0, bubble_x + width - 8.0);
+    ui.rect(tail_x - 3.0, bubble_y + height, 6.0, 2.0, background);
+    ui.rect(tail_x - 2.0, bubble_y + height + 2.0, 4.0, 2.0, background);
+    ui.rect(tail_x - 1.0, bubble_y + height + 4.0, 2.0, 2.0, background);
+
+    for (index, line) in bubble.lines.iter().enumerate() {
+        let line_width = ui.measure_text(line, text_px);
         ui.text(
             line,
-            bx + pad_x,
-            by + pad_y + i as f32 * line_h,
-            px,
-            alpha_scale(pal.ink, alpha),
+            bubble_x + (width - line_width) * 0.5,
+            bubble_y + 5.0 + index as f32 * line_h,
+            text_px,
+            ink,
         );
     }
 }
@@ -290,7 +325,7 @@ fn draw_float(ui: &mut UiBuilder, pal: &Palette, ft: &FloatText, x: f32, y: f32,
     } else {
         1.6
     };
-    let tw = UiBuilder::text_width(&ft.text, px);
+    let tw = ui.measure_text(&ft.text, px);
     ui.text(
         &ft.text,
         x - tw * 0.5,
@@ -300,9 +335,9 @@ fn draw_float(ui: &mut UiBuilder, pal: &Palette, ft: &FloatText, x: f32, y: f32,
     );
 }
 
-/// A nameplate above a pawn using pre-sanitized projection strings: clean name
-/// (relation-tinted), optional descriptor line, and DOWN/DEAD tag. The host
-/// applies distance/occlusion culling before calling.
+/// Original-client-shaped nameplate: unboxed centered text, relation color,
+/// parenthesized title/role, and a subtle target bracket. The host owns
+/// visibility and distance opacity.
 #[allow(clippy::too_many_arguments)]
 pub fn draw_nameplate(
     ui: &mut UiBuilder,
@@ -311,27 +346,99 @@ pub fn draw_nameplate(
     descriptor: Option<&str>,
     relation: RelationHud,
     life_tag: Option<&str>,
+    selected: bool,
+    opacity: f32,
     x: f32,
     y: f32,
 ) {
-    if name.is_empty() {
+    if name.is_empty() || opacity <= 0.0 {
         return;
     }
-    let px = 1.7;
-    let tint = relation.tint(pal);
-    let nw = UiBuilder::text_width(name, px);
-    ui.text(name, x - nw * 0.5 + 1.0, y + 1.0, px, [0, 0, 0, 210]);
-    ui.text(name, x - nw * 0.5, y, px, tint);
-    let mut line_y = y + 14.0;
-    if let Some(desc) = descriptor.filter(|desc| !desc.is_empty()) {
-        let dw = UiBuilder::text_width(desc, 1.35);
-        ui.text(desc, x - dw * 0.5 + 1.0, line_y + 1.0, 1.35, [0, 0, 0, 210]);
-        ui.text(desc, x - dw * 0.5, line_y, 1.35, pal.ink_dim);
-        line_y += 11.0;
+    let name_px = 1.45;
+    let tint = alpha_scale(relation.tint(pal), opacity);
+    let shadow = alpha_scale([0, 0, 0, 220], opacity);
+    let name_width = ui.measure_text(name, name_px);
+    let name_x = x - name_width * 0.5;
+    ui.text(name, name_x + 1.0, y + 1.0, name_px, shadow);
+    ui.text(name, name_x, y, name_px, tint);
+
+    if selected {
+        let left = name_x - 7.0;
+        let right = name_x + name_width + 7.0;
+        let bracket = alpha_scale(pal.accent, opacity);
+        ui.line(left, y + 2.0, left + 4.0, y + 2.0, 1.0, bracket);
+        ui.line(left, y + 2.0, left, y + 8.0, 1.0, bracket);
+        ui.line(right - 4.0, y + 2.0, right, y + 2.0, 1.0, bracket);
+        ui.line(right, y + 2.0, right, y + 8.0, 1.0, bracket);
+    }
+
+    let mut line_y = y + 12.0;
+    if let Some(descriptor) = descriptor.filter(|value| !value.is_empty()) {
+        let descriptor_px = 1.2;
+        let width = ui.measure_text(descriptor, descriptor_px);
+        ui.text(
+            descriptor,
+            x - width * 0.5 + 1.0,
+            line_y + 1.0,
+            descriptor_px,
+            shadow,
+        );
+        ui.text(
+            descriptor,
+            x - width * 0.5,
+            line_y,
+            descriptor_px,
+            alpha_scale(pal.ink_dim, opacity),
+        );
+        line_y += 10.0;
     }
     if let Some(tag) = life_tag {
-        let tw = UiBuilder::text_width(tag, 1.4);
-        ui.text(tag, x - tw * 0.5, line_y, 1.4, pal.danger);
+        let width = ui.measure_text(tag, 1.25);
+        ui.text(
+            tag,
+            x - width * 0.5,
+            line_y,
+            1.25,
+            alpha_scale(pal.danger, opacity),
+        );
+    }
+}
+
+/// Contextual label for the nearest tangible world object. SWG exposes object
+/// names as the same unboxed, projected text family as creature plates.
+pub fn draw_world_label(
+    ui: &mut UiBuilder,
+    pal: &Palette,
+    label: &str,
+    action: Option<&str>,
+    x: f32,
+    y: f32,
+) {
+    if label.is_empty() {
+        return;
+    }
+    let text_px = 1.35;
+    let width = ui.measure_text(label, text_px);
+    let text_x = x - width * 0.5;
+    ui.text(label, text_x + 1.0, y + 1.0, text_px, [0, 0, 0, 220]);
+    ui.text(label, text_x, y, text_px, pal.ink);
+    if let Some(action) = action {
+        let action_px = 1.1;
+        let action_width = ui.measure_text(action, action_px);
+        ui.text(
+            action,
+            x - action_width * 0.5 + 1.0,
+            y + 12.0,
+            action_px,
+            [0, 0, 0, 220],
+        );
+        ui.text(
+            action,
+            x - action_width * 0.5,
+            y + 11.0,
+            action_px,
+            pal.accent,
+        );
     }
 }
 
@@ -366,6 +473,25 @@ mod tests {
         assert!(
             ov.bubbles.iter().all(|b| !b.actor_id.is_empty()),
             "ownerless bubbles never enqueue"
+        );
+    }
+
+    #[test]
+    fn bubble_stack_limit_is_per_actor_not_global() {
+        let mut overlays = Overlays::new();
+        for actor in ["a", "b"] {
+            for index in 0..BUBBLE_MAX_STACK {
+                overlays.push_bubble(actor, &format!("{actor}-{index}"));
+            }
+        }
+        assert_eq!(overlays.bubbles.len(), BUBBLE_MAX_STACK * 2);
+        assert_eq!(
+            overlays
+                .bubbles
+                .iter()
+                .filter(|bubble| bubble.actor_id == "a")
+                .count(),
+            BUBBLE_MAX_STACK
         );
     }
 

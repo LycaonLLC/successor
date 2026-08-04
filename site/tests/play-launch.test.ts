@@ -15,7 +15,7 @@ import { mountPage, settle } from "./helpers";
 
 const ENTRY = "https://client.example/releases/0f3a/index.html";
 const CLIENT_ORIGIN = "https://client.example";
-const CHARACTER_APPEARANCE = { skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null };
+const CHARACTER_APPEARANCE = { body: "female" as const, skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null };
 const CHARACTER_WORN = [{ item: "under_bodysuit", colors: ["#89cff0"] }];
 
 const CONTEXT = {

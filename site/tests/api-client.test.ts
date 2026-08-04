@@ -58,7 +58,7 @@ describe("alpha-api client", () => {
     await api.createCharacter({
       name: "Rook",
       initialProfessionId: "scout",
-      appearance: { skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null },
+      appearance: { body: "female", skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null },
     });
     const ticket = await api.playTicket("char-1");
     expect(ticket.ok).toBe(true);
@@ -103,7 +103,7 @@ describe("alpha-api client", () => {
     expect(initAt(fetchMock, 7).body).toBe(JSON.stringify({
       name: "Rook",
       initialProfessionId: "scout",
-      appearance: { skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null },
+      appearance: { body: "female", skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null },
     }));
 
     expect(fetchMock.mock.calls[8]?.[0]).toBe("/alpha-api/play-ticket");

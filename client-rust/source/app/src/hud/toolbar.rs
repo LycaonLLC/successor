@@ -18,6 +18,9 @@ pub const SLOT_COUNT: usize = 12;
 pub const SLOT_PX: f32 = 46.0;
 const SLOT_GAP: f32 = 6.0;
 const GROUP_GAP: f32 = 14.0;
+/// Band under each slot carrying its hotkey label, as the original prints
+/// `F1`..`F12` beneath the bar rather than inside the slot face.
+const KEY_LABEL_H: f32 = 12.0;
 const FLASH_MS: u64 = 1600;
 
 pub const DEFAULT_BINDS: [&str; SLOT_COUNT] = [
@@ -54,56 +57,56 @@ pub const TOOLBAR_ACTIONS: [ToolbarAction; 14] = [
         id: "attack",
         label: "ATTACK",
         icon: "crosshair",
-        description: "STRIKE THE CURRENT TARGET WITH YOUR EQUIPPED WEAPON.",
+        description: "STRIKE THE CURRENT TARGET.",
         kind: ActionKind::Verb,
     },
     ToolbarAction {
         id: "kneel",
         label: "KNEEL",
         icon: "kneel",
-        description: "DROP TO A KNEE (POSTURE).",
+        description: "DROP TO A KNEEL.",
         kind: ActionKind::Verb,
     },
     ToolbarAction {
         id: "stand",
         label: "STAND",
         icon: "stand",
-        description: "RETURN TO A STANDING POSTURE.",
+        description: "RETURN TO STANDING.",
         kind: ActionKind::Verb,
     },
     ToolbarAction {
         id: "survey",
         label: "TOOL SURVEY",
         icon: "survey",
-        description: "CHOOSE A RESOURCE FAMILY TO MAP. NEEDS THE MATCHING SURVEY TOOL.",
+        description: "CHOOSE A RESOURCE FAMILY.",
         kind: ActionKind::Window("survey"),
     },
     ToolbarAction {
         id: "sample",
         label: "HAND SAMPLE",
         icon: "sample",
-        description: "WORK A SMALL SAMPLE LOOSE. NO PROFESSION OR TOOL REQUIRED.",
+        description: "TAKE A SMALL RESOURCE SAMPLE.",
         kind: ActionKind::Window("survey"),
     },
     ToolbarAction {
         id: "reload",
         label: "RELOAD",
         icon: "reload",
-        description: "RELOAD YOUR EQUIPPED WEAPON.",
+        description: "RELOAD THE EQUIPPED WEAPON.",
         kind: ActionKind::Verb,
     },
     ToolbarAction {
         id: "peace",
         label: "STAND DOWN",
         icon: "peace",
-        description: "CEASE AUTO-FIRE AND DISENGAGE.",
+        description: "CEASE FIRE AND DISENGAGE.",
         kind: ActionKind::Verb,
     },
     ToolbarAction {
         id: "clone",
         label: "ACTIVATE CLONE",
         icon: "clone",
-        description: "RESPAWN AT THE NEAREST CLONE FACILITY.",
+        description: "RESPAWN AT NEAREST CLONE.",
         kind: ActionKind::Verb,
     },
     ToolbarAction {
@@ -138,7 +141,7 @@ pub const TOOLBAR_ACTIONS: [ToolbarAction; 14] = [
         id: "window:macros",
         label: "MACROS",
         icon: "macro",
-        description: "OPEN THE MACRO BENCH — AUTHOR AND RUN COMMAND SCRIPTS.",
+        description: "AUTHOR AND RUN COMMAND SCRIPTS.",
         kind: ActionKind::Window("macros"),
     },
     ToolbarAction {
@@ -381,17 +384,18 @@ pub fn draw_dock(
     icons: &Icons,
     pal: &Palette,
     _toolbar: &Toolbar,
-    sw: f32,
-    sh: f32,
+    rail: [f32; 4],
     captured: bool,
     out: &mut Vec<HudAction>,
 ) {
-    let btn = 36.0;
-    let gap = 8.0;
+    let btn = rail[2];
     let count = PERMANENT_WINDOWS.len() as f32;
-    let rail_h = count * (btn + gap) + btn + gap * 2.0;
-    let x = sw - btn - 10.0;
-    let mut y = (sh - rail_h) * 0.5;
+    // Buttons plus the theme swatch share the rail height, so the rail keeps a
+    // stable footprint at every framebuffer.
+    let step = ((rail[3] - btn * 0.5) / (count + 0.5)).max(btn + 2.0);
+    let x = rail[0];
+    let mut y = rail[1];
+    let gap = (step - btn).max(2.0);
     for (id, title, icon, hotkey) in PERMANENT_WINDOWS.iter() {
         let resp = ui.interact(x, y, btn, btn);
         let fill = if resp.hovered {
@@ -413,7 +417,7 @@ pub fn draw_dock(
         );
         if resp.hovered {
             // Tooltip: title to the left of the rail.
-            let tw = UiBuilder::text_width(title, 1.5);
+            let tw = ui.measure_text(title, 1.5);
             ui.rect(x - tw - 14.0, y + 8.0, tw + 10.0, 14.0, pal.bg_panel);
             ui.text(title, x - tw - 9.0, y + 11.0, 1.5, pal.ink);
         }
@@ -441,8 +445,7 @@ pub fn draw_toolbar(
     pal: &Palette,
     toolbar: &mut Toolbar,
     st: &HudState,
-    sw: f32,
-    sh: f32,
+    bar: [f32; 4],
     captured: bool,
     right_pressed: bool,
     now_ms: u64,
@@ -450,12 +453,14 @@ pub fn draw_toolbar(
 ) {
     let groups = 3usize;
     let per_group = 4usize;
-    let bar_w = (SLOT_COUNT as f32) * SLOT_PX
+    let nominal = (SLOT_COUNT as f32) * SLOT_PX
         + ((SLOT_COUNT - groups) as f32) * SLOT_GAP
         + ((groups - 1) as f32) * GROUP_GAP;
-    let x0 = (sw - bar_w) * 0.5;
-    let y = sh - SLOT_PX - 18.0;
-    toolbar.bar_rect = [x0 - 8.0, y - 8.0, bar_w + 16.0, SLOT_PX + 16.0];
+    // The bar keeps a stable slot footprint; it only shifts, never restyles.
+    let x0 = bar[0] + (bar[2] - nominal) * 0.5;
+    // The slot row and its key labels are one block, centred in the bar rect.
+    let y = bar[1] + (bar[3] - (SLOT_PX + KEY_LABEL_H)) * 0.5;
+    toolbar.bar_rect = [bar[0], bar[1], bar[2], bar[3]];
 
     let (mx, my) = ui.mouse();
     let verbs_locked = st.life != LifeHud::Alive;
@@ -474,12 +479,19 @@ pub fn draw_toolbar(
         let resp = ui.interact(slot_x, y, SLOT_PX, SLOT_PX);
         let occupied = toolbar.doc.slots[slot].is_some();
         let assigning = toolbar.pending_assign.is_some();
+        // Every slot keeps a visible cell, as the original bar does: the twelve
+        // cells are the bar. An empty cell is just a quieter seat.
+        let mut empty_seat = pal.bg_panel;
+        empty_seat[3] = 205;
         let fill = if resp.hovered && (occupied || assigning) {
             pal.accent_soft
-        } else {
+        } else if occupied {
             pal.bg_panel
+        } else {
+            empty_seat
         };
         ui.rect(slot_x, y, SLOT_PX, SLOT_PX, fill);
+        ui.border(slot_x, y, SLOT_PX, SLOT_PX, 1.0, pal.hairline);
         if assigning && resp.hovered {
             ui.rect(slot_x, y + SLOT_PX - 2.0, SLOT_PX, 2.0, pal.accent);
         }
@@ -505,7 +517,7 @@ pub fn draw_toolbar(
                         );
                     }
                     if resp.hovered && toolbar.drag_from.is_none() {
-                        let tw = UiBuilder::text_width(action.label, 1.5);
+                        let tw = ui.measure_text(action.label, 1.5);
                         ui.rect(mx - tw * 0.5 - 5.0, y - 22.0, tw + 10.0, 15.0, pal.bg_panel);
                         ui.text(action.label, mx - tw * 0.5, y - 19.0, 1.5, pal.ink);
                     }
@@ -527,14 +539,22 @@ pub fn draw_toolbar(
             None => {}
         }
 
-        // Hotkey badge (top-left corner).
-        ui.text(
-            code_glyph(&toolbar.doc.binds[slot]),
-            slot_x + 3.0,
-            y + 2.0,
-            1.3,
-            pal.accent,
+        // Hotkey label under the slot, as the original prints F1..F12 beneath
+        // the bar. The glyph keeps a small dark seat so it stays legible over
+        // bright terrain without boxing the slot itself.
+        let key = code_glyph(&toolbar.doc.binds[slot]);
+        let key_w = ui.measure_text(key, 1.3);
+        let key_x = slot_x + (SLOT_PX - key_w) * 0.5;
+        let mut key_backing = pal.bg_panel;
+        key_backing[3] = 200;
+        ui.rect(
+            key_x - 3.0,
+            y + SLOT_PX + 1.0,
+            key_w + 6.0,
+            KEY_LABEL_H - 2.0,
+            key_backing,
         );
+        ui.text(key, key_x, y + SLOT_PX + 3.0, 1.3, pal.accent);
 
         // Unavailable overlay for verbs while down/dead.
         if verbs_locked {
@@ -578,7 +598,11 @@ pub fn draw_toolbar(
     }
 
     // Release routing: click-activate, drop move/swap, drop-off clear, assign.
-    let released = ui.interact(0.0, 0.0, sw, sh).released;
+    // Screen-wide release: a drop anywhere resolves the drag, including a drop
+    // off the bar (which clears the source slot).
+    let released = ui
+        .interact(f32::MIN * 0.5, f32::MIN * 0.5, f32::MAX, f32::MAX)
+        .released;
     if released && !captured {
         let target_slot = (0..SLOT_COUNT).find(|&i| {
             let [rx, ry, rw, rh] = toolbar.slot_rects[i];
@@ -619,8 +643,14 @@ pub fn draw_toolbar(
         } else {
             pal.accent
         };
-        let tw = UiBuilder::text_width(&toolbar.flash_text, 1.6);
-        ui.text(&toolbar.flash_text, (sw - tw) * 0.5, y - 20.0, 1.6, tint);
+        let tw = ui.measure_text(&toolbar.flash_text, 1.6);
+        ui.text(
+            &toolbar.flash_text,
+            bar[0] + (bar[2] - tw) * 0.5,
+            y - 20.0,
+            1.6,
+            tint,
+        );
     }
 }
 

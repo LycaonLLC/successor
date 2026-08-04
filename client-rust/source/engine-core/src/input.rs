@@ -41,10 +41,15 @@ pub enum Key {
     Digit7 = 31,
     Digit8 = 32,
     Digit9 = 33,
+    P = 34,
+    K = 35,
+    B = 36,
+    M = 37,
+    G = 38,
 }
 
 impl Key {
-    pub const COUNT: usize = 34;
+    pub const COUNT: usize = 39;
 
     pub fn from_u16(v: u16) -> Option<Key> {
         if (v as usize) < Key::COUNT {

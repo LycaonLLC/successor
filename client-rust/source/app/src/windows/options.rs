@@ -67,12 +67,12 @@ fn section_title(ui: &mut UiBuilder, x: f32, y: f32, title: &str) -> f32 {
 
 pub fn draw(
     ui: &mut UiBuilder,
-    rect: [f32; 4],
+    ctx: super::Ctx,
     model: &OptionsModel,
     _icons: &Icons,
     out: &mut Vec<WindowAction>,
 ) {
-    let [x, y, w, h] = rect;
+    let [x, y, w, h] = ctx.rect;
     let bottom = y + h - 6.0;
     let mut cy = y + 4.0;
 
@@ -149,7 +149,7 @@ pub fn draw(
         if cy + 18.0 > bottom - 120.0 {
             // Keep the lower sections visible in shorter windows; remaining
             // slots list continues in the same rhythm on taller windows.
-            ui.text("…RESIZE FOR ALL SLOTS", x, cy, 1.3, DIM);
+            ui.text("...RESIZE FOR ALL SLOTS", x, cy, 1.3, DIM);
             cy += 16.0;
             break;
         }
@@ -165,7 +165,7 @@ pub fn draw(
         let key_label = code_glyph(&model.toolbar_binds[slot]);
         ui.rect(x + 158.0, cy, 44.0, 16.0, SLOT);
 
-        let klw = UiBuilder::text_width(key_label, 1.5);
+        let klw = ui.measure_text(key_label, 1.5);
         ui.text(
             key_label,
             x + 158.0 + (44.0 - klw) * 0.5,
@@ -174,7 +174,7 @@ pub fn draw(
             TEXT,
         );
         let pending = model.rebind_pending == Some(slot);
-        let btn_label = if pending { "PRESS KEY…" } else { "REBIND" };
+        let btn_label = if pending { "PRESS KEY..." } else { "REBIND" };
         let mut style = ButtonStyle::default();
         if pending {
             style.edge = ACCENT;
@@ -197,7 +197,7 @@ pub fn draw(
         } else {
             format!("{step}")
         };
-        let bw = UiBuilder::text_width(&label, 1.5) + 14.0;
+        let bw = ui.measure_text(&label, 1.5) + 14.0;
         let active = model.split_snap == step;
         let resp = ui.interact(bx, cy, bw, 18.0);
         ui.rect(
@@ -223,7 +223,7 @@ pub fn draw(
             break;
         }
         ui.text(label, x, cy, 1.5, TEXT);
-        let kw = UiBuilder::text_width(keys, 1.5);
+        let kw = ui.measure_text(keys, 1.5);
         ui.text(keys, x + w - kw - 8.0, cy, 1.5, DIM);
         cy += 15.0;
     }
@@ -231,6 +231,14 @@ pub fn draw(
 
 #[cfg(test)]
 mod tests {
+    fn test_ctx(rect: [f32; 4]) -> crate::windows::Ctx {
+        crate::windows::Ctx {
+            spec: crate::windows::spec::surface("options").expect("options surface"),
+            rect,
+            tab: 0,
+        }
+    }
+
     use super::*;
 
     fn setup() -> (UiBuilder, OptionsModel, Icons) {
@@ -251,11 +259,11 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(ui, RECT, model, icons, &mut out);
+        draw(ui, test_ctx(RECT), model, icons, &mut out);
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(ui, RECT, model, icons, &mut out);
+        draw(ui, test_ctx(RECT), model, icons, &mut out);
         out
     }
 
@@ -277,9 +285,9 @@ mod tests {
         let (mut ui, model, icons) = setup();
         let mut button_x = 100.0 + 130.0;
         for label in ["1", "5", "10", "100"] {
-            button_x += UiBuilder::text_width(label, 1.5) + 14.0 + 6.0;
+            button_x += ui.measure_text(label, 1.5) + 14.0 + 6.0;
         }
-        let button_w = UiBuilder::text_width("1K", 1.5) + 14.0;
+        let button_w = ui.measure_text("1K", 1.5) + 14.0;
         let out = click(
             &mut ui,
             &model,
@@ -307,7 +315,7 @@ mod tests {
         ui.set_input(track_x + track_w * 0.75, 136.0, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, RECT, &model, &icons, &mut out);
+        draw(&mut ui, test_ctx(RECT), &model, &icons, &mut out);
         let dust = out.iter().find_map(|a| match a {
             WindowAction::SetDust(v) => Some(*v),
             _ => None,

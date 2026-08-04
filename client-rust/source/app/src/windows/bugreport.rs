@@ -64,9 +64,9 @@ impl BugReportModel {
 /// Player-facing denial copy (reference `reportErrorCopy`).
 pub fn report_error_copy(reason_code: &str) -> &'static str {
     match reason_code {
-        "rate_limited" => "QUEUE BUSY · TRY AGAIN IN A MINUTE",
+        "rate_limited" => "QUEUE BUSY / TRY AGAIN IN A MINUTE",
         "invalid_report" => "REPORT NEEDS MORE DETAIL",
-        _ => "NO LINK · YOUR REPORT IS KEPT, TRY AGAIN",
+        _ => "NO LINK / YOUR REPORT IS KEPT, TRY AGAIN",
     }
 }
 
@@ -249,13 +249,12 @@ pub fn collect_diagnostics(input: &DiagnosticsInput) -> Value {
 
 pub fn draw(
     ui: &mut UiBuilder,
-    rect: [f32; 4],
+    ctx: super::Ctx,
     model: &mut BugReportModel,
     icons: &Icons,
     out: &mut Vec<WindowAction>,
 ) {
-    let [x, y, w, h] = rect;
-    ui.text("SUBMIT BUG REPORT", x, y, 2.2, ACCENT);
+    let [x, y, w, h] = ctx.rect;
     if let Some((col, row)) = icons.cell("bug-report") {
         ui.icon(col, row, x + w - 28.0, y - 2.0, 22.0, 22.0, ACCENT);
     }
@@ -359,7 +358,7 @@ pub fn draw(
     // Status line.
     match &model.status {
         BugStatus::Pending { .. } => {
-            ui.text("PACKING SESSION LOG…", x, cy + 44.0, 1.4, ACCENT);
+            ui.text("PACKING SESSION LOG...", x, cy + 44.0, 1.4, ACCENT);
         }
         BugStatus::Denied { copy } => {
             ui.text(copy, x, cy + 44.0, 1.4, [227, 74, 74, 255]);
@@ -374,7 +373,7 @@ pub fn draw(
         style.text = DIM;
         style.edge = SLOT_EDGE;
     }
-    let label = if pending { "SENDING…" } else { "SEND REPORT" };
+    let label = if pending { "SENDING..." } else { "SEND REPORT" };
     if ui.button(x, y + h - 24.0, w, 22.0, label, style) && can_send {
         out.push(WindowAction::SubmitBugReport {
             category: CATEGORIES[model.category].0.to_string(),
@@ -386,6 +385,14 @@ pub fn draw(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn ctx(rect: [f32; 4]) -> crate::windows::Ctx {
+        crate::windows::Ctx {
+            spec: crate::windows::spec::surface("bug-report").expect("report surface"),
+            rect,
+            tab: 0,
+        }
+    }
 
     #[test]
     fn redacts_bearer_and_ticket_params() {
@@ -476,11 +483,11 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        draw(&mut ui, ctx(rect), &mut model, &icons, &mut out);
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        draw(&mut ui, ctx(rect), &mut model, &icons, &mut out);
         assert!(out.is_empty());
         // Long enough → SubmitBugReport with the reference category id.
         for c in " and then the terminal ate my report".chars() {
@@ -489,11 +496,11 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        draw(&mut ui, ctx(rect), &mut model, &icons, &mut out);
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        draw(&mut ui, ctx(rect), &mut model, &icons, &mut out);
         assert!(matches!(
             out.as_slice(),
             [WindowAction::SubmitBugReport { category, .. }] if category == "gameplay"
@@ -505,11 +512,11 @@ mod tests {
         ui.set_input(bx, by, true);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        draw(&mut ui, ctx(rect), &mut model, &icons, &mut out);
         ui.set_input(bx, by, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(&mut ui, rect, &mut model, &icons, &mut out);
+        draw(&mut ui, ctx(rect), &mut model, &icons, &mut out);
         assert!(out.is_empty());
     }
 }

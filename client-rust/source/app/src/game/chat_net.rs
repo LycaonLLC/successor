@@ -58,20 +58,40 @@ pub enum ChatView {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChatMessage {
     pub channel: ChatChannel,
+    /// Stable character/actor identity used for world anchoring.
+    pub sender_id: String,
+    /// Human-facing display name used by the chat pane.
     pub sender: String,
     pub text: String,
     pub whisper_to: Option<String>,
 }
 
-pub fn encode_outgoing(msg: &ChatMessage) -> String {
-    let frame = serde_json::json!({
+fn send_frame(
+    request_id: &str,
+    channel: ChatChannel,
+    body: &str,
+    target_id: Option<&str>,
+) -> serde_json::Value {
+    let mut frame = serde_json::json!({
         "type": "chat.send",
-        "requestId": "0",
-        "channel": msg.channel.as_str(),
-        "body": msg.text,
-        "targetId": msg.whisper_to,
+        "requestId": request_id,
+        "channel": channel.as_str(),
+        "body": body,
     });
-    serde_json::to_string(&frame).unwrap_or_default()
+    if let Some(target_id) = target_id {
+        frame["targetId"] = serde_json::Value::String(target_id.to_owned());
+    }
+    frame
+}
+
+pub fn encode_outgoing(msg: &ChatMessage) -> String {
+    serde_json::to_string(&send_frame(
+        "0",
+        msg.channel,
+        &msg.text,
+        msg.whisper_to.as_deref(),
+    ))
+    .unwrap_or_default()
 }
 
 pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
@@ -91,6 +111,7 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
 
         return Some(ChatMessage {
             channel,
+            sender_id: String::new(),
             sender: String::new(),
             text,
             whisper_to,
@@ -108,16 +129,27 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
             .and_then(|b| b.as_str())?
             .to_string();
 
-        let sender = if let Some(sender_val) = message.get("sender") {
-            if let Some(display_name) = sender_val.get("displayName").and_then(|d| d.as_str()) {
-                display_name.to_string()
+        let (sender_id, sender) = if let Some(sender_val) = message.get("sender") {
+            if let Some(sender_obj) = sender_val.as_object() {
+                (
+                    sender_obj
+                        .get("id")
+                        .and_then(serde_json::Value::as_str)
+                        .unwrap_or_default()
+                        .to_string(),
+                    sender_obj
+                        .get("displayName")
+                        .and_then(serde_json::Value::as_str)
+                        .unwrap_or_default()
+                        .to_string(),
+                )
             } else if let Some(sender_str) = sender_val.as_str() {
-                sender_str.to_string()
+                (String::new(), sender_str.to_string())
             } else {
-                String::new()
+                (String::new(), String::new())
             }
         } else {
-            String::new()
+            (String::new(), String::new())
         };
 
         let whisper_to = message
@@ -129,6 +161,7 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
 
         return Some(ChatMessage {
             channel,
+            sender_id,
             sender,
             text,
             whisper_to,
@@ -144,16 +177,27 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
                 .and_then(|b| b.as_str())?
                 .to_string();
 
-            let sender = if let Some(sender_val) = v.get("sender") {
-                if let Some(display_name) = sender_val.get("displayName").and_then(|d| d.as_str()) {
-                    display_name.to_string()
+            let (sender_id, sender) = if let Some(sender_val) = v.get("sender") {
+                if let Some(sender_obj) = sender_val.as_object() {
+                    (
+                        sender_obj
+                            .get("id")
+                            .and_then(serde_json::Value::as_str)
+                            .unwrap_or_default()
+                            .to_string(),
+                        sender_obj
+                            .get("displayName")
+                            .and_then(serde_json::Value::as_str)
+                            .unwrap_or_default()
+                            .to_string(),
+                    )
                 } else if let Some(sender_str) = sender_val.as_str() {
-                    sender_str.to_string()
+                    (String::new(), sender_str.to_string())
                 } else {
-                    String::new()
+                    (String::new(), String::new())
                 }
             } else {
-                String::new()
+                (String::new(), String::new())
             };
 
             let whisper_to = v
@@ -165,6 +209,7 @@ pub fn decode_incoming(json: &str) -> Option<ChatMessage> {
 
             return Some(ChatMessage {
                 channel,
+                sender_id,
                 sender,
                 text,
                 whisper_to,
@@ -394,10 +439,6 @@ impl ChatClient {
             list.retain(|x| x != &id);
         }
     }
-    pub fn history_request(&mut self, limit: usize) -> String {
-        let request_id = self.connection.request_id("history");
-        serde_json::json!({"type":"chat.history","requestId":request_id,"limit":limit.min(100),"before":self.connection.history_cursor}).to_string()
-    }
     pub fn ping(&mut self) -> String {
         let request_id = self.connection.request_id("ping");
         serde_json::json!({"type":"ping","requestId":request_id}).to_string()
@@ -409,10 +450,12 @@ impl ChatClient {
     pub fn command_frame(&mut self, command: ChatCommand) -> Option<String> {
         let request_id = self.connection.request_id("chat");
         let frame = match command {
-            ChatCommand::Send(channel, body, target) => serde_json::json!({
-                "type":"chat.send","requestId":request_id,"channel":channel.as_str(),
-                "body":bounded_text(&body),"targetId":target
-            }),
+            ChatCommand::Send(channel, body, target) => send_frame(
+                &request_id,
+                channel,
+                &bounded_text(&body),
+                target.as_deref(),
+            ),
             ChatCommand::Social(SocialRequest::FriendAdd(id)) => {
                 serde_json::json!({"type":"friend.add","requestId":request_id,"friendId":bounded_text(&id)})
             }
@@ -446,6 +489,7 @@ impl ChatClient {
                 self.connection.authenticated();
                 let msg = ChatMessage {
                     channel: ChatChannel::System,
+                    sender_id: String::new(),
                     sender: String::new(),
                     text: "Connected to chat.".into(),
                     whisper_to: None,
@@ -530,6 +574,7 @@ impl ChatClient {
     pub fn compose(&self, channel: ChatChannel, text: &str, whisper_to: Option<String>) -> String {
         encode_outgoing(&ChatMessage {
             channel,
+            sender_id: String::new(),
             sender: String::new(),
             text: bounded_text(text),
             whisper_to,
@@ -590,6 +635,12 @@ mod tests {
             assert_eq!(decoded.channel, ch);
             assert_eq!(decoded.text, text);
             assert_eq!(decoded.whisper_to, whisper);
+            let frame: serde_json::Value = serde_json::from_str(&json).unwrap();
+            if let Some(target) = whisper.as_deref() {
+                assert_eq!(frame["targetId"], target);
+            } else {
+                assert!(frame.get("targetId").is_none());
+            }
         }
     }
 
@@ -613,10 +664,13 @@ mod tests {
         assert_eq!(recent.len(), 3);
         assert_eq!(recent[0].text, "Msg 2");
         assert_eq!(recent[0].sender, "Bob");
+        assert_eq!(recent[0].sender_id, "2");
         assert_eq!(recent[1].text, "Msg 3");
         assert_eq!(recent[1].sender, "Charlie");
+        assert_eq!(recent[1].sender_id, "3");
         assert_eq!(recent[2].text, "Msg 4");
         assert_eq!(recent[2].sender, "David");
+        assert_eq!(recent[2].sender_id, "4");
     }
 
     #[test]

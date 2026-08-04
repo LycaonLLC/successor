@@ -11,6 +11,7 @@ pub mod game;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod glb_scene;
 pub mod graphics_tuning;
+pub mod hosted_creator;
 pub mod hud;
 mod item_preview;
 pub mod material_parity;
@@ -19,7 +20,6 @@ pub mod pawn;
 pub mod persist;
 pub mod render_settings;
 pub mod rss;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod screens;
 pub mod windows;
 pub mod world;
@@ -257,11 +257,15 @@ static GLOBAL: successor_engine_core::rt::alloc::CountingAllocator<std::alloc::S
 mod web_runtime {
     use crate::demo::{build_scene, Scene};
     use crate::game::actions;
-    use crate::game::chat_net::{ChatClient, ChatConnectionState};
+    use crate::game::chat_net::ChatClient;
     use crate::game::command_queue::CommandQueue;
-    use crate::game::connected_scene::ConnectedScene;
+    use crate::game::connected_scene::{ConnectedScene, CONNECTED_INPUT_KEYS};
     use crate::game::movement;
+    use crate::hosted_creator::{
+        parse_inbound_message, CreateEffect, CreateStartError, CreatorInbound, HostedCreatorFlow,
+    };
     use crate::net::session::LaunchEnvelope;
+    use crate::screens::{CharacterScreen, CharacterStage, ScreenAction};
     use serde_json::json;
     use successor_client_proto::colyseus;
 
@@ -270,6 +274,9 @@ mod web_runtime {
     };
     use successor_engine_core::input::Key;
     use successor_engine_core::rt::cell::GlobalCell;
+    use successor_engine_render::gpu::{ClearSpec, Gpu, PassTarget, RectPx};
+    use successor_engine_render::renderer::Renderer;
+    use successor_engine_render::ui::UiBuilder;
     use successor_net::{PlayerId, SessionId};
     use successor_platform::GlGpu;
     static GPU: GlobalCell<GlGpu> = GlobalCell::new();
@@ -286,6 +293,22 @@ mod web_runtime {
     static LAST_MOVE: GlobalCell<(i32, i32, bool)> = GlobalCell::new();
     static FATAL: GlobalCell<bool> = GlobalCell::new();
     static EXITING: GlobalCell<bool> = GlobalCell::new();
+    static CREATOR_MODE: GlobalCell<bool> = GlobalCell::new();
+    static CREATOR_FLOW: GlobalCell<HostedCreatorFlow> = GlobalCell::new();
+    static CREATOR_SCREEN: GlobalCell<CharacterScreen> = GlobalCell::new();
+    static CREATOR_RENDERER: GlobalCell<Renderer> = GlobalCell::new();
+    static CREATOR_UI: GlobalCell<UiBuilder> = GlobalCell::new();
+    static CREATOR_INPUT: GlobalCell<CreatorInput> = GlobalCell::new();
+
+    #[derive(Default)]
+    struct CreatorInput {
+        tab_was: bool,
+        enter_was: bool,
+        backspace_was: bool,
+        escape_was: bool,
+        up_was: bool,
+        down_was: bool,
+    }
 
     fn read_web_asset(stable_id: &str) -> Option<Vec<u8>> {
         if stable_id.is_empty() || stable_id.contains("..") || stable_id.starts_with('/') {
@@ -303,12 +326,28 @@ mod web_runtime {
         successor_platform::http_get(&path).ok()
     }
 
+    fn creator_mode() -> bool {
+        CREATOR_MODE.get_mut().copied().unwrap_or(false)
+    }
+
+    fn build_creator_surface(gpu: &mut GlGpu) -> Result<(), String> {
+        let mut renderer = crate::configured_renderer(gpu)?;
+        let icons = crate::hud::Icons::load();
+        renderer.set_ui_atlas(&mut *gpu, icons.meta.width, icons.meta.height, &icons.rgba);
+        CREATOR_RENDERER.set(renderer);
+        CREATOR_UI.set(icons.ui_builder());
+        Ok(())
+    }
+
     #[no_mangle]
     pub extern "C" fn init(demo_selector: u32) {
         crate::initialize_render_settings();
         successor_platform::init("Successor", 1280, 720);
         DEMO_SELECTOR.set(demo_selector);
-        if demo_selector == 0 {
+        let is_creator = demo_selector == 0 && successor_platform::web::creator_mode();
+        CREATOR_MODE.set(is_creator);
+        FATAL.set(false);
+        if demo_selector == 0 && !is_creator {
             let bytes = successor_platform::web::launch_context()
                 .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok())
                 .and_then(|v| {
@@ -351,6 +390,19 @@ mod web_runtime {
             let mut scene = crate::world::chunks::TerrainScene::build(&mut gpu, biome);
             scene.use_material_detail_view();
             TERRAIN_SCENE.set(scene);
+        } else if is_creator {
+            match build_creator_surface(&mut gpu) {
+                Ok(()) => {
+                    CREATOR_FLOW.set(HostedCreatorFlow::default());
+                    CREATOR_SCREEN.set(CharacterScreen::with_entries(Vec::new()));
+                    CREATOR_INPUT.set(CreatorInput::default());
+                    successor_platform::web::creator_ready();
+                }
+                Err(error) => {
+                    FATAL.set(true);
+                    successor_engine_core::rt::log::log_str(&error);
+                }
+            }
         } else if demo_selector == 0 {
             let player_id = LAUNCH
                 .get_mut()
@@ -392,6 +444,247 @@ mod web_runtime {
         SIZE.set((w.max(1) as u32, h.max(1) as u32));
     }
 
+    fn bounded_creator_error(prefix: &str, detail: &str) -> String {
+        const MAX_STATUS_BYTES: usize = 128;
+        let mut status = String::from(prefix);
+        let remaining = MAX_STATUS_BYTES.saturating_sub(status.len());
+        status.push_str(&detail[..detail.len().min(remaining)]);
+        status
+    }
+
+    fn complete_creator_create(screen: &mut CharacterScreen, character_id: &str) {
+        screen.draft = Default::default();
+        screen.set_stage(CharacterStage::Roster);
+        screen.select_stable_id(character_id);
+        screen.set_status("CHARACTER CREATED. SELECT TO ENTER WORLD.");
+    }
+
+    fn apply_creator_effect(effect: CreateEffect) {
+        let Some(screen) = CREATOR_SCREEN.get_mut() else {
+            return;
+        };
+        match effect {
+            CreateEffect::Ignored => {}
+            CreateEffect::WaitingForRoster => {
+                screen.set_status("CREATE ACCEPTED. REFRESHING ROSTER.");
+            }
+            CreateEffect::Rejected(error) => {
+                screen.set_status_error(&bounded_creator_error("CREATE REJECTED: ", &error));
+            }
+            CreateEffect::Created(character_id) => complete_creator_create(screen, &character_id),
+            CreateEffect::TimedOut => {
+                screen.set_status_error("CREATE TIMED OUT. TRY AGAIN.");
+            }
+        }
+    }
+
+    fn drain_creator_messages() {
+        for _ in 0..8 {
+            let Some(bytes) = successor_platform::web::take_creator_message() else {
+                break;
+            };
+            let Some(message) = parse_inbound_message(&bytes) else {
+                continue;
+            };
+            match message {
+                CreatorInbound::State(state) => {
+                    let Some(flow) = CREATOR_FLOW.get_mut() else {
+                        continue;
+                    };
+                    let effect = flow.apply_state(state);
+                    let roster = flow.roster_entries();
+                    let Some(screen) = CREATOR_SCREEN.get_mut() else {
+                        continue;
+                    };
+                    screen.replace_roster(roster);
+                    if let Some(id) = effect.selected_character_id.as_deref() {
+                        screen.select_stable_id(id);
+                    }
+                    if let Some(id) = effect.created_character_id.as_deref() {
+                        complete_creator_create(screen, id);
+                    }
+                }
+                CreatorInbound::CreateResult(result) => {
+                    let effect = CREATOR_FLOW
+                        .get_mut()
+                        .map(|flow| flow.handle_create_result(result))
+                        .unwrap_or(CreateEffect::Ignored);
+                    apply_creator_effect(effect);
+                }
+            }
+        }
+    }
+
+    fn handle_creator_action(action: ScreenAction) {
+        match action {
+            ScreenAction::SelectCharacter(index) => {
+                let id = CREATOR_SCREEN
+                    .get_mut()
+                    .and_then(|screen| screen.roster.get(index).map(|entry| entry.id.clone()))
+                    .filter(|id| !id.is_empty());
+                let Some(id) = id else {
+                    return;
+                };
+                let posted = successor_platform::web::post_creator_select(&id);
+                if let Some(screen) = CREATOR_SCREEN.get_mut() {
+                    if posted {
+                        screen.set_status("HANDOFF REQUESTED.");
+                    } else {
+                        screen.set_status_error("CHARACTER HANDOFF UNAVAILABLE.");
+                    }
+                }
+            }
+            ScreenAction::CreateCharacter(display_name) => {
+                let Some((vocation, female)) = CREATOR_SCREEN
+                    .get_mut()
+                    .map(|screen| (screen.draft.vocation(), screen.draft.female))
+                else {
+                    return;
+                };
+                let now_ms = successor_platform::now_ms().max(0.0) as u64;
+                let request = CREATOR_FLOW
+                    .get_mut()
+                    .map(|flow| flow.begin_create(&display_name, vocation, female, now_ms));
+                match request {
+                    Some(Ok(request)) => {
+                        if successor_platform::web::post_creator_create(&request.to_json()) {
+                            if let Some(screen) = CREATOR_SCREEN.get_mut() {
+                                screen.set_status("CREATING CHARACTER...");
+                            }
+                        } else {
+                            if let Some(flow) = CREATOR_FLOW.get_mut() {
+                                flow.cancel_pending();
+                            }
+                            if let Some(screen) = CREATOR_SCREEN.get_mut() {
+                                screen.set_status_error("CREATE REQUEST UNAVAILABLE.");
+                            }
+                        }
+                    }
+                    Some(Err(CreateStartError::Pending)) => {
+                        if let Some(screen) = CREATOR_SCREEN.get_mut() {
+                            screen.set_status("CREATE ALREADY IN PROGRESS.");
+                        }
+                    }
+                    Some(Err(CreateStartError::InvalidName)) => {
+                        if let Some(screen) = CREATOR_SCREEN.get_mut() {
+                            screen
+                                .set_status_error("NAME: 3-16 LETTERS; USE HYPHENS BETWEEN WORDS.");
+                        }
+                    }
+                    Some(Err(CreateStartError::UnsupportedProfession)) | None => {
+                        if let Some(screen) = CREATOR_SCREEN.get_mut() {
+                            screen.set_status_error("SELECT A STARTING VOCATION.");
+                        }
+                    }
+                }
+            }
+            ScreenAction::Back => {
+                if let Some(screen) = CREATOR_SCREEN.get_mut() {
+                    screen.set_status("SELECT OR CREATE A CHARACTER.");
+                }
+            }
+            ScreenAction::Connect(_) | ScreenAction::CancelConnect | ScreenAction::Quit => {}
+        }
+    }
+
+    fn update_creator(dt: f32) {
+        drain_creator_messages();
+        let now_ms = successor_platform::now_ms().max(0.0) as u64;
+        let effect = CREATOR_FLOW
+            .get_mut()
+            .map(|flow| flow.expire(now_ms))
+            .unwrap_or(CreateEffect::Ignored);
+        apply_creator_effect(effect);
+
+        let (w, h) = SIZE.get_mut().copied().unwrap_or((1280, 720));
+        if w == 0 || h == 0 {
+            return;
+        }
+        let action = {
+            let (Some(screen), Some(ui), Some(input)) = (
+                CREATOR_SCREEN.get_mut(),
+                CREATOR_UI.get_mut(),
+                CREATOR_INPUT.get_mut(),
+            ) else {
+                return;
+            };
+            let (mouse_x, mouse_y) = successor_platform::mouse_position();
+            ui.set_input(mouse_x, mouse_y, successor_platform::mouse_button_down(0));
+
+            let shift = successor_platform::is_key_down(Key::LeftShift);
+            let tab = successor_platform::is_key_down(Key::Tab);
+            let tab_edge = tab && !input.tab_was;
+            input.tab_was = tab;
+            let enter = successor_platform::is_key_down(Key::Enter);
+            let enter_edge = enter && !input.enter_was;
+            input.enter_was = enter;
+            let backspace = successor_platform::is_key_down(Key::Backspace);
+            let backspace_edge = backspace && !input.backspace_was;
+            input.backspace_was = backspace;
+            let escape = successor_platform::is_key_down(Key::Escape);
+            let escape_edge = escape && !input.escape_was;
+            input.escape_was = escape;
+            let up = successor_platform::is_key_down(Key::Up);
+            let up_edge = up && !input.up_was;
+            input.up_was = up;
+            let down = successor_platform::is_key_down(Key::Down);
+            let down_edge = down && !input.down_was;
+            input.down_was = down;
+
+            screen.tick(dt);
+            while let Some(character) = successor_platform::poll_text_input() {
+                screen.input_char(character);
+            }
+            if tab_edge {
+                if shift {
+                    screen.focus_prev();
+                } else {
+                    screen.focus_next();
+                }
+            }
+            if backspace_edge {
+                screen.backspace();
+            }
+            if up_edge {
+                screen.move_selection(-1, w as f32, h as f32);
+            }
+            if down_edge {
+                screen.move_selection(1, w as f32, h as f32);
+            }
+            if escape_edge {
+                match screen.stage() {
+                    CharacterStage::CreateIdentity => {
+                        screen.set_stage(CharacterStage::CreateProfile)
+                    }
+                    CharacterStage::CreateProfile => screen.set_stage(CharacterStage::Roster),
+                    CharacterStage::Roster => screen.set_status("SELECT OR CREATE A CHARACTER."),
+                }
+            }
+
+            ui.begin(w, h);
+            let mut action = screen.draw(ui, w as f32, h as f32);
+            if enter_edge && action.is_none() {
+                action = match screen.stage() {
+                    CharacterStage::Roster => {
+                        Some(ScreenAction::SelectCharacter(screen.selected()))
+                    }
+                    CharacterStage::CreateProfile => {
+                        screen.set_stage(CharacterStage::CreateIdentity);
+                        None
+                    }
+                    CharacterStage::CreateIdentity => {
+                        let name = screen.draft.full_name();
+                        (!name.is_empty()).then_some(ScreenAction::CreateCharacter(name))
+                    }
+                };
+            }
+            action
+        };
+        if let Some(action) = action {
+            handle_creator_action(action);
+        }
+    }
+
     #[no_mangle]
     pub extern "C" fn update(dt: f32) {
         let frame = FRAME
@@ -402,6 +695,10 @@ mod web_runtime {
             })
             .unwrap_or(0);
         CONNECTED_DT.set(dt.clamp(0.0, 0.1));
+        if creator_mode() {
+            update_creator(dt.clamp(0.0, 0.1));
+            return;
+        }
         if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) != 0 {
             return;
         }
@@ -431,19 +728,7 @@ mod web_runtime {
                 sprint: intent.2,
             });
         }
-        for key in [
-            Key::I,
-            Key::C,
-            Key::Semicolon,
-            Key::O,
-            Key::Tab,
-            Key::V,
-            Key::X,
-            Key::N,
-            Key::R,
-            Key::F,
-            Key::Space,
-        ] {
+        for key in CONNECTED_INPUT_KEYS {
             if let Some(action) = scene.handle_key(key, successor_platform::is_key_down(key)) {
                 let _ = scene.dispatch_gameplay_action(action);
             }
@@ -468,6 +753,28 @@ mod web_runtime {
     pub extern "C" fn render() {
         let (w, h) = SIZE.get_mut().copied().unwrap_or((1280, 720));
         if let Some(gpu) = GPU.get_mut() {
+            if creator_mode() {
+                if let (Some(renderer), Some(ui)) =
+                    (CREATOR_RENDERER.get_mut(), CREATOR_UI.get_mut())
+                {
+                    gpu.begin_pass(
+                        PassTarget::Screen,
+                        RectPx {
+                            x: 0,
+                            y: 0,
+                            w: w as i32,
+                            h: h as i32,
+                        },
+                        ClearSpec {
+                            color: Some([0.012, 0.027, 0.039, 1.0]),
+                            depth: Some(1.0),
+                        },
+                    );
+                    gpu.end_pass();
+                    renderer.render_ui(gpu, &ui.buf, ui.quads, w, h);
+                }
+                return;
+            }
             if DEMO_SELECTOR.get_mut().copied().unwrap_or(0) == 1 {
                 if let Some(scene) = PARITY_SCENE.get_mut() {
                     scene
@@ -746,10 +1053,6 @@ mod web_runtime {
                 successor_platform::WsEvent::Frame(length) => {
                     let _ =
                         chat_client.on_incoming(&String::from_utf8_lossy(&chat_buffer[..length]));
-                    if chat_client.connection.state == ChatConnectionState::SyncingHistory {
-                        let frame = chat_client.history_request(100);
-                        successor_platform::ws_send(chat_socket, frame.as_bytes());
-                    }
                 }
                 successor_platform::WsEvent::Closed | successor_platform::WsEvent::Error => {
                     let _ = chat_client.connection.lost();

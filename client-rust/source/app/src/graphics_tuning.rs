@@ -42,6 +42,16 @@ impl GraphicsTuner {
         self.open
     }
 
+    /// Dismiss the overlay without changing the backquote edge state.
+    pub fn dismiss(&mut self) -> bool {
+        if !self.open {
+            return false;
+        }
+        self.open = false;
+        self.status = "TUNING CLOSED".to_string();
+        true
+    }
+
     pub fn handle_toggle(&mut self, down: bool) -> bool {
         let changed = down && !self.previous_toggle;
         self.previous_toggle = down;
@@ -528,7 +538,7 @@ fn slider_row(
 ) -> bool {
     ui.text(label, x + 18.0, y + 7.0, 1.25, TEXT);
     let display = format!("{value:.precision$}");
-    let display_w = UiBuilder::text_width(&display, 1.2);
+    let display_w = ui.measure_text(&display, 1.2);
     ui.text(&display, x + 208.0 - display_w, y + 7.0, 1.2, MUTED);
     ui.slider(x + 220.0, y + 2.0, 330.0, 20.0, value, min, max)
 }

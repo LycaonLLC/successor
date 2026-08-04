@@ -284,6 +284,11 @@ fn raw_key_down(key: Key) -> bool {
         Key::Digit7 => 55,
         Key::Digit8 => 56,
         Key::Digit9 => 57,
+        Key::P => 80,
+        Key::K => 75,
+        Key::B => 66,
+        Key::M => 77,
+        Key::G => 71,
     };
     unsafe { glfwGetKey(state.window, glfw_key) == 1 }
 }

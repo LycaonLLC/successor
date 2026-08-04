@@ -1,33 +1,33 @@
-//! Window content: the per-window layouts drawn inside `WindowManager` frames.
+//! Window content: the per-surface layouts drawn inside `WindowManager` frames.
 //!
-//! Each window group is a submodule exposing `draw(ui, rect, model, out)`, where
-//! `rect = [x, y, w, h]` (px) is the content area the manager returned and `out`
-//! collects `WindowAction`s the host maps onto `ClientCommand`s. Windows are
-//! read-only over a typed [`WindowModel`] (projected from the authority store in
-//! the connected client; the demo seeds it with representative state). This
-//! keeps content rendering deterministic + unit-testable and free of transport
-//! concerns.
+//! [`content`] is the single dispatch point. It resolves the id to its
+//! [`spec::Surface`] (family, tabs, geometry, chrome density), draws the shared
+//! header and tab strip, then hands the surface a [`Ctx`] carrying the body rect
+//! and the active tab. Surfaces are read-only over a typed [`WindowModel`]
+//! (projected from the authority store in the connected client), so content
+//! rendering stays deterministic, unit-testable, and free of transport concerns.
+//!
+//! Routing is total over the registry: [`spec::route`] maps every registered id
+//! to a [`spec::Route`] and the match below is exhaustive over that enum, so a
+//! new surface cannot silently fall through to a stub.
 
 use successor_engine_render::ui::UiBuilder;
 
+pub mod chrome;
 pub mod live;
 pub mod model;
 pub mod project;
+pub mod spec;
 
 pub use model::*;
 
-/// Intents a window emits; the host translates them into `ClientCommand`s
-/// (Wave 11 wires the live authority path).
+/// Intents a window emits; the host translates them into `ClientCommand`s.
 #[derive(Clone, Debug, PartialEq)]
 pub enum WindowAction {
     /// The canonical live path: an exact shared wire command with its full
-    /// typed payload, built by the window from projected authority state
-    /// (`WindowModel` sections carry every id/quantity/variant the command
-    /// needs). `resolve()` forwards it verbatim through `CommandQueue`;
-    /// development-only commands are refused on this path. Every domain
-    /// workflow (inventory/economy, resource/camp/extractor, craft/factory,
-    /// progression, dialogue/travel/doors, trade, groups/duels, splice,
-    /// farming/building, guild) emits through this variant.
+    /// typed payload, built by the window from projected authority state.
+    /// `resolve()` forwards it verbatim through `CommandQueue`; development-only
+    /// commands are refused on this path.
     Command(successor_net::ClientCommand),
     Close,
     UseItem(u32),
@@ -48,8 +48,16 @@ pub enum WindowAction {
     Toggle(String),
     Button(String),
     // ── Section-7 surfaces (HUD/social/support owner) ──────────────────
-    /// Open a window by id (options → action browser link, dock routes).
+    /// Open a window by id (action browser → context surface, dock routes).
     OpenWindow(String),
+    /// Right-click on an inventory card: the host opens the object radial over
+    /// this exact stack (`SwgCuiInventory::openSelectedRadial`). The window has
+    /// already made the stack the live selection, so the footer and the radial
+    /// address the same object.
+    OpenInventoryRadial {
+        container: String,
+        stack_id: String,
+    },
     /// Theme swatch pick (index into `hud::THEMES`).
     SetTheme(usize),
     /// Live session dust/edge-fog dial (0..1, 0.05 grid).
@@ -111,6 +119,11 @@ pub enum WindowLocalAction {
     Close,
     Select(u32),
     OpenWindow(String),
+    /// Host opens the inventory object radial over this stack.
+    OpenInventoryRadial {
+        container: String,
+        stack_id: String,
+    },
     SetTheme(usize),
     SetDust(f32),
     SetSplitSnap(u32),
@@ -222,6 +235,13 @@ impl WindowAction {
                 WindowActionResult::Rejected("unsupported generic window action".into())
             }
             OpenWindow(id) => WindowActionResult::Local(WindowLocalAction::OpenWindow(id)),
+            OpenInventoryRadial {
+                container,
+                stack_id,
+            } => WindowActionResult::Local(WindowLocalAction::OpenInventoryRadial {
+                container,
+                stack_id,
+            }),
             SetTheme(i) => WindowActionResult::Local(WindowLocalAction::SetTheme(i)),
             SetDust(v) => WindowActionResult::Local(WindowLocalAction::SetDust(v.clamp(0.0, 1.0))),
             SetSplitSnap(v) => WindowActionResult::Local(WindowLocalAction::SetSplitSnap(v)),
@@ -261,7 +281,197 @@ impl WindowAction {
     }
 }
 
-pub mod actions;
+pub mod bugreport;
+pub mod character;
+pub mod commands;
+pub mod inventory;
+pub mod options;
+pub mod skills;
+
+/// What a surface needs to draw its body: its family spec, the content rect
+/// below the shared header/tab strip, and the active tab.
+#[derive(Clone, Copy)]
+pub struct Ctx {
+    pub spec: &'static spec::Surface,
+    /// Body rect `[x, y, w, h]` — already inset below the header and tabs.
+    pub rect: [f32; 4],
+    /// Active tab index (0 when the surface owns no tabs).
+    pub tab: usize,
+}
+
+impl Ctx {
+    pub fn metrics(&self) -> spec::Metrics {
+        self.spec.metrics()
+    }
+}
+
+/// Active tab for a surface. Window-local UI state, never authority state.
+pub fn active_tab(route: spec::Route) -> usize {
+    TAB_STATE.with(|tabs| tabs.borrow()[route as usize] as usize)
+}
+
+pub fn set_active_tab(route: spec::Route, tab: usize) {
+    TAB_STATE.with(|tabs| tabs.borrow_mut()[route as usize] = tab.min(u8::MAX as usize) as u8);
+}
+
+/// Dispatch content for the window `id` into `ui`.
+pub fn content(
+    ui: &mut UiBuilder,
+    id: &str,
+    rect: [f32; 4],
+    model: &WindowModel,
+    icons: &crate::hud::Icons,
+    out: &mut Vec<WindowAction>,
+) {
+    let (Some(surface), Some(route)) = (spec::surface(id), spec::route(id)) else {
+        // Unreachable for a registered id (`spec::route` is total over the
+        // registry and tested); named loudly so an unmapped surface reads as a
+        // defect instead of a blank pane.
+        ui.text(
+            "UNMAPPED SURFACE",
+            rect[0] + 6.0,
+            rect[1] + 6.0,
+            chrome::scale(chrome::VALUE_PX),
+            chrome::WARN,
+        );
+        ui.text(
+            id,
+            rect[0] + 6.0,
+            rect[1] + 6.0 + chrome::ROW_H,
+            chrome::scale(chrome::LABEL_PX),
+            DIM,
+        );
+        return;
+    };
+
+    // The compact static panes receive a host-built body context. Authority-
+    // backed live panes own the same shared header/tab primitives internally
+    // because their tab state and footer reservations are pane-local.
+    let host_owns_chrome = matches!(
+        route,
+        spec::Route::Character
+            | spec::Route::Skills
+            | spec::Route::CommandBrowser
+            | spec::Route::Options
+            | spec::Route::Report
+    );
+    let mut body = rect;
+    if host_owns_chrome && surface.header {
+        let y = chrome::header(ui, rect, surface);
+        body = [rect[0], y, rect[2], (rect[1] + rect[3] - y).max(0.0)];
+    }
+    if host_owns_chrome && !surface.tabs.is_empty() {
+        if let Some(next) = chrome::tabs(
+            ui,
+            body[0],
+            body[1],
+            body[2],
+            surface.tabs,
+            active_tab(route),
+        ) {
+            set_active_tab(route, next);
+        }
+        let step = chrome::TAB_H + 8.0;
+        body = [body[0], body[1] + step, body[2], (body[3] - step).max(0.0)];
+    }
+    let ctx = Ctx {
+        spec: surface,
+        rect: body,
+        tab: active_tab(route),
+    };
+
+    match route {
+        spec::Route::Inventory => inventory::draw(ui, body, model, icons, out),
+        spec::Route::Character => character::draw(ui, ctx, model, icons, out),
+        spec::Route::Skills => skills::draw(ui, ctx, model, icons, out),
+        spec::Route::CommandBrowser => commands::draw(ui, ctx, icons, out),
+        spec::Route::Options => {
+            OPTIONS_MODEL.with(|options| options::draw(ui, ctx, &options.borrow(), icons, out));
+        }
+        spec::Route::Report => {
+            BUG_MODEL.with(|bug| bugreport::draw(ui, ctx, &mut bug.borrow_mut(), icons, out));
+        }
+        spec::Route::Datapad => live::datapad(ui, ctx, model, out),
+        spec::Route::Macros => live::macros_live(ui, ctx, model, out),
+        spec::Route::Association => live::guild(ui, ctx, model, out),
+        spec::Route::Group => live::group(ui, ctx, model, out),
+        spec::Route::Craft => live::craft(ui, ctx, model, out),
+        spec::Route::Splice => live::splice(ui, ctx, model, out),
+        spec::Route::Converse => live::converse(ui, ctx, model, out),
+        spec::Route::Trade => live::trade(ui, ctx, model, out),
+        spec::Route::Examine => live::examine(ui, ctx, model, out),
+        spec::Route::Survey => live::survey(ui, ctx, model, out),
+        spec::Route::Travel => live::travel(ui, ctx, model, out),
+        spec::Route::Loot => live::loot(ui, ctx, model, out),
+        spec::Route::Bank => live::bank(ui, ctx, model, out),
+        spec::Route::Clone => live::clone_terminal(ui, ctx, model, out),
+        spec::Route::Structure => live::agriculture(ui, ctx, model, out),
+    }
+}
+
+// Per-window interactive state for the section-7 windows. Interim home until
+// the shared `WindowUiState` threading lands — dispatch stays immutable-model
+// for every other window.
+pub fn set_bug_report_pending(request_id: String) {
+    BUG_MODEL.with(|model| {
+        model.borrow_mut().status = bugreport::BugStatus::Pending { request_id };
+    });
+}
+
+pub fn apply_bug_report_result(payload: &serde_json::Value) {
+    BUG_MODEL.with(|model| {
+        let mut model = model.borrow_mut();
+        let bugreport::BugStatus::Pending { request_id } = &model.status else {
+            return;
+        };
+        if let Some(status) = bugreport::result_for_request(payload, request_id) {
+            model.status = status;
+        }
+    });
+}
+
+pub fn reset_bug_report() {
+    BUG_MODEL.with(|model| {
+        model.borrow_mut().status = bugreport::BugStatus::Idle;
+    });
+}
+
+pub fn set_options_model(model: options::OptionsModel) {
+    OPTIONS_MODEL.with(|state| *state.borrow_mut() = model);
+}
+
+thread_local! {
+    static OPTIONS_MODEL: core::cell::RefCell<options::OptionsModel> =
+        core::cell::RefCell::new(options::OptionsModel::default());
+    static BUG_MODEL: core::cell::RefCell<bugreport::BugReportModel> =
+        core::cell::RefCell::new(bugreport::BugReportModel::new());
+    /// One tab index per `spec::Route`.
+    static TAB_STATE: core::cell::RefCell<[u8; 32]> = const { core::cell::RefCell::new([0; 32]) };
+}
+
+// ── Shared ink ──────────────────────────────────────────────────────────────
+// Measured from the original dense-window crops (8-level quantization) and the
+// original frame includes, then used as the single palette for every surface.
+// Frame and well tones live in [`chrome`]; these are the type colors.
+
+/// Primary body ink.
+pub const TEXT: [u8; 4] = [0x97, 0xFF, 0xFF, 255];
+/// Row/field labels.
+pub const LABEL: [u8; 4] = [0x97, 0xFF, 0xFF, 255];
+/// Numeric values and readouts.
+pub const VALUE: [u8; 4] = [0x96, 0xF4, 0xFC, 255];
+/// Subordinate captions, disabled rows, unavailable notes.
+pub const DIM: [u8; 4] = [0x5E, 0xA8, 0xB4, 255];
+/// Active/selected accent (tab underline, selection rail, focus).
+pub const ACTIVE: [u8; 4] = [0x20, 0xE0, 0xF0, 255];
+/// Heading accent. Alias of [`ACTIVE`] so headings and selection agree.
+pub const ACCENT: [u8; 4] = ACTIVE;
+/// Affirmative state (learned skill box, satisfied requirement, gain).
+pub const POSITIVE: [u8; 4] = [0x62, 0xFF, 0x15, 255];
+/// Recessed slot/cell fill.
+pub const SLOT: [u8; 4] = [0x00, 0x28, 0x30, 235];
+/// Slot separator.
+pub const SLOT_EDGE: [u8; 4] = [0x00, 0x78, 0x90, 240];
 
 #[cfg(test)]
 mod tests {
@@ -296,106 +506,82 @@ mod tests {
             WindowActionResult::Rejected(_)
         ));
     }
-}
-pub mod bank;
-pub mod bugreport;
-pub mod character;
-pub mod clone;
-pub mod converse;
-pub mod craft;
-pub mod datapad;
-pub mod inventory;
-pub mod loot;
-pub mod macros;
-pub mod options;
-pub mod pa;
-pub mod skills;
-pub mod splice;
-pub mod survey;
-pub mod trade;
-pub mod travel;
 
-/// Dispatch content for the window `id` into `ui`. Unknown ids draw a stub.
-pub fn content(
-    ui: &mut UiBuilder,
-    id: &str,
-    rect: [f32; 4],
-    model: &WindowModel,
-    icons: &crate::hud::Icons,
-    out: &mut Vec<WindowAction>,
-) {
-    match id {
-        "inventory" => inventory::draw(ui, rect, model, icons, out),
-        "character" => character::draw(ui, rect, model, icons, out),
-        "skills" => skills::draw(ui, rect, model, icons, out),
-        "options" => {
-            OPTIONS_MODEL.with(|m| options::draw(ui, rect, &m.borrow(), icons, out));
-        }
-        "loot" => live::loot(ui, rect, model, out),
-        "bank" => live::bank(ui, rect, model, out),
-        "trade" => live::trade(ui, rect, model, out),
-        "craft" => live::craft(ui, rect, model, out),
-        "survey" => live::survey(ui, rect, model, out),
-        "converse" => live::converse(ui, rect, model, out),
-        "travel" => live::travel(ui, rect, model, out),
-        "datapad" => live::datapad(ui, rect, model, out),
-        "clone" => live::clone_terminal(ui, rect, model, out),
-        "pa" => live::guild(ui, rect, model, out),
-        "splice" => live::splice(ui, rect, model, out),
-        "build" => live::agriculture(ui, rect, model, out),
-        "macros" => live::macros_live(ui, rect, model, out),
-        "actions" => live::group(ui, rect, model, out),
-        "examine" => live::examine(ui, rect, model, out),
-        "bug-report" => {
-            BUG_MODEL.with(|m| bugreport::draw(ui, rect, &mut m.borrow_mut(), icons, out));
-        }
-        _ => {
-            ui.text("NO SIGNAL", rect[0] + 6.0, rect[1] + 6.0, 2.2, TEXT);
+    #[test]
+    fn inventory_radial_stays_a_local_host_route() {
+        assert_eq!(
+            WindowAction::OpenInventoryRadial {
+                container: "player".into(),
+                stack_id: "7".into(),
+            }
+            .resolve(),
+            WindowActionResult::Local(WindowLocalAction::OpenInventoryRadial {
+                container: "player".into(),
+                stack_id: "7".into(),
+            })
+        );
+    }
+
+    #[test]
+    fn tab_state_is_per_surface() {
+        set_active_tab(spec::Route::Datapad, 2);
+        set_active_tab(spec::Route::Bank, 1);
+        assert_eq!(active_tab(spec::Route::Datapad), 2);
+        assert_eq!(active_tab(spec::Route::Bank), 1);
+        assert_eq!(active_tab(spec::Route::Survey), 0);
+        set_active_tab(spec::Route::Datapad, 0);
+        set_active_tab(spec::Route::Bank, 0);
+    }
+
+    /// Every registered surface renders on every tab, at its resize floor, from
+    /// an empty projection, without panicking and without drawing nothing.
+    #[test]
+    fn every_surface_draws_at_its_resize_floor() {
+        let icons = crate::hud::Icons::load();
+        let mut ui = UiBuilder::new(icons.meta);
+        let model = WindowModel::sample();
+        let mut out = Vec::new();
+        for surface in &spec::SURFACES {
+            let (w, h) = surface.min_size();
+            let route = spec::route(surface.id).expect("mapped surface");
+            for tab in 0..surface.tabs.len().max(1) {
+                set_active_tab(route, tab);
+                ui.begin(1280, 720);
+                out.clear();
+                content(
+                    &mut ui,
+                    surface.id,
+                    [24.0, 24.0, w, h],
+                    &model,
+                    &icons,
+                    &mut out,
+                );
+                assert!(
+                    ui.quads > 0,
+                    "{} tab {tab} drew nothing at its resize floor",
+                    surface.id
+                );
+            }
+            set_active_tab(route, 0);
         }
     }
-}
 
-// Per-window interactive state for the section-7 windows. Interim home until
-// the shared `WindowUiState` threading lands with the section-6 rewrite —
-// dispatch stays immutable-model for every other window.
-pub fn set_bug_report_pending(request_id: String) {
-    BUG_MODEL.with(|model| {
-        model.borrow_mut().status = bugreport::BugStatus::Pending { request_id };
-    });
+    #[test]
+    fn an_unmapped_id_is_named_not_blank() {
+        let icons = crate::hud::Icons::load();
+        let mut ui = UiBuilder::new(icons.meta);
+        let model = WindowModel::sample();
+        let mut out = Vec::new();
+        ui.begin(1280, 720);
+        content(
+            &mut ui,
+            "not-a-surface",
+            [0.0, 0.0, 300.0, 200.0],
+            &model,
+            &icons,
+            &mut out,
+        );
+        assert!(ui.quads > 0, "an unmapped id must still say so on screen");
+        assert!(out.is_empty(), "an unmapped id must emit no intents");
+    }
 }
-
-pub fn apply_bug_report_result(payload: &serde_json::Value) {
-    BUG_MODEL.with(|model| {
-        let mut model = model.borrow_mut();
-        let bugreport::BugStatus::Pending { request_id } = &model.status else {
-            return;
-        };
-        if let Some(status) = bugreport::result_for_request(payload, request_id) {
-            model.status = status;
-        }
-    });
-}
-
-pub fn reset_bug_report() {
-    BUG_MODEL.with(|model| {
-        model.borrow_mut().status = bugreport::BugStatus::Idle;
-    });
-}
-
-pub fn set_options_model(model: options::OptionsModel) {
-    OPTIONS_MODEL.with(|state| *state.borrow_mut() = model);
-}
-
-thread_local! {
-    static OPTIONS_MODEL: core::cell::RefCell<options::OptionsModel> =
-        core::cell::RefCell::new(options::OptionsModel::default());
-    static BUG_MODEL: core::cell::RefCell<bugreport::BugReportModel> =
-        core::cell::RefCell::new(bugreport::BugReportModel::new());
-}
-
-// Shared chrome palette (mirrors the HUD panel tones).
-pub const TEXT: [u8; 4] = [220, 234, 235, 255];
-pub const DIM: [u8; 4] = [111, 150, 157, 255];
-pub const ACCENT: [u8; 4] = [59, 211, 225, 255];
-pub const SLOT: [u8; 4] = [9, 18, 20, 230];
-pub const SLOT_EDGE: [u8; 4] = [38, 82, 89, 240];

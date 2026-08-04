@@ -14,12 +14,12 @@ use successor_engine_render::ui::UiBuilder;
 
 pub fn draw(
     ui: &mut UiBuilder,
-    rect: [f32; 4],
+    ctx: super::Ctx,
     model: &WindowModel,
     icons: &Icons,
     out: &mut Vec<WindowAction>,
 ) {
-    let [x, y, w, h] = rect;
+    let [x, y, w, h] = ctx.rect;
     let s = &model.skills;
 
     // ── Header: point budget, wallet, trainer gate ───────────────────────
@@ -31,10 +31,11 @@ pub fn draw(
         TEXT,
     );
     let cr = format!("CR {}", s.credits);
-    ui.text(&cr, x + w - UiBuilder::text_width(&cr, 2.0), y, 2.0, ACCENT);
+    let cr_w = ui.measure_text(&cr, 2.0);
+    ui.text(&cr, x + w - cr_w, y, 2.0, ACCENT);
     let trainer = match &s.trainer {
         Some(t) if t.in_range => format!("TRAINER {}", t.name),
-        Some(t) => format!("TRAINER {} — {}", t.name, super::DENY_RANGE),
+        Some(t) => format!("TRAINER {} - {}", t.name, super::DENY_RANGE),
         None => "NO TRAINER IN RANGE".to_string(),
     };
     ui.text(
@@ -61,7 +62,7 @@ pub fn draw(
             return;
         }
         ui.text(
-            &format!("{} — XP {}", tree.label, tree.xp),
+            &format!("{} - XP {}", tree.label, tree.xp),
             x,
             cy,
             2.2,
@@ -101,21 +102,16 @@ pub fn draw(
             let right = if b.trained {
                 "TRAINED".to_string()
             } else if b.available {
-                let mut cost = format!("SP {} · XP {}", b.skill_point_cost, b.xp_cost);
+                let mut cost = format!("SP {} / XP {}", b.skill_point_cost, b.xp_cost);
                 if b.credit_cost > 0 {
-                    cost.push_str(&format!(" · CR {}", b.credit_cost));
+                    cost.push_str(&format!(" / CR {}", b.credit_cost));
                 }
                 cost
             } else {
                 b.deny_reason.clone()
             };
-            ui.text(
-                &right,
-                x + w - UiBuilder::text_width(&right, 1.6) - 8.0,
-                cy + 20.0,
-                1.6,
-                text_col,
-            );
+            let right_w = ui.measure_text(&right, 1.6);
+            ui.text(&right, x + w - right_w - 8.0, cy + 20.0, 1.6, text_col);
             if resp.clicked && clickable {
                 let trainer_actor_id = s
                     .trainer
@@ -144,6 +140,14 @@ pub fn draw(
 
 #[cfg(test)]
 mod tests {
+    fn test_ctx(rect: [f32; 4]) -> crate::windows::Ctx {
+        crate::windows::Ctx {
+            spec: crate::windows::spec::surface("skills").expect("skills surface"),
+            rect,
+            tab: 0,
+        }
+    }
+
     use super::*;
     use crate::windows::model::{ProfessionTreeView, SkillBoxView, TrainerView};
 
@@ -207,11 +211,11 @@ mod tests {
         ui.set_input(cx, cy, true);
         ui.begin(1280, 720);
         let mut out = Vec::new();
-        draw(ui, RECT, model, icons, &mut out);
+        draw(ui, test_ctx(RECT), model, icons, &mut out);
         ui.set_input(cx, cy, false);
         ui.begin(1280, 720);
         out.clear();
-        draw(ui, RECT, model, icons, &mut out);
+        draw(ui, test_ctx(RECT), model, icons, &mut out);
         out
     }
 

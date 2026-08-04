@@ -159,7 +159,10 @@ mod tests {
                 painted += 1;
             }
         }
-        assert!(painted > 100, "expected composited feature pixels, got {painted}");
+        assert!(
+            painted > 100,
+            "expected composited feature pixels, got {painted}"
+        );
         assert!(
             transparent > (FACE_TEXTURE_SIZE * FACE_TEXTURE_SIZE / 2) as usize,
             "skin-coloured atlas background survived the chroma key"

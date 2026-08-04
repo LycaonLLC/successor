@@ -21,13 +21,17 @@ use successor_engine_render::components::{
     CamTarget, Camera, CompositeQuad, DirectionalLight, MeshRenderer, Projection, RectNorm,
     SkinRef, Transform,
 };
-use successor_engine_render::gpu::{ClearSpec, Filter, Gpu, RenderTargetDesc, RenderTargetId};
+use successor_engine_render::gpu::{
+    ClearSpec, Filter, Gpu, PassTarget, RectPx, RenderTargetDesc, RenderTargetId,
+};
 use successor_engine_render::renderer::Renderer;
+use successor_engine_render::ui::UiBuilder;
 use successor_engine_render::{environment, fx::glow_sprite};
 use successor_net::ClientCommand;
 
 use crate::game::actions::{self, DispatchOutcome};
 use crate::game::authority::AuthorityStore;
+use crate::game::chat_net::{ChatChannel, ChatMessage};
 use crate::game::combat_fx::CombatFx;
 use crate::game::command_queue::CommandQueue;
 use crate::game::interp::ActorInterp;
@@ -171,7 +175,409 @@ struct LiveActor {
     lifecycle_seq: i64,
 }
 
+#[derive(Clone, Copy)]
+struct InteractionProp<'a> {
+    id: &'a str,
+    kind: &'a str,
+    label: &'a str,
+    x: f32,
+    y: f32,
+}
+
+fn spatial_chat_payload(message: &ChatMessage) -> Option<(&str, &str)> {
+    (message.channel == ChatChannel::Local
+        && !message.sender_id.is_empty()
+        && !message.text.trim().is_empty())
+    .then_some((message.sender_id.as_str(), message.text.as_str()))
+}
+
+/// Keys sampled by both connected hosts. The permanent-window entries are
+/// deliberately represented by their advertised `KeyboardEvent.code` mapping
+/// below rather than a second hand-maintained registry.
+pub const CONNECTED_INPUT_KEYS: [Key; 13] = [
+    Key::C,
+    Key::I,
+    Key::P,
+    Key::K,
+    Key::B,
+    Key::M,
+    Key::O,
+    Key::G,
+    Key::Escape,
+    Key::X,
+    Key::R,
+    Key::F,
+    Key::Space,
+];
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum ContextMenu {
+    Actor { x: f32, y: f32 },
+    InventoryRadial { x: f32, y: f32 },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum InventoryRadialAction {
+    Use,
+    Equip,
+    Unequip,
+    Examine,
+    Drop,
+    Split,
+    Splice,
+}
+
+impl InventoryRadialAction {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Use => "USE",
+            Self::Equip => "EQUIP",
+            Self::Unequip => "UNEQUIP",
+            Self::Examine => "EXAMINE",
+            Self::Drop => "DROP",
+            Self::Split => "SPLIT",
+            Self::Splice => "SPLICE",
+        }
+    }
+}
+
+fn inventory_has_genome(row: &crate::windows::InventoryRow) -> bool {
+    row.metadata
+        .as_ref()
+        .is_some_and(|metadata| metadata.get("genome").is_some())
+}
+
+fn inventory_radial_can_use(row: &crate::windows::InventoryRow) -> bool {
+    matches!(
+        row.kind(),
+        crate::windows::ItemKind::Medical
+            | crate::windows::ItemKind::Ammo
+            | crate::windows::ItemKind::Currency
+    )
+}
+
+fn inventory_radial_can_equip(row: &crate::windows::InventoryRow) -> bool {
+    matches!(
+        row.kind(),
+        crate::windows::ItemKind::Gear | crate::windows::ItemKind::Weapon
+    )
+}
+
+fn inventory_radial_actions(
+    row: &crate::windows::InventoryRow,
+    splice_available: bool,
+    out: &mut [InventoryRadialAction; 6],
+) -> usize {
+    let mut count = 0;
+    if inventory_radial_can_equip(row) {
+        out[count] = if row.equipped {
+            InventoryRadialAction::Unequip
+        } else {
+            InventoryRadialAction::Equip
+        };
+        count += 1;
+    }
+    out[count] = InventoryRadialAction::Examine;
+    count += 1;
+    if inventory_radial_can_use(row) {
+        out[count] = InventoryRadialAction::Use;
+        count += 1;
+    }
+    out[count] = InventoryRadialAction::Drop;
+    count += 1;
+    if row.available > 1 {
+        out[count] = InventoryRadialAction::Split;
+        count += 1;
+    }
+    if splice_available || inventory_has_genome(row) {
+        out[count] = InventoryRadialAction::Splice;
+        count += 1;
+    }
+    count
+}
+
+fn inventory_radial_window_action(
+    row: &crate::windows::InventoryRow,
+    action: InventoryRadialAction,
+) -> Option<crate::windows::WindowAction> {
+    use crate::windows::WindowAction;
+
+    let command = match action {
+        InventoryRadialAction::Use if row.is_credit_chip() => ClientCommand::RedeemCreditChip {
+            container: row.container.clone(),
+            stack_id: row.stack_id.clone(),
+        },
+        InventoryRadialAction::Use if row.kind() == crate::windows::ItemKind::Ammo => {
+            ClientCommand::RefillAmmo {
+                item_id: row
+                    .item_key
+                    .clone()
+                    .unwrap_or_else(|| row.item_id.to_string()),
+            }
+        }
+        InventoryRadialAction::Use if inventory_radial_can_use(row) => {
+            ClientCommand::UseConsumable {
+                item_id: row
+                    .item_key
+                    .clone()
+                    .unwrap_or_else(|| row.item_id.to_string()),
+                item_numeric_id: Some(row.item_id),
+                variant_id: Some(row.variant_id),
+            }
+        }
+        InventoryRadialAction::Equip | InventoryRadialAction::Unequip
+            if row.kind() == crate::windows::ItemKind::Gear =>
+        {
+            ClientCommand::SetEquippedClothing {
+                item_id: row.item_id,
+                equipped: action == InventoryRadialAction::Equip,
+                container: Some(row.container.clone()),
+                stack_id: Some(row.stack_id.clone()),
+                variant_id: Some(row.variant_id),
+            }
+        }
+        InventoryRadialAction::Equip | InventoryRadialAction::Unequip
+            if row.kind() == crate::windows::ItemKind::Weapon =>
+        {
+            ClientCommand::SetEquippedWeapon {
+                weapon_id: None,
+                weapon_item_id: (action == InventoryRadialAction::Equip).then_some(row.item_id),
+                weapon_variant_id: (action == InventoryRadialAction::Equip)
+                    .then_some(row.variant_id),
+            }
+        }
+        InventoryRadialAction::Drop => ClientCommand::DiscardStack {
+            container: row.container.clone(),
+            stack_id: row.stack_id.clone(),
+            item_id: row.item_id,
+            variant_id: row.variant_id,
+        },
+        InventoryRadialAction::Split if row.available > 1 => ClientCommand::SplitStack {
+            container: row.container.clone(),
+            stack_id: row.stack_id.clone(),
+            item_id: row.item_id,
+            variant_id: row.variant_id,
+            quantity: (row.available / 2).max(1) as u32,
+        },
+        InventoryRadialAction::Examine => return Some(WindowAction::OpenWindow("examine".into())),
+        InventoryRadialAction::Splice => return Some(WindowAction::OpenWindow("splice".into())),
+        _ => return None,
+    };
+    Some(WindowAction::Command(command))
+}
+
+/// Select an authoritative corpse in interact range without creating one
+/// locally. A missing/invalid row is simply not interactable.
+fn nearest_loot_corpse_id<'a>(
+    corpses: &'a [serde_json::Value],
+    area_id: &str,
+    player: (f32, f32),
+) -> Option<&'a str> {
+    let reach_sq = crate::windows::EXTRACTOR_REACH_CELLS.powi(2);
+    corpses
+        .iter()
+        .filter_map(|corpse| {
+            let id = corpse.get("id").and_then(serde_json::Value::as_str)?;
+            if corpse.get("areaId").and_then(serde_json::Value::as_str) != Some(area_id) {
+                return None;
+            }
+            let coordinate = |axis: &str, cell_axis: &str| {
+                corpse
+                    .get(axis)
+                    .and_then(serde_json::Value::as_f64)
+                    .or_else(|| {
+                        corpse
+                            .get(cell_axis)
+                            .and_then(serde_json::Value::as_i64)
+                            .map(|value| value as f64)
+                    })
+                    .map(|value| value as f32)
+            };
+            let (x, y) = (coordinate("x", "cellX")?, coordinate("y", "cellY")?);
+            let dx = x - player.0;
+            let dy = y - player.1;
+            let distance_sq = dx * dx + dy * dy;
+            (distance_sq.is_finite() && distance_sq <= reach_sq).then_some((id, distance_sq))
+        })
+        .min_by(|left, right| left.1.total_cmp(&right.1).then_with(|| left.0.cmp(right.0)))
+        .map(|(id, _)| id)
+}
+
+fn dismiss_context_or_focused(
+    context_menu: &mut Option<ContextMenu>,
+    graphics_tuner: &mut crate::graphics_tuning::GraphicsTuner,
+    manager: &mut successor_engine_render::window::WindowManager,
+) -> bool {
+    context_menu.take().is_some() || graphics_tuner.dismiss() || manager.close_focused().is_some()
+}
+
+const INVENTORY_RADIAL_RADIUS: f32 = 48.0;
+const INVENTORY_RADIAL_INNER_RADIUS: f32 = 27.0;
+const INVENTORY_RADIAL_NUMBERS: [&str; 6] = ["1", "2", "3", "4", "5", "6"];
+const INVENTORY_RADIAL_ANGLES: [f32; 6] = [
+    -core::f32::consts::FRAC_PI_2,
+    -core::f32::consts::FRAC_PI_4,
+    0.0,
+    core::f32::consts::FRAC_PI_4,
+    core::f32::consts::FRAC_PI_2,
+    core::f32::consts::FRAC_PI_2 * 1.5,
+];
+
+fn draw_inventory_radial_arc(
+    ui: &mut successor_engine_render::ui::UiBuilder,
+    x: f32,
+    y: f32,
+    start: f32,
+    end: f32,
+) {
+    let steps = 12;
+    let mut previous = (
+        x + libm::cosf(start) * INVENTORY_RADIAL_RADIUS,
+        y + libm::sinf(start) * INVENTORY_RADIAL_RADIUS,
+    );
+    for step in 1..=steps {
+        let t = step as f32 / steps as f32;
+        let angle = start + (end - start) * t;
+        let next = (
+            x + libm::cosf(angle) * INVENTORY_RADIAL_RADIUS,
+            y + libm::sinf(angle) * INVENTORY_RADIAL_RADIUS,
+        );
+        ui.line(
+            previous.0,
+            previous.1,
+            next.0,
+            next.1,
+            1.5,
+            [34, 206, 222, 236],
+        );
+        previous = next;
+    }
+}
+
+fn inventory_radial_capsule_rect(
+    ui: &UiBuilder,
+    anchor: (f32, f32),
+    action_index: usize,
+    label: &str,
+    screen: (f32, f32),
+) -> [f32; 4] {
+    let angle = INVENTORY_RADIAL_ANGLES[action_index];
+    let (sin, cos) = libm::sincosf(angle);
+    let edge_x = anchor.0 + cos * INVENTORY_RADIAL_RADIUS;
+    let edge_y = anchor.1 + sin * INVENTORY_RADIAL_RADIUS;
+    let width = (ui.measure_text(label, 1.15) + 27.0).ceil();
+    let height = 18.0;
+    let x = if cos >= -0.1 {
+        edge_x + cos * 9.0 + 3.0
+    } else {
+        edge_x + cos * 9.0 - width - 3.0
+    }
+    .clamp(3.0, (screen.0 - width - 3.0).max(3.0));
+    let y = (edge_y + sin * 9.0 - height * 0.5).clamp(3.0, (screen.1 - height - 3.0).max(3.0));
+    [x, y, width, height]
+}
+
+fn draw_inventory_radial(
+    ui: &mut successor_engine_render::ui::UiBuilder,
+    row: &crate::windows::InventoryRow,
+    anchor: (f32, f32),
+    splice_available: bool,
+    screen: (f32, f32),
+) -> (bool, Option<crate::windows::WindowAction>) {
+    let mut actions = [InventoryRadialAction::Examine; 6];
+    let action_count = inventory_radial_actions(row, splice_available, &mut actions);
+    draw_inventory_radial_arc(
+        ui,
+        anchor.0,
+        anchor.1,
+        -core::f32::consts::PI * 0.82,
+        core::f32::consts::FRAC_PI_2 * 1.12,
+    );
+    ui.ring(
+        anchor.0,
+        anchor.1,
+        INVENTORY_RADIAL_INNER_RADIUS,
+        12,
+        1.0,
+        [21, 122, 135, 236],
+    );
+    ui.line(
+        anchor.0,
+        anchor.1 - INVENTORY_RADIAL_INNER_RADIUS,
+        anchor.0,
+        anchor.1 - INVENTORY_RADIAL_RADIUS + 5.0,
+        1.4,
+        [51, 221, 231, 246],
+    );
+
+    let (mx, my) = ui.mouse();
+    let mut close = false;
+    let mut selected = None;
+    for (index, action) in actions.iter().take(action_count).copied().enumerate() {
+        let angle = INVENTORY_RADIAL_ANGLES[index];
+        let (sin, cos) = libm::sincosf(angle);
+        let from = (
+            anchor.0 + cos * INVENTORY_RADIAL_RADIUS,
+            anchor.1 + sin * INVENTORY_RADIAL_RADIUS,
+        );
+        let [x, y, width, height] =
+            inventory_radial_capsule_rect(ui, anchor, index, action.label(), screen);
+        let response = ui.interact(x, y, width, height);
+        let fill = if response.hovered {
+            [12, 63, 70, 248]
+        } else {
+            [3, 31, 36, 238]
+        };
+        ui.line(
+            from.0,
+            from.1,
+            x + if cos >= -0.1 { 2.0 } else { width - 2.0 },
+            y + height * 0.5,
+            1.0,
+            [34, 174, 188, 222],
+        );
+        ui.rect(x, y, width, height, fill);
+        ui.line(
+            x + 3.0,
+            y + 1.0,
+            x + width - 3.0,
+            y + 1.0,
+            1.0,
+            [50, 191, 202, 220],
+        );
+        ui.text(
+            INVENTORY_RADIAL_NUMBERS[index],
+            x + 5.0,
+            y + 5.0,
+            1.1,
+            [214, 242, 244, 255],
+        );
+        ui.text(action.label(), x + 15.0, y + 5.0, 1.1, [229, 244, 245, 255]);
+        if response.clicked {
+            selected = inventory_radial_window_action(row, action);
+            close = true;
+        }
+    }
+    let dx = mx - anchor.0;
+    let dy = my - anchor.1;
+    let in_ring = dx * dx + dy * dy <= (INVENTORY_RADIAL_RADIUS + 8.0).powi(2);
+    let in_capsule = actions
+        .iter()
+        .take(action_count)
+        .enumerate()
+        .any(|(index, action)| {
+            let [x, y, width, height] =
+                inventory_radial_capsule_rect(ui, anchor, index, action.label(), screen);
+            UiBuilder::hit(x, y, width, height, mx, my)
+        });
+    if ui.interact(0.0, 0.0, screen.0, screen.1).pressed && !in_ring && !in_capsule {
+        close = true;
+    }
+    (close, selected)
+}
+
 pub type PersistedSections = (
+    Option<serde_json::Value>,
     Option<serde_json::Value>,
     Option<serde_json::Value>,
     Option<serde_json::Value>,
@@ -199,6 +605,13 @@ pub struct ConnectedScene {
     paperdoll_camera: Entity,
     paperdoll_quad: Entity,
     paperdoll_target: RenderTargetId,
+    /// Viewer turntable yaw offset, in radians, applied on top of the pawn's
+    /// own facing. The doll idles slowly and the player can drag it.
+    paperdoll_yaw: f32,
+    /// Pointer x at the start of a viewer drag, while the button is held.
+    paperdoll_drag_x: Option<f32>,
+    /// Live viewer cell in framebuffer pixels, for drag hit-testing.
+    paperdoll_viewport: Option<[f32; 4]>,
     item_previews: ItemPreviewRenderer,
     fx_buf: Vec<f32>,
     icons: Icons,
@@ -216,20 +629,33 @@ pub struct ConnectedScene {
     split_snap: u32,
     rebind_pending: Option<usize>,
     preferences_dirty: bool,
+    /// Layout changes that do not alter manager geometry: visibility, focus
+    /// order, iconification, and HUD pane locks.
+    window_layout_dirty: bool,
     pending_bug_report: Option<serde_json::Value>,
     bug_report_sequence: u32,
     right_was_down: bool,
     hud_right_was_down: bool,
+    /// A pointer route consumed a right-click to toggle one HUD pane's layout
+    /// lock. The render pass consumes this once to gate HUD controls on that
+    /// same input edge without toggling the lock a second time.
+    hud_layout_input_consumed: bool,
+    /// A fresh registry or an older workspace document can be missing
+    /// individual panes. Only those slots receive first-run defaults.
+    hud_defaults_pending: [bool; hud::HUD_SURFACE_COUNT],
     framebuffer: (u32, u32),
     selected_actor_id: Option<String>,
     selected_inventory: Option<(String, String)>,
-    context_menu: Option<(f32, f32)>,
+    loot_corpse_id: Option<String>,
+    context_menu: Option<ContextMenu>,
     left_was_down: bool,
     pointer_prev: (f32, f32),
     zoom_percent: f32,
     key_was_down: [bool; Key::COUNT],
     /// Persistent sprint toggle (X), independent of held Shift.
     sprint_toggle: bool,
+    pub loading_screen: crate::screens::LoadingScreen,
+    pub loading: bool,
     window_order: Vec<usize>,
     window_id_scratch: String,
     wm: successor_engine_render::window::WindowManager,
@@ -285,17 +711,129 @@ fn follow_eye(ground: Vec3) -> Vec3 {
     follow_focus(ground).add(vec3(0.0, distance * pitch.sin(), distance * pitch.cos()))
 }
 
-fn window_geometry(id: &str, index: usize) -> ([f32; 4], f32, f32) {
-    match id {
-        "inventory" => ([180.0, 78.0, 760.0, 540.0], 620.0, 440.0),
-        "character" => ([250.0, 68.0, 520.0, 610.0], 440.0, 500.0),
-        "examine" => ([850.0, 110.0, 360.0, 500.0], 320.0, 420.0),
-        "converse" => ([143.0, 136.0, 390.0, 385.0], 360.0, 340.0),
-        _ => {
-            let offset = (index % 6) as f32 * 34.0;
-            ([330.0 + offset, 96.0 + offset, 520.0, 390.0], 320.0, 240.0)
+/// Registration geometry for a window id. The surface spec owns default bounds
+/// and the resize floor (`windows::spec`), so a frame's size, its minimum, and
+/// its family density all come from one table. `index` is retained for the
+/// caller's registration order; the spec's per-surface anchor replaces the old
+/// cascade offset, which only produced distinct positions at one framebuffer.
+fn window_geometry(id: &str, _index: usize) -> ([f32; 4], f32, f32) {
+    crate::windows::spec::geometry(id, WINDOW_BASELINE.0, WINDOW_BASELINE.1)
+}
+
+/// Viewport the registration defaults are evaluated against. `WindowManager`
+/// clamps to the live framebuffer on the first frame, and the inventory frame is
+/// a fixed 660x521 at every framebuffer, so this baseline only decides where
+/// viewport-relative frames start before the player moves them.
+const WINDOW_BASELINE: (f32, f32) = (1280.0, 720.0);
+
+const WINDOW_LAYOUT_SCHEMA: &str = "successor.window-layout.v1";
+
+/// Restore geometry plus workspace visibility/order and HUD lock state.
+/// Returns one `true` slot for each HUD pane absent from the document, so a
+/// schema predating a newly registered pane preserves every rect it did save.
+fn restore_window_layout(
+    manager: &mut successor_engine_render::window::WindowManager,
+    value: Option<&serde_json::Value>,
+) -> [bool; crate::hud::HUD_SURFACE_COUNT] {
+    let Some(rows) = value
+        .filter(|document| {
+            document.get("schema").and_then(serde_json::Value::as_str) == Some(WINDOW_LAYOUT_SCHEMA)
+        })
+        .and_then(|document| document.get("windows"))
+        .and_then(serde_json::Value::as_array)
+    else {
+        return [true; crate::hud::HUD_SURFACE_COUNT];
+    };
+
+    let mut missing_hud = [true; crate::hud::HUD_SURFACE_COUNT];
+    let mut open_rows = Vec::new();
+    for (row_index, row) in rows.iter().enumerate() {
+        let Some(id) = row.get("id").and_then(serde_json::Value::as_str) else {
+            continue;
+        };
+        let Some(raw) = row.get("bounds").and_then(serde_json::Value::as_array) else {
+            continue;
+        };
+        if raw.len() != 4 {
+            continue;
+        }
+        let mut bounds = [0.0; 4];
+        let mut valid = true;
+        for (index, value) in raw.iter().enumerate() {
+            let Some(number) = value.as_f64() else {
+                valid = false;
+                break;
+            };
+            bounds[index] = number as f32;
+        }
+        if valid && manager.set_rect(id, bounds) {
+            if let Some(index) = crate::hud::HUD_SURFACES
+                .iter()
+                .position(|surface| surface.id == id)
+            {
+                missing_hud[index] = false;
+            }
+        }
+        if let Some(locked) = row.get("locked").and_then(serde_json::Value::as_bool) {
+            crate::hud::set_hud_surface_locked(manager, id, locked);
+        }
+        if let Some(open) = row.get("open").and_then(serde_json::Value::as_bool) {
+            manager.close(id);
+            if open {
+                let z = row
+                    .get("z")
+                    .and_then(serde_json::Value::as_u64)
+                    .unwrap_or(row_index as u64);
+                let iconified = row
+                    .get("iconified")
+                    .and_then(serde_json::Value::as_bool)
+                    .unwrap_or(false);
+                open_rows.push((z, row_index, id, iconified));
+            }
         }
     }
+    // Opening back-to-front recreates the saved focus order without exposing
+    // the manager's internal z counter in the persistence schema.
+    open_rows.sort_unstable_by_key(|(z, row_index, _, _)| (*z, *row_index));
+    for (_, _, id, iconified) in open_rows {
+        manager.open(id);
+        if iconified {
+            let _ = manager.iconify(id);
+        }
+    }
+    missing_hud
+}
+
+fn save_window_layout(
+    manager: &successor_engine_render::window::WindowManager,
+) -> serde_json::Value {
+    let mut z_order = Vec::new();
+    manager.fill_z_order(&mut z_order);
+    let mut windows = Vec::new();
+    manager.for_each_geometry(|id, bounds| {
+        let mut row = serde_json::Map::new();
+        row.insert("id".into(), serde_json::Value::String(id.into()));
+        row.insert("bounds".into(), serde_json::json!(bounds));
+        row.insert("open".into(), serde_json::Value::Bool(manager.is_open(id)));
+        if let Some(z) = z_order
+            .iter()
+            .position(|index| manager.window_id(*index) == id)
+        {
+            row.insert("z".into(), serde_json::Value::from(z as u64));
+        }
+        if crate::hud::is_hud_surface(id) {
+            row.insert(
+                "locked".into(),
+                serde_json::Value::Bool(!manager.is_interactive(id)),
+            );
+            row.insert(
+                "iconified".into(),
+                serde_json::Value::Bool(manager.is_iconified(id)),
+            );
+        }
+        windows.push(serde_json::Value::Object(row));
+    });
+    serde_json::json!({"schema": WINDOW_LAYOUT_SCHEMA, "windows": windows})
 }
 
 impl ConnectedScene {
@@ -416,6 +954,11 @@ impl ConnectedScene {
             wm.register(id, title, icons.cell(icon), bounds, min_w, min_h);
             window_index += 1;
         }
+        hud::register_hud_surfaces(&mut wm, &icons);
+        wm.set_title(
+            "inventory",
+            &format!("{} (INVENTORY)", player_id.to_ascii_uppercase()),
+        );
         let weather = successor_engine_render::weather::Weather::new(0x0d3d);
         #[cfg(not(target_arch = "wasm32"))]
         let sfx = {
@@ -446,6 +989,9 @@ impl ConnectedScene {
             paperdoll_camera,
             paperdoll_quad,
             paperdoll_target,
+            paperdoll_yaw: 0.0,
+            paperdoll_drag_x: None,
+            paperdoll_viewport: None,
             item_previews,
             combat_fx: CombatFx::new(0x51ce_57ed),
             fx_buf: Vec::with_capacity(64 * 1024),
@@ -464,10 +1010,13 @@ impl ConnectedScene {
             split_snap: 100,
             rebind_pending: None,
             preferences_dirty: false,
+            window_layout_dirty: false,
             pending_bug_report: None,
             bug_report_sequence: 0,
             hud_right_was_down: false,
             right_was_down: false,
+            hud_layout_input_consumed: false,
+            hud_defaults_pending: [true; hud::HUD_SURFACE_COUNT],
             left_was_down: false,
             pointer_prev: (0.0, 0.0),
             zoom_percent: 100.0,
@@ -476,6 +1025,7 @@ impl ConnectedScene {
             framebuffer: (1280, 720),
             selected_actor_id: None,
             selected_inventory: None,
+            loot_corpse_id: None,
             context_menu: None,
             wm,
             window_order: Vec::with_capacity(32),
@@ -519,10 +1069,18 @@ impl ConnectedScene {
             click_route: Vec::new(),
             click_route_index: 0,
             click_goal: None,
+            loading_screen: {
+                let mut screen =
+                    crate::screens::LoadingScreen::new("PLANETFALL", "AWAITING WORLD SNAPSHOT");
+                screen.set_indeterminate(true);
+                screen
+            },
+            loading: true,
         })
     }
 
     pub fn on_snapshot(&mut self, snap: &GameShardSnapshot) {
+        self.loading = false;
         self.shard_id = snap.shard_id.clone();
         self.area_id = snap
             .actors
@@ -531,6 +1089,10 @@ impl ConnectedScene {
             .unwrap_or_default();
         self.store.apply_snapshot(snap);
         self.project_windows();
+    }
+
+    pub fn set_loading(&mut self, loading: bool) {
+        self.loading = loading;
     }
     pub fn shard_id(&self) -> Option<&str> {
         (!self.shard_id.is_empty()).then_some(self.shard_id.as_str())
@@ -650,10 +1212,18 @@ impl ConnectedScene {
             })
             .unwrap_or_default();
         let player = self.store.actors.get(&self.player_id);
+        if let Some(actor) = player {
+            let name = hud::clean_actor_name(&actor.display_name, &actor.label, &self.player_id);
+            self.wm.set_title(
+                "inventory",
+                &format!("{} (INVENTORY)", name.to_ascii_uppercase()),
+            );
+        }
         let player_cell = player.map(|actor| (actor.x, actor.y)).unwrap_or((0.0, 0.0));
         let mut context = ProjectContext {
             selected_actor_id: self.selected_actor_id.clone(),
             selected_inventory: self.selected_inventory.clone(),
+            loot_corpse_id: self.loot_corpse_id.clone(),
             pending,
             now_ms: successor_platform::now_ms(),
             ..ProjectContext::default()
@@ -892,6 +1462,30 @@ impl ConnectedScene {
             &context,
             &mut self.win_model,
         );
+        // The host-owned identity and the inventory pane's thread-local
+        // selection are one contract. A snapshot can remove or reserve the
+        // picked stack between frames, so never leave the footer or radial
+        // pointing at a row that is no longer live.
+        let selected_inventory_is_live =
+            self.selected_inventory
+                .as_ref()
+                .is_some_and(|(container, stack_id)| {
+                    self.win_model
+                        .inventory
+                        .row(container, stack_id)
+                        .is_some_and(|row| !row.in_exchange())
+                });
+        if selected_inventory_is_live {
+            if let Some((container, stack_id)) = &self.selected_inventory {
+                crate::windows::inventory::select_identity(container, stack_id);
+            }
+        } else {
+            self.selected_inventory = None;
+            crate::windows::inventory::clear_selection();
+            if matches!(self.context_menu, Some(ContextMenu::InventoryRadial { .. })) {
+                self.context_menu = None;
+            }
+        }
         self.hud_state.project(
             &self.store,
             &self.player_id,
@@ -913,12 +1507,12 @@ impl ConnectedScene {
                 loaded_rounds: weapon.loaded_rounds.max(0) as u32,
                 rounds_text: if melee {
                     if reloading {
-                        "RECOVERING…".into()
+                        "RECOVERING...".into()
                     } else {
                         "READY".into()
                     }
                 } else if reloading {
-                    "REARMING…".into()
+                    "REARMING...".into()
                 } else {
                     format!(
                         "{}/{}",
@@ -963,7 +1557,7 @@ impl ConnectedScene {
         self.hud_state.sampler_text =
             (self.win_model.survey.sample_cooldown_ticks > 0).then(|| {
                 format!(
-                    "AUTO-SAMPLE · {} TICKS",
+                    "AUTO-SAMPLE / {} TICKS",
                     self.win_model.survey.sample_cooldown_ticks
                 )
             });
@@ -979,7 +1573,7 @@ impl ConnectedScene {
             .camps
             .iter()
             .find_map(|camp| camp.vm.abandon_seconds_remaining)
-            .map(|seconds| format!("CAMP COLLAPSE · {:02}:{:02}", seconds / 60, seconds % 60));
+            .map(|seconds| format!("CAMP COLLAPSE / {:02}:{:02}", seconds / 60, seconds % 60));
         self.hud_state.extraction_toast = self
             .win_model
             .survey
@@ -988,7 +1582,7 @@ impl ConnectedScene {
             .find(|extractor| extractor.vm.collectable_units > 0)
             .map(|extractor| hud::BannerHud {
                 text: format!(
-                    "{} · {} READY",
+                    "{} / {} READY",
                     extractor.vm.family_label.to_uppercase(),
                     extractor.vm.collectable_units
                 ),
@@ -1010,11 +1604,11 @@ impl ConnectedScene {
             self.last_dialogue_tick = self.last_dialogue_tick.max(delivery.tick);
         }
         if received_dialogue && self.win_model.converse.npc.is_some() {
-            self.wm.open("converse");
+            self.open_workspace_window("converse");
         }
-        self.hud_state.interact = if let Some((_, kind)) = self.nearest_interaction_prop() {
+        self.hud_state.interact = if let Some(prop) = self.nearest_interaction_prop() {
             Some(hud::InteractHud {
-                label: format!("[F] {}", kind.replace(['_', '-'], " ").to_uppercase()),
+                label: format!("[F] {}", prop.label.to_uppercase()),
                 hold_frac: None,
             })
         } else if let Some(actor_id) = self.selected_actor_id.as_deref() {
@@ -1077,6 +1671,11 @@ impl ConnectedScene {
     pub fn combat_fx_mut(&mut self) -> &mut CombatFx {
         &mut self.combat_fx
     }
+    pub fn ingest_chat_message(&mut self, message: &ChatMessage) {
+        if let Some((actor_id, body)) = spatial_chat_payload(message) {
+            self.overlays.push_bubble(actor_id, body);
+        }
+    }
     pub fn load_persisted(
         &mut self,
         theme: Option<&serde_json::Value>,
@@ -1084,6 +1683,7 @@ impl ConnectedScene {
         split_snap: Option<&serde_json::Value>,
         waypoints: Option<&serde_json::Value>,
         macros: Option<&serde_json::Value>,
+        window_layout: Option<&serde_json::Value>,
     ) {
         if let Some(id) = theme.and_then(serde_json::Value::as_str) {
             if let Some(index) = hud::THEME_IDS.iter().position(|candidate| *candidate == id) {
@@ -1098,6 +1698,8 @@ impl ConnectedScene {
             .unwrap_or(100);
         self.waypoints = hud::waypoints::WaypointStore::load(waypoints);
         self.macro_runtime = crate::game::macro_runtime::MacroRuntime::load(macros);
+        self.hud_defaults_pending = restore_window_layout(&mut self.wm, window_layout);
+        self.window_layout_dirty = false;
         self.preferences_dirty = false;
         self.project_windows();
     }
@@ -1107,12 +1709,15 @@ impl ConnectedScene {
         self.preferences_dirty = false;
         let waypoint = self.waypoints.dirty();
         let macros = self.macro_runtime.dirty();
+        let window_layout =
+            self.wm.take_geometry_dirty() || core::mem::take(&mut self.window_layout_dirty);
         let result = (
             local.then(|| serde_json::Value::String(hud::THEME_IDS[self.theme_index].into())),
             local.then(|| self.toolbar.doc.save()),
             local.then(|| serde_json::Value::from(self.split_snap)),
             waypoint.then(|| self.waypoints.save()),
             macros.then(|| self.macro_runtime.save()),
+            window_layout.then(|| save_window_layout(&self.wm)),
         );
         if waypoint {
             self.waypoints.mark_saved();
@@ -1125,11 +1730,25 @@ impl ConnectedScene {
     pub fn take_bug_report(&mut self) -> Option<serde_json::Value> {
         self.pending_bug_report.take()
     }
+    /// Workspace visibility/focus is part of the persisted layout, not a
+    /// transient UI preference.
+    fn open_workspace_window(&mut self, id: &str) {
+        self.wm.open(id);
+        self.window_layout_dirty = true;
+    }
+
+    fn toggle_workspace_window(&mut self, id: &str) {
+        self.wm.toggle(id);
+        self.window_layout_dirty = true;
+    }
 
     /// Install the authenticated session queue. Until installed, command
     /// intents are rejected visibly rather than assigned a synthetic identity.
     pub fn pointer_captured(&self) -> bool {
-        self.graphics_tuner.is_open() || self.wm.pointer_captured() || self.context_menu.is_some()
+        self.graphics_tuner.is_open()
+            || self.wm.pointer_captured()
+            || self.context_menu.is_some()
+            || self.hud_layout_input_consumed
     }
     pub fn set_command_queue(&mut self, queue: CommandQueue) {
         self.command_queue = Some(queue);
@@ -1137,8 +1756,8 @@ impl ConnectedScene {
     }
 
     /// Restore renderer-neutral connected state after the browser recreates a
-    /// lost WebGL context. GPU resources come from `Self::build`; authority and
-    /// input state survive without reconnecting or replaying launch tickets.
+    /// lost WebGL context. GPU resources come from `Self::build`; authority,
+    /// input, and workspace state survive without reconnecting or replaying launch tickets.
     pub fn restore_projection_from(&mut self, previous: &Self) {
         self.store = previous.store.clone();
         self.command_queue = previous.command_queue.clone();
@@ -1146,6 +1765,17 @@ impl ConnectedScene {
         self.window_rejection = previous.window_rejection.clone();
         self.selected_actor_id = previous.selected_actor_id.clone();
         self.selected_inventory = previous.selected_inventory.clone();
+        self.last_dialogue_tick = previous.last_dialogue_tick;
+        self.framebuffer = previous.framebuffer;
+        self.wm.restore_workspace_state_from(&previous.wm);
+        self.hud_defaults_pending = previous.hud_defaults_pending;
+        self.window_layout_dirty = previous.window_layout_dirty;
+        if let Some((container, stack_id)) = &self.selected_inventory {
+            crate::windows::inventory::select_identity(container, stack_id);
+        } else {
+            crate::windows::inventory::clear_selection();
+        }
+        self.loot_corpse_id = previous.loot_corpse_id.clone();
         self.zoom_percent = previous.zoom_percent;
         self.sprint_toggle = previous.sprint_toggle;
         self.theme_index = previous.theme_index;
@@ -1208,6 +1838,29 @@ impl ConnectedScene {
     pub fn dispatch_gameplay_action(&mut self, action: actions::GameplayAction) -> Option<u64> {
         let queue = self.command_queue.as_mut()?;
         actions::enqueue_action(queue, action, self.store.tick)
+    }
+
+    /// Apply the only intents emitted by the authority-backed radar renderer.
+    fn dispatch_radar_hud_action(&mut self, action: hud::HudAction) {
+        match action {
+            hud::HudAction::RadarSelect(actor_id) => {
+                self.selected_actor_id = Some(actor_id);
+                self.selected_inventory = None;
+                crate::windows::inventory::clear_selection();
+                self.project_windows();
+            }
+            hud::HudAction::RadarMove { dx_cells, dy_cells } => {
+                let dx = dx_cells.signum() as i32;
+                let dy = dy_cells.signum() as i32;
+                self.dispatch_gameplay_action(actions::GameplayAction::Move {
+                    dx,
+                    dy,
+                    facing: movement::facing_from_intent(dx, dy),
+                    sprint: self.sprint_toggle,
+                });
+            }
+            _ => unreachable!("radar renderer emits only radar actions"),
+        }
     }
 
     pub fn selected_actor_id(&self) -> Option<&str> {
@@ -1329,7 +1982,25 @@ impl ConnectedScene {
         self.streamed_world.set_waypoint(None);
         (0, 0)
     }
-    fn nearest_interaction_prop(&self) -> Option<(String, String)> {
+    fn interaction_window_for_kind(kind: &str) -> Option<&'static str> {
+        if kind.contains("bank") {
+            Some("bank")
+        } else if kind.contains("clone") {
+            Some("clone")
+        } else if kind.contains("factory") {
+            Some("craft")
+        } else if kind.contains("trade") {
+            Some("trade")
+        } else if kind.contains("travel") {
+            Some("travel")
+        } else if kind.contains("guild") || kind.contains("association") {
+            Some("pa")
+        } else {
+            None
+        }
+    }
+
+    fn nearest_interaction_prop(&self) -> Option<InteractionProp<'_>> {
         let player = self.store.actors.get(&self.player_id)?;
         self.slice
             .get("props")
@@ -1351,17 +2022,21 @@ impl ConnectedScene {
                 let id = prop
                     .get("id")
                     .and_then(successor_engine_core::json::Json::as_str)?;
-                let mut kind = prop
+                let authored_kind = prop
                     .get("kind")
                     .and_then(successor_engine_core::json::Json::as_str)?;
-                let (target_x, target_y, radius) = if let Some(door) = prop.get("door") {
+                let label = prop
+                    .get("label")
+                    .and_then(successor_engine_core::json::Json::as_str)
+                    .unwrap_or(authored_kind);
+                let (kind, target_x, target_y, radius) = if let Some(door) = prop.get("door") {
                     let blocker = door.get("blocker")?;
                     let x_milli = blocker.get("xMilli")?.as_f32()?;
                     let y_milli = blocker.get("yMilli")?.as_f32()?;
                     let w_milli = blocker.get("wMilli")?.as_f32()?;
                     let h_milli = blocker.get("hMilli")?.as_f32()?;
-                    kind = "door";
                     (
+                        "door",
                         cell_x + (x_milli + w_milli * 0.5) / 1_000.0,
                         cell_y + (y_milli + h_milli * 0.5) / 1_000.0,
                         door.get("interactRadiusCells")
@@ -1369,14 +2044,58 @@ impl ConnectedScene {
                             .unwrap_or(2.5),
                     )
                 } else {
-                    (cell_x, cell_y, 2.5)
+                    (authored_kind, cell_x, cell_y, 2.5)
                 };
+                if kind != "door" && Self::interaction_window_for_kind(kind).is_none() {
+                    return None;
+                }
                 let distance =
                     ((target_x - player.x).powi(2) + (target_y - player.y).powi(2)).sqrt();
-                (distance <= radius).then_some((id.to_string(), kind.to_string(), distance))
+                (distance <= radius).then_some((
+                    InteractionProp {
+                        id,
+                        kind,
+                        label,
+                        x: target_x,
+                        y: target_y,
+                    },
+                    distance,
+                ))
             })
-            .min_by(|left, right| left.2.total_cmp(&right.2))
-            .map(|(id, kind, _)| (id, kind))
+            .min_by(|left, right| left.1.total_cmp(&right.1))
+            .map(|(prop, _)| prop)
+    }
+
+    /// Return the exact held stack under an open inventory card, together with
+    /// the card centre used as the radial anchor. This follows the inventory
+    /// renderer's pagination and card geometry rather than guessing from an
+    /// item id (which can be shared by multiple stacks).
+    fn inventory_item_at(&self, x: f32, y: f32) -> Option<(String, String, (f32, f32))> {
+        if !self.wm.is_open("inventory") {
+            return None;
+        }
+        let content = self.wm.content_rect("inventory")?;
+        let held_count = self.win_model.inventory.held().count();
+        let (visible_start, visible_end) =
+            crate::windows::inventory::visible_held_range(content, held_count);
+        self.win_model
+            .inventory
+            .held()
+            .skip(visible_start)
+            .take(visible_end - visible_start)
+            .enumerate()
+            .find_map(|(index, row)| {
+                let [card_x, card_y, card_w, card_h] =
+                    crate::windows::inventory::grid_card_rect(content, index)?;
+                successor_engine_render::ui::UiBuilder::hit(card_x, card_y, card_w, card_h, x, y)
+                    .then(|| {
+                        (
+                            row.container.clone(),
+                            row.stack_id.clone(),
+                            (card_x + card_w * 0.5, card_y + card_h * 0.5),
+                        )
+                    })
+            })
     }
 
     /// Handle edge-triggered connected bindings. Window actions stay local;
@@ -1394,6 +2113,11 @@ impl ConnectedScene {
             Key::V => "KeyV",
             Key::X => "KeyX",
             Key::N => "KeyN",
+            Key::P => "KeyP",
+            Key::K => "KeyK",
+            Key::B => "KeyB",
+            Key::M => "KeyM",
+            Key::G => "KeyG",
             Key::Digit0 => "Digit0",
             Key::Digit1 => "Digit1",
             Key::Digit2 => "Digit2",
@@ -1419,12 +2143,32 @@ impl ConnectedScene {
         }
     }
 
+    fn permanent_window_for_key(key: Key) -> Option<&'static str> {
+        hud::window_for_code(Self::key_code(key))
+    }
+
     /// gameplay verbs are returned for the host to enqueue through the queue.
     pub fn handle_key(&mut self, key: Key, down: bool) -> Option<actions::GameplayAction> {
         let index = key as usize;
         let pressed = down && !self.key_was_down[index];
         self.key_was_down[index] = down;
         if !pressed {
+            return None;
+        }
+        if key == Key::Escape {
+            if dismiss_context_or_focused(
+                &mut self.context_menu,
+                &mut self.graphics_tuner,
+                &mut self.wm,
+            ) {
+                self.window_layout_dirty = true;
+            }
+            return None;
+        }
+        if let Some(window) = Self::permanent_window_for_key(key) {
+            #[cfg(not(target_arch = "wasm32"))]
+            crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::ButtonTick);
+            self.toggle_workspace_window(window);
             return None;
         }
         let code = Self::key_code(key);
@@ -1442,13 +2186,6 @@ impl ConnectedScene {
         #[cfg(not(target_arch = "wasm32"))]
         crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::ButtonTick);
         match key {
-            Key::I => self.wm.toggle("inventory"),
-            Key::C => self.wm.toggle("character"),
-            Key::Semicolon => self.wm.toggle("datapad"),
-            Key::O => self.wm.toggle("options"),
-            Key::Tab => self.wm.toggle("actions"),
-            Key::V => self.wm.toggle("skills"),
-            Key::N => self.wm.toggle("build"),
             Key::X => self.sprint_toggle = !self.sprint_toggle,
             Key::R => {
                 return Some(actions::GameplayAction::Reload {
@@ -1497,28 +2234,35 @@ impl ConnectedScene {
                 });
             }
             Key::F => {
-                if let Some((prop_id, kind)) = self.nearest_interaction_prop() {
-                    if kind.contains("door") {
-                        return Some(actions::GameplayAction::ToggleDoor { prop_id });
+                if let Some(prop) = self.nearest_interaction_prop() {
+                    if prop.kind.contains("door") {
+                        return Some(actions::GameplayAction::ToggleDoor {
+                            prop_id: prop.id.to_string(),
+                        });
                     }
-                    let window = if kind.contains("bank") {
-                        Some("bank")
-                    } else if kind.contains("clone") {
-                        Some("clone")
-                    } else if kind.contains("factory") {
-                        Some("craft")
-                    } else if kind.contains("travel") {
-                        Some("travel")
-                    } else if kind.contains("guild") || kind.contains("association") {
-                        Some("pa")
-                    } else {
-                        None
-                    };
-                    if let Some(window) = window {
+                    if let Some(window) = Self::interaction_window_for_kind(prop.kind) {
                         self.project_windows();
-                        self.wm.open(window);
+                        self.open_workspace_window(window);
                         return None;
                     }
+                }
+                let corpse_id = self
+                    .store
+                    .actors
+                    .get(&self.player_id)
+                    .and_then(|player| {
+                        nearest_loot_corpse_id(
+                            &self.store.player_corpses,
+                            &self.area_id,
+                            (player.x, player.y),
+                        )
+                    })
+                    .map(str::to_owned);
+                if let Some(corpse_id) = corpse_id {
+                    self.loot_corpse_id = Some(corpse_id);
+                    self.project_windows();
+                    self.open_workspace_window("loot");
+                    return None;
                 }
                 let target = self
                     .selected_actor_id
@@ -1586,6 +2330,20 @@ impl ConnectedScene {
         let left_pressed = left && !self.left_was_down;
         let right_pressed = right && !self.right_was_down;
         self.left_was_down = left;
+        self.right_was_down = right;
+        // A left-drag inside the live viewer cell spins the doll instead of
+        // routing a world intent — the original's draggable object viewer.
+        let in_viewer = self.paperdoll_viewport.is_some_and(|[vx, vy, vw, vh]| {
+            successor_engine_render::ui::UiBuilder::hit(vx, vy, vw, vh, x, y)
+        });
+        if left && (self.paperdoll_drag_x.is_some() || (left_pressed && in_viewer)) {
+            if self.paperdoll_drag_x.is_some() {
+                self.paperdoll_yaw += dx * 0.012;
+            }
+            self.paperdoll_drag_x = Some(x);
+            return None;
+        }
+        self.paperdoll_drag_x = None;
         if captured {
             return None;
         }
@@ -1635,18 +2393,41 @@ impl ConnectedScene {
             None
         };
         if right_pressed && !left {
+            // A right-click on a HUD pane toggles that pane's layout lock, the
+            // original's per-window `window_lock` / `window_unlock` control.
+            // It is consumed here, before actor/context routing can see it.
+            if hud::toggle_hud_surface_lock_at(&mut self.wm, x, y).is_some() {
+                self.window_layout_dirty = true;
+                self.hud_layout_input_consumed = true;
+                return None;
+            }
+        }
+        if right_pressed && !left {
             if let Some(target_id) = picked_actor.clone() {
                 self.selected_actor_id = Some(target_id.clone());
                 self.selected_inventory = None;
+                crate::windows::inventory::clear_selection();
                 self.project_windows();
-                self.context_menu = Some((x, y));
+                self.context_menu = Some(ContextMenu::Actor { x, y });
                 return Some(actions::GameplayAction::Interact {
                     verb: "radial".into(),
                     target_id,
                 });
             }
+            if let Some((container, stack_id, (anchor_x, anchor_y))) = self.inventory_item_at(x, y)
+            {
+                crate::windows::inventory::select_identity(&container, &stack_id);
+                self.selected_inventory = Some((container, stack_id));
+                self.selected_actor_id = None;
+                self.project_windows();
+                self.context_menu = Some(ContextMenu::InventoryRadial {
+                    x: anchor_x,
+                    y: anchor_y,
+                });
+                return None;
+            }
         }
-        self.right_was_down = right;
+
         if right && (right_pressed || dx.abs() + dy.abs() > 0.5) {
             let (mx, my) = if dx.abs() >= dy.abs() {
                 (dx.signum() as i32, 0)
@@ -1666,11 +2447,13 @@ impl ConnectedScene {
         if let Some(target_id) = picked_actor {
             self.selected_actor_id = Some(target_id);
             self.selected_inventory = None;
+            crate::windows::inventory::clear_selection();
             self.project_windows();
             return None;
         }
         self.selected_actor_id = None;
         self.selected_inventory = None;
+        crate::windows::inventory::clear_selection();
         self.project_windows();
         if self.framebuffer.0 == 0 || self.framebuffer.1 == 0 {
             return None;
@@ -1795,13 +2578,38 @@ impl ConnectedScene {
         }
     }
 
+    fn open_inventory_radial(&mut self, container: String, stack_id: String) {
+        let selected = self
+            .win_model
+            .inventory
+            .row(&container, &stack_id)
+            .is_some_and(|row| !row.in_exchange());
+        if !selected {
+            return;
+        }
+        crate::windows::inventory::select_identity(&container, &stack_id);
+        self.selected_inventory = Some((container, stack_id));
+        self.selected_actor_id = None;
+        self.context_menu = Some(ContextMenu::InventoryRadial {
+            x: self.pointer_prev.0,
+            y: self.pointer_prev.1,
+        });
+        self.project_windows();
+    }
+
     fn apply_local_window_action(&mut self, local: crate::windows::WindowLocalAction) {
         use crate::windows::WindowLocalAction::*;
         match local {
             Close => self.window_rejection = Some("local: close".into()),
             Select(id) => {
-                self.selected_inventory =
-                    crate::windows::inventory::selected_identity().or_else(|| {
+                self.selected_inventory = crate::windows::inventory::selected_identity()
+                    .filter(|(container, stack_id)| {
+                        self.win_model
+                            .inventory
+                            .row(container, stack_id)
+                            .is_some_and(|row| !row.in_exchange())
+                    })
+                    .or_else(|| {
                         self.win_model
                             .inventory
                             .rows
@@ -1809,12 +2617,21 @@ impl ConnectedScene {
                             .find(|row| row.item_id == id && !row.in_exchange())
                             .map(|row| (row.container.clone(), row.stack_id.clone()))
                     });
+                if let Some((container, stack_id)) = &self.selected_inventory {
+                    crate::windows::inventory::select_identity(container, stack_id);
+                } else {
+                    crate::windows::inventory::clear_selection();
+                }
                 self.selected_actor_id = None;
                 self.context_menu = None;
                 self.window_rejection = Some(format!("local: select {id}"));
                 self.project_windows();
             }
-            OpenWindow(id) => self.wm.open(&id),
+            OpenWindow(id) => self.open_workspace_window(&id),
+            OpenInventoryRadial {
+                container,
+                stack_id,
+            } => self.open_inventory_radial(container, stack_id),
             SetTheme(i) => {
                 self.theme_index = i % hud::THEME_COUNT;
                 self.preferences_dirty = true;
@@ -2356,8 +3173,13 @@ impl ConnectedScene {
                 descriptor: actor
                     .role
                     .as_deref()
-                    .map(|role| hud::sanitize_text(role, 32))
-                    .filter(|role| !role.is_empty()),
+                    .map(|role| {
+                        format!(
+                            "({})",
+                            hud::sanitize_text(&role.replace(['_', '-'], " "), 32)
+                        )
+                    })
+                    .filter(|role| role != "()"),
                 presentation: PawnPresentation {
                     skin: actor.skin.clone(),
                     faction: actor.faction.clone(),
@@ -2452,7 +3274,37 @@ impl ConnectedScene {
         chat_client: &mut crate::game::chat_net::ChatClient,
         chat_input: &mut successor_engine_render::ui::TextField,
     ) {
+        if self.loading {
+            self.ui.begin(w, h);
+            self.loading_screen.tick(dt);
+            self.loading_screen.draw(&mut self.ui, w as f32, h as f32);
+            gpu.begin_pass(
+                PassTarget::Screen,
+                RectPx {
+                    x: 0,
+                    y: 0,
+                    w: w as i32,
+                    h: h as i32,
+                },
+                ClearSpec {
+                    color: Some([0.012, 0.027, 0.039, 1.0]),
+                    depth: Some(1.0),
+                },
+            );
+            gpu.end_pass();
+            self.renderer
+                .render_ui(gpu, &self.ui.buf, self.ui.quads, w, h);
+            return;
+        }
         self.framebuffer = (w, h);
+        if self.hud_defaults_pending.iter().any(|missing| *missing) {
+            hud::apply_missing_hud_surface_defaults(
+                &mut self.wm,
+                (w as f32, h as f32),
+                &self.hud_defaults_pending,
+            );
+            self.hud_defaults_pending = [false; hud::HUD_SURFACE_COUNT];
+        }
         self.sync_active_area(gpu, read_asset);
         self.macro_actions.clear();
         self.macro_runtime.tick(
@@ -2572,6 +3424,12 @@ impl ConnectedScene {
             self.spawn_pawn(gpu, read_asset, &live, faction);
         }
         self.sim_time += dt.max(0.0);
+        // The viewer idles on a slow turntable whenever it is not being dragged,
+        // so the doll always reads as a live 3D object rather than a still.
+        if self.paperdoll_drag_x.is_none() {
+            self.paperdoll_yaw += dt.max(0.0) * 0.35;
+        }
+        self.paperdoll_yaw = self.paperdoll_yaw.rem_euclid(core::f32::consts::TAU);
 
         // 2) Animate + place pawns (skinned).
         self.renderer.begin_skin_frame();
@@ -2861,7 +3719,10 @@ impl ConnectedScene {
                 _ => (0.90, 2.75, 0.68),
             };
             let focus = portrait_ground.add(vec3(0.0, focus_height, 0.0));
-            let facing = vec3(yaw.sin(), 0.0, yaw.cos());
+            // Turntable: the viewer idles slowly and a pointer drag inside the
+            // cell spins it, matching the original's draggable object viewer.
+            let orbit = yaw + self.paperdoll_yaw;
+            let facing = vec3(orbit.sin(), 0.0, orbit.cos());
             self.world.set_component(
                 self.paperdoll_camera,
                 Camera {
@@ -2884,19 +3745,14 @@ impl ConnectedScene {
                     up: Vec3::Y,
                 },
             );
-            if let Some([wx, wy, ww, wh]) = self.wm.rect(paperdoll_window) {
-                let content = [
-                    wx + 6.0,
-                    wy + successor_engine_render::window::TITLE_H + 6.0,
-                    ww - 12.0,
-                    wh - successor_engine_render::window::TITLE_H - 12.0,
-                ];
+            if let Some(content) = self.wm.content_rect(paperdoll_window) {
                 let preview = match paperdoll_window {
                     "inventory" => crate::windows::inventory::layout(content).preview,
                     "examine" => crate::windows::live::examine_preview_rect(content),
                     "converse" => crate::windows::live::converse_preview_rect(content),
                     _ => content,
                 };
+                self.paperdoll_viewport = Some(preview);
                 self.world.set_component(
                     self.paperdoll_quad,
                     CompositeQuad {
@@ -2912,6 +3768,8 @@ impl ConnectedScene {
                 );
             }
         } else {
+            self.paperdoll_viewport = None;
+            self.paperdoll_drag_x = None;
             self.world.remove_component::<Camera>(self.paperdoll_camera);
             self.world
                 .remove_component::<CompositeQuad>(self.paperdoll_quad);
@@ -3125,30 +3983,68 @@ impl ConnectedScene {
         self.ui.begin(w, h);
         self.overlays.update(dt * 1_000.0);
         let palette = hud::palette(self.theme_index);
+        let interaction = self
+            .nearest_interaction_prop()
+            .map(|prop| (prop.label.to_string(), prop.kind == "door", prop.x, prop.y));
+        let store = &self.store;
+        let terrain = &self.terrain;
+        let area_id = self.area_id.as_str();
+        let player_position = store
+            .actors
+            .get(&self.player_id)
+            .map(|actor| (actor.x, actor.y));
         let anchor = |actor_id: &str| {
-            let actor = self.store.actors.get(actor_id)?;
-            if actor.area_id != self.area_id {
+            let actor = store.actors.get(actor_id)?;
+            if actor.area_id != area_id {
                 return None;
             }
-            let wx = (actor.x + 0.5) * WORLD_UNITS_PER_CELL;
-            let wz = (actor.y + 0.5) * WORLD_UNITS_PER_CELL;
+            let world_x = (actor.x + 0.5) * WORLD_UNITS_PER_CELL;
+            let world_z = (actor.y + 0.5) * WORLD_UNITS_PER_CELL;
             let world = vec3(
-                wx,
-                self.terrain.height_at(wx, wz) + ADULT_PAWN_HEIGHT_METERS + 0.35,
-                wz,
+                world_x,
+                terrain.height_at(world_x, world_z) + ADULT_PAWN_HEIGHT_METERS + 0.35,
+                world_z,
             );
             let ndc = vp_mat.project_point(world);
-            (ndc.z >= -1.0 && ndc.z <= 1.0).then_some((
-                (ndc.x * 0.5 + 0.5) * w as f32,
-                (0.5 - ndc.y * 0.5) * h as f32,
-            ))
+            (ndc.x >= -1.05
+                && ndc.x <= 1.05
+                && ndc.y >= -1.05
+                && ndc.y <= 1.05
+                && ndc.z >= -1.0
+                && ndc.z <= 1.0)
+                .then_some((
+                    (ndc.x * 0.5 + 0.5) * w as f32,
+                    (0.5 - ndc.y * 0.5) * h as f32,
+                ))
         };
-        for (actor_id, actor) in self.store.actors.iter() {
+
+        // Bubbles are range-bound and render first; plates sit in front exactly
+        // as the original text manager's depth bias intended.
+        self.overlays
+            .draw(&mut self.ui, &palette, w as f32, h as f32, |actor_id| {
+                let actor = store.actors.get(actor_id)?;
+                let player = player_position?;
+                let distance = ((actor.x - player.0).powi(2) + (actor.y - player.1).powi(2)).sqrt();
+                (distance <= 24.0).then(|| anchor(actor_id)).flatten()
+            });
+
+        for (actor_id, actor) in store.actors.iter() {
             if actor_id == &self.player_id {
                 continue;
             }
-            let Some((sx, sy)) = anchor(actor_id) else {
+            let Some((screen_x, screen_y)) = anchor(actor_id) else {
                 continue;
+            };
+            let distance = player_position
+                .map(|player| ((actor.x - player.0).powi(2) + (actor.y - player.1).powi(2)).sqrt())
+                .unwrap_or(0.0);
+            if distance > 28.0 {
+                continue;
+            }
+            let opacity = if distance > 18.0 {
+                (1.0 - (distance - 18.0) / 10.0).clamp(0.0, 1.0)
+            } else {
+                1.0
             };
             let life_tag = match actor.life_state.as_str() {
                 "downed" => Some("DOWN"),
@@ -3165,55 +4061,84 @@ impl ConnectedScene {
                 descriptor,
                 hud::relation_for(actor, &self.player_id),
                 life_tag,
-                sx,
-                sy + 8.0,
+                self.selected_actor_id.as_deref() == Some(actor_id.as_str()),
+                opacity,
+                screen_x,
+                screen_y + 8.0,
             );
         }
-        self.overlays
-            .draw(&mut self.ui, &palette, w as f32, h as f32, anchor);
-        let tuning_open = self.graphics_tuner.is_open();
-        self.ui.set_input_enabled(!tuning_open);
-        let now_ms = successor_platform::now_ms().max(0.0) as u64;
-        if !tuning_open {
-            self.wm.update_at(&self.ui, w, h, now_ms);
+
+        if let Some((label, door, cell_x, cell_y)) = interaction {
+            let world_x = (cell_x + 0.5) * WORLD_UNITS_PER_CELL;
+            let world_z = (cell_y + 0.5) * WORLD_UNITS_PER_CELL;
+            let world = vec3(world_x, terrain.height_at(world_x, world_z) + 1.45, world_z);
+            let ndc = vp_mat.project_point(world);
+            if ndc.x >= -1.0 && ndc.x <= 1.0 && ndc.y >= -1.0 && ndc.y <= 1.0 {
+                hud::overlays::draw_world_label(
+                    &mut self.ui,
+                    &palette,
+                    &label,
+                    Some(if door { "[F] OPEN" } else { "[F] USE" }),
+                    (ndc.x * 0.5 + 0.5) * w as f32,
+                    (0.5 - ndc.y * 0.5) * h as f32,
+                );
+            }
         }
-        let captured = tuning_open || self.wm.pointer_captured() || self.context_menu.is_some();
+        let tuning_open = self.graphics_tuner.is_open();
+        let context_open = self.context_menu.is_some();
+        self.ui.set_input_enabled(!tuning_open && !context_open);
         let right_down = successor_platform::mouse_button_down(1);
         let right_pressed = right_down && !self.hud_right_was_down;
         self.hud_right_was_down = right_down;
+        // `handle_pointer` owns the right-click lock transition so it can
+        // suppress gameplay/context routing. Consume its flag here only to
+        // gate same-frame HUD controls; never toggle the manager twice.
+        let hud_lock_changed = core::mem::take(&mut self.hud_layout_input_consumed);
+        let now_ms = successor_platform::now_ms().max(0.0) as u64;
+        if !tuning_open && !context_open {
+            self.wm.update_at(&self.ui, w, h, now_ms);
+        }
+        let manager_captured = self.wm.pointer_captured();
+        if manager_captured {
+            // Focus order can change on a press before a drag completes, and
+            // therefore belongs to the same durable workspace record.
+            self.window_layout_dirty = true;
+        }
+        let captured = tuning_open || context_open || manager_captured || hud_lock_changed;
         self.hud_actions.clear();
         let mut hud_frame = hud::HudFrame {
             state: &self.hud_state,
             toolbar: &mut self.toolbar,
+            chat: Some((chat_client, chat_input)),
             palette: hud::palette(self.theme_index),
             now_ms,
             captured,
             right_pressed,
         };
+        // The chat console is a managed pane, so it draws inside `build_hud`
+        // with the rest of the HUD; only its input gate stays here.
+        self.ui.set_input_enabled(!captured);
         hud::build_hud(
             &mut self.ui,
             &self.icons,
             &mut hud_frame,
+            &self.wm,
             w,
             h,
             &mut self.hud_actions,
         );
-        self.ui.set_input_enabled(!captured);
-        crate::game::chat_ui::draw_chat_pane(
-            &mut self.ui,
-            chat_client,
-            chat_input,
-            16.0,
-            h as f32 - 122.0,
-            360.0,
-            106.0,
-        );
-        self.ui.set_input_enabled(!tuning_open);
+        self.ui.set_input_enabled(!tuning_open && !context_open);
         let mut hud_actions = core::mem::take(&mut self.hud_actions);
         for action in hud_actions.drain(..) {
             match action {
-                hud::HudAction::ToggleWindow(id) => self.wm.toggle(id),
-                hud::HudAction::OpenWindow(id) => self.wm.open(id),
+                hud::HudAction::ToggleWindow(id) => {
+                    self.wm.toggle(id);
+                    self.window_layout_dirty = true;
+                }
+                hud::HudAction::OpenWindow(id) => {
+                    self.wm.open(id);
+                    self.window_layout_dirty = true;
+                }
                 hud::HudAction::CycleTheme => {
                     self.theme_index = (self.theme_index + 1) % hud::THEME_COUNT;
                 }
@@ -3259,20 +4184,8 @@ impl ConnectedScene {
                         facility_id: None,
                     });
                 }
-                hud::HudAction::RadarSelect(actor_id) => {
-                    self.selected_actor_id = Some(actor_id);
-                    self.selected_inventory = None;
-                    self.project_windows();
-                }
-                hud::HudAction::RadarMove { dx_cells, dy_cells } => {
-                    let dx = dx_cells.signum() as i32;
-                    let dy = dy_cells.signum() as i32;
-                    self.dispatch_gameplay_action(actions::GameplayAction::Move {
-                        dx,
-                        dy,
-                        facing: movement::facing_from_intent(dx, dy),
-                        sprint: self.sprint_toggle,
-                    });
+                action @ (hud::HudAction::RadarSelect(_) | hud::HudAction::RadarMove { .. }) => {
+                    self.dispatch_radar_hud_action(action);
                 }
                 hud::HudAction::QueueCancel(entry_id) => {
                     self.dispatch_gameplay_action(actions::GameplayAction::CancelAbilityQueue {
@@ -3287,78 +4200,143 @@ impl ConnectedScene {
         self.wm.fill_z_order(&mut self.window_order);
         for order_index in 0..self.window_order.len() {
             let index = self.window_order[order_index];
-            let window_id = self.wm.window_id(index);
-            let model_preview = matches!(window_id, "inventory" | "examine" | "converse");
+            let pane_id = self.wm.window_id(index);
+            let hud_pane = hud::is_hud_surface(pane_id);
+            let model_preview =
+                !hud_pane && matches!(pane_id, "inventory" | "examine" | "converse");
             let mut window_style = style;
             if model_preview {
                 window_style.frame.center = [3, 7, 8, 245];
             }
             let rect = self.wm.draw_chrome(&mut self.ui, index, window_style);
-            self.window_id_scratch.clear();
-            self.window_id_scratch.push_str(self.wm.window_id(index));
-            let mut actions = Vec::new();
-            crate::windows::content(
-                &mut self.ui,
-                &self.window_id_scratch,
-                rect,
-                &self.win_model,
-                &self.icons,
-                &mut actions,
-            );
-            for a in actions {
-                self.dispatch_window_action(a);
+            // HUD panes drew their own content and layout affordance in
+            // `build_hud`; the chromeless frame adds nothing here.
+            if !hud_pane {
+                self.window_id_scratch.clear();
+                self.window_id_scratch.push_str(pane_id);
+                let mut actions = Vec::new();
+                crate::windows::content(
+                    &mut self.ui,
+                    &self.window_id_scratch,
+                    rect,
+                    &self.win_model,
+                    &self.icons,
+                    &mut actions,
+                );
+                for action in actions {
+                    self.dispatch_window_action(action);
+                }
             }
         }
-        if let Some((menu_x, menu_y)) = self.context_menu {
-            let can_converse = self.selected_actor_id.as_deref().is_some_and(|selected| {
-                self.win_model
-                    .converse
-                    .npc
-                    .as_ref()
-                    .is_some_and(|npc| npc.actor_id == selected)
-            });
-            let rows = if can_converse { 3.0 } else { 2.0 };
-            let menu_w = 138.0;
-            let row_h = 24.0;
-            let x = menu_x.clamp(4.0, (w as f32 - menu_w - 4.0).max(4.0));
-            let y = menu_y.clamp(4.0, (h as f32 - rows * row_h - 4.0).max(4.0));
-            let style = successor_engine_render::ui::ButtonStyle {
-                fill: [6, 13, 14, 242],
-                hover: [14, 39, 43, 250],
-                active: [20, 60, 66, 255],
-                edge: [38, 82, 89, 255],
-                text: [220, 234, 235, 255],
-            };
+        if let Some(menu) = self.context_menu {
+            self.ui.set_input_enabled(!tuning_open);
             let mut close_menu = false;
-            if self.ui.button(x, y, menu_w, row_h, "Examine", style) {
-                self.wm.open("examine");
-                close_menu = true;
-            }
-            let mut attack_y = y + row_h;
-            if can_converse {
-                if self
-                    .ui
-                    .button(x, attack_y, menu_w, row_h, "Converse", style)
-                {
-                    self.wm.open("converse");
-                    close_menu = true;
-                }
-                attack_y += row_h;
-            }
-            if self.ui.button(x, attack_y, menu_w, row_h, "Attack", style) {
-                if let Some(target_actor_id) = self.selected_actor_id.clone() {
-                    self.dispatch_gameplay_action(actions::GameplayAction::Attack {
-                        action_id: "basic_shot".into(),
-                        target_actor_id,
+            match menu {
+                ContextMenu::Actor {
+                    x: menu_x,
+                    y: menu_y,
+                } => {
+                    let selected_actor = self.selected_actor_id.as_deref();
+                    let can_converse = selected_actor.is_some_and(|selected| {
+                        self.win_model
+                            .converse
+                            .npc
+                            .as_ref()
+                            .is_some_and(|npc| npc.actor_id == selected)
                     });
+                    let can_trade = selected_actor.is_some_and(|selected| {
+                        self.win_model
+                            .trade
+                            .propose_target
+                            .as_ref()
+                            .is_some_and(|(actor_id, _)| actor_id == selected)
+                    });
+                    let rows = 3 + usize::from(can_converse) + usize::from(can_trade);
+                    let menu_w = 138.0;
+                    let row_h = 24.0;
+                    let x = menu_x.clamp(4.0, (w as f32 - menu_w - 4.0).max(4.0));
+                    let y = menu_y.clamp(4.0, (h as f32 - rows as f32 * row_h - 4.0).max(4.0));
+                    let style = successor_engine_render::ui::ButtonStyle {
+                        fill: [6, 13, 14, 242],
+                        hover: [14, 39, 43, 250],
+                        active: [20, 60, 66, 255],
+                        edge: [38, 82, 89, 255],
+                        text: [220, 234, 235, 255],
+                    };
+                    let mut action_y = y;
+                    if self.ui.button(x, action_y, menu_w, row_h, "Examine", style) {
+                        self.open_workspace_window("examine");
+                        close_menu = true;
+                    }
+                    action_y += row_h;
+                    if can_converse {
+                        if self
+                            .ui
+                            .button(x, action_y, menu_w, row_h, "Converse", style)
+                        {
+                            self.open_workspace_window("converse");
+                            close_menu = true;
+                        }
+                        action_y += row_h;
+                    }
+                    if can_trade {
+                        if self.ui.button(x, action_y, menu_w, row_h, "Trade", style) {
+                            self.open_workspace_window("trade");
+                            close_menu = true;
+                        }
+                        action_y += row_h;
+                    }
+                    if self.ui.button(x, action_y, menu_w, row_h, "Group", style) {
+                        self.open_workspace_window("group");
+                        close_menu = true;
+                    }
+                    action_y += row_h;
+                    if self.ui.button(x, action_y, menu_w, row_h, "Attack", style) {
+                        if let Some(target_actor_id) = self.selected_actor_id.clone() {
+                            self.dispatch_gameplay_action(actions::GameplayAction::Attack {
+                                action_id: "basic_shot".into(),
+                                target_actor_id,
+                            });
+                        }
+                        close_menu = true;
+                    }
+                    let (mx, my) = self.ui.mouse();
+                    if self.ui.interact(0.0, 0.0, w as f32, h as f32).pressed
+                        && !UiBuilder::hit(x, y, menu_w, rows as f32 * row_h, mx, my)
+                    {
+                        close_menu = true;
+                    }
                 }
-                close_menu = true;
-            }
-            let (mx, my) = self.ui.mouse();
-            if self.ui.interact(0.0, 0.0, w as f32, h as f32).pressed
-                && !successor_engine_render::ui::UiBuilder::hit(x, y, menu_w, rows * row_h, mx, my)
-            {
-                close_menu = true;
+                ContextMenu::InventoryRadial { x, y } => {
+                    let radial = self
+                        .selected_inventory
+                        .as_ref()
+                        .and_then(|(container, stack_id)| {
+                            self.win_model.inventory.row(container, stack_id)
+                        })
+                        .map(|row| {
+                            draw_inventory_radial(
+                                &mut self.ui,
+                                row,
+                                (x, y),
+                                self.win_model.splice.session.is_some(),
+                                (w as f32, h as f32),
+                            )
+                        });
+                    match radial {
+                        Some((close, action)) => {
+                            if let Some(action) = action {
+                                self.dispatch_window_action(action);
+                            }
+                            close_menu = close;
+                        }
+                        None => {
+                            self.selected_inventory = None;
+                            crate::windows::inventory::clear_selection();
+                            close_menu = true;
+                        }
+                    }
+                }
             }
             if close_menu {
                 self.context_menu = None;
@@ -3525,6 +4503,7 @@ mod tests {
             foregrip_contact: Vec3::ZERO,
             resting_yaw_rad: 0.12,
             support_arm: None,
+
             support_hand: true,
         };
         let grip_before = socket.transform_point(held.grip);
@@ -3580,5 +4559,216 @@ mod tests {
             !presentation.matches(&actor),
             "wardrobe color change respawns"
         );
+    }
+    #[test]
+    fn window_layout_round_trips_known_finite_bounds_only() {
+        let mut manager = successor_engine_render::window::WindowManager::new();
+        manager.register(
+            "inventory",
+            "INVENTORY",
+            None,
+            [10.0, 20.0, 500.0, 400.0],
+            320.0,
+            240.0,
+        );
+        restore_window_layout(
+            &mut manager,
+            Some(&serde_json::json!({
+                "schema": WINDOW_LAYOUT_SCHEMA,
+                "windows": [
+                    {"id": "inventory", "bounds": [33.0, 44.0, 660.0, 521.0]},
+                    {"id": "missing", "bounds": [1.0, 2.0, 3.0, 4.0]},
+                    {"id": "inventory", "bounds": ["bad", 2.0, 3.0, 4.0]}
+                ]
+            })),
+        );
+        assert_eq!(manager.rect("inventory"), Some([33.0, 44.0, 660.0, 521.0]));
+
+        let saved = save_window_layout(&manager);
+        assert_eq!(
+            saved.get("schema").and_then(serde_json::Value::as_str),
+            Some(WINDOW_LAYOUT_SCHEMA)
+        );
+        assert_eq!(
+            saved["windows"][0]["bounds"],
+            serde_json::json!([33.0, 44.0, 660.0, 521.0])
+        );
+    }
+
+    #[test]
+    fn persisted_hud_workspace_keeps_bounds_visibility_order_and_lock() {
+        let icons = crate::hud::Icons::load();
+        let viewport = (1280.0, 1024.0);
+        let mut source = successor_engine_render::window::WindowManager::new();
+        crate::hud::register_hud_surfaces_at(&mut source, &icons, viewport);
+        assert!(crate::hud::set_hud_surface_locked(
+            &mut source,
+            crate::hud::PLAYER_STATUS_ID,
+            false
+        ));
+        assert!(source.set_rect(crate::hud::PLAYER_STATUS_ID, [90.0, 70.0, 360.0, 220.0]));
+        source.close(crate::hud::TARGET_STATUS_ID);
+        source.open(crate::hud::COMMAND_BAR_ID);
+        let saved = save_window_layout(&source);
+
+        let mut restored = successor_engine_render::window::WindowManager::new();
+        crate::hud::register_hud_surfaces_at(&mut restored, &icons, viewport);
+        let missing = restore_window_layout(&mut restored, Some(&saved));
+
+        assert_eq!(missing, [false; crate::hud::HUD_SURFACE_COUNT]);
+        assert_eq!(
+            restored.rect(crate::hud::PLAYER_STATUS_ID),
+            Some([90.0, 70.0, 360.0, 220.0])
+        );
+        assert!(restored.is_interactive(crate::hud::PLAYER_STATUS_ID));
+        assert!(!restored.is_open(crate::hud::TARGET_STATUS_ID));
+        let order = restored.z_order();
+        assert_eq!(
+            restored.window_id(*order.last().expect("command bar is open")),
+            crate::hud::COMMAND_BAR_ID
+        );
+    }
+
+    #[test]
+    fn permanent_key_registry_uses_every_advertised_badge() {
+        let expected = [
+            (Key::C, "character"),
+            (Key::I, "inventory"),
+            (Key::P, "datapad"),
+            (Key::K, "skills"),
+            (Key::B, "actions"),
+            (Key::M, "macros"),
+            (Key::O, "options"),
+            (Key::G, "pa"),
+        ];
+        for (key, window) in expected {
+            assert_eq!(ConnectedScene::permanent_window_for_key(key), Some(window));
+            assert!(CONNECTED_INPUT_KEYS.contains(&key));
+        }
+    }
+
+    #[test]
+    fn context_routes_require_authoritative_terminal_or_corpse_state() {
+        assert_eq!(
+            ConnectedScene::interaction_window_for_kind("trade-terminal"),
+            Some("trade")
+        );
+        assert_eq!(
+            ConnectedScene::interaction_window_for_kind("bank-terminal"),
+            Some("bank")
+        );
+        assert_eq!(
+            ConnectedScene::interaction_window_for_kind("decorative-prop"),
+            None
+        );
+        let corpses = vec![
+            serde_json::json!({"id":"far","areaId":"a","x":13.0,"y":10.0}),
+            serde_json::json!({"id":"near","areaId":"a","cellX":11,"cellY":10}),
+            serde_json::json!({"id":"other-area","areaId":"b","x":10.0,"y":10.0}),
+        ];
+        assert_eq!(
+            nearest_loot_corpse_id(&corpses, "a", (10.0, 10.0)),
+            Some("near")
+        );
+    }
+
+    #[test]
+    fn escape_dismisses_context_then_modal_then_focused_frame() {
+        let mut manager = successor_engine_render::window::WindowManager::new();
+        manager.register(
+            "inventory",
+            "INVENTORY",
+            None,
+            [10.0, 20.0, 500.0, 400.0],
+            320.0,
+            240.0,
+        );
+        manager.open("inventory");
+        let mut menu = Some(ContextMenu::Actor { x: 10.0, y: 10.0 });
+        let mut tuner = crate::graphics_tuning::GraphicsTuner::new();
+        tuner.handle_toggle(true);
+
+        assert!(dismiss_context_or_focused(
+            &mut menu,
+            &mut tuner,
+            &mut manager
+        ));
+        assert!(menu.is_none());
+        assert!(tuner.is_open());
+        assert!(manager.is_open("inventory"));
+
+        assert!(dismiss_context_or_focused(
+            &mut menu,
+            &mut tuner,
+            &mut manager
+        ));
+        assert!(!tuner.is_open());
+        assert!(manager.is_open("inventory"));
+
+        assert!(dismiss_context_or_focused(
+            &mut menu,
+            &mut tuner,
+            &mut manager
+        ));
+        assert!(!manager.is_open("inventory"));
+    }
+
+    #[test]
+    fn equipped_inventory_radial_routes_to_typed_unequip() {
+        let row = crate::windows::InventoryRow {
+            container: "player:pack".into(),
+            stack_id: "vest-1".into(),
+            item: "FIELD JACKET".into(),
+            item_id: 9001,
+            variant_id: 4,
+            available: 2,
+            equipped: true,
+            ..Default::default()
+        };
+        let mut actions = [InventoryRadialAction::Examine; 6];
+        let count = inventory_radial_actions(&row, false, &mut actions);
+        assert_eq!(
+            &actions[..count],
+            &[
+                InventoryRadialAction::Unequip,
+                InventoryRadialAction::Examine,
+                InventoryRadialAction::Drop,
+                InventoryRadialAction::Split,
+            ]
+        );
+        assert!(matches!(
+            inventory_radial_window_action(&row, InventoryRadialAction::Unequip),
+            Some(crate::windows::WindowAction::Command(
+                ClientCommand::SetEquippedClothing {
+                    equipped: false,
+                    ..
+                }
+            ))
+        ));
+        assert_eq!(
+            inventory_radial_window_action(&row, InventoryRadialAction::Splice),
+            Some(crate::windows::WindowAction::OpenWindow("splice".into()))
+        );
+    }
+
+    #[test]
+    fn only_identified_local_chat_becomes_spatial_prose() {
+        let local = ChatMessage {
+            channel: ChatChannel::Local,
+            sender_id: "actor-7".into(),
+            sender: "Rook".into(),
+            text: "Meet me by the terminal.".into(),
+            whisper_to: None,
+        };
+        assert_eq!(
+            spatial_chat_payload(&local),
+            Some(("actor-7", "Meet me by the terminal."))
+        );
+        let mut global = local.clone();
+        global.channel = ChatChannel::Global;
+        assert!(spatial_chat_payload(&global).is_none());
+        let mut anonymous = local;
+        anonymous.sender_id.clear();
+        assert!(spatial_chat_payload(&anonymous).is_none());
     }
 }

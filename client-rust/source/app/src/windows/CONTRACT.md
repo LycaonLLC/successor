@@ -51,7 +51,10 @@ mod tests { /* at least one interaction test using set_input/begin twice */ }
 ## UiBuilder API you will use
 - `ui.rect(x,y,w,h, [u8;4])`, `ui.border(x,y,w,h,thick, rgba)`,
   `ui.panel(x,y,w,h, fill, edge)`
-- `ui.text(&str, x, y, px_size, rgba) -> f32` (returns end x); `UiBuilder::text_width(s, px)`
+- `ui.text(&str, x, y, px_size, rgba) -> f32` (returns end x); measure with
+  `ui.measure_text(s, px)` — it uses the live raster font, so it is the only
+  correct width for centring, right-aligning, or clipping. `UiBuilder::text_width`
+  is the fixed 5x7 fallback estimate and is wrong under the shipped font.
 - `ui.icon(col,row, x,y,w,h, rgba)`
 - `ui.button(x,y,w,h, label, ButtonStyle) -> bool` (clicked this frame)
 - `ui.icon_button(col,row, x,y,size, ButtonStyle) -> bool`
@@ -59,7 +62,8 @@ mod tests { /* at least one interaction test using set_input/begin twice */ }
 - `ui.mouse() -> (f32,f32)`
 - `TextField` (line editor): `ui.text_field(&mut TextField, x,y,w,h, px, show_caret) -> Response`
 - `ButtonStyle::default()`; fields `fill/hover/active/edge/text: [u8;4]`.
-- Font is UPPERCASE 5×7 (lowercase folds to uppercase); keep labels short.
+- Font is the shipped proportional raster face with a 5x7 uppercase fallback;
+  keep labels short.
 
 ## Interaction-test pattern (click needs a press frame then a release frame)
 ```rust

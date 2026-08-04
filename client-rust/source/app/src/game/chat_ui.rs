@@ -1,5 +1,5 @@
 use super::chat_net::{ChatChannel, ChatClient, ChatConnectionState, ChatMessage, ChatView};
-use successor_engine_render::font::{GLYPH_H, GLYPH_W};
+use successor_engine_render::font::GLYPH_H;
 use successor_engine_render::ui::{ButtonStyle, TextField, UiBuilder};
 
 /// Returns a distinct tint per channel.
@@ -49,7 +49,7 @@ pub fn draw_chat_pane(
         let tab_x = x + 5.0 + index as f32 * tab_w;
         let active = client.active_view == view;
         let tint = if active { ink } else { dim };
-        let tw = UiBuilder::text_width(label, 1.45);
+        let tw = ui.measure_text(label, 1.45);
         ui.text(label, tab_x + (tab_w - tw) * 0.5, y + 7.0, 1.45, tint);
         if active {
             ui.rect(tab_x + 3.0, y + 25.0, tab_w - 6.0, 2.0, accent);
@@ -100,7 +100,7 @@ pub fn draw_chat_pane(
         .count();
     let skip = visible_count.saturating_sub(rows);
     let mut line_y = y + 34.0;
-    let char_w = UiBuilder::text_width("M", px);
+    let char_w = ui.measure_text("M", px);
     for msg in client
         .history
         .iter()
@@ -117,13 +117,13 @@ pub fn draw_chat_pane(
         let mut tx = x + padding + 10.0;
         ui.rect(x + padding, line_y - 1.0, 3.0, line_h - 2.0, tint);
         ui.text(prefix, tx, line_y, px, tint);
-        tx += UiBuilder::text_width(prefix, px) + char_w;
+        tx += ui.measure_text(prefix, px) + char_w;
         let remaining = ((x + w - padding - tx) / char_w).floor().max(0.0) as usize;
         if remaining > 0 {
             let (body, clipped) = char_prefix(&msg.text, remaining.saturating_sub(3));
             ui.text(body, tx, line_y, px, ink);
             if clipped {
-                ui.text("...", tx + UiBuilder::text_width(body, px), line_y, px, dim);
+                ui.text("...", tx + ui.measure_text(body, px), line_y, px, dim);
             }
         }
         line_y += line_h;
@@ -197,7 +197,7 @@ fn char_prefix(text: &str, max_chars: usize) -> (&str, bool) {
 /// Draws a small rounded speech panel centered above a projected actor screen position.
 pub fn draw_bubble(ui: &mut UiBuilder, screen_x: f32, screen_y: f32, text: &str) {
     let px = 1.5;
-    let char_w = (GLYPH_W as f32 + 1.0) * px; // 9.0
+    let char_w = ui.measure_text("M", px);
     let glyph_h_scaled = (GLYPH_H as f32) * px; // 10.5
 
     let max_w = 200.0;
@@ -212,7 +212,7 @@ pub fn draw_bubble(ui: &mut UiBuilder, screen_x: f32, screen_y: f32, text: &str)
         display_text = format!("{}...", truncated);
     }
 
-    let text_w = UiBuilder::text_width(&display_text, px);
+    let text_w = ui.measure_text(&display_text, px);
     let bubble_w = text_w + padding_x * 2.0;
     let bubble_h = glyph_h_scaled + padding_y * 2.0; // 22.5
 
@@ -324,7 +324,7 @@ mod tests {
 
         // Calculate expected bubble boundaries
         let px = 1.5;
-        let text_w = UiBuilder::text_width(text, px);
+        let text_w = ui.measure_text(text, px);
         let padding_x = 8.0;
         let bubble_w = text_w + padding_x * 2.0;
         let bx = screen_x - bubble_w * 0.5;

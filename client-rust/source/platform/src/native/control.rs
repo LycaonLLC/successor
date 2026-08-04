@@ -974,6 +974,11 @@ fn parse_key(value: &str) -> Result<Key, String> {
         "7" | "digit7" => Ok(Key::Digit7),
         "8" | "digit8" => Ok(Key::Digit8),
         "9" | "digit9" => Ok(Key::Digit9),
+        "p" => Ok(Key::P),
+        "k" => Ok(Key::K),
+        "b" => Ok(Key::B),
+        "m" => Ok(Key::M),
+        "g" => Ok(Key::G),
         _ => Err(format!("unknown key: {value}")),
     }
 }
@@ -1014,6 +1019,11 @@ fn key_name(key: Key) -> &'static str {
         Key::Digit7 => "7",
         Key::Digit8 => "8",
         Key::Digit9 => "9",
+        Key::P => "p",
+        Key::K => "k",
+        Key::B => "b",
+        Key::M => "m",
+        Key::G => "g",
     }
 }
 

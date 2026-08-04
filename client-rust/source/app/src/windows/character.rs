@@ -20,12 +20,12 @@ fn bar(ui: &mut UiBuilder, x: f32, y: f32, w: f32, frac: f32, fill: [u8; 4], lab
 
 pub fn draw(
     ui: &mut UiBuilder,
-    rect: [f32; 4],
+    ctx: super::Ctx,
     model: &WindowModel,
     _icons: &Icons,
     out: &mut Vec<WindowAction>,
 ) {
-    let [x, y, w, _h] = rect;
+    let [x, y, w, _h] = ctx.rect;
     let c = &model.character;
     let p = &c.player;
 
@@ -100,6 +100,15 @@ pub fn draw(
 
 #[cfg(test)]
 mod tests {
+    /// Fixed surface context for layout-independent assertions.
+    fn test_ctx(rect: [f32; 4]) -> crate::windows::Ctx {
+        crate::windows::Ctx {
+            spec: crate::windows::spec::surface("character").expect("character surface"),
+            rect,
+            tab: 0,
+        }
+    }
+
     use super::*;
     use crate::windows::model::{ProfessionState, ProfessionTitle};
 
@@ -149,7 +158,7 @@ mod tests {
         let mut out = Vec::new();
         draw(
             &mut ui,
-            [100.0, 100.0, 600.0, 700.0],
+            test_ctx([100.0, 100.0, 600.0, 700.0]),
             &model,
             &icons,
             &mut out,
@@ -159,7 +168,7 @@ mod tests {
         out.clear();
         draw(
             &mut ui,
-            [100.0, 100.0, 600.0, 700.0],
+            test_ctx([100.0, 100.0, 600.0, 700.0]),
             &model,
             &icons,
             &mut out,
@@ -183,7 +192,7 @@ mod tests {
         let mut out = Vec::new();
         draw(
             &mut ui,
-            [100.0, 100.0, 600.0, 700.0],
+            test_ctx([100.0, 100.0, 600.0, 700.0]),
             &model,
             &icons,
             &mut out,
@@ -193,7 +202,7 @@ mod tests {
         out.clear();
         draw(
             &mut ui,
-            [100.0, 100.0, 600.0, 700.0],
+            test_ctx([100.0, 100.0, 600.0, 700.0]),
             &model,
             &icons,
             &mut out,

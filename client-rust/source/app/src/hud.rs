@@ -17,8 +17,9 @@
 //!   `ui/waypoints/store.ts`).
 
 use successor_engine_render::font::{RasterFont, RasterGlyph};
-use successor_engine_render::ui::{AtlasMeta, UiBuilder};
+use successor_engine_render::ui::{AtlasMeta, TextField, UiBuilder};
 
+pub mod layout;
 pub mod overlays;
 pub mod plate;
 pub mod radar;
@@ -28,9 +29,44 @@ pub mod waypoints;
 const ICONS_A8: &[u8] = include_bytes!("../assets/ui/icons.a8");
 const ICONS_JSON: &str = include_str!("../assets/ui/icons.json");
 const UI_FONT_TTF: &[u8] = include_bytes!("../assets/ui/PT_Sans-Web-Bold.ttf");
-const UI_ATLAS_W: usize = 512;
-const UI_ATLAS_H: usize = 512;
+const LOADING_DESTINATION_PNG: &[u8] =
+    include_bytes!("../assets/ui/generated/loading-destination-atlas.png");
+const NAV_WEDGE_LEFT_PNG: &[u8] = include_bytes!("../assets/ui/generated/nav-wedge-left.png");
+const NAV_WEDGE_RIGHT_PNG: &[u8] = include_bytes!("../assets/ui/generated/nav-wedge-right.png");
+const ROSTER_CHEVRON_PNG: &[u8] = include_bytes!("../assets/ui/generated/row-chevron.png");
+const RADIAL_TICK_CROWN_PNG: &[u8] = include_bytes!("../assets/ui/generated/radial-tick-crown.png");
+const PROGRESS_ARC_PNG: &[u8] = include_bytes!("../assets/ui/generated/progress-arc.png");
+const UI_ATLAS_W: usize = 1024;
+const UI_ATLAS_H: usize = 1024;
+const UI_FONT_REGION_W: usize = 512;
 const UI_FONT_SOURCE_PX: f32 = 32.0;
+
+const fn authored_uv(x: usize, y: usize, w: usize, h: usize) -> (f32, f32, f32, f32) {
+    (
+        x as f32 / UI_ATLAS_W as f32,
+        y as f32 / UI_ATLAS_H as f32,
+        (x + w) as f32 / UI_ATLAS_W as f32,
+        (y + h) as f32 / UI_ATLAS_H as f32,
+    )
+}
+
+pub const LOADING_DESTINATION_UV: (f32, f32, f32, f32) = authored_uv(512, 0, 512, 512);
+pub const NAV_WEDGE_LEFT_UV: (f32, f32, f32, f32) = authored_uv(512, 512, 77, 109);
+pub const NAV_WEDGE_RIGHT_UV: (f32, f32, f32, f32) = authored_uv(608, 512, 85, 109);
+pub const ROSTER_CHEVRON_UV: (f32, f32, f32, f32) = authored_uv(704, 512, 75, 97);
+pub const RADIAL_TICK_CROWN_UV: (f32, f32, f32, f32) = authored_uv(800, 512, 147, 143);
+pub const PROGRESS_ARC_UV: (f32, f32, f32, f32) = authored_uv(512, 672, 132, 135);
+
+fn blit_png(rgba: &mut [u8], bytes: &[u8], x: usize, y: usize, w: usize, h: usize) {
+    let image = successor_engine_core::image::decode_image("image/png", bytes)
+        .expect("authored UI image decode");
+    assert_eq!((image.width as usize, image.height as usize), (w, h));
+    for row in 0..h {
+        let src = &image.pixels[row * w * 4..(row + 1) * w * 4];
+        let start = ((y + row) * UI_ATLAS_W + x) * 4;
+        rgba[start..start + w * 4].copy_from_slice(src);
+    }
+}
 
 /// Parsed icon/font atlas: metadata, RGBA8 texture bytes, glyph metrics and
 /// the stable icon-id map. Text and icons share one texture and one UI pass.
@@ -89,7 +125,7 @@ impl Icons {
         for code in 32u8..=126 {
             let ch = code as char;
             let (metrics, bitmap) = font.rasterize(ch, UI_FONT_SOURCE_PX);
-            if atlas_x + metrics.width + 2 > UI_ATLAS_W {
+            if atlas_x + metrics.width + 2 > UI_FONT_REGION_W {
                 atlas_x = 2;
                 atlas_y += row_h + 2;
                 row_h = 0;
@@ -134,6 +170,12 @@ impl Icons {
             rgba[i * 4 + 2] = 255;
             rgba[i * 4 + 3] = a;
         }
+        blit_png(&mut rgba, LOADING_DESTINATION_PNG, 512, 0, 512, 512);
+        blit_png(&mut rgba, NAV_WEDGE_LEFT_PNG, 512, 512, 77, 109);
+        blit_png(&mut rgba, NAV_WEDGE_RIGHT_PNG, 608, 512, 85, 109);
+        blit_png(&mut rgba, ROSTER_CHEVRON_PNG, 704, 512, 75, 97);
+        blit_png(&mut rgba, RADIAL_TICK_CROWN_PNG, 800, 512, 147, 143);
+        blit_png(&mut rgba, PROGRESS_ARC_PNG, 512, 672, 132, 135);
         Self {
             meta,
             rgba,
@@ -418,6 +460,17 @@ pub struct TargetHud {
     pub name: String,
     pub relation: RelationHud,
     pub health: GaugeHud,
+    /// Present only when the selected authority frame carries a real action
+    /// pool (objects and simple creatures expose health alone).
+    pub action: Option<GaugeHud>,
+    /// Present only when the selected authority frame carries a real spirit
+    /// pool (objects and simple creatures expose health alone).
+    pub spirit: Option<GaugeHud>,
+    /// North-up world-plane distance from the authority-selected player.
+    pub distance_m: Option<f32>,
+    /// No level field exists in the current authority actor snapshot, so this
+    /// remains `None` until such a field is streamed.
+    pub level: Option<u32>,
     pub alive: bool,
     /// DOWN/DEAD stamp text once an observed death holds the frame.
     pub stamp: Option<&'static str>,
@@ -566,6 +619,7 @@ impl HudState {
             .actors
             .get(&store.player_actor_id)
             .or_else(|| store.actors.get(player_id));
+        let player_position = player.map(|actor| (actor.x, actor.y));
         match player {
             Some(a) => {
                 self.connection = ConnectionHud::Live;
@@ -602,7 +656,7 @@ impl HudState {
                         magazine_size: 0,
                         loaded_rounds: 0,
                         rounds_text: if reloading {
-                            "REARMING…".to_string()
+                            "REARMING...".to_string()
                         } else {
                             String::new()
                         },
@@ -613,7 +667,7 @@ impl HudState {
                     })
                 });
                 let count = store.actors.len();
-                self.fine_text = format!("LIVE · {count} IN FIELD");
+                self.fine_text = format!("LIVE / {count} IN FIELD");
             }
             None => {
                 let live = self.connection == ConnectionHud::Reconnecting;
@@ -621,16 +675,16 @@ impl HudState {
                     self.connection = ConnectionHud::NoSignal;
                 }
                 self.fine_text = if live {
-                    "RELINKING…".to_string()
+                    "RELINKING...".to_string()
                 } else {
                     "NO SIGNAL".to_string()
                 };
                 self.health = GaugeHud::default();
                 self.action = GaugeHud::default();
                 self.spirit = GaugeHud::default();
-                self.health_text = "—".into();
-                self.action_text = "—".into();
-                self.spirit_text = "—".into();
+                self.health_text = "--".into();
+                self.action_text = "--".into();
+                self.spirit_text = "--".into();
                 self.weapon = None;
                 self.position = None;
             }
@@ -677,6 +731,9 @@ impl HudState {
                 );
                 chips.truncate(TARGET_CHIP_MAX);
             }
+            let distance_m = player_position
+                .map(|(player_x, player_y)| (a.x - player_x).hypot(a.y - player_y))
+                .filter(|distance| distance.is_finite());
             Some(TargetHud {
                 actor_id: sel.to_string(),
                 name: clean_actor_name(&a.display_name, &a.label, sel).to_uppercase(),
@@ -685,6 +742,16 @@ impl HudState {
                     value: a.vitals.health,
                     max: a.max_vitals.health,
                 },
+                action: (a.max_vitals.action > 0.0).then_some(GaugeHud {
+                    value: a.vitals.action,
+                    max: a.max_vitals.action,
+                }),
+                spirit: (a.max_vitals.spirit > 0.0).then_some(GaugeHud {
+                    value: a.vitals.spirit,
+                    max: a.max_vitals.spirit,
+                }),
+                distance_m,
+                level: None,
                 alive,
                 stamp: match a.life_state.as_str() {
                     "downed" => Some("DOWN"),
@@ -772,7 +839,7 @@ fn gauge_text(g: &GaugeHud) -> String {
     if g.max > 0.0 {
         format!("{}", g.value.max(0.0).round() as i64)
     } else {
-        "—".to_string()
+        "--".to_string()
     }
 }
 
@@ -841,61 +908,382 @@ pub enum HudAction {
     ToolbarChanged,
 }
 
+/// Stable host id for the player-status plate.
+pub const PLAYER_STATUS_ID: &str = "hud.player-status";
+/// Stable host id for the current-target plate.
+pub const TARGET_STATUS_ID: &str = "hud.target-status";
+/// Stable host id for the twelve-slot command bar.
+pub const COMMAND_BAR_ID: &str = "hud.command-bar";
+/// Stable host id for the persistent chat console.
+pub const CHAT_CONSOLE_ID: &str = "hud.chat-console";
+/// Stable host id for the ability queue.
+pub const ABILITY_QUEUE_ID: &str = "hud.ability-queue";
+/// Stable host id for the compact notifications/status strip.
+pub const STATUS_STRIP_ID: &str = "hud.notifications";
+/// Stable host id for the managed ground radar.
+pub const GROUND_RADAR_ID: &str = "ground-radar";
+
+/// Caption carried by the manager chrome when a host elects to show it.
+pub const GROUND_RADAR_TITLE: &str = "RADAR";
+/// Atlas icon used by the radar's workspace icon.
+pub const GROUND_RADAR_ICON: &str = "survey";
+/// Measured `SwgCuiGroundRadar` workspace lane: a fixed 32×32 icon at (0,64).
+pub const GROUND_RADAR_ICON_SLOT: (f32, f32) = (0.0, 64.0);
+
+/// Largest viewport in the supported HUD matrix. Hosts that know their first
+/// framebuffer should prefer [`register_hud_surfaces_at`] so first-run defaults
+/// come directly from that framebuffer's [`layout::compute`] result.
+const HUD_REGISTRATION_VIEWPORT: (f32, f32) = (1600.0, 1200.0);
+
+/// A persistent, manager-owned HUD pane. `default_rect` resolves its first-run
+/// rect from [`layout::compute`]; it is never consulted after registration or a
+/// persisted layout restore.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HudSurface {
+    pub id: &'static str,
+    pub title: &'static str,
+    pub icon: &'static str,
+    pub min_size: [f32; 2],
+    kind: HudSurfaceKind,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum HudSurfaceKind {
+    PlayerStatus,
+    TargetStatus,
+    CommandBar,
+    ChatConsole,
+    AbilityQueue,
+    StatusStrip,
+    GroundRadar,
+}
+
+impl HudSurface {
+    /// First-run content rect for this surface at a particular framebuffer.
+    pub fn default_rect(self, layout: layout::HudLayout) -> [f32; 4] {
+        match self.kind {
+            HudSurfaceKind::PlayerStatus => layout.plate,
+            HudSurfaceKind::TargetStatus => layout.target,
+            HudSurfaceKind::CommandBar => layout.bar,
+            HudSurfaceKind::ChatConsole => layout.chat,
+            HudSurfaceKind::AbilityQueue => layout.queue,
+            HudSurfaceKind::StatusStrip => layout.strip,
+            HudSurfaceKind::GroundRadar => layout.radar,
+        }
+    }
+}
+
+/// Number of persistent HUD workspace panes.
+pub const HUD_SURFACE_COUNT: usize = 7;
+
+/// Every persistent HUD surface. These are workspace windows, but normal play
+/// leaves them chromeless and locked so no frame intercepts gameplay input.
+pub const HUD_SURFACES: [HudSurface; HUD_SURFACE_COUNT] = [
+    HudSurface {
+        id: PLAYER_STATUS_ID,
+        title: "PLAYER STATUS",
+        icon: "character",
+        min_size: [layout::PLATE_MIN_W, layout::PLATE_MIN_H],
+        kind: HudSurfaceKind::PlayerStatus,
+    },
+    HudSurface {
+        id: TARGET_STATUS_ID,
+        title: "TARGET STATUS",
+        icon: "crosshair",
+        min_size: [layout::TARGET_MIN_W, layout::TARGET_MIN_H],
+        kind: HudSurfaceKind::TargetStatus,
+    },
+    HudSurface {
+        id: COMMAND_BAR_ID,
+        title: "COMMAND BAR",
+        icon: "actions",
+        min_size: [layout::BAR_MIN_W, layout::BAR_MIN_H],
+        kind: HudSurfaceKind::CommandBar,
+    },
+    HudSurface {
+        id: CHAT_CONSOLE_ID,
+        title: "CHAT CONSOLE",
+        icon: "converse",
+        min_size: [layout::CHAT_MIN_W, layout::CHAT_MIN_H],
+        kind: HudSurfaceKind::ChatConsole,
+    },
+    HudSurface {
+        id: ABILITY_QUEUE_ID,
+        title: "ABILITY QUEUE",
+        icon: "actions",
+        min_size: [layout::QUEUE_MIN_W, layout::QUEUE_MIN_H],
+        kind: HudSurfaceKind::AbilityQueue,
+    },
+    HudSurface {
+        id: STATUS_STRIP_ID,
+        title: "NOTIFICATIONS",
+        icon: "options",
+        min_size: [layout::STRIP_MIN_W, layout::STRIP_MIN_H],
+        kind: HudSurfaceKind::StatusStrip,
+    },
+    HudSurface {
+        id: GROUND_RADAR_ID,
+        title: GROUND_RADAR_TITLE,
+        icon: GROUND_RADAR_ICON,
+        min_size: [161.0, 200.0],
+        kind: HudSurfaceKind::GroundRadar,
+    },
+];
+
+/// Registry lookup without allocating. The stable descriptor is also the
+/// source of truth for whether a manager frame is a HUD pane.
+pub fn hud_surface(id: &str) -> Option<&'static HudSurface> {
+    HUD_SURFACES.iter().find(|surface| surface.id == id)
+}
+
+/// Whether `id` names one of the persistent HUD workspace panes.
+pub fn is_hud_surface(id: &str) -> bool {
+    hud_surface(id).is_some()
+}
+
+/// Apply layout-derived first-run bounds to every registered HUD pane.
+///
+/// Hosts that restored any user geometry should call
+/// [`apply_missing_hud_surface_defaults`] instead, so an older layout document
+/// that lacks a newly added pane does not reset the panes it did contain.
+pub fn apply_hud_surface_defaults(
+    manager: &mut successor_engine_render::window::WindowManager,
+    viewport: (f32, f32),
+) {
+    apply_missing_hud_surface_defaults(manager, viewport, &[true; HUD_SURFACE_COUNT]);
+}
+
+/// Apply layout-derived first-run bounds only for pane slots absent from a
+/// persisted workspace document.
+pub fn apply_missing_hud_surface_defaults(
+    manager: &mut successor_engine_render::window::WindowManager,
+    viewport: (f32, f32),
+    missing: &[bool; HUD_SURFACE_COUNT],
+) {
+    let defaults = layout::compute(viewport.0, viewport.1);
+    for (surface, missing) in HUD_SURFACES.iter().zip(missing) {
+        if *missing {
+            let _ = manager.set_rect(surface.id, surface.default_rect(defaults));
+        }
+    }
+}
+
+fn register_hud_surface(
+    manager: &mut successor_engine_render::window::WindowManager,
+    surface: HudSurface,
+    icon: Option<(u32, u32)>,
+    defaults: layout::HudLayout,
+) {
+    let bounds = surface.default_rect(defaults);
+    manager.register(
+        surface.id,
+        surface.title,
+        icon,
+        bounds,
+        surface.min_size[0],
+        surface.min_size[1],
+    );
+    // HUD panes own their visual content. At rest they have neither workspace
+    // chrome nor pointer capture; right-clicking a pane unlocks its manager
+    // move/resize gestures through `set_hud_surface_locked`.
+    manager.set_chrome(surface.id, false);
+    manager.set_interactive(surface.id, false);
+    if surface.id == GROUND_RADAR_ID {
+        manager.set_icon_slot(surface.id, Some(GROUND_RADAR_ICON_SLOT));
+    }
+    manager.open(surface.id);
+}
+
+fn register_hud_surfaces_with_at<F>(
+    manager: &mut successor_engine_render::window::WindowManager,
+    viewport: (f32, f32),
+    mut icon_for: F,
+) where
+    F: FnMut(&str) -> Option<(u32, u32)>,
+{
+    let defaults = layout::compute(viewport.0, viewport.1);
+    for surface in HUD_SURFACES {
+        register_hud_surface(manager, surface, icon_for(surface.icon), defaults);
+    }
+}
+
+/// Register every persistent HUD pane at an explicit framebuffer. This is the
+/// host entry point for first-run registration and deterministic layout tests.
+pub fn register_hud_surfaces_at(
+    manager: &mut successor_engine_render::window::WindowManager,
+    icons: &Icons,
+    viewport: (f32, f32),
+) {
+    register_hud_surfaces_with_at(manager, viewport, |icon| icons.cell(icon));
+}
+
+/// Register every persistent HUD pane using the supported-max fallback. A host
+/// should follow this with [`apply_hud_surface_defaults`] once it knows the
+/// first framebuffer, unless it restores persisted geometry first.
+pub fn register_hud_surfaces(
+    manager: &mut successor_engine_render::window::WindowManager,
+    icons: &Icons,
+) {
+    register_hud_surfaces_at(manager, icons, HUD_REGISTRATION_VIEWPORT);
+}
+
+/// Register only the ground radar for hosts that do not own the complete HUD
+/// registry yet. New hosts should use [`register_hud_surfaces_at`].
+pub(crate) fn register_ground_radar_at(
+    manager: &mut successor_engine_render::window::WindowManager,
+    icon: Option<(u32, u32)>,
+    viewport: (f32, f32),
+) {
+    let defaults = layout::compute(viewport.0, viewport.1);
+    let surface = *hud_surface(GROUND_RADAR_ID).expect("ground radar is registered");
+    register_hud_surface(manager, surface, icon, defaults);
+}
+
+/// Register the one managed radar frame, including its workspace icon slot.
+pub fn register_ground_radar(
+    manager: &mut successor_engine_render::window::WindowManager,
+    icon: Option<(u32, u32)>,
+) {
+    register_ground_radar_at(manager, icon, HUD_REGISTRATION_VIEWPORT);
+}
+
+/// Toggle the per-pane layout lock for the frontmost HUD surface under a
+/// right-click. Locked panes are visual-only; unlocked panes opt into the
+/// manager's body move and eight-edge resize gestures.
+pub fn toggle_hud_surface_lock_at(
+    manager: &mut successor_engine_render::window::WindowManager,
+    mouse_x: f32,
+    mouse_y: f32,
+) -> Option<&'static str> {
+    let order = manager.z_order();
+    for index in order.into_iter().rev() {
+        let id = manager.window_id(index);
+        if !manager.is_open(id) || manager.is_iconified(id) {
+            continue;
+        }
+        let Some(rect) = manager.rect(id) else {
+            continue;
+        };
+        if !successor_engine_render::ui::UiBuilder::hit(
+            rect[0], rect[1], rect[2], rect[3], mouse_x, mouse_y,
+        ) {
+            continue;
+        }
+        let surface = hud_surface(id)?;
+        manager.set_interactive(surface.id, !manager.is_interactive(surface.id));
+        return Some(surface.id);
+    }
+    None
+}
+
+/// Restore a persistent HUD pane's lock bit. `locked` is stored alongside its
+/// manager geometry by the connected host.
+pub fn set_hud_surface_locked(
+    manager: &mut successor_engine_render::window::WindowManager,
+    id: &str,
+    locked: bool,
+) -> bool {
+    let Some(surface) = hud_surface(id) else {
+        return false;
+    };
+    manager.set_interactive(surface.id, !locked);
+    true
+}
+
+/// Draw the only layout-edit affordance. It is deliberately hover-only: normal
+/// play has no rail, perimeter, close control, or pointer interception.
+pub fn draw_hud_layout_affordance(
+    ui: &mut UiBuilder,
+    manager: &successor_engine_render::window::WindowManager,
+    id: &str,
+    palette: &Palette,
+) {
+    if !manager.is_interactive(id) || !manager.is_open(id) {
+        return;
+    }
+    let Some([x, y, w, h]) = manager.content_rect(id) else {
+        return;
+    };
+    let (mouse_x, mouse_y) = ui.mouse();
+    if !UiBuilder::hit(x, y, w, h, mouse_x, mouse_y) {
+        return;
+    }
+    let mut tint = palette.accent;
+    tint[3] = 220;
+    ui.border(x, y, w, h, 1.0, tint);
+    // The two-pixel top stroke is the revealed body-drag surface; every edge
+    // and corner remains resize-active through WindowManager::update_at.
+    ui.rect(x, y, w, 2.0, tint);
+}
+
 // ── Window registry ─────────────────────────────────────────────────────────
 
-/// Permanent (dock-visible) windows: id, title, icon id, hotkey code.
-/// Mirrors the reference dock set exactly.
-pub const PERMANENT_WINDOWS: [(&str, &str, &str, &str); 8] = [
-    ("character", "CHARACTER", "character", "KeyC"),
-    ("inventory", "INVENTORY", "inventory", "KeyI"),
-    ("datapad", "DATAPAD", "datapad", "KeyP"),
-    ("skills", "SKILLS", "skills", "KeyK"),
-    ("actions", "ACTIONS", "actions", "KeyB"),
-    ("macros", "MACROS", "macro", "KeyM"),
-    ("options", "OPTIONS", "options", "KeyO"),
-    ("pa", "ASSOCIATION", "association", "KeyG"),
-];
+/// Dock-visible windows: `(id, title, icon id, hotkey code)`. Generated from
+/// [`crate::windows::spec::SURFACES`] so the registry and the surface specs
+/// cannot drift.
+pub const PERMANENT_WINDOWS: [(&str, &str, &str, &str); 8] = permanent_windows();
 
-/// Context windows: opened only from their terminal/target/item routes —
-/// never from the dock. (id, title, icon id).
-pub const CONTEXT_WINDOWS: [(&str, &str, &str); 12] = [
-    ("craft", "CRAFT", "craft"),
-    ("splice", "SPLICE", "splice"),
-    ("converse", "CONVERSE", "converse"),
-    ("trade", "TRADE", "trade"),
-    ("bug-report", "REPORT", "bug-report"),
-    ("examine", "EXAMINE", "examine"),
-    ("survey", "SURVEY", "survey"),
-    ("travel", "TRAVEL", "travel"),
-    ("loot", "LOOT", "loot"),
-    ("bank", "BANK", "bank"),
-    ("clone", "CLONE", "clone-facility"),
-    ("build", "LAND / BUILD", "build"),
-];
+/// Context windows: opened from their terminal/target/roster/item route, never
+/// from the dock. `(id, title, icon id)`.
+pub const CONTEXT_WINDOWS: [(&str, &str, &str); 13] = context_windows();
 
-/// Registered windows for the standalone UI demo (`--demo ui`): the union of
-/// the permanent + context sets, sample-backed. Demo-only — the connected
-/// runtime registers PERMANENT_WINDOWS/CONTEXT_WINDOWS itself.
-pub const DEMO_WINDOWS: [(&str, &str, &str); 18] = [
-    ("inventory", "INVENTORY", "inventory"),
-    ("character", "CHARACTER", "character"),
-    ("skills", "SKILLS", "skills"),
-    ("options", "OPTIONS", "options"),
-    ("datapad", "DATAPAD", "datapad"),
-    ("loot", "LOOT", "loot"),
-    ("bank", "BANK", "bank"),
-    ("trade", "TRADE", "trade"),
-    ("craft", "CRAFT", "craft"),
-    ("survey", "SURVEY", "survey"),
-    ("converse", "CONVERSE", "converse"),
-    ("travel", "TRAVEL", "travel"),
-    ("clone", "CLONE", "clone-facility"),
-    ("pa", "ASSOCIATION", "association"),
-    ("splice", "SPLICE", "splice"),
-    ("macros", "MACROS", "macro"),
-    ("actions", "ACTIONS", "actions"),
-    ("bug-report", "REPORT", "bug-report"),
-];
+/// Every registered surface, for the standalone UI demo (`--demo ui`). The
+/// union of the permanent and context sets by construction.
+pub const DEMO_WINDOWS: [(&str, &str, &str); 21] = demo_windows();
+
+const fn permanent_windows() -> [(&'static str, &'static str, &'static str, &'static str); 8] {
+    let mut out = [("", "", "", ""); 8];
+    let mut index = 0;
+    let mut slot = 0;
+    while index < crate::windows::spec::SURFACES.len() {
+        let surface = &crate::windows::spec::SURFACES[index];
+        if surface.dock {
+            out[slot] = (surface.id, surface.title, surface.icon, surface.hotkey);
+            slot += 1;
+        }
+        index += 1;
+    }
+    out
+}
+
+const fn context_windows() -> [(&'static str, &'static str, &'static str); 13] {
+    let mut out = [("", "", ""); 13];
+    let mut index = 0;
+    let mut slot = 0;
+    while index < crate::windows::spec::SURFACES.len() {
+        let surface = &crate::windows::spec::SURFACES[index];
+        if !surface.dock {
+            out[slot] = (surface.id, surface.title, surface.icon);
+            slot += 1;
+        }
+        index += 1;
+    }
+    out
+}
+
+const fn demo_windows() -> [(&'static str, &'static str, &'static str); 21] {
+    let mut out = [("", "", ""); 21];
+    let mut index = 0;
+    while index < crate::windows::spec::SURFACES.len() {
+        let surface = &crate::windows::spec::SURFACES[index];
+        out[index] = (surface.id, surface.title, surface.icon);
+        index += 1;
+    }
+    out
+}
+
+/// Window a dock hotkey code opens. The registry is the single source of truth
+/// for the advertised binds, so the host's key routing and the dock badges
+/// cannot disagree.
+pub fn window_for_code(code: &str) -> Option<&'static str> {
+    if code.is_empty() {
+        return None;
+    }
+    PERMANENT_WINDOWS
+        .iter()
+        .find(|(_, _, _, hotkey)| *hotkey == code)
+        .map(|(id, _, _, _)| *id)
+}
 
 /// Short key glyph for a `KeyboardEvent.code`-style bind (dock badges,
 /// toolbar hotkey corners). Port of `icons.hotkeyGlyph`.
@@ -913,32 +1301,113 @@ pub fn code_glyph(code: &str) -> &str {
         "Digit0" => "0",
         "Minus" => "-",
         "Equal" => "=",
+        "Semicolon" => ";",
+        "Comma" => ",",
+        "Period" => ".",
+        "Slash" => "/",
+        "Tab" => "TAB",
+        "Escape" => "ESC",
+        "" => "",
         _ => code.strip_prefix("Key").unwrap_or(code),
     }
 }
 
 // ── Frame composition ───────────────────────────────────────────────────────
 
-/// Everything `build_hud` needs beyond the projection: mutable toolbar (drag
-/// and rebind state), theme palette, monotonic time and pointer capture.
+/// Everything `build_hud` needs beyond the projection: mutable toolbar/chat
+/// state, theme palette, monotonic time and pointer capture.
 pub struct HudFrame<'a> {
     pub state: &'a HudState,
     pub toolbar: &'a mut toolbar::Toolbar,
+    /// The connected host supplies this; standalone visual demos have no chat
+    /// transport and pass `None`.
+    pub chat: Option<(&'a mut crate::game::chat_net::ChatClient, &'a mut TextField)>,
     pub palette: Palette,
     pub now_ms: u64,
     /// Pointer already captured by a window/overlay — HUD stays visual-only.
     pub captured: bool,
-    /// Right-button pressed edge this frame (slot clear).
+    /// Right-button pressed edge for toolbar slot clear. The host consumes a
+    /// HUD-pane layout-lock click before this draw path runs.
     pub right_pressed: bool,
 }
 
-/// Build the connected HUD chrome. Pushes intents into `out` (caller-owned,
-/// cleared per frame). Draw order: plates → radar → queue → overlays chrome →
-/// dock → toolbar → death overlay (topmost).
+fn hud_content_rect(
+    manager: &successor_engine_render::window::WindowManager,
+    id: &str,
+) -> Option<[f32; 4]> {
+    (manager.is_open(id) && !manager.is_iconified(id))
+        .then(|| manager.content_rect(id))
+        .flatten()
+}
+
+/// Longest UTF-8 prefix that leaves room for an ellipsis when it is needed.
+/// Status text is authority-provided, so clipping must never split a codepoint.
+fn clip_status_text<'a>(ui: &UiBuilder, text: &'a str, px: f32, max_w: f32) -> (&'a str, bool) {
+    if ui.measure_text(text, px) <= max_w {
+        return (text, false);
+    }
+    let budget = (max_w - ui.measure_text("...", px)).max(0.0);
+    let mut end = 0;
+    let mut width = 0.0;
+    for (offset, ch) in text.char_indices() {
+        let advance = ui.measure_text(&text[offset..offset + ch.len_utf8()], px);
+        if width + advance > budget {
+            break;
+        }
+        width += advance;
+        end = offset + ch.len_utf8();
+    }
+    (&text[..end], true)
+}
+
+/// Compact notification/status region. It deliberately has one content well
+/// and no nested card or divider, matching the sparse HUD grammar.
+fn draw_status_strip(ui: &mut UiBuilder, palette: &Palette, state: &HudState, rect: [f32; 4]) {
+    let [x, y, w, h] = rect;
+    let mut backing = palette.bg_panel;
+    backing[3] = 220;
+    ui.rect(x, y, w, h, backing);
+
+    let primary = if state.fine_text.is_empty() {
+        "NO SIGNAL"
+    } else {
+        state.fine_text.as_str()
+    };
+    let px = 1.35;
+    let text_y = y + (h - 14.0).max(0.0) * 0.5;
+    let primary_tint = if state.connection == ConnectionHud::Live {
+        palette.ink_dim
+    } else {
+        palette.danger
+    };
+    let area_w = ui.measure_text(&state.area_label, px);
+    let show_area = !state.area_label.is_empty() && area_w + ui.measure_text("...", px) + 24.0 <= w;
+    let primary_room = (w - 16.0 - if show_area { area_w + 8.0 } else { 0.0 }).max(0.0);
+    let (primary, clipped) = clip_status_text(ui, primary, px, primary_room);
+    let primary_end = ui.text(primary, x + 8.0, text_y, px, primary_tint);
+    if clipped {
+        ui.text("...", primary_end, text_y, px, primary_tint);
+    }
+    if show_area {
+        ui.text(
+            &state.area_label,
+            x + w - area_w - 8.0,
+            text_y,
+            px,
+            palette.ink,
+        );
+    }
+}
+
+/// Build the connected HUD. Persistent panes draw into their live,
+/// manager-owned content rects; `layout::compute` is never consulted here.
+/// The host sets UI input enabled only when `frame.captured` is false before
+/// calling this function, so an unlocked pane cannot also activate HUD content.
 pub fn build_hud(
     ui: &mut UiBuilder,
     icons: &Icons,
     frame: &mut HudFrame,
+    manager: &successor_engine_render::window::WindowManager,
     w: u32,
     h: u32,
     out: &mut Vec<HudAction>,
@@ -947,49 +1416,65 @@ pub fn build_hud(
     let sh = h as f32;
     let pal = frame.palette;
     let st = frame.state;
+    let player_rect = hud_content_rect(manager, PLAYER_STATUS_ID);
+    let target_rect = hud_content_rect(manager, TARGET_STATUS_ID);
+    let command_rect = hud_content_rect(manager, COMMAND_BAR_ID);
+    let chat_rect = hud_content_rect(manager, CHAT_CONSOLE_ID);
+    let queue_rect = hud_content_rect(manager, ABILITY_QUEUE_ID);
+    let strip_rect = hud_content_rect(manager, STATUS_STRIP_ID);
+    let radar_rect = hud_content_rect(manager, GROUND_RADAR_ID);
 
-    // Player and target plates share the top-left information rail, matching
-    // the web client's scan order and leaving the lower-left corner for chat.
-    plate::draw_status_plate(ui, &pal, st, 16.0, 16.0, out);
-
-    if let Some(target) = &st.target {
-        plate::draw_target_plate(ui, &pal, target, 16.0 + plate::PLATE_W + 10.0, 16.0);
+    if let Some(rect) = player_rect {
+        plate::draw_status_plate(ui, &pal, st, rect, out);
+    }
+    if let (Some(target), Some(rect)) = (&st.target, target_rect) {
+        plate::draw_target_plate(ui, &pal, target, rect);
+    }
+    if let Some(rect) = queue_rect {
+        plate::draw_queue(ui, &pal, st, rect, out);
+    }
+    if let Some(rect) = strip_rect {
+        draw_status_strip(ui, &pal, st, rect);
+    }
+    if let Some(rect) = radar_rect {
+        radar::draw_radar(ui, &pal, st, rect, frame.captured, out);
+    }
+    if let (Some(rect), Some((chat_client, chat_input))) = (chat_rect, frame.chat.as_mut()) {
+        crate::game::chat_ui::draw_chat_pane(
+            ui,
+            chat_client,
+            chat_input,
+            rect[0],
+            rect[1],
+            rect[2],
+            rect[3],
+        );
     }
 
-    // Group invite toast (top-center) + member rail (under the target plate).
+    // Group invite toast + member rail are transient authority events, not
+    // workspace panes.
     plate::draw_group(ui, &pal, st, sw, out);
 
-    // Radar (top-right) + click routing (suppressed while captured).
-    radar::draw_radar(
-        ui,
-        &pal,
-        st,
-        sw - radar::PANEL_W - 56.0,
-        16.0,
-        frame.captured,
-        out,
-    );
-
-    // Ability queue pane (right edge, under the radar).
-    plate::draw_queue(
-        ui,
-        &pal,
-        st,
-        sw - 232.0 - 56.0,
-        16.0 + radar::PANEL_H + 12.0,
-        out,
-    );
-
-    // Interact chip (bottom-center, above the toolbar).
+    // Interact chip and toasts stay tied to the live chat pane, so they follow
+    // a player-moved console without becoming persistent surfaces themselves.
+    let chat_anchor = chat_rect.unwrap_or([sw * 0.5, sh - 32.0, 0.0, 0.0]);
+    let chip_x = chat_anchor[0] + chat_anchor[2] * 0.5;
+    let chip_y = chat_anchor[1] - 26.0;
     if let Some(chip) = &st.interact {
-        plate::draw_interact_chip(ui, &pal, chip, sw * 0.5, sh - 148.0);
+        plate::draw_interact_chip(ui, &pal, chip, chip_x, chip_y);
     }
+    plate::draw_toasts(ui, &pal, st, frame.now_ms, chip_x, chip_y - 24.0);
 
-    // Extraction/camp toast + command banners.
-    plate::draw_toasts(ui, &pal, st, frame.now_ms, sw, sh);
-
-    // First-steps guidance (left edge, mid-height).
-    plate::draw_first_steps(ui, &pal, st, 16.0, sh * 0.42);
+    // First-steps guidance follows the live player plate rather than a stale
+    // default origin.
+    let player_anchor = player_rect.unwrap_or([layout::MARGIN, 0.0, 0.0, 0.0]);
+    plate::draw_first_steps(
+        ui,
+        &pal,
+        st,
+        player_anchor[0] + layout::MARGIN,
+        player_anchor[1] + player_anchor[3] + 24.0,
+    );
 
     // Crosshair (combat option; context-sensitive).
     if st.crosshair && st.weapon.is_some() && st.life == LifeHud::Alive {
@@ -1001,21 +1486,36 @@ pub fn build_hud(
         ui.rect(cx - 1.0, cy + 2.0, 2.0, 5.0, pal.accent);
     }
 
-    // Dock (right rail) + toolbar (bottom-center).
-    toolbar::draw_dock(ui, icons, &pal, frame.toolbar, sw, sh, frame.captured, out);
-    toolbar::draw_toolbar(
-        ui,
-        icons,
-        &pal,
-        frame.toolbar,
-        st,
-        sw,
-        sh,
-        frame.captured,
-        frame.right_pressed,
-        frame.now_ms,
-        out,
-    );
+    // The fixed Successor launcher rail is not a persistent pane. The command
+    // bar itself, however, is manager-owned and receives its live rect above.
+    let dock_h = (sh * 0.5).min(360.0);
+    let dock = [
+        sw - layout::MARGIN - layout::DOCK_BTN,
+        (sh - dock_h) * 0.5,
+        layout::DOCK_BTN,
+        dock_h,
+    ];
+    toolbar::draw_dock(ui, icons, &pal, frame.toolbar, dock, frame.captured, out);
+    if let Some(rect) = command_rect {
+        toolbar::draw_toolbar(
+            ui,
+            icons,
+            &pal,
+            frame.toolbar,
+            st,
+            rect,
+            frame.captured,
+            frame.right_pressed,
+            frame.now_ms,
+            out,
+        );
+    }
+
+    // Unlocked panes get one hover-revealed functional outline. At rest this
+    // loop emits nothing, preserving the original HUD's chromeless appearance.
+    for surface in HUD_SURFACES {
+        draw_hud_layout_affordance(ui, manager, surface.id, &pal);
+    }
 
     // Death / clone overlay draws over everything but keeps chat usable
     // (backdrop is visual-only; only the panel takes clicks).
@@ -1037,6 +1537,155 @@ mod tests {
         assert!(st.radar_contacts.is_empty());
         assert_eq!(st.health.max, 0.0);
         assert_eq!(st.spirit.max, 0.0);
+    }
+
+    #[test]
+    fn ground_radar_registration_uses_the_managed_layout_frame() {
+        let mut manager = successor_engine_render::window::WindowManager::new();
+        register_ground_radar_at(&mut manager, None, (1024.0, 768.0));
+        let layout = layout::compute(1024.0, 768.0);
+        assert_eq!(manager.rect(GROUND_RADAR_ID), Some(layout.radar));
+        // HUD panes are chromeless, so the pane owns its whole rect and the
+        // scope no longer sits inside workspace rails.
+        assert!(!manager.has_chrome(GROUND_RADAR_ID));
+        assert!(!manager.is_interactive(GROUND_RADAR_ID));
+        assert_eq!(manager.content_rect(GROUND_RADAR_ID), Some(layout.radar));
+        assert!(manager.is_open(GROUND_RADAR_ID));
+        assert_eq!(
+            manager.icon_rect(GROUND_RADAR_ID),
+            Some([
+                GROUND_RADAR_ICON_SLOT.0,
+                GROUND_RADAR_ICON_SLOT.1,
+                successor_engine_render::window::ICON_SLOT,
+                successor_engine_render::window::ICON_SLOT,
+            ])
+        );
+        assert!(manager.iconify(GROUND_RADAR_ID));
+        assert!(manager.is_iconified(GROUND_RADAR_ID));
+    }
+
+    const TEST_ATLAS: AtlasMeta = AtlasMeta {
+        cell: 32,
+        cols: 8,
+        width: 256,
+        height: 160,
+    };
+
+    #[test]
+    fn every_hud_registration_default_matches_layout_compute() {
+        for viewport in [
+            (800.0, 600.0),
+            (1024.0, 768.0),
+            (1280.0, 1024.0),
+            (1600.0, 1200.0),
+        ] {
+            let mut manager = successor_engine_render::window::WindowManager::new();
+            register_hud_surfaces_with_at(&mut manager, viewport, |_| None);
+            let mut ui = UiBuilder::new(TEST_ATLAS);
+            ui.set_input(0.0, 0.0, false);
+            ui.begin(viewport.0 as u32, viewport.1 as u32);
+            manager.update(&ui, viewport.0 as u32, viewport.1 as u32);
+            let defaults = layout::compute(viewport.0, viewport.1);
+            for surface in HUD_SURFACES {
+                let expected = surface.default_rect(defaults);
+                assert_eq!(
+                    manager.rect(surface.id),
+                    Some(expected),
+                    "{} default drifted at {}x{}",
+                    surface.id,
+                    viewport.0,
+                    viewport.1
+                );
+                assert_eq!(manager.content_rect(surface.id), Some(expected));
+                assert!(manager.is_open(surface.id));
+                assert!(!manager.has_chrome(surface.id));
+                assert!(!manager.is_interactive(surface.id));
+            }
+        }
+    }
+
+    #[test]
+    fn locked_hud_needs_layout_edit_before_manager_captures_or_moves() {
+        let mut manager = successor_engine_render::window::WindowManager::new();
+        register_hud_surfaces_with_at(&mut manager, (1024.0, 768.0), |_| None);
+        let mut ui = UiBuilder::new(TEST_ATLAS);
+        let original = manager.rect(PLAYER_STATUS_ID).unwrap();
+
+        // Normal play: clicking the status pane is gameplay-transparent.
+        ui.set_input(100.0, 80.0, false);
+        ui.begin(1024, 768);
+        manager.update(&ui, 1024, 768);
+        ui.set_input(100.0, 80.0, true);
+        ui.begin(1024, 768);
+        manager.update(&ui, 1024, 768);
+        assert!(!manager.pointer_captured());
+        assert_eq!(manager.rect(PLAYER_STATUS_ID), Some(original));
+
+        // A right-click context toggle unlocks exactly this pane. The manager
+        // then owns its body drag and every edge/corner resize gesture.
+        assert_eq!(
+            toggle_hud_surface_lock_at(&mut manager, 100.0, 80.0),
+            Some(PLAYER_STATUS_ID)
+        );
+        assert!(manager.is_interactive(PLAYER_STATUS_ID));
+        ui.set_input(100.0, 80.0, false);
+        ui.begin(1024, 768);
+        manager.update(&ui, 1024, 768);
+        ui.set_input(100.0, 80.0, true);
+        ui.begin(1024, 768);
+        manager.update(&ui, 1024, 768);
+        assert!(manager.pointer_captured());
+        ui.set_input(140.0, 110.0, true);
+        ui.begin(1024, 768);
+        manager.update(&ui, 1024, 768);
+        let moved = manager.rect(PLAYER_STATUS_ID).unwrap();
+        assert_eq!(moved[0], original[0] + 40.0);
+        assert_eq!(moved[1], original[1] + 30.0);
+        ui.set_input(140.0, 110.0, false);
+        ui.begin(1024, 768);
+        manager.update(&ui, 1024, 768);
+
+        let resize_x = moved[0] + moved[2] - 2.0;
+        let resize_y = moved[1] + moved[3] - 2.0;
+        ui.set_input(resize_x, resize_y, true);
+        ui.begin(1024, 768);
+        manager.update(&ui, 1024, 768);
+        ui.set_input(resize_x + 36.0, resize_y + 24.0, true);
+        ui.begin(1024, 768);
+        manager.update(&ui, 1024, 768);
+        let resized = manager.rect(PLAYER_STATUS_ID).unwrap();
+        assert_eq!(resized[2], moved[2] + 36.0);
+        assert_eq!(resized[3], moved[3] + 24.0);
+    }
+
+    #[test]
+    fn hud_workspace_state_round_trip_keeps_geometry_open_order_and_lock() {
+        let mut previous = successor_engine_render::window::WindowManager::new();
+        register_hud_surfaces_with_at(&mut previous, (1280.0, 1024.0), |_| None);
+        assert!(set_hud_surface_locked(
+            &mut previous,
+            PLAYER_STATUS_ID,
+            false
+        ));
+        assert!(previous.set_rect(PLAYER_STATUS_ID, [90.0, 70.0, 360.0, 220.0]));
+        previous.close(TARGET_STATUS_ID);
+        previous.open(COMMAND_BAR_ID);
+
+        let mut restored = successor_engine_render::window::WindowManager::new();
+        register_hud_surfaces_with_at(&mut restored, (1280.0, 1024.0), |_| None);
+        restored.restore_workspace_state_from(&previous);
+
+        assert_eq!(
+            restored.rect(PLAYER_STATUS_ID),
+            Some([90.0, 70.0, 360.0, 220.0])
+        );
+        assert!(restored.is_interactive(PLAYER_STATUS_ID));
+        assert!(!restored.is_open(TARGET_STATUS_ID));
+        let order = restored.z_order();
+        assert_eq!(
+            restored.window_id(*order.last().expect("command bar is open")),
+            COMMAND_BAR_ID
+        );
     }
 
     #[test]
@@ -1078,7 +1727,7 @@ mod tests {
         st.project(&store, "me", None);
         assert_eq!(st.connection, ConnectionHud::NoSignal);
         assert_eq!(st.fine_text, "NO SIGNAL");
-        assert_eq!(st.health_text, "—");
+        assert_eq!(st.health_text, "--");
     }
 
     #[test]

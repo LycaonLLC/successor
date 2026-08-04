@@ -51,7 +51,7 @@ if (!gl) {
 }
 
 // Input state tracking. Indices are the stable engine-core Key discriminants.
-const keyState = new Uint8Array(34);
+const keyState = new Uint8Array(39);
 const keyMap = {
     "KeyW": 0, "KeyA": 1, "KeyS": 2, "KeyD": 3,
     "ArrowUp": 4, "ArrowDown": 5, "ArrowLeft": 6, "ArrowRight": 7,
@@ -59,7 +59,8 @@ const keyMap = {
     "ShiftLeft": 12, "Backquote": 13, "KeyR": 14, "KeyF": 15,
     "KeyI": 16, "KeyC": 17, "Semicolon": 18, "KeyO": 19,
     "Tab": 20, "KeyV": 21, "KeyX": 22, "KeyN": 23,
-    ...Object.fromEntries(Array.from({length: 10}, (_, i) => [`Digit${i}`, 24 + i]))
+    ...Object.fromEntries(Array.from({length: 10}, (_, i) => [`Digit${i}`, 24 + i])),
+    "KeyP": 34, "KeyK": 35, "KeyB": 36, "KeyM": 37, "KeyG": 38
 };
 
 window.addEventListener("keydown", (e) => {
@@ -131,6 +132,7 @@ function glAlloc(obj) {
 
 let launchContextText = "";
 let hostedLaunch = false;
+const creatorMode = new URLSearchParams(window.location.search).get("mode") === "creator";
 
 function takeDevelopmentLaunch() {
     if (!successorBuild.allowDevLaunch) return "";
@@ -162,6 +164,279 @@ function validHostedLaunch(value) {
             && new URL(value.endpoints.chat).origin === successorBuild.chatOrigin;
     } catch (_) {
         return false;
+    }
+}
+
+// The workshop has no account/session capability. It is deliberately a tiny
+// exact-origin relay for its five versioned creator messages, installed before
+// WASM boot so a parent response cannot race child initialization.
+const CREATOR_READY = "successor.creator.ready.v1";
+const CREATOR_CREATE = "successor.creator.create.v1";
+const CREATOR_SELECT = "successor.creator.select.v1";
+const CREATOR_STATE = "successor.creator.state.v1";
+const CREATOR_CREATE_RESULT = "successor.creator.create-result.v1";
+const CREATOR_MAX_QUEUE = 8;
+const CREATOR_MAX_MESSAGE_BYTES = 16 * 1024;
+const CREATOR_MAX_ROSTER = 10;
+const CREATOR_FACE_KEYS = ["eyes", "brows", "nose", "mouth", "eyeColor", "browColor", "lipColor"];
+const creatorTextEncoder = new TextEncoder();
+
+function isPlainRecord(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function hasOnlyKeys(value, keys) {
+    return isPlainRecord(value) && Object.keys(value).every(key => keys.includes(key));
+}
+
+function isSafeText(value, min, max) {
+    return typeof value === "string"
+        && value.length >= min
+        && value.length <= max
+        && /^[\x20-\x7e]*$/u.test(value);
+}
+
+function isCreatorCharacterId(value) {
+    return typeof value === "string"
+        && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(value);
+}
+
+function isCreatorRequestId(value) {
+    return typeof value === "string"
+        && /^[A-Za-z0-9._:-]{1,64}$/u.test(value);
+}
+
+function isCreatorName(value) {
+    return typeof value === "string"
+        && /^[A-Za-z]+(?:-[A-Za-z]+)*$/u.test(value)
+        && value.length >= 3
+        && value.length <= 16;
+}
+
+function isCreatorProfession(value) {
+    return typeof value === "string" && /^[a-z][a-z_-]{0,31}$/u.test(value);
+}
+
+function normalizeCreatorAppearance(value) {
+    if (!hasOnlyKeys(value, ["body", "skinTone", "hair", "hairMat", "face"])) return null;
+    if ((value.body !== "male" && value.body !== "female")
+        || !isSafeText(value.skinTone, 1, 64)
+        || !isSafeText(value.hairMat, 1, 64)
+        || (value.hair !== null && !isSafeText(value.hair, 1, 64))) {
+        return null;
+    }
+    let face = null;
+    if (value.face !== null) {
+        if (!hasOnlyKeys(value.face, CREATOR_FACE_KEYS)
+            || !CREATOR_FACE_KEYS.every(key => isSafeText(value.face[key], 1, 64))) {
+            return null;
+        }
+        face = {
+            eyes: value.face.eyes,
+            brows: value.face.brows,
+            nose: value.face.nose,
+            mouth: value.face.mouth,
+            eyeColor: value.face.eyeColor,
+            browColor: value.face.browColor,
+            lipColor: value.face.lipColor
+        };
+    }
+    return {
+        body: value.body,
+        skinTone: value.skinTone,
+        hair: value.hair,
+        hairMat: value.hairMat,
+        face
+    };
+}
+
+function safeCreatorWorn(value) {
+    return hasOnlyKeys(value, ["item", "colors"])
+        && isSafeText(value.item, 1, 128)
+        && Array.isArray(value.colors)
+        && value.colors.length <= 8
+        && value.colors.every(color => isSafeText(color, 1, 64));
+}
+
+function normalizeCreatorRecord(value) {
+    if (!hasOnlyKeys(value, ["id", "name", "initialProfessionId", "worldEntryClaimed", "appearance", "worn"])
+        || !isCreatorCharacterId(value.id)
+        || !isCreatorName(value.name)
+        || (value.initialProfessionId !== null && !isCreatorProfession(value.initialProfessionId))
+        || typeof value.worldEntryClaimed !== "boolean") {
+        return null;
+    }
+    const appearance = normalizeCreatorAppearance(value.appearance);
+    if (appearance === null
+        || (value.worn !== undefined
+            && (!Array.isArray(value.worn)
+                || value.worn.length > 8
+                || !value.worn.every(safeCreatorWorn)))) {
+        return null;
+    }
+    // Keep exactly the roster projection consumed by Rust. Worn pieces are
+    // checked above but not queued because the current screen does not render
+    // wardrobe; this prevents dormant arbitrary payloads crossing the fence.
+    return {
+        id: value.id,
+        name: value.name,
+        initialProfessionId: value.initialProfessionId,
+        worldEntryClaimed: value.worldEntryClaimed,
+        appearance
+    };
+}
+
+function normalizeCreatorState(value) {
+    if (!hasOnlyKeys(value, ["type", "characters", "selectedCharacterId"])
+        || value.type !== CREATOR_STATE
+        || !Array.isArray(value.characters)
+        || value.characters.length > CREATOR_MAX_ROSTER) {
+        return null;
+    }
+    const characters = value.characters.map(normalizeCreatorRecord);
+    if (characters.some(character => character === null)) return null;
+    const ids = new Set();
+    for (const character of characters) {
+        if (ids.has(character.id)) return null;
+        ids.add(character.id);
+    }
+    if (value.selectedCharacterId !== undefined
+        && (!isCreatorCharacterId(value.selectedCharacterId) || !ids.has(value.selectedCharacterId))) {
+        return null;
+    }
+    return {
+        type: CREATOR_STATE,
+        characters,
+        ...(value.selectedCharacterId === undefined ? {} : { selectedCharacterId: value.selectedCharacterId })
+    };
+}
+
+function normalizeCreatorCreateResult(value) {
+    if (!hasOnlyKeys(value, ["type", "requestId", "ok", "error"])
+        || value.type !== CREATOR_CREATE_RESULT
+        || !isCreatorRequestId(value.requestId)
+        || typeof value.ok !== "boolean") {
+        return null;
+    }
+    if (value.ok && value.error !== undefined) return null;
+    if (value.error !== undefined && !isSafeText(value.error, 1, 128)) return null;
+    return {
+        type: CREATOR_CREATE_RESULT,
+        requestId: value.requestId,
+        ok: value.ok,
+        ...(value.error === undefined ? {} : { error: value.error })
+    };
+}
+
+function normalizeCreatorCreate(value) {
+    if (!hasOnlyKeys(value, ["type", "requestId", "character"])
+        || value.type !== CREATOR_CREATE
+        || !isCreatorRequestId(value.requestId)
+        || !hasOnlyKeys(value.character, ["name", "initialProfessionId", "appearance"])
+        || !isCreatorName(value.character.name)
+        || !isCreatorProfession(value.character.initialProfessionId)) {
+        return null;
+    }
+    const appearance = normalizeCreatorAppearance(value.character.appearance);
+    if (appearance === null) return null;
+    return {
+        type: CREATOR_CREATE,
+        requestId: value.requestId,
+        character: {
+            name: value.character.name,
+            initialProfessionId: value.character.initialProfessionId,
+            appearance
+        }
+    };
+}
+
+function exactCreatorOrigin(value) {
+    if (typeof value !== "string" || !value) return null;
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === "https:"
+            && !parsed.username
+            && !parsed.password
+            && parsed.pathname === "/"
+            && !parsed.search
+            && !parsed.hash
+            && !parsed.hostname.includes("*")
+            && parsed.origin === value
+            ? parsed.origin
+            : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+function createCreatorBridge() {
+    const origin = exactCreatorOrigin(successorBuild.storefrontOrigin);
+    if (!origin || window.parent === window) {
+        throw new Error("hosted creator is not configured");
+    }
+    const queue = [];
+    const enqueue = message => {
+        const bytes = creatorTextEncoder.encode(JSON.stringify(message));
+        if (bytes.byteLength === 0 || bytes.byteLength > CREATOR_MAX_MESSAGE_BYTES) return;
+        if (message.type === CREATOR_STATE) {
+            for (let index = queue.length - 1; index >= 0; index -= 1) {
+                if (queue[index].type === CREATOR_STATE) queue.splice(index, 1);
+            }
+        }
+        if (queue.length >= CREATOR_MAX_QUEUE) {
+            const stateIndex = queue.findIndex(entry => entry.type === CREATOR_STATE);
+            if (stateIndex >= 0) queue.splice(stateIndex, 1);
+            else return;
+        }
+        queue.push({ type: message.type, bytes });
+    };
+    window.addEventListener("message", event => {
+        if (event.source !== window.parent || event.origin !== origin) return;
+        const state = normalizeCreatorState(event.data);
+        if (state !== null) {
+            enqueue(state);
+            return;
+        }
+        const result = normalizeCreatorCreateResult(event.data);
+        if (result !== null) enqueue(result);
+    });
+    return {
+        ready: () => window.parent.postMessage({ type: CREATOR_READY }, origin),
+        messageLength: () => queue[0]?.bytes.byteLength ?? 0,
+        copyMessage: (ptr, maxLen) => {
+            const entry = queue.shift();
+            if (!entry || entry.bytes.byteLength > maxLen || !wasmMemory) return 0;
+            new Uint8Array(wasmMemory.buffer, ptr, entry.bytes.byteLength).set(entry.bytes);
+            return entry.bytes.byteLength;
+        },
+        discardMessage: () => { queue.shift(); },
+        postCreate: raw => {
+            let parsed;
+            try {
+                parsed = JSON.parse(raw);
+            } catch (_) {
+                return false;
+            }
+            const message = normalizeCreatorCreate(parsed);
+            if (message === null) return false;
+            window.parent.postMessage(message, origin);
+            return true;
+        },
+        postSelect: characterId => {
+            if (!isCreatorCharacterId(characterId)) return false;
+            window.parent.postMessage({ type: CREATOR_SELECT, characterId }, origin);
+            return true;
+        }
+    };
+}
+
+let creatorBridge = null;
+let creatorStartupError = null;
+if (creatorMode) {
+    try {
+        creatorBridge = createCreatorBridge();
+    } catch (error) {
+        creatorStartupError = error;
     }
 }
 
@@ -483,6 +758,13 @@ const importObject = {
             new Uint8Array(wasmMemory.buffer, ptr, len).set(bytes.subarray(0, len));
             return len;
         },
+        js_creator_mode: () => creatorMode ? 1 : 0,
+        js_creator_ready: () => { creatorBridge?.ready(); },
+        js_creator_message_len: () => creatorBridge?.messageLength() ?? 0,
+        js_creator_message_copy: (ptr, maxLen) => creatorBridge?.copyMessage(ptr, maxLen) ?? 0,
+        js_creator_message_discard: () => { creatorBridge?.discardMessage(); },
+        js_creator_post_create: (ptr, len) => creatorBridge?.postCreate(getString(ptr, len)) ? 1 : 0,
+        js_creator_post_select: (ptr, len) => creatorBridge?.postSelect(getString(ptr, len)) ? 1 : 0,
         js_audio_unlock: () => audioUnlock(),
         js_now_ms: () => performance.now(),
         js_is_key_down: (key) => {
@@ -649,14 +931,19 @@ fetch("successor.wasm")
         wasmMemory = instance.exports.memory;
         wasmExports = instance.exports;
 
+        if (creatorStartupError) throw creatorStartupError;
         const params = new URLSearchParams(window.location.search);
         const demoName = params.get("demo");
-        const demoSelector = demoName === "material-parity"
-            ? 1
-            : demoName === "terrain-material"
-                ? (params.get("biome") === "forest" ? 3 : 2)
-                : 0;
-        if (demoSelector === 0) {
+        const demoSelector = creatorMode
+            ? 0
+            : demoName === "material-parity"
+                ? 1
+                : demoName === "terrain-material"
+                    ? (params.get("biome") === "forest" ? 3 : 2)
+                    : 0;
+        if (demoSelector === 0 && creatorMode) {
+            showLoading("CHARACTER WORKSHOP", "WAITING FOR ROSTER", 1);
+        } else if (demoSelector === 0) {
             await fetchInitialAssets();
             showLoading("CONNECTING", "WAITING FOR LAUNCH", 1);
             await waitForHostedLaunch();
@@ -688,10 +975,10 @@ fetch("successor.wasm")
         if (typeof wasmExports.init === "function") {
             wasmExports.init(demoSelector);
         }
-        installHostedExitHandler();
-        // Kick the wasm networking runtime (optional export): connect once,
-        // then poll each frame.
-        if (typeof wasmExports.net_connect === "function") {
+        if (!creatorMode) installHostedExitHandler();
+        // Kick the wasm networking runtime (optional export): connected play
+        // only. Creator mode has no tickets, launch context, or socket path.
+        if (!creatorMode && typeof wasmExports.net_connect === "function") {
             try { wasmExports.net_connect(); } catch (e) { console.warn("net_connect:", e); }
         }
 
@@ -711,7 +998,7 @@ fetch("successor.wasm")
             const dt = (time - lastTime) / 1000.0;
             lastTime = time;
             try {
-                if (typeof wasmExports.net_poll === "function" && demoSelector === 0) {
+                if (!creatorMode && typeof wasmExports.net_poll === "function" && demoSelector === 0) {
                     wasmExports.net_poll();
                 }
                 if (!webglContextLost) {
@@ -722,8 +1009,17 @@ fetch("successor.wasm")
                         wasmExports.render();
                     }
                 }
+                if (creatorMode && typeof wasmExports.net_fatal === "function" && wasmExports.net_fatal() === 1) {
+                    throw new Error("creator runtime entered fatal state");
+                }
                 renderedFrames += 1;
-                if (demoSelector === 0 && typeof wasmExports.net_state === "function") {
+                if (creatorMode && demoSelector === 0 && renderedFrames > 2) {
+                    window.__successorRenderReady = true;
+                    if (!firstWorldFrame) {
+                        firstWorldFrame = true;
+                        finishLoading();
+                    }
+                } else if (demoSelector === 0 && typeof wasmExports.net_state === "function") {
                     const state = wasmExports.net_state();
                     window.__successorNetState = state;
                     if (state === 4 && renderedFrames > 2) {
