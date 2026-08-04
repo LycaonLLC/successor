@@ -2966,7 +2966,25 @@ impl Renderer {
         screen_w: u32,
         screen_h: u32,
     ) {
-        self.composite_pass(gpu, world, screen_w, screen_h);
+        self.composite_pass(gpu, world, screen_w, screen_h, i16::MIN..=i16::MAX);
+    }
+
+    /// Repaint only the quads whose `order` falls inside `band`.
+    ///
+    /// The original client renders each 3D viewer where its widget sits in the
+    /// UI queue: panels below are flushed, the viewer draws, and later panels
+    /// paint over it. Splitting the UI stream and calling this per window band
+    /// reproduces that ordering, so several viewers stay live at once without
+    /// any of them punching through the windows stacked above.
+    pub fn render_composites_overlay_band<G: Gpu, W: RenderWorld>(
+        &mut self,
+        gpu: &mut G,
+        world: &mut W,
+        screen_w: u32,
+        screen_h: u32,
+        band: core::ops::RangeInclusive<i16>,
+    ) {
+        self.composite_pass(gpu, world, screen_w, screen_h, band);
     }
 
     fn composite_pass<G: Gpu, W: RenderWorld>(
@@ -2975,12 +2993,15 @@ impl Renderer {
         world: &mut W,
         screen_w: u32,
         screen_h: u32,
+        band: core::ops::RangeInclusive<i16>,
     ) {
         self.comp_quads.clear();
         {
             let mut q = world.query1::<CompositeQuad>();
             while let Some((_, cq)) = q.next() {
-                self.comp_quads.push(*cq);
+                if band.contains(&cq.order) {
+                    self.comp_quads.push(*cq);
+                }
             }
         }
         if self.comp_quads.is_empty() {

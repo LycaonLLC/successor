@@ -356,6 +356,19 @@ impl WindowManager {
         self.wins[idx].z = self.z;
     }
 
+    /// Draw-order rank of an open window: 0 is furthest back. Composited 3D
+    /// surfaces key their layer off this so a viewer paints over its own
+    /// panel but under every window stacked above it.
+    pub fn z_rank(&self, id: &str) -> Option<usize> {
+        let target = self.wins.iter().find(|win| win.open && win.id == id)?;
+        Some(
+            self.wins
+                .iter()
+                .filter(|win| win.open && win.z < target.z)
+                .count(),
+        )
+    }
+
     /// Open windows, back-to-front (ascending z) — the host draw order.
     pub fn z_order(&self) -> Vec<usize> {
         let mut idx: Vec<usize> = (0..self.wins.len())

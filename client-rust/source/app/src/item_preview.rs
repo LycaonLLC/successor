@@ -31,7 +31,9 @@ const UNKNOWN_MODEL: &str = "assets/world-items/supply_cache.glb";
 pub const INVENTORY_LANES: usize = 24;
 const EXAMINE_LANE: usize = INVENTORY_LANES;
 const LANE_COUNT: usize = INVENTORY_LANES + 1;
-const FIRST_VIEWPORT: u8 = 2;
+/// Viewport 0 is the world and 1..=4 are the character viewers, so item icon
+/// lanes start after those. 25 lanes then reach 29, inside the 32-slot mask.
+const FIRST_VIEWPORT: u8 = 5;
 /// Grid icons are small on screen; this is already supersampled against a
 /// ~48 px card. The examine viewer is the one that needs real resolution.
 const GRID_TARGET_SIZE: u32 = 96;
@@ -170,8 +172,17 @@ impl ItemPreviewRenderer {
         time: f32,
         read_asset: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
     ) {
+        // Icons belong to the window that hosts them: banding their composites
+        // by that window's draw rank keeps them under anything stacked above,
+        // the same ordering the doll viewers use.
+        let band = |id: &str| -> i16 {
+            windows.z_rank(id).map_or(0, |rank| {
+                rank as i16 * crate::game::connected_scene::DOLL_BAND
+            })
+        };
         let mut lane_index = 0usize;
         if windows.is_open("inventory") {
+            let inventory_band = band("inventory");
             if let Some(content) = window_content(windows, "inventory") {
                 let held_count = model.inventory.held().count();
                 let (visible_start, visible_end) =
@@ -196,7 +207,7 @@ impl ItemPreviewRenderer {
                         lane_index,
                         path.as_deref(),
                         preview,
-                        lane_index as i16,
+                        inventory_band + 1 + lane_index as i16,
                         gpu,
                         renderer,
                         world,
@@ -224,7 +235,7 @@ impl ItemPreviewRenderer {
                     EXAMINE_LANE,
                     path.as_deref(),
                     preview,
-                    20,
+                    band("examine") + 1,
                     gpu,
                     renderer,
                     world,

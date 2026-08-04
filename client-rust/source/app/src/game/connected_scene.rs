@@ -428,6 +428,43 @@ const INVENTORY_RADIAL_ANGLES: [f32; 6] = [
 // configuration via the SWG oracle: a narrow portrait FOV, a drag that spins
 // the doll, a multiplicative flick decay, and a resting park angle.
 
+/// Windows that host a live 3D character viewer, and the viewport each one
+/// draws through. Viewport 0 is the world; item icons start after these.
+const DOLL_WINDOWS: [&str; 4] = ["inventory", "character", "examine", "converse"];
+
+/// Composite layers reserved per window band. A band holds one doll plus the
+/// item-icon lanes belonging to the same window, so `z_rank * DOLL_BAND` never
+/// collides with its neighbours.
+pub const DOLL_BAND: i16 = 64;
+
+/// One window's 3D viewer: its own camera and surface over the shared pawn.
+struct DollSlot {
+    camera: Entity,
+    quad: Entity,
+    target: RenderTargetId,
+    /// Live viewer cell in framebuffer pixels, for drag hit-testing.
+    viewport: Option<[f32; 4]>,
+}
+
+/// Viewport id a doll slot draws through. Viewport 0 is the world.
+const fn doll_viewport(slot: usize) -> u8 {
+    1 + slot as u8
+}
+
+/// Floats per UI quad: 6 vertices of 8 floats. Splitting the UI vertex stream
+/// at a quad boundary means slicing at a multiple of this.
+const QUAD_FLOATS: usize = 6 * 8;
+
+/// Viewports a pawn is visible in: always the world, plus one bit per open
+/// viewer showing that same pawn. One instance, many views.
+fn doll_viewport_mask(subjects: &[Option<&str>; DOLL_WINDOWS.len()], pawn_id: &str) -> u32 {
+    subjects
+        .iter()
+        .enumerate()
+        .filter(|(_, subject)| **subject == Some(pawn_id))
+        .fold(1u32, |mask, (slot, _)| mask | (1 << doll_viewport(slot)))
+}
+
 /// Viewer field of view: 22.5°, the original's paperdoll FOV. Narrow on
 /// purpose — it keeps the doll portrait-flat instead of wide-angle distorted.
 const PAPERDOLL_FOVY: f32 = core::f32::consts::PI / 8.0;
@@ -626,9 +663,11 @@ pub struct ConnectedScene {
     follow: Entity,
     sun: Entity,
     combat_fx: CombatFx,
-    paperdoll_camera: Entity,
-    paperdoll_quad: Entity,
-    paperdoll_target: RenderTargetId,
+    /// One live 3D viewer per doll-capable window. The original gives every
+    /// `CuiWidget3dObjectViewer` its own camera over the *same* world object,
+    /// so the player is on screen in the world and in every open viewer at
+    /// once; these slots are that, one per window.
+    dolls: [DollSlot; DOLL_WINDOWS.len()],
     /// Viewer turntable yaw offset, in radians, applied on top of the pawn's
     /// own facing. A drag spins it; the flick then decays and parks.
     paperdoll_yaw: f32,
@@ -636,8 +675,6 @@ pub struct ConnectedScene {
     paperdoll_spin: f32,
     /// Pointer x at the start of a viewer drag, while the button is held.
     paperdoll_drag_x: Option<f32>,
-    /// Live viewer cell in framebuffer pixels, for drag hit-testing.
-    paperdoll_viewport: Option<[f32; 4]>,
     item_previews: ItemPreviewRenderer,
     fx_buf: Vec<f32>,
     icons: Icons,
@@ -683,6 +720,10 @@ pub struct ConnectedScene {
     pub loading_screen: crate::screens::LoadingScreen,
     pub loading: bool,
     window_order: Vec<usize>,
+    /// `(ui quad count, window draw rank)` captured while the windows draw, so
+    /// the frame can flush the UI up to each window and composite its 3D
+    /// surfaces there. Reused every frame; never reallocated.
+    composite_marks: Vec<(u32, i16)>,
     window_id_scratch: String,
     wm: successor_engine_render::window::WindowManager,
     win_model: crate::windows::WindowModel,
@@ -971,15 +1012,18 @@ impl ConnectedScene {
                 up: Vec3::Y,
             },
         );
-        let paperdoll_target = gpu.create_render_target(&RenderTargetDesc {
-            width: 384,
-            height: 640,
-            color: true,
-            depth: true,
-            filter: Filter::Linear,
+        let dolls = core::array::from_fn(|_| DollSlot {
+            camera: world.spawn(),
+            quad: world.spawn(),
+            target: gpu.create_render_target(&RenderTargetDesc {
+                width: 384,
+                height: 640,
+                color: true,
+                depth: true,
+                filter: Filter::Linear,
+            }),
+            viewport: None,
         });
-        let paperdoll_camera = world.spawn();
-        let paperdoll_quad = world.spawn();
 
         let item_previews = ItemPreviewRenderer::new(gpu, &mut world);
         // Combat FX + HUD.
@@ -1033,13 +1077,10 @@ impl ConnectedScene {
             sun,
             loaded_area_id: String::new(),
             streamed_world: StreamedWorld::new(),
-            paperdoll_camera,
-            paperdoll_quad,
-            paperdoll_target,
+            dolls,
             paperdoll_yaw: PAPERDOLL_RESTING_YAW,
             paperdoll_spin: 0.0,
             paperdoll_drag_x: None,
-            paperdoll_viewport: None,
             item_previews,
             combat_fx: CombatFx::new(0x51ce_57ed),
             fx_buf: Vec::with_capacity(64 * 1024),
@@ -1077,6 +1118,7 @@ impl ConnectedScene {
             context_menu: None,
             wm,
             window_order: Vec::with_capacity(32),
+            composite_marks: Vec::with_capacity(32),
             window_id_scratch: String::with_capacity(32),
             win_model: crate::windows::WindowModel::default(),
             graphics_tuner: crate::graphics_tuning::GraphicsTuner::new(),
@@ -2385,8 +2427,10 @@ impl ConnectedScene {
         self.right_was_down = right;
         // A left-drag inside the live viewer cell spins the doll instead of
         // routing a world intent — the original's draggable object viewer.
-        let in_viewer = self.paperdoll_viewport.is_some_and(|[vx, vy, vw, vh]| {
-            successor_engine_render::ui::UiBuilder::hit(vx, vy, vw, vh, x, y)
+        let in_viewer = self.dolls.iter().any(|slot| {
+            slot.viewport.is_some_and(|[vx, vy, vw, vh]| {
+                successor_engine_render::ui::UiBuilder::hit(vx, vy, vw, vh, x, y)
+            })
         });
         if left && (self.paperdoll_drag_x.is_some() || (left_pressed && in_viewer)) {
             if self.paperdoll_drag_x.is_some() {
@@ -3370,28 +3414,6 @@ impl ConnectedScene {
             self.dispatch_gameplay_action(action);
         }
         self.macro_actions = macro_actions;
-        // The doll composites over the finished UI, so it must belong to the
-        // TOPMOST viewer window: anchored to one further back it would punch
-        // through every window stacked above it. `fill_z_order` is back-to-front,
-        // so the last match wins.
-        let paperdoll_window = {
-            let mut order = Vec::new();
-            self.wm.fill_z_order(&mut order);
-            let mut chosen = None;
-            for index in order {
-                let candidate = match self.wm.window_id(index) {
-                    "examine" if self.win_model.examine.actor.is_some() => Some("examine"),
-                    "converse" if self.win_model.converse.npc.is_some() => Some("converse"),
-                    "inventory" => Some("inventory"),
-                    "character" => Some("character"),
-                    _ => None,
-                };
-                if candidate.is_some() {
-                    chosen = candidate;
-                }
-            }
-            chosen
-        };
         // 1) Reconcile pawn set with live actors.
         for p in self.pawns.values_mut() {
             p.present = false;
@@ -3489,6 +3511,32 @@ impl ConnectedScene {
             self.spawn_pawn(gpu, read_asset, &live, faction);
         }
         self.sim_time += dt.max(0.0);
+        // Every open viewer renders its own subject this frame. Each composite
+        // is banded by the owning window's draw rank, so a viewer paints over
+        // its own panel and under anything stacked above it — the original
+        // flushes the UI queue, renders the widget's 3D scene, then carries on
+        // with the panels above. Nothing here picks a single winner.
+        let mut doll_subjects: [Option<&str>; DOLL_WINDOWS.len()] = [None; DOLL_WINDOWS.len()];
+        for (slot, window) in DOLL_WINDOWS.iter().enumerate() {
+            if !self.wm.is_open(window) || self.wm.is_iconified(window) {
+                continue;
+            }
+            doll_subjects[slot] = match *window {
+                "examine" => self
+                    .win_model
+                    .examine
+                    .actor
+                    .as_ref()
+                    .map(|actor| actor.actor_id.as_str()),
+                "converse" => self
+                    .win_model
+                    .converse
+                    .npc
+                    .as_ref()
+                    .map(|npc| npc.actor_id.as_str()),
+                _ => Some(self.player_id.as_str()),
+            };
+        }
         // Viewer rotation follows the original object viewer: a drag spins the
         // doll, the flick decays multiplicatively once released, and the doll
         // then parks at the resting yaw instead of turning forever.
@@ -3508,22 +3556,12 @@ impl ConnectedScene {
 
         // 2) Animate + place pawns (skinned).
         self.renderer.begin_skin_frame();
-        let paperdoll_actor_id = match paperdoll_window {
-            Some("examine") => self
-                .win_model
-                .examine
-                .actor
-                .as_ref()
-                .map(|actor| actor.actor_id.as_str()),
-            Some("converse") => self
-                .win_model
-                .converse
-                .npc
-                .as_ref()
-                .map(|npc| npc.actor_id.as_str()),
-            Some("inventory") | Some("character") => Some(self.player_id.as_str()),
-            _ => None,
-        };
+        // The world pawn and every viewer share one instance: the same meshes,
+        // skinning and animation tick feed all of them, exactly as the original
+        // hands its live `ClientObject` to each widget rather than cloning.
+        // Visibility is per-viewport, so one pawn can be in the world and in
+        // several dolls in the same frame.
+        let doll_mask_for = |pawn_id: &str| doll_viewport_mask(&doll_subjects, pawn_id);
         for pawn in self.pawns.values_mut() {
             if !pawn.present {
                 for entity in pawn.entities.iter().chain(
@@ -3625,18 +3663,14 @@ impl ConnectedScene {
             let wx = (nx + 0.5) * WORLD_UNITS_PER_CELL;
             let wz = (ny + 0.5) * WORLD_UNITS_PER_CELL;
             let ground_y = self.terrain.height_at(wx, wz);
+            let pawn_mask = doll_mask_for(&pawn.id);
             for entity in &pawn.entities {
                 if let Some(transform) = self.world.get_component::<Transform>(*entity) {
                     transform.pos = vec3(wx, ground_y, wz);
                     transform.rot = rotation;
                 }
                 if let Some(renderer) = self.world.get_component::<MeshRenderer>(*entity) {
-                    renderer.viewport_mask =
-                        if paperdoll_actor_id.is_some_and(|actor_id| actor_id == pawn.id) {
-                            0b11
-                        } else {
-                            0b1
-                        };
+                    renderer.viewport_mask = pawn_mask;
                     renderer.skin = SkinRef { offset, count };
                 }
             }
@@ -3763,27 +3797,37 @@ impl ConnectedScene {
         if let Some(camera) = self.world.get_component::<Camera>(self.follow) {
             camera.clear.color = Some([env.fog[0], env.fog[1], env.fog[2], 1.0]);
         }
-        if let Some(paperdoll_window) = paperdoll_window {
-            let paperdoll_actor_id = match paperdoll_window {
-                "examine" => self
-                    .win_model
-                    .examine
-                    .actor
-                    .as_ref()
-                    .map(|actor| actor.actor_id.as_str()),
-                "converse" => self
-                    .win_model
-                    .converse
-                    .npc
-                    .as_ref()
-                    .map(|npc| npc.actor_id.as_str()),
-                "inventory" | "character" => Some(self.player_id.as_str()),
-                _ => None,
+        for (slot, window) in DOLL_WINDOWS.iter().enumerate() {
+            let subject = doll_subjects[slot];
+            let preview = subject
+                .and_then(|_| self.wm.content_rect(window))
+                .map(|content| match *window {
+                    "inventory" => crate::windows::inventory::layout(content).preview,
+                    "character" => crate::windows::character::preview_rect(content),
+                    "examine" => crate::windows::live::examine_preview_rect(content),
+                    _ => crate::windows::live::converse_preview_rect(content),
+                });
+            let (Some(subject), Some(preview)) = (subject, preview) else {
+                self.dolls[slot].viewport = None;
+                let camera = self.dolls[slot].camera;
+                let quad = self.dolls[slot].quad;
+                self.world.remove_component::<Camera>(camera);
+                self.world.remove_component::<CompositeQuad>(quad);
+                continue;
+            };
+            // A collapsed cell renders nothing, matching the original's bail
+            // when its clipped widget rect comes out empty.
+            if preview[2] <= 1.0 || preview[3] <= 1.0 {
+                self.dolls[slot].viewport = None;
+                let camera = self.dolls[slot].camera;
+                self.world.remove_component::<Camera>(camera);
+                self.world
+                    .remove_component::<CompositeQuad>(self.dolls[slot].quad);
+                continue;
             }
-            .expect("open portrait window has an actor");
             let (portrait_ground, yaw) = self
                 .pawns
-                .get(paperdoll_actor_id)
+                .get(subject)
                 .map(|pawn| {
                     let wx = (pawn.render_pos.0 + 0.5) * WORLD_UNITS_PER_CELL;
                     let wz = (pawn.render_pos.1 + 0.5) * WORLD_UNITS_PER_CELL;
@@ -3794,30 +3838,33 @@ impl ConnectedScene {
             // the subject height a camera covers is `2 * d * tan(fovy / 2)`, so
             // pulling the lens in from the old wide angle means pushing the
             // camera back by the ratio of those tangents.
-            let (focus_height, prior_distance, prior_fovy): (f32, f32, f32) = match paperdoll_window
-            {
+            let (focus_height, prior_distance, prior_fovy): (f32, f32, f32) = match *window {
                 "converse" => (1.28, 0.95, 0.58),
                 _ => (0.90, 2.75, 0.68),
             };
             let camera_distance =
                 prior_distance * (prior_fovy * 0.5).tan() / (PAPERDOLL_FOVY * 0.5).tan();
-            let fovy = PAPERDOLL_FOVY;
             let focus = portrait_ground.add(vec3(0.0, focus_height, 0.0));
             // Drag spins the doll; the flick decays and parks at the resting
             // yaw, matching the original's draggable object viewer.
             let orbit = yaw + self.paperdoll_yaw;
             let facing = vec3(orbit.sin(), 0.0, orbit.cos());
+            let band = self
+                .wm
+                .z_rank(window)
+                .map_or(0, |rank| rank as i16 * DOLL_BAND);
+            let slot_state = &self.dolls[slot];
             self.world.set_component(
-                self.paperdoll_camera,
+                slot_state.camera,
                 Camera {
-                    viewport_id: 1,
+                    viewport_id: doll_viewport(slot),
                     order: -1,
                     projection: Projection::Perspective {
-                        fovy,
+                        fovy: PAPERDOLL_FOVY,
                         near: 0.05,
                         far: 20.0,
                     },
-                    target: CamTarget::Texture(self.paperdoll_target),
+                    target: CamTarget::Texture(slot_state.target),
                     // Transparent behind the doll: the original clears only
                     // depth/stencil for its 3D viewers, leaving the panel
                     // visible around the character.
@@ -3832,35 +3879,23 @@ impl ConnectedScene {
                     up: Vec3::Y,
                 },
             );
-            if let Some(content) = self.wm.content_rect(paperdoll_window) {
-                let preview = match paperdoll_window {
-                    "inventory" => crate::windows::inventory::layout(content).preview,
-                    "character" => crate::windows::character::preview_rect(content),
-                    "examine" => crate::windows::live::examine_preview_rect(content),
-                    "converse" => crate::windows::live::converse_preview_rect(content),
-                    _ => content,
-                };
-                self.paperdoll_viewport = Some(preview);
-                self.world.set_component(
-                    self.paperdoll_quad,
-                    CompositeQuad {
-                        source: self.paperdoll_target,
-                        rect: RectNorm {
-                            x: preview[0] / w as f32,
-                            y: 1.0 - (preview[1] + preview[3]) / h as f32,
-                            w: preview[2] / w as f32,
-                            h: preview[3] / h as f32,
-                        },
-                        order: 0,
+            self.world.set_component(
+                slot_state.quad,
+                CompositeQuad {
+                    source: slot_state.target,
+                    rect: RectNorm {
+                        x: preview[0] / w as f32,
+                        y: 1.0 - (preview[1] + preview[3]) / h as f32,
+                        w: preview[2] / w as f32,
+                        h: preview[3] / h as f32,
                     },
-                );
-            }
-        } else {
-            self.paperdoll_viewport = None;
+                    order: band,
+                },
+            );
+            self.dolls[slot].viewport = Some(preview);
+        }
+        if self.dolls.iter().all(|slot| slot.viewport.is_none()) {
             self.paperdoll_drag_x = None;
-            self.world.remove_component::<Camera>(self.paperdoll_camera);
-            self.world
-                .remove_component::<CompositeQuad>(self.paperdoll_quad);
         }
         self.item_previews.sync(
             gpu,
@@ -4316,6 +4351,10 @@ impl ConnectedScene {
                     self.dispatch_window_action(action);
                 }
             }
+            // Mark where this window's 2D content ends. Its 3D surfaces are
+            // flushed in at this point so later windows paint over them.
+            self.composite_marks
+                .push((self.ui.quads, order_index as i16));
         }
         if let Some(menu) = self.context_menu {
             self.ui.set_input_enabled(!tuning_open);
@@ -4434,10 +4473,35 @@ impl ConnectedScene {
         self.ui.set_input_enabled(true);
         self.graphics_tuner
             .draw(&mut self.ui, &mut self.renderer, gpu, w, h);
-        self.renderer
-            .render_ui(gpu, &self.ui.buf, self.ui.quads, w, h);
-        self.renderer
-            .render_composites_overlay(gpu, &mut self.world, w, h);
+        // Walk the UI stream window by window: flush the 2D quads drawn so far,
+        // then composite the 3D surfaces belonging to that window. Panels drawn
+        // later land on top, so several live viewers coexist and none punches
+        // through the windows above it. This is the original's per-widget
+        // `flushRenderQueue()` then `renderScene()`, one band at a time.
+        let mut drawn = 0u32;
+        for index in 0..self.composite_marks.len() {
+            let (mark, rank) = self.composite_marks[index];
+            if mark > drawn {
+                let floats = QUAD_FLOATS * drawn as usize..QUAD_FLOATS * mark as usize;
+                self.renderer
+                    .render_ui(gpu, &self.ui.buf[floats], mark - drawn, w, h);
+                drawn = mark;
+            }
+            let base = rank * DOLL_BAND;
+            self.renderer.render_composites_overlay_band(
+                gpu,
+                &mut self.world,
+                w,
+                h,
+                base..=base + DOLL_BAND - 1,
+            );
+        }
+        if self.ui.quads > drawn {
+            let floats = QUAD_FLOATS * drawn as usize..QUAD_FLOATS * self.ui.quads as usize;
+            self.renderer
+                .render_ui(gpu, &self.ui.buf[floats], self.ui.quads - drawn, w, h);
+        }
+        self.composite_marks.clear();
     }
 }
 
@@ -4774,6 +4838,67 @@ mod tests {
         assert!(
             chat[1] + chat[3] > large.1 - 64.0,
             "chat console stays anchored to the bottom edge, got {chat:?}"
+        );
+    }
+
+    #[test]
+    fn one_pawn_is_visible_in_the_world_and_every_viewer_showing_it() {
+        let player = "player-1";
+        let npc = "npc-7";
+
+        // Inventory + character sheet both open on the player, examine on an
+        // NPC. The player must reach the world and BOTH of its viewers.
+        let mut subjects: [Option<&str>; DOLL_WINDOWS.len()] = [None; DOLL_WINDOWS.len()];
+        subjects[0] = Some(player);
+        subjects[1] = Some(player);
+        subjects[2] = Some(npc);
+
+        let player_mask = doll_viewport_mask(&subjects, player);
+        assert!(player_mask & 1 != 0, "the world view is never dropped");
+        assert!(player_mask & (1 << doll_viewport(0)) != 0, "inventory doll");
+        assert!(player_mask & (1 << doll_viewport(1)) != 0, "character doll");
+        assert_eq!(
+            player_mask & (1 << doll_viewport(2)),
+            0,
+            "the player does not render into someone else's examine viewer"
+        );
+
+        let npc_mask = doll_viewport_mask(&subjects, npc);
+        assert_eq!(npc_mask, 1 | (1 << doll_viewport(2)));
+
+        // A pawn nobody is viewing stays world-only.
+        assert_eq!(doll_viewport_mask(&subjects, "bystander"), 1);
+    }
+
+    #[test]
+    fn viewer_bands_never_collide_and_follow_window_order() {
+        // Item lanes ride inside their window's band, so the last lane of one
+        // window must still sort below the next window's doll.
+        let lanes = crate::item_preview::INVENTORY_LANES as i16;
+        assert!(
+            lanes + 1 < DOLL_BAND,
+            "a window band holds its doll plus every item lane"
+        );
+        for rank in 0..8i16 {
+            let base = rank * DOLL_BAND;
+            let last_lane = base + 1 + lanes;
+            assert!(
+                last_lane < (rank + 1) * DOLL_BAND,
+                "band {rank} overflows into the window above it"
+            );
+        }
+    }
+
+    #[test]
+    fn every_viewer_and_item_lane_fits_the_viewport_mask() {
+        // 32 mask bits total: world, one per viewer, then the icon lanes.
+        let lanes = crate::item_preview::INVENTORY_LANES + 1;
+        let highest = 5 + lanes - 1;
+        assert_eq!(doll_viewport(0), 1);
+        assert_eq!(doll_viewport(DOLL_WINDOWS.len() - 1), 4);
+        assert!(
+            highest < 32,
+            "viewport ids must stay inside the u32 mask, got {highest}"
         );
     }
 
