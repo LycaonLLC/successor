@@ -11,7 +11,7 @@
 
 use super::{accent, dim, slot, slot_edge, text, WindowAction};
 use crate::hud::{code_glyph, Icons, THEMES, THEME_COUNT, THEME_LABELS};
-use successor_engine_render::ui::{ButtonStyle, UiBuilder};
+use successor_engine_render::ui::{UiBuilder};
 
 /// Split-snap steps (`inventory/splitPrefs.ts` SPLIT_SNAP_STEPS).
 pub const SPLIT_SNAP_STEPS: [u32; 6] = [1, 5, 10, 100, 1000, 10000];
@@ -113,7 +113,7 @@ pub fn draw(
     // DUST — live session dial (0..1, step 0.05 via slider granularity).
     ui.text("DUST", x, cy + 2.0, 1.6, text());
     let mut dust = model.dust_strength.clamp(0.0, 1.0);
-    if ui.slider(x + 130.0, cy - 2.0, w - 200.0, 16.0, &mut dust, 0.0, 1.0) {
+    if ui.slider(x + 130.0, cy - 2.0, w - 200.0, 16.0, &mut dust, 0.0, 1.0, crate::hud::button_style()) {
         // Reference input uses step=0.05 — quantize to the same grid.
         let quantized = (dust / 0.05).round() * 0.05;
         out.push(WindowAction::SetDust(quantized));
@@ -130,7 +130,7 @@ pub fn draw(
     // WINDOW OPACITY — 0.35..=1.0 slider
     ui.text("WINDOW OPACITY", x, cy + 2.0, 1.6, text());
     let mut window_op = model.window_opacity.clamp(0.35, 1.0);
-    if ui.slider(x + 130.0, cy - 2.0, w - 200.0, 16.0, &mut window_op, 0.35, 1.0) {
+    if ui.slider(x + 130.0, cy - 2.0, w - 200.0, 16.0, &mut window_op, 0.35, 1.0, crate::hud::button_style()) {
         let quantized = (window_op / 0.01).round() * 0.01;
         out.push(WindowAction::SetWindowOpacity(quantized));
     }
@@ -146,7 +146,7 @@ pub fn draw(
     // HUD OPACITY — 0.35..=1.0 slider
     ui.text("HUD OPACITY", x, cy + 2.0, 1.6, text());
     let mut hud_op = model.hud_opacity.clamp(0.35, 1.0);
-    if ui.slider(x + 130.0, cy - 2.0, w - 200.0, 16.0, &mut hud_op, 0.35, 1.0) {
+    if ui.slider(x + 130.0, cy - 2.0, w - 200.0, 16.0, &mut hud_op, 0.35, 1.0, crate::hud::button_style()) {
         let quantized = (hud_op / 0.01).round() * 0.01;
         out.push(WindowAction::SetHudOpacity(quantized));
     }
@@ -179,7 +179,7 @@ pub fn draw(
         118.0,
         20.0,
         "OPEN BROWSER",
-        ButtonStyle::default(),
+        crate::hud::button_style(),
     ) {
         out.push(WindowAction::OpenWindow("actions".into()));
     }
@@ -216,7 +216,7 @@ pub fn draw(
         );
         let pending = model.rebind_pending == Some(slot);
         let btn_label = if pending { "PRESS KEY..." } else { "REBIND" };
-        let mut style = ButtonStyle::default();
+        let mut style = crate::hud::button_style();
         if pending {
             style.edge = accent();
             style.text = accent();

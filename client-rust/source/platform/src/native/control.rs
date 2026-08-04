@@ -107,6 +107,22 @@ enum Command {
     RecordStop,
     Status,
     Quit,
+    Ui(ControlUiIntent),
+}
+
+/// A developer-only request to put the UI into a specific state.
+///
+/// Capturing every pane, or every pane under every theme, is otherwise a
+/// clicking exercise against surfaces that only open from a terminal, a
+/// target, or an item. These are inspection intents, not gameplay: the host
+/// drains them each frame and applies them exactly as the equivalent player
+/// action would.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ControlUiIntent {
+    /// `None` toggles.
+    Window { id: String, open: Option<bool> },
+    Theme(usize),
+    Opacity { hud: bool, value: f32 },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -162,6 +178,8 @@ struct ControlState {
     replay_index: usize,
     replaying: bool,
     quit_requested: bool,
+    /// Inspection intents awaiting the host's next frame.
+    ui_intents: Vec<ControlUiIntent>,
 }
 
 impl ControlState {
@@ -187,6 +205,7 @@ impl ControlState {
             replay_index: 0,
             replaying: false,
             quit_requested: false,
+            ui_intents: Vec::new(),
         }
     }
 
@@ -432,6 +451,10 @@ impl ControlState {
             Command::Quit => {
                 self.quit_requested = true;
                 self.queue_ok(sequence, "\"quitting\":true");
+            }
+            Command::Ui(intent) => {
+                self.ui_intents.push(intent);
+                self.queue_ok(sequence, "");
             }
         }
     }
@@ -712,6 +735,11 @@ pub fn shutdown() {
 pub fn is_configured() -> bool {
     CONFIGURED.load(Ordering::Acquire)
 }
+
+/// Drain inspection intents queued since the last frame.
+pub fn take_ui_intents() -> Vec<ControlUiIntent> {
+    core::mem::take(&mut CONTROL.lock().ui_intents)
+}
 /// Publish the latest connected runtime status as one atomic owned snapshot.
 pub fn publish_control_status(status: ControlStatusV2) {
     CONTROL.lock().latest_status = status;
@@ -947,6 +975,27 @@ fn parse_command(line: &str) -> Result<Command, String> {
         )),
         ["record", "stop"] => Ok(Command::RecordStop),
         ["status"] => Ok(Command::Status),
+        ["ui", "window", action, id] => Ok(Command::Ui(ControlUiIntent::Window {
+            id: (*id).to_string(),
+            open: match *action {
+                "open" => Some(true),
+                "close" => Some(false),
+                "toggle" => None,
+                _ => return Err("ui window action must be open, close, or toggle".into()),
+            },
+        })),
+        ["ui", "theme", index] => index
+            .parse::<usize>()
+            .map(|value| Command::Ui(ControlUiIntent::Theme(value)))
+            .map_err(|_| "ui theme requires an index".to_string()),
+        ["ui", "opacity", surface, value] => Ok(Command::Ui(ControlUiIntent::Opacity {
+            hud: match *surface {
+                "hud" => true,
+                "window" => false,
+                _ => return Err("ui opacity surface must be window or hud".into()),
+            },
+            value: parse_finite(value, "opacity")?,
+        })),
         ["quit"] => Ok(Command::Quit),
         _ => Err("unknown command".into()),
     }

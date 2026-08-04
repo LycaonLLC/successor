@@ -1071,6 +1071,7 @@ pub fn macros_live(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut 
             chrome::FIELD_H,
             metrics.label_px,
             true,
+            crate::hud::button_style(),
         );
     });
     ey += chrome::FIELD_H + 6.0;
@@ -1094,6 +1095,7 @@ pub fn macros_live(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut 
             body_h,
             metrics.caption_px,
             true,
+            crate::hud::button_style(),
         );
     });
 
@@ -1231,6 +1233,7 @@ pub fn guild(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                 chrome::FIELD_H,
                 metrics.label_px,
                 true,
+                crate::hud::button_style(),
             );
         });
         GUILD_TAG.with(|field| {
@@ -1242,6 +1245,7 @@ pub fn guild(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                 chrome::FIELD_H,
                 metrics.label_px,
                 true,
+                crate::hud::button_style(),
             );
         });
         let caption_y = pane.y + chrome::FIELD_H + 3.0;

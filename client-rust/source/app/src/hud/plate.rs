@@ -63,8 +63,8 @@ pub const MAX_WEAPON_REACH_CELLS: f32 = 18.0;
 
 /// Pool tints. The original status window gives each pool its own hue so the
 /// triple bar reads at a glance; only the third pool follows the theme accent.
-const POOL_HEALTH: [u8; 4] = [0xD8, 0x42, 0x42, 255];
-const POOL_ACTION: [u8; 4] = [0x68, 0xD0, 0x74, 255];
+pub const POOL_HEALTH: [u8; 4] = [0xD8, 0x42, 0x42, 255];
+pub const POOL_ACTION: [u8; 4] = [0x68, 0xD0, 0x74, 255];
 
 /// One pool in a status stack. The tint is the pool's identity, exactly as in
 /// the original status window — there is no per-row word label to spend height

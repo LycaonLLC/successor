@@ -2403,6 +2403,11 @@ mod connected {
                 renderer_degradation_ids: Vec::new(),
                 window_frames: scene.window_frames(),
             };
+            for intent in plat::take_ui_intents() {
+                if !scene.apply_control_ui_intent(&intent) {
+                    eprintln!("control ui intent ignored: {intent:?}");
+                }
+            }
             plat::publish_control_status(status);
             #[cfg(feature = "alloc-count")]
             successor_engine_core::rt::alloc::reset_alloc_count();

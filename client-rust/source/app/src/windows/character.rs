@@ -7,7 +7,7 @@
 
 use super::{accent, dim, slot, text, WindowAction, WindowModel};
 use crate::hud::Icons;
-use successor_engine_render::ui::{ButtonStyle, UiBuilder};
+use successor_engine_render::ui::{UiBuilder};
 
 /// Portrait column share of the sheet. The inventory's equipment column takes
 /// the original's 232/468 split; the sheet is text-heavy, so it takes a
@@ -87,7 +87,7 @@ pub fn draw(
         y + 58.0,
         bw,
         p.health / p.health_max.max(1.0),
-        [196, 72, 68, 235],
+        crate::hud::plate::POOL_HEALTH,
         &format!("HEALTH {}/{}", p.health as i32, p.health_max as i32),
     );
     bar(
@@ -96,7 +96,7 @@ pub fn draw(
         y + 80.0,
         bw,
         p.action / p.action_max.max(1.0),
-        [86, 156, 210, 235],
+        crate::hud::plate::POOL_ACTION,
         &format!("ACTION {}/{}", p.action as i32, p.action_max as i32),
     );
 
@@ -126,13 +126,13 @@ pub fn draw(
         ui.text("NO TITLES EARNED", x + 8.0, ty + 26.0, 1.8, dim());
         return;
     }
-    let bs = ButtonStyle::default();
+    let bs = crate::hud::button_style();
     let bw2 = ((w - 16.0) / c.title_options.len().max(1) as f32).min(150.0);
     for (i, opt) in c.title_options.iter().enumerate() {
         let bx = x + i as f32 * (bw2 + 6.0);
         let mut style = bs;
         if p.active_title.as_ref() == Some(opt) {
-            style.fill = [70, 92, 120, 240];
+            style.fill = style.active;
         }
         if ui.button(bx, ty + 22.0, bw2, 26.0, &opt.label, style) {
             out.push(WindowAction::SetProfessionTitle(opt.id.clone()));

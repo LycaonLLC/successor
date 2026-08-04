@@ -101,7 +101,7 @@ impl GraphicsTuner {
         }
 
         let actions_y = y + h - 42.0;
-        let style = ButtonStyle::default();
+        let style = crate::hud::button_style();
         if ui.button(x + 14.0, actions_y, 104.0, 28.0, "SAVE", style) {
             match render_settings::save(&self.document) {
                 Ok(()) => self.status = "SAVED ASSETS/RENDER/SETTINGS.JSON".to_string(),
@@ -346,7 +346,7 @@ impl GraphicsTuner {
             2,
         );
         y += ROW_H + 5.0;
-        changed |= ui.checkbox(x + 18.0, y, 18.0, "FXAA ENABLED", &mut preset.aa.enabled);
+        changed |= ui.checkbox(x + 18.0, y, 18.0, "FXAA ENABLED", &mut preset.aa.enabled, crate::hud::button_style());
         y += ROW_H + 5.0;
         changed |= slider_row(
             ui,
@@ -451,6 +451,7 @@ impl GraphicsTuner {
             18.0,
             "PALETTE QUANTIZATION",
             &mut preset.palette.enabled,
+            crate::hud::button_style(),
         );
         y += ROW_H + 3.0;
         changed |= option_row(
@@ -521,7 +522,7 @@ fn selected_style(selected: bool) -> ButtonStyle {
             text: [255, 232, 174, 255],
         }
     } else {
-        ButtonStyle::default()
+        crate::hud::button_style()
     }
 }
 
@@ -540,7 +541,7 @@ fn slider_row(
     let display = format!("{value:.precision$}");
     let display_w = ui.measure_text(&display, 1.2);
     ui.text(&display, x + 208.0 - display_w, y + 7.0, 1.2, MUTED);
-    ui.slider(x + 220.0, y + 2.0, 330.0, 20.0, value, min, max)
+    ui.slider(x + 220.0, y + 2.0, 330.0, 20.0, value, min, max, crate::hud::button_style())
 }
 
 fn option_row(

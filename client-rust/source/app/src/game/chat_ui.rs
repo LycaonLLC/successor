@@ -1,6 +1,6 @@
 use super::chat_net::{ChatChannel, ChatClient, ChatConnectionState, ChatMessage, ChatView};
 use successor_engine_render::font::GLYPH_H;
-use successor_engine_render::ui::{ButtonStyle, TextField, UiBuilder};
+use successor_engine_render::ui::{TextField, UiBuilder};
 
 /// Returns a distinct tint per channel.
 pub fn channel_color(ch: ChatChannel) -> [u8; 4] {
@@ -30,12 +30,17 @@ pub fn draw_chat_pane(
     w: f32,
     h: f32,
 ) {
-    let fill = [6, 12, 13, 220];
-    let cell = [9, 18, 20, 235];
-    let edge = [38, 82, 89, 240];
-    let accent = [59, 211, 225, 255];
-    let dim = [111, 150, 157, 255];
-    let ink = [220, 234, 235, 255];
+    // The console is a chromeless HUD pane, so it paints its own surface. It
+    // used to paint a hardcoded near-black slab, which made it the one pane
+    // that never followed the theme and the darkest thing on screen. Its
+    // tones come from the active palette, and only the per-channel message
+    // tints below stay fixed — those are identity, not chrome.
+    let pal = crate::hud::active_palette();
+    let fill = crate::hud::faded(pal.bg_panel);
+    let edge = pal.hairline;
+    let accent = pal.accent;
+    let dim = pal.ink_dim;
+    let ink = pal.ink;
     ui.panel(x, y, w, h, fill, edge);
 
     let tabs = [
@@ -65,13 +70,8 @@ pub fn draw_chat_pane(
     let input_h = 24.0;
     let input_y = y + h - input_h - padding;
     let channel_w = 92.0;
-    let channel_style = ButtonStyle {
-        fill: cell,
-        hover: [18, 40, 44, 245],
-        active: [25, 61, 67, 255],
-        edge,
-        text: dim,
-    };
+    let mut channel_style = crate::hud::button_style();
+    channel_style.text = dim;
     if ui.button(
         x + padding,
         input_y,
@@ -90,6 +90,7 @@ pub fn draw_chat_pane(
         input_h,
         px,
         input.focused,
+        crate::hud::button_style(),
     );
 
     let rows = ((input_y - (y + 32.0)) / line_h).floor().max(0.0) as usize;

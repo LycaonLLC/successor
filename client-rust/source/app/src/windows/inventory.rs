@@ -10,7 +10,7 @@
 use super::{accent, dim, slot, slot_edge, text, WindowAction, WindowModel};
 use crate::hud::Icons;
 use core::cell::{Cell, RefCell};
-use successor_engine_render::ui::{ButtonStyle, UiBuilder};
+use successor_engine_render::ui::{UiBuilder};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum InventoryView {
@@ -816,7 +816,7 @@ fn draw_filter_and_sort_bar(
         let ty = grid_y;
         let is_active = current_f == f;
 
-        let style = ButtonStyle::default();
+        let style = crate::hud::button_style();
         if ui.button(tx, ty, tab_w, 18.0, label, style) && current_f != f {
             set_filter(f);
             set_page(0);
@@ -833,7 +833,7 @@ fn draw_filter_and_sort_bar(
         SortMode::Category => "SORT: CAT",
         SortMode::Quantity => "SORT: QTY",
     };
-    if ui.button(sort_x, grid_y, sort_w, 18.0, sort_label, ButtonStyle::default()) {
+    if ui.button(sort_x, grid_y, sort_w, 18.0, sort_label, crate::hud::button_style()) {
         cycle_sort();
     }
 }
@@ -923,7 +923,7 @@ fn draw_page_navigation(ui: &mut UiBuilder, grid: [f32; 4], page: usize, page_co
     let gap = 4.0;
     let nav_x = grid_x + (grid_w - button_w * 2.0 - gap) * 0.5;
     let nav_y = grid_y + grid_h - GRID_STATUS_H + 2.0;
-    let nav = ButtonStyle::default();
+    let nav = crate::hud::button_style();
     if ui.button(nav_x, nav_y, button_w, 18.0, "PREV", nav) && page > 0 {
         set_page(page - 1);
     }
@@ -1136,7 +1136,7 @@ pub fn draw(
         footer.change_view[2],
         footer.change_view[3],
         "CHANGE VIEW",
-        ButtonStyle::default(),
+        crate::hud::button_style(),
     ) {
         toggle_view();
         reveal_selected_stack(rect, model);
@@ -1226,7 +1226,7 @@ pub fn draw(
                 dim(),
             );
 
-            let button = ButtonStyle::default();
+            let button = crate::hud::button_style();
             let buttons = action_button_rects(footer);
 
             if is_split_armed {

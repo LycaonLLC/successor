@@ -2082,6 +2082,47 @@ impl ConnectedScene {
             .map(|index| self.wm.window_id(*index).to_owned())
     }
 
+    /// Apply a developer inspection intent from the control protocol.
+    ///
+    /// Routed through the same entry points the player's own action uses, so a
+    /// captured pane is the pane the player would see — not a special
+    /// inspection rendering. Returns false only for an unregistered window id.
+    pub fn apply_control_ui_intent(&mut self, intent: &successor_platform::ControlUiIntent) -> bool {
+        match intent {
+            successor_platform::ControlUiIntent::Window { id, open } => {
+                if self.wm.rect(id).is_none() {
+                    return false;
+                }
+                match open {
+                    Some(true) => self.open_workspace_window(id),
+                    Some(false) => {
+                        self.wm.close(id);
+                        self.window_layout_dirty = true;
+                    }
+                    None => self.toggle_workspace_window(id),
+                }
+                true
+            }
+            successor_platform::ControlUiIntent::Theme(index) => {
+                self.theme_index = index % hud::THEME_COUNT;
+                self.preferences_dirty = true;
+                self.project_windows();
+                true
+            }
+            successor_platform::ControlUiIntent::Opacity { hud: is_hud, value } => {
+                let value = value.clamp(hud::MIN_UI_OPACITY, hud::MAX_UI_OPACITY);
+                if *is_hud {
+                    self.hud_opacity = value;
+                } else {
+                    self.window_opacity = value;
+                }
+                self.preferences_dirty = true;
+                self.project_windows();
+                true
+            }
+        }
+    }
+
     /// Every registered frame with its live geometry, for the control
     /// protocol. Development-only inspection: a UI journey asserts move,
     /// resize, and layout persistence against these numbers rather than
@@ -4729,14 +4770,11 @@ impl ConnectedScene {
             let index = self.window_order[order_index];
             let pane_id = self.wm.window_id(index);
             let hud_pane = hud::is_hud_surface(pane_id);
-            let model_preview =
-                !hud_pane && matches!(pane_id, "inventory" | "examine" | "converse");
-            let mut window_style = style;
-            if model_preview {
-                // A live 3D viewer needs a near-black seat behind it; fading it
-                // would let terrain bleed through the doll.
-                window_style.frame.center = [3, 7, 8, 245];
-            }
+            // The dark backdrop a composited model needs belongs to the viewer
+            // cell, not the whole frame: `chrome::viewer_seat` paints it. A
+            // pane-wide override turned an empty examine or converse window
+            // into a black rectangle that no theme could reach.
+            let window_style = style;
             let rect = self.wm.draw_chrome(&mut self.ui, index, window_style);
             // HUD panes drew their own content and layout affordance in
             // `build_hud`; the chromeless frame adds nothing here.

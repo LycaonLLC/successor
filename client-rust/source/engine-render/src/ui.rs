@@ -499,14 +499,22 @@ impl UiBuilder {
 
     /// A compact checkbox with a text label. Returns true when the value
     /// changed this frame.
-    pub fn checkbox(&mut self, x: f32, y: f32, size: f32, label: &str, value: &mut bool) -> bool {
+    pub fn checkbox(
+        &mut self,
+        x: f32,
+        y: f32,
+        size: f32,
+        label: &str,
+        value: &mut bool,
+        style: ButtonStyle,
+    ) -> bool {
         let label_w = self.measure_text(label, 1.5);
         let response = self.interact(x, y, size + 8.0 + label_w, size);
         let changed = response.clicked;
         if changed {
             *value = !*value;
         }
-        self.rect(x, y, size, size, [18, 24, 34, 235]);
+        self.rect(x, y, size, size, style.fill);
         self.border(
             x,
             y,
@@ -514,23 +522,17 @@ impl UiBuilder {
             size,
             1.0,
             if response.hovered {
-                [240, 196, 96, 255]
+                style.active
             } else {
-                [90, 112, 138, 255]
+                style.edge
             },
         );
         if *value {
             let pad = (size * 0.24).max(2.0);
-            self.rect(
-                x + pad,
-                y + pad,
-                size - pad * 2.0,
-                size - pad * 2.0,
-                [240, 196, 96, 255],
-            );
+            self.rect(x + pad, y + pad, size - pad * 2.0, size - pad * 2.0, style.active);
         }
         let ty = y + (size - GLYPH_H as f32 * 1.5) * 0.5;
-        self.text(label, x + size + 8.0, ty, 1.5, [210, 222, 236, 255]);
+        self.text(label, x + size + 8.0, ty, 1.5, style.text);
         changed
     }
 
@@ -546,6 +548,7 @@ impl UiBuilder {
         value: &mut f32,
         min: f32,
         max: f32,
+        style: ButtonStyle,
     ) -> bool {
         let response = self.interact(x, y, w, h);
         let mut changed = false;
@@ -560,8 +563,8 @@ impl UiBuilder {
             0.0
         };
         let track_y = y + h * 0.5 - 2.0;
-        self.rect(x, track_y, w, 4.0, [38, 50, 66, 255]);
-        self.rect(x, track_y, w * t, 4.0, [220, 170, 74, 255]);
+        self.rect(x, track_y, w, 4.0, style.fill);
+        self.rect(x, track_y, w * t, 4.0, style.active);
         let thumb = 10.0;
         let thumb_x = x + w * t - thumb * 0.5;
         self.rect(
@@ -569,11 +572,7 @@ impl UiBuilder {
             y + (h - thumb) * 0.5,
             thumb,
             thumb,
-            if response.held {
-                [255, 218, 122, 255]
-            } else {
-                [236, 192, 92, 255]
-            },
+            if response.held { style.text } else { style.active },
         );
         changed
     }
@@ -679,8 +678,10 @@ impl TextField {
 }
 
 impl UiBuilder {
-    /// Draw a text-field box; clicking toggles focus. Renders the buffer and,
-    /// when focused, a caret. Returns the field's interaction response.
+    /// Single-line editor. `style` supplies the theme: `fill` is the well,
+    /// `edge` the resting border, `active` the focused border and caret, and
+    /// `text` the ink. The engine has no palette of its own, and a hardcoded
+    /// field was the one widget no theme could reach.
     #[allow(clippy::too_many_arguments)]
     pub fn text_field(
         &mut self,
@@ -691,6 +692,7 @@ impl UiBuilder {
         h: f32,
         px: f32,
         show_caret: bool,
+        style: ButtonStyle,
     ) -> Response {
         let r = self.interact(x, y, w, h);
         if r.clicked {
@@ -698,17 +700,13 @@ impl UiBuilder {
         } else if self.mpressed && !r.hovered {
             field.focused = false;
         }
-        let edge = if field.focused {
-            [240, 196, 96, 255]
-        } else {
-            [80, 100, 122, 255]
-        };
-        self.rect(x, y, w, h, [18, 24, 34, 220]);
+        let edge = if field.focused { style.active } else { style.edge };
+        self.rect(x, y, w, h, style.fill);
         self.border(x, y, w, h, 1.0, edge);
         let ty = y + (h - GLYPH_H as f32 * px) * 0.5;
-        let end = self.text(&field.text, x + 6.0, ty, px, [210, 222, 236, 255]);
+        let end = self.text(&field.text, x + 6.0, ty, px, style.text);
         if field.focused && show_caret {
-            self.rect(end + 1.0, ty, px, GLYPH_H as f32 * px, [240, 196, 96, 255]);
+            self.rect(end + 1.0, ty, px, GLYPH_H as f32 * px, style.active);
         }
         r
     }
@@ -867,11 +865,11 @@ mod tests {
         let mut value = 0.0;
         ui.set_input(75.0, 15.0, true);
         ui.begin(200, 100);
-        assert!(ui.slider(0.0, 0.0, 100.0, 30.0, &mut value, -1.0, 1.0));
+        assert!(ui.slider(0.0, 0.0, 100.0, 30.0, &mut value, -1.0, 1.0, ButtonStyle::default()));
         assert!((value - 0.5).abs() < 1.0e-6);
         ui.set_input(150.0, 15.0, true);
         ui.begin(200, 100);
-        assert!(!ui.slider(0.0, 0.0, 100.0, 30.0, &mut value, -1.0, 1.0));
+        assert!(!ui.slider(0.0, 0.0, 100.0, 30.0, &mut value, -1.0, 1.0, ButtonStyle::default()));
         assert!((value - 0.5).abs() < 1.0e-6);
     }
 
@@ -881,19 +879,19 @@ mod tests {
         let mut value = false;
         ui.set_input(8.0, 8.0, true);
         ui.begin(200, 100);
-        assert!(!ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value));
+        assert!(!ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value, ButtonStyle::default()));
         ui.set_input(8.0, 8.0, false);
         ui.begin(200, 100);
-        assert!(ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value));
+        assert!(ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value, ButtonStyle::default()));
         assert!(value);
 
         ui.set_input_enabled(false);
         ui.set_input(8.0, 8.0, true);
         ui.begin(200, 100);
-        ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value);
+        ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value, ButtonStyle::default());
         ui.set_input(8.0, 8.0, false);
         ui.begin(200, 100);
-        assert!(!ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value));
+        assert!(!ui.checkbox(0.0, 0.0, 20.0, "AA", &mut value, ButtonStyle::default()));
         assert!(value);
     }
 }

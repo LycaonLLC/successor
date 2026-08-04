@@ -238,50 +238,59 @@ pub const THEME_COUNT: usize = 4;
 pub const THEME_IDS: [&str; THEME_COUNT] = ["signal", "phosphor", "amber", "oxide"];
 pub const THEME_LABELS: [&str; THEME_COUNT] = ["SIGNAL", "PHOSPHOR", "AMBER", "OXIDE"];
 
+/// Theme palettes.
+///
+/// Panel and cell tones are derived from each theme's accent rather than being
+/// a near-black slab: the original's pane is a translucent tint under a bright
+/// outline (`ui_options.inc` centre `#003848`), and a black fill reads as a
+/// hole punched in the world, not a surface. Every pair below is checked
+/// against WCAG AA at small-text size — ink clears 7.2:1 on its own panel,
+/// dim ink clears 4.6:1, and the accent clears 4.7:1 — so no theme has
+/// unreadable type.
 pub const THEMES: [Palette; THEME_COUNT] = [
     // signal
     Palette {
-        bg_panel: hexa(0x070b0d, 232),
-        bg_cell: hexa(0x0b1216, 235),
+        bg_panel: hexa(0x113337, 232),
+        bg_cell: hexa(0x0a1e20, 235),
         ink: hex(0xcfe9ef),
-        ink_dim: hex(0x5f818c),
-        hairline: hex(0x1d2f37),
+        ink_dim: hex(0x899a9e),
+        hairline: hex(0x1a4d53),
         accent: hex(0x48d6e6),
-        accent_soft: hex(0x0f3b44),
+        accent_soft: hex(0x164045),
         danger: hex(0xe34a4a),
     },
     // phosphor
     Palette {
-        bg_panel: hexa(0x050a06, 232),
-        bg_cell: hexa(0x08120a, 235),
-        ink: hex(0x56e07a),
-        ink_dim: hex(0x2f8f4b),
-        hairline: hex(0x123321),
+        bg_panel: hexa(0x113d1d, 232),
+        bg_cell: hexa(0x0a2411, 235),
+        ink: hex(0x9cf0b4),
+        ink_dim: hex(0x45b362),
+        hairline: hex(0x195c2c),
         accent: hex(0x46ff7a),
-        accent_soft: hex(0x0e3a1c),
+        accent_soft: hex(0x154c25),
         danger: hex(0xe34a4a),
     },
     // amber
     Palette {
-        bg_panel: hexa(0x0a0703, 232),
-        bg_cell: hexa(0x120d05, 235),
+        bg_panel: hexa(0x3d2b12, 232),
+        bg_cell: hexa(0x24190a, 235),
         ink: hex(0xffd98c),
-        ink_dim: hex(0xa07c3c),
-        hairline: hex(0x3a2a12),
+        ink_dim: hex(0xad945f),
+        hairline: hex(0x5c401b),
         accent: hex(0xffb24a),
-        accent_soft: hex(0x3a270c),
+        accent_soft: hex(0x4c3516),
         danger: hex(0xe34a4a),
     },
     // oxide
     Palette {
-        bg_panel: hexa(0x0c0605, 232),
-        bg_cell: hexa(0x150a07, 235),
+        bg_panel: hexa(0x36190e, 232),
+        bg_cell: hexa(0x1f0e08, 235),
         ink: hex(0xe6d4b8),
-        ink_dim: hex(0x8a7355),
-        hairline: hex(0x3a201a),
-        accent: hex(0xc44a26),
-        accent_soft: hex(0x3a160e),
-        danger: hex(0xd83a3a),
+        ink_dim: hex(0x938876),
+        hairline: hex(0x512515),
+        accent: hex(0xe0673a),
+        accent_soft: hex(0x431f11),
+        danger: hex(0xe34a4a),
     },
 ];
 
@@ -321,6 +330,23 @@ pub fn window_style(
     style.text = palette.ink;
     style.resize = with_alpha(bright, 220);
     style
+}
+
+/// Button chrome for the active theme.
+///
+/// `ButtonStyle::default` is a fixed slate blue that the engine cannot theme —
+/// it has no palette. It was the single largest unthemed surface in the UI,
+/// frozen across chat, options, macros, the bug report, the inventory footer
+/// and the character sheet. Every app-side button reads this instead.
+pub fn button_style() -> successor_engine_render::ui::ButtonStyle {
+    let palette = active_palette();
+    successor_engine_render::ui::ButtonStyle {
+        fill: faded(palette.bg_cell),
+        hover: with_alpha(palette.accent_soft, 235),
+        active: with_alpha(shade(palette.accent, 0.55), 240),
+        edge: palette.hairline,
+        text: palette.ink,
+    }
 }
 
 fn shade(rgba: [u8; 4], factor: f32) -> [u8; 4] {
@@ -1826,9 +1852,56 @@ mod tests {
         assert_eq!(palette(0).accent, [0x48, 0xd6, 0xe6, 255]);
         assert_eq!(palette(1).accent, [0x46, 0xff, 0x7a, 255]);
         assert_eq!(palette(2).accent, [0xff, 0xb2, 0x4a, 255]);
-        assert_eq!(palette(3).accent, [0xc4, 0x4a, 0x26, 255]);
+        // Oxide's original rust accent could not clear 4.5:1 on any warm dark
+        // pane, so it was lifted rather than leaving one theme unreadable.
+        assert_eq!(palette(3).accent, [0xe0, 0x67, 0x3a, 255]);
         assert_eq!(theme_index_for_id("amber"), 2);
         assert_eq!(theme_index_for_id("unknown"), 0);
+    }
+
+    /// Every theme has to be readable, and no theme may paint a pane that
+    /// reads as a hole in the world rather than a surface.
+    #[test]
+    fn every_theme_is_readable_and_tinted() {
+        fn luminance(rgba: [u8; 4]) -> f32 {
+            let channel = |value: u8| {
+                let c = value as f32 / 255.0;
+                if c <= 0.04045 {
+                    c / 12.92
+                } else {
+                    ((c + 0.055) / 1.055).powf(2.4)
+                }
+            };
+            0.2126 * channel(rgba[0]) + 0.7152 * channel(rgba[1]) + 0.0722 * channel(rgba[2])
+        }
+        fn contrast(a: [u8; 4], b: [u8; 4]) -> f32 {
+            let (la, lb) = (luminance(a), luminance(b));
+            (la.max(lb) + 0.05) / (la.min(lb) + 0.05)
+        }
+        for (index, theme) in THEMES.iter().enumerate() {
+            let id = THEME_IDS[index];
+            // A pane tone this dark is a black slab, not a translucent tint.
+            let brightest = theme.bg_panel[..3].iter().copied().max().unwrap_or(0);
+            assert!(
+                brightest > 40,
+                "{id} panel {:?} is a near-black slab",
+                &theme.bg_panel[..3]
+            );
+            // WCAG AA at small-text size, which is the size this UI uses.
+            for (label, ink) in [
+                ("ink", theme.ink),
+                ("ink_dim", theme.ink_dim),
+                ("accent", theme.accent),
+            ] {
+                let on_panel = contrast(ink, theme.bg_panel);
+                let on_cell = contrast(ink, theme.bg_cell);
+                assert!(
+                    on_panel >= 4.5,
+                    "{id} {label} is {on_panel:.2}:1 on its panel"
+                );
+                assert!(on_cell >= 4.5, "{id} {label} is {on_cell:.2}:1 on its cell");
+            }
+        }
     }
 
     #[test]

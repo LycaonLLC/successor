@@ -128,6 +128,49 @@ consume the same order the 2D layer drew.
   resize, cardinals ignored camera heading, and there was no range control.
   Fixed, with a 32/64/96/128/192-cell range ladder.
 
+### Wave 3 — measured hi-fi audit of all 30 surfaces
+
+`tools/observe/pane_gallery.py` opens every registered surface alone under two
+themes and grades it. The first run said the UI was in worse shape than it
+looked, and every number below is from that harness.
+
+**Panes were near-black slabs.** Every theme's `bg_panel` was around `#070b0d`,
+so 80–94% of a window's own ink was near-black and a window read as a hole
+punched in the world. The original's pane is a translucent tint under a bright
+outline (`ui_options.inc` centre `#003848`). All four palettes were re-derived
+from their accent and checked against WCAG AA at small-text size — ink clears
+7.2:1, dim ink 4.6:1, accent 4.7:1 — and `every_theme_is_readable_and_tinted`
+now fails the build if a future palette regresses either property. Oxide's rust
+accent could not clear the bar against any warm pane and was lifted from
+`#c44a26` to `#e0673a`.
+
+**Three widgets no theme could reach.** `ButtonStyle::default`, `text_field`,
+`slider`, and `checkbox` were hardcoded slate-and-gold in `engine-render`,
+which has no palette. They were the largest frozen surface in the UI, frozen
+across chat, options, macros, the bug report, the inventory footer, the
+character sheet, and the graphics tuner. The engine widgets now take their
+chrome as a parameter and the app passes `hud::button_style()`.
+
+**The chat console was 0% themed** — a hardcoded near-black slab, the darkest
+thing on screen and the only pane that never followed the theme.
+
+**Empty examine and converse windows were black rectangles.** A live 3D viewer
+needs an unlit backdrop, but that was implemented by darkening the whole frame,
+so a pane that is mostly viewer went black. `chrome::viewer_seat` now paints
+only the viewer cell and the frame stays themed.
+
+Result across 30 surfaces: 26 are 98–100% themed with zero near-black and
+contrast 6.6–10.5. The rest are explained, not outstanding — pool tints and the
+composited paperdoll are identity and must not theme, and four HUD panes draw
+nothing without a target, a weapon, a group, or a queued ability.
+
+**Not done:** the functional panes are still thinner than the web client's.
+`survey` renders four resource rows where `client-3d/src/ui/windows/defs/
+surveyToolWindow.ts` renders a concentration heatmap and sample results;
+`bank`, `craft`, `loot`, and `trade` are similarly behind
+`client-3d/src/ui/`. Most of those gaps are UI-only — `WindowModel` already
+carries the data — but they are a feature build, not a polish pass.
+
 ## Equipment on both bodies — measured
 
 - 101 skinned wearables, each with a male and a female GLB. Female armour seats

@@ -239,11 +239,19 @@ pub fn region(ui: &mut UiBuilder, rect: [f32; 4]) {
     ui.rect(x, y, w, h, well());
 }
 
-/// Hairline seat for a live 3D viewer cell: marks the lane without covering
-/// the composited target inside it.
+/// Unlit backdrop for a composited 3D viewer cell.
+pub const VIEWER_SEAT: [u8; 4] = [3, 7, 8, 245];
+
+/// Seat for a live 3D viewer cell.
 pub fn viewer_seat(ui: &mut UiBuilder, rect: [f32; 4]) {
     let [x, y, w, h] = rect;
     if w > 0.0 && h > 0.0 {
+        // The seat, not the frame, is what has to go dark. A composited model
+        // needs an unlit backdrop to read against, but darkening the whole
+        // pane for it turns an empty examine or converse window into a black
+        // rectangle. This fills only the viewer cell; the model composites
+        // over it in the band that follows.
+        ui.rect(x, y, w, h, VIEWER_SEAT);
         ui.border(x, y, w, h, 1.0, hairline());
     }
 }
@@ -821,10 +829,12 @@ mod tests {
     }
 
     #[test]
-    fn a_viewer_seat_frames_its_cell_without_covering_the_model() {
-        // Live 3D viewers composite over the finished panel, so the cell must
-        // be framed, not filled: geometry over its interior would sit on top of
-        // the model the frame is supposed to present.
+    fn a_viewer_seat_lays_an_unlit_backdrop_under_its_model() {
+        // The seat is drawn with the rest of the window content, which the
+        // host flushes BEFORE the composite band for that window. Filling it
+        // is therefore safe and necessary: the model lands on top, and without
+        // the fill an empty viewer shows the themed pane or the world instead
+        // of an unlit backdrop.
         let cell = [10.0, 20.0, 60.0, 70.0];
         let centre = (cell[0] + cell[2] * 0.5, cell[1] + cell[3] * 0.5);
 
@@ -832,17 +842,16 @@ mod tests {
         seat.begin(1280, 720);
         viewer_seat(&mut seat, cell);
         assert!(
-            !covers_point(&seat, centre.0, centre.1, 1280.0, 720.0),
-            "the seat must leave the viewer interior clear"
+            covers_point(&seat, centre.0, centre.1, 1280.0, 720.0),
+            "the seat must back the viewer interior"
         );
-        // It still marks the lane: the top edge is drawn.
-        assert!(covers_point(&seat, centre.0, cell[1] + 0.5, 1280.0, 720.0));
-
-        // A filled region is exactly what must not be used on a viewer cell.
-        let mut filled = builder();
-        filled.begin(1280, 720);
-        region(&mut filled, cell);
-        assert!(covers_point(&filled, centre.0, centre.1, 1280.0, 720.0));
+        assert!(
+            covers_point(&seat, centre.0, cell[1] + 0.5, 1280.0, 720.0),
+            "and still mark the lane"
+        );
+        // The backdrop is unlit, not the themed pane: a lit fill would tint
+        // the model sitting on it.
+        assert!(VIEWER_SEAT[..3].iter().all(|channel| *channel < 16));
 
         // A degenerate cell draws nothing at all.
         let mut empty = builder();

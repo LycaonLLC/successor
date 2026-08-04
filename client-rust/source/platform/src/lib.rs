@@ -136,7 +136,8 @@ impl Platform for WebPlatform {
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::control::{
     configure as configure_control, publish_control_status, shutdown as shutdown_control,
-    ControlConfig, ControlStatus, ControlStatusV2, ControlWindowFrame, DEFAULT_CONTROL_PORT,
+    take_ui_intents, ControlConfig, ControlStatus, ControlStatusV2, ControlUiIntent,
+    ControlWindowFrame, DEFAULT_CONTROL_PORT,
 };
 
 // target-specific re-exports of free-function surface

@@ -105,6 +105,9 @@ scroll <x> <y>
 screenshot <path.bmp>
 record start <path.input>
 record stop
+ui window <open|close|toggle> <surface-id>
+ui theme <index>
+ui opacity <window|hud> <0.35..1.0>
 status
 quit
 ```
@@ -118,9 +121,14 @@ up down left right space enter escape backspace shift tab semicolon backquote
 ```
 
 `p k b m g` reach the datapad, skills, action browser, macros, and association
-windows; `i c o` reach inventory, character, and options. A UI journey that
-cannot open a window with a hotkey should click its dock rail button rather
-than assume the code is unsupported.
+windows; `i c o` reach inventory, character, and options.
+
+The `ui` family exists because most surfaces have no hotkey at all — `survey`,
+`bank`, `loot`, `trade`, `craft`, `converse` and the rest open from a terminal,
+a target, or an item, and a review that cannot reach them is not a review. The
+intents are applied through the same entry points the player's own action uses,
+so a captured pane is the pane the player would see. Surface ids come from
+`status`.
 
 `status` reports a `window_frames` array beside the `windows` id list. Each
 entry is `{id, rect:[x,y,w,h], open, iconified, interactive}` for every
@@ -245,6 +253,42 @@ The flood fill is the point, not the picture: it answers "can the player get
 in" without walking anywhere. Run it before and after any collision change. A
 working door shows a large jump between shut and open; a sealed one does not
 move at all.
+
+### Every UI surface — `tools/observe/pane_gallery.py`
+
+A UI regression hides in the one pane nobody opened. There are 30 registered
+surfaces and most open from a terminal, a target, or an item, so clicking
+through them is not a review anyone repeats. This drives a live client, opens
+each surface alone, crops the capture to the frame's own rect, and grades what
+it captured.
+
+```sh
+python3 tools/observe/pane_gallery.py --port 47778 --out /tmp/gallery
+python3 tools/observe/pane_gallery.py --port 47778 --only survey,bank --themes 0,2
+```
+
+Three numbers per pane, and each one caught a real defect the first time it
+ran:
+
+- **themed** — the same pane captured under two themes, compared pixel by
+  pixel. Ink that does not move between an aqua theme and an amber one is a
+  hardcoded literal, and the report prints the exact colours. This is how the
+  chat console was found to be 0% themed and `ButtonStyle::default` was found
+  to be frozen across six surfaces.
+- **black** — the share of the pane's own ink that is near-black. This is how
+  every window was found to be painting a near-black slab instead of the
+  original's translucent tint.
+- **contrast** — WCAG ratio between the pane's 99th-percentile and median
+  luminance, over the pane's own ink only.
+
+That last qualifier matters: the pane is captured twice, once open and once
+closed, and only the pixels that differ are graded. Without it a pane with
+nothing to say grades the terrain showing through it and reports a contrast of
+1.0. Panes drawing under 2% of their rect are reported as empty instead.
+
+Composited 3D content — the paperdoll in the inventory and character sheets —
+never themes and should not. It shows up as frozen ink inside the viewer cell;
+that is the model, not a literal.
 
 ### Equipment fit — the two humanoid gates
 

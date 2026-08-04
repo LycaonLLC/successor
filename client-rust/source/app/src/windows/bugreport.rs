@@ -11,7 +11,7 @@
 use super::{accent, dim, slot, slot_edge, text, WindowAction};
 use crate::hud::Icons;
 use serde_json::{json, Value};
-use successor_engine_render::ui::{ButtonStyle, TextField, UiBuilder};
+use successor_engine_render::ui::{TextField, UiBuilder};
 
 pub const BODY_MIN_CHARS: usize = 20;
 pub const BODY_MAX_CHARS: usize = 4_000;
@@ -278,7 +278,7 @@ pub fn draw(
             140.0,
             24.0,
             "ANOTHER REPORT",
-            ButtonStyle::default(),
+            crate::hud::button_style(),
         ) {
             out.push(WindowAction::BugReportReset);
         }
@@ -305,9 +305,9 @@ pub fn draw(
         let row = i / 3;
         let bx = x + col as f32 * (btn_w + 6.0);
         let by = cy + row as f32 * 26.0;
-        let mut style = ButtonStyle::default();
+        let mut style = crate::hud::button_style();
         if i == model.category {
-            style.fill = [70, 92, 120, 240];
+            style.fill = style.active;
             style.edge = accent();
         }
         if ui.button(bx, by, btn_w, 20.0, label, style) {
@@ -321,7 +321,16 @@ pub fn draw(
     cy += 12.0;
     let field_h = (h - (cy - y) - 78.0).max(40.0);
     let pending = matches!(model.status, BugStatus::Pending { .. });
-    ui.text_field(&mut model.body, x, cy, w, field_h, 1.6, !pending);
+    ui.text_field(
+        &mut model.body,
+        x,
+        cy,
+        w,
+        field_h,
+        1.6,
+        !pending,
+        crate::hud::button_style(),
+    );
     cy += field_h + 6.0;
     let len = model.body.text.trim().chars().count();
     ui.text(
@@ -361,14 +370,14 @@ pub fn draw(
             ui.text("PACKING SESSION LOG...", x, cy + 44.0, 1.4, accent());
         }
         BugStatus::Denied { copy } => {
-            ui.text(copy, x, cy + 44.0, 1.4, [227, 74, 74, 255]);
+            ui.text(copy, x, cy + 44.0, 1.4, crate::hud::active_palette().danger);
         }
         _ => {}
     }
 
     // Submit.
     let can_send = len >= BODY_MIN_CHARS && !pending;
-    let mut style = ButtonStyle::default();
+    let mut style = crate::hud::button_style();
     if !can_send {
         style.text = dim();
         style.edge = slot_edge();
