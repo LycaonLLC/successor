@@ -3342,18 +3342,28 @@ impl ConnectedScene {
             self.dispatch_gameplay_action(action);
         }
         self.macro_actions = macro_actions;
-        let paperdoll_window =
-            if self.wm.is_open("examine") && self.win_model.examine.actor.is_some() {
-                Some("examine")
-            } else if self.wm.is_open("converse") && self.win_model.converse.npc.is_some() {
-                Some("converse")
-            } else if self.wm.is_open("inventory") {
-                Some("inventory")
-            } else if self.wm.is_open("character") {
-                Some("character")
-            } else {
-                None
-            };
+        // The doll composites over the finished UI, so it must belong to the
+        // TOPMOST viewer window: anchored to one further back it would punch
+        // through every window stacked above it. `fill_z_order` is back-to-front,
+        // so the last match wins.
+        let paperdoll_window = {
+            let mut order = Vec::new();
+            self.wm.fill_z_order(&mut order);
+            let mut chosen = None;
+            for index in order {
+                let candidate = match self.wm.window_id(index) {
+                    "examine" if self.win_model.examine.actor.is_some() => Some("examine"),
+                    "converse" if self.win_model.converse.npc.is_some() => Some("converse"),
+                    "inventory" => Some("inventory"),
+                    "character" => Some("character"),
+                    _ => None,
+                };
+                if candidate.is_some() {
+                    chosen = candidate;
+                }
+            }
+            chosen
+        };
         // 1) Reconcile pawn set with live actors.
         for p in self.pawns.values_mut() {
             p.present = false;
