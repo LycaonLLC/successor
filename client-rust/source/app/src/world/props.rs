@@ -349,6 +349,7 @@ impl PropsLoader {
                 }
                 let enterable = entry.get("enterable");
                 let reveal_prefixes = enterable.and_then(enterable_reveal_prefixes);
+                let reveal_name_includes = enterable.and_then(enterable_reveal_name_includes);
                 let slide_door = parse_slide_door(&entry);
                 let (fx, fz, hy, alb, parts) = {
                     let model = self.cache.get(glb_ref).unwrap().as_ref().unwrap();
@@ -358,11 +359,12 @@ impl PropsLoader {
                         .copied()
                         .map(|part| PlacedPart {
                             reveal: reveal_prefixes.is_some_and(|prefixes| {
-                                part_matches_reveal_prefixes(
+                                part_matches_reveal_selectors(
                                     &model.node_names,
                                     &model.node_parents,
                                     part.node_index,
                                     prefixes,
+                                    reveal_name_includes,
                                     slide_door.map(|door| door.node),
                                 )
                             }),
@@ -621,6 +623,17 @@ fn enterable_reveal_prefixes(enterable: &Json) -> Option<&[Json]> {
         .then_some(prefixes)
 }
 
+fn enterable_reveal_name_includes(enterable: &Json) -> Option<&[Json]> {
+    let includes = enterable
+        .get("revealNameIncludes")
+        .and_then(Json::as_array)?;
+    includes
+        .iter()
+        .filter_map(Json::as_str)
+        .any(|include| !include.is_empty())
+        .then_some(includes)
+}
+
 fn enterable_fade_seconds(enterable: &Json) -> f64 {
     let seconds = enterable
         .get("fadeSeconds")
@@ -778,14 +791,15 @@ fn door_pose(closed: Transform, open: Transform, is_open: bool) -> Transform {
     }
 }
 
-/// Prefix selection walks GLB ancestry so a mesh beneath a named group is
-/// selected. Floors and gameplay doors are never reveal candidates, even if a
-/// malformed mapping happens to mention their parent group.
-fn part_matches_reveal_prefixes(
+/// Authored prefix and literal-name selection walks GLB ancestry so a mesh
+/// beneath a named group is selected. Floors and gameplay doors are never
+/// reveal candidates, even if malformed mapping metadata mentions them.
+fn part_matches_reveal_selectors(
     node_names: &[Option<String>],
     node_parents: &[Option<usize>],
     node_index: usize,
     prefixes: &[Json],
+    name_includes: Option<&[Json]>,
     door_node: Option<&str>,
 ) -> bool {
     if node_or_ancestor_matches(node_names, node_parents, node_index, |name| {
@@ -803,6 +817,12 @@ fn part_matches_reveal_prefixes(
             .iter()
             .filter_map(Json::as_str)
             .any(|prefix| !prefix.is_empty() && name.starts_with(prefix))
+            || name_includes.is_some_and(|includes| {
+                includes
+                    .iter()
+                    .filter_map(Json::as_str)
+                    .any(|include| !include.is_empty() && name.contains(include))
+            })
     })
 }
 
@@ -1317,7 +1337,7 @@ mod tests {
     }
 
     #[test]
-    fn enterable_prefixes_select_only_authored_shell_parts() {
+    fn enterable_selectors_select_only_authored_shell_parts() {
         let names = vec![
             Some("root".to_string()),
             Some("roof__shell".to_string()),
@@ -1327,6 +1347,10 @@ mod tests {
             Some("interior__counter".to_string()),
             Some("wall_back__far".to_string()),
             Some("trim__roof_child".to_string()),
+            Some("interior__0202_ceiling_1x1__plasterlined".to_string()),
+            Some("wall_court__inner".to_string()),
+            Some("interior__floor_ceiling_panel".to_string()),
+            Some("door_slide_ceiling_panel".to_string()),
         ];
         let parents = vec![
             None,
@@ -1337,47 +1361,35 @@ mod tests {
             Some(0),
             Some(0),
             Some(1),
+            Some(0),
+            Some(0),
+            Some(0),
+            Some(0),
         ];
         let enterable = Json::parse(
-            r#"{"revealPrefixes":["roof__","wall_front__","wall_right__","wall_back__","wall_left__"]}"#,
+            r#"{"revealPrefixes":["roof__","wall_front__","wall_right__","wall_back__","wall_left__","wall_court__"],"revealNameIncludes":["_ceiling_"]}"#,
         )
         .expect("enterable mapping");
         let prefixes = enterable_reveal_prefixes(&enterable).expect("reveal prefixes");
+        let includes = enterable_reveal_name_includes(&enterable).expect("reveal name includes");
 
-        assert!(part_matches_reveal_prefixes(
-            &names,
-            &parents,
-            1,
-            prefixes,
-            Some("door_slide")
-        ));
-        assert!(part_matches_reveal_prefixes(
-            &names,
-            &parents,
-            2,
-            prefixes,
-            Some("door_slide")
-        ));
-        assert!(part_matches_reveal_prefixes(
-            &names,
-            &parents,
-            7,
-            prefixes,
-            Some("door_slide")
-        ));
-        assert!(part_matches_reveal_prefixes(
-            &names,
-            &parents,
-            6,
-            prefixes,
-            Some("door_slide")
-        ));
-        for node in [3, 4, 5] {
-            assert!(!part_matches_reveal_prefixes(
+        for node in [1, 2, 6, 7, 8, 9] {
+            assert!(part_matches_reveal_selectors(
                 &names,
                 &parents,
                 node,
                 prefixes,
+                Some(includes),
+                Some("door_slide")
+            ));
+        }
+        for node in [3, 4, 5, 10, 11] {
+            assert!(!part_matches_reveal_selectors(
+                &names,
+                &parents,
+                node,
+                prefixes,
+                Some(includes),
                 Some("door_slide")
             ));
         }

@@ -79,6 +79,8 @@ interface MappingEnterable {
   floorHeightM?: number;
   /** Mesh-node prefixes faded while the local pawn is inside this instance. */
   revealPrefixes: string[];
+  /** Literal mesh-node or ancestor name fragments faded with the authored shell. */
+  revealNameIncludes?: string[];
   /** Source manifest filename; kept with mapping for audit/debug tooling. */
   manifest?: string;
   /** Fade duration in seconds; defaults to the contract quarter-second. */
@@ -397,13 +399,14 @@ const DOOR_NODE_PREFIX = "door_slide";
 
 /**
  * Reveal membership is decided here, and floor-named or door nodes can never
- * win it — a misconfigured revealPrefixes list cannot hide the walk surface
- * or the gameplay door.
+ * win it — malformed reveal selectors cannot hide the walk surface or the
+ * gameplay door.
  */
 export function classifyEnterablePart(
   object: Object3D,
   role: GlbPartRole,
   revealPrefixes: readonly string[] | null,
+  revealNameIncludes: readonly string[] | null = null,
 ): EnterablePartClass {
   if (role === "door") return "door";
   for (let node: Object3D | null = object; node; node = node.parent) {
@@ -412,7 +415,10 @@ export function classifyEnterablePart(
   for (let node: Object3D | null = object; node; node = node.parent) {
     if (node.name.toLowerCase().includes("floor")) return "floor";
   }
-  if (revealPrefixes && hasRevealPrefix(object, revealPrefixes)) return "reveal";
+  if (
+    (revealPrefixes && hasRevealPrefix(object, revealPrefixes))
+    || (revealNameIncludes && hasRevealNameInclude(object, revealNameIncludes))
+  ) return "reveal";
   return "keep";
 }
 
@@ -1253,6 +1259,7 @@ export class WorldPropsRenderer {
     const revealPrefixes = entry?.enterable?.revealPrefixes
       ?? entry?.interiorRevealPrefixes
       ?? null;
+    const revealNameIncludes = entry?.enterable?.revealNameIncludes ?? null;
     const doorNode = entry?.slideDoor ? root.getObjectByName(entry.slideDoor.node) ?? null : null;
     if (entry?.slideDoor && !doorNode) {
       console.warn(`world props: slideDoor node "${entry.slideDoor.node}" not found in ${entry.glb}`);
@@ -1312,7 +1319,7 @@ export class WorldPropsRenderer {
         preHinge = new Matrix4().copy(recenter).multiply(doorNode.matrixWorld);
         postHinge = new Matrix4().copy(doorNode.matrixWorld).invert().multiply(object.matrixWorld);
       }
-      const enterableClass = classifyEnterablePart(object, role, revealPrefixes);
+      const enterableClass = classifyEnterablePart(object, role, revealPrefixes, revealNameIncludes);
       const interiorReveal = enterableClass === "reveal";
       parts.push({ geometry: object.geometry as BufferGeometry, material, localMatrix, role, preHinge, postHinge, interiorReveal, enterableClass });
     });
@@ -1625,6 +1632,16 @@ function hasRevealPrefix(object: Object3D, prefixes: readonly string[]): boolean
   for (let node: Object3D | null = object; node; node = node.parent) {
     for (const prefix of prefixes) {
       if (node.name.startsWith(prefix)) return true;
+    }
+  }
+  return false;
+}
+
+/** True when the mesh or any ancestor node name contains an authored fragment. */
+function hasRevealNameInclude(object: Object3D, includes: readonly string[]): boolean {
+  for (let node: Object3D | null = object; node; node = node.parent) {
+    for (const include of includes) {
+      if (include.length > 0 && node.name.includes(include)) return true;
     }
   }
   return false;
