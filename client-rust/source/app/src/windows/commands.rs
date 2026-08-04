@@ -15,7 +15,7 @@
 //! dock: the support report and the survey tool.
 
 use super::chrome::{self, Row, Rows};
-use super::{Ctx, WindowAction, DIM};
+use super::{dim, Ctx, WindowAction};
 use crate::hud::toolbar::{ActionKind, TOOLBAR_ACTIONS};
 use crate::hud::Icons;
 use successor_engine_render::ui::UiBuilder;
@@ -40,7 +40,7 @@ pub fn draw(ui: &mut UiBuilder, ctx: Ctx, icons: &Icons, out: &mut Vec<WindowAct
         hint_y,
         metrics.caption_px,
         w,
-        DIM,
+        dim(),
     );
     let list_y = hint_y + metrics.caption_px * 7.0 + 5.0;
     let mut rows = Rows::new([x, list_y, w, (list_h - (list_y - y)).max(0.0)], metrics);
@@ -103,7 +103,7 @@ fn glyph(ui: &mut UiBuilder, row: &Row, icons: &Icons, id: &str) {
         row.y + (row.h - size) * 0.5,
         size,
         size,
-        super::LABEL,
+        super::label(),
     );
 }
 

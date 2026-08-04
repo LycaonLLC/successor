@@ -7,135 +7,215 @@ Status: development-source handoff. This note does not override
 ## Resume point
 
 - Working branch: `integration/rust-ui-runtime-20260803`
-- Tip at handoff: `a485288b`
 - Co-developer branch: `dev/rust-client`, fully merged in, nothing outstanding
   in either direction at handoff
 - Not merged to `main`. Not deployed. No public-journey claim.
 
-The co-developer's `collision debug` overlay (`b4553b53`) is merged and built
-on. Toggle it in the connected client with **Shift+C**.
+Two waves are recorded here. The first (doorways, floors, viewers, character
+art) is unchanged from the earlier note and kept below. The second is a UI
+parity pass over the native Rust client.
 
-## What changed
+## Wave 2 — UI parity pass
 
-### Character viewers
+Everything below was exercised against a live loopback authority and a
+connected `successor-dev` client, not only unit-tested.
 
-Every open 3D viewer now renders at once over one shared pawn instead of the
-topmost one stealing the surface. Composites are banded by the owning window's
-draw rank and flushed into the UI stream between windows, which is the
-original's `flushRenderQueue()` then `renderScene()` ordering. World view and
-all dolls stay in lockstep because they are the same instance behind a
-per-viewport mask, not clones.
+### Three things blocked local work and are now fixed
 
-### Input and interaction
+- **`scripts/server-local-persistent.mjs` was Linux-only.** It discovered the
+  listener through `/proc/net/tcp` and `/proc/<pid>/fd`, which do not exist on
+  macOS, so it started a healthy server, failed to find it, and SIGTERMed it.
+  Listener discovery is now platform-split: `/proc` on Linux, `lsof` on macOS,
+  same socket/process shape and the same ownership assertions on both.
+- **The documented control binary could not be controlled.** `make -C
+  client-rust native` builds without `dev-tools`, so `out/bin/successor`
+  refused `--control-port` and `--endpoint`. There is now a `make -C client-rust
+  dev` target producing `out/bin/successor-dev`; the shipped binary stays
+  capability-free.
+- **A durable character could not join from the native client.** The shard
+  rejects the bare `{playerId, actorId}` dev shape for any id its character
+  store owns (`colyseusRoom.ts:454`). The client takes `--character-id` and
+  sends `{characterId}` when given one.
 
-Three defects, each with a mechanism worth remembering:
+The local checkpoint also refused to restore, correctly: `a485288b` regenerated
+the world slice for the door apertures, so the Aug 3 checkpoint belonged to a
+different fixture. Backed up to `server/.local-state-archive-20260804T120839`
+and reset.
 
-- A press inside a panel also reached the world. `pointer_captured` only
-  latches while the windows run, which is after the host has routed the press,
-  so it read false on the press itself. Every inventory click walked a move
-  intent out from under the open window and cleared the selection, which made
-  the equip and unequip buttons unusable by mouse. `WindowManager::covers`
-  answers the same hit test at any time.
-- A released movement key could leave the actor walking. Movement re-announces
-  itself every six frames while held; a stop was a single edge, and the
-  authority both rate-limits ingress and holds an intent for one second past
-  its last accepted update. One refused command stranded the actor. A stop now
-  re-announces across that expiry window.
-- Changing clothes threw the arms up. A worn change destroys and respawns the
-  pawn, and the respawn built a fresh animator at its bind pose. `CarriedMotion`
-  carries animator, gait, interpolation and predictor across the rebuild.
+### Cursor
 
-### Collision
+The fixed screen-centre crosshair is gone. The original has no such reticle on
+the ground HUD: aim lives on the pointer, and the cursor set switches to
+`ui_cursor_attack` over a valid target.
 
-Doorways in the modular buildings were sealed. A door module ships as one solid
-wall box with the opening flattened into it; the fine `boxes` array still tags
-each panel `structure` or `door`, but the merged `walls` array drops that tag,
-so the aperture was paved over by its own module and the leaf's open state
-changed nothing. `transformStructureCollision` now surfaces the door-tagged
-panels as apertures and the fixture carves them out, leaving jambs solid.
+`engine-render/src/cursor.rs` draws the original's cursor vocabulary —
+arrow, select, attack, interact, move, four resize axes, text, busy, blocked —
+from the same primitives the window chrome uses, so the pointer is made of the
+same material as the frames it sits on. No bitmaps, no atlas cell per
+resolution; SWG cursor art is proprietary and stays host-local.
 
-Actors also stood at terrain height indoors, sunk into their own floor slab.
-The web client has always resolved this in `enterableFloorYAt`: find the
-interior containing the point and take its floor. Ported as
-`PropsLoader::floor_height_at`.
+The pointer is drawn last, after the composite bands, so no 3D viewer paints
+over it. `Graphics::constrainMouseCursor` clips the hardware cursor to the
+client rect; GLFW has no portable clip, so the equivalent is to hide the OS
+pointer while it is inside the framebuffer and hand it back when it leaves.
 
-Two things that looked like bugs and are not, recorded so they are not chased
-again:
+Shape resolution follows the original's rule — the mediator under the pointer
+wins, and only when nothing owns the pointer does the world speak: resize edge
+or caption first, then panels, then a hostile (attack, but only while something
+is wielded), then a selectable actor, then a world verb prop under the pointer.
 
-- Stopping ~0.8 cells from a wall is correct. The streamed position is an
-  anchor and the collision circle sits at `ground_center_from_anchor`, half a
-  cell along both axes, with a 300 milli radius.
-- A weapon riding on the back while idle is the intended stow pose.
+### Windows
 
-### Character art
+**Title-bar dragging silently resized instead of moving.** The 8 px
+`UIWidget::RESIZE_MARGIN` was applied to the whole frame rect, and a 19 px
+caption minus 8 px of top resize band leaves a 3 px move sliver — so almost
+every caption press landed on the top edge. In the original the caption is a
+child page that takes the press and moves the frame; only the border resizes
+there. `CAPTION_RESIZE_MARGIN` is 3 px inside the caption band.
 
-- Skull rebuilt as a dome of circular cross-sections on both bodies. Crown
-  width over depth goes 0.57 to 1.05 male and 0.56 to 1.03 female; crown width
-  42 to 66 percent of maximum. Patched into head-weighted vertex positions
-  only, so vertex counts, joint transforms, inverse bind matrices, weights,
-  UVs, materials and stature are untouched and all 99 wearables stay bound. A
-  full lab rebuild moved stature 8 mm and tore every wearable off the
-  character; do not regenerate the bodies to change the head.
-- Female armour seated. Every piece was fitted to the male frame and copied,
-  standing up to 18 mm clear of her with a contact fraction of zero. Now within
-  0.4 mm of where the male set sits.
+Measured over all eight dock windows through the control protocol: move
+translates both axes with size preserved, bottom-right and top-left corner
+resize both land exactly, close-and-reopen preserves the rect, and all 28
+registered frames survive a client restart with geometry, open state, and lock
+state intact. HUD panes stay locked and gameplay-transparent until a right
+click unlocks them, then move and resize like any frame.
 
-## Tools added
+`status` now reports `window_frames`, so this is measured rather than eyeballed.
 
-All three exist because single-point probing was the bottleneck.
+### HUD panes
 
-- `tools/observe/pawn_observatory.py` — collects the character from every
-  surface that draws it, at several angles, and finds the subject by motion
-  rather than a hardcoded rect.
-- `tools/observe/collision_map.py` — reproduces the authority's collision rule
-  offline and floods from outside to report what fraction of each building
-  interior a player can actually reach, door open and shut. This is the tool
-  that turned "doors feel wrong" into a number.
-- Debug orbit camera in the connected client: **Shift+V** frees it, arrows
-  orbit, shift+arrow dollies. It opens on the shipped view, so nothing changes
-  until it is moved.
+The player status plate reserved 92 px for content that was often 59 px: a tag
+band most sessions never carry, and a weapon readout that only exists while
+something is wielded. State chips moved onto the name row, and the weapon
+readout became its own pane. The plate is now exactly name + RUN + the three
+pools.
 
-The wearable fit gate now also detects the defect it was blind to. It only
-measured cap-to-body, so a hair cap resting perfectly on skin while the skull
-erupted between its vertices passed. `scalp_exposure` probes skull outward and
-reports bare points whose neighbours are covered.
+Weapon and group are managed panes of the same grammar as the target plate,
+each painting nothing when it has no content — an unarmed solo player sees one
+tight plate and no empty furniture. `HUD_SURFACE_COUNT` is 9.
+
+### Inventory
+
+Equipment slot rails frame the paperdoll — six cells left, five right, filled
+slots carrying the item glyph, click to select and click again to unequip. The
+column reserves the rail lanes before the doll claims the width; below a
+96 px doll the rails drop and the portrait takes the column, which is what the
+250x244 resize floor gets.
+
+Also: category filter, a three-way sort over the filtered rows, an inline split
+stepper replacing the hardcoded 50 % split, and an honest held-stack count in
+place of a meter that reported UI page slots.
+
+**One defect the filter work exposed:** the composited 3D item models were
+keyed off `held()` while the cards drew from the filtered, sorted, paged order,
+so every filter put models under the wrong labels. The preview lanes now
+consume the same order the 2D layer drew.
+
+### Theme, transparency, sound, radar
+
+- Window surfaces carried hardcoded cyan ink, so a theme change recoloured the
+  HUD and left every workspace frame cyan. Ink resolves from
+  `hud::active_palette()`; one theme covers the whole UI.
+- `WINDOW OPACITY` and `HUD OPACITY` settings, `0.35..=1.0`, persisted under the
+  `uiOpacity` section. Fills fade; type, icons, and the bright perimeter do not,
+  because a translucent glyph over terrain is unreadable.
+- Thirteen `UiCue` variants existed and exactly two ever fired. Panel open and
+  close, deny on every rejection, item transfer, credits, area transition, chat
+  send and receive, and both toolbar cues are now wired at their event sites,
+  with a retrigger floor so a bulk transfer does not stack into a click storm.
+- Radar: scale mismatch between plotting and clamping caused edge flicker,
+  `scope_of` did not subtract its own top inset so the scope escaped the pane on
+  resize, cardinals ignored camera heading, and there was no range control.
+  Fixed, with a 32/64/96/128/192-cell range ladder.
+
+## Equipment on both bodies — measured
+
+- 101 skinned wearables, each with a male and a female GLB. Female armour seats
+  within 0.36 mm of the male set.
+- 17 rigid socket attachments. **Male and female mount positions are identical
+  to 0.000 mm** — both bodies share one 45-joint skeleton, so every socket
+  resolves to the same world point. Rigid equipment is equally correct on both.
+- Five weapons bury their grip 64.9–66.2 mm in the hand **on both bodies**:
+  `wpn_smg`, `wpn_carbine`, `wpn_sniper`, `lightning_carbine`, `wpn_launcher`.
+  The earlier note flagged this for `wpn_carbine_kiln` alone; it is five mounts
+  sharing one copy-pasted pose. Re-posing affects how each weapon reads in the
+  hand, so it stays a deliberate art call, not a silent fix.
+- `hat_field_cap` is the one genuine per-body rigid defect: 1.25 mm into the
+  male scalp, 10.7 mm floating off the female head.
+- Hair is unchanged and still parked behind head sign-off: 30 male and 26
+  female variants fail the scalp gate.
+
+`content-pipeline/labs/humanoid-runtime-refit/probe_weapons.py` is the new gate
+for all of that; it writes `reports/rigid_mount_fit.json` and fails closed.
 
 ## Known open
 
+- The five buried weapon mounts and the female field cap above.
+- Hair refits, still behind head sign-off.
 - **Doorways are better, not fixed.** Interior reachability went 7/7/5 percent
   to 19/44/32 for starter/court/wing. The remaining seal is most likely the
   300 milli collision radius closing gaps under 0.6 cells against a 0.95 m wall
-  pitch. Measure with `collision_map.py` before carving further; the answer may
-  be a smaller radius rather than more geometry.
-- **Floor sinking is not proven fixed.** The `enterableFloorYAt` port is
-  correct and was genuinely missing, but `floorHeightM` is 0.021 m for the
-  cloning facility and cannot explain waist-deep sinking. Something else is
-  also wrong.
-- **Head shape wants a human eye.** It is rounder, not bigger; maximum width is
-  unchanged at 0.144 m.
-- **Hair refits are parked** behind head sign-off. The gate now fails all 62
-  hair variants; refitting them against a skull that may still move is wasted
-  work.
+  pitch. Measure with `collision_map.py` before carving further.
+- **Floor sinking is not proven fixed.** The `enterableFloorYAt` port was
+  genuinely missing, but `floorHeightM` is 0.021 m for the cloning facility and
+  cannot explain waist-deep sinking. Something else is also wrong.
 - **Doll render targets alias.** A 384x640 target composited into a ~76 px
-  column with no mipmaps breaks up at three-quarter angles. Sizing the target
-  to its destination needs mip support on render targets across three GPU
-  backends.
-- **`wpn_carbine_kiln` mount is copy-pasted** from the slagrail. Its foregrip
-  at z=0.07 sits in a hole in its own geometry; the real handguard is near
-  z=-0.06. Re-posing affects both `wpn_carbine` and `wpn_sniper`, so it is a
-  feel call.
+  column with no mipmaps breaks up at three-quarter angles.
 - **No live combat exchange yet.** The weapon wields and the authority accepts
   input, but no hostile was found in the ground covered. Spawn one deliberately
-  rather than hunting.
+  rather than hunting. The attack cursor is therefore unit-proven, not
+  journey-proven.
+- Inventory still has no drag-and-drop and no sub-container navigation.
+
+## Wave 1 — doorways, floors, viewers, character art
+
+### Character viewers
+
+Every open 3D viewer renders at once over one shared pawn instead of the
+topmost one stealing the surface. Composites are banded by the owning window's
+draw rank and flushed into the UI stream between windows, which is the
+original's `flushRenderQueue()` then `renderScene()` ordering.
+
+### Input and interaction
+
+- A press inside a panel also reached the world. `pointer_captured` only
+  latches while the windows run, which is after the host has routed the press.
+  `WindowManager::covers` answers the same hit test at any time.
+- A released movement key could leave the actor walking. A stop now
+  re-announces across the authority's one-second intent expiry.
+- Changing clothes threw the arms up. `CarriedMotion` carries animator, gait,
+  interpolation and predictor across the pawn rebuild.
+
+### Collision
+
+A door module ships as one solid wall box with the opening flattened into it.
+`transformStructureCollision` now surfaces the door-tagged panels as apertures
+and the fixture carves them out, leaving jambs solid. Actors also stood at
+terrain height indoors; `PropsLoader::floor_height_at` ports the web client's
+`enterableFloorYAt`.
+
+Two things that looked like bugs and are not: stopping ~0.8 cells from a wall
+is correct (the streamed position is an anchor and the collision circle sits at
+`ground_center_from_anchor`), and a weapon riding on the back while idle is the
+intended stow pose.
+
+### Character art
+
+Skull rebuilt as a dome of circular cross-sections on both bodies, patched into
+head-weighted vertex positions only, so all 99 wearables stay bound. A full lab
+rebuild moved stature 8 mm and tore every wearable off the character; do not
+regenerate the bodies to change the head.
 
 ## Next safe actions
 
 1. Fetch the branch and run `git lfs pull` before inspecting visuals or running
    asset-dependent tests.
 2. Recheck `dev/rust-client`; the co-developer may have advanced it.
-3. Run `python3 tools/observe/collision_map.py` first when touching collision.
-   It is faster and more honest than walking into a wall.
-4. Run focused checks while iterating, then the repository gates in
+3. Bring up the stack with `node scripts/server-local-persistent.mjs`, then
+   drive `client-rust/out/bin/successor-dev` from `client-rust/` per
+   `TOOLS_AVAILABLE.md`.
+4. Run `python3 tools/observe/collision_map.py` first when touching collision.
+5. Run focused checks while iterating, then the repository gates in
    `VERIFICATION.md`.
-5. Treat a merge to `main`, pointer promotion, authority restart, or public
+6. Treat a merge to `main`, pointer promotion, authority restart, or public
    deployment as a separate explicitly authorized operation.

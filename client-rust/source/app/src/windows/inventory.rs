@@ -7,7 +7,7 @@
 //! `(container, stack_id)` and is joined back into the live examine projection.
 //! Action payloads carry `InventoryRow::item_id`.
 
-use super::{WindowAction, WindowModel, ACCENT, DIM, TEXT};
+use super::{accent, dim, slot, slot_edge, text, WindowAction, WindowModel};
 use crate::hud::Icons;
 use core::cell::{Cell, RefCell};
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
@@ -18,6 +18,48 @@ enum InventoryView {
     CompactList,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EquipSlotKind {
+    Head,
+    Face,
+    Torso,
+    Back,
+    ArmLeft,
+    ArmRight,
+    Hands,
+    Belt,
+    Legs,
+    Feet,
+    Weapon,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum CategoryFilter {
+    #[default]
+    All,
+    Weapon,
+    Armor,
+    Clothing,
+    Consumable,
+    Resource,
+    Misc,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum SortMode {
+    #[default]
+    Name,
+    Category,
+    Quantity,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SplitStepperState {
+    container: String,
+    stack_id: String,
+    quantity: u32,
+}
+
 thread_local! {
     /// Window-local examine selection `(container, stack_id)`. Interim home
     /// until the shared `WindowUiState` threading lands (see `windows::mod`).
@@ -25,6 +67,95 @@ thread_local! {
     static GRID_PAGE: Cell<usize> = const { Cell::new(0) };
     static LIST_PAGE: Cell<usize> = const { Cell::new(0) };
     static VIEW: Cell<InventoryView> = const { Cell::new(InventoryView::IconGrid) };
+    static FILTER: Cell<CategoryFilter> = const { Cell::new(CategoryFilter::All) };
+    static SORT: Cell<SortMode> = const { Cell::new(SortMode::Name) };
+    static SORTED_INDICES: RefCell<Vec<usize>> = const { RefCell::new(Vec::new()) };
+    static SORT_CACHE_KEY: Cell<(CategoryFilter, SortMode, usize, u64)> =
+        const { Cell::new((CategoryFilter::All, SortMode::Name, 0, 0)) };
+    static SPLIT_STEPPER: RefCell<Option<SplitStepperState>> = const { RefCell::new(None) };
+}
+
+fn current_filter() -> CategoryFilter {
+    FILTER.with(|f| f.get())
+}
+
+fn set_filter(filter: CategoryFilter) {
+    FILTER.with(|f| f.set(filter));
+}
+
+fn current_sort() -> SortMode {
+    SORT.with(|s| s.get())
+}
+
+fn cycle_sort() {
+    let next = match current_sort() {
+        SortMode::Name => SortMode::Category,
+        SortMode::Category => SortMode::Quantity,
+        SortMode::Quantity => SortMode::Name,
+    };
+    SORT.with(|s| s.set(next));
+}
+
+fn matches_filter(row: &super::InventoryRow, filter: CategoryFilter) -> bool {
+    match filter {
+        CategoryFilter::All => true,
+        CategoryFilter::Weapon => row.kind() == super::ItemKind::Weapon,
+        CategoryFilter::Armor => {
+            if row.kind() == super::ItemKind::Gear {
+                let name = row.item.to_ascii_uppercase();
+                name.contains("ARMOR")
+                    || name.contains("HELM")
+                    || name.contains("VEST")
+                    || name.contains("CHEST")
+                    || name.contains("GREAVE")
+                    || name.contains("BRACER")
+                    || name.contains("GAUNTLET")
+                    || name.contains("SHIELD")
+                    || name.contains("SUIT")
+            } else {
+                false
+            }
+        }
+        CategoryFilter::Clothing => {
+            if row.kind() == super::ItemKind::Gear {
+                let name = row.item.to_ascii_uppercase();
+                !(name.contains("ARMOR")
+                    || name.contains("HELM")
+                    || name.contains("VEST")
+                    || name.contains("CHEST")
+                    || name.contains("GREAVE")
+                    || name.contains("BRACER")
+                    || name.contains("GAUNTLET")
+                    || name.contains("SHIELD")
+                    || name.contains("SUIT"))
+            } else {
+                false
+            }
+        }
+        CategoryFilter::Consumable => {
+            matches!(row.kind(), super::ItemKind::Medical | super::ItemKind::Ammo)
+        }
+        CategoryFilter::Resource => row.kind() == super::ItemKind::Resource,
+        CategoryFilter::Misc => {
+            matches!(
+                row.kind(),
+                super::ItemKind::Tool | super::ItemKind::Currency | super::ItemKind::Item
+            )
+        }
+    }
+}
+
+fn kind_sort_order(kind: super::ItemKind) -> usize {
+    match kind {
+        super::ItemKind::Weapon => 0,
+        super::ItemKind::Gear => 1,
+        super::ItemKind::Medical => 2,
+        super::ItemKind::Ammo => 3,
+        super::ItemKind::Resource => 4,
+        super::ItemKind::Tool => 5,
+        super::ItemKind::Currency => 6,
+        super::ItemKind::Item => 7,
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -55,6 +186,17 @@ const USAGE_SEGMENTS: usize = 8;
 const EQUIPMENT_WIDTH_RATIO: f32 = 232.0 / 468.0;
 const EQUIPMENT_MIN_W: f32 = 88.0;
 const EQUIPMENT_MAX_W: f32 = 232.0;
+/// Equipment slot cell, and the lane one rail of them occupies. The original
+/// frames the paperdoll with its slots rather than overlaying them, so the
+/// column has to reserve the lane before the doll claims the width.
+pub const EQUIP_SLOT: f32 = 20.0;
+const EQUIP_RAIL_W: f32 = EQUIP_SLOT + 8.0;
+/// Doll width below which the rails are not worth their cost: the portrait
+/// would read as a thumbnail. At that point the rails drop and the doll takes
+/// the whole column, which is what the 250x244 resize floor gets.
+const EQUIP_DOLL_MIN_W: f32 = 96.0;
+/// Rails also need vertical room to space eleven cells without touching.
+const EQUIP_RAIL_MIN_H: f32 = 160.0;
 /// Doll viewport aspect, from the original's 225x367 paperdoll rect.
 const DOLL_ASPECT: f32 = 225.0 / 367.0;
 
@@ -102,19 +244,23 @@ pub fn layout(rect: [f32; 4]) -> InventoryLayout {
         .min(w * 0.5);
     let equipment = [x, y, equipment_w, body_h];
 
-    // The doll holds the original's 225x367 portrait aspect inside that
-    // column, centred, so resizing never stretches the character.
+    // The doll holds the original's 225x367 portrait aspect inside the lane
+    // the slot rails leave it, so resizing never stretches the character and
+    // the slots never overlap it.
     let inset = 3.0;
     let avail_w = (equipment_w - inset * 2.0).max(0.0);
     let avail_h = (body_h - inset * 2.0).max(0.0);
-    let preview_w = avail_w.min(avail_h * DOLL_ASPECT);
+    let rails = avail_w - EQUIP_RAIL_W * 2.0 >= EQUIP_DOLL_MIN_W && avail_h >= EQUIP_RAIL_MIN_H;
+    let rail_w = if rails { EQUIP_RAIL_W } else { 0.0 };
+    let doll_w = (avail_w - rail_w * 2.0).max(0.0);
+    let preview_w = doll_w.min(avail_h * DOLL_ASPECT);
     let preview_h = if DOLL_ASPECT > 0.0 {
-        avail_h.min(avail_w / DOLL_ASPECT)
+        avail_h.min(doll_w / DOLL_ASPECT)
     } else {
         avail_h
     };
     let preview = [
-        x + inset + (avail_w - preview_w) * 0.5,
+        x + inset + rail_w + (doll_w - preview_w) * 0.5,
         y + inset + (avail_h - preview_h) * 0.5,
         preview_w,
         preview_h,
@@ -130,11 +276,17 @@ pub fn layout(rect: [f32; 4]) -> InventoryLayout {
     }
 }
 
-/// The always-visible scrollbar occupies this edge lane, not a phantom item
-/// slot. Both views therefore report the capacity that is actually drawable.
+const FILTER_BAR_H: f32 = 20.0;
+
+/// The item well sits below the compact category filter row and leaves an edge channel for the scrollbar.
 fn item_well(rect: [f32; 4]) -> [f32; 4] {
     let [x, y, w, h] = layout(rect).grid;
-    [x, y, (w - SCROLLBAR_CHANNEL_W).max(0.0), h]
+    [
+        x,
+        y + FILTER_BAR_H,
+        (w - SCROLLBAR_CHANNEL_W).max(0.0),
+        (h - FILTER_BAR_H).max(0.0),
+    ]
 }
 
 fn grid_columns(rect: [f32; 4]) -> usize {
@@ -202,6 +354,28 @@ pub fn visible_held_range(rect: [f32; 4], held_count: usize) -> (usize, usize) {
     set_page(page);
     let start = page * capacity;
     (start, (start + capacity).min(held_count))
+}
+
+/// Copy the held-stack indices the grid is drawing right now, in draw order,
+/// into `out`; returns how many were written.
+///
+/// The 3D item lanes composite behind the cards, so they have to consume the
+/// same filtered, sorted, paged order the 2D layer used. Re-deriving it from
+/// `held()` puts a model under the wrong label the moment a filter or sort is
+/// active. Caller-owned buffer: this runs every frame and must not allocate.
+pub fn copy_visible_held_indices(rect: [f32; 4], out: &mut [usize]) -> usize {
+    let filtered = SORTED_INDICES.with(|indices| indices.borrow().len());
+    let (start, end) = visible_held_range(rect, filtered);
+    SORTED_INDICES.with(|indices| {
+        let indices = indices.borrow();
+        if start >= indices.len() {
+            return 0;
+        }
+        let slice = &indices[start..end.min(indices.len())];
+        let count = slice.len().min(out.len());
+        out[..count].copy_from_slice(&slice[..count]);
+        count
+    })
 }
 
 fn set_page(page: usize) {
@@ -287,20 +461,382 @@ fn action_button_rects(footer: FooterLayout) -> [[f32; 4]; 6] {
     ]
 }
 
+fn ensure_sorted_indices(model: &WindowModel) {
+    let filter = current_filter();
+    let sort = current_sort();
+    let held_rows: Vec<&super::InventoryRow> = model.inventory.held().collect();
+    let count = held_rows.len();
+
+    let mut checksum: u64 = 0;
+    for (idx, row) in held_rows.iter().enumerate() {
+        checksum = checksum.wrapping_add((idx as u64 + 1) * 31);
+        checksum = checksum.wrapping_add(row.item_id as u64);
+        checksum = checksum.wrapping_add(row.quantity as u64);
+        checksum = checksum.wrapping_add(if row.equipped { 1 } else { 0 });
+    }
+
+    let key = (filter, sort, count, checksum);
+    SORT_CACHE_KEY.with(|cache| {
+        if cache.get() == key {
+            return;
+        }
+        cache.set(key);
+        SORTED_INDICES.with(|indices| {
+            let mut vec = indices.borrow_mut();
+            vec.clear();
+            for (idx, row) in held_rows.iter().enumerate() {
+                if matches_filter(row, filter) {
+                    vec.push(idx);
+                }
+            }
+            match sort {
+                SortMode::Name => {
+                    vec.sort_by(|&a, &b| {
+                        held_rows[a]
+                            .item
+                            .to_ascii_uppercase()
+                            .cmp(&held_rows[b].item.to_ascii_uppercase())
+                            .then_with(|| a.cmp(&b))
+                    });
+                }
+                SortMode::Category => {
+                    vec.sort_by(|&a, &b| {
+                        kind_sort_order(held_rows[a].kind())
+                            .cmp(&kind_sort_order(held_rows[b].kind()))
+                            .then_with(|| {
+                                held_rows[a]
+                                    .item
+                                    .to_ascii_uppercase()
+                                    .cmp(&held_rows[b].item.to_ascii_uppercase())
+                            })
+                            .then_with(|| a.cmp(&b))
+                    });
+                }
+                SortMode::Quantity => {
+                    vec.sort_by(|&a, &b| {
+                        held_rows[b]
+                            .quantity
+                            .cmp(&held_rows[a].quantity)
+                            .then_with(|| {
+                                held_rows[a]
+                                    .item
+                                    .to_ascii_uppercase()
+                                    .cmp(&held_rows[b].item.to_ascii_uppercase())
+                            })
+                            .then_with(|| a.cmp(&b))
+                    });
+                }
+            }
+        });
+    });
+}
+
 fn reveal_selected_stack(rect: [f32; 4], model: &WindowModel) {
     let Some((container, stack_id)) = selected_identity() else {
         return;
     };
-    let Some(index) = model
-        .inventory
-        .held()
-        .position(|row| row.container == container && row.stack_id == stack_id)
-    else {
-        return;
-    };
-    set_page(index / grid_capacity(rect).max(1));
+    ensure_sorted_indices(model);
+    let held_rows: Vec<&super::InventoryRow> = model.inventory.held().collect();
+    let found_pos = SORTED_INDICES.with(|indices| {
+        indices.borrow().iter().position(|&idx| {
+            if idx < held_rows.len() {
+                let row = held_rows[idx];
+                row.container == container && row.stack_id == stack_id
+            } else {
+                false
+            }
+        })
+    });
+    if let Some(index) = found_pos {
+        set_page(index / grid_capacity(rect).max(1));
+    }
 }
 
+fn match_equip_slot(row: &super::InventoryRow) -> Option<EquipSlotKind> {
+    if !row.equipped {
+        return None;
+    }
+    let kind = row.kind();
+    if kind == super::ItemKind::Weapon {
+        return Some(EquipSlotKind::Weapon);
+    }
+    let name = row.item.to_ascii_uppercase();
+    let key = row.item_key.as_deref().unwrap_or("").to_ascii_lowercase();
+
+    if name.contains("HEAD")
+        || name.contains("HELM")
+        || name.contains("HAT")
+        || name.contains("CAP")
+        || name.contains("HOOD")
+        || name.contains("CROWN")
+        || key.contains("head")
+        || key.contains("helm")
+    {
+        Some(EquipSlotKind::Head)
+    } else if name.contains("FACE")
+        || name.contains("EYES")
+        || name.contains("VISOR")
+        || name.contains("GOGGLE")
+        || name.contains("GLASSES")
+        || name.contains("MONOCLE")
+        || key.contains("face")
+        || key.contains("visor")
+    {
+        Some(EquipSlotKind::Face)
+    } else if name.contains("BACK")
+        || name.contains("CAPE")
+        || name.contains("CLOAK")
+        || name.contains("PACK")
+        || key.contains("back")
+        || key.contains("cape")
+    {
+        Some(EquipSlotKind::Back)
+    } else if name.contains("ARM L")
+        || name.contains("BICEP L")
+        || name.contains("LEFT ARM")
+        || name.contains("BRACER L")
+        || name.contains("SHOULDER L")
+        || key.contains("arm_l")
+        || key.contains("bicep_l")
+    {
+        Some(EquipSlotKind::ArmLeft)
+    } else if name.contains("ARM R")
+        || name.contains("BICEP R")
+        || name.contains("RIGHT ARM")
+        || name.contains("BRACER R")
+        || name.contains("SHOULDER R")
+        || key.contains("arm_r")
+        || key.contains("bicep_r")
+    {
+        Some(EquipSlotKind::ArmRight)
+    } else if name.contains("HAND")
+        || name.contains("GLOVE")
+        || name.contains("GAUNTLET")
+        || key.contains("glove")
+        || key.contains("hand")
+    {
+        Some(EquipSlotKind::Hands)
+    } else if name.contains("BELT")
+        || name.contains("WAIST")
+        || name.contains("BANDOLIER")
+        || name.contains("SASH")
+        || key.contains("belt")
+    {
+        Some(EquipSlotKind::Belt)
+    } else if name.contains("LEG")
+        || name.contains("PANT")
+        || name.contains("TROUSER")
+        || name.contains("GREAVE")
+        || name.contains("KILT")
+        || name.contains("SKIRT")
+        || key.contains("leg")
+        || key.contains("pant")
+    {
+        Some(EquipSlotKind::Legs)
+    } else if name.contains("FEET")
+        || name.contains("BOOT")
+        || name.contains("SHOE")
+        || key.contains("boot")
+        || key.contains("feet")
+    {
+        Some(EquipSlotKind::Feet)
+    } else {
+        Some(EquipSlotKind::Torso)
+    }
+}
+
+fn draw_equipment_slot_rails(
+    ui: &mut UiBuilder,
+    model: &WindowModel,
+    icons: &Icons,
+    equipment_rect: [f32; 4],
+    preview_rect: [f32; 4],
+    out: &mut Vec<WindowAction>,
+) {
+    let [eq_x, _eq_y, eq_w, _eq_h] = equipment_rect;
+    let [px, py, pw, ph] = preview_rect;
+
+    let left_space = px - eq_x;
+    let right_space = (eq_x + eq_w) - (px + pw);
+
+    // `layout` already reserved the lanes; this only refuses to draw when a
+    // caller hands over a rect the reservation could not honour.
+    let slot_size = EQUIP_SLOT;
+    if left_space < slot_size + 4.0 || right_space < slot_size + 4.0 || ph < 120.0 {
+        return;
+    }
+
+    const LEFT_SLOTS: [EquipSlotKind; 6] = [
+        EquipSlotKind::Head,
+        EquipSlotKind::Face,
+        EquipSlotKind::Torso,
+        EquipSlotKind::ArmLeft,
+        EquipSlotKind::Hands,
+        EquipSlotKind::Weapon,
+    ];
+
+    const RIGHT_SLOTS: [EquipSlotKind; 5] = [
+        EquipSlotKind::Back,
+        EquipSlotKind::ArmRight,
+        EquipSlotKind::Belt,
+        EquipSlotKind::Legs,
+        EquipSlotKind::Feet,
+    ];
+
+    let left_x = eq_x + (left_space - slot_size) * 0.5;
+    let right_x = px + pw + (right_space - slot_size) * 0.5;
+
+    let left_step = if LEFT_SLOTS.len() > 1 {
+        (ph - slot_size) / (LEFT_SLOTS.len() - 1) as f32
+    } else {
+        0.0
+    };
+    for (i, &slot) in LEFT_SLOTS.iter().enumerate() {
+        let sy = py + i as f32 * left_step;
+        draw_single_equip_slot(ui, model, icons, slot, [left_x, sy, slot_size], out);
+    }
+
+    let right_step = if RIGHT_SLOTS.len() > 1 {
+        (ph - slot_size) / (RIGHT_SLOTS.len() - 1) as f32
+    } else {
+        0.0
+    };
+    for (j, &slot) in RIGHT_SLOTS.iter().enumerate() {
+        let sy = py + j as f32 * right_step;
+        draw_single_equip_slot(ui, model, icons, slot, [right_x, sy, slot_size], out);
+    }
+}
+
+fn draw_single_equip_slot(
+    ui: &mut UiBuilder,
+    model: &WindowModel,
+    icons: &Icons,
+    slot: EquipSlotKind,
+    cell: [f32; 3],
+    out: &mut Vec<WindowAction>,
+) {
+    let [sx, sy, slot_size] = cell;
+    let equipped_row = model
+        .inventory
+        .held()
+        .find(|r| r.equipped && match_equip_slot(r) == Some(slot));
+
+    let is_selected = equipped_row.is_some_and(|r| {
+        SELECTED.with(|sel| {
+            sel.borrow()
+                .as_ref()
+                .is_some_and(|(c, s)| c == &r.container && s == &r.stack_id)
+        })
+    });
+
+    ui.rect(sx, sy, slot_size, slot_size, super::slot());
+    if is_selected {
+        ui.border(sx, sy, slot_size, slot_size, 1.5, accent());
+    } else {
+        ui.border(sx, sy, slot_size, slot_size, 1.0, slot_edge());
+    }
+
+    if let Some(row) = equipped_row {
+        let kind = row.kind();
+        if let Some((col, glyph_row)) = icons.cell(kind.icon()) {
+            ui.icon(
+                col,
+                glyph_row,
+                sx + 2.0,
+                sy + 2.0,
+                slot_size - 4.0,
+                slot_size - 4.0,
+                text(),
+            );
+        }
+
+        let resp = ui.interact(sx, sy, slot_size, slot_size);
+        if resp.hovered && !is_selected {
+            ui.border(sx, sy, slot_size, slot_size, 1.0, super::chrome::hover());
+        }
+
+        if resp.clicked {
+            if is_selected {
+                let command = if row.kind() == super::ItemKind::Gear {
+                    successor_net::ClientCommand::SetEquippedClothing {
+                        item_id: row.item_id,
+                        equipped: false,
+                        container: Some(row.container.clone()),
+                        stack_id: Some(row.stack_id.clone()),
+                        variant_id: Some(row.variant_id),
+                    }
+                } else {
+                    successor_net::ClientCommand::SetEquippedWeapon {
+                        weapon_id: None,
+                        weapon_item_id: None,
+                        weapon_variant_id: None,
+                    }
+                };
+                out.push(WindowAction::Command(command));
+            } else {
+                select_identity(&row.container, &row.stack_id);
+                out.push(WindowAction::Select(row.item_id));
+            }
+        }
+    }
+}
+
+fn draw_filter_and_sort_bar(
+    ui: &mut UiBuilder,
+    grid_rect: [f32; 4],
+    rect: [f32; 4],
+    model: &WindowModel,
+) {
+    let [grid_x, grid_y, grid_w, _grid_h] = grid_rect;
+    let avail_w = (grid_w - SCROLLBAR_CHANNEL_W).max(0.0);
+    if avail_w <= 0.0 {
+        return;
+    }
+
+    let current_f = current_filter();
+    let current_s = current_sort();
+
+    let sort_w = (avail_w * 0.22).clamp(50.0, 75.0);
+    let filter_avail_w = (avail_w - sort_w - 4.0).max(0.0);
+
+    const FILTERS: [(CategoryFilter, &str); 7] = [
+        (CategoryFilter::All, "ALL"),
+        (CategoryFilter::Weapon, "WEAPON"),
+        (CategoryFilter::Armor, "ARMOR"),
+        (CategoryFilter::Clothing, "CLOTHING"),
+        (CategoryFilter::Consumable, "CONSUMABLE"),
+        (CategoryFilter::Resource, "RESOURCE"),
+        (CategoryFilter::Misc, "MISC"),
+    ];
+
+    let tab_w = filter_avail_w / FILTERS.len() as f32;
+
+    for (i, &(f, label)) in FILTERS.iter().enumerate() {
+        let tx = grid_x + i as f32 * tab_w;
+        let ty = grid_y;
+        let is_active = current_f == f;
+
+        let style = ButtonStyle::default();
+        if ui.button(tx, ty, tab_w, 18.0, label, style) && current_f != f {
+            set_filter(f);
+            set_page(0);
+            reveal_selected_stack(rect, model);
+        }
+        if is_active {
+            ui.rect(tx + 1.0, ty + 16.0, (tab_w - 2.0).max(0.0), 2.0, accent());
+        }
+    }
+
+    let sort_x = grid_x + avail_w - sort_w;
+    let sort_label = match current_s {
+        SortMode::Name => "SORT: NAME",
+        SortMode::Category => "SORT: CAT",
+        SortMode::Quantity => "SORT: QTY",
+    };
+    if ui.button(sort_x, grid_y, sort_w, 18.0, sort_label, ButtonStyle::default()) {
+        cycle_sort();
+    }
+}
 fn draw_scrollbar(
     ui: &mut UiBuilder,
     rect: [f32; 4],
@@ -311,21 +847,14 @@ fn draw_scrollbar(
 ) {
     let [grid_x, grid_y, grid_w, grid_h] = layout(rect).grid;
     let channel_x = grid_x + grid_w - SCROLLBAR_CHANNEL_W;
-    let track_y = grid_y + 3.0;
-    let track_h = (grid_h - GRID_STATUS_H - 6.0).max(0.0);
+    let track_y = grid_y + FILTER_BAR_H + 3.0;
+    let track_h = (grid_h - FILTER_BAR_H - GRID_STATUS_H - 6.0).max(0.0);
     ui.rect(
         channel_x,
-        grid_y + 1.0,
+        grid_y + FILTER_BAR_H + 1.0,
         SCROLLBAR_CHANNEL_W,
         track_h + 4.0,
-        [0x00, 0x28, 0x30, 235],
-    );
-    ui.rect(
-        channel_x,
-        grid_y + 1.0,
-        1.0,
-        track_h + 4.0,
-        super::chrome::RAIL,
+        slot(),
     );
     if track_h <= 0.0 {
         return;
@@ -348,7 +877,7 @@ fn draw_scrollbar(
         thumb_y,
         (SCROLLBAR_CHANNEL_W - 5.0).max(0.0),
         thumb_h,
-        ACCENT,
+        accent(),
     );
 }
 
@@ -377,9 +906,9 @@ fn draw_segmented_usage_meter(
             segment_w,
             4.0,
             if index < filled {
-                ACCENT
+                accent()
             } else {
-                [0x00, 0x28, 0x30, 235]
+                slot()
             },
         );
     }
@@ -404,6 +933,7 @@ fn draw_page_navigation(ui: &mut UiBuilder, grid: [f32; 4], page: usize, page_co
         set_page(page + 1);
     }
 }
+
 pub fn draw(
     ui: &mut UiBuilder,
     rect: [f32; 4],
@@ -416,165 +946,165 @@ pub fn draw(
     let [gx, gy, gw, gh] = panes.grid;
     let view = current_view();
 
-    let held_count = inv.held().count();
+    ensure_sorted_indices(model);
+    let filtered_count = SORTED_INDICES.with(|idx| idx.borrow().len());
     let capacity = grid_capacity(rect).max(1);
-    let (visible_start, visible_end) = visible_held_range(rect, held_count);
+    let (visible_start, visible_end) = visible_held_range(rect, filtered_count);
 
-    // One true content region: the item field. Fill plus a single top hairline,
-    // never a box around the grid and never a box per cell. Live 3D item icons
-    // composite over this well after the UI pass, so the fill stays whole.
     super::chrome::region(ui, [gx, gy, gw, gh]);
-    // The equipment column carries the live character doll: its well is the
-    // backdrop the doll composites over, and the seat frames the viewport.
     super::chrome::region(ui, panes.equipment);
     super::chrome::viewer_seat(ui, panes.preview);
+
+    draw_equipment_slot_rails(ui, model, icons, panes.equipment, panes.preview, out);
+    draw_filter_and_sort_bar(ui, panes.grid, rect, model);
+
     let page = visible_start / capacity;
-    let page_count = if held_count == 0 {
+    let page_count = if filtered_count == 0 {
         0
     } else {
-        held_count.saturating_sub(1) / capacity + 1
+        filtered_count.saturating_sub(1) / capacity + 1
     };
-    for (index, row) in inv
-        .held()
-        .skip(visible_start)
-        .take(visible_end - visible_start)
-        .enumerate()
-    {
-        let Some([sx, sy, card_w, card_h]) = grid_card_rect(rect, index) else {
-            break;
+
+    let held_rows: Vec<&super::InventoryRow> = inv.held().collect();
+
+    SORTED_INDICES.with(|indices| {
+        let b = indices.borrow();
+        let slice = if visible_start < b.len() {
+            &b[visible_start..visible_end.min(b.len())]
+        } else {
+            &[]
         };
-        let resp = ui.interact(sx, sy, card_w, card_h);
-        let selected = SELECTED.with(|selection| {
-            selection
-                .borrow()
-                .as_ref()
-                .is_some_and(|(container, stack_id)| {
-                    *container == row.container && *stack_id == row.stack_id
-                })
-        });
-        // Original item fields stay open: only hover/selection paints a hit
-        // target. Unselected stacks share the single inventory well.
-        if selected {
-            ui.rect(sx, sy, card_w, card_h, super::chrome::SELECTED);
-        } else if resp.hovered {
-            ui.rect(sx, sy, card_w, card_h, super::chrome::HOVER);
-        }
-        if selected {
+
+        for (index, &row_idx) in slice.iter().enumerate() {
+            if row_idx >= held_rows.len() {
+                continue;
+            }
+            let row = held_rows[row_idx];
+            let Some([sx, sy, card_w, card_h]) = grid_card_rect(rect, index) else {
+                break;
+            };
+            let resp = ui.interact(sx, sy, card_w, card_h);
+            let selected = SELECTED.with(|selection| {
+                selection
+                    .borrow()
+                    .as_ref()
+                    .is_some_and(|(container, stack_id)| {
+                        *container == row.container && *stack_id == row.stack_id
+                    })
+            });
+            if selected {
+                ui.rect(sx, sy, card_w, card_h, super::chrome::selected());
+            } else if resp.hovered {
+                ui.rect(sx, sy, card_w, card_h, super::chrome::hover());
+            }
+            if selected {
+                match view {
+                    InventoryView::IconGrid => {
+                        ui.rect(sx, sy + card_h - 2.0, card_w, 2.0, accent());
+                    }
+                    InventoryView::CompactList => {
+                        ui.rect(sx + 1.0, sy + 2.0, 2.0, (card_h - 4.0).max(0.0), accent());
+                    }
+                }
+            }
+
+            let kind = row.kind();
             match view {
                 InventoryView::IconGrid => {
-                    ui.rect(sx, sy + card_h - 2.0, card_w, 2.0, ACCENT);
+                    ui.text(kind_label(kind), sx + 4.0, sy + 3.0, 1.0, dim());
+                    let hosted = index < crate::item_preview::INVENTORY_LANES;
+                    if let Some((column, glyph_row)) = icons.cell(kind.icon()).filter(|_| !hosted) {
+                        let icon_size = (card_w * 0.36)
+                            .clamp(14.0, 28.0)
+                            .min((card_w - 20.0).max(0.0));
+                        let icon_top = sy + 15.0;
+                        let icon_bottom = sy + card_w - 17.0;
+                        ui.icon(
+                            column,
+                            glyph_row,
+                            sx + (card_w - icon_size) * 0.5,
+                            icon_top + ((icon_bottom - icon_top - icon_size) * 0.5).max(0.0),
+                            icon_size,
+                            icon_size,
+                            text(),
+                        );
+                    }
+                    super::chrome::text_clipped(
+                        ui,
+                        &row.item,
+                        sx + 3.0,
+                        sy + card_w + 3.0,
+                        1.05,
+                        (card_w - 6.0).max(0.0),
+                        text(),
+                    );
+                    let quantity = row.quantity.to_string();
+                    ui.text(
+                        &quantity,
+                        sx + card_w - ui.measure_text(&quantity, 1.2) - 3.0,
+                        sy + card_w - 12.0,
+                        1.2,
+                        text(),
+                    );
+                    if row.equipped {
+                        ui.rect(sx + 3.0, sy + card_w - 4.0, card_w - 6.0, 2.0, accent());
+                    }
+                    if row.reserved > 0 {
+                        ui.rect(sx + card_w - 7.0, sy + 4.0, 4.0, 4.0, [214, 138, 62, 255]);
+                    }
                 }
                 InventoryView::CompactList => {
-                    ui.rect(sx + 1.0, sy + 2.0, 2.0, (card_h - 4.0).max(0.0), ACCENT);
-                }
-            }
-        }
-
-        let kind = row.kind();
-        match view {
-            InventoryView::IconGrid => {
-                ui.text(kind_label(kind), sx + 4.0, sy + 3.0, 1.0, DIM);
-                // The original shows a live 3D icon per item. A lane hosts the
-                // first `INVENTORY_LANES` visible cards, and its model is
-                // composited under this cell — drawing the atlas glyph there
-                // too would stamp a flat picture over the model. Cards past the
-                // hosted range keep the glyph as the fallback.
-                let hosted = index < crate::item_preview::INVENTORY_LANES;
-                if let Some((column, glyph_row)) = icons.cell(kind.icon()).filter(|_| !hosted) {
-                    let icon_size = (card_w * 0.36)
-                        .clamp(14.0, 28.0)
-                        .min((card_w - 20.0).max(0.0));
-                    let icon_top = sy + 15.0;
-                    let icon_bottom = sy + card_w - 17.0;
-                    ui.icon(
-                        column,
-                        glyph_row,
-                        sx + (card_w - icon_size) * 0.5,
-                        icon_top + ((icon_bottom - icon_top - icon_size) * 0.5).max(0.0),
-                        icon_size,
-                        icon_size,
-                        TEXT,
+                    let icon_size = (card_h - 6.0).clamp(0.0, 18.0);
+                    if let Some((column, glyph_row)) = icons.cell(kind.icon()) {
+                        ui.icon(
+                            column,
+                            glyph_row,
+                            sx + 5.0,
+                            sy + (card_h - icon_size) * 0.5,
+                            icon_size,
+                            icon_size,
+                            text(),
+                        );
+                    }
+                    let label_x = sx + icon_size + 10.0;
+                    let quantity = row.quantity.to_string();
+                    let quantity_x = sx + card_w - ui.measure_text(&quantity, 1.1) - 6.0;
+                    super::chrome::text_clipped(
+                        ui,
+                        &row.item,
+                        label_x,
+                        sy + 3.0,
+                        1.1,
+                        (quantity_x - label_x - 6.0).max(0.0),
+                        text(),
                     );
-                }
-                super::chrome::text_clipped(
-                    ui,
-                    &row.item,
-                    sx + 3.0,
-                    sy + card_w + 3.0,
-                    1.05,
-                    (card_w - 6.0).max(0.0),
-                    TEXT,
-                );
-                let quantity = row.quantity.to_string();
-                ui.text(
-                    &quantity,
-                    sx + card_w - ui.measure_text(&quantity, 1.2) - 3.0,
-                    sy + card_w - 12.0,
-                    1.2,
-                    TEXT,
-                );
-                if row.equipped {
-                    ui.rect(sx + 3.0, sy + card_w - 4.0, card_w - 6.0, 2.0, ACCENT);
-                }
-                if row.reserved > 0 {
-                    ui.rect(sx + card_w - 7.0, sy + 4.0, 4.0, 4.0, [214, 138, 62, 255]);
+                    ui.text(kind_label(kind), label_x, sy + 14.0, 0.9, dim());
+                    ui.text(&quantity, quantity_x, sy + 14.0, 1.1, text());
+                    if row.equipped {
+                        ui.rect(sx + 4.0, sy + card_h - 3.0, 10.0, 2.0, accent());
+                    }
+                    if row.reserved > 0 {
+                        ui.rect(sx + 17.0, sy + card_h - 3.0, 4.0, 2.0, [214, 138, 62, 255]);
+                    }
                 }
             }
-            InventoryView::CompactList => {
-                let icon_size = (card_h - 6.0).clamp(0.0, 18.0);
-                if let Some((column, glyph_row)) = icons.cell(kind.icon()) {
-                    ui.icon(
-                        column,
-                        glyph_row,
-                        sx + 5.0,
-                        sy + (card_h - icon_size) * 0.5,
-                        icon_size,
-                        icon_size,
-                        TEXT,
-                    );
-                }
-                let label_x = sx + icon_size + 10.0;
-                let quantity = row.quantity.to_string();
-                let quantity_x = sx + card_w - ui.measure_text(&quantity, 1.1) - 6.0;
-                super::chrome::text_clipped(
-                    ui,
-                    &row.item,
-                    label_x,
-                    sy + 3.0,
-                    1.1,
-                    (quantity_x - label_x - 6.0).max(0.0),
-                    TEXT,
-                );
-                ui.text(kind_label(kind), label_x, sy + 14.0, 0.9, DIM);
-                ui.text(&quantity, quantity_x, sy + 14.0, 1.1, TEXT);
-                if row.equipped {
-                    ui.rect(sx + 4.0, sy + card_h - 3.0, 10.0, 2.0, ACCENT);
-                }
-                if row.reserved > 0 {
-                    ui.rect(sx + 17.0, sy + card_h - 3.0, 4.0, 2.0, [214, 138, 62, 255]);
-                }
+            if resp.clicked {
+                SELECTED.with(|selection| {
+                    *selection.borrow_mut() = Some((row.container.clone(), row.stack_id.clone()));
+                });
+                out.push(WindowAction::Select(row.item_id));
             }
         }
-        if resp.clicked {
-            SELECTED.with(|selection| {
-                *selection.borrow_mut() = Some((row.container.clone(), row.stack_id.clone()));
-            });
-            out.push(WindowAction::Select(row.item_id));
-        }
-    }
+    });
 
-    draw_scrollbar(ui, rect, held_count, capacity, page, page_count);
-    if held_count == 0 {
-        ui.text("NO HELD STACKS", gx + 6.0, gy + 8.0, 1.15, DIM);
+    draw_scrollbar(ui, rect, filtered_count, capacity, page, page_count);
+    if filtered_count == 0 {
+        ui.text("NO HELD STACKS", gx + 6.0, gy + FILTER_BAR_H + 8.0, 1.15, dim());
     }
     draw_page_navigation(ui, [gx, gy, gw, gh], page, page_count);
 
-    // The footer is one shallow region: inventory status, economy snapshot,
-    // selected details, and controls all share the same frame. The character
-    // doll lives in the equipment column, not down here.
     super::chrome::region(ui, panes.footer);
     let footer = footer_layout(rect);
-    let visible_count = visible_end - visible_start;
     let view_label = match view {
         InventoryView::IconGrid => "GRID",
         InventoryView::CompactList => "LIST",
@@ -584,9 +1114,12 @@ pub fn draw(
     } else {
         format!("PAGE {}/{}", page + 1, page_count)
     };
+
+    // InventoryModel currently exposes no container volume capacity field.
+    // We report held_count honestly as HELD STACKS <N>, without inventing a fake capacity.
     let status = format!(
-        "{} {} / VIEWPORT {}/{}",
-        view_label, page_label, visible_count, capacity
+        "{} {} / HELD STACKS {}",
+        view_label, page_label, inv.held().count()
     );
     super::chrome::text_clipped(
         ui,
@@ -595,7 +1128,7 @@ pub fn draw(
         footer.info[1],
         1.0,
         (footer.change_view[0] - footer.info[0] - 5.0).max(0.0),
-        DIM,
+        dim(),
     );
     if ui.button(
         footer.change_view[0],
@@ -613,8 +1146,8 @@ pub fn draw(
         footer.info[0],
         footer.info[1] + 15.0,
         (footer.info[2] * 0.45).clamp(0.0, 96.0),
-        visible_count,
-        capacity,
+        inv.held().count(),
+        inv.held().count().max(1),
     );
     let bank = model
         .bank
@@ -630,7 +1163,7 @@ pub fn draw(
         footer.info[1] + 27.0,
         1.0,
         footer.info[2],
-        ACCENT,
+        accent(),
     );
     let wielded = format!("WIELD {}", inv.weapon_label.as_deref().unwrap_or("--"));
     super::chrome::text_clipped(
@@ -640,10 +1173,25 @@ pub fn draw(
         footer.info[1] + 40.0,
         1.0,
         footer.info[2],
-        TEXT,
+        text(),
     );
 
-    match selected_row(model) {
+    let current_selected_row = selected_row(model);
+
+    // Keep split stepper in sync with selection
+    let is_split_armed = current_selected_row.as_ref().is_some_and(|row| {
+        SPLIT_STEPPER.with(|s| {
+            s.borrow()
+                .as_ref()
+                .is_some_and(|st| st.container == row.container && st.stack_id == row.stack_id && row.available > 1)
+        })
+    });
+
+    if !is_split_armed && current_selected_row.as_ref().is_none() {
+        SPLIT_STEPPER.with(|s| *s.borrow_mut() = None);
+    }
+
+    match current_selected_row {
         Some(row) => {
             super::chrome::text_clipped(
                 ui,
@@ -652,8 +1200,9 @@ pub fn draw(
                 footer.info[1] + 53.0,
                 1.15,
                 footer.info[2],
-                TEXT,
+                text(),
             );
+
             let mut details = format!("{} / QTY {}", kind_label(row.kind()), row.quantity);
             if let Some(potency) = row.potency {
                 details.push_str(&format!(" / POT {}", potency));
@@ -661,6 +1210,12 @@ pub fn draw(
             if let Some(purity) = row.purity {
                 details.push_str(&format!(" / PUR {}", purity));
             }
+
+            if is_split_armed {
+                let stepper_qty = SPLIT_STEPPER.with(|s| s.borrow().as_ref().map(|st| st.quantity).unwrap_or(1));
+                details = format!("SPLIT STACK / QTY {} / MAX {}", stepper_qty, row.available - 1);
+            }
+
             super::chrome::text_clipped(
                 ui,
                 &details,
@@ -668,106 +1223,172 @@ pub fn draw(
                 footer.info[1] + 67.0,
                 0.95,
                 footer.info[2],
-                DIM,
+                dim(),
             );
 
             let button = ButtonStyle::default();
             let buttons = action_button_rects(footer);
-            let [use_x, use_y, use_w, use_h] = buttons[0];
-            if ui.button(use_x, use_y, use_w, use_h, "USE", button) {
-                let command = if row.is_credit_chip() {
-                    successor_net::ClientCommand::RedeemCreditChip {
-                        container: row.container.clone(),
-                        stack_id: row.stack_id.clone(),
-                    }
-                } else if row.kind() == super::ItemKind::Ammo {
-                    successor_net::ClientCommand::RefillAmmo {
-                        item_id: row
-                            .item_key
-                            .clone()
-                            .unwrap_or_else(|| row.item_id.to_string()),
-                    }
-                } else {
-                    successor_net::ClientCommand::UseConsumable {
-                        item_id: row
-                            .item_key
-                            .clone()
-                            .unwrap_or_else(|| row.item_id.to_string()),
-                        item_numeric_id: Some(row.item_id),
-                        variant_id: Some(row.variant_id),
-                    }
-                };
-                out.push(WindowAction::Command(command));
-            }
-            let [equip_x, equip_y, equip_w, equip_h] = buttons[1];
-            let equip = if row.equipped { "UNEQUIP" } else { "EQUIP" };
-            if ui.button(equip_x, equip_y, equip_w, equip_h, equip, button) {
-                let command = if row.kind() == super::ItemKind::Gear {
-                    successor_net::ClientCommand::SetEquippedClothing {
-                        item_id: row.item_id,
-                        equipped: !row.equipped,
-                        container: Some(row.container.clone()),
-                        stack_id: Some(row.stack_id.clone()),
-                        variant_id: Some(row.variant_id),
-                    }
-                } else {
-                    successor_net::ClientCommand::SetEquippedWeapon {
-                        weapon_id: None,
-                        weapon_item_id: (!row.equipped).then_some(row.item_id),
-                        weapon_variant_id: (!row.equipped).then_some(row.variant_id),
-                    }
-                };
-                out.push(WindowAction::Command(command));
-            }
-            let [drop_x, drop_y, drop_w, drop_h] = buttons[2];
-            if ui.button(drop_x, drop_y, drop_w, drop_h, "DROP", button) {
-                out.push(WindowAction::Command(
-                    successor_net::ClientCommand::DiscardStack {
-                        container: row.container.clone(),
-                        stack_id: row.stack_id.clone(),
-                        item_id: row.item_id,
-                        variant_id: row.variant_id,
-                    },
-                ));
-            }
-            let [split_x, split_y, split_w, split_h] = buttons[3];
-            if row.available > 1 && ui.button(split_x, split_y, split_w, split_h, "SPLIT", button) {
-                out.push(WindowAction::Command(
-                    successor_net::ClientCommand::SplitStack {
-                        container: row.container.clone(),
-                        stack_id: row.stack_id.clone(),
-                        item_id: row.item_id,
-                        variant_id: row.variant_id,
-                        quantity: (row.available / 2).max(1) as u32,
-                    },
-                ));
-            }
-            let [merge_x, merge_y, merge_w, merge_h] = buttons[4];
-            if let Some(target) = inv.held().find(|other| {
-                other.stack_id != row.stack_id
-                    && other.container == row.container
-                    && other.item_id == row.item_id
-                    && other.variant_id == row.variant_id
-            }) {
-                if ui.button(merge_x, merge_y, merge_w, merge_h, "MERGE", button) {
+
+            if is_split_armed {
+                let max_split = (row.available - 1).max(1) as u32;
+                let mut stepper_qty = SPLIT_STEPPER.with(|s| s.borrow().as_ref().map(|st| st.quantity).unwrap_or(1)).clamp(1, max_split);
+                let step = 1u32;
+
+                let [minus_x, minus_y, minus_w, minus_h] = buttons[0];
+                if ui.button(minus_x, minus_y, minus_w, minus_h, "-", button) {
+                    stepper_qty = stepper_qty.saturating_sub(step).clamp(1, max_split);
+                    SPLIT_STEPPER.with(|s| {
+                        if let Some(st) = s.borrow_mut().as_mut() {
+                            st.quantity = stepper_qty;
+                        }
+                    });
+                }
+
+                let [plus_x, plus_y, plus_w, plus_h] = buttons[1];
+                if ui.button(plus_x, plus_y, plus_w, plus_h, "+", button) {
+                    stepper_qty = (stepper_qty + step).clamp(1, max_split);
+                    SPLIT_STEPPER.with(|s| {
+                        if let Some(st) = s.borrow_mut().as_mut() {
+                            st.quantity = stepper_qty;
+                        }
+                    });
+                }
+
+                let [half_x, half_y, half_w, half_h] = buttons[2];
+                if ui.button(half_x, half_y, half_w, half_h, "HALF", button) {
+                    stepper_qty = ((row.available / 2).max(1) as u32).min(max_split);
+                    SPLIT_STEPPER.with(|s| {
+                        if let Some(st) = s.borrow_mut().as_mut() {
+                            st.quantity = stepper_qty;
+                        }
+                    });
+                }
+
+                let [all_x, all_y, all_w, all_h] = buttons[3];
+                if ui.button(all_x, all_y, all_w, all_h, "ALL", button) {
+                    stepper_qty = max_split;
+                    SPLIT_STEPPER.with(|s| {
+                        if let Some(st) = s.borrow_mut().as_mut() {
+                            st.quantity = stepper_qty;
+                        }
+                    });
+                }
+
+                let [confirm_x, confirm_y, confirm_w, confirm_h] = buttons[4];
+                if ui.button(confirm_x, confirm_y, confirm_w, confirm_h, "CONFIRM", button) {
                     out.push(WindowAction::Command(
-                        successor_net::ClientCommand::MergeStacks {
+                        successor_net::ClientCommand::SplitStack {
                             container: row.container.clone(),
-                            source_stack_id: row.stack_id.clone(),
-                            target_stack_id: target.stack_id.clone(),
+                            stack_id: row.stack_id.clone(),
+                            item_id: row.item_id,
+                            variant_id: row.variant_id,
+                            quantity: stepper_qty,
+                        },
+                    ));
+                    SPLIT_STEPPER.with(|s| *s.borrow_mut() = None);
+                }
+
+                let [cancel_x, cancel_y, cancel_w, cancel_h] = buttons[5];
+                if ui.button(cancel_x, cancel_y, cancel_w, cancel_h, "CANCEL", button) {
+                    SPLIT_STEPPER.with(|s| *s.borrow_mut() = None);
+                }
+            } else {
+                let [use_x, use_y, use_w, use_h] = buttons[0];
+                if ui.button(use_x, use_y, use_w, use_h, "USE", button) {
+                    let command = if row.is_credit_chip() {
+                        successor_net::ClientCommand::RedeemCreditChip {
+                            container: row.container.clone(),
+                            stack_id: row.stack_id.clone(),
+                        }
+                    } else if row.kind() == super::ItemKind::Ammo {
+                        successor_net::ClientCommand::RefillAmmo {
+                            item_id: row
+                                .item_key
+                                .clone()
+                                .unwrap_or_else(|| row.item_id.to_string()),
+                        }
+                    } else {
+                        successor_net::ClientCommand::UseConsumable {
+                            item_id: row
+                                .item_key
+                                .clone()
+                                .unwrap_or_else(|| row.item_id.to_string()),
+                            item_numeric_id: Some(row.item_id),
+                            variant_id: Some(row.variant_id),
+                        }
+                    };
+                    out.push(WindowAction::Command(command));
+                }
+                let [equip_x, equip_y, equip_w, equip_h] = buttons[1];
+                let equip = if row.equipped { "UNEQUIP" } else { "EQUIP" };
+                if ui.button(equip_x, equip_y, equip_w, equip_h, equip, button) {
+                    let command = if row.kind() == super::ItemKind::Gear {
+                        successor_net::ClientCommand::SetEquippedClothing {
+                            item_id: row.item_id,
+                            equipped: !row.equipped,
+                            container: Some(row.container.clone()),
+                            stack_id: Some(row.stack_id.clone()),
+                            variant_id: Some(row.variant_id),
+                        }
+                    } else {
+                        successor_net::ClientCommand::SetEquippedWeapon {
+                            weapon_id: None,
+                            weapon_item_id: (!row.equipped).then_some(row.item_id),
+                            weapon_variant_id: (!row.equipped).then_some(row.variant_id),
+                        }
+                    };
+                    out.push(WindowAction::Command(command));
+                }
+                let [drop_x, drop_y, drop_w, drop_h] = buttons[2];
+                if ui.button(drop_x, drop_y, drop_w, drop_h, "DROP", button) {
+                    out.push(WindowAction::Command(
+                        successor_net::ClientCommand::DiscardStack {
+                            container: row.container.clone(),
+                            stack_id: row.stack_id.clone(),
+                            item_id: row.item_id,
+                            variant_id: row.variant_id,
                         },
                     ));
                 }
-            }
-            let [store_x, store_y, store_w, store_h] = buttons[5];
-            if row.available > 0 && ui.button(store_x, store_y, store_w, store_h, "STORE", button) {
-                out.push(WindowAction::Command(
-                    successor_net::ClientCommand::StoreToExchange {
-                        item_id: row.item_id,
-                        variant_id: row.variant_id,
-                        quantity: row.available as u32,
-                    },
-                ));
+                let [split_x, split_y, split_w, split_h] = buttons[3];
+                if row.available > 1 && ui.button(split_x, split_y, split_w, split_h, "SPLIT", button) {
+                    let max_split = (row.available - 1).max(1) as u32;
+                    let initial_qty = ((row.available / 2).max(1) as u32).min(max_split);
+                    SPLIT_STEPPER.with(|s| {
+                        *s.borrow_mut() = Some(SplitStepperState {
+                            container: row.container.clone(),
+                            stack_id: row.stack_id.clone(),
+                            quantity: initial_qty,
+                        });
+                    });
+                }
+                let [merge_x, merge_y, merge_w, merge_h] = buttons[4];
+                if let Some(target) = inv.held().find(|other| {
+                    other.stack_id != row.stack_id
+                        && other.container == row.container
+                        && other.item_id == row.item_id
+                        && other.variant_id == row.variant_id
+                }) {
+                    if ui.button(merge_x, merge_y, merge_w, merge_h, "MERGE", button) {
+                        out.push(WindowAction::Command(
+                            successor_net::ClientCommand::MergeStacks {
+                                container: row.container.clone(),
+                                source_stack_id: row.stack_id.clone(),
+                                target_stack_id: target.stack_id.clone(),
+                            },
+                        ));
+                    }
+                }
+                let [store_x, store_y, store_w, store_h] = buttons[5];
+                if row.available > 0 && ui.button(store_x, store_y, store_w, store_h, "STORE", button) {
+                    out.push(WindowAction::Command(
+                        successor_net::ClientCommand::StoreToExchange {
+                            item_id: row.item_id,
+                            variant_id: row.variant_id,
+                            quantity: row.available as u32,
+                        },
+                    ));
+                }
             }
         }
         None => {
@@ -776,14 +1397,14 @@ pub fn draw(
                 footer.info[0],
                 footer.info[1] + 53.0,
                 1.15,
-                DIM,
+                dim(),
             );
             ui.text(
                 "DETAILS AND ACTIONS",
                 footer.info[0],
                 footer.info[1] + 67.0,
                 0.95,
-                DIM,
+                dim(),
             );
         }
     }
@@ -848,6 +1469,10 @@ mod tests {
     fn reset_ui_state() {
         set_view(InventoryView::IconGrid);
         set_page(0);
+        set_filter(CategoryFilter::All);
+        SORT.with(|s| s.set(SortMode::Name));
+        SORT_CACHE_KEY.with(|k| k.set((CategoryFilter::All, SortMode::Name, 0, 0)));
+        SPLIT_STEPPER.with(|s| *s.borrow_mut() = None);
         clear_selection();
     }
 
@@ -1116,5 +1741,206 @@ mod tests {
                 );
             }
         }
+    }
+    #[test]
+    fn slot_click_selects_and_second_slot_click_unequips() {
+        reset_ui_state();
+        let icons = Icons::load();
+        let mut model = WindowModel::sample();
+        model.inventory.rows = vec![InventoryRow {
+            container: "player:pack".into(),
+            stack_id: "vest-1".into(),
+            item: "Armor Vest".into(),
+            item_id: 2001,
+            quantity: 1,
+            available: 1,
+            equipped: true,
+            ..Default::default()
+        }];
+        let mut ui = UiBuilder::new(icons.meta);
+
+        let panes = layout(RECT);
+        let slot_size = 20.0;
+        let left_space = panes.preview[0] - panes.equipment[0];
+        let slot_x = panes.equipment[0] + (left_space - slot_size) * 0.5;
+        let left_step = (panes.preview[3] - slot_size) / 5.0;
+        let slot_y = panes.preview[1] + 2.0 * left_step;
+
+        let out = click(&mut ui, &model, &icons, slot_x + slot_size * 0.5, slot_y + slot_size * 0.5);
+        assert!(out.contains(&WindowAction::Select(2001)), "first slot click selects stack");
+        assert_eq!(selected_identity(), Some(("player:pack".into(), "vest-1".into())));
+
+        let out = click(&mut ui, &model, &icons, slot_x + slot_size * 0.5, slot_y + slot_size * 0.5);
+        assert!(
+            out.contains(&WindowAction::Command(
+                successor_net::ClientCommand::SetEquippedClothing {
+                    item_id: 2001,
+                    equipped: false,
+                    container: Some("player:pack".into()),
+                    stack_id: Some("vest-1".into()),
+                    variant_id: Some(0),
+                }
+            )),
+            "second click unequips stack, got {out:?}"
+        );
+        reset_ui_state();
+    }
+
+    #[test]
+    fn filter_narrows_rows() {
+        reset_ui_state();
+        let icons = Icons::load();
+        let mut model = WindowModel::sample();
+        model.inventory.rows = vec![
+            InventoryRow {
+                container: "player".into(),
+                stack_id: "w1".into(),
+                item: "Pistol".into(),
+                item_id: 3101,
+                quantity: 1,
+                available: 1,
+                ..Default::default()
+            },
+            InventoryRow {
+                container: "player".into(),
+                stack_id: "r1".into(),
+                item: "Copper Ore".into(),
+                item_id: 501,
+                quantity: 10,
+                available: 10,
+                resource_stats: Some(Default::default()),
+                ..Default::default()
+            },
+        ];
+        let mut ui = UiBuilder::new(icons.meta);
+
+        ui.begin(1280, 720);
+        let mut out = Vec::new();
+        draw(&mut ui, RECT, &model, &icons, &mut out);
+        assert_eq!(SORTED_INDICES.with(|i| i.borrow().len()), 2);
+
+        set_filter(CategoryFilter::Weapon);
+        ui.begin(1280, 720);
+        draw(&mut ui, RECT, &model, &icons, &mut out);
+        assert_eq!(SORTED_INDICES.with(|i| i.borrow().len()), 1);
+
+        set_filter(CategoryFilter::Resource);
+        ui.begin(1280, 720);
+        draw(&mut ui, RECT, &model, &icons, &mut out);
+        assert_eq!(SORTED_INDICES.with(|i| i.borrow().len()), 1);
+
+        reset_ui_state();
+    }
+
+    #[test]
+    fn sort_reorders_deterministically() {
+        reset_ui_state();
+        let icons = Icons::load();
+        let mut model = WindowModel::sample();
+        model.inventory.rows = vec![
+            InventoryRow {
+                container: "player".into(),
+                stack_id: "s1".into(),
+                item: "Zebra Skin".into(),
+                item_id: 1,
+                quantity: 5,
+                ..Default::default()
+            },
+            InventoryRow {
+                container: "player".into(),
+                stack_id: "s2".into(),
+                item: "Alpha Fiber".into(),
+                item_id: 2,
+                quantity: 100,
+                ..Default::default()
+            },
+        ];
+        let mut ui = UiBuilder::new(icons.meta);
+
+        SORT.with(|s| s.set(SortMode::Name));
+        ui.begin(1280, 720);
+        let mut out = Vec::new();
+        draw(&mut ui, RECT, &model, &icons, &mut out);
+        SORTED_INDICES.with(|i| {
+            assert_eq!(*i.borrow(), vec![1, 0]);
+        });
+
+        SORT.with(|s| s.set(SortMode::Quantity));
+        ui.begin(1280, 720);
+        draw(&mut ui, RECT, &model, &icons, &mut out);
+        SORTED_INDICES.with(|i| {
+            assert_eq!(*i.borrow(), vec![1, 0]);
+        });
+
+        reset_ui_state();
+    }
+
+    #[test]
+    fn split_stepper_clamps_and_emits_exact_quantity() {
+        reset_ui_state();
+        let icons = Icons::load();
+        let mut model = WindowModel::sample();
+        model.inventory.rows = vec![InventoryRow {
+            container: "player:pack".into(),
+            stack_id: "stim-stack".into(),
+            item: "Field Stim".into(),
+            item_id: 101,
+            quantity: 10,
+            available: 10,
+            ..Default::default()
+        }];
+        let mut ui = UiBuilder::new(icons.meta);
+
+        select_identity("player:pack", "stim-stack");
+        ui.begin(1280, 720);
+        let mut out = Vec::new();
+        draw(&mut ui, RECT, &model, &icons, &mut out);
+
+        let buttons = action_button_rects(footer_layout(RECT));
+        let [split_x, split_y, split_w, split_h] = buttons[3];
+        let _ = click(&mut ui, &model, &icons, split_x + split_w * 0.5, split_y + split_h * 0.5);
+
+        let armed_qty = SPLIT_STEPPER.with(|s| s.borrow().as_ref().map(|st| st.quantity));
+        assert_eq!(armed_qty, Some(5));
+
+        let _ = click(&mut ui, &model, &icons, split_x + split_w * 0.5, split_y + split_h * 0.5);
+        let armed_qty = SPLIT_STEPPER.with(|s| s.borrow().as_ref().map(|st| st.quantity));
+        assert_eq!(armed_qty, Some(9));
+
+        let [confirm_x, confirm_y, confirm_w, confirm_h] = buttons[4];
+        let out = click(&mut ui, &model, &icons, confirm_x + confirm_w * 0.5, confirm_y + confirm_h * 0.5);
+        assert!(
+            out.contains(&WindowAction::Command(
+                successor_net::ClientCommand::SplitStack {
+                    container: "player:pack".into(),
+                    stack_id: "stim-stack".into(),
+                    item_id: 101,
+                    variant_id: 0,
+                    quantity: 9,
+                }
+            )),
+            "CONFIRM emits SplitStack with exact quantity, got {out:?}"
+        );
+        assert!(SPLIT_STEPPER.with(|s| s.borrow().is_none()));
+
+        reset_ui_state();
+    }
+
+    #[test]
+    fn min_size_frame_draws_without_panicking_and_without_overlapping_lanes() {
+        reset_ui_state();
+        let icons = Icons::load();
+        let model = fixture();
+        let min_rect: [f32; 4] = [0.0, 0.0, 250.0, 244.0];
+        let mut ui = UiBuilder::new(icons.meta);
+        ui.begin(1280, 720);
+        let mut out = Vec::new();
+        draw(&mut ui, min_rect, &model, &icons, &mut out);
+
+        let footer = footer_layout(min_rect);
+        assert!(footer.info[0] + footer.info[2] <= footer.actions[0] + 0.1);
+        assert!(footer.actions[2] >= 0.0);
+
+        reset_ui_state();
     }
 }

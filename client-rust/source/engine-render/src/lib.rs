@@ -11,6 +11,7 @@
 extern crate alloc;
 
 pub mod components;
+pub mod cursor;
 pub mod environment;
 pub mod font;
 pub mod fx;

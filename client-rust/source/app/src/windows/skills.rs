@@ -8,7 +8,7 @@
 //! boxes never emit; the deny reason is the authoritative copy from the
 //! projection.
 
-use super::{WindowAction, WindowModel, ACCENT, DIM, SLOT, TEXT};
+use super::{accent, dim, slot, text, WindowAction, WindowModel};
 use crate::hud::Icons;
 use successor_engine_render::ui::UiBuilder;
 
@@ -28,11 +28,11 @@ pub fn draw(
         x,
         y,
         2.0,
-        TEXT,
+        text(),
     );
     let cr = format!("CR {}", s.credits);
     let cr_w = ui.measure_text(&cr, 2.0);
-    ui.text(&cr, x + w - cr_w, y, 2.0, ACCENT);
+    ui.text(&cr, x + w - cr_w, y, 2.0, accent());
     let trainer = match &s.trainer {
         Some(t) if t.in_range => format!("TRAINER {}", t.name),
         Some(t) => format!("TRAINER {} - {}", t.name, super::DENY_RANGE),
@@ -44,14 +44,14 @@ pub fn draw(
         y + 22.0,
         1.8,
         if s.trainer.as_ref().is_some_and(|t| t.in_range) {
-            TEXT
+            text()
         } else {
-            DIM
+            dim()
         },
     );
 
     if s.professions.is_empty() {
-        ui.text("NO PROFESSION DATA", x, y + 48.0, 2.0, DIM);
+        ui.text("NO PROFESSION DATA", x, y + 48.0, 2.0, dim());
         return;
     }
 
@@ -66,7 +66,7 @@ pub fn draw(
             x,
             cy,
             2.2,
-            ACCENT,
+            accent(),
         );
         cy += 26.0;
         for b in &tree.boxes {
@@ -79,21 +79,21 @@ pub fn draw(
             let fill = if clickable && resp.hovered {
                 [36, 48, 64, 230]
             } else {
-                SLOT
+                slot()
             };
             ui.rect(x, cy, w, 34.0, fill);
 
             let text_col = if b.trained {
-                ACCENT
+                accent()
             } else if b.available {
-                TEXT
+                text()
             } else {
-                DIM
+                dim()
             };
             let mut lx = x + 8.0;
             if !b.trained && !b.available {
                 if let Some((c, r)) = icons.cell("lock") {
-                    ui.icon(c, r, lx, cy + 8.0, 18.0, 18.0, DIM);
+                    ui.icon(c, r, lx, cy + 8.0, 18.0, 18.0, dim());
                 }
                 lx += 22.0;
             }

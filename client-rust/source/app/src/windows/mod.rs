@@ -62,6 +62,10 @@ pub enum WindowAction {
     SetTheme(usize),
     /// Live session dust/edge-fog dial (0..1, 0.05 grid).
     SetDust(f32),
+    /// Window fill opacity scale (0.35..=1.0).
+    SetWindowOpacity(f32),
+    /// HUD fill opacity scale (0.35..=1.0).
+    SetHudOpacity(f32),
     /// Inventory default stack-split snap step (1|5|10|100|1000|10000).
     SetSplitSnap(u32),
     /// Begin pending key capture for a toolbar slot (options → toolbar).
@@ -126,6 +130,8 @@ pub enum WindowLocalAction {
     },
     SetTheme(usize),
     SetDust(f32),
+    SetWindowOpacity(f32),
+    SetHudOpacity(f32),
     SetSplitSnap(u32),
     RebindToolbarSlot(usize),
     BeginAssignAction(String),
@@ -274,6 +280,8 @@ impl WindowAction {
                 WindowActionResult::Local(WindowLocalAction::SetWaypointActive { id, active })
             }
             DeleteWaypoint(id) => WindowActionResult::Local(WindowLocalAction::DeleteWaypoint(id)),
+            SetWindowOpacity(v) => WindowActionResult::Local(WindowLocalAction::SetWindowOpacity(v)),
+            SetHudOpacity(v) => WindowActionResult::Local(WindowLocalAction::SetHudOpacity(v)),
             ExchangeRetrieve(_) | ExchangeStore(_) => {
                 WindowActionResult::Rejected("exchange requires item variant and quantity".into())
             }
@@ -332,14 +340,14 @@ pub fn content(
             rect[0] + 6.0,
             rect[1] + 6.0,
             chrome::scale(chrome::VALUE_PX),
-            chrome::WARN,
+            chrome::warn(),
         );
         ui.text(
             id,
             rect[0] + 6.0,
             rect[1] + 6.0 + chrome::ROW_H,
             chrome::scale(chrome::LABEL_PX),
-            DIM,
+            dim(),
         );
         return;
     };
@@ -455,27 +463,95 @@ thread_local! {
 // Frame and well tones live in [`chrome`]; these are the type colors.
 
 /// Primary body ink.
-pub const TEXT: [u8; 4] = [0x97, 0xFF, 0xFF, 255];
+#[inline]
+pub fn text() -> [u8; 4] {
+    crate::hud::active_palette().ink
+}
+
 /// Row/field labels.
-pub const LABEL: [u8; 4] = [0x97, 0xFF, 0xFF, 255];
+#[inline]
+pub fn label() -> [u8; 4] {
+    crate::hud::active_palette().ink
+}
+
 /// Numeric values and readouts.
-pub const VALUE: [u8; 4] = [0x96, 0xF4, 0xFC, 255];
+#[inline]
+pub fn value() -> [u8; 4] {
+    crate::hud::active_palette().ink
+}
+
 /// Subordinate captions, disabled rows, unavailable notes.
-pub const DIM: [u8; 4] = [0x5E, 0xA8, 0xB4, 255];
+#[inline]
+pub fn dim() -> [u8; 4] {
+    crate::hud::active_palette().ink_dim
+}
+
 /// Active/selected accent (tab underline, selection rail, focus).
-pub const ACTIVE: [u8; 4] = [0x20, 0xE0, 0xF0, 255];
-/// Heading accent. Alias of [`ACTIVE`] so headings and selection agree.
-pub const ACCENT: [u8; 4] = ACTIVE;
+#[inline]
+pub fn active() -> [u8; 4] {
+    crate::hud::active_palette().accent
+}
+
+/// Heading accent. Alias of [`active`] so headings and selection agree.
+#[inline]
+pub fn accent() -> [u8; 4] {
+    active()
+}
+
 /// Affirmative state (learned skill box, satisfied requirement, gain).
-pub const POSITIVE: [u8; 4] = [0x62, 0xFF, 0x15, 255];
+#[inline]
+pub fn positive() -> [u8; 4] {
+    crate::hud::active_palette().accent
+}
+
 /// Recessed slot/cell fill.
-pub const SLOT: [u8; 4] = [0x00, 0x28, 0x30, 235];
+#[inline]
+pub fn slot() -> [u8; 4] {
+    crate::hud::faded(crate::hud::active_palette().bg_cell)
+}
+
 /// Slot separator.
-pub const SLOT_EDGE: [u8; 4] = [0x00, 0x78, 0x90, 240];
+#[inline]
+pub fn slot_edge() -> [u8; 4] {
+    crate::hud::active_palette().hairline
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn theme_indices_produce_distinct_ink_sets() {
+        let mut inks = Vec::new();
+        for i in 0..crate::hud::THEME_COUNT {
+            crate::hud::set_active_palette(crate::hud::palette(i));
+            let set = (text(), dim(), active(), slot_edge());
+            assert!(!inks.contains(&set), "theme {i} produced duplicate ink set");
+            inks.push(set);
+        }
+        assert_eq!(inks.len(), crate::hud::THEME_COUNT);
+    }
+
+    #[test]
+    fn faded_affects_fills_but_not_text() {
+        crate::hud::set_active_palette(crate::hud::palette(0));
+        crate::hud::set_fill_opacity(1.0);
+        let slot_full = slot();
+        let text_full = text();
+        let dim_full = dim();
+        let active_full = active();
+
+        crate::hud::set_fill_opacity(0.5);
+        let slot_half = slot();
+        let text_half = text();
+        let dim_half = dim();
+        let active_half = active();
+
+        assert!(slot_half[3] < slot_full[3], "fill opacity must scale slot alpha");
+        assert_eq!(text_half, text_full, "text ink must not be faded");
+        assert_eq!(dim_half, dim_full, "dim ink must not be faded");
+        assert_eq!(active_half, active_full, "active ink must not be faded");
+    }
 
     #[test]
     fn command_actions_are_typed() {

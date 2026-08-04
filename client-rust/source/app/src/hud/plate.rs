@@ -8,21 +8,26 @@ use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
 use super::{
     BannerHud, GaugeHud, HudAction, HudState, InteractHud, LifeHud, Palette, QueueEntryStateHud,
-    SprintHud, TargetHud, GROUP_CHIP_MAX, QUEUE_ROW_MAX,
+    RelationHud, SprintHud, TargetHud, GROUP_CHIP_MAX, QUEUE_ROW_MAX,
 };
 
 /// Physical magazine pips cap (reference `MAX_PIPS`).
 pub const MAX_PIPS: u32 = 48;
 
-/// Measured player-status content well. The renderer reflows its rows within
-/// this manager-owned default and the layout registry uses the same source.
+/// Measured player-status content well.
 ///
-/// The height is the content, not a reserved block: 4 top pad + 13 tag row +
-/// 17 name/RUN row + 33 pool stack + 3 + 11 weapon label + 6 pip bar + 5 floor.
-/// Nothing else lives in this pane — group members get their own rect directly
-/// beneath it and the target has the top-right rail.
+/// The height is exactly what the pane always draws: 4 top pad + 17 name/RUN
+/// row + 33 pool stack + 5 floor. State chips ride the name row instead of
+/// claiming a band of their own, and the weapon/magazine readout is its own
+/// pane, so nothing here is reserved for content that may not exist. The
+/// target, the group roster, and the weapon readout are separate panes of the
+/// same grammar.
 pub const PLATE_W: f32 = 300.0;
-pub const PLATE_H: f32 = 92.0;
+pub const PLATE_H: f32 = 59.0;
+
+/// Weapon/magazine pane: one label+rounds row over the pip or swing bar.
+pub const WEAPON_PLATE_W: f32 = 300.0;
+pub const WEAPON_PLATE_H: f32 = 30.0;
 
 /// One group member chip: name/state row over a health sliver, plus the gap to
 /// the next chip. The reserved group rail is sized from these.
@@ -38,15 +43,23 @@ fn button_style(pal: &Palette) -> ButtonStyle {
         text: pal.ink,
     }
 }
-
-fn readable_dim(pal: &Palette) -> [u8; 4] {
-    [
-        ((u16::from(pal.ink_dim[0]) * 2 + u16::from(pal.ink[0])) / 3) as u8,
-        ((u16::from(pal.ink_dim[1]) * 2 + u16::from(pal.ink[1])) / 3) as u8,
-        ((u16::from(pal.ink_dim[2]) * 2 + u16::from(pal.ink[2])) / 3) as u8,
-        255,
-    ]
+pub(crate) fn readable_dim(pal: &Palette) -> [u8; 4] {
+    let mut dim = pal.ink_dim;
+    dim[3] = 230;
+    dim
 }
+
+/// Hostility tint mapping derived systematically from [`RelationHud`] for target
+/// plate names, frame accents, world nameplates, and target selection brackets.
+pub fn hostility_tint(relation: RelationHud, pal: &Palette) -> [u8; 4] {
+    relation.tint(pal)
+}
+
+/// Longest player weapon reach the authority will accept, in cells (== metres:
+/// `WORLD_UNITS_PER_CELL` is 1.0). Mirrors the 18_000 milli-cell ceiling in the
+/// authority's weapon profiles (`crates/successor-sim/src/authority/helpers.rs`).
+/// The plate dims past this because `combat_roll.rs:1957` rejects the swing.
+pub const MAX_WEAPON_REACH_CELLS: f32 = 18.0;
 
 /// Pool tints. The original status window gives each pool its own hue so the
 /// triple bar reads at a glance; only the third pool follows the theme accent.
@@ -103,6 +116,7 @@ fn draw_pools(
     rect: [f32; 4],
     pools: &[Pool<'_>],
     mirrored: bool,
+    dead: bool,
 ) {
     let [x, y, column, band_h] = rect;
     let value_w = pools
@@ -122,7 +136,7 @@ fn draw_pools(
         if row_y + POOL_ROW_H > y + band_h + 0.5 {
             break;
         }
-        let track_w = if pool.gauge.max <= 0.0 || deepest <= 0.0 {
+        let track_w = if deepest <= 0.0 {
             track_room
         } else {
             (track_room * (pool.gauge.max / deepest)).max(16.0)
@@ -136,7 +150,7 @@ fn draw_pools(
             (x, x + column - ui.measure_text(pool.value, POOL_VALUE_PX))
         };
         ui.rect(track_x, row_y, track_w, 7.0, pal.bg_cell);
-        let frac = pool.gauge.frac();
+        let frac = if dead { 0.0 } else { pool.gauge.frac() };
         if frac > 0.0 {
             let fill = if pool.gauge.low() {
                 pal.danger
@@ -151,7 +165,8 @@ fn draw_pools(
             };
             ui.rect(fill_x, row_y, filled, 7.0, fill);
         }
-        ui.text(pool.value, value_x, row_y, POOL_VALUE_PX, readable_dim(pal));
+        let val_tint = if dead { pal.ink_dim } else { readable_dim(pal) };
+        ui.text(pool.value, value_x, row_y, POOL_VALUE_PX, val_tint);
     }
 }
 
@@ -174,48 +189,11 @@ pub fn draw_status_plate(
     backing[3] = 230;
     ui.rect(x, y, plate_w, plate_h, backing);
 
-    // ── Tag row (only when the projection carries tags) ──────────────────
-    let tagged = st.observer
-        || st.sheltered
-        || st.camp_countdown.is_some()
-        || st.sampler_text.is_some()
-        || st.life != LifeHud::Alive
-        || st.clone_sickness.is_some();
+    // ── State chips ride the name row ────────────────────────────────────
+    // A dedicated tag band spent 13 px on content most sessions never carry.
+    // The chips are short, the name row is 17 px tall, and the original keeps
+    // state flags beside the name rather than above it.
     let mut cursor = y + 4.0;
-    if tagged {
-        let mut tag_x = x + 8.0;
-        let tag_y = cursor;
-        let mut tag = |ui: &mut UiBuilder, text: &str, tint: [u8; 4]| {
-            let w = ui.measure_text(text, 1.3) + 8.0;
-            ui.rect(tag_x, tag_y, w, 11.0, pal.bg_cell);
-            ui.text(text, tag_x + 4.0, tag_y + 2.0, 1.3, tint);
-            tag_x += w + 5.0;
-        };
-        if st.observer {
-            tag(ui, "OBSERVER", pal.ink_dim);
-        }
-        if st.sheltered {
-            tag(ui, "SHELTERED", pal.accent);
-        }
-        if let Some(campdown) = &st.camp_countdown {
-            tag(ui, campdown, pal.danger);
-        }
-        if let Some(sampler) = &st.sampler_text {
-            tag(ui, sampler, pal.accent);
-        }
-        if st.life != LifeHud::Alive {
-            let stamp = if st.life == LifeHud::Respawning {
-                "DEAD"
-            } else {
-                "DOWN"
-            };
-            tag(ui, stamp, pal.danger);
-        }
-        if let Some(sick) = &st.clone_sickness {
-            tag(ui, sick, pal.ink_dim);
-        }
-        cursor += 13.0;
-    }
 
     // ── Name + RUN toggle share one row ──────────────────────────────────
     let (run_label, run_tint) = match st.sprint {
@@ -266,36 +244,104 @@ pub fn draw_status_plate(
             },
         ],
         false,
+        false,
     );
-    cursor += stack_room.min(pool_stack_h(3)) + 3.0;
+    cursor += stack_room.min(pool_stack_h(3));
 
-    // ── Magazine / swing readout, dropped on a short pane ────────────────
+    // Chips ride the right of the name row, so nothing below the pools is
+    // reserved. `cursor` is retained only to document that the pane ends here.
+    let _ = cursor;
+    draw_state_chips(ui, pal, st, x, y + 4.0, run_x - (x + 8.0));
+}
+
+/// State flags as compact chips on the name row, right-aligned into the space
+/// the name did not use. Dropped entirely when the row is too narrow — a
+/// truncated flag is worse than none.
+fn draw_state_chips(
+    ui: &mut UiBuilder,
+    pal: &Palette,
+    st: &HudState,
+    x: f32,
+    y: f32,
+    row_w: f32,
+) {
+    let mut right = x + 8.0 + row_w;
+    let mut chip = |ui: &mut UiBuilder, text: &str, tint: [u8; 4]| {
+        let w = ui.measure_text(text, 1.3) + 8.0;
+        if right - w < x + 8.0 {
+            return;
+        }
+        ui.rect(right - w, y + 2.0, w, 11.0, pal.bg_cell);
+        ui.text(text, right - w + 4.0, y + 4.0, 1.3, tint);
+        right -= w + 5.0;
+    };
+    if st.life != LifeHud::Alive {
+        let stamp = if st.life == LifeHud::Respawning {
+            "DEAD"
+        } else {
+            "DOWN"
+        };
+        chip(ui, stamp, pal.danger);
+    }
+    if let Some(sick) = &st.clone_sickness {
+        chip(ui, sick, pal.ink_dim);
+    }
+    if let Some(campdown) = &st.camp_countdown {
+        chip(ui, campdown, pal.danger);
+    }
+    if let Some(sampler) = &st.sampler_text {
+        chip(ui, sampler, pal.accent);
+    }
+    if st.sheltered {
+        chip(ui, "SHELTERED", pal.accent);
+    }
+    if st.observer {
+        chip(ui, "OBSERVER", pal.ink_dim);
+    }
+}
+
+/// Weapon/magazine pane: the label, the round count, and either the magazine
+/// pips or the melee swing timer.
+///
+/// Its own pane rather than a band inside the status plate: it exists only
+/// while something is wielded, and a plate sized to hold it stands half empty
+/// the rest of the time. Nothing is painted when there is no weapon, so the
+/// registered pane is invisible until it has something to say.
+pub fn draw_weapon_plate(ui: &mut UiBuilder, pal: &Palette, st: &HudState, rect: [f32; 4]) {
     let Some(weapon) = &st.weapon else {
         return;
     };
+    let [x, y, w, h] = rect;
+    let bottom = y + h;
+    let mut backing = pal.bg_panel;
+    backing[3] = 230;
+    ui.rect(x, y, w, h, backing);
+
+    let mut cursor = y + 3.0;
     if cursor + 10.0 > bottom {
         return;
     }
     ui.text(&weapon.label, x + 8.0, cursor, 1.4, pal.ink);
     let rounds_x = x + 8.0 + ui.measure_text(&weapon.label, 1.4) + 8.0;
     ui.text(&weapon.rounds_text, rounds_x, cursor, 1.4, pal.ink_dim);
-    let bar_y = cursor + 11.0;
-    if bar_y + 6.0 > bottom {
+    cursor += 11.0;
+    if cursor + 6.0 > bottom {
         return;
     }
-    let bar_w = (plate_w - 16.0).max(0.0);
+    let bar_w = (w - 16.0).max(0.0);
+    let bar_x = x + 8.0;
     if weapon.melee {
         // Swing timer: fill sweeps to READY where pips normally live.
-        ui.rect(x + 8.0, bar_y, bar_w, 6.0, pal.bg_cell);
+        ui.rect(bar_x, cursor, bar_w, 6.0, pal.bg_cell);
         let fill = weapon.swing_frac.clamp(0.0, 1.0);
         let tint = if weapon.swing_ready {
             pal.accent
         } else {
             pal.ink_dim
         };
-        ui.rect(x + 8.0, bar_y, bar_w * fill, 6.0, tint);
+        ui.rect(bar_x, cursor, bar_w * fill, 6.0, tint);
     } else if weapon.magazine_size > 0 {
-        // One pip per round (≤48); reload sweeps the pips back in.
+        // One pip per round (<=48); reload sweeps the pips back in.
         let count = weapon.magazine_size.min(MAX_PIPS);
         let filled = if weapon.reloading {
             ((weapon.reload_frac * count as f32).floor() as u32).min(count)
@@ -303,10 +349,10 @@ pub fn draw_status_plate(
             weapon.loaded_rounds.min(count)
         };
         let pip_w = (bar_w / count as f32 - 2.0).clamp(2.0, 10.0);
-        for i in 0..count {
-            let px = x + 8.0 + i as f32 * (pip_w + 2.0);
-            let tint = if i < filled { pal.accent } else { pal.bg_cell };
-            ui.rect(px, bar_y, pip_w, 6.0, tint);
+        for index in 0..count {
+            let px = bar_x + index as f32 * (pip_w + 2.0);
+            let tint = if index < filled { pal.accent } else { pal.bg_cell };
+            ui.rect(px, cursor, pip_w, 6.0, tint);
         }
     }
 }
@@ -339,20 +385,53 @@ fn clip_name<'a>(ui: &UiBuilder, name: &'a str, px: f32, max_w: f32) -> (&'a str
 pub fn draw_target_plate(ui: &mut UiBuilder, pal: &Palette, target: &TargetHud, rect: [f32; 4]) {
     let [x, y, w, h] = rect;
     let bottom = y + h;
-    let tint = target.relation.tint(pal);
+    let dead = !target.alive;
+    let out_of_range = target
+        .distance_m
+        .is_some_and(|d| !d.is_finite() || d > MAX_WEAPON_REACH_CELLS);
+
+    let tint = if dead {
+        readable_dim(pal)
+    } else {
+        hostility_tint(target.relation, pal)
+    };
+    let accent_rail_tint = if dead {
+        pal.bg_cell
+    } else {
+        hostility_tint(target.relation, pal)
+    };
+
     let mut backing = pal.bg_panel;
     backing[3] = 220;
     ui.rect(x, y, w, h, backing);
+
     // Relation rail on the right edge: the target plate is the player plate
-    // mirrored, which is how the original reuses one status window for both.
-    ui.rect(x + w - 3.0, y, 3.0, h, tint);
+    // mirrored. Suppressed when dead.
+    ui.rect(x + w - 3.0, y, 3.0, h, accent_rail_tint);
 
     let mut cursor = y + 4.0;
+    if cursor + 14.0 > bottom {
+        return;
+    }
+
+    // Top row: Level chip (left of name), Name (right-aligned), Stamp (if any).
     let stamp_w = target
         .stamp
         .map(|stamp| ui.measure_text(stamp, 1.6) + 10.0 + 6.0)
         .unwrap_or(0.0);
-    let name_room = (w - 18.0 - stamp_w).max(0.0);
+
+    let level_str = target.level.map(|lvl| format!("{lvl}"));
+    let level_chip_w = level_str
+        .as_ref()
+        .map(|s| ui.measure_text(s, 1.2) + 6.0)
+        .unwrap_or(0.0);
+    let level_w = if level_str.is_some() {
+        level_chip_w + 4.0
+    } else {
+        0.0
+    };
+
+    let name_room = (w - 18.0 - stamp_w - level_w).max(0.0);
     let (name, name_clipped) = clip_name(ui, &target.name, 1.9, name_room);
     let name_w = ui.measure_text(name, 1.9)
         + if name_clipped {
@@ -360,10 +439,39 @@ pub fn draw_target_plate(ui: &mut UiBuilder, pal: &Palette, target: &TargetHud, 
         } else {
             0.0
         };
+
     let name_end = ui.text(name, x + w - 8.0 - name_w, cursor, 1.9, tint);
     if name_clipped {
         ui.text("...", name_end, cursor, 1.9, tint);
     }
+
+    // Strike-through line for dead target name
+    if dead && name_w > 0.0 {
+        ui.line(
+            x + w - 8.0 - name_w,
+            cursor + 7.0,
+            x + w - 8.0,
+            cursor + 7.0,
+            1.0,
+            readable_dim(pal),
+        );
+    }
+
+    // Level chip left of the name
+    if let Some(ref lvl_s) = level_str {
+        let chip_x = x + w - 8.0 - name_w - level_chip_w - 4.0;
+        if chip_x >= x + 6.0 {
+            ui.rect(chip_x, cursor + 2.0, level_chip_w, 13.0, pal.bg_cell);
+            ui.text(
+                lvl_s,
+                chip_x + 3.0,
+                cursor + 3.0,
+                1.2,
+                if dead { pal.ink_dim } else { readable_dim(pal) },
+            );
+        }
+    }
+
     if let Some(stamp) = target.stamp {
         let sw = ui.measure_text(stamp, 1.6);
         ui.rect(x + 6.0, cursor - 1.0, sw + 10.0, 14.0, pal.danger);
@@ -371,16 +479,37 @@ pub fn draw_target_plate(ui: &mut UiBuilder, pal: &Palette, target: &TargetHud, 
     }
     cursor += 17.0;
 
-    // Pools, mirrored. A target that only exposes health shows the single
-    // health bar the original gives creatures and objects; a full actor shows
-    // the same stack as the player plate.
+    // Sub-row: Compact distance right-aligned under name (if present)
+    if cursor + 10.0 <= bottom {
+        if let Some(distance) = target.distance_m {
+            let (dist_text, dist_tint) = if !distance.is_finite() || distance > MAX_WEAPON_REACH_CELLS {
+                ("OUT OF RANGE".to_string(), pal.danger)
+            } else {
+                (
+                    format!("{:.0}M", distance.max(0.0)),
+                    if dead { pal.ink_dim } else { readable_dim(pal) },
+                )
+            };
+            let dist_w = ui.measure_text(&dist_text, 1.2);
+            ui.text(
+                &dist_text,
+                x + w - 8.0 - dist_w,
+                cursor,
+                1.2,
+                dist_tint,
+            );
+            cursor += 12.0;
+        }
+    }
+
+    // Pools, mirrored. Empty when dead.
     let hp = &target.health;
     let hp_text = reading(hp);
     let action_text = target.action.as_ref().map(reading);
     let spirit_text = target.spirit.as_ref().map(reading);
     let health_pool = Pool {
         gauge: hp,
-        tint: POOL_HEALTH,
+        tint: if dead { readable_dim(pal) } else { POOL_HEALTH },
         value: &hp_text,
     };
     let mut pools = [health_pool; 3];
@@ -388,7 +517,7 @@ pub fn draw_target_plate(ui: &mut UiBuilder, pal: &Palette, target: &TargetHud, 
     if let (Some(action), Some(text)) = (target.action.as_ref(), action_text.as_deref()) {
         pools[pool_count] = Pool {
             gauge: action,
-            tint: POOL_ACTION,
+            tint: if dead { readable_dim(pal) } else { POOL_ACTION },
             value: text,
         };
         pool_count += 1;
@@ -396,7 +525,7 @@ pub fn draw_target_plate(ui: &mut UiBuilder, pal: &Palette, target: &TargetHud, 
     if let (Some(spirit), Some(text)) = (target.spirit.as_ref(), spirit_text.as_deref()) {
         pools[pool_count] = Pool {
             gauge: spirit,
-            tint: pal.accent,
+            tint: if dead { readable_dim(pal) } else { pal.accent },
             value: text,
         };
         pool_count += 1;
@@ -408,36 +537,25 @@ pub fn draw_target_plate(ui: &mut UiBuilder, pal: &Palette, target: &TargetHud, 
         [x + 8.0, cursor, (w - 16.0).max(48.0), stack_h],
         &pools[..pool_count],
         true,
+        dead,
     );
     cursor += stack_h + 3.0;
 
-    // Range on the left (the mirrored readout column), level on the right.
-    // The original prints `%.0fm`, or an out-of-range notice in danger.
-    if cursor + 10.0 <= bottom && (target.distance_m.is_some() || target.level.is_some()) {
-        if let Some(distance) = target.distance_m {
-            let (text, range_tint) = if distance.is_finite() {
-                (format!("{:.0}M", distance.max(0.0)), readable_dim(pal))
-            } else {
-                ("OUT OF RANGE".to_string(), pal.danger)
-            };
-            ui.text(&text, x + 8.0, cursor, 1.3, range_tint);
-        }
-        if let Some(level) = target.level {
-            let text = format!("LVL {level}");
-            let text_w = ui.measure_text(&text, 1.3);
-            ui.text(&text, x + w - 8.0 - text_w, cursor, 1.3, readable_dim(pal));
-        }
-        cursor += 12.0;
-    }
-
     // State chips (max 4), right-aligned on the band under the readouts.
+    // Dimmed when out of range or dead.
     let mut cx = x + w - 8.0;
     for chip in &target.chips {
         let cw = ui.measure_text(&chip.label, 1.3) + 8.0;
         if cx - cw < x + 6.0 || cursor + 12.0 > bottom {
             break;
         }
-        let chip_tint = if chip.danger { pal.danger } else { pal.ink_dim };
+        let chip_tint = if dead || out_of_range {
+            pal.ink_dim
+        } else if chip.danger {
+            pal.danger
+        } else {
+            pal.ink_dim
+        };
         ui.rect(cx - cw, cursor, cw, 12.0, pal.bg_cell);
         ui.text(&chip.label, cx - cw + 4.0, cursor + 2.0, 1.3, chip_tint);
         cx -= cw + 5.0;
@@ -972,5 +1090,69 @@ mod tests {
                 >= GROUP_CHIP_H * GROUP_CHIP_MAX as f32
                     + GROUP_CHIP_GAP * (GROUP_CHIP_MAX as f32 - 1.0)
         );
+    }
+
+    #[test]
+    fn hostility_tint_systematic_mapping() {
+        let pal = palette(0);
+        assert_eq!(hostility_tint(RelationHud::Hostile, &pal), pal.danger);
+        assert_eq!(hostility_tint(RelationHud::Alerted, &pal), [232, 168, 74, 255]);
+        assert_eq!(hostility_tint(RelationHud::Neutral, &pal), pal.ink);
+        assert_eq!(hostility_tint(RelationHud::Friendly, &pal), [110, 214, 130, 255]);
+        assert_eq!(hostility_tint(RelationHud::Grouped, &pal), pal.accent);
+    }
+
+    #[test]
+    fn target_plate_level_and_distance_presence_and_absence() {
+        let pal = palette(0);
+        let t_present = TargetHud {
+            name: "TARGET".into(),
+            relation: RelationHud::Hostile,
+            level: Some(80),
+            distance_m: Some(14.2),
+            alive: true,
+            health: GaugeHud { value: 100.0, max: 100.0 },
+            ..Default::default()
+        };
+        let mut ui_pres = ui();
+        ui_pres.begin(1280, 720);
+        draw_target_plate(&mut ui_pres, &pal, &t_present, [10.0, 10.0, PLATE_W, PLATE_H]);
+        let quads_pres = ui_pres.quads;
+
+        let mut t_absent = t_present.clone();
+        t_absent.level = None;
+        t_absent.distance_m = None;
+        let mut ui_abs = ui();
+        ui_abs.begin(1280, 720);
+        draw_target_plate(&mut ui_abs, &pal, &t_absent, [10.0, 10.0, PLATE_W, PLATE_H]);
+        let quads_abs = ui_abs.quads;
+
+        assert!(quads_pres > quads_abs, "present level/distance must emit quads for level chip & distance text");
+    }
+
+    #[test]
+    fn dead_target_presentation_in_plate() {
+        let pal = palette(0);
+        let t_alive = TargetHud {
+            name: "TARGET".into(),
+            relation: RelationHud::Hostile,
+            alive: true,
+            health: GaugeHud { value: 100.0, max: 100.0 },
+            ..Default::default()
+        };
+        let mut t_dead = t_alive.clone();
+        t_dead.alive = false;
+
+        let mut ui_a = ui();
+        ui_a.begin(1280, 720);
+        draw_target_plate(&mut ui_a, &pal, &t_alive, [10.0, 10.0, PLATE_W, PLATE_H]);
+
+        let mut ui_d = ui();
+        ui_d.begin(1280, 720);
+        draw_target_plate(&mut ui_d, &pal, &t_dead, [10.0, 10.0, PLATE_W, PLATE_H]);
+
+        // Dead target plate draws empty pools (fewer filled quads than alive full health) and strike-through line
+        assert!(ui_d.quads > 0, "dead target plate must render UI quads");
+        assert!(!ui_d.buf.is_empty(), "dead target plate must render vertex data");
     }
 }

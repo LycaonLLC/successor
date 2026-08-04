@@ -9,7 +9,10 @@
 
 use successor_engine_render::ui::UiBuilder;
 
-use super::{sanitize_text, Palette, RelationHud};
+use super::{
+    plate::{hostility_tint, readable_dim},
+    sanitize_text, Palette, RelationHud,
+};
 
 // Reference tuning (`client/src/slice-core/specs/tuning.v1.json` spatialChat).
 pub const BUBBLE_MIN_TTL_MS: f32 = 2200.0;
@@ -354,37 +357,40 @@ pub fn draw_nameplate(
     if name.is_empty() || opacity <= 0.0 {
         return;
     }
+    let is_dead = life_tag.is_some_and(|t| t == "DEAD" || t == "DOWN");
     let name_px = 1.45;
-    let tint = alpha_scale(relation.tint(pal), opacity);
+    let base_hostility_tint = hostility_tint(relation, pal);
+    let base_tint = if is_dead {
+        readable_dim(pal)
+    } else {
+        base_hostility_tint
+    };
+    let tint = alpha_scale(base_tint, opacity);
     let shadow = alpha_scale([0, 0, 0, 220], opacity);
     let name_width = ui.measure_text(name, name_px);
     let name_x = x - name_width * 0.5;
     ui.text(name, name_x + 1.0, y + 1.0, name_px, shadow);
     ui.text(name, name_x, y, name_px, tint);
 
-    if selected {
-        let left = name_x - 7.0;
-        let right = name_x + name_width + 7.0;
-        let bracket = alpha_scale(pal.accent, opacity);
-        ui.line(left, y + 2.0, left + 4.0, y + 2.0, 1.0, bracket);
-        ui.line(left, y + 2.0, left, y + 8.0, 1.0, bracket);
-        ui.line(right - 4.0, y + 2.0, right, y + 2.0, 1.0, bracket);
-        ui.line(right, y + 2.0, right, y + 8.0, 1.0, bracket);
+    if is_dead {
+        let strike_tint = alpha_scale(readable_dim(pal), opacity);
+        ui.line(name_x, y + 6.0, name_x + name_width, y + 6.0, 1.0, strike_tint);
     }
 
     let mut line_y = y + 12.0;
-    if let Some(descriptor) = descriptor.filter(|value| !value.is_empty()) {
+    let desc_val = descriptor.filter(|value| !value.is_empty());
+    if let Some(desc) = desc_val {
         let descriptor_px = 1.2;
-        let width = ui.measure_text(descriptor, descriptor_px);
+        let width = ui.measure_text(desc, descriptor_px);
         ui.text(
-            descriptor,
+            desc,
             x - width * 0.5 + 1.0,
             line_y + 1.0,
             descriptor_px,
             shadow,
         );
         ui.text(
-            descriptor,
+            desc,
             x - width * 0.5,
             line_y,
             descriptor_px,
@@ -394,13 +400,62 @@ pub fn draw_nameplate(
     }
     if let Some(tag) = life_tag {
         let width = ui.measure_text(tag, 1.25);
+        let tag_tint = if is_dead {
+            alpha_scale(readable_dim(pal), opacity)
+        } else {
+            alpha_scale(pal.danger, opacity)
+        };
         ui.text(
             tag,
             x - width * 0.5,
             line_y,
             1.25,
-            alpha_scale(pal.danger, opacity),
+            tag_tint,
         );
+        line_y += 10.0;
+    }
+
+    if selected {
+        let mut max_w = name_width;
+        if let Some(desc) = desc_val {
+            max_w = max_w.max(ui.measure_text(desc, 1.2));
+        }
+        if let Some(tag) = life_tag {
+            max_w = max_w.max(ui.measure_text(tag, 1.25));
+        }
+
+        let pad_x = 6.0;
+        let pad_y = 3.0;
+        let left = x - max_w * 0.5 - pad_x;
+        let right = x + max_w * 0.5 + pad_x;
+        let top = y - pad_y;
+        let bottom = line_y - 2.0;
+
+        let arm = 5.0f32.min((right - left) * 0.25).min((bottom - top) * 0.25);
+        let bracket_base = if is_dead {
+            readable_dim(pal)
+        } else {
+            base_hostility_tint
+        };
+        let bracket = alpha_scale(bracket_base, opacity);
+
+        // Corner brackets
+        ui.line(left, top, left + arm, top, 1.0, bracket);
+        ui.line(left, top, left, top + arm, 1.0, bracket);
+
+        ui.line(right - arm, top, right, top, 1.0, bracket);
+        ui.line(right, top, right, top + arm, 1.0, bracket);
+
+        ui.line(left, bottom, left + arm, bottom, 1.0, bracket);
+        ui.line(left, bottom - arm, left, bottom, 1.0, bracket);
+
+        ui.line(right - arm, bottom, right, bottom, 1.0, bracket);
+        ui.line(right, bottom - arm, right, bottom, 1.0, bracket);
+
+        // Baseline tick
+        let tick_w = 6.0;
+        ui.line(x - tick_w * 0.5, bottom, x + tick_w * 0.5, bottom, 1.0, bracket);
+        ui.line(x, bottom, x, bottom - 3.0, 1.0, bracket);
     }
 }
 
@@ -542,5 +597,117 @@ mod tests {
             Some((400.0, 300.0))
         });
         assert!(ui.quads > 0);
+    }
+    #[test]
+    fn hostility_tint_agreement_between_plate_and_overlay() {
+        let pal = palette(0);
+        let icons = Icons::load();
+        let mut ui = UiBuilder::new(icons.meta);
+        ui.begin(1280, 720);
+        draw_nameplate(
+            &mut ui,
+            &pal,
+            "IMPERIAL SOLDIER",
+            Some("ROOKIE"),
+            RelationHud::Hostile,
+            None,
+            true,
+            1.0,
+            400.0,
+            300.0,
+        );
+        assert!(ui.quads > 0, "selection indicator draws quads");
+        assert_eq!(
+            hostility_tint(RelationHud::Hostile, &pal),
+            pal.danger,
+            "hostility tint helper must return danger tint for hostile relation"
+        );
+    }
+
+    #[test]
+    fn bracket_geometry_stays_inside_plate_bounds() {
+        let pal = palette(0);
+        let icons = Icons::load();
+        let mut ui = UiBuilder::new(icons.meta);
+        ui.begin(1280, 720);
+        let x = 400.0f32;
+        let y = 300.0f32;
+        draw_nameplate(
+            &mut ui,
+            &pal,
+            "TARGET NAME",
+            Some("DESCRIPTOR"),
+            RelationHud::Hostile,
+            Some("TAG"),
+            true,
+            1.0,
+            x,
+            y,
+        );
+
+        let max_w = ui.measure_text("TARGET NAME", 1.45)
+            .max(ui.measure_text("DESCRIPTOR", 1.2))
+            .max(ui.measure_text("TAG", 1.25));
+        let left = x - max_w * 0.5 - 6.0 - 0.5;
+        let right = x + max_w * 0.5 + 6.0 + 0.5;
+        let top = y - 3.0 - 0.5;
+        let bottom = y + 32.0 - 0.5; // name + desc + tag
+
+        let mut min_px = f32::MAX;
+        let mut max_px = f32::MIN;
+        let mut min_py = f32::MAX;
+        let mut max_py = f32::MIN;
+
+        for vertex in ui.buf.chunks_exact(8) {
+            let px = (vertex[0] + 1.0) * 0.5 * 1280.0;
+            let py = (1.0 - vertex[1]) * 0.5 * 720.0;
+            min_px = min_px.min(px);
+            max_px = max_px.max(px);
+            min_py = min_py.min(py);
+            max_py = max_py.max(py);
+        }
+
+        assert!(min_px >= left, "brackets min_px {min_px} >= left {left}");
+        assert!(max_px <= right, "brackets max_px {max_px} <= right {right}");
+        assert!(min_py >= top, "brackets min_py {min_py} >= top {top}");
+        assert!(max_py <= bottom, "brackets max_py {max_py} <= bottom {bottom}");
+    }
+
+    #[test]
+    fn dead_target_overlay_presentation() {
+        let pal = palette(0);
+        let icons = Icons::load();
+
+        let mut ui_alive = UiBuilder::new(icons.meta);
+        ui_alive.begin(1280, 720);
+        draw_nameplate(
+            &mut ui_alive,
+            &pal,
+            "TARGET NAME",
+            None,
+            RelationHud::Hostile,
+            None,
+            false,
+            1.0,
+            400.0,
+            300.0,
+        );
+
+        let mut ui_dead = UiBuilder::new(icons.meta);
+        ui_dead.begin(1280, 720);
+        draw_nameplate(
+            &mut ui_dead,
+            &pal,
+            "TARGET NAME",
+            None,
+            RelationHud::Hostile,
+            Some("DEAD"),
+            false,
+            1.0,
+            400.0,
+            300.0,
+        );
+
+        assert!(ui_dead.quads > ui_alive.quads, "dead nameplate must emit extra quads for strike-through line");
     }
 }

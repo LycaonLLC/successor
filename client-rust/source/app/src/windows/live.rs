@@ -21,7 +21,7 @@ use std::cell::RefCell;
 
 use super::chrome::{self, Rows};
 use super::spec::{Density, Metrics};
-use super::{Ctx, WindowAction, WindowModel, ACCENT, DIM, LABEL, VALUE};
+use super::{accent, dim, label, value, Ctx, WindowAction, WindowModel};
 use successor_engine_render::ui::{TextField, UiBuilder};
 use successor_net::{ClientCommand, TradeItemSpec};
 
@@ -202,7 +202,7 @@ fn prose(
 /// prop label — on the surfaces whose viewer takes the header's place.
 fn heading(pane: &mut Pane, ui: &mut UiBuilder, text: &str) {
     let px = pane.metrics.heading_px;
-    chrome::text_clipped(ui, text, pane.x, pane.y, px, pane.w, ACCENT);
+    chrome::text_clipped(ui, text, pane.x, pane.y, px, pane.w, accent());
     pane.y += px * 7.0 + 5.0;
 }
 
@@ -402,7 +402,7 @@ pub fn survey(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
             row.label_tinted(
                 ui,
                 &vm.family_label,
-                if extractor.in_reach { LABEL } else { DIM },
+                if extractor.in_reach { label() } else { dim() },
             );
             if owner_verbs {
                 let labels: &[&str] = if model.survey.batteries.is_empty() {
@@ -483,7 +483,7 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                         recipe_id: recipe.recipe_id.clone(),
                     }));
                 }
-                row.label_tinted(ui, &recipe.name, if recipe.unlocked { LABEL } else { DIM });
+                row.label_tinted(ui, &recipe.name, if recipe.unlocked { label() } else { dim() });
             }
             if !any {
                 chrome::empty(ui, pane.x, rows.cursor(), "NO SCHEMATICS KNOWN");
@@ -668,7 +668,7 @@ pub fn converse(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec
         caption_y,
         metrics.label_px,
         preview[2],
-        LABEL,
+        label(),
     );
     let role_w = ui.measure_text("TRAINER", metrics.caption_px);
     ui.text(
@@ -676,7 +676,7 @@ pub fn converse(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec
         x + ((preview[2] - role_w) * 0.5).max(0.0),
         caption_y + metrics.label_px * 7.0 + 4.0,
         metrics.caption_px,
-        DIM,
+        dim(),
     );
 
     // Prose and replies share the column beside the portrait, so the viewer
@@ -686,8 +686,8 @@ pub fn converse(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec
     let prose_h = (h * 0.28).clamp(metrics.row_h * 2.0, 120.0);
     chrome::region(ui, [column_x, y, column_w, prose_h]);
     let (body, tint) = match model.converse.deliveries.last() {
-        Some(delivery) => (delivery.body.as_str(), LABEL),
-        None => ("State your business.", DIM),
+        Some(delivery) => (delivery.body.as_str(), label()),
+        None => ("State your business.", dim()),
     };
     prose(
         ui,
@@ -783,7 +783,7 @@ pub fn travel(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                     row.value(ui, &format!("{} CR", city.price));
                 }
                 row.value(ui, &planet.label);
-                row.label_tinted(ui, &city.label, if is_origin { DIM } else { LABEL });
+                row.label_tinted(ui, &city.label, if is_origin { dim() } else { label() });
             }
         }
         if !any {
@@ -865,7 +865,7 @@ pub fn examine(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<
         let reading = format!("{:.0}/{:.0}", actor.health, actor.health_max);
         let label_w = ui.measure_text("HEALTH", metrics.caption_px) + 10.0;
         let reading_w = ui.measure_text(&reading, metrics.caption_px);
-        ui.text("HEALTH", pane.x, pane.y + 1.0, metrics.caption_px, LABEL);
+        ui.text("HEALTH", pane.x, pane.y + 1.0, metrics.caption_px, label());
         let track_w = (pane.w - label_w - reading_w - 8.0).max(0.0);
         if track_w > 0.0 {
             chrome::meter(
@@ -875,7 +875,7 @@ pub fn examine(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<
                 track_w,
                 6.0,
                 ratio,
-                ACCENT,
+                accent(),
             );
         }
         ui.text(
@@ -883,7 +883,7 @@ pub fn examine(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<
             pane.x + pane.w - reading_w,
             pane.y,
             metrics.caption_px,
-            VALUE,
+            value(),
         );
         pane.y += metrics.row_h - 4.0;
 
@@ -1060,7 +1060,7 @@ pub fn macros_live(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut 
     }
 
     let mut ey = editor_y;
-    ui.text("NAME", pane.x, ey, metrics.caption_px, LABEL);
+    ui.text("NAME", pane.x, ey, metrics.caption_px, label());
     ey += caption_h;
     MACRO_NAME.with(|field| {
         ui.text_field(
@@ -1081,7 +1081,7 @@ pub fn macros_live(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut 
         ey,
         metrics.caption_px,
         pane.w,
-        DIM,
+        dim(),
     );
     ey += caption_h;
     let body_h = (pane.bottom - ey).max(chrome::FIELD_H);
@@ -1146,7 +1146,7 @@ pub fn datapad(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<
                 row.label_tinted(
                     ui,
                     &waypoint.name,
-                    if waypoint.active { LABEL } else { DIM },
+                    if waypoint.active { label() } else { dim() },
                 );
             }
             if !any {
@@ -1245,13 +1245,13 @@ pub fn guild(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
             );
         });
         let caption_y = pane.y + chrome::FIELD_H + 3.0;
-        ui.text("NAME", pane.x, caption_y, metrics.caption_px, DIM);
+        ui.text("NAME", pane.x, caption_y, metrics.caption_px, dim());
         ui.text(
             "TAG",
             pane.x + name_w + 8.0,
             caption_y,
             metrics.caption_px,
-            DIM,
+            dim(),
         );
         pane.y = caption_y + metrics.caption_px * 7.0 + 6.0;
 
@@ -1275,7 +1275,7 @@ pub fn guild(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
     pane.field(ui, "TAG", &guild.tag);
     if model.pa.has_permission("invite") {
         if let Some((actor_id, label)) = &model.pa.target {
-            chrome::text_clipped(ui, label, pane.x, pane.y, metrics.caption_px, pane.w, DIM);
+            chrome::text_clipped(ui, label, pane.x, pane.y, metrics.caption_px, pane.w, dim());
             pane.y += metrics.caption_px * 7.0 + 3.0;
             if pane.rail(ui, &["INVITE SELECTED"]).is_some() {
                 out.push(WindowAction::Command(ClientCommand::GuildInvite {
@@ -1330,7 +1330,7 @@ pub fn guild(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
         if !member.online {
             row.value(ui, "OFFLINE");
         }
-        row.label_tinted(ui, &member.name, if member.online { LABEL } else { DIM });
+        row.label_tinted(ui, &member.name, if member.online { label() } else { dim() });
     }
     if !any {
         chrome::empty(ui, pane.x, rows.cursor(), "ROSTER EMPTY");
@@ -1376,7 +1376,7 @@ pub fn guild(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                 }));
             }
             row.value(ui, &candidate.tag);
-            row.label_tinted(ui, &candidate.name, DIM);
+            row.label_tinted(ui, &candidate.name, dim());
         }
         if !any {
             chrome::empty(ui, pane.x, rows.cursor(), "NO WARS DECLARED");
@@ -1607,7 +1607,7 @@ pub fn agriculture(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut 
                 costs.push_str(&material.to_ascii_uppercase());
             }
             row.value(ui, &costs);
-            row.label_tinted(ui, &item.label, if enabled { LABEL } else { DIM });
+            row.label_tinted(ui, &item.label, if enabled { label() } else { dim() });
         }
         pane.resume(&rows);
     }
@@ -1722,7 +1722,7 @@ pub fn splice(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                 ui,
                 &format!("{} {}", slot.kind.to_ascii_uppercase(), slot.slot_index + 1),
             );
-            row.label_tinted(ui, &slot.label, if slot.filled { LABEL } else { DIM });
+            row.label_tinted(ui, &slot.label, if slot.filled { label() } else { dim() });
         }
         pane.resume(&rows);
     }
@@ -1839,9 +1839,9 @@ pub fn group(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                 ui,
                 &member.name,
                 if member.life_state == "alive" {
-                    LABEL
+                    label()
                 } else {
-                    DIM
+                    dim()
                 },
             );
         }
@@ -2016,7 +2016,7 @@ pub fn trade(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
         any = true;
         let Some(mut list) = rows.next(ui) else { break };
         list.value(ui, &qty(line.quantity));
-        list.label_tinted(ui, &line.name, DIM);
+        list.label_tinted(ui, &line.name, dim());
     }
     if !any {
         chrome::empty(ui, pane.x, rows.cursor(), "NOTHING OFFERED");

@@ -85,6 +85,7 @@ logs/
 
 # Local runtime persistence
 server/.local-state/
+server/.local-state-archive-*/
 server/data/
 
 .game-lab/

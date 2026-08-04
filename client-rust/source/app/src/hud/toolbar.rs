@@ -15,6 +15,22 @@ use successor_engine_render::ui::UiBuilder;
 use super::{code_glyph, HudAction, HudState, Icons, LifeHud, Palette, PERMANENT_WINDOWS};
 
 pub const SLOT_COUNT: usize = 12;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PressResult {
+    /// Hotkey matched a toolbar slot and enqueued a HUD action.
+    Used,
+    /// Hotkey matched a toolbar slot, but the slot was empty or ineligible.
+    Ineligible,
+    /// Hotkey did not match any toolbar slot bind.
+    Passthrough,
+}
+
+impl PressResult {
+    pub fn is_consumed(self) -> bool {
+        matches!(self, Self::Used | Self::Ineligible)
+    }
+}
+
 pub const SLOT_PX: f32 = 46.0;
 const SLOT_GAP: f32 = 6.0;
 const GROUP_GAP: f32 = 14.0;
@@ -334,23 +350,30 @@ impl Toolbar {
         true
     }
 
-    /// Hotkey path: execute the slot bound to `code`. Returns the resolved
-    /// action; `None` when no slot consumes the code.
+    /// Hotkey path: execute the slot bound to `code`. Returns `PressResult`
+    /// indicating whether the slot was used, ineligible (empty), or unmapped.
     pub fn press_code(&mut self, code: &str, out: &mut Vec<HudAction>) -> bool {
+        self.press_code_result(code, out).is_consumed()
+    }
+
+    pub fn press_code_result(&mut self, code: &str, out: &mut Vec<HudAction>) -> PressResult {
         if self.rebind_slot.is_some() {
             let consumed = self.feed_rebind_code(code);
             if consumed {
                 out.push(HudAction::ToolbarChanged);
+                return PressResult::Used;
             }
-            return consumed;
+            return PressResult::Passthrough;
         }
         let Some(slot) = self.doc.binds.iter().position(|b| b == code) else {
-            return false;
+            return PressResult::Passthrough;
         };
-        self.activate(slot, out)
+        if self.activate(slot, out) {
+            PressResult::Used
+        } else {
+            PressResult::Ineligible
+        }
     }
-
-    /// Resolve one slot activation into a HUD action.
     pub fn activate(&self, slot: usize, out: &mut Vec<HudAction>) -> bool {
         match self.doc.slots.get(slot).and_then(|s| s.as_ref()) {
             Some(SlotRef::Action(id)) => match action_by_id(id) {
@@ -739,14 +762,21 @@ mod tests {
         assert!(tb.press_code("Digit1", &mut out));
         assert!(tb.press_code("Digit2", &mut out));
         assert!(tb.press_code("Digit3", &mut out));
-        assert!(
-            !tb.press_code("Digit4", &mut out),
-            "empty slot consumes nothing"
+        // A bound key over an empty slot belongs to the toolbar: it reports
+        // `Ineligible` so the host can sound `ui_toolbar_ineligible`, and it
+        // consumes the press rather than letting a bound digit fall through to
+        // a gameplay verb.
+        assert_eq!(
+            tb.press_code_result("Digit4", &mut out),
+            PressResult::Ineligible
         );
-        assert!(
-            !tb.press_code("KeyZ", &mut out),
+        assert!(tb.press_code("Digit4", &mut out));
+        assert_eq!(
+            tb.press_code_result("KeyZ", &mut out),
+            PressResult::Passthrough,
             "unbound code passes through"
         );
+        assert!(!tb.press_code("KeyZ", &mut out));
         assert_eq!(
             out,
             vec![

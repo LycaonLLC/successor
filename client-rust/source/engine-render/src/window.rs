@@ -34,6 +34,13 @@ pub const TITLE_H: f32 = TOP_RAIL;
 /// `UIWidget.cpp` RESIZE_MARGIN is 8: a press within 8 px of an edge resizes
 /// and a press further inside moves.
 pub const RESIZE_H: f32 = 8.0;
+/// Resize inset inside the caption strip. `RESIZE_MARGIN` is measured against
+/// a widget's own border; in the original the caption is a child page that
+/// takes the press and moves the frame (`SwgCuiLockableMediator`'s
+/// `AcceptsMoveFromChildren`), so the border is all that still resizes there.
+/// Applying the full 8 px inside a 19 px caption leaves a 3 px move sliver and
+/// makes title-bar dragging silently resize instead.
+const CAPTION_RESIZE_MARGIN: f32 = 3.0;
 /// Workspace icon slot size (`CuiWorkspaceIcon` slots are 32x32 and
 /// resolution independent).
 pub const ICON_SLOT: f32 = 32.0;
@@ -139,6 +146,35 @@ impl Default for WindowStyle {
             text: [0x97, 0xFF, 0xFF, 255],
             close: [0x00, 0x35, 0x4F, 255],
             resize: [0x1C, 0xFF, 0xFF, 220],
+        }
+    }
+}
+
+impl WindowStyle {
+    /// Scale the pane fills by a transparency setting.
+    ///
+    /// Fills only: the caption rails, the bright perimeter, and the caption
+    /// ink stay opaque. The original's window transparency fades the pane and
+    /// leaves the frame legible, and a translucent caption over terrain is
+    /// unreadable at any setting.
+    pub fn fade_fills(&mut self, opacity: f32) {
+        let scale = if opacity.is_finite() {
+            opacity.clamp(0.0, 1.0)
+        } else {
+            1.0
+        };
+        for tone in [
+            &mut self.frame.center,
+            &mut self.frame.north,
+            &mut self.frame.south,
+            &mut self.frame.east,
+            &mut self.frame.west,
+            &mut self.frame.north_east,
+            &mut self.frame.north_west,
+            &mut self.frame.south_east,
+            &mut self.frame.south_west,
+        ] {
+            tone[3] = libm::roundf(tone[3] as f32 * scale).clamp(0.0, 255.0) as u8;
         }
     }
 }
@@ -401,10 +437,18 @@ impl WindowManager {
     }
 
     fn resize_edges(win: &Win, mx: f32, my: f32) -> Option<ResizeEdges> {
+        // Inside a chromed frame's caption the strip is the move handle, so
+        // only the frame border still resizes; the bottom edge is never part
+        // of the caption and keeps the full margin.
+        let margin = if win.chrome && my <= win.y + CAPTION_H + 2.0 {
+            CAPTION_RESIZE_MARGIN
+        } else {
+            RESIZE_H
+        };
         let edges = ResizeEdges {
-            left: mx <= win.x + RESIZE_H,
-            right: mx >= win.x + win.w - RESIZE_H,
-            top: my <= win.y + RESIZE_H,
+            left: mx <= win.x + margin,
+            right: mx >= win.x + win.w - margin,
+            top: my <= win.y + margin,
             bottom: my >= win.y + win.h - RESIZE_H,
         };
         (edges.left || edges.right || edges.top || edges.bottom).then_some(edges)
@@ -667,6 +711,52 @@ impl WindowManager {
                 && !win.iconified
                 && UiBuilder::hit(win.x, win.y, win.w, win.h, x, y)
         })
+    }
+
+    /// Pointer shape the workspace wants at `(x, y)`.
+    ///
+    /// Resolves against the frontmost interactive frame only, the same way the
+    /// press does, so a resize edge hidden under another window never claims
+    /// the pointer. An in-flight gesture wins outright: once a drag starts the
+    /// pointer keeps its shape even when it runs off the frame.
+    pub fn cursor_hint(&self, x: f32, y: f32) -> Option<crate::cursor::CursorKind> {
+        if let Some(drag) = self.drag.as_ref() {
+            return Some(match drag.mode {
+                DragMode::Move => crate::cursor::CursorKind::Move,
+                DragMode::Resize(edges) => crate::cursor::CursorKind::for_edges(
+                    edges.left,
+                    edges.right,
+                    edges.top,
+                    edges.bottom,
+                )
+                .unwrap_or(crate::cursor::CursorKind::Move),
+            });
+        }
+        let (index, _) = self
+            .wins
+            .iter()
+            .enumerate()
+            .filter(|(_, win)| {
+                win.open
+                    && win.interactive
+                    && !win.iconified
+                    && UiBuilder::hit(win.x, win.y, win.w, win.h, x, y)
+            })
+            .max_by_key(|(_, win)| win.z)?;
+        let win = &self.wins[index];
+        if let Some(edges) = Self::resize_edges(win, x, y) {
+            return crate::cursor::CursorKind::for_edges(
+                edges.left,
+                edges.right,
+                edges.top,
+                edges.bottom,
+            );
+        }
+        // The caption strip is the move surface on a chromed frame; a
+        // chromeless HUD pane is draggable anywhere once unlocked.
+        let move_band = if win.chrome { CAPTION_H + 2.0 } else { win.h };
+        UiBuilder::hit(win.x, win.y, win.w, move_band, x, y)
+            .then_some(crate::cursor::CursorKind::Move)
     }
 
     /// Id of the frontmost open frame (the focused one), if any.
@@ -1160,6 +1250,71 @@ mod tests {
         ui.begin(1280, 720);
         manager.update(&ui, 1280, 720);
         assert_eq!(manager.rect("inv").unwrap(), [100.0, 100.0, 300.0, 240.0]);
+    }
+
+    /// The caption is the move handle. With the plain 8 px `RESIZE_MARGIN`
+    /// applied to a 19 px caption, a title-bar press lands in the top resize
+    /// band and the frame silently resizes instead of moving.
+    #[test]
+    fn caption_drag_moves_instead_of_resizing() {
+        let mut manager = wm();
+        manager.open("inv");
+        let mut ui = UiBuilder::new(ATLAS);
+        // y = 104 is 4 px into the caption: past the frame border, well inside
+        // the old 8 px top margin.
+        ui.set_input(250.0, 104.0, true);
+        ui.begin(1280, 720);
+        manager.update(&ui, 1280, 720);
+        ui.set_input(190.0, 144.0, true);
+        ui.begin(1280, 720);
+        manager.update(&ui, 1280, 720);
+        assert_eq!(
+            manager.rect("inv").unwrap(),
+            [40.0, 140.0, 300.0, 200.0],
+            "caption drag must translate the frame and preserve its size"
+        );
+        ui.set_input(190.0, 144.0, false);
+        ui.begin(1280, 720);
+        manager.update(&ui, 1280, 720);
+    }
+
+    /// The frame border still resizes, including through the caption row, so
+    /// the top edge stays grabbable.
+    #[test]
+    fn caption_border_still_resizes() {
+        let mut manager = wm();
+        manager.open("inv");
+        let mut ui = UiBuilder::new(ATLAS);
+        ui.set_input(250.0, 101.0, true);
+        ui.begin(1280, 720);
+        manager.update(&ui, 1280, 720);
+        ui.set_input(250.0, 71.0, true);
+        ui.begin(1280, 720);
+        manager.update(&ui, 1280, 720);
+        assert_eq!(manager.rect("inv").unwrap(), [100.0, 70.0, 300.0, 230.0]);
+        ui.set_input(250.0, 71.0, false);
+        ui.begin(1280, 720);
+        manager.update(&ui, 1280, 720);
+    }
+
+    /// A pointer over the caption asks for the move cursor; over the border it
+    /// asks for the matching resize cursor.
+    #[test]
+    fn cursor_hint_separates_caption_from_border() {
+        use crate::cursor::CursorKind;
+        let mut manager = wm();
+        manager.open("inv");
+        assert_eq!(manager.cursor_hint(250.0, 104.0), Some(CursorKind::Move));
+        assert_eq!(
+            manager.cursor_hint(250.0, 101.0),
+            Some(CursorKind::ResizeVertical)
+        );
+        assert_eq!(
+            manager.cursor_hint(398.0, 298.0),
+            Some(CursorKind::ResizeNwSe)
+        );
+        assert_eq!(manager.cursor_hint(250.0, 200.0), None);
+        assert_eq!(manager.cursor_hint(900.0, 600.0), None);
     }
 
     #[test]

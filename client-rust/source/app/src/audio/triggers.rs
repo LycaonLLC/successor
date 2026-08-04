@@ -9,6 +9,17 @@ use crate::game::combat_fx::{CombatEvent, CombatOutcome, WeaponVisual};
 use crate::world::terrain::Biome;
 use successor_engine_core::audio::{Point, SpatialOpts};
 
+/// Minimum separation in milliseconds between consecutive plays of the same UI cue.
+///
+/// At 60 Hz, a single frame is ~16.67ms. If multiple events fire the same cue in a
+/// single frame or adjacent frames (e.g. bulk loot processing, multi-item transfers,
+/// or rapid key repeat), playing identical PCM buffers simultaneously produces
+/// constructive phase alignment resulting in digital clipping and an unpleasantly
+/// loud click storm. A 35ms retrigger floor suppresses intra-frame and immediate
+/// sub-frame duplicates while remaining fully responsive to intentional consecutive
+/// user clicks (which typically have >= 100ms separation).
+pub const UI_CUE_RETRIGGER_FLOOR_MS: u64 = 35;
+
 /// UI/HUD sound cues (non-spatial).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UiCue {
@@ -27,6 +38,38 @@ pub enum UiCue {
 }
 
 impl UiCue {
+    pub const ALL: [UiCue; 12] = [
+        UiCue::PanelOpen,
+        UiCue::PanelClose,
+        UiCue::ButtonTick,
+        UiCue::ToolbarUse,
+        UiCue::ToolbarIneligible,
+        UiCue::ChatSend,
+        UiCue::ChatReceive,
+        UiCue::Notification,
+        UiCue::Deny,
+        UiCue::CreditsChime,
+        UiCue::ItemTransfer,
+        UiCue::AreaTransition,
+    ];
+
+    pub fn index(self) -> usize {
+        match self {
+            UiCue::PanelOpen => 0,
+            UiCue::PanelClose => 1,
+            UiCue::ButtonTick => 2,
+            UiCue::ToolbarUse => 3,
+            UiCue::ToolbarIneligible => 4,
+            UiCue::ChatSend => 5,
+            UiCue::ChatReceive => 6,
+            UiCue::Notification => 7,
+            UiCue::Deny => 8,
+            UiCue::CreditsChime => 9,
+            UiCue::ItemTransfer => 10,
+            UiCue::AreaTransition => 11,
+        }
+    }
+
     pub fn clip_id(self) -> &'static str {
         match self {
             UiCue::PanelOpen => "ui_panel_open",
@@ -45,8 +88,39 @@ impl UiCue {
     }
 }
 
-/// Play a UI cue.
+thread_local! {
+    static LAST_CUE_TIMES: std::cell::RefCell<[Option<std::time::Instant>; 12]> =
+        const { std::cell::RefCell::new([None; 12]) };
+}
+
+/// Reset the per-cue retrigger floor timers (primarily for deterministic unit testing).
+pub fn clear_retrigger_floor() {
+    LAST_CUE_TIMES.with(|cell| {
+        *cell.borrow_mut() = [None; 12];
+    });
+}
+
+/// Play a UI cue, applying the per-cue retrigger floor to prevent click storms.
 pub fn play_ui(player: &mut SfxPlayer, cue: UiCue) -> bool {
+    let now = std::time::Instant::now();
+    let idx = cue.index();
+    let floor = std::time::Duration::from_millis(UI_CUE_RETRIGGER_FLOOR_MS);
+
+    let too_soon = LAST_CUE_TIMES.with(|cell| {
+        let mut times = cell.borrow_mut();
+        if let Some(last) = times[idx] {
+            if now.duration_since(last) < floor {
+                return true;
+            }
+        }
+        times[idx] = Some(now);
+        false
+    });
+
+    if too_soon {
+        return false;
+    }
+
     player.play_ui(cue.clip_id())
 }
 
@@ -220,9 +294,44 @@ mod tests {
             eprintln!("skip: assets absent");
             return;
         };
+        clear_retrigger_floor();
         assert!(play_ui(&mut p, UiCue::PanelOpen));
         assert!(play_ui(&mut p, UiCue::ButtonTick));
         assert!(p.active_voices() >= 2);
+    }
+
+    #[test]
+    fn all_ui_cues_map_to_real_clips() {
+        let Some(mut p) = player() else {
+            eprintln!("skip: assets absent");
+            return;
+        };
+        for cue in UiCue::ALL {
+            clear_retrigger_floor();
+            let clip_id = cue.clip_id();
+            assert!(
+                play_ui(&mut p, cue),
+                "UiCue::{cue:?} with clip_id '{clip_id}' failed to play"
+            );
+        }
+    }
+
+    #[test]
+    fn ui_cue_retrigger_floor_suppresses_bursts() {
+        let Some(mut p) = player() else {
+            return;
+        };
+        clear_retrigger_floor();
+        // First trigger plays
+        assert!(play_ui(&mut p, UiCue::ButtonTick));
+        // Immediate duplicate trigger suppressed by retrigger floor
+        assert!(!play_ui(&mut p, UiCue::ButtonTick));
+        // Distinct cue variant plays independently
+        assert!(play_ui(&mut p, UiCue::ItemTransfer));
+        // Wait out the floor duration
+        std::thread::sleep(std::time::Duration::from_millis(UI_CUE_RETRIGGER_FLOOR_MS + 5));
+        // Play succeeds again after floor elapses
+        assert!(play_ui(&mut p, UiCue::ButtonTick));
     }
 
     #[test]
@@ -248,7 +357,6 @@ mod tests {
         play_combat(&mut p, &ev, [0.0, 1.3, 0.5], [1.0, 1.0, 0.5]);
         assert!(p.active_voices() >= 1, "voices={}", p.active_voices());
     }
-
     #[test]
     fn footstep_round_robins_by_surface() {
         assert_eq!(footstep_id(0, false), "footstep_grass_01");

@@ -183,6 +183,13 @@ impl UiBuilder {
         self.quads += 1;
     }
 
+    /// Solid triangle. The buffer is a quad list, so the third vertex is
+    /// repeated: the degenerate triangle rasterizes to nothing and keeps
+    /// `quads` an exact divisor of the vertex count.
+    pub fn tri(&mut self, a: (f32, f32), b: (f32, f32), c: (f32, f32), rgba: [u8; 4]) {
+        self.push_solid_quad([a, b, c, c], rgba);
+    }
+
     /// Solid antialiased-by-MSAA line segment with arbitrary orientation.
     pub fn line(&mut self, x0: f32, y0: f32, x1: f32, y1: f32, thickness: f32, rgba: [u8; 4]) {
         let dx = x1 - x0;

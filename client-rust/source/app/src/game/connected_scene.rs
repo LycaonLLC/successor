@@ -51,6 +51,7 @@ use crate::world::streamed::StreamedWorld;
 use crate::world::terrain::Biome;
 use crate::world::{ADULT_PAWN_HEIGHT_METERS, WORLD_UNITS_PER_CELL};
 use crate::GameWorld;
+use successor_engine_render::cursor::{self, CursorKind, CursorStyle};
 
 #[derive(Clone, Copy)]
 struct HeldWeaponRig {
@@ -504,6 +505,13 @@ const PAPERDOLL_SPIN_EPS: f32 = 0.02;
 /// inventory objects do not auto-rotate unless the player asks them to.
 const PAPERDOLL_RESTING_YAW: f32 = 0.0;
 
+/// Pointer slop for selecting a streamed actor, in framebuffer pixels. Sized
+/// to the projected torso at the shipped camera pitch, not to the sprite.
+const ACTOR_PICK_RADIUS_PX: f32 = 32.0;
+/// Pointer slop for a world verb prop. Tighter than an actor: a door is a
+/// fixed volume and should not steal the pointer from the ground behind it.
+const PROP_PICK_RADIUS_PX: f32 = 26.0;
+
 fn draw_inventory_radial_arc(
     ui: &mut successor_engine_render::ui::UiBuilder,
     x: f32,
@@ -657,7 +665,34 @@ fn draw_inventory_radial(
     (close, selected)
 }
 
+/// UI cue an accepted command earns on settlement.
+///
+/// Mirrors the web client's `item_transfer` / `credits_chime` /
+/// `area_transition` vocabulary: the sound belongs to the authority's receipt,
+/// not to the click, so a refused transfer never sounds like a completed one.
+fn ui_cue_for_settled(command: &ClientCommand) -> Option<crate::audio::UiCue> {
+    match command {
+        ClientCommand::SetEquippedWeapon { .. }
+        | ClientCommand::SetEquippedClothing { .. }
+        | ClientCommand::BankStoreItem { .. }
+        | ClientCommand::BankRetrieveItem { .. }
+        | ClientCommand::TakeLootItem { .. }
+        | ClientCommand::HarvestCorpse { .. }
+        | ClientCommand::DiscardStack { .. }
+        | ClientCommand::SplitStack { .. }
+        | ClientCommand::MergeStacks { .. }
+        | ClientCommand::StoreToExchange { .. } => Some(crate::audio::UiCue::ItemTransfer),
+        ClientCommand::RedeemCreditChip { .. } => Some(crate::audio::UiCue::CreditsChime),
+        ClientCommand::EnterTransition { .. } => Some(crate::audio::UiCue::AreaTransition),
+        _ => None,
+    }
+}
+
+/// One optional JSON value per persisted section, in the order
+/// `ConnectedScene::take_persisted` returns them: theme, toolbar, split snap,
+/// waypoints, macros, window layout, UI opacity.
 pub type PersistedSections = (
+    Option<serde_json::Value>,
     Option<serde_json::Value>,
     Option<serde_json::Value>,
     Option<serde_json::Value>,
@@ -713,6 +748,11 @@ pub struct ConnectedScene {
     hud_actions: Vec<hud::HudAction>,
     theme_index: usize,
     dust_strength: f32,
+    /// Workspace frame fill opacity (persisted player setting).
+    window_opacity: f32,
+    /// HUD pane fill opacity, separate because the HUD sits over gameplay for
+    /// the whole session while a window is transient.
+    hud_opacity: f32,
     split_snap: u32,
     rebind_pending: Option<usize>,
     preferences_dirty: bool,
@@ -727,6 +767,13 @@ pub struct ConnectedScene {
     /// lock. The render pass consumes this once to gate HUD controls on that
     /// same input edge without toggling the lock a second time.
     hud_layout_input_consumed: bool,
+    /// Whether the client currently owns the pointer and is drawing it. Only
+    /// the transition touches the platform, so a hidden desktop cursor is not
+    /// re-asserted every frame.
+    owns_cursor: bool,
+    /// View-projection retained from the last drawn frame; see
+    /// [`ConnectedScene::viewport_projection`].
+    pointer_vp: Option<Mat4>,
     /// A fresh registry or an older workspace document can be missing
     /// individual panes. Only those slots receive first-run defaults.
     hud_defaults_pending: [bool; hud::HUD_SURFACE_COUNT],
@@ -1176,6 +1223,8 @@ impl ConnectedScene {
             hud_actions: Vec::with_capacity(8),
             theme_index: 0,
             dust_strength: 0.5,
+            window_opacity: 0.92,
+            hud_opacity: 0.90,
             split_snap: 100,
             rebind_pending: None,
             preferences_dirty: false,
@@ -1185,6 +1234,8 @@ impl ConnectedScene {
             hud_right_was_down: false,
             right_was_down: false,
             hud_layout_input_consumed: false,
+            owns_cursor: false,
+            pointer_vp: None,
             hud_defaults_pending: [true; hud::HUD_SURFACE_COUNT],
             left_was_down: false,
             pointer_prev: (0.0, 0.0),
@@ -1800,6 +1851,8 @@ impl ConnectedScene {
         crate::windows::set_options_model(crate::windows::options::OptionsModel {
             theme_index: self.theme_index,
             dust_strength: self.dust_strength,
+            window_opacity: self.window_opacity,
+            hud_opacity: self.hud_opacity,
             zoom_percent: self.zoom_percent.round() as u16,
             split_snap: self.split_snap,
             toolbar_binds: self.toolbar.doc.binds.clone(),
@@ -1816,7 +1869,6 @@ impl ConnectedScene {
         if let Some(result) = self.store.bug_report_result.as_ref() {
             crate::windows::apply_bug_report_result(result);
         }
-        self.hud_state.crosshair = true;
     }
     pub fn on_player_pos(&mut self, x: f32, y: f32) {
         self.store.apply_player_position(x, y);
@@ -1832,10 +1884,18 @@ impl ConnectedScene {
         &mut self.combat_fx
     }
     pub fn ingest_chat_message(&mut self, message: &ChatMessage) {
+        // Own speech ticks on send, everyone else's on receipt — the web
+        // client's two chat cues.
+        if message.sender_id == self.store.player_actor_id {
+            crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::ChatSend);
+        } else {
+            crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::ChatReceive);
+        }
         if let Some((actor_id, body)) = spatial_chat_payload(message) {
             self.overlays.push_bubble(actor_id, body);
         }
     }
+    #[allow(clippy::too_many_arguments)]
     pub fn load_persisted(
         &mut self,
         theme: Option<&serde_json::Value>,
@@ -1844,6 +1904,7 @@ impl ConnectedScene {
         waypoints: Option<&serde_json::Value>,
         macros: Option<&serde_json::Value>,
         window_layout: Option<&serde_json::Value>,
+        ui_opacity: Option<&serde_json::Value>,
     ) {
         if let Some(id) = theme.and_then(serde_json::Value::as_str) {
             if let Some(index) = hud::THEME_IDS.iter().position(|candidate| *candidate == id) {
@@ -1858,6 +1919,20 @@ impl ConnectedScene {
             .unwrap_or(100);
         self.waypoints = hud::waypoints::WaypointStore::load(waypoints);
         self.macro_runtime = crate::game::macro_runtime::MacroRuntime::load(macros);
+        // A corrupt or out-of-band opacity resets to its default rather than
+        // clamping: a near-zero value would read as a broken client.
+        let opacity = |key: &str, default: f32| {
+            ui_opacity
+                .and_then(|doc| doc.get(key))
+                .and_then(serde_json::Value::as_f64)
+                .map(|value| value as f32)
+                .filter(|value| {
+                    value.is_finite() && (hud::MIN_UI_OPACITY..=hud::MAX_UI_OPACITY).contains(value)
+                })
+                .unwrap_or(default)
+        };
+        self.window_opacity = opacity("window", 0.92);
+        self.hud_opacity = opacity("hud", 0.90);
         let viewport = self.viewport_size();
         self.hud_defaults_pending = restore_window_layout(&mut self.wm, window_layout, viewport);
         self.window_layout_dirty = false;
@@ -1885,6 +1960,12 @@ impl ConnectedScene {
             waypoint.then(|| self.waypoints.save()),
             macros.then(|| self.macro_runtime.save()),
             window_layout.then(|| save_window_layout(&self.wm, self.viewport_size())),
+            local.then(|| {
+                serde_json::json!({
+                    "window": self.window_opacity,
+                    "hud": self.hud_opacity,
+                })
+            }),
         );
         if waypoint {
             self.waypoints.mark_saved();
@@ -1900,11 +1981,20 @@ impl ConnectedScene {
     /// Workspace visibility/focus is part of the persisted layout, not a
     /// transient UI preference.
     fn open_workspace_window(&mut self, id: &str) {
+        if !self.wm.is_open(id) {
+            crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::PanelOpen);
+        }
         self.wm.open(id);
         self.window_layout_dirty = true;
     }
 
     fn toggle_workspace_window(&mut self, id: &str) {
+        let cue = if self.wm.is_open(id) {
+            crate::audio::UiCue::PanelClose
+        } else {
+            crate::audio::UiCue::PanelOpen
+        };
+        crate::audio::play_ui(&mut self.sfx, cue);
         self.wm.toggle(id);
         self.window_layout_dirty = true;
     }
@@ -1949,6 +2039,8 @@ impl ConnectedScene {
             .set_enabled(&mut self.world, previous.collision_debug.enabled());
         self.theme_index = previous.theme_index;
         self.dust_strength = previous.dust_strength;
+        self.window_opacity = previous.window_opacity;
+        self.hud_opacity = previous.hud_opacity;
         self.split_snap = previous.split_snap;
         self.shard_id.clone_from(&previous.shard_id);
         self.area_id.clone_from(&previous.area_id);
@@ -1990,6 +2082,111 @@ impl ConnectedScene {
             .map(|index| self.wm.window_id(*index).to_owned())
     }
 
+    /// Every registered frame with its live geometry, for the control
+    /// protocol. Development-only inspection: a UI journey asserts move,
+    /// resize, and layout persistence against these numbers rather than
+    /// against pixels.
+    pub fn window_frames(&self) -> Vec<successor_platform::ControlWindowFrame> {
+        let mut frames = Vec::new();
+        self.wm.for_each_geometry(|id, rect| {
+            frames.push(successor_platform::ControlWindowFrame {
+                id: id.to_owned(),
+                rect,
+                open: self.wm.is_open(id),
+                iconified: self.wm.is_iconified(id),
+                interactive: self.wm.is_interactive(id),
+            });
+        });
+        frames
+    }
+
+    /// View-projection the last drawn frame used, or `None` before the first
+    /// sized frame. Pointer picking and pointer-shape resolution both read it
+    /// so a click resolves against the image the player actually saw, and so
+    /// neither path needs `&mut` access to the ECS.
+    fn viewport_projection(&self) -> Option<Mat4> {
+        self.pointer_vp
+    }
+
+    /// Screen position of a world cell centre.
+    fn cell_to_screen(&self, vp: &Mat4, cell_x: f32, cell_y: f32, height_bias: f32) -> (f32, f32) {
+        let wx = (cell_x + 0.5) * WORLD_UNITS_PER_CELL;
+        let wz = (cell_y + 0.5) * WORLD_UNITS_PER_CELL;
+        let ndc = vp.project_point(vec3(wx, self.terrain.height_at(wx, wz) + height_bias, wz));
+        (
+            (ndc.x * 0.5 + 0.5) * self.framebuffer.0 as f32,
+            (0.5 - ndc.y * 0.5) * self.framebuffer.1 as f32,
+        )
+    }
+
+    /// Nearest streamed actor whose projected torso is inside the pick radius.
+    /// Borrowed, not cloned: the pointer shape resolves this every frame and
+    /// the frame loop must not allocate.
+    fn actor_id_at_pointer(&self, x: f32, y: f32) -> Option<&str> {
+        let vp = self.viewport_projection()?;
+        self.store
+            .actors
+            .iter()
+            .filter(|(id, actor)| {
+                id.as_str() != self.store.player_actor_id
+                    && actor.area_id == self.area_id
+                    && actor.life_state != "respawning"
+            })
+            .filter_map(|(id, actor)| {
+                let (sx, sy) = self.cell_to_screen(&vp, actor.x, actor.y, 0.9);
+                let d2 = (sx - x) * (sx - x) + (sy - y) * (sy - y);
+                (d2 <= ACTOR_PICK_RADIUS_PX * ACTOR_PICK_RADIUS_PX).then_some((id.as_str(), d2))
+            })
+            .min_by(|left, right| left.1.total_cmp(&right.1))
+            .map(|(id, _)| id)
+    }
+
+    /// Pointer shape for this frame, resolved the way the original resolves a
+    /// cursor: the mediator under the pointer wins, and only when nothing owns
+    /// the pointer does the world get to speak.
+    fn pointer_cursor(&self, x: f32, y: f32) -> CursorKind {
+        if let Some(hint) = self.wm.cursor_hint(x, y) {
+            return hint;
+        }
+        if self.graphics_tuner.is_open() || self.context_menu.is_some() || self.wm.covers(x, y) {
+            return CursorKind::Arrow;
+        }
+        if self.hud_state.life != hud::LifeHud::Alive {
+            return CursorKind::Arrow;
+        }
+        if let Some(actor_id) = self.actor_id_at_pointer(x, y) {
+            let hostile = self
+                .store
+                .actors
+                .get(actor_id)
+                .map(|actor| hud::relation_for(actor, &self.player_id))
+                .is_some_and(|relation| {
+                    matches!(
+                        relation,
+                        hud::RelationHud::Hostile | hud::RelationHud::Alerted
+                    )
+                });
+            // Attack only reads as a promise while something is wielded; the
+            // authority refuses the swing otherwise.
+            return if hostile && self.hud_state.weapon.is_some() {
+                CursorKind::Attack
+            } else {
+                CursorKind::Select
+            };
+        }
+        // Proximity alone is not a pointer verb: the prop also has to be under
+        // the pointer, or every door in reach would claim the cursor.
+        if let (Some(vp), Some(prop)) = (self.viewport_projection(), self.nearest_interaction_prop())
+        {
+            let (sx, sy) = self.cell_to_screen(&vp, prop.x, prop.y, 1.45);
+            let d2 = (sx - x) * (sx - x) + (sy - y) * (sy - y);
+            if d2 <= PROP_PICK_RADIUS_PX * PROP_PICK_RADIUS_PX {
+                return CursorKind::Interact;
+            }
+        }
+        CursorKind::Arrow
+    }
+
     pub fn pending_command_kinds(&self) -> Vec<String> {
         self.command_queue
             .as_ref()
@@ -2005,11 +2202,15 @@ impl ConnectedScene {
     pub fn dispatch_window_action(&mut self, action: crate::windows::WindowAction) {
         let Some(queue) = self.command_queue.as_mut() else {
             self.window_rejection = Some("not authenticated".into());
+            crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::Deny);
             return;
         };
         match actions::enqueue_window_action(queue, action, self.store.tick) {
             DispatchOutcome::Queued(id) => self.pending_window_commands.push(id),
-            DispatchOutcome::Rejected(reason) => self.window_rejection = Some(reason),
+            DispatchOutcome::Rejected(reason) => {
+                self.window_rejection = Some(reason);
+                crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::Deny);
+            }
             DispatchOutcome::Local(local) => self.apply_local_window_action(local),
         }
     }
@@ -2377,6 +2578,7 @@ impl ConnectedScene {
                 &mut self.graphics_tuner,
                 &mut self.wm,
             ) {
+                crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::PanelClose);
                 self.window_layout_dirty = true;
             }
             return None;
@@ -2395,8 +2597,18 @@ impl ConnectedScene {
             self.project_windows();
             return None;
         }
-        if self.toolbar.press_code(code, &mut self.hud_actions) {
-            return None;
+        // A bound slot owns its key even when it cannot fire; the ineligible
+        // cue is the feedback that says why nothing happened.
+        match self.toolbar.press_code_result(code, &mut self.hud_actions) {
+            hud::toolbar::PressResult::Used => {
+                crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::ToolbarUse);
+                return None;
+            }
+            hud::toolbar::PressResult::Ineligible => {
+                crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::ToolbarIneligible);
+                return None;
+            }
+            hud::toolbar::PressResult::Passthrough => {}
         }
         crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::ButtonTick);
         match key {
@@ -2573,51 +2785,7 @@ impl ConnectedScene {
         if captured || self.wm.covers(x, y) {
             return None;
         }
-        let picked_actor = if self.framebuffer.0 > 0 && self.framebuffer.1 > 0 {
-            let camera = self.world.get_component::<Camera>(self.follow).copied();
-            camera.and_then(|camera| {
-                let aspect = self.framebuffer.0 as f32 / self.framebuffer.1 as f32;
-                let Projection::Ortho {
-                    half_height,
-                    near,
-                    far,
-                } = camera.projection
-                else {
-                    return None;
-                };
-                let vp = Mat4::ortho(
-                    -half_height * aspect,
-                    half_height * aspect,
-                    -half_height,
-                    half_height,
-                    near,
-                    far,
-                )
-                .mul(Mat4::look_at(camera.eye, camera.look_at, camera.up));
-                self.store
-                    .actors
-                    .iter()
-                    .filter(|(id, actor)| {
-                        id.as_str() != self.store.player_actor_id
-                            && actor.area_id == self.area_id
-                            && actor.life_state != "respawning"
-                    })
-                    .filter_map(|(id, actor)| {
-                        let wx = (actor.x + 0.5) * WORLD_UNITS_PER_CELL;
-                        let wz = (actor.y + 0.5) * WORLD_UNITS_PER_CELL;
-                        let world = vec3(wx, self.terrain.height_at(wx, wz) + 0.9, wz);
-                        let ndc = vp.project_point(world);
-                        let sx = (ndc.x * 0.5 + 0.5) * self.framebuffer.0 as f32;
-                        let sy = (0.5 - ndc.y * 0.5) * self.framebuffer.1 as f32;
-                        let d2 = (sx - x) * (sx - x) + (sy - y) * (sy - y);
-                        (d2 <= 32.0 * 32.0).then_some((id.clone(), d2))
-                    })
-                    .min_by(|a, b| a.1.total_cmp(&b.1))
-                    .map(|(id, _)| id)
-            })
-        } else {
-            None
-        };
+        let picked_actor = self.actor_id_at_pointer(x, y).map(str::to_owned);
         if right_pressed && !left {
             // A right-click on a HUD pane toggles that pane's layout lock, the
             // original's per-window `window_lock` / `window_unlock` control.
@@ -2768,23 +2936,29 @@ impl ConnectedScene {
         }
     }
     pub fn settle_command(&mut self, command_id: u64, accepted: bool, reason: Option<String>) {
-        let accepted_audio = accepted
+        // The envelope is still queued at this point, so the settling command
+        // can be identified before it is retired. Both the diegetic clip and
+        // the UI cue are chosen here for that reason.
+        let (accepted_audio, accepted_cue) = accepted
             .then(|| {
                 self.command_queue
                     .as_ref()?
                     .pending_envelopes()
                     .find_map(|envelope| {
-                        (envelope.command_id == command_id).then_some(match envelope.command {
+                        (envelope.command_id == command_id).then(|| match envelope.command {
                             ClientCommand::ToggleDoor { .. }
                             | ClientCommand::BuildToggleDoor { .. } => {
-                                Some(crate::audio::DOOR_CLIP)
+                                (Some(crate::audio::DOOR_CLIP), None)
                             }
-                            ClientCommand::ReloadWeapon { .. } => Some(crate::audio::RELOAD_CLIP),
-                            _ => None,
-                        })?
+                            ClientCommand::ReloadWeapon { .. } => {
+                                (Some(crate::audio::RELOAD_CLIP), None)
+                            }
+                            _ => (None, ui_cue_for_settled(&envelope.command)),
+                        })
                     })
             })
-            .flatten();
+            .flatten()
+            .unwrap_or((None, None));
         if let Some(queue) = self.command_queue.as_mut() {
             queue.settle(command_id);
         }
@@ -2797,7 +2971,11 @@ impl ConnectedScene {
         if let Some(clip) = accepted_audio {
             self.sfx.play_ui(clip);
         }
+        if let Some(cue) = accepted_cue {
+            crate::audio::play_ui(&mut self.sfx, cue);
+        }
         if !accepted {
+            crate::audio::play_ui(&mut self.sfx, crate::audio::UiCue::Deny);
             self.window_rejection = Some(reason.unwrap_or_else(|| "command rejected".into()));
         }
     }
@@ -2863,6 +3041,16 @@ impl ConnectedScene {
             }
             SetDust(v) => {
                 self.dust_strength = v.clamp(0.0, 1.0);
+                self.project_windows();
+            }
+            SetWindowOpacity(v) => {
+                self.window_opacity = v.clamp(hud::MIN_UI_OPACITY, hud::MAX_UI_OPACITY);
+                self.preferences_dirty = true;
+                self.project_windows();
+            }
+            SetHudOpacity(v) => {
+                self.hud_opacity = v.clamp(hud::MIN_UI_OPACITY, hud::MAX_UI_OPACITY);
+                self.preferences_dirty = true;
                 self.project_windows();
             }
             SetSplitSnap(v) => {
@@ -4279,6 +4467,10 @@ impl ConnectedScene {
         )
         .mul(Mat4::look_at(camera.eye, camera.look_at, camera.up));
         let vp = vp_mat.to_cols_array();
+        // Retained for pointer picking and pointer-shape resolution, which run
+        // outside the render borrow and must resolve against the image the
+        // player actually saw.
+        self.pointer_vp = Some(vp_mat);
         let (r, u) = ([right.x, right.y, right.z], [up.x, up.y, up.z]);
         self.fx_buf.clear();
         let qa = self
@@ -4310,6 +4502,11 @@ impl ConnectedScene {
         self.ui.begin(w, h);
         self.overlays.update(dt * 1_000.0);
         let palette = hud::palette(self.theme_index);
+        // One theme for the whole UI: window surfaces read their ink from the
+        // active palette instead of carrying their own literals, so a theme
+        // change reaches every frame and not just the HUD.
+        hud::set_active_palette(palette);
+        hud::set_fill_opacity(self.hud_opacity);
         let interaction = self
             .nearest_interaction_prop()
             .map(|prop| (prop.label.to_string(), prop.kind == "door", prop.x, prop.y));
@@ -4523,7 +4720,10 @@ impl ConnectedScene {
             }
         }
         self.hud_actions = hud_actions;
-        let style = successor_engine_render::window::WindowStyle::default();
+        // Windows draw at the window opacity; the HUD already drew at its own.
+        hud::set_fill_opacity(self.window_opacity);
+        let mut style = hud::window_style(&palette);
+        style.fade_fills(self.window_opacity);
         self.wm.fill_z_order(&mut self.window_order);
         for order_index in 0..self.window_order.len() {
             let index = self.window_order[order_index];
@@ -4533,6 +4733,8 @@ impl ConnectedScene {
                 !hud_pane && matches!(pane_id, "inventory" | "examine" | "converse");
             let mut window_style = style;
             if model_preview {
+                // A live 3D viewer needs a near-black seat behind it; fading it
+                // would let terrain bleed through the doll.
                 window_style.frame.center = [3, 7, 8, 245];
             }
             let rect = self.wm.draw_chrome(&mut self.ui, index, window_style);
@@ -4676,6 +4878,40 @@ impl ConnectedScene {
         self.ui.set_input_enabled(true);
         self.graphics_tuner
             .draw(&mut self.ui, &mut self.renderer, gpu, w, h);
+
+        // The pointer is the last thing drawn, after the composite bands
+        // below, so no 3D viewer can paint over it. The original hides the
+        // desktop cursor and clips the hardware one to the client rect
+        // (`Graphics::constrainMouseCursor`); GLFW has no portable clip, so
+        // the equivalent is to own the pointer while it is inside the
+        // framebuffer and hand it back the moment it leaves.
+        let inside = mx >= 0.0 && my >= 0.0 && mx < w as f32 && my < h as f32;
+        if inside != self.owns_cursor {
+            successor_platform::set_cursor_visible(!inside);
+            self.owns_cursor = inside;
+        }
+        if inside {
+            let kind = self.pointer_cursor(mx, my);
+            // The pointer is chrome: it takes the frame's tones so a theme
+            // change reaches it too. Opacity deliberately does not — a faded
+            // cursor is a lost cursor.
+            let chrome = hud::window_style(&palette);
+            let style = CursorStyle {
+                fill: chrome.edge,
+                edge: chrome.caption_text,
+                accent: palette.ink,
+                danger: palette.danger,
+                ..CursorStyle::default()
+            };
+            cursor::draw(
+                &mut self.ui,
+                kind,
+                mx.clamp(0.0, w as f32 - 1.0),
+                my.clamp(0.0, h as f32 - 1.0),
+                style,
+                now_ms,
+            );
+        }
         // Walk the UI stream window by window: flush the 2D quads drawn so far,
         // then composite the 3D surfaces belonging to that window. Panels drawn
         // later land on top, so several live viewers coexist and none punches

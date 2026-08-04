@@ -10,12 +10,18 @@ runtime authority or public deployment identity.
 inspecting the native client. Use it for native visual QA, connected-client
 journeys, deterministic input capture, and graphics-mastering checks.
 
-The controlled process is `client-rust/out/bin/successor`. The companion CLI is
-`client-rust/out/bin/successor-control`. Both are built by:
+The controlled process is `client-rust/out/bin/successor-dev`. The companion CLI
+is `client-rust/out/bin/successor-control`. Both are built by:
 
 ```sh
-make -C client-rust native
+make -C client-rust dev
 ```
+
+`make -C client-rust native` builds the shipped `out/bin/successor`, which is
+deliberately compiled WITHOUT the `dev-tools` capability: it refuses
+`--control-port`, `--demo`, and raw `--endpoint` identity with
+`developer probes and demo modes require the dev-tools capability`. Drive
+`successor-dev` for agent journeys and observation harnesses.
 
 The control server is disabled by default, native-only, and bound exclusively
 to `127.0.0.1`. It is not available in the WebAssembly client and is not a
@@ -24,20 +30,26 @@ through the client's ordinary Colyseus command path.
 
 ### Start a controllable client
 
-Run commands from the repository root. Start a windowed demo with an ephemeral
-control port:
+Run the client from `client-rust/`: its asset root is `..`, so a different
+working directory fails with `required asset missing: render/props-mapping.json`.
+Start a windowed demo with an ephemeral control port:
 
 ```sh
-client-rust/out/bin/successor \
-  --demo parity-basic --gl --control-port 0
+cd client-rust
+out/bin/successor-dev --demo parity-basic --gl --control-port 0
 ```
 
-Or connect to a local authority using an explicit port:
+Or connect to a local authority. A durable roster character must join by
+`--character-id`; the shard rejects the bare `{playerId, actorId}` dev shape for
+any id its character store already owns:
 
 ```sh
-client-rust/out/bin/successor \
+cd client-rust
+out/bin/successor-dev \
+  --dev-identity \
   --endpoint ws://127.0.0.1:28093 \
-  --player-id agent-1 --actor-id agent-1 \
+  --player-id <character-id> --actor-id <character-id> \
+  --character-id <character-id> \
   --control-port 47778
 ```
 
@@ -85,7 +97,7 @@ next command; it is not sent to the client.
 Supported server commands are:
 
 ```text
-key <down|up|tap> <w|a|s|d|up|down|left|right|space|enter|escape|backspace|shift|backquote>
+key <down|up|tap> <key>
 mouse move <abs|rel> <x> <y>
 mouse <down|up> <left|right|middle>
 text <text>
@@ -96,6 +108,25 @@ record stop
 status
 quit
 ```
+
+`key` accepts every code the client binds, not just movement:
+
+```text
+w a s d r f i c o v x n p k b m g
+0..9 (also digit0..digit9)
+up down left right space enter escape backspace shift tab semicolon backquote
+```
+
+`p k b m g` reach the datapad, skills, action browser, macros, and association
+windows; `i c o` reach inventory, character, and options. A UI journey that
+cannot open a window with a hotkey should click its dock rail button rather
+than assume the code is unsupported.
+
+`status` reports a `window_frames` array beside the `windows` id list. Each
+entry is `{id, rect:[x,y,w,h], open, iconified, interactive}` for every
+registered workspace frame, HUD panes included. Assert move, resize, and layout
+persistence against those numbers instead of reading pixels — the frame rects
+are the same values the manager persists.
 
 Requests are UTF-8 lines. Responses are one JSON object per line. The CLI exits
 nonzero if a command returns `"ok":false`, so do not discard its exit status.
@@ -214,6 +245,29 @@ The flood fill is the point, not the picture: it answers "can the player get
 in" without walking anywhere. Run it before and after any collision change. A
 working door shows a large jump between shut and open; a sealed one does not
 move at all.
+
+### Equipment fit — the two humanoid gates
+
+Skinned wearables and rigid socket attachments fail in different ways, so they
+have separate gates. Both run on macOS through Blender's Python.
+
+```sh
+blender --background --factory-startup \
+  --python content-pipeline/labs/humanoid-runtime-refit/verify_wearable_fit.py
+blender --background --factory-startup \
+  --python content-pipeline/labs/humanoid-runtime-refit/probe_weapons.py
+```
+
+`verify_wearable_fit.py` covers the 101 skinned wearables on both bodies and
+writes `reports/wearable_fit.json`. `probe_weapons.py` covers what it cannot
+see: weapons, hats, and anything else welded to a bone rather than skinned. It
+resolves each socket the way `pawn/catalog.rs` does, measures hand or scalp
+penetration on both bodies, and compares the two resolved mount positions. It
+writes `reports/rigid_mount_fit.json`.
+
+The cross-body delta is the cheap signal: male and female share one 45-joint
+skeleton, so a socket that resolves more than a millimetre apart is a rig
+defect. A grip buried past 30 mm is out the far side of the hand.
 
 ### Debug views in the connected client
 

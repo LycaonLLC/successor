@@ -290,9 +290,99 @@ pub fn palette(theme_index: usize) -> Palette {
     THEMES[theme_index % THEME_COUNT]
 }
 
+/// Workspace frame chrome for a palette.
+///
+/// `WindowStyle::default` carries the measured Signal tones as literals, which
+/// left every frame cyan under any other theme. The grammar is what is fixed —
+/// translucent pane, one bright perimeter, dark ink on the caption rail — so
+/// the tones come from the theme and only the structure is hardcoded.
+pub fn window_style(
+    palette: &Palette,
+) -> successor_engine_render::window::WindowStyle {
+    let mut style = successor_engine_render::window::WindowStyle::default();
+    let bright = palette.accent;
+    let inset = shade(palette.accent, 0.42);
+    style.frame.center = palette.bg_panel;
+    style.frame.north = with_alpha(bright, 210);
+    style.frame.north_east = with_alpha(bright, 210);
+    style.frame.north_west = with_alpha(bright, 210);
+    style.frame.south = with_alpha(inset, 220);
+    style.frame.east = with_alpha(inset, 220);
+    style.frame.west = with_alpha(inset, 220);
+    style.frame.south_east = with_alpha(inset, 220);
+    style.frame.south_west = with_alpha(inset, 220);
+    style.title_bar = with_alpha(inset, 232);
+    style.title_bar_focused = with_alpha(bright, 236);
+    style.edge = with_alpha(bright, 204);
+    // Caption ink is dark ON the bright rail, so it darkens with the accent
+    // rather than staying a fixed navy that would vanish on amber.
+    style.caption_text = with_alpha(shade(palette.accent, 0.18), 255);
+    style.close = style.caption_text;
+    style.text = palette.ink;
+    style.resize = with_alpha(bright, 220);
+    style
+}
+
+fn shade(rgba: [u8; 4], factor: f32) -> [u8; 4] {
+    let scale = |c: u8| (c as f32 * factor).round().clamp(0.0, 255.0) as u8;
+    [scale(rgba[0]), scale(rgba[1]), scale(rgba[2]), rgba[3]]
+}
+
+fn with_alpha(rgba: [u8; 4], alpha: u8) -> [u8; 4] {
+    [rgba[0], rgba[1], rgba[2], alpha]
+}
+
 /// Theme index for a stored id; unknown ids reset to SIGNAL (0).
 pub fn theme_index_for_id(id: &str) -> usize {
     THEME_IDS.iter().position(|t| *t == id).unwrap_or(0)
+}
+
+/// Opacity band for the transparency settings. The floor is where a pane stops
+/// separating itself from terrain; the ceiling is opaque.
+pub const MIN_UI_OPACITY: f32 = 0.35;
+pub const MAX_UI_OPACITY: f32 = 1.0;
+
+thread_local! {
+    static ACTIVE_PALETTE: core::cell::Cell<Palette> = const { core::cell::Cell::new(THEMES[0]) };
+    static FILL_OPACITY: core::cell::Cell<f32> = const { core::cell::Cell::new(1.0) };
+}
+
+/// Theme palette for the frame being drawn.
+///
+/// Window surfaces used to carry their own hardcoded ink, so switching themes
+/// recoloured the HUD and left every workspace frame cyan. The host publishes
+/// the active palette once per frame and every surface reads it from here, so
+/// one theme covers the whole UI.
+pub fn active_palette() -> Palette {
+    ACTIVE_PALETTE.with(core::cell::Cell::get)
+}
+
+pub fn set_active_palette(palette: Palette) {
+    ACTIVE_PALETTE.with(|active| active.set(palette));
+}
+
+/// Alpha scale for pane, well, and slot FILLS.
+///
+/// Fills only. The original's window transparency fades the pane and leaves
+/// the type and the bright perimeter at full strength, because a translucent
+/// glyph is unreadable over terrain.
+pub fn fill_opacity() -> f32 {
+    FILL_OPACITY.with(core::cell::Cell::get)
+}
+
+pub fn set_fill_opacity(value: f32) {
+    let value = if value.is_finite() {
+        value.clamp(MIN_UI_OPACITY, MAX_UI_OPACITY)
+    } else {
+        MAX_UI_OPACITY
+    };
+    FILL_OPACITY.with(|opacity| opacity.set(value));
+}
+
+/// Scale a fill colour's alpha by [`fill_opacity`].
+pub fn faded(rgba: [u8; 4]) -> [u8; 4] {
+    let alpha = (rgba[3] as f32 * fill_opacity()).round().clamp(0.0, 255.0) as u8;
+    [rgba[0], rgba[1], rgba[2], alpha]
 }
 
 // ── Text hygiene ────────────────────────────────────────────────────────────
@@ -600,7 +690,6 @@ pub struct HudState {
     pub banner: Option<BannerHud>,
     /// `CLONE SICKNESS · MM:SS` chip while the post-clone debuff ticks down.
     pub clone_sickness: Option<String>,
-    pub crosshair: bool,
     pub first_steps: Vec<FirstStepRowHud>,
 }
 
@@ -912,6 +1001,10 @@ pub enum HudAction {
 pub const PLAYER_STATUS_ID: &str = "hud.player-status";
 /// Stable host id for the current-target plate.
 pub const TARGET_STATUS_ID: &str = "hud.target-status";
+/// Stable host id for the wielded-weapon readout.
+pub const WEAPON_STATUS_ID: &str = "hud.weapon-status";
+/// Stable host id for the group roster.
+pub const GROUP_ROSTER_ID: &str = "hud.group-roster";
 /// Stable host id for the twelve-slot command bar.
 pub const COMMAND_BAR_ID: &str = "hud.command-bar";
 /// Stable host id for the persistent chat console.
@@ -950,6 +1043,8 @@ pub struct HudSurface {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum HudSurfaceKind {
     PlayerStatus,
+    WeaponStatus,
+    GroupRoster,
     TargetStatus,
     CommandBar,
     ChatConsole,
@@ -963,6 +1058,8 @@ impl HudSurface {
     pub fn default_rect(self, layout: layout::HudLayout) -> [f32; 4] {
         match self.kind {
             HudSurfaceKind::PlayerStatus => layout.plate,
+            HudSurfaceKind::WeaponStatus => layout.weapon,
+            HudSurfaceKind::GroupRoster => layout.group,
             HudSurfaceKind::TargetStatus => layout.target,
             HudSurfaceKind::CommandBar => layout.bar,
             HudSurfaceKind::ChatConsole => layout.chat,
@@ -974,7 +1071,7 @@ impl HudSurface {
 }
 
 /// Number of persistent HUD workspace panes.
-pub const HUD_SURFACE_COUNT: usize = 7;
+pub const HUD_SURFACE_COUNT: usize = 9;
 
 /// Every persistent HUD surface. These are workspace windows, but normal play
 /// leaves them chromeless and locked so no frame intercepts gameplay input.
@@ -985,6 +1082,20 @@ pub const HUD_SURFACES: [HudSurface; HUD_SURFACE_COUNT] = [
         icon: "character",
         min_size: [layout::PLATE_MIN_W, layout::PLATE_MIN_H],
         kind: HudSurfaceKind::PlayerStatus,
+    },
+    HudSurface {
+        id: WEAPON_STATUS_ID,
+        title: "WEAPON",
+        icon: "weapon",
+        min_size: [layout::WEAPON_MIN_W, layout::WEAPON_MIN_H],
+        kind: HudSurfaceKind::WeaponStatus,
+    },
+    HudSurface {
+        id: GROUP_ROSTER_ID,
+        title: "GROUP",
+        icon: "association",
+        min_size: [layout::PLATE_MIN_W, plate::GROUP_CHIP_H],
+        kind: HudSurfaceKind::GroupRoster,
     },
     HudSurface {
         id: TARGET_STATUS_ID,
@@ -1451,11 +1562,13 @@ pub fn build_hud(
         );
     }
 
-    // Group invite toast + member rail are transient authority events, not
-    // workspace panes. The rail tracks the live plate so a player-moved status
-    // plate keeps its group directly beneath it.
-    let group_rail = player_rect
-        .map(|[px, py, pw, ph]| [px, py + ph + layout::GUTTER, pw, layout::GROUP_H])
+    // Group roster and weapon readout are managed panes of the same grammar as
+    // the player plate: each paints nothing when it has no content, so an
+    // unarmed solo player sees one tight status plate and no empty furniture.
+    if let Some(rect) = hud_content_rect(manager, WEAPON_STATUS_ID) {
+        plate::draw_weapon_plate(ui, &pal, st, rect);
+    }
+    let group_rail = hud_content_rect(manager, GROUP_ROSTER_ID)
         .unwrap_or_else(|| layout::compute(sw, sh).group);
     plate::draw_group(ui, &pal, st, sw, group_rail, out);
 
@@ -1480,15 +1593,9 @@ pub fn build_hud(
         player_anchor[1] + player_anchor[3] + 24.0,
     );
 
-    // Crosshair (combat option; context-sensitive).
-    if st.crosshair && st.weapon.is_some() && st.life == LifeHud::Alive {
-        let cx = sw * 0.5;
-        let cy = sh * 0.5;
-        ui.rect(cx - 7.0, cy - 1.0, 5.0, 2.0, pal.accent);
-        ui.rect(cx + 2.0, cy - 1.0, 5.0, 2.0, pal.accent);
-        ui.rect(cx - 1.0, cy - 7.0, 2.0, 5.0, pal.accent);
-        ui.rect(cx - 1.0, cy + 2.0, 2.0, 5.0, pal.accent);
-    }
+    // No fixed screen-centre crosshair. The original client has no such
+    // reticle on the ground HUD: aim lives on the pointer, which switches to
+    // `ui_cursor_attack` over a valid target. See `engine_render::cursor`.
 
     // The fixed Successor launcher rail is not a persistent pane. The command
     // bar itself, however, is manager-owned and receives its live rect above.
@@ -1616,10 +1723,10 @@ mod tests {
         let original = manager.rect(PLAYER_STATUS_ID).unwrap();
 
         // Normal play: clicking the status pane is gameplay-transparent.
-        ui.set_input(100.0, 80.0, false);
+        ui.set_input(100.0, 30.0, false);
         ui.begin(1024, 768);
         manager.update(&ui, 1024, 768);
-        ui.set_input(100.0, 80.0, true);
+        ui.set_input(100.0, 30.0, true);
         ui.begin(1024, 768);
         manager.update(&ui, 1024, 768);
         assert!(!manager.pointer_captured());
@@ -1628,24 +1735,24 @@ mod tests {
         // A right-click context toggle unlocks exactly this pane. The manager
         // then owns its body drag and every edge/corner resize gesture.
         assert_eq!(
-            toggle_hud_surface_lock_at(&mut manager, 100.0, 80.0),
+            toggle_hud_surface_lock_at(&mut manager, 100.0, 30.0),
             Some(PLAYER_STATUS_ID)
         );
         assert!(manager.is_interactive(PLAYER_STATUS_ID));
-        ui.set_input(100.0, 80.0, false);
+        ui.set_input(100.0, 30.0, false);
         ui.begin(1024, 768);
         manager.update(&ui, 1024, 768);
-        ui.set_input(100.0, 80.0, true);
+        ui.set_input(100.0, 30.0, true);
         ui.begin(1024, 768);
         manager.update(&ui, 1024, 768);
         assert!(manager.pointer_captured());
-        ui.set_input(140.0, 110.0, true);
+        ui.set_input(140.0, 60.0, true);
         ui.begin(1024, 768);
         manager.update(&ui, 1024, 768);
         let moved = manager.rect(PLAYER_STATUS_ID).unwrap();
         assert_eq!(moved[0], original[0] + 40.0);
         assert_eq!(moved[1], original[1] + 30.0);
-        ui.set_input(140.0, 110.0, false);
+        ui.set_input(140.0, 60.0, false);
         ui.begin(1024, 768);
         manager.update(&ui, 1024, 768);
 

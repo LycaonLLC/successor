@@ -7,6 +7,7 @@
 //! in projected coordinates. Dot clicks take priority over ground clicks
 //! (`CLICK_GRAB_PX`); ground clicks inside the scope request a relative move.
 
+use core::cell::Cell;
 use core::fmt::{self, Write};
 
 struct TextBuffer {
@@ -57,8 +58,9 @@ const SCOPE_Y: f32 = 2.0;
 pub const CLICK_GRAB_PX: f32 = 11.0;
 /// Visible instrument circle radius (px).
 pub const SCOPE_RIM_PX: f32 = SIZE_PX / 2.0 - 1.5;
-/// Plot scale: px per cell (rim padding matches the reference).
-pub const SCALE: f32 = (SIZE_PX / 2.0 - 7.0) / RADIUS_CELLS;
+/// Plot scale at the default range: px per cell. Must agree with `scale_for`,
+/// which is the single runtime authority now that the range ladder exists.
+pub const SCALE: f32 = (SIZE_PX / 2.0 - 9.0) / RADIUS_CELLS;
 /// Coordinate readout glyph scale.
 const COORD_PX: f32 = 1.15;
 /// Air between the scope rim and the coordinate readout.
@@ -81,9 +83,69 @@ pub const MIN_SCOPE_PX: f32 = 96.0;
 /// stepping at the default scope and stays cheap at the resize ceiling.
 const FACE_ROWS: u32 = 40;
 
+/// Fixed range ladder of visible scope radii in world cells.
+pub const RANGE_LADDER_CELLS: &[f32] = &[32.0, 64.0, 96.0, 128.0, 192.0];
+pub const DEFAULT_RANGE_INDEX: usize = 2; // 96.0 cells
+
+std::thread_local! {
+    static CURRENT_RANGE_INDEX: Cell<usize> = const { Cell::new(DEFAULT_RANGE_INDEX) };
+    static CAMERA_HEADING_RAD: Cell<f32> = const { Cell::new(0.0) };
+}
+
+/// Returns the active scope cell radius.
+pub fn current_range_radius() -> f32 {
+    CURRENT_RANGE_INDEX.with(|cell| {
+        let idx = cell.get().min(RANGE_LADDER_CELLS.len() - 1);
+        RANGE_LADDER_CELLS[idx]
+    })
+}
+
+/// Sets the scope range to the step closest to `radius`.
+pub fn set_range_radius(radius: f32) {
+    let mut best_idx = 0;
+    let mut best_diff = f32::MAX;
+    for (i, &r) in RANGE_LADDER_CELLS.iter().enumerate() {
+        let diff = (r - radius).abs();
+        if diff < best_diff {
+            best_diff = diff;
+            best_idx = i;
+        }
+    }
+    CURRENT_RANGE_INDEX.with(|cell| cell.set(best_idx));
+}
+
+/// Step scope range in (smaller world radius, higher zoom).
+pub fn step_range_in() -> f32 {
+    CURRENT_RANGE_INDEX.with(|cell| {
+        let idx = cell.get().saturating_sub(1);
+        cell.set(idx);
+        RANGE_LADDER_CELLS[idx]
+    })
+}
+
+/// Step scope range out (larger world radius, wider view).
+pub fn step_range_out() -> f32 {
+    CURRENT_RANGE_INDEX.with(|cell| {
+        let idx = (cell.get() + 1).min(RANGE_LADDER_CELLS.len() - 1);
+        cell.set(idx);
+        RANGE_LADDER_CELLS[idx]
+    })
+}
+
+/// Active camera heading angle in radians (0.0 is North-up).
+pub fn camera_heading() -> f32 {
+    CAMERA_HEADING_RAD.with(|cell| cell.get())
+}
+
+/// Set the camera heading angle in radians.
+pub fn set_camera_heading(rad: f32) {
+    CAMERA_HEADING_RAD.with(|cell| cell.set(rad));
+}
+
 /// Plot scale for a scope of `scope_px` across.
 fn scale_for(scope_px: f32) -> f32 {
-    (scope_px / 2.0 - 7.0).max(1.0) / RADIUS_CELLS
+    let max_r = (scope_px / 2.0 - 9.0).max(1.0);
+    max_r / current_range_radius()
 }
 
 /// Fill the circular instrument face. The radar also renders chromeless on the
@@ -105,7 +167,10 @@ fn fill_scope_face(ui: &mut UiBuilder, cx: f32, cy: f32, r: f32, rgba: [u8; 4]) 
 /// above its coordinate rail.
 fn scope_of(rect: [f32; 4]) -> (f32, f32, f32) {
     let [x, y, w, h] = rect;
-    let size = w.min(h - COORD_RAIL).max(MIN_SCOPE_PX);
+    // The scope is inset by `SCOPE_Y` at the top and must still clear the
+    // coordinate rail below, so both come out of the available height before
+    // the square is sized.
+    let size = w.min(h - COORD_RAIL - SCOPE_Y).max(16.0);
     (x + (w - size) * 0.5, y + SCOPE_Y, size)
 }
 
@@ -130,12 +195,18 @@ pub struct PlottedContact {
 /// the rim while preserving the exact bearing.
 pub fn plot_contact_at(dx_cells: f32, dy_cells: f32, scope_px: f32) -> PlottedContact {
     let d_cells = (dx_cells * dx_cells + dy_cells * dy_cells).sqrt();
+    let heading = camera_heading();
+    let (sin_h, cos_h) = heading.sin_cos();
+    let rx_cells = dx_cells * cos_h - dy_cells * sin_h;
+    let ry_cells = dx_cells * sin_h + dy_cells * cos_h;
+
     let scale = scale_for(scope_px);
-    let mut sx = dx_cells * scale;
-    let mut sy = dy_cells * scale;
+    let mut sx = rx_cells * scale;
+    let mut sy = ry_cells * scale;
     let r = (sx * sx + sy * sy).sqrt();
-    let max_r = scope_px / 2.0 - 9.0;
-    let clamped = r > max_r;
+    let max_r = (scope_px / 2.0 - 9.0).max(1.0);
+    let range_radius = current_range_radius();
+    let clamped = d_cells > range_radius + 1e-4 || r > max_r + 1e-4;
     if clamped && r > 0.0 {
         sx = sx / r * max_r;
         sy = sy / r * max_r;
@@ -180,9 +251,17 @@ pub fn click_action_at(
         return Some(HudAction::RadarSelect(id.to_string()));
     }
     let scale = scale_for(scope_px);
+    let heading = camera_heading();
+    let (sin_h, cos_h) = heading.sin_cos();
+    let rx_px = click_x - center;
+    let ry_px = click_y - center;
+    let rx_cells = rx_px / scale;
+    let ry_cells = ry_px / scale;
+    let dx_cells = rx_cells * cos_h + ry_cells * sin_h;
+    let dy_cells = -rx_cells * sin_h + ry_cells * cos_h;
     Some(HudAction::RadarMove {
-        dx_cells: (click_x - center) / scale,
-        dy_cells: (click_y - center) / scale,
+        dx_cells,
+        dy_cells,
     })
 }
 
@@ -192,11 +271,12 @@ pub fn click_action(st: &HudState, click_x: f32, click_y: f32) -> Option<HudActi
 }
 
 fn class_tint(class: RadarClass, pal: &Palette) -> [u8; 4] {
-    match class {
-        RadarClass::Hostile => pal.danger,
-        RadarClass::Passive => [232, 168, 74, 255], // amber
-        RadarClass::Civilian => pal.ink_dim,
-    }
+    let rel = match class {
+        RadarClass::Hostile => super::RelationHud::Hostile,
+        RadarClass::Passive => super::RelationHud::Alerted,
+        RadarClass::Civilian => super::RelationHud::Friendly,
+    };
+    super::plate::hostility_tint(rel, pal)
 }
 
 /// Draw the scope face, contacts, waypoint chevrons and cardinals inside the
@@ -226,19 +306,17 @@ pub fn draw_radar(
     ui.ring(cx, cy, rim, 72, 1.2, pal.hairline);
     ui.ring(cx, cy, rim - 3.0, 72, 0.6, grid);
     ui.ring(cx, cy, rim * 0.66, 56, 0.7, grid);
-    ui.ring(cx, cy, rim * 0.33, 40, 0.7, grid);
-
-    // Cardinals: `radar.ts` marks every direction with a rim tick plus a glyph,
-    // north accented and the rest in plain instrument ink. Tick and glyph share
-    // one radius, so the compass stays symmetric at any scope size instead of
-    // relying on offsets tuned for a single one.
-    const CARDINALS: [(&str, f32, f32, bool); 4] = [
-        ("N", 0.0, -1.0, true),
-        ("E", 1.0, 0.0, false),
-        ("S", 0.0, 1.0, false),
-        ("W", -1.0, 0.0, false),
+    // Cardinals: mark directions with a rim tick plus glyph, rotating with
+    // camera heading to track orientation.
+    let heading = camera_heading();
+    let (sin_h, cos_h) = heading.sin_cos();
+    let cardinals: [(&str, f32, f32, bool); 4] = [
+        ("N", sin_h, -cos_h, true),
+        ("E", cos_h, sin_h, false),
+        ("S", -sin_h, cos_h, false),
+        ("W", -cos_h, -sin_h, false),
     ];
-    for (glyph, ux, uy, primary) in CARDINALS {
+    for (glyph, ux, uy, primary) in cardinals {
         let (ink, tick, weight) = if primary {
             (pal.accent, pal.accent, 1.4)
         } else {
@@ -271,18 +349,35 @@ pub fn draw_radar(
         ui.line(px, py - 2.0, px + 3.0, py + 2.0, 1.4, [232, 168, 74, 255]);
     }
 
+    let target_id = st.target.as_ref().map(|t| t.actor_id.as_str());
+    let target_dead_or_down = st.target.as_ref().is_some_and(|t| !t.alive || t.stamp.is_some());
+
     for contact in &st.radar_contacts {
         let plotted = plot_contact_at(contact.dx_cells, contact.dy_cells, scope);
-        let tint = class_tint(contact.class, pal);
+        let is_selected = target_id == Some(contact.actor_id.as_str());
+        let is_dead = is_selected && target_dead_or_down;
         let px = cx + plotted.sx;
         let py = cy + plotted.sy;
-        if plotted.clamped {
-            ui.ring(px, py, 2.0, 12, 1.0, tint);
+
+        if is_dead {
+            let dim_tint = super::plate::readable_dim(pal);
+            ui.line(px - 3.0, py - 3.0, px + 3.0, py + 3.0, 1.2, dim_tint);
+            ui.line(px - 3.0, py + 3.0, px + 3.0, py - 3.0, 1.2, dim_tint);
         } else {
-            let mut glow = tint;
-            glow[3] = 90;
-            ui.ring(px, py, 4.0, 16, 2.0, glow);
-            ui.rect(px - 2.0, py - 2.0, 4.0, 4.0, tint);
+            let tint = class_tint(contact.class, pal);
+            if plotted.clamped {
+                ui.ring(px, py, 2.0, 12, 1.0, tint);
+            } else {
+                let mut glow = tint;
+                glow[3] = 90;
+                ui.ring(px, py, 4.0, 16, 2.0, glow);
+                ui.rect(px - 2.0, py - 2.0, 4.0, 4.0, tint);
+            }
+        }
+
+        if is_selected {
+            let accent = pal.accent;
+            ui.ring(px, py, 7.0, 16, 1.6, accent);
         }
     }
 
@@ -307,13 +402,45 @@ pub fn draw_radar(
         COORD_PX,
         pal.ink_dim,
     );
+    // Compact range control pair in top-right of pane.
+    let btn_y = y + 2.0;
+    let btn_out_x = x + pane_w - 52.0;
+    let btn_in_x = x + pane_w - 18.0;
+
+    ui.rect(btn_out_x, btn_y, 14.0, 14.0, pal.bg_cell);
+    ui.border(btn_out_x, btn_y, 14.0, 14.0, 1.0, pal.hairline);
+    ui.text("-", btn_out_x + 4.0, btn_y + 1.0, 1.1, pal.ink_dim);
+
+    let range_cur = current_range_radius();
+    let mut range_buf = TextBuffer::new();
+    let _ = write!(&mut range_buf, "{:.0}m", range_cur);
+    let range_w = ui.measure_text(range_buf.as_str(), 1.1);
+    ui.text(
+        range_buf.as_str(),
+        btn_out_x + 16.0 + (18.0 - range_w) * 0.5,
+        btn_y + 1.0,
+        1.1,
+        pal.ink_dim,
+    );
+
+    ui.rect(btn_in_x, btn_y, 14.0, 14.0, pal.bg_cell);
+    ui.border(btn_in_x, btn_y, 14.0, 14.0, 1.0, pal.hairline);
+    ui.text("+", btn_in_x + 3.0, btn_y + 1.0, 1.1, pal.ink_dim);
 
     if !captured {
-        let resp = ui.interact(scope_x, scope_y, scope, scope);
-        if resp.clicked {
-            let (mx, my) = ui.mouse();
-            if let Some(action) = click_action_at(st, mx - scope_x, my - scope_y, scope) {
-                out.push(action);
+        let resp_out = ui.interact(btn_out_x, btn_y, 14.0, 14.0);
+        let resp_in = ui.interact(btn_in_x, btn_y, 14.0, 14.0);
+        if resp_out.clicked {
+            step_range_out();
+        } else if resp_in.clicked {
+            step_range_in();
+        } else {
+            let resp = ui.interact(scope_x, scope_y, scope, scope);
+            if resp.clicked {
+                let (mx, my) = ui.mouse();
+                if let Some(action) = click_action_at(st, mx - scope_x, my - scope_y, scope) {
+                    out.push(action);
+                }
             }
         }
     }
@@ -459,5 +586,192 @@ mod tests {
             "scope face missing: {} quads for {FACE_ROWS} span rows",
             ui.quads
         );
+    }
+    #[test]
+    fn blips_clamp_to_radar_disc_instead_of_escaping_it() {
+        set_range_radius(96.0);
+        set_camera_heading(0.0);
+        let scope = 128.0;
+        let c = scope * 0.5;
+        let rim = c - 1.5;
+        let max_r = c - 9.0;
+        for (dx, dy) in [(500.0, 0.0), (-300.0, 300.0), (0.0, -1000.0)] {
+            let p = plot_contact_at(dx, dy, scope);
+            assert!(p.clamped, "far contact ({dx},{dy}) must clamp");
+            let r = (p.sx * p.sx + p.sy * p.sy).sqrt();
+            assert!((r - max_r).abs() < 1e-3, "clamped dist {r} must equal max_r {max_r}");
+            assert!(r + 4.0 <= rim + 1e-3, "blip boundary {r}+4.0 escapes scope rim {rim}");
+        }
+    }
+
+    #[test]
+    fn contact_at_range_edge_handled_without_flicker() {
+        set_range_radius(96.0);
+        set_camera_heading(0.0);
+        let range = current_range_radius();
+        let p_exact = plot_contact_at(range, 0.0, 128.0);
+        assert!(!p_exact.clamped, "contact at exact range edge must NOT clamp");
+        assert!((p_exact.sx - (128.0 / 2.0 - 9.0)).abs() < 1e-3);
+
+        let p_inside = plot_contact_at(range - 0.001, 0.0, 128.0);
+        assert!(!p_inside.clamped, "contact inside edge must NOT clamp");
+
+        let p_outside = plot_contact_at(range + 0.1, 0.0, 128.0);
+        assert!(p_outside.clamped, "contact outside edge must clamp");
+    }
+
+    #[test]
+    fn pane_resizing_keeps_all_metrics_correct() {
+        set_range_radius(96.0);
+        set_camera_heading(0.0);
+        for pane in [
+            [0.0, 0.0, 80.0, 80.0],
+            [10.0, 20.0, 128.0, 128.0],
+            [0.0, 0.0, 320.0, 240.0],
+        ] {
+            let (sx, sy, scope) = scope_of(pane);
+            assert!(sx >= pane[0] - 1e-3, "scope left inside pane bounds");
+            assert!(sx + scope <= pane[0] + pane[2] + 1e-3, "scope right inside pane bounds");
+            assert!(sy >= pane[1] - 1e-3, "scope top inside pane bounds");
+            assert!(sy + scope + COORD_RAIL <= pane[1] + pane[3] + 1e-3, "scope floor inside pane bounds");
+
+            let scale = scale_for(scope);
+            assert!(scale > 0.0, "scale must be positive");
+            let max_r = (scope / 2.0 - 9.0).max(1.0);
+            assert!((scale - max_r / 96.0).abs() < 1e-4, "scale must derive from scope max_r");
+        }
+    }
+
+    #[test]
+    fn north_indicator_tracks_camera() {
+        set_range_radius(96.0);
+        set_camera_heading(0.0);
+        let p_north = plot_contact_at(0.0, -50.0, 128.0);
+        assert!(p_north.sx.abs() < 1e-3);
+        assert!(p_north.sy < 0.0, "North is screen-up when camera heading is 0");
+
+        set_camera_heading(std::f32::consts::FRAC_PI_2);
+        let p_north_rot = plot_contact_at(0.0, -50.0, 128.0);
+        assert!(p_north_rot.sx > 0.0, "North rotates to screen-right when camera looks East");
+        assert!(p_north_rot.sy.abs() < 1e-3);
+
+        set_camera_heading(0.0);
+    }
+
+    #[test]
+    fn click_maps_to_correct_world_cell_in_both_directions() {
+        set_range_radius(96.0);
+        set_camera_heading(0.0);
+        let st = HudState::default();
+        let scope = 128.0;
+        let c = scope * 0.5;
+
+        let dx_init = 40.0f32;
+        let dy_init = -20.0f32;
+        let plotted = plot_contact_at(dx_init, dy_init, scope);
+        let click_x = c + plotted.sx;
+        let click_y = c + plotted.sy;
+        match click_action_at(&st, click_x, click_y, scope) {
+            Some(HudAction::RadarMove { dx_cells, dy_cells }) => {
+                assert!((dx_cells - dx_init).abs() < 1e-3, "round trip dx mismatch: {dx_cells} vs {dx_init}");
+                assert!((dy_cells - dy_init).abs() < 1e-3, "round trip dy mismatch: {dy_cells} vs {dy_init}");
+            }
+            other => panic!("expected move action, got {other:?}"),
+        }
+
+        let test_click_x = c + 25.0;
+        let test_click_y = c - 15.0;
+        if let Some(HudAction::RadarMove { dx_cells, dy_cells }) = click_action_at(&st, test_click_x, test_click_y, scope) {
+            let replotted = plot_contact_at(dx_cells, dy_cells, scope);
+            assert!((c + replotted.sx - test_click_x).abs() < 1e-3);
+            assert!((c + replotted.sy - test_click_y).abs() < 1e-3);
+        } else {
+            panic!("expected move action");
+        }
+    }
+
+    #[test]
+    fn selection_is_visually_distinct() {
+        let icons = crate::hud::Icons::load();
+        let mut ui = UiBuilder::new(icons.meta);
+        let mut st = HudState::default();
+        st.radar_contacts.push(RadarContactHud {
+            actor_id: "target_alpha".into(),
+            dx_cells: 20.0,
+            dy_cells: 10.0,
+            class: RadarClass::Hostile,
+        });
+        let mut out = Vec::new();
+
+        ui.begin(1280, 720);
+        draw_radar(&mut ui, &crate::hud::palette(0), &st, [0.0, 0.0, 128.0, 128.0], false, &mut out);
+        let quads_unselected = ui.quads;
+
+        st.target = Some(crate::hud::TargetHud {
+            actor_id: "target_alpha".into(),
+            name: "Target Alpha".into(),
+            alive: true,
+            ..Default::default()
+        });
+        ui.begin(1280, 720);
+        draw_radar(&mut ui, &crate::hud::palette(0), &st, [0.0, 0.0, 128.0, 128.0], false, &mut out);
+        let quads_selected = ui.quads;
+
+        assert!(quads_selected > quads_unselected, "selected target must emit extra quads for selection reticle");
+    }
+
+    #[test]
+    fn dead_or_downed_contacts_are_distinguishable_from_live_ones() {
+        let icons = crate::hud::Icons::load();
+        let mut ui = UiBuilder::new(icons.meta);
+        let mut st = HudState::default();
+        st.radar_contacts.push(RadarContactHud {
+            actor_id: "target_alpha".into(),
+            dx_cells: 20.0,
+            dy_cells: 10.0,
+            class: RadarClass::Hostile,
+        });
+        let mut out = Vec::new();
+
+        st.target = Some(crate::hud::TargetHud {
+            actor_id: "target_alpha".into(),
+            alive: true,
+            ..Default::default()
+        });
+        ui.begin(1280, 720);
+        draw_radar(&mut ui, &crate::hud::palette(0), &st, [0.0, 0.0, 128.0, 128.0], false, &mut out);
+
+        st.target = Some(crate::hud::TargetHud {
+            actor_id: "target_alpha".into(),
+            alive: false,
+            stamp: Some("DEAD"),
+            ..Default::default()
+        });
+        let mut ui_dead = UiBuilder::new(icons.meta);
+        ui_dead.begin(1280, 720);
+        draw_radar(&mut ui_dead, &crate::hud::palette(0), &st, [0.0, 0.0, 128.0, 128.0], false, &mut out);
+
+        assert_ne!(ui.quads, ui_dead.quads, "dead contact rendering must differ from live contact");
+    }
+
+    #[test]
+    fn range_stepping_ladder() {
+        assert_eq!(RANGE_LADDER_CELLS, &[32.0, 64.0, 96.0, 128.0, 192.0]);
+        set_range_radius(96.0);
+        assert_eq!(current_range_radius(), 96.0);
+
+        assert_eq!(step_range_in(), 64.0);
+        assert_eq!(current_range_radius(), 64.0);
+        assert_eq!(step_range_in(), 32.0);
+        assert_eq!(step_range_in(), 32.0);
+
+        assert_eq!(step_range_out(), 64.0);
+        assert_eq!(step_range_out(), 96.0);
+        assert_eq!(step_range_out(), 128.0);
+        assert_eq!(step_range_out(), 192.0);
+        assert_eq!(step_range_out(), 192.0);
+
+        set_range_radius(100.0);
+        assert_eq!(current_range_radius(), 96.0);
     }
 }

@@ -11,6 +11,7 @@ RENDER_STATS_JSON := out/material-parity-gpu.json
 TERRAIN_STATS_JSON := out/terrain-material-gpu.json
 NATIVE_BIN := out/bin/successor
 DEV_BIN := target/release/successor
+DEV_NATIVE_BIN := out/bin/successor-dev
 CONTROL_BIN := out/bin/successor-control
 
 DEV_FEATURES := --features dev-tools
@@ -26,7 +27,7 @@ STOREFRONT_ORIGIN ?= https://www.successorgame.com
 GAME_ORIGIN ?= wss://world.successorgame.com
 CHAT_ORIGIN ?= wss://world.successorgame.com
 
-.PHONY: all native web web-release run serve strip-port size-check bench bench-check \
+.PHONY: all native dev web web-release run serve strip-port size-check bench bench-check \
         bench-baseline check-allocs connected-check-allocs runtime-check render-check terrain-check model-check test-unit nostd verify clean
 
 all: native web
@@ -36,6 +37,17 @@ native:
 	$(CARGO) build --release -p successor-client --bin successor-control $(DEV_FEATURES)
 	mkdir -p out/bin
 	cp target/release/successor $(NATIVE_BIN)
+	cp target/release/successor-control $(CONTROL_BIN)
+
+# Developer-capability client. `native` deliberately ships without `dev-tools`,
+# so the shipped binary refuses demo modes, `--endpoint` identity, and the
+# loopback control server. Agent control journeys and the observation harnesses
+# drive this binary instead.
+dev:
+	$(CARGO) build --release -p successor-client --bin successor $(DEV_FEATURES)
+	$(CARGO) build --release -p successor-client --bin successor-control $(DEV_FEATURES)
+	mkdir -p out/bin
+	cp target/release/successor $(DEV_NATIVE_BIN)
 	cp target/release/successor-control $(CONTROL_BIN)
 
 

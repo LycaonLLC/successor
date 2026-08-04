@@ -50,7 +50,13 @@ pub const BAR_MIN_H: f32 = 48.0;
 pub const PLATE_W: f32 = super::plate::PLATE_W;
 pub const PLATE_H: f32 = super::plate::PLATE_H;
 pub const PLATE_MIN_W: f32 = 240.0;
-pub const PLATE_MIN_H: f32 = 78.0;
+pub const PLATE_MIN_H: f32 = 46.0;
+/// Weapon/magazine pane: its own lane under the player plate, because it only
+/// exists while something is wielded.
+pub const WEAPON_W: f32 = super::plate::WEAPON_PLATE_W;
+pub const WEAPON_H: f32 = super::plate::WEAPON_PLATE_H;
+pub const WEAPON_MIN_W: f32 = 160.0;
+pub const WEAPON_MIN_H: f32 = 24.0;
 /// Group rail: the lane directly beneath the player plate belongs to group
 /// members and nothing else. It is sized for the full chip run so a filling
 /// group never pushes into the panes below.
@@ -89,6 +95,8 @@ pub const DOCK_BTN: f32 = 30.0;
 pub struct HudLayout {
     /// Player status plate, top-left.
     pub plate: [f32; 4],
+    /// Weapon/magazine pane, directly beneath the plate.
+    pub weapon: [f32; 4],
     /// Group member rail, directly beneath the plate.
     pub group: [f32; 4],
     /// Target plate, top-right beneath the command bar.
@@ -145,10 +153,12 @@ fn compute_reference(viewport_w: f32, viewport_h: f32) -> HudLayout {
     let plate_h = compact_dimension(PLATE_MIN_H, PLATE_H, vw);
     let plate = [0.0, 0.0, plate_w, plate_h];
 
-    // The lane under the plate is the group's. It shares the plate's column and
-    // stops short of the radar lane so a full group never reaches the bottom
-    // band.
-    let group_y = plate[1] + plate[3] + GUTTER;
+    // The plate's column continues downward: weapon readout, then the group.
+    // Each is its own pane, so an unarmed solo player shows one tight plate
+    // and nothing else.
+    let weapon_y = plate[1] + plate[3] + GUTTER;
+    let weapon = [plate[0], weapon_y, plate_w.min(WEAPON_W), WEAPON_H];
+    let group_y = weapon[1] + weapon[3] + GUTTER;
     let group = [plate[0], group_y, plate_w, GROUP_H];
 
     let target_w = compact_dimension(TARGET_MIN_W, TARGET_W, vw);
@@ -217,6 +227,7 @@ fn compute_reference(viewport_w: f32, viewport_h: f32) -> HudLayout {
 
     HudLayout {
         plate,
+        weapon,
         group,
         target,
         bar,
@@ -238,6 +249,7 @@ impl HudLayout {
         let point = |p: [f32; 2]| [p[0] * scale, p[1] * scale];
         Self {
             plate: rect(self.plate),
+            weapon: rect(self.weapon),
             group: rect(self.group),
             target: rect(self.target),
             bar: rect(self.bar),

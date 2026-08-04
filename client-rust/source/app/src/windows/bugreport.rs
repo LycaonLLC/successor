@@ -8,7 +8,7 @@
 //! ride in. Reports correlate through `requestId`; only a matching
 //! `successor.bug-report-result.v1` settles the pending state.
 
-use super::{WindowAction, ACCENT, DIM, SLOT, SLOT_EDGE, TEXT};
+use super::{accent, dim, slot, slot_edge, text, WindowAction};
 use crate::hud::Icons;
 use serde_json::{json, Value};
 use successor_engine_render::ui::{ButtonStyle, TextField, UiBuilder};
@@ -256,22 +256,22 @@ pub fn draw(
 ) {
     let [x, y, w, h] = ctx.rect;
     if let Some((col, row)) = icons.cell("bug-report") {
-        ui.icon(col, row, x + w - 28.0, y - 2.0, 22.0, 22.0, ACCENT);
+        ui.icon(col, row, x + w - 28.0, y - 2.0, 22.0, 22.0, accent());
     }
 
     // Received panel replaces the form after acceptance.
     if let BugStatus::Accepted { report_id } = &model.status {
         let cy = y + 40.0;
-        ui.text("REPORT RECEIVED", x, cy, 2.0, ACCENT);
+        ui.text("REPORT RECEIVED", x, cy, 2.0, accent());
         ui.text(
             "YOUR SESSION LOG AND NOTES ARE TOGETHER IN THE QUEUE.",
             x,
             cy + 20.0,
             1.4,
-            DIM,
+            dim(),
         );
-        ui.rect(x, cy + 36.0, w, 18.0, SLOT);
-        ui.text(report_id, x + 6.0, cy + 40.0, 1.5, TEXT);
+        ui.rect(x, cy + 36.0, w, 18.0, slot());
+        ui.text(report_id, x + 6.0, cy + 40.0, 1.5, text());
         if ui.button(
             x,
             cy + 64.0,
@@ -291,13 +291,13 @@ pub fn draw(
         x,
         cy,
         1.4,
-        DIM,
+        dim(),
     );
-    ui.text("YOU DID JUST BEFORE IT HAPPENED.", x, cy + 11.0, 1.4, DIM);
+    ui.text("YOU DID JUST BEFORE IT HAPPENED.", x, cy + 11.0, 1.4, dim());
     cy += 28.0;
 
     // AREA selector.
-    ui.text("AREA", x, cy, 1.4, DIM);
+    ui.text("AREA", x, cy, 1.4, dim());
     cy += 12.0;
     let btn_w = (w - 12.0) / 3.0;
     for (i, (_, label)) in CATEGORIES.iter().enumerate() {
@@ -308,7 +308,7 @@ pub fn draw(
         let mut style = ButtonStyle::default();
         if i == model.category {
             style.fill = [70, 92, 120, 240];
-            style.edge = ACCENT;
+            style.edge = accent();
         }
         if ui.button(bx, by, btn_w, 20.0, label, style) {
             model.category = i;
@@ -317,7 +317,7 @@ pub fn draw(
     cy += 2.0 * 26.0 + 8.0;
 
     // Body field + live count.
-    ui.text("WHAT HAPPENED?", x, cy, 1.4, DIM);
+    ui.text("WHAT HAPPENED?", x, cy, 1.4, dim());
     cy += 12.0;
     let field_h = (h - (cy - y) - 78.0).max(40.0);
     let pending = matches!(model.status, BugStatus::Pending { .. });
@@ -329,7 +329,7 @@ pub fn draw(
         x,
         cy,
         1.3,
-        if len < BODY_MIN_CHARS { DIM } else { TEXT },
+        if len < BODY_MIN_CHARS { dim() } else { text() },
     );
 
     // Diagnostics disclosure (exact reference promise).
@@ -338,27 +338,27 @@ pub fn draw(
         x,
         cy + 12.0,
         1.2,
-        DIM,
+        dim(),
     );
     ui.text(
         "CLIENT ERRORS, RECEIPTS, OPEN WINDOWS. NEVER PASSWORDS,",
         x,
         cy + 22.0,
         1.2,
-        DIM,
+        dim(),
     );
     ui.text(
         "TICKETS, COOKIES, CHAT, OR INVENTORY.",
         x,
         cy + 32.0,
         1.2,
-        DIM,
+        dim(),
     );
 
     // Status line.
     match &model.status {
         BugStatus::Pending { .. } => {
-            ui.text("PACKING SESSION LOG...", x, cy + 44.0, 1.4, ACCENT);
+            ui.text("PACKING SESSION LOG...", x, cy + 44.0, 1.4, accent());
         }
         BugStatus::Denied { copy } => {
             ui.text(copy, x, cy + 44.0, 1.4, [227, 74, 74, 255]);
@@ -370,8 +370,8 @@ pub fn draw(
     let can_send = len >= BODY_MIN_CHARS && !pending;
     let mut style = ButtonStyle::default();
     if !can_send {
-        style.text = DIM;
-        style.edge = SLOT_EDGE;
+        style.text = dim();
+        style.edge = slot_edge();
     }
     let label = if pending { "SENDING..." } else { "SEND REPORT" };
     if ui.button(x, y + h - 24.0, w, 22.0, label, style) && can_send {

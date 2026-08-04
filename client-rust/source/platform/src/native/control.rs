@@ -59,6 +59,20 @@ pub struct ControlStatusV2 {
     pub pending_command_kinds: Vec<String>,
     pub last_receipt: Option<String>,
     pub renderer_degradation_ids: Vec<String>,
+    /// Every registered workspace frame with its live geometry. UI journeys
+    /// assert move, resize, and layout persistence against this instead of
+    /// reading pixels.
+    pub window_frames: Vec<ControlWindowFrame>,
+}
+
+/// One workspace frame as the control protocol reports it.
+#[derive(Clone, Debug, Default)]
+pub struct ControlWindowFrame {
+    pub id: String,
+    pub rect: [f32; 4],
+    pub open: bool,
+    pub iconified: bool,
+    pub interactive: bool,
 }
 #[derive(Clone, Debug)]
 pub struct NativeInputSnapshot {
@@ -487,11 +501,30 @@ impl ControlState {
             .as_deref()
             .map(json_string)
             .unwrap_or_else(|| "null".into());
+        let mut frames = String::from("[");
+        for (index, frame) in s.window_frames.iter().enumerate() {
+            if index > 0 {
+                frames.push(',');
+            }
+            frames.push_str(&format!(
+                "{{\"id\":{},\"rect\":[{},{},{},{}],\"open\":{},\"iconified\":{},\"interactive\":{}}}",
+                json_string(&frame.id),
+                frame.rect[0],
+                frame.rect[1],
+                frame.rect[2],
+                frame.rect[3],
+                frame.open,
+                frame.iconified,
+                frame.interactive
+            ));
+        }
+        frames.push(']');
         format!(
             "\"schema\":\"successor.control.status.v2\",\"frame\":{},\"framebuffer\":{},\
              \"app_mode\":{},\"game_connection\":{},\"chat_connection\":{},\"shard\":{},\
              \"tick\":{},\"area\":{},\"source_hashes\":{},\"player_actor_id\":{},\
              \"player_position\":{},\"life\":{},\"selection\":{},\"windows\":{},\
+             \"window_frames\":{},\
              \"focused_window\":{},\"pending_command_kinds\":{},\"last_receipt\":{},\
              \"recording\":{},\"replaying\":{},\"renderer_degradation_ids\":{},\
              \"input_override\":{},\"listen_port\":{}",
@@ -511,6 +544,7 @@ impl ControlState {
             life,
             selection,
             json_list(&s.windows),
+            frames,
             focused,
             json_list(&s.pending_command_kinds),
             receipt,

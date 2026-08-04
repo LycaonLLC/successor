@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import fssync from "node:fs";
 import path from "node:path";
@@ -284,13 +284,79 @@ async function waitForExactLoopbackPortClear(listenPort, watchedPids, timeoutMs)
     .some((processInfo) => watchedPids.includes(processInfo.pid));
 }
 
+// Listener discovery is platform-split: Linux reads `/proc`, macOS asks `lsof`.
+// Both produce the same socket/process shape so the ownership assertions below
+// stay identical on either host.
 async function scanPort(listenPort) {
+  if (process.platform === "linux") return scanPortProc(listenPort);
+  return scanPortLsof(listenPort);
+}
+
+async function scanPortProc(listenPort) {
   const sockets = await listeningSocketsForPort(listenPort);
   const exactSockets = sockets.filter((socket) => socket.exactLoopbackV4);
   const unmanagedSockets = sockets.filter((socket) => !socket.exactLoopbackV4);
   const exactProcesses = await processesForSocketInodes(exactSockets.map((socket) => socket.inode));
   const unmanagedProcesses = await processesForSocketInodes(unmanagedSockets.map((socket) => socket.inode));
   return { sockets, exactSockets, unmanagedSockets, exactProcesses, unmanagedProcesses };
+}
+
+// `lsof` resolves the owning pid with the socket, so there is no inode step.
+async function scanPortLsof(listenPort) {
+  const sockets = [];
+  const listing = await runCapture("lsof", ["-nP", `-iTCP:${listenPort}`, "-sTCP:LISTEN", "-F", "pn"]);
+  let pid = null;
+  for (const line of listing.split("\n")) {
+    if (line.startsWith("p")) {
+      pid = Number.parseInt(line.slice(1), 10);
+      continue;
+    }
+    if (!line.startsWith("n") || !Number.isInteger(pid)) continue;
+    const name = line.slice(1);
+    const separator = name.lastIndexOf(":");
+    if (separator < 0 || name.slice(separator + 1) !== String(listenPort)) continue;
+    const address = name.slice(0, separator);
+    const family = address.startsWith("[") ? "tcp6" : "tcp4";
+    sockets.push({
+      family,
+      label: name,
+      inode: `${pid}:${name}`,
+      pid,
+      exactLoopbackV4: family === "tcp4" && address === host,
+    });
+  }
+  const exactSockets = sockets.filter((socket) => socket.exactLoopbackV4);
+  const unmanagedSockets = sockets.filter((socket) => !socket.exactLoopbackV4);
+  return {
+    sockets,
+    exactSockets,
+    unmanagedSockets,
+    exactProcesses: await processesForPids(exactSockets.map((socket) => socket.pid)),
+    unmanagedProcesses: await processesForPids(unmanagedSockets.map((socket) => socket.pid)),
+  };
+}
+
+async function processesForPids(pids) {
+  const unique = [...new Set(pids)].sort((left, right) => left - right);
+  return Promise.all(unique.map(async (pid) => ({
+    pid,
+    cwd: await lsofCwd(pid),
+    cmdline: (await runCapture("ps", ["-p", String(pid), "-o", "args="])).trim(),
+  })));
+}
+
+async function lsofCwd(pid) {
+  const listing = await runCapture("lsof", ["-a", "-p", String(pid), "-d", "cwd", "-F", "n"]);
+  const line = listing.split("\n").find((entry) => entry.startsWith("n"));
+  return line ? line.slice(1) : null;
+}
+
+// Ownership checks must not be defeated by a missing tool: an empty capture
+// reads as "no listener", which fails closed in every caller.
+function runCapture(command, args) {
+  return new Promise((resolve) => {
+    execFile(command, args, { encoding: "utf8" }, (_error, stdout) => resolve(stdout ?? ""));
+  });
 }
 
 function assertNoUnmanagedListeners(scan, phase) {
@@ -374,9 +440,7 @@ function formatProcessList(processes) {
 }
 
 function formatSocketList(sockets) {
-  return sockets
-    .map((socket) => `${socket.family}:${socket.localAddressHex}:${socket.portHex} inode=${socket.inode}`)
-    .join("; ");
+  return sockets.map((socket) => `${socket.family}:${socket.label} inode=${socket.inode}`).join("; ");
 }
 
 async function listeningSocketsForPort(listenPort) {
@@ -404,8 +468,7 @@ async function readProcTcp(file, listenPort, family, sockets) {
     if (state !== "0A" || portHex.toUpperCase() !== expectedPortHex || !inode) continue;
     sockets.push({
       family,
-      localAddressHex: addressHex.toUpperCase(),
-      portHex: portHex.toUpperCase(),
+      label: `${addressHex.toUpperCase()}:${portHex.toUpperCase()}`,
       inode,
       exactLoopbackV4: family === "tcp4" && addressHex.toUpperCase() === "0100007F",
     });

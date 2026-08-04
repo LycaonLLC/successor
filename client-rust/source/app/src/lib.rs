@@ -54,7 +54,12 @@ pub enum UiTheme {
 pub struct RuntimeSettings {
     pub mouse_sensitivity: f32,
     pub orthographic_zoom_percent: u16,
-    pub combat_crosshair: bool,
+    /// Workspace frame pane opacity. The original exposes window transparency
+    /// as a player setting; fills fade, type and the bright perimeter do not.
+    pub window_opacity: f32,
+    /// HUD pane opacity, separate because the HUD sits over gameplay the whole
+    /// session while a window is transient.
+    pub hud_opacity: f32,
     pub ui_theme: UiTheme,
     pub dust_edge_fog: f32,
     pub inventory_split_snap: u32,
@@ -66,12 +71,24 @@ impl Default for RuntimeSettings {
         Self {
             mouse_sensitivity: 1.0,
             orthographic_zoom_percent: 100,
-            combat_crosshair: true,
+            window_opacity: 0.92,
+            hud_opacity: 0.90,
             ui_theme: UiTheme::Signal,
             dust_edge_fog: 0.5,
             inventory_split_snap: 100,
             toolbar_hotkeys: [0; 12],
         }
+    }
+}
+
+/// A persisted opacity outside the usable band is not clamped to the extreme:
+/// a value of zero would hide the UI and read as a broken client, so a corrupt
+/// row resets to its default.
+fn normalized_opacity(value: f32, default: f32) -> f32 {
+    if value.is_finite() && (hud::MIN_UI_OPACITY..=hud::MAX_UI_OPACITY).contains(&value) {
+        value
+    } else {
+        default
     }
 }
 
@@ -91,6 +108,8 @@ impl RuntimeSettings {
         if !self.dust_edge_fog.is_finite() || !(0.0..=1.0).contains(&self.dust_edge_fog) {
             self.dust_edge_fog = 0.5;
         }
+        self.window_opacity = normalized_opacity(self.window_opacity, 0.92);
+        self.hud_opacity = normalized_opacity(self.hud_opacity, 0.90);
         self
     }
 }

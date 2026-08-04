@@ -184,21 +184,20 @@ impl ItemPreviewRenderer {
         if windows.is_open("inventory") {
             let inventory_band = band("inventory");
             if let Some(content) = window_content(windows, "inventory") {
-                let held_count = model.inventory.held().count();
-                let (visible_start, visible_end) =
-                    crate::windows::inventory::visible_held_range(content, held_count);
-                for (item_index, row) in model
-                    .inventory
-                    .held()
-                    .skip(visible_start)
-                    .take(visible_end - visible_start)
-                    .enumerate()
-                {
+                // Draw order, not wire order: the grid filters, sorts, and
+                // pages its rows, and a lane keyed off `held()` would sit a
+                // model under someone else's label.
+                let mut visible = [0usize; INVENTORY_LANES];
+                let visible_count =
+                    crate::windows::inventory::copy_visible_held_indices(content, &mut visible);
+                for (slot, &held_index) in visible.iter().take(visible_count).enumerate() {
                     if lane_index >= INVENTORY_LANES {
                         break;
                     }
-                    let Some(preview) =
-                        crate::windows::inventory::grid_preview_rect(content, item_index)
+                    let Some(row) = model.inventory.held().nth(held_index) else {
+                        continue;
+                    };
+                    let Some(preview) = crate::windows::inventory::grid_preview_rect(content, slot)
                     else {
                         break;
                     };

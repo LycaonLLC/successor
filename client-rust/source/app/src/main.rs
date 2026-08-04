@@ -68,6 +68,10 @@ fn main() {
     let endpoint = arg_value(&args, "--endpoint");
     let player_arg = arg_value(&args, "--player-id");
     let actor_arg = arg_value(&args, "--actor-id");
+    // A durable roster character must join by `characterId`: the shard rejects
+    // the bare `{playerId, actorId}` dev shape for any id its character store
+    // already owns ("durable character identity required").
+    let character_arg = arg_value(&args, "--character-id");
     let dev_identity = args.iter().any(|a| a == "--dev-identity");
     #[cfg(not(feature = "dev-tools"))]
     let _ = dev_identity;
@@ -103,6 +107,7 @@ fn main() {
                 &endpoint,
                 &player,
                 &actor,
+                character_arg.as_deref(),
                 max_frames,
                 screenshot.as_deref(),
                 auto_walk,
@@ -1849,10 +1854,12 @@ mod connected {
     use successor_platform::{NativePlatform, Platform, SettingsScope};
 
     #[cfg(feature = "dev-tools")]
+    #[allow(clippy::too_many_arguments)]
     pub fn run_dev(
         endpoint: &str,
         player_id: &str,
         actor_id: &str,
+        character_id: Option<&str>,
         max_frames: Option<u64>,
         screenshot: Option<&str>,
         auto_walk: bool,
@@ -1863,6 +1870,7 @@ mod connected {
             endpoint,
             player_id,
             actor_id,
+            character_id,
             None,
             None,
             chat_endpoint,
@@ -1906,6 +1914,7 @@ mod connected {
             &endpoint,
             &character,
             &character,
+            None,
             Some(game_ticket),
             Some(chat_ticket),
             Some(chat_endpoint),
@@ -1922,6 +1931,7 @@ mod connected {
         endpoint: &str,
         player_id: &str,
         actor_id: &str,
+        dev_character_id: Option<&str>,
         game_ticket: Option<String>,
         chat_ticket: Option<String>,
         chat_endpoint: Option<String>,
@@ -1946,6 +1956,8 @@ mod connected {
                 "gameTicket": ticket,
                 "release": client_release.clone().unwrap_or_default(),
             })
+        } else if let Some(character_id) = dev_character_id {
+            json!({ "characterId": character_id })
         } else {
             json!({ "playerId": player_id, "actorId": actor_id })
         };
@@ -2021,6 +2033,11 @@ mod connected {
             SettingsScope::Local,
             "windowLayout",
         );
+        let ui_opacity = successor_client::persist::load_section(
+            &app.platform,
+            SettingsScope::Local,
+            "uiOpacity",
+        );
         let mut read_asset = |stable_id: &str| app.platform.read_asset(stable_id).ok();
         let mut scene = match ConnectedScene::build(&mut gpu, player_id, &mut read_asset) {
             Ok(s) => s,
@@ -2037,6 +2054,7 @@ mod connected {
             waypoints.as_ref(),
             macros.as_ref(),
             window_layout.as_ref(),
+            ui_opacity.as_ref(),
         );
         let audio_mixer = scene.audio_mixer();
         let _audio_output = if assert_zero {
@@ -2383,6 +2401,7 @@ mod connected {
                     )
                 }),
                 renderer_degradation_ids: Vec::new(),
+                window_frames: scene.window_frames(),
             };
             plat::publish_control_status(status);
             #[cfg(feature = "alloc-count")]
@@ -2424,7 +2443,7 @@ mod connected {
                     plat::ws_send(&mut ws, &frame);
                 }
             }
-            let (theme, toolbar, split_snap, waypoints, macros, window_layout) =
+            let (theme, toolbar, split_snap, waypoints, macros, window_layout, ui_opacity) =
                 scene.take_persisted();
             for (scope, key, value) in [
                 (SettingsScope::Local, "theme", theme),
@@ -2433,6 +2452,7 @@ mod connected {
                 (SettingsScope::Character, "waypoints", waypoints),
                 (SettingsScope::Character, "macros", macros),
                 (SettingsScope::Local, "windowLayout", window_layout),
+                (SettingsScope::Local, "uiOpacity", ui_opacity),
             ] {
                 if let Some(value) = value {
                     if let Err(error) = successor_client::persist::store_section(

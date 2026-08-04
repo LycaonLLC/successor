@@ -4,6 +4,38 @@
   "float_limit_mm": 3.0,
   "buried_limit_mm": 60.0,
   "variant_delta_limit_mm": 25.0,
+  "category_rules": {
+    "boots": {
+      "standoff_min_mm": -10.0,
+      "standoff_max_mm": 10.0,
+      "burial_limit_mm": 10.0
+    },
+    "gloves": {
+      "standoff_min_mm": -20.0,
+      "standoff_max_mm": 15.0,
+      "burial_limit_mm": 20.0
+    },
+    "legs": {
+      "standoff_min_mm": -10.0,
+      "standoff_max_mm": 15.0,
+      "burial_limit_mm": 10.0
+    },
+    "tops": {
+      "standoff_min_mm": -12.0,
+      "standoff_max_mm": 15.0,
+      "burial_limit_mm": 12.0
+    },
+    "armor": {
+      "standoff_min_mm": -30.0,
+      "standoff_max_mm": 30.0,
+      "burial_limit_mm": 30.0
+    },
+    "helmets": {
+      "standoff_min_mm": -65.0,
+      "standoff_max_mm": 20.0,
+      "burial_limit_mm": 65.0
+    }
+  },
   "bodies": {
     "male": {
       "skull_top_m": 1.7525,
@@ -17,6 +49,7 @@
           "scalp_covered_vertices": 373,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 332
         },
         "Hair_Crop": {
@@ -28,6 +61,7 @@
           "scalp_covered_vertices": 377,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 332
         },
         "Hair_Mop": {
@@ -39,6 +73,7 @@
           "scalp_covered_vertices": 396,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 376
         },
         "Hat_Warm": {
@@ -50,6 +85,7 @@
           "scalp_covered_vertices": 235,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 293
         },
         "SCFI_Pants_Refit": {
@@ -61,6 +97,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 3265
         },
         "SCFI_Top_Refit": {
@@ -72,6 +109,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 4810
         },
         "Shorts": {
@@ -83,6 +121,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 447
         },
         "Tank": {
@@ -94,6 +133,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 524
         },
         "boots_canvas_ankle": {
@@ -105,6 +145,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "boots",
           "vertices": 223
         },
         "boots_combat_sneakers": {
@@ -116,6 +157,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "boots",
           "vertices": 838
         },
         "boots_cuffed_runners": {
@@ -127,6 +169,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "boots",
           "vertices": 868
         },
         "boots_double_strap": {
@@ -138,6 +181,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "boots",
           "vertices": 1214
         },
         "boots_layered_sneakers": {
@@ -149,6 +193,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "boots",
           "vertices": 682
         },
         "boots_reinforced_street": {
@@ -160,6 +205,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "boots",
           "vertices": 1028
         },
         "boots_rubberized_canvas": {
@@ -171,6 +217,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "boots",
           "vertices": 1428
         },
         "boots_split_toe": {
@@ -182,6 +229,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "boots",
           "vertices": 860
         },
         "boots_toe_capped": {
@@ -193,6 +241,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "boots",
           "vertices": 518
         },
         "boots_trail_shoes": {
@@ -204,6 +253,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "boots",
           "vertices": 906
         },
         "gloves_guarded_leather": {
@@ -215,6 +265,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "gloves",
           "vertices": 1125
         },
         "gloves_knuckled_half": {
@@ -226,6 +277,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "gloves",
           "vertices": 468
         },
         "gloves_light_utility": {
@@ -237,6 +289,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "gloves",
           "vertices": 763
         },
         "gloves_plain_work": {
@@ -248,6 +301,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "gloves",
           "vertices": 575
         },
         "gloves_plated_handwraps": {
@@ -259,6 +313,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "gloves",
           "vertices": 795
         },
         "gloves_reinforced_knit": {
@@ -270,6 +325,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "gloves",
           "vertices": 551
         },
         "gloves_tipped_work": {
@@ -281,6 +337,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "gloves",
           "vertices": 1178
         },
         "hair_banded_mohawk": {
@@ -292,6 +349,7 @@
           "scalp_covered_vertices": 93,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1161
         },
         "hair_braided_crown": {
@@ -303,6 +361,7 @@
           "scalp_covered_vertices": 358,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 4480
         },
         "hair_cropped_buzz": {
@@ -314,6 +373,7 @@
           "scalp_covered_vertices": 283,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1521
         },
         "hair_fauxhawk": {
@@ -325,6 +385,7 @@
           "scalp_covered_vertices": 132,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1662
         },
         "hair_flared_shag": {
@@ -336,6 +397,7 @@
           "scalp_covered_vertices": 210,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1617
         },
         "hair_flared_wings": {
@@ -347,6 +409,7 @@
           "scalp_covered_vertices": 155,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 897
         },
         "hair_flat_top": {
@@ -358,6 +421,7 @@
           "scalp_covered_vertices": 352,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1602
         },
         "hair_low_tufts": {
@@ -369,6 +433,7 @@
           "scalp_covered_vertices": 136,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1151
         },
         "hair_messy_crop": {
@@ -380,6 +445,7 @@
           "scalp_covered_vertices": 340,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1320
         },
         "hair_messy_side_part": {
@@ -391,6 +457,7 @@
           "scalp_covered_vertices": 251,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1850
         },
         "hair_ridge_mohawk": {
@@ -402,6 +469,7 @@
           "scalp_covered_vertices": 73,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 291
         },
         "hair_short_ponytail": {
@@ -413,6 +481,7 @@
           "scalp_covered_vertices": 182,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 2090
         },
         "hair_shoulder_shag": {
@@ -424,6 +493,7 @@
           "scalp_covered_vertices": 382,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1780
         },
         "hair_side_ponytail": {
@@ -435,6 +505,7 @@
           "scalp_covered_vertices": 176,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 2737
         },
         "hair_side_sweep": {
@@ -446,6 +517,7 @@
           "scalp_covered_vertices": 381,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1270
         },
         "hair_slicked_crop": {
@@ -457,6 +529,7 @@
           "scalp_covered_vertices": 352,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 954
         },
         "hair_spiked_mohawk": {
@@ -468,6 +541,7 @@
           "scalp_covered_vertices": 121,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1722
         },
         "hair_spiked_topknot": {
@@ -479,6 +553,7 @@
           "scalp_covered_vertices": 173,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1402
         },
         "hair_split_mohawk": {
@@ -490,6 +565,7 @@
           "scalp_covered_vertices": 339,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1900
         },
         "hair_swept_bob": {
@@ -501,6 +577,7 @@
           "scalp_covered_vertices": 303,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1558
         },
         "hair_swept_spikes": {
@@ -512,6 +589,7 @@
           "scalp_covered_vertices": 135,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1524
         },
         "hair_textured_crop": {
@@ -523,6 +601,7 @@
           "scalp_covered_vertices": 384,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1563
         },
         "hair_top_patch": {
@@ -534,6 +613,7 @@
           "scalp_covered_vertices": 72,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 748
         },
         "hair_twin_pigtails": {
@@ -545,6 +625,7 @@
           "scalp_covered_vertices": 347,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 2523
         },
         "legs_gaitered_cargo_pants": {
@@ -556,6 +637,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 3517
         },
         "legs_layered_shorts": {
@@ -567,6 +649,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 4100
         },
         "legs_layered_wrap_skirt": {
@@ -578,6 +661,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 3237
         },
         "legs_padded_canvas_trousers": {
@@ -589,6 +673,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 3222
         },
         "legs_plated_trousers": {
@@ -600,6 +685,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 3002
         },
         "legs_reinforced_denim_pants": {
@@ -611,6 +697,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 3508
         },
         "legs_sashed_patrol_pants": {
@@ -622,6 +709,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 3537
         },
         "legs_skirted_workpants": {
@@ -633,6 +721,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 3188
         },
         "legs_strapped_trousers": {
@@ -644,6 +733,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 4035
         },
         "legs_wrapped_workpants": {
@@ -655,6 +745,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "legs",
           "vertices": 3379
         },
         "top_frayed_tunic": {
@@ -666,6 +757,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 2495
         },
         "top_laced_corset_vest": {
@@ -677,6 +769,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 2570
         },
         "top_padded_leather_vest": {
@@ -688,6 +781,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 2339
         },
         "top_plated_rig_vest": {
@@ -699,6 +793,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 2390
         },
         "top_reinforced_crop_vest": {
@@ -710,6 +805,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 1548
         },
         "top_rigged_tank": {
@@ -721,6 +817,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 1675
         },
         "top_scrap_plate_tunic": {
@@ -732,6 +829,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 2320
         },
         "top_spiked_leather_vest": {
@@ -743,6 +841,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 2149
         },
         "under_bodysuit": {
@@ -754,6 +853,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "tops",
           "vertices": 782
         },
         "Bicep_L": {
@@ -765,6 +865,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 144
         },
         "Bicep_R": {
@@ -776,6 +877,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 144
         },
         "Gorget": {
@@ -787,6 +889,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 320
         },
         "Harness": {
@@ -798,6 +901,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 988
         },
         "Helmet_A": {
@@ -809,6 +913,7 @@
           "scalp_covered_vertices": 408,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 1136
         },
         "Helmet_B": {
@@ -820,6 +925,7 @@
           "scalp_covered_vertices": 426,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 1258
         },
         "Helmet_C": {
@@ -831,6 +937,7 @@
           "scalp_covered_vertices": 438,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 1368
         },
         "Helmet_D": {
@@ -842,6 +949,7 @@
           "scalp_covered_vertices": 435,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 1446
         },
         "Helmet_S1": {
@@ -853,6 +961,7 @@
           "scalp_covered_vertices": 414,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 900
         },
         "Helmet_S2": {
@@ -864,6 +973,7 @@
           "scalp_covered_vertices": 414,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 1446
         },
         "Helmet_S3": {
@@ -875,6 +985,7 @@
           "scalp_covered_vertices": 414,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 1528
         },
         "Helmet_V1PORT": {
@@ -886,6 +997,7 @@
           "scalp_covered_vertices": 408,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 834
         },
         "Nape_Reinforcement": {
@@ -897,6 +1009,7 @@
           "scalp_covered_vertices": 6,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 1268
         },
         "Reinforcement": {
@@ -908,6 +1021,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 160
         },
         "trial_back_a": {
@@ -919,6 +1033,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 1014
         },
         "trial_back_b": {
@@ -930,6 +1045,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 1139
         },
         "trial_hair_a": {
@@ -941,6 +1057,7 @@
           "scalp_covered_vertices": 250,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 586
         },
         "trial_hair_b": {
@@ -952,6 +1069,7 @@
           "scalp_covered_vertices": 151,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 727
         },
         "trial_hair_c": {
@@ -963,6 +1081,7 @@
           "scalp_covered_vertices": 288,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 542
         },
         "trial_hair_d": {
@@ -974,6 +1093,7 @@
           "scalp_covered_vertices": 211,
           "scalp_probed_vertices": 444,
           "hair": true,
+          "category": "hair",
           "vertices": 1544
         },
         "trial_helm_a": {
@@ -985,6 +1105,7 @@
           "scalp_covered_vertices": 399,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 556
         },
         "trial_helm_b": {
@@ -996,6 +1117,7 @@
           "scalp_covered_vertices": 381,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 587
         },
         "trial_helm_c": {
@@ -1007,6 +1129,7 @@
           "scalp_covered_vertices": 233,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 368
         },
         "trial_helm_d": {
@@ -1018,6 +1141,7 @@
           "scalp_covered_vertices": 118,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 618
         },
         "trial_hip_back_a": {
@@ -1029,6 +1153,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 234
         },
         "trial_hip_front_a": {
@@ -1040,6 +1165,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 581
         },
         "trial_hip_side_a": {
@@ -1051,6 +1177,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "armor",
           "vertices": 512
         },
         "trial_hood_a": {
@@ -1062,6 +1189,7 @@
           "scalp_covered_vertices": 172,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 793
         },
         "trial_mask_b": {
@@ -1073,6 +1201,7 @@
           "scalp_covered_vertices": 32,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 137
         },
         "trial_visor_a": {
@@ -1084,6 +1213,7 @@
           "scalp_covered_vertices": 12,
           "scalp_probed_vertices": 444,
           "hair": false,
+          "category": "helmets",
           "vertices": 398
         }
       }
@@ -1100,6 +1230,7 @@
           "scalp_covered_vertices": 342,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 332
         },
         "Hair_Crop": {
@@ -1111,6 +1242,7 @@
           "scalp_covered_vertices": 347,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 332
         },
         "Hair_Mop": {
@@ -1122,6 +1254,7 @@
           "scalp_covered_vertices": 365,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 376
         },
         "Hat_Warm": {
@@ -1133,6 +1266,7 @@
           "scalp_covered_vertices": 251,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 293
         },
         "SCFI_Pants_Refit": {
@@ -1144,6 +1278,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 3265
         },
         "SCFI_Top_Refit": {
@@ -1155,6 +1290,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 4810
         },
         "Shorts": {
@@ -1166,6 +1302,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 447
         },
         "Tank": {
@@ -1177,6 +1314,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 524
         },
         "boots_canvas_ankle": {
@@ -1188,6 +1326,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "boots",
           "vertices": 247
         },
         "boots_combat_sneakers": {
@@ -1199,6 +1338,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "boots",
           "vertices": 838
         },
         "boots_cuffed_runners": {
@@ -1210,6 +1350,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "boots",
           "vertices": 868
         },
         "boots_double_strap": {
@@ -1221,6 +1362,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "boots",
           "vertices": 1214
         },
         "boots_layered_sneakers": {
@@ -1232,6 +1374,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "boots",
           "vertices": 682
         },
         "boots_reinforced_street": {
@@ -1243,6 +1386,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "boots",
           "vertices": 1028
         },
         "boots_rubberized_canvas": {
@@ -1254,6 +1398,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "boots",
           "vertices": 1428
         },
         "boots_split_toe": {
@@ -1265,6 +1410,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "boots",
           "vertices": 860
         },
         "boots_toe_capped": {
@@ -1276,6 +1422,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "boots",
           "vertices": 518
         },
         "boots_trail_shoes": {
@@ -1287,6 +1434,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "boots",
           "vertices": 906
         },
         "gloves_guarded_leather": {
@@ -1298,6 +1446,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "gloves",
           "vertices": 1125
         },
         "gloves_knuckled_half": {
@@ -1309,6 +1458,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "gloves",
           "vertices": 468
         },
         "gloves_light_utility": {
@@ -1320,6 +1470,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "gloves",
           "vertices": 763
         },
         "gloves_plain_work": {
@@ -1331,6 +1482,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "gloves",
           "vertices": 575
         },
         "gloves_plated_handwraps": {
@@ -1342,6 +1494,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "gloves",
           "vertices": 795
         },
         "gloves_reinforced_knit": {
@@ -1353,6 +1506,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "gloves",
           "vertices": 551
         },
         "gloves_tipped_work": {
@@ -1364,6 +1518,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "gloves",
           "vertices": 1178
         },
         "hair_banded_mohawk": {
@@ -1375,6 +1530,7 @@
           "scalp_covered_vertices": 96,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1161
         },
         "hair_braided_crown": {
@@ -1386,6 +1542,7 @@
           "scalp_covered_vertices": 340,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 4480
         },
         "hair_cropped_buzz": {
@@ -1397,6 +1554,7 @@
           "scalp_covered_vertices": 286,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1521
         },
         "hair_fauxhawk": {
@@ -1408,6 +1566,7 @@
           "scalp_covered_vertices": 146,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1662
         },
         "hair_flared_shag": {
@@ -1419,6 +1578,7 @@
           "scalp_covered_vertices": 218,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1617
         },
         "hair_flared_wings": {
@@ -1430,6 +1590,7 @@
           "scalp_covered_vertices": 148,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 897
         },
         "hair_flat_top": {
@@ -1441,6 +1602,7 @@
           "scalp_covered_vertices": 329,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1602
         },
         "hair_low_tufts": {
@@ -1452,6 +1614,7 @@
           "scalp_covered_vertices": 118,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1151
         },
         "hair_messy_crop": {
@@ -1463,6 +1626,7 @@
           "scalp_covered_vertices": 337,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1320
         },
         "hair_messy_side_part": {
@@ -1474,6 +1638,7 @@
           "scalp_covered_vertices": 228,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1850
         },
         "hair_ridge_mohawk": {
@@ -1485,6 +1650,7 @@
           "scalp_covered_vertices": 81,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 291
         },
         "hair_short_ponytail": {
@@ -1496,6 +1662,7 @@
           "scalp_covered_vertices": 177,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 2090
         },
         "hair_shoulder_shag": {
@@ -1507,6 +1674,7 @@
           "scalp_covered_vertices": 337,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1780
         },
         "hair_side_ponytail": {
@@ -1518,6 +1686,7 @@
           "scalp_covered_vertices": 184,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 2737
         },
         "hair_side_sweep": {
@@ -1529,6 +1698,7 @@
           "scalp_covered_vertices": 352,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1270
         },
         "hair_slicked_crop": {
@@ -1540,6 +1710,7 @@
           "scalp_covered_vertices": 340,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 954
         },
         "hair_spiked_mohawk": {
@@ -1551,6 +1722,7 @@
           "scalp_covered_vertices": 114,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1722
         },
         "hair_spiked_topknot": {
@@ -1562,6 +1734,7 @@
           "scalp_covered_vertices": 172,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1402
         },
         "hair_split_mohawk": {
@@ -1573,6 +1746,7 @@
           "scalp_covered_vertices": 318,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1900
         },
         "hair_swept_bob": {
@@ -1584,6 +1758,7 @@
           "scalp_covered_vertices": 305,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1558
         },
         "hair_swept_spikes": {
@@ -1595,6 +1770,7 @@
           "scalp_covered_vertices": 125,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1524
         },
         "hair_textured_crop": {
@@ -1606,6 +1782,7 @@
           "scalp_covered_vertices": 330,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1563
         },
         "hair_top_patch": {
@@ -1617,6 +1794,7 @@
           "scalp_covered_vertices": 71,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 748
         },
         "hair_twin_pigtails": {
@@ -1628,6 +1806,7 @@
           "scalp_covered_vertices": 335,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 2523
         },
         "legs_gaitered_cargo_pants": {
@@ -1639,6 +1818,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 3517
         },
         "legs_layered_shorts": {
@@ -1650,6 +1830,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 4100
         },
         "legs_layered_wrap_skirt": {
@@ -1661,6 +1842,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 3237
         },
         "legs_padded_canvas_trousers": {
@@ -1672,6 +1854,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 3222
         },
         "legs_plated_trousers": {
@@ -1683,6 +1866,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 3002
         },
         "legs_reinforced_denim_pants": {
@@ -1694,6 +1878,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 3508
         },
         "legs_sashed_patrol_pants": {
@@ -1705,6 +1890,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 3537
         },
         "legs_skirted_workpants": {
@@ -1716,6 +1902,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 3188
         },
         "legs_strapped_trousers": {
@@ -1727,6 +1914,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 4035
         },
         "legs_wrapped_workpants": {
@@ -1738,6 +1926,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "legs",
           "vertices": 3379
         },
         "top_frayed_tunic": {
@@ -1749,6 +1938,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 2495
         },
         "top_laced_corset_vest": {
@@ -1760,6 +1950,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 2570
         },
         "top_padded_leather_vest": {
@@ -1771,6 +1962,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 2339
         },
         "top_plated_rig_vest": {
@@ -1782,6 +1974,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 2390
         },
         "top_reinforced_crop_vest": {
@@ -1793,6 +1986,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 1548
         },
         "top_rigged_tank": {
@@ -1804,6 +1998,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 1675
         },
         "top_scrap_plate_tunic": {
@@ -1815,6 +2010,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 2320
         },
         "top_spiked_leather_vest": {
@@ -1826,6 +2022,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 2149
         },
         "under_bodysuit": {
@@ -1837,6 +2034,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "tops",
           "vertices": 817
         },
         "Bicep_L": {
@@ -1848,6 +2046,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 144
         },
         "Bicep_R": {
@@ -1859,6 +2058,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 144
         },
         "Gorget": {
@@ -1870,6 +2070,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 320
         },
         "Harness": {
@@ -1881,6 +2082,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 988
         },
         "Helmet_A": {
@@ -1892,6 +2094,7 @@
           "scalp_covered_vertices": 388,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 1136
         },
         "Helmet_B": {
@@ -1903,6 +2106,7 @@
           "scalp_covered_vertices": 400,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 1258
         },
         "Helmet_C": {
@@ -1914,6 +2118,7 @@
           "scalp_covered_vertices": 405,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 1368
         },
         "Helmet_D": {
@@ -1925,6 +2130,7 @@
           "scalp_covered_vertices": 405,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 1446
         },
         "Helmet_S1": {
@@ -1936,6 +2142,7 @@
           "scalp_covered_vertices": 391,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 900
         },
         "Helmet_S2": {
@@ -1947,6 +2154,7 @@
           "scalp_covered_vertices": 391,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 1446
         },
         "Helmet_S3": {
@@ -1958,6 +2166,7 @@
           "scalp_covered_vertices": 388,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 1528
         },
         "Helmet_V1PORT": {
@@ -1969,6 +2178,7 @@
           "scalp_covered_vertices": 387,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 834
         },
         "Nape_Reinforcement": {
@@ -1980,6 +2190,7 @@
           "scalp_covered_vertices": 9,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 1268
         },
         "Reinforcement": {
@@ -1991,6 +2202,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 160
         },
         "trial_back_a": {
@@ -2002,6 +2214,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 1014
         },
         "trial_back_b": {
@@ -2013,6 +2226,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 1139
         },
         "trial_hair_a": {
@@ -2024,6 +2238,7 @@
           "scalp_covered_vertices": 190,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 586
         },
         "trial_hair_b": {
@@ -2035,6 +2250,7 @@
           "scalp_covered_vertices": 136,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 727
         },
         "trial_hair_c": {
@@ -2046,6 +2262,7 @@
           "scalp_covered_vertices": 276,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 542
         },
         "trial_hair_d": {
@@ -2057,6 +2274,7 @@
           "scalp_covered_vertices": 212,
           "scalp_probed_vertices": 411,
           "hair": true,
+          "category": "hair",
           "vertices": 1544
         },
         "trial_helm_a": {
@@ -2068,6 +2286,7 @@
           "scalp_covered_vertices": 339,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 556
         },
         "trial_helm_b": {
@@ -2079,6 +2298,7 @@
           "scalp_covered_vertices": 377,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 587
         },
         "trial_helm_c": {
@@ -2090,6 +2310,7 @@
           "scalp_covered_vertices": 232,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 368
         },
         "trial_helm_d": {
@@ -2101,6 +2322,7 @@
           "scalp_covered_vertices": 122,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 618
         },
         "trial_hip_back_a": {
@@ -2112,6 +2334,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 234
         },
         "trial_hip_front_a": {
@@ -2123,6 +2346,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 581
         },
         "trial_hip_side_a": {
@@ -2134,6 +2358,7 @@
           "scalp_covered_vertices": 0,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "armor",
           "vertices": 512
         },
         "trial_hood_a": {
@@ -2145,6 +2370,7 @@
           "scalp_covered_vertices": 158,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 793
         },
         "trial_mask_b": {
@@ -2156,6 +2382,7 @@
           "scalp_covered_vertices": 34,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 137
         },
         "trial_visor_a": {
@@ -2167,14 +2394,414 @@
           "scalp_covered_vertices": 12,
           "scalp_probed_vertices": 411,
           "hair": false,
+          "category": "helmets",
           "vertices": 398
         }
       }
     }
   },
+  "rigid_mounts": {
+    "hat_field_cap": {
+      "bone": "head",
+      "male": {
+        "clearance_mm": -1.253,
+        "max_depth_mm": 1.253,
+        "mount_world_pos": [
+          0.0,
+          1.55,
+          -0.0
+        ]
+      },
+      "female": {
+        "clearance_mm": 10.738,
+        "max_depth_mm": 0.0,
+        "mount_world_pos": [
+          0.0,
+          1.55,
+          -0.0
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 11.991
+    },
+    "slugthrower": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -6.751,
+        "max_depth_mm": 6.751,
+        "mount_world_pos": [
+          -0.95308,
+          1.40112,
+          0.05585
+        ]
+      },
+      "female": {
+        "clearance_mm": -6.753,
+        "max_depth_mm": 6.753,
+        "mount_world_pos": [
+          -0.95308,
+          1.40112,
+          0.05585
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.002
+    },
+    "vibrosword": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -8.306,
+        "max_depth_mm": 8.306,
+        "mount_world_pos": [
+          -0.933,
+          1.49021,
+          0.14622
+        ]
+      },
+      "female": {
+        "clearance_mm": -8.307,
+        "max_depth_mm": 8.307,
+        "mount_world_pos": [
+          -0.933,
+          1.49021,
+          0.14622
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.001
+    },
+    "plasma_hilt": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": 58.945,
+        "max_depth_mm": 0.0,
+        "mount_world_pos": [
+          -0.933,
+          1.49021,
+          0.14622
+        ]
+      },
+      "female": {
+        "clearance_mm": 58.944,
+        "max_depth_mm": 0.0,
+        "mount_world_pos": [
+          -0.933,
+          1.49021,
+          0.14622
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.001
+    },
+    "scrapline_machete": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -8.621,
+        "max_depth_mm": 8.621,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      },
+      "female": {
+        "clearance_mm": -8.622,
+        "max_depth_mm": 8.622,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.001
+    },
+    "field_saber": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -19.018,
+        "max_depth_mm": 19.018,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      },
+      "female": {
+        "clearance_mm": -19.017,
+        "max_depth_mm": 19.017,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.001
+    },
+    "quarry_chopper": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -8.215,
+        "max_depth_mm": 8.215,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      },
+      "female": {
+        "clearance_mm": -8.216,
+        "max_depth_mm": 8.216,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.001
+    },
+    "plasma_sword": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -4.525,
+        "max_depth_mm": 4.525,
+        "mount_world_pos": [
+          -0.87898,
+          1.42687,
+          0.01134
+        ]
+      },
+      "female": {
+        "clearance_mm": -4.527,
+        "max_depth_mm": 4.527,
+        "mount_world_pos": [
+          -0.87898,
+          1.42687,
+          0.01134
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.002
+    },
+    "wpn_pistol": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -8.806,
+        "max_depth_mm": 8.806,
+        "mount_world_pos": [
+          -0.96525,
+          1.3933,
+          -0.03986
+        ]
+      },
+      "female": {
+        "clearance_mm": -8.806,
+        "max_depth_mm": 8.806,
+        "mount_world_pos": [
+          -0.96525,
+          1.3933,
+          -0.03986
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.001
+    },
+    "wpn_smg": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "female": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.0
+    },
+    "wpn_carbine": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "female": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.0
+    },
+    "lightning_carbine": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -65.902,
+        "max_depth_mm": 65.902,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "female": {
+        "clearance_mm": -65.902,
+        "max_depth_mm": 65.902,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.0
+    },
+    "wpn_assault": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -4.987,
+        "max_depth_mm": 4.987,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "female": {
+        "clearance_mm": -4.988,
+        "max_depth_mm": 4.988,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.001
+    },
+    "wpn_shotgun": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -8.644,
+        "max_depth_mm": 8.644,
+        "mount_world_pos": [
+          -1.17527,
+          1.33959,
+          -0.03814
+        ]
+      },
+      "female": {
+        "clearance_mm": -8.645,
+        "max_depth_mm": 8.645,
+        "mount_world_pos": [
+          -1.17527,
+          1.33959,
+          -0.03814
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.002
+    },
+    "wpn_sniper": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "female": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.0
+    },
+    "wpn_heavy": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -4.987,
+        "max_depth_mm": 4.987,
+        "mount_world_pos": [
+          -1.12789,
+          1.3512,
+          -0.04882
+        ]
+      },
+      "female": {
+        "clearance_mm": -4.988,
+        "max_depth_mm": 4.988,
+        "mount_world_pos": [
+          -1.12789,
+          1.3512,
+          -0.04882
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.001
+    },
+    "wpn_launcher": {
+      "bone": "hand_r",
+      "male": {
+        "clearance_mm": -64.904,
+        "max_depth_mm": 64.904,
+        "mount_world_pos": [
+          -1.12789,
+          1.3512,
+          -0.04882
+        ]
+      },
+      "female": {
+        "clearance_mm": -64.904,
+        "max_depth_mm": 64.904,
+        "mount_world_pos": [
+          -1.12789,
+          1.3512,
+          -0.04882
+        ]
+      },
+      "delta_pos_mm": 0.0,
+      "delta_clearance_mm": 0.0
+    }
+  },
   "failures": [
     "male: Hair_Afro lets the skull through at 14 points inside its own cap",
     "male: Hair_Crop lets the skull through at 10 points inside its own cap",
+    "male: boots_double_strap (boots) standoff -17.6 mm below min standoff -10.0 mm",
+    "male: boots_double_strap (boots) burial depth 17.6 mm exceeds hard limit 10.0 mm",
+    "male: boots_split_toe (boots) standoff -73.0 mm below min standoff -10.0 mm",
+    "male: boots_split_toe (boots) burial depth 73.0 mm exceeds hard limit 10.0 mm",
+    "male: gloves_plated_handwraps (gloves) standoff -41.4 mm below min standoff -20.0 mm",
+    "male: gloves_plated_handwraps (gloves) burial depth 41.4 mm exceeds hard limit 20.0 mm",
     "male: hair_banded_mohawk lets the skull through at 17 points inside its own cap",
     "male: hair_braided_crown lets the skull through at 18 points inside its own cap",
     "male: hair_cropped_buzz lets the skull through at 23 points inside its own cap",
@@ -2203,6 +2830,10 @@
     "male: trial_hair_b lets the skull through at 20 points inside its own cap",
     "male: trial_hair_c lets the skull through at 17 points inside its own cap",
     "male: trial_hair_d lets the skull through at 20 points inside its own cap",
+    "female: boots_toe_capped (boots) standoff -12.8 mm below min standoff -10.0 mm",
+    "female: boots_toe_capped (boots) burial depth 12.8 mm exceeds hard limit 10.0 mm",
+    "female: gloves_plated_handwraps (gloves) standoff -41.4 mm below min standoff -20.0 mm",
+    "female: gloves_plated_handwraps (gloves) burial depth 41.4 mm exceeds hard limit 20.0 mm",
     "female: hair_banded_mohawk lets the skull through at 15 points inside its own cap",
     "female: hair_braided_crown lets the skull through at 16 points inside its own cap",
     "female: hair_cropped_buzz lets the skull through at 19 points inside its own cap",
@@ -2225,10 +2856,13 @@
     "female: hair_textured_crop lets the skull through at 17 points inside its own cap",
     "female: hair_top_patch lets the skull through at 9 points inside its own cap",
     "female: hair_twin_pigtails lets the skull through at 19 points inside its own cap",
+    "female: legs_reinforced_denim_pants (legs) standoff -14.4 mm below min standoff -10.0 mm",
+    "female: legs_reinforced_denim_pants (legs) burial depth 14.4 mm exceeds hard limit 10.0 mm",
     "female: trial_hair_a lets the skull through at 27 points inside its own cap",
     "female: trial_hair_b lets the skull through at 17 points inside its own cap",
     "female: trial_hair_c lets the skull through at 14 points inside its own cap",
     "female: trial_hair_d lets the skull through at 22 points inside its own cap",
-    "boots_split_toe: male and female seat 69.4 mm apart (73.0 vs 3.7)"
+    "boots_split_toe: male and female seat 69.4 mm apart (73.0 vs 3.7)",
+    "rigid: hat_field_cap female mount floats 10.7 mm above scalp (male clearance -1.3 mm)"
   ]
 }

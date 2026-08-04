@@ -21,7 +21,7 @@
 //! and a `#007890` rail.
 
 use super::spec::{Metrics, Surface};
-use super::{ACTIVE, DIM, LABEL, TEXT, VALUE};
+use super::{active, dim, label, text, value};
 use successor_engine_render::ui::{ButtonStyle, UiBuilder};
 
 // ── Measured metrics ────────────────────────────────────────────────────────
@@ -45,64 +45,98 @@ pub const fn scale(cap_px: f32) -> f32 {
 // ── Measured tints ──────────────────────────────────────────────────────────
 
 /// Content well fill (dominant tone inside a frame).
-pub const WELL: [u8; 4] = [0x00, 0x38, 0x48, 210];
+#[inline]
+pub fn well() -> [u8; 4] {
+    crate::hud::faded(crate::hud::active_palette().bg_cell)
+}
+
 /// Raised band: alternating list rows and secondary blocks.
-pub const WELL_RAISED: [u8; 4] = [0x00, 0x48, 0x58, 180];
+#[inline]
+pub fn well_raised() -> [u8; 4] {
+    crate::hud::faded(crate::hud::active_palette().accent_soft)
+}
+
 /// Thin separator / border rail.
-pub const RAIL: [u8; 4] = [0x00, 0x78, 0x90, 235];
+#[inline]
+pub fn rail() -> [u8; 4] {
+    crate::hud::active_palette().hairline
+}
+
 /// Bright edge highlight.
-pub const EDGE_BRIGHT: [u8; 4] = [0x90, 0xF0, 0xF8, 220];
+#[inline]
+pub fn edge_bright() -> [u8; 4] {
+    crate::hud::active_palette().accent
+}
+
 /// Warning / gated state ink.
-pub const WARN: [u8; 4] = [0xD6, 0x8A, 0x3E, 255];
+#[inline]
+pub fn warn() -> [u8; 4] {
+    crate::hud::active_palette().accent
+}
+
 /// Denial ink.
-pub const DENY: [u8; 4] = [0xDE, 0x60, 0x54, 255];
+#[inline]
+pub fn deny() -> [u8; 4] {
+    crate::hud::active_palette().danger
+}
 
-/// Hairline used for section separators and region tops. Alias of [`RAIL`].
-pub const HAIRLINE: [u8; 4] = RAIL;
-/// Recessed content region fill. Alias of [`WELL`].
-pub const REGION: [u8; 4] = WELL;
-/// Alternating list band. Alias of [`WELL_RAISED`].
-pub const BAND: [u8; 4] = WELL_RAISED;
+/// Hairline used for section separators and region tops. Alias of [`rail`].
+#[inline]
+pub fn hairline() -> [u8; 4] {
+    rail()
+}
+
+/// Recessed content region fill. Alias of [`well`].
+#[inline]
+pub fn region_fill() -> [u8; 4] {
+    well()
+}
+
+/// Alternating list band. Alias of [`well_raised`].
+#[inline]
+pub fn band() -> [u8; 4] {
+    well_raised()
+}
+
 /// Row hover.
-pub const HOVER: [u8; 4] = [0x00, 0x5C, 0x70, 200];
-/// Row selection fill (paired with the accent rail).
-pub const SELECTED: [u8; 4] = [0x00, 0x6E, 0x86, 220];
+#[inline]
+pub fn hover() -> [u8; 4] {
+    crate::hud::faded(crate::hud::active_palette().accent_soft)
+}
 
+/// Row selection fill (paired with the accent rail).
+#[inline]
+pub fn selected() -> [u8; 4] {
+    crate::hud::faded(crate::hud::active_palette().accent_soft)
+}
 /// Primary action control.
 pub fn action_style() -> ButtonStyle {
     ButtonStyle {
         fill: [0, 0, 0, 0],
-        hover: [0x00, 0x58, 0x68, 180],
-        active: [0x00, 0xA8, 0xC8, 232],
-        edge: RAIL,
-        text: TEXT,
+        hover: hover(),
+        active: well_raised(),
+        edge: rail(),
+        text: text(),
     }
 }
 
-/// Secondary / destructive control: same footprint, quieter fill, dim ink.
 pub fn quiet_style() -> ButtonStyle {
     ButtonStyle {
         fill: [0, 0, 0, 0],
-        hover: [0x00, 0x40, 0x4C, 150],
-        active: [0x00, 0x78, 0x90, 216],
-        edge: RAIL,
-        text: DIM,
+        hover: hover(),
+        active: well_raised(),
+        edge: rail(),
+        text: dim(),
     }
 }
 
-/// Tab control. Selection is expressed by the underline in [`tabs`], so the
-/// body stays flat.
-fn tab_style(active: bool) -> ButtonStyle {
+fn tab_style(tab_active: bool) -> ButtonStyle {
     ButtonStyle {
-        fill: if active {
-            [0x00, 0x58, 0x6C, 226]
-        } else {
-            [0x00, 0x30, 0x3E, 190]
-        },
-        hover: [0x00, 0x62, 0x78, 232],
-        active: [0x00, 0x8C, 0xA8, 244],
-        edge: RAIL,
-        text: if active { TEXT } else { DIM },
+        fill: if tab_active { well_raised() } else { well() },
+        hover: hover(),
+        active: well_raised(),
+        edge: rail(),
+        text: if tab_active { text() } else { dim() },
     }
 }
 
@@ -112,7 +146,7 @@ fn tab_style(active: bool) -> ButtonStyle {
 pub fn header(ui: &mut UiBuilder, rect: [f32; 4], spec: &Surface) -> f32 {
     let [x, y, w, _] = rect;
     let metrics = spec.metrics();
-    ui.text(spec.title, x, y, metrics.heading_px, ACTIVE);
+    ui.text(spec.title, x, y, metrics.heading_px, active());
     let caption = spec.family.caption();
     let caption_w = ui.measure_text(caption, metrics.caption_px);
     let title_w = ui.measure_text(spec.title, metrics.heading_px);
@@ -123,11 +157,11 @@ pub fn header(ui: &mut UiBuilder, rect: [f32; 4], spec: &Surface) -> f32 {
             x + w - caption_w,
             y + metrics.heading_px * 7.0 - metrics.caption_px * 7.0,
             metrics.caption_px,
-            DIM,
+            dim(),
         );
     }
     let baseline = y + metrics.heading_px * 7.0 + 4.0;
-    ui.rect(x, baseline, w, 1.0, RAIL);
+    ui.rect(x, baseline, w, 1.0, rail());
     baseline + 6.0
 }
 
@@ -171,7 +205,7 @@ pub fn tabs(
             clicked = Some(index);
         }
         if is_active {
-            ui.rect(tab_x, y + TAB_H - 2.0, tab_w, 2.0, ACTIVE);
+            ui.rect(tab_x, y + TAB_H - 2.0, tab_w, 2.0, super::active());
         }
     }
     clicked
@@ -181,7 +215,7 @@ pub fn tabs(
 /// below it.
 pub fn section(ui: &mut UiBuilder, x: f32, y: f32, w: f32, label: &str, metrics: Metrics) -> f32 {
     let label_w = ui.measure_text(label, metrics.caption_px);
-    ui.text(label, x, y, metrics.caption_px, DIM);
+    ui.text(label, x, y, metrics.caption_px, dim());
     let rule_x = x + label_w + 8.0;
     if rule_x < x + w {
         ui.rect(
@@ -189,21 +223,20 @@ pub fn section(ui: &mut UiBuilder, x: f32, y: f32, w: f32, label: &str, metrics:
             y + metrics.caption_px * 3.5,
             x + w - rule_x,
             1.0,
-            RAIL,
+            rail(),
         );
     }
     y + metrics.caption_px * 7.0 + 6.0
 }
 
-/// A true content region: well fill plus one top hairline. Never a full border —
-/// the frame perimeter already encloses everything.
+/// A true content region: well fill. Never a full border — the frame perimeter
+/// already encloses everything.
 pub fn region(ui: &mut UiBuilder, rect: [f32; 4]) {
     let [x, y, w, h] = rect;
     if w <= 0.0 || h <= 0.0 {
         return;
     }
-    ui.rect(x, y, w, h, WELL);
-    ui.rect(x, y, w, 1.0, RAIL);
+    ui.rect(x, y, w, h, well());
 }
 
 /// Hairline seat for a live 3D viewer cell: marks the lane without covering
@@ -211,14 +244,14 @@ pub fn region(ui: &mut UiBuilder, rect: [f32; 4]) {
 pub fn viewer_seat(ui: &mut UiBuilder, rect: [f32; 4]) {
     let [x, y, w, h] = rect;
     if w > 0.0 && h > 0.0 {
-        ui.border(x, y, w, h, 1.0, HAIRLINE);
+        ui.border(x, y, w, h, 1.0, hairline());
     }
 }
 
 /// Horizontal value meter (vitals, concentration, progress). Track then fill;
 /// no outline.
 pub fn meter(ui: &mut UiBuilder, x: f32, y: f32, w: f32, h: f32, frac: f32, tint: [u8; 4]) {
-    ui.rect(x, y, w, h, [0x00, 0x28, 0x30, 235]);
+    ui.rect(x, y, w, h, super::slot());
     let filled = w * frac.clamp(0.0, 1.0);
     if filled > 0.0 {
         ui.rect(x, y, filled, h, tint);
@@ -262,7 +295,7 @@ pub fn text_clipped(
     let (head, cut) = clip(ui, text, px, max_w);
     let end = ui.text(head, x, y, px, rgba);
     if cut {
-        ui.text("...", end, y, px, DIM);
+        ui.text("...", end, y, px, dim());
         return end + ui.measure_text("...", px);
     }
     end
@@ -275,7 +308,7 @@ pub fn empty(ui: &mut UiBuilder, x: f32, y: f32, note: &str) {
         x,
         y,
         scale(LABEL_PX),
-        DIM,
+        dim(),
     );
 }
 
@@ -286,7 +319,7 @@ pub fn denied(ui: &mut UiBuilder, x: f32, y: f32, note: &str) {
         x,
         y,
         scale(LABEL_PX),
-        WARN,
+        warn(),
     );
 }
 
@@ -300,7 +333,7 @@ pub fn field(
     value: &str,
     metrics: Metrics,
 ) -> f32 {
-    ui.text(label, x, y + 1.0, metrics.caption_px, LABEL);
+    ui.text(label, x, y + 1.0, metrics.caption_px, super::label());
     let label_w = ui.measure_text(label, metrics.caption_px) + 10.0;
     let value_w = ui.measure_text(value, metrics.label_px);
     let available = (w - label_w).max(0.0);
@@ -309,7 +342,7 @@ pub fn field(
     } else {
         x + label_w
     };
-    text_clipped(ui, value, value_x, y, metrics.label_px, available, VALUE);
+    text_clipped(ui, value, value_x, y, metrics.label_px, available, super::value());
     y + metrics.row_h - 4.0
 }
 
@@ -381,12 +414,12 @@ impl Rows {
         let band_h = height - 1.0;
         let hovered = UiBuilder::hit(self.x, y, self.w, band_h, mouse_x, mouse_y);
         if selected {
-            ui.rect(self.x, y, self.w, band_h, SELECTED);
-            ui.rect(self.x, y, 2.0, band_h, ACTIVE);
+            ui.rect(self.x, y, self.w, band_h, super::chrome::selected());
+            ui.rect(self.x, y, 2.0, band_h, active());
         } else if hovered {
-            ui.rect(self.x, y, self.w, band_h, HOVER);
+            ui.rect(self.x, y, self.w, band_h, hover());
         } else if self.index % 2 == 1 {
-            ui.rect(self.x, y, self.w, band_h, WELL_RAISED);
+            ui.rect(self.x, y, self.w, band_h, well_raised());
         }
         self.index += 1;
         self.y += height;
@@ -487,7 +520,7 @@ impl Row {
             self.y + (self.h - px * 7.0) * 0.5,
             px,
             self.text_w(),
-            LABEL,
+            label(),
         );
     }
 
@@ -505,7 +538,7 @@ impl Row {
             top,
             px,
             text_w,
-            LABEL,
+            label(),
         );
         text_clipped(
             ui,
@@ -514,7 +547,7 @@ impl Row {
             top + px * 7.0 + 2.0,
             cpx,
             text_w,
-            DIM,
+            dim(),
         );
     }
 
@@ -548,7 +581,7 @@ impl Row {
             top,
             self.metrics.caption_px,
             self.caption_w(),
-            DIM,
+            dim(),
         );
     }
 
@@ -574,7 +607,7 @@ impl Row {
         if left <= self.x + self.metrics.gutter {
             return;
         }
-        ui.text(text, left, self.y + (self.h - px * 7.0) * 0.5, px, VALUE);
+        ui.text(text, left, self.y + (self.h - px * 7.0) * 0.5, px, value());
         self.action_right = left - 8.0;
     }
 
