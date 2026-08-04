@@ -1,8 +1,13 @@
 # Successor Current Project State
 
-Status: current implementation inventory as of 2026-08-02, after the
+Status: current implementation inventory as of 2026-08-04, after the
 2026-07-29 public-alpha release. Exact public hashes and pointers live in
 `CURRENT_DEPLOYMENT.md`.
+
+Work in progress on `integration/rust-ui-runtime-20260803` is not described
+here as shipped. That branch's state, its open defects, and the reasoning
+behind them live in `HANDOFF_SUCCESSORGAMEWORKAUG4.md`. Nothing from it is
+merged to `main` or deployed.
 
 ## What is real now
 

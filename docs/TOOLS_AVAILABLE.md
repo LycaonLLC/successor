@@ -171,3 +171,55 @@ The implementation and lower-level protocol notes live in
 `client-rust/source/platform/src/native/control.rs`. If this guide disagrees
 with the current implementation, update the guide and verification contract in
 the same change rather than adding a second control path.
+
+## Observation harnesses
+
+Single-point probing is the slowest and least reliable way to understand a
+visual or spatial defect. These two answer the whole question at once, and both
+prefer measurement over a screenshot someone has to squint at.
+
+### Character surfaces — `tools/observe/pawn_observatory.py`
+
+The character is drawn by four independent paths: the world view and the
+inventory, character and examine viewers. A body change can land correctly in
+one and wrongly in another, and one front-on shot hides it. This drives a live
+client through `successor-control` and collects the same subject from every
+surface at several angles, then lays them out side by side.
+
+```sh
+python3 tools/observe/pawn_observatory.py --port 47779 --out /tmp/obs
+```
+
+Nothing in it hardcodes a screen position. The subject is found by motion:
+disturb only it, diff the frames, and the pixels that changed are the subject.
+That survives window moves, resolution changes, and UI edits. Toggling a window
+finds the panel, spinning inside it finds the doll, and idle animation finds the
+world pawn — walking does not, because the camera follows and every pixel
+changes.
+
+### Collision — `tools/observe/collision_map.py`
+
+Walking into a wall yields one number and no shape. This rasterises the
+authority's own rule — anchor to ground-centre offset, 300 milli radius,
+`collisionBounds` always solid, the door blocker only while shut — then floods
+from outside and reports how much of each building interior a player can
+actually reach, with the door open and shut.
+
+```sh
+python3 tools/observe/collision_map.py                        # every building
+python3 tools/observe/collision_map.py --prop dustgate-home-starter
+```
+
+The flood fill is the point, not the picture: it answers "can the player get
+in" without walking anywhere. Run it before and after any collision change. A
+working door shows a large jump between shut and open; a sealed one does not
+move at all.
+
+### Debug views in the connected client
+
+- **Shift+C** — collision overlay: blocked cells, prop bounds, door blockers
+  with live open/closed state, and the player capsule.
+- **Shift+V** — free the camera. Arrows orbit, shift+arrow dollies. The shipped
+  camera is locked north-up at a fixed pitch, which cannot show which way a
+  door slides or how far it travels. It opens on the shipped view, so nothing
+  changes until it is moved.
