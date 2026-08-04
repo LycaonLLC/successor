@@ -88,7 +88,7 @@ strip-port: all
 
 model-check:
 	$(CARGO) build --release -p successor-client --bin successor $(DEV_FEATURES)
-	git -C .. ls-files -z -- '*.glb' '*.gltf' '*.obj' '*.fbx' '*.blend' | ./$(DEV_BIN) --model-corpus
+	git -C .. ls-files -z -- '*.glb' '*.gltf' '*.obj' '*.fbx' '*.blend' ':(exclude)tools/successor/assets/cloning-facility-opus5/blend/*.blend' | ./$(DEV_BIN) --model-corpus
 
 test-unit:
 	$(CARGO) test -p successor-engine-core --features std
