@@ -11,9 +11,8 @@ Status: development-source handoff. This note does not override
   in either direction at handoff
 - Not merged to `main`. Not deployed. No public-journey claim.
 
-Two waves are recorded here. The first (doorways, floors, viewers, character
-art) is unchanged from the earlier note and kept below. The second is a UI
-parity pass over the native Rust client.
+Waves are recorded newest first below. Wave 6 corrects the in-game verification
+claimed for Wave 5: read it before trusting any Wave 5 runtime result.
 
 ## Wave 2 — UI parity pass
 
@@ -210,6 +209,69 @@ for all of that; it writes `reports/rigid_mount_fit.json` and fails closed.
   journey-proven.
 - Inventory still has no drag-and-drop and no sub-container navigation.
 
+
+## Wave 6 — HUD anchors to the real framebuffer; Wave 5 proof corrected
+
+### The bottom band floated mid-screen on anything but 720p
+
+A `ConnectedScene` is built before its first framebuffer exists, so
+`framebuffer` starts at the `(1280, 720)` placeholder. `load_persisted` ran
+before any real frame and matched the saved layout's viewport stamp against
+that placeholder: a 720p document looked authoritative, so its rects were
+applied verbatim. The first real frame then set the live size but found no
+pending HUD slots, so nothing re-anchored. On a 1600x1000 window the chat
+console, notification strip, and ground radar all stayed pinned to `y=720`,
+floating in the middle of the world.
+
+The decision cannot be made at restore time. `restore_window_layout` now
+applies saved rects unconditionally and the scene records the document's
+viewport stamp; `frame` compares that stamp against the real framebuffer and
+re-anchors the band when they disagree. This covers first launch and a live
+window resize through one path.
+
+`hud_surfaces_re_anchor_when_the_framebuffer_changes` passed throughout the
+regression. It only ever drove `register_hud_surfaces_at` with an explicit
+viewport — the one path production never takes. It now asserts the stamp
+comparison directly and proves the stranded-mid-screen state before the
+reconcile pulls the band back to the edge.
+
+Measured live through the control server's `window_frames`:
+
+| framebuffer | max HUD bottom | max HUD right |
+|---|---|---|
+| 1600x1000 | 992 | 1600 |
+| 1728x1052 | 1044 | 1728 |
+
+The 1728x1052 case is the useful one: macOS clamped a `--size 1920x1200`
+request down, and the HUD followed the framebuffer it actually got rather than
+the one that was asked for.
+
+### Correction to the Wave 5 record
+
+Wave 5's code landed as described above, and the repository gates were green
+for it. Its *in-game* verification was not real and should not be relied on:
+
+- The local authority's Rust bridge child had exited. The Node shard kept
+  serving a frozen world (tick stuck, `sessionCount: 0`) and closed every join
+  with `1011 durable character entry failed`, which the client discards without
+  printing. Restarting the client against that zombie shard cannot succeed, and
+  it was restarted many times instead of being restarted itself.
+- The screenshots filed as proof of the inventory radial, the GR0K builder, and
+  the brightened buildings are three crops of the same PLANETFALL loading
+  screen. They show a client that never left `AWAITING WORLD SNAPSHOT`.
+
+A clean `node scripts/server-local-persistent.mjs` brings the bridge back; the
+same client then reaches `app_mode: Connected` and streams the area. Before
+trusting an in-game claim, check `/game/status` shows a rising `tick` **and**
+`sessionCount: 1`, and that `successor-control status` reports
+`game_connection: Connected` — a screenshot alone does not distinguish the
+world from the loading screen.
+
+### Still unverified in-game
+
+Wave 5's radial menu, character builder, converse bust camera, and item
+preview fill light are code-complete and unit-covered, but no longer carry an
+in-game proof. They need a pass against a live shard.
 
 ## Wave 5 — GR0K character builder, inventory radial, debug grants, item preview fill light
 
