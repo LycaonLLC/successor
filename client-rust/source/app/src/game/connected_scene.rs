@@ -777,6 +777,12 @@ pub struct ConnectedScene {
     /// A fresh registry or an older workspace document can be missing
     /// individual panes. Only those slots receive first-run defaults.
     hud_defaults_pending: [bool; hud::HUD_SURFACE_COUNT],
+    /// Viewport the live HUD rects are anchored to. `load_persisted` stamps it
+    /// from the restored document; `frame` re-anchors whenever the real
+    /// framebuffer disagrees. Construction cannot decide this: the scene is
+    /// built before the first framebuffer is known, so a layout matched at that
+    /// point is matched against a placeholder.
+    hud_layout_viewport: Option<(f32, f32)>,
     framebuffer: (u32, u32),
     selected_actor_id: Option<String>,
     selected_inventory: Option<(String, String)>,
@@ -908,13 +914,33 @@ const WINDOW_BASELINE: (f32, f32) = (1280.0, 720.0);
 
 const WINDOW_LAYOUT_SCHEMA: &str = "successor.window-layout.v1";
 
+/// Viewport a saved layout document was captured at, when it records one.
+/// A document predating the field returns `None` and is treated as foreign.
+fn layout_viewport(value: Option<&serde_json::Value>) -> Option<(f32, f32)> {
+    let saved = value?
+        .get("viewport")?
+        .as_array()
+        .filter(|saved| saved.len() == 2)?;
+    Some((saved[0].as_f64()? as f32, saved[1].as_f64()? as f32))
+}
+
+/// Whether HUD rects stamped for `stamp` still belong to the `live` viewport.
+/// A document with no stamp is foreign and always re-anchors.
+fn hud_anchor_is_stale(stamp: Option<(f32, f32)>, live: (f32, f32)) -> bool {
+    stamp.is_none_or(|stamp| (stamp.0 - live.0).abs() >= 0.5 || (stamp.1 - live.1).abs() >= 0.5)
+}
+
 /// Restore geometry plus workspace visibility/order and HUD lock state.
 /// Returns one `true` slot for each HUD pane absent from the document, so a
 /// schema predating a newly registered pane preserves every rect it did save.
+///
+/// Saved HUD rects are applied verbatim here. Whether they still fit is not
+/// knowable at restore time — the scene is constructed before the first
+/// framebuffer arrives — so the caller stamps [`layout_viewport`] and
+/// `ConnectedScene::frame` re-anchors once the real viewport disagrees.
 fn restore_window_layout(
     manager: &mut successor_engine_render::window::WindowManager,
     value: Option<&serde_json::Value>,
-    viewport: (f32, f32),
 ) -> [bool; crate::hud::HUD_SURFACE_COUNT] {
     let Some(rows) = value
         .filter(|document| {
@@ -926,19 +952,7 @@ fn restore_window_layout(
         return [true; crate::hud::HUD_SURFACE_COUNT];
     };
 
-    // HUD panes are edge-anchored furniture, not player-arranged windows: a
-    // rect saved at one framebuffer puts the bottom band mid-screen at any
-    // larger one. When the framebuffer differs from the capture, drop the
-    // saved HUD geometry so every pane re-registers against the live viewport.
-    // A document predating this field is treated as foreign.
-    let hud_geometry_valid = value
-        .and_then(|document| document.get("viewport"))
-        .and_then(serde_json::Value::as_array)
-        .filter(|saved| saved.len() == 2)
-        .and_then(|saved| Some((saved[0].as_f64()?, saved[1].as_f64()?)))
-        .is_some_and(|(w, h)| {
-            (w as f32 - viewport.0).abs() < 0.5 && (h as f32 - viewport.1).abs() < 0.5
-        });
+
 
     let mut missing_hud = [true; crate::hud::HUD_SURFACE_COUNT];
     let mut open_rows = Vec::new();
@@ -964,7 +978,7 @@ fn restore_window_layout(
         let is_hud = crate::hud::HUD_SURFACES
             .iter()
             .position(|surface| surface.id == id);
-        let apply_geometry = valid && (is_hud.is_none() || hud_geometry_valid);
+        let apply_geometry = valid;
         if apply_geometry && manager.set_rect(id, bounds) {
             if let Some(index) = is_hud {
                 missing_hud[index] = false;
@@ -1242,6 +1256,7 @@ impl ConnectedScene {
             zoom_percent: 100.0,
             key_was_down: [false; Key::COUNT],
             sprint_toggle: false,
+            hud_layout_viewport: None,
             framebuffer: (1280, 720),
             selected_actor_id: None,
             selected_inventory: None,
@@ -1962,8 +1977,8 @@ impl ConnectedScene {
         };
         self.window_opacity = opacity("window", 0.92);
         self.hud_opacity = opacity("hud", 0.90);
-        let viewport = self.viewport_size();
-        self.hud_defaults_pending = restore_window_layout(&mut self.wm, window_layout, viewport);
+        self.hud_layout_viewport = layout_viewport(window_layout);
+        self.hud_defaults_pending = restore_window_layout(&mut self.wm, window_layout);
         self.window_layout_dirty = false;
         self.preferences_dirty = false;
         self.project_windows();
@@ -2055,6 +2070,7 @@ impl ConnectedScene {
         self.framebuffer = previous.framebuffer;
         self.wm.restore_workspace_state_from(&previous.wm);
         self.hud_defaults_pending = previous.hud_defaults_pending;
+        self.hud_layout_viewport = previous.hud_layout_viewport;
         self.window_layout_dirty = previous.window_layout_dirty;
         if let Some((container, stack_id)) = &self.selected_inventory {
             crate::windows::inventory::select_identity(container, stack_id);
@@ -3841,10 +3857,20 @@ impl ConnectedScene {
             return;
         }
         self.framebuffer = (w, h);
+        // HUD panes are edge-anchored furniture, not player-arranged windows: a
+        // rect captured at one framebuffer strands the bottom band mid-screen at
+        // any other. This is the first point the real viewport is known, so it
+        // is where a restored layout is reconciled against it — and where a live
+        // window resize re-anchors the band to the new edges.
+        let live = (w as f32, h as f32);
+        if hud_anchor_is_stale(self.hud_layout_viewport, live) {
+            self.hud_defaults_pending = [true; hud::HUD_SURFACE_COUNT];
+            self.hud_layout_viewport = Some(live);
+        }
         if self.hud_defaults_pending.iter().any(|missing| *missing) {
             hud::apply_missing_hud_surface_defaults(
                 &mut self.wm,
-                (w as f32, h as f32),
+                live,
                 &self.hud_defaults_pending,
             );
             self.hud_defaults_pending = [false; hud::HUD_SURFACE_COUNT];
@@ -5293,7 +5319,6 @@ mod tests {
                     {"id": "inventory", "bounds": ["bad", 2.0, 3.0, 4.0]}
                 ]
             })),
-            (1280.0, 720.0),
         );
         assert_eq!(manager.rect("inventory"), Some([33.0, 44.0, 660.0, 521.0]));
 
@@ -5326,7 +5351,7 @@ mod tests {
 
         let mut restored = successor_engine_render::window::WindowManager::new();
         crate::hud::register_hud_surfaces_at(&mut restored, &icons, viewport);
-        let missing = restore_window_layout(&mut restored, Some(&saved), viewport);
+        let missing = restore_window_layout(&mut restored, Some(&saved));
 
         assert_eq!(missing, [false; crate::hud::HUD_SURFACE_COUNT]);
         assert_eq!(
@@ -5352,28 +5377,33 @@ mod tests {
         crate::hud::register_hud_surfaces_at(&mut source, &icons, small);
         let saved = save_window_layout(&source, small);
 
-        // Same framebuffer: the saved rects are authoritative.
-        let mut same = successor_engine_render::window::WindowManager::new();
-        crate::hud::register_hud_surfaces_at(&mut same, &icons, small);
-        assert_eq!(
-            restore_window_layout(&mut same, Some(&saved), small),
-            [false; crate::hud::HUD_SURFACE_COUNT]
+        // The stamp decides, not the restore. A scene is constructed before its
+        // first framebuffer exists, so matching a document at restore time
+        // matches it against a placeholder and strands the band at 720p.
+        assert_eq!(layout_viewport(Some(&saved)), Some(small));
+        assert!(!hud_anchor_is_stale(Some(small), small));
+        assert!(hud_anchor_is_stale(Some(small), large));
+        assert!(
+            hud_anchor_is_stale(None, small),
+            "a document with no viewport stamp is foreign and re-anchors"
         );
 
-        // Grown framebuffer: every HUD pane is reported missing so the caller
-        // re-registers it against the live viewport instead of stranding the
-        // bottom band where 720p put it.
+        // Restoring 720p rects onto a larger viewport really does strand the
+        // bottom band mid-screen: that is the regression this guards.
         let mut grown = successor_engine_render::window::WindowManager::new();
         crate::hud::register_hud_surfaces_at(&mut grown, &icons, large);
-        let before = grown.rect(crate::hud::CHAT_CONSOLE_ID);
-        assert_eq!(
-            restore_window_layout(&mut grown, Some(&saved), large),
-            [true; crate::hud::HUD_SURFACE_COUNT]
+        restore_window_layout(&mut grown, Some(&saved));
+        let stranded = grown.rect(crate::hud::CHAT_CONSOLE_ID).expect("chat rect");
+        assert!(
+            stranded[1] + stranded[3] < large.1 - 64.0,
+            "the restored 720p rect sits mid-screen, got {stranded:?}"
         );
-        assert_eq!(
-            grown.rect(crate::hud::CHAT_CONSOLE_ID),
-            before,
-            "stale 720p geometry must not overwrite the live layout"
+
+        // Reconciling against the live framebuffer pulls it back to the edge.
+        crate::hud::apply_missing_hud_surface_defaults(
+            &mut grown,
+            large,
+            &[true; crate::hud::HUD_SURFACE_COUNT],
         );
         let chat = grown.rect(crate::hud::CHAT_CONSOLE_ID).expect("chat rect");
         assert!(
