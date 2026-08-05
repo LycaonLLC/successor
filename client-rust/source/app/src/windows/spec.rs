@@ -590,8 +590,11 @@ pub const SURFACES: [Surface; 21] = [
         header: true,
         dock: false,
         hotkey: "",
-        size: size(0.28, 360.0, 460.0, 0.60, 400.0, 600.0),
-        min: (340.0, 340.0),
+        // A resource row carries a name, a class caption, a percentage, and
+        // three actions. At 360 the actions and readout take everything and the
+        // name clips to `VEXHOLL...`, so the default opens at the wide end.
+        size: size(0.38, 420.0, 470.0, 0.60, 400.0, 600.0),
+        min: (380.0, 340.0),
         anchor: (0.0, 0.18),
     },
     Surface {

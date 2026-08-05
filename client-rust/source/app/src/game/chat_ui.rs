@@ -54,8 +54,8 @@ pub fn draw_chat_pane(
         let tab_x = x + 5.0 + index as f32 * tab_w;
         let active = client.active_view == view;
         let tint = if active { ink } else { dim };
-        let tw = ui.measure_text(label, 1.45);
-        ui.text(label, tab_x + (tab_w - tw) * 0.5, y + 7.0, 1.45, tint);
+        let tw = ui.measure_text(label, 1.6);
+        ui.text(label, tab_x + (tab_w - tw) * 0.5, y + 6.0, 1.6, tint);
         if active {
             ui.rect(tab_x + 3.0, y + 25.0, tab_w - 6.0, 2.0, accent);
         }
@@ -64,10 +64,14 @@ pub fn draw_chat_pane(
         }
     }
 
-    let px = 1.4;
-    let line_h = 16.0;
+    // Chat is read at a glance mid-fight and sits over bright terrain, so it
+    // runs a step above the window body face. `line_h` moves with `px` - leaving
+    // it at 16 would set larger glyphs in the same leading and close the gaps
+    // between lines.
+    let px = 1.6;
+    let line_h = 18.0;
     let padding = 6.0;
-    let input_h = 24.0;
+    let input_h = 27.0;
     let input_y = y + h - input_h - padding;
     let channel_w = 92.0;
     let mut channel_style = crate::hud::button_style();
@@ -149,7 +153,7 @@ pub fn draw_chat_pane(
             | ChatConnectionState::Degraded
             | ChatConnectionState::Exhausted => "CHAT DEGRADED",
         };
-        ui.text(status, x + padding + 10.0, line_y, 1.25, dim);
+        ui.text(status, x + padding + 10.0, line_y, 1.45, dim);
     }
 }
 

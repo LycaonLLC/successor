@@ -77,11 +77,11 @@ pub fn survey(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
             match rich {
                 Some((rx, ry, _)) => {
                     let spawn_name = result.map(|r| r.spawn_name.as_str()).unwrap_or("UNKNOWN");
-                    let caption = format!("PEAK AT ({rx:.0}, {ry:.0}) - {spawn_name}");
+                    let caption = format!("{spawn_name} - PEAK {rx:.0}, {ry:.0}");
                     row.label_caption(ui, &family.label, &caption);
                 }
                 None => {
-                    row.label_caption(ui, &family.label, "UNSCANNED - TAKE SAMPLE");
+                    row.label_caption(ui, &family.label, "UNSCANNED");
                 }
             }
 

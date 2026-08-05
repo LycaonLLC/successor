@@ -11,6 +11,7 @@
 #   - cargo machete (no unused deps)
 #   - cargo test -p successor-sim
 #   - python3 tools/hygiene/drawable_glyphs.py (client literals rasterize)
+#   - python3 tools/successor/assets/fix_glb_pbr.py --check (no metal-black GLBs)
 #   - node tools/codegen/commands.mjs --check
 #   - pnpm --dir client-3d build
 #   - pnpm --dir server build
@@ -103,6 +104,8 @@ if [[ "$SCOPE" == "all" || "$SCOPE" == "rust" ]]; then
                cargo test -p successor-sim
     run_step   "drawable glyphs (client literals rasterize)" \
                python3 tools/hygiene/drawable_glyphs.py
+    run_step   "glb pbr factors (no metal-black materials)" \
+               python3 tools/successor/assets/fix_glb_pbr.py --check client-3d/public/assets/world-items
   fi
   echo
 fi
