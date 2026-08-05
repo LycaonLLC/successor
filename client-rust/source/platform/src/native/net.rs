@@ -61,9 +61,31 @@ pub fn ws_poll(handle: &mut WsHandle, out_buf: &mut Vec<u8>) -> WsEvent {
             out_buf.extend_from_slice(txt.as_bytes());
             WsEvent::Frame(txt.len())
         }
-        Ok(Message::Close(_)) => WsEvent::Closed,
+        // A server-sent Close carries the code and reason that say WHY the
+        // shard hung up (e.g. 1011 "durable character entry failed"). Dropping
+        // it leaves only "reconnect 1/5" and hides an authority-side refusal.
+        Ok(Message::Close(frame)) => {
+            match frame {
+                Some(frame) => eprintln!("ws closed by peer: code={} reason={}", frame.code, frame.reason),
+                None => eprintln!("ws closed by peer: no close frame"),
+            }
+            WsEvent::Closed
+        }
         Ok(Message::Ping(_)) => {
-            // tungstenite handles responder automatically, return None to continue
+            // tungstenite QUEUES the Pong; it only leaves the socket on the next
+            // write or flush. An idle client never writes, so without this flush
+            // the reply is never sent and Colyseus terminates the connection on
+            // its liveness timeout -- an abrupt reset with no close frame, which
+            // the client then reports only as "reconnect 1/5". A client that was
+            // being driven kept the socket alive purely because its outbound
+            // commands flushed the pong as a side effect.
+            if let Err(error) = handle.socket.flush() {
+                if !matches!(&error, tungstenite::Error::Io(io) if io.kind() == std::io::ErrorKind::WouldBlock)
+                {
+                    eprintln!("ws pong flush failed: {error}");
+                    return WsEvent::Error;
+                }
+            }
             WsEvent::None
         }
         Ok(Message::Pong(_)) => WsEvent::None,
@@ -72,6 +94,13 @@ pub fn ws_poll(handle: &mut WsHandle, out_buf: &mut Vec<u8>) -> WsEvent {
             WsEvent::None
         }
         Err(tungstenite::Error::ConnectionClosed) => WsEvent::Closed,
-        Err(_) => WsEvent::Error,
+        // `WsEvent` is a `Copy` enum shared with the wasm backend, so the cause
+        // cannot ride along with it. Print it here rather than discard it: a
+        // silent drop reports only "reconnect 1/5" and hides why the transport
+        // died, which is indistinguishable from the authority refusing the join.
+        Err(error) => {
+            eprintln!("ws transport error: {error}");
+            WsEvent::Error
+        }
     }
 }

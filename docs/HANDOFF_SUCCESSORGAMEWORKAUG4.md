@@ -210,6 +210,47 @@ for all of that; it writes `reports/rigid_mount_fit.json` and fails closed.
 - Inventory still has no drag-and-drop and no sub-container navigation.
 
 
+## Wave 7 — the native client could not hold an idle session
+
+An idle native client was disconnected within the Colyseus liveness window,
+every time. It only stayed connected while something was actively driving it,
+which is why the fault kept looking intermittent: an agent journey sending
+control input kept the socket alive as a side effect, and a client left alone
+for a few seconds died.
+
+`native/net.rs` handled a server Ping with a bare `WsEvent::None` and the
+comment "tungstenite handles responder automatically". Tungstenite *queues* the
+Pong; it only reaches the socket on the next write or flush. Outbound commands
+flushed it incidentally, so a moving player survived and a standing one did
+not. Colyseus then terminated the connection for missed liveness — an abrupt
+reset with no close frame. `ws_poll` now flushes after a Ping, treating a
+`WouldBlock` as normal backpressure and any other error as a transport failure.
+
+Two diagnostics that hid this are also fixed. Both dropped the cause on the
+floor and reported only `reconnect 1/5`:
+
+- a server Close frame's code and reason are now printed (that is how
+  `1011 durable character entry failed` becomes visible);
+- the tungstenite error behind `WsEvent::Error` is now printed.
+
+With those in place the failure reads directly:
+
+    ws transport error: IO error: Broken pipe (os error 32)
+    ws transport error: WebSocket protocol error: Connection reset without closing handshake
+
+Verified: idle client held `game_connection: Connected` with the authority
+reporting `sessionCount: 1` across 89 seconds and ~2,250 ticks, having
+previously dropped within seconds of going idle.
+
+### Known open, found here
+
+`main.rs` prints `reconnect N/5` but never re-dials. The session FSM moves to
+`Connecting` and the drain loop breaks, then the next frame polls the same dead
+socket and counts another attempt, so five "attempts" are five polls of one
+dead socket and the client then fails permanently. It matters less now that the
+socket is not dying on its own, but a genuine server-side drop is still fatal
+rather than recoverable.
+
 ## Wave 6 — HUD anchors to the real framebuffer; Wave 5 proof corrected
 
 ### The bottom band floated mid-screen on anything but 720p
