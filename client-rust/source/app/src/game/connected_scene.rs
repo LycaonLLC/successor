@@ -1322,6 +1322,13 @@ impl ConnectedScene {
         }
         self.project_windows();
     }
+    /// Apply a targeted room message - the per-player results of gameplay
+    /// commands, which arrive beside the world packet stream rather than in it.
+    pub fn apply_room_message(&mut self, msg_type: &str, payload: &serde_json::Value) {
+        self.store.apply_room_message(msg_type, payload);
+        self.project_windows();
+    }
+
     pub fn apply_server_packet(&mut self, packet: GameServerPacket) {
         match packet {
             GameServerPacket::Snapshot {
@@ -1802,6 +1809,25 @@ impl ConnectedScene {
                 bad: false,
                 until_ms: successor_platform::now_ms() as u64 + 2_000,
             });
+        // A refused command is the only feedback the player gets that the
+        // press did something. The reason code is rendered as-is rather than
+        // through a lookup table: the authority owns 156 of them and any table
+        // here would silently go stale as it adds more.
+        if let Some(rejection) = self.store.command_rejection.take() {
+            let reason = rejection
+                .get("reasonCode")
+                .and_then(|v| v.as_str())
+                .unwrap_or("refused");
+            let mut text = String::with_capacity(reason.len() + 8);
+            for ch in reason.chars() {
+                text.push(if ch == '_' { ' ' } else { ch.to_ascii_uppercase() });
+            }
+            self.hud_state.banner = Some(hud::BannerHud {
+                text,
+                bad: true,
+                until_ms: successor_platform::now_ms() as u64 + 3_000,
+            });
+        }
         let dialogue_floor = self.last_dialogue_tick;
         let mut received_dialogue = false;
         for delivery in self

@@ -2202,6 +2202,9 @@ mod connected {
                             }
                             scene.apply_server_packet(packet);
                         }
+                        SessionOut::Emit(SessionEvent::Room { msg_type, payload }) => {
+                            scene.apply_room_message(&msg_type, &payload);
+                        }
                         SessionOut::Emit(SessionEvent::Error(m)) => eprintln!("session error: {m}"),
                         SessionOut::Emit(SessionEvent::Closed) => eprintln!("session closed"),
                         SessionOut::Emit(SessionEvent::ReconnectAttempt {

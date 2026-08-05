@@ -9,6 +9,12 @@ use serde_json::Value;
 pub enum SessionEvent {
     Hello(GameHello),
     Packet(GameServerPacket),
+    /// A targeted room message that is not the world packet stream:
+    /// `surveyResult`, `craftSession`, `spliceSession`, `tradeSession`,
+    /// `genomeScan`, `duelOutcome`, `commandRejected`. These carry the
+    /// per-player results of gameplay commands and were previously dropped,
+    /// which left every one of those surfaces permanently empty.
+    Room { msg_type: String, payload: serde_json::Value },
     Error(String),
     Closed,
     ReconnectAttempt { attempt: u32, max_attempts: u32 },
@@ -150,6 +156,11 @@ impl Session {
                                         ))));
                                     }
                                 }
+                            } else {
+                                outs.push(SessionOut::Emit(SessionEvent::Room {
+                                    msg_type: msg_type.to_string(),
+                                    payload,
+                                }));
                             }
                         }
                         Ok(colyseus::InboundFrame::Error { code, message }) => {

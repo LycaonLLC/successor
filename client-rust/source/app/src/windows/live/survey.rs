@@ -41,7 +41,6 @@ pub fn survey(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
             let result = model.survey.result_for(&family.family);
             let rich = result.and_then(|r| r.richest());
             let peak_milli = rich.map(|(_, _, m)| m).unwrap_or(0);
-            let frac = (peak_milli as f32 / 1000.0).clamp(0.0, 1.0);
 
             let height = pane.metrics.row_h + 18.0;
             let Some(mut row) = rows.next_tall(ui, height) else {
@@ -83,14 +82,6 @@ pub fn survey(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                 None => {
                     row.label_caption(ui, &family.label, "UNSCANNED");
                 }
-            }
-
-            // Concentration Meter Bar (heart of the tool)
-            let meter_x = row.x + pane.metrics.gutter;
-            let meter_w = (row.text_w() - pane.metrics.gutter).max(0.0);
-            let meter_y = row.y + row.h - 6.0;
-            if meter_w > 0.0 {
-                chrome::meter(ui, meter_x, meter_y, meter_w, 4.0, frac, accent());
             }
         }
 

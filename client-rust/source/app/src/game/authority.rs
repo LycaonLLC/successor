@@ -76,6 +76,9 @@ pub struct AuthorityStore {
     pub splice_session: Option<Value>,
     pub trade_session: Option<Value>,
     pub survey_results: Vec<Value>,
+    /// Latest command the authority refused, with its reason code. Cleared as
+    /// soon as the HUD has shown it.
+    pub command_rejection: Option<Value>,
     pub genome_scans: Vec<Value>,
     pub duel_outcomes: Vec<Value>,
     pub bug_report_result: Option<Value>,
@@ -696,6 +699,10 @@ impl AuthorityStore {
                     self.survey_results.remove(0);
                 }
             }
+            // The authority refused a command this client sent. Kept as the
+            // latest one only: a refusal is about the press the player just
+            // made, and a queue of them would surface stale reasons.
+            "commandRejected" => self.command_rejection = Some(payload.clone()),
             "genomeScan" => {
                 self.genome_scans.push(payload.clone());
                 if self.genome_scans.len() > 128 {

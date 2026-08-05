@@ -2161,6 +2161,15 @@ export class GameShard {
     }
   }
 
+  /**
+   * Record a refused command, and tell the actor that issued it.
+   *
+   * The ring behind `/game/status` is for operators. Without the message the
+   * player gets nothing at all: they press SURVEY with no survey tool, the
+   * authority answers `target_unavailable`, and the pane sits there looking
+   * broken. Every gated system - survey, craft, bank, guild, group - reads as
+   * unimplemented until the refusal is delivered.
+   */
   private recordCommandRejection(actorId: string, command: ClientCommand, reasonCode: string | undefined, tick = this.tick): void {
     const safeTick = Number.isFinite(tick) ? Math.trunc(tick) : this.tick;
     const entry: GameShardRecentRejection = {
@@ -2172,10 +2181,26 @@ export class GameShard {
     if (this.recentRejections.length < recentRejectionCapacity) {
       this.recentRejections.push(entry);
       this.recentRejectionWriteIndex = this.recentRejections.length % recentRejectionCapacity;
-      return;
+    } else {
+      this.recentRejections[this.recentRejectionWriteIndex] = entry;
+      this.recentRejectionWriteIndex = (this.recentRejectionWriteIndex + 1) % recentRejectionCapacity;
     }
-    this.recentRejections[this.recentRejectionWriteIndex] = entry;
-    this.recentRejectionWriteIndex = (this.recentRejectionWriteIndex + 1) % recentRejectionCapacity;
+    this.notifyCommandRejected(entry);
+  }
+
+  /** Deliver a refusal to every session driving the actor that caused it. */
+  private notifyCommandRejected(entry: GameShardRecentRejection): void {
+    // Movement is refused constantly by the ingress budget and is not a player
+    // decision; surfacing it would bury every refusal that is one.
+    if (entry.kind === "SetMoveIntent") return;
+    for (const session of this.sessions.values()) {
+      if (session.actorId !== entry.actorId) continue;
+      this.sendSessionMessage(session, "commandRejected", {
+        kind: entry.kind,
+        reasonCode: entry.reasonCode,
+        tick: entry.tick,
+      });
+    }
   }
 
   private recentRejectionsForStatus(): GameShardRecentRejection[] {
