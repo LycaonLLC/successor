@@ -239,18 +239,20 @@ pub fn region(ui: &mut UiBuilder, rect: [f32; 4]) {
     ui.rect(x, y, w, h, well());
 }
 
-/// Unlit backdrop for a composited 3D viewer cell.
-pub const VIEWER_SEAT: [u8; 4] = [3, 7, 8, 245];
+/// Faint tint behind a composited 3D viewer cell.
+///
+/// Owner ruling 2026-08-05: the doll reads against the pane's own translucent
+/// fill, so the seat does not paint an opaque slab. An alpha-245 near-black
+/// here punched a hard black rectangle through an otherwise see-through
+/// window wherever a viewer cell sat.
+pub const VIEWER_SEAT: [u8; 4] = [3, 7, 8, 28];
 
 /// Seat for a live 3D viewer cell.
 pub fn viewer_seat(ui: &mut UiBuilder, rect: [f32; 4]) {
     let [x, y, w, h] = rect;
     if w > 0.0 && h > 0.0 {
-        // The seat, not the frame, is what has to go dark. A composited model
-        // needs an unlit backdrop to read against, but darkening the whole
-        // pane for it turns an empty examine or converse window into a black
-        // rectangle. This fills only the viewer cell; the model composites
-        // over it in the band that follows.
+        // The cell is marked by its border, not by blacking it out; the model
+        // composites over whatever the pane already shows.
         ui.rect(x, y, w, h, VIEWER_SEAT);
         ui.border(x, y, w, h, 1.0, hairline());
     }

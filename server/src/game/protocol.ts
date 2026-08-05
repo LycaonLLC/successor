@@ -63,6 +63,7 @@ const CLIENT_COMMAND_KEYS = [
   "SetEquippedClothing",
   "DebugGiveItem",
   "DebugGrantSkillBoxes",
+  "DebugGiveCredits",
   "EnterTransition",
   "UseConsumable",
   "RefillAmmo",
@@ -277,6 +278,13 @@ export const rawClientCommandSchema = z.union([
   z.object({
     DebugGrantSkillBoxes: z.object({
       skill_box_ids: z.array(z.string().min(1).max(96)).min(1).max(64),
+    }),
+  }),
+  z.object({
+    // Signed: a tester drains a wallet as often as they fill one. Bounded well
+    // inside i64 so the authority's saturating add can never be reached.
+    DebugGiveCredits: z.object({
+      amount: z.number().int().min(-1_000_000_000).max(1_000_000_000),
     }),
   }),
   z.object({

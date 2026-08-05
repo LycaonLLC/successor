@@ -99,6 +99,7 @@ mod actors;
 mod ai;
 mod combat_roll;
 mod commands;
+pub mod debug_catalog;
 use self::combat_roll::*;
 use self::commands::normalize_command_key;
 mod camps;

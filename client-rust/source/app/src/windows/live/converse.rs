@@ -7,8 +7,31 @@ use successor_net::ClientCommand;
 pub fn converse(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<WindowAction>) {
     let metrics = ctx.metrics();
     let [x, y, w, h] = ctx.rect;
+    // The debug builder owns the whole pane once opened - it is a page of
+    // choices, not a dialogue reply, and squeezing it beside the portrait makes
+    // it unusable. It is also reachable with no dialogue target: GR0K is a
+    // scripted player rather than a trainer, so the authority never names him a
+    // converse subject, and a debug tool you can only open by first finding a
+    // trainer is a debug tool nobody reaches.
+    #[cfg(feature = "dev-tools")]
+    if super::builder::with_state(|state| state.opened) {
+        if !super::builder::draw(ui, ctx.rect, metrics, out) {
+            super::builder::with_state(|state| state.opened = false);
+        }
+        return;
+    }
     let Some(npc) = &model.converse.npc else {
         chrome::empty(ui, x, y, "NO DIALOGUE TARGET");
+        #[cfg(feature = "dev-tools")]
+        {
+            let mut rows = Rows::new([x, y + metrics.row_h, w, h - metrics.row_h], metrics);
+            if let Some(mut row) = rows.next(ui) {
+                row.label_tinted(ui, "CHARACTER BUILDER", crate::windows::accent());
+                if row.clicked(ui) {
+                    super::builder::with_state(|state| state.opened = true);
+                }
+            }
+        }
         return;
     };
     let preview = converse_preview_rect(ctx.rect);
@@ -79,6 +102,7 @@ pub fn converse(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec
         [column_x, replies_y, column_w, (y + h - replies_y).max(0.0)],
         metrics,
     );
+
     let mut number = 1usize;
     for (goal_id, label) in &model.converse.career_goals {
         let active = model.converse.career_goal_id.as_deref() == Some(goal_id.as_str());

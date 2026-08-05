@@ -442,6 +442,11 @@ pub enum ClientCommand {
     DebugGrantSkillBoxes {
         skill_box_ids: Vec<String>,
     },
+    /// Debug-only wallet grant. Negative amounts subtract and clamp at zero
+    /// rather than wrapping, so a tester can drain a wallet as well as fill it.
+    DebugGiveCredits {
+        amount: i64,
+    },
     GroupInvite {
         target_actor_id: String,
     },
@@ -712,6 +717,7 @@ impl ClientCommand {
             Self::ConfirmTrade { .. } => 66,
             Self::DebugGiveItem { .. } => 38,
             Self::DebugGrantSkillBoxes { .. } => 39,
+            Self::DebugGiveCredits { .. } => 98,
             Self::GroupInvite { .. } => 57,
             Self::GroupAccept {} => 58,
             Self::GroupDecline {} => 59,
@@ -768,7 +774,9 @@ impl ClientCommand {
     pub const fn is_debug_only(&self) -> bool {
         matches!(
             self,
-            Self::DebugGiveItem { .. } | Self::DebugGrantSkillBoxes { .. }
+            Self::DebugGiveItem { .. }
+                | Self::DebugGrantSkillBoxes { .. }
+                | Self::DebugGiveCredits { .. }
         )
     }
     pub fn write_to(&self, w: &mut StateWriter) {
@@ -1232,6 +1240,9 @@ impl ClientCommand {
             Self::GroupInvite { target_actor_id } => {
                 w.write_u32(self.wire_tag());
                 write_string(w, target_actor_id);
+            }
+            Self::DebugGiveCredits { amount } => {
+                w.write_u32(self.wire_tag()).write_i64(*amount);
             }
             Self::GroupAccept {} => {
                 w.write_u32(self.wire_tag());

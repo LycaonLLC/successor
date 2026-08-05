@@ -501,6 +501,9 @@ impl SliceAuthorityState {
             ClientCommand::DebugGrantSkillBoxes { skill_box_ids } => {
                 self.apply_debug_grant_skill_boxes(config, skill_box_ids)
             }
+            ClientCommand::DebugGiveCredits { amount } => {
+                self.apply_debug_give_credits(config, *amount)
+            }
             ClientCommand::GroupInvite { target_actor_id } => {
                 self.apply_group_invite(config, target_actor_id)
             }
@@ -830,6 +833,32 @@ impl SliceAuthorityState {
             &actor.professions,
             &actor.capability_grants,
         );
+        Ok(())
+    }
+
+    /// Debug-only wallet adjustment.
+    ///
+    /// Signed on purpose: a tester needs to prove the empty-wallet paths as
+    /// often as the rich ones, and the only other way to spend a debug balance
+    /// down is to find something to buy. Both directions saturate, so no amount
+    /// can wrap the balance.
+    pub(super) fn apply_debug_give_credits(
+        &mut self,
+        config: &SliceAuthorityConfig,
+        amount: i64,
+    ) -> Result<(), AuthorityRejectReason> {
+        let actor = self
+            .runtime
+            .durable
+            .actors
+            .get_mut(&config.player_actor_id)
+            .ok_or(AuthorityRejectReason::UnknownActor)?;
+        if amount >= 0 {
+            actor.professions.add_credits(amount.unsigned_abs());
+        } else {
+            let drained = actor.professions.credits.saturating_sub(amount.unsigned_abs());
+            actor.professions.set_credits(Some(drained));
+        }
         Ok(())
     }
 

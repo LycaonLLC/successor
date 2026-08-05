@@ -1340,7 +1340,7 @@ pub fn draw(
                     out.push(WindowAction::Command(command));
                 }
                 let [drop_x, drop_y, drop_w, drop_h] = buttons[2];
-                if ui.button(drop_x, drop_y, drop_w, drop_h, "DROP", button) {
+                if ui.button(drop_x, drop_y, drop_w, drop_h, "DISCARD", button) {
                     out.push(WindowAction::Command(
                         successor_net::ClientCommand::DiscardStack {
                             container: row.container.clone(),

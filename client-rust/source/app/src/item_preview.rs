@@ -110,9 +110,9 @@ impl ItemPreviewRenderer {
                 Some((item_id, path))
             })
             .collect();
-        let preview_light = world.spawn();
+        let key_light = world.spawn();
         world.set_component(
-            preview_light,
+            key_light,
             Transform {
                 pos: vec3(1.8, 2.2, 2.4),
                 rot: Quat::IDENTITY,
@@ -120,11 +120,28 @@ impl ItemPreviewRenderer {
             },
         );
         world.set_component(
-            preview_light,
+            key_light,
             PointLight {
                 color: [1.0, 0.94, 0.84],
-                intensity: 10.0,
-                radius: 8.0,
+                intensity: 12.0,
+                radius: 12.0,
+            },
+        );
+        let fill_light = world.spawn();
+        world.set_component(
+            fill_light,
+            Transform {
+                pos: vec3(-1.8, -1.2, -1.8),
+                rot: Quat::IDENTITY,
+                scale: Vec3::ONE,
+            },
+        );
+        world.set_component(
+            fill_light,
+            PointLight {
+                color: [0.72, 0.85, 0.96],
+                intensity: 6.0,
+                radius: 12.0,
             },
         );
         let mut lanes = Vec::with_capacity(LANE_COUNT);

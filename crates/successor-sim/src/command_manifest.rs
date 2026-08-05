@@ -1160,6 +1160,16 @@ command_specs! {
         args: &[repeated_id_arg("skill_box_ids", true, "skill_box_id")],
         reason_codes: REASONS_DEBUG,
     },
+    rust DebugGiveCredits {
+        verb: "debug-give-credits",
+        aliases: EMPTY,
+        doc: "Debug-only wallet adjustment gated by GAME_DEBUG_AUTHORITY_COMMANDS. Negative amounts drain and clamp at zero.",
+        budget_class: "authority-debug",
+        debug_gated: true,
+        durable_intent: None,
+        args: &[int_arg("amount", true)],
+        reason_codes: REASONS_DEBUG,
+    },
     rust EnterTransition {
         verb: "enter-transition",
         aliases: &["transition"],
@@ -2246,6 +2256,7 @@ pub fn client_command_kind_for_manifest(command: &ClientCommand) -> &'static str
         ClientCommand::SetEquippedClothing { .. } => "SetEquippedClothing",
         ClientCommand::DebugGiveItem { .. } => "DebugGiveItem",
         ClientCommand::DebugGrantSkillBoxes { .. } => "DebugGrantSkillBoxes",
+        ClientCommand::DebugGiveCredits { .. } => "DebugGiveCredits",
         ClientCommand::EnterTransition { .. } => "EnterTransition",
         ClientCommand::UseConsumable { .. } => "UseConsumable",
         ClientCommand::RefillAmmo { .. } => "RefillAmmo",
@@ -2393,9 +2404,9 @@ mod tests {
     fn command_manifest_golden_shape_covers_sp0_keystones() {
         let manifest = command_manifest();
         assert_eq!(manifest.schema, COMMAND_MANIFEST_SCHEMA);
-        assert_eq!(manifest.command_count, 117);
-        assert_eq!(manifest.rust_command_count, 114);
-        assert_eq!(manifest.debug_gated_count, 2);
+        assert_eq!(manifest.command_count, 118);
+        assert_eq!(manifest.rust_command_count, 115);
+        assert_eq!(manifest.debug_gated_count, 3);
 
         let cancel = command("CancelAbilityQueue");
         assert_eq!(cancel.verb, "cancel-queue");
@@ -2433,7 +2444,7 @@ mod tests {
         }
         assert_eq!(
             reflected.len(),
-            114,
+            115,
             "sample_rust_client_commands must cover every stable ClientCommand variant"
         );
         let manifest_kinds = COMMANDS
@@ -2590,6 +2601,7 @@ mod tests {
             ClientCommand::DebugGrantSkillBoxes {
                 skill_box_ids: vec!["marksman_novice".to_owned()],
             },
+            ClientCommand::DebugGiveCredits { amount: 25_000 },
             ClientCommand::EnterTransition {
                 transition_id: "door-a".to_owned(),
             },

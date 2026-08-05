@@ -391,7 +391,7 @@ pub(super) fn is_creator_clothing_item_id(item_id: u32) -> bool {
     creator_clothing_item_key(item_id).is_some()
 }
 
-pub(super) fn inventory_item_name(item_id: u32) -> Option<&'static str> {
+pub(crate) fn inventory_item_name(item_id: u32) -> Option<&'static str> {
     if is_creator_clothing_item_id(item_id) {
         return creator_clothing_item_key(item_id);
     }

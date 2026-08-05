@@ -255,7 +255,7 @@ impl InventoryRadialAction {
             Self::Equip => "EQUIP",
             Self::Unequip => "UNEQUIP",
             Self::Examine => "EXAMINE",
-            Self::Drop => "DROP",
+            Self::Drop => "DISCARD",
             Self::Split => "SPLIT",
             Self::Splice => "SPLICE",
         }
@@ -1584,7 +1584,8 @@ impl ConnectedScene {
             .filter_map(|(id, actor)| {
                 let distance =
                     ((actor.x - player_cell.0).powi(2) + (actor.y - player_cell.1).powi(2)).sqrt();
-                (distance <= 2.5).then_some(TrainerView {
+                let in_range = distance <= 2.5;
+                (distance <= 16.0).then_some(TrainerView {
                     actor_id: id.clone(),
                     name: if actor.display_name.is_empty() {
                         actor.label.clone()
@@ -1597,7 +1598,7 @@ impl ConnectedScene {
                         .and_then(|role| role.strip_prefix("profession_trainer:"))
                         .unwrap_or("")
                         .to_string(),
-                    in_range: true,
+                    in_range,
                 })
             })
             .next();
@@ -2863,6 +2864,27 @@ impl ConnectedScene {
         // reads false and the click walks a move intent out from under the
         // open window - which then clears the very selection the player was
         // about to act on.
+        //
+        // One press IS window content and still has to be resolved here: the
+        // right-click that opens an inventory card's object radial. The cards
+        // only exist inside the inventory window, so leaving this below the
+        // swallow made the radial unreachable - every right-press over the
+        // grid returned early as "belongs to the panel" and no panel code
+        // could see the button (the widget response carries left-click only).
+        if right_pressed && !left && !captured {
+            if let Some((container, stack_id, (anchor_x, anchor_y))) = self.inventory_item_at(x, y)
+            {
+                crate::windows::inventory::select_identity(&container, &stack_id);
+                self.selected_inventory = Some((container, stack_id));
+                self.selected_actor_id = None;
+                self.project_windows();
+                self.context_menu = Some(ContextMenu::InventoryRadial {
+                    x: anchor_x,
+                    y: anchor_y,
+                });
+                return None;
+            }
+        }
         if captured || self.wm.covers(x, y) {
             return None;
         }
@@ -2888,18 +2910,6 @@ impl ConnectedScene {
                     verb: "radial".into(),
                     target_id,
                 });
-            }
-            if let Some((container, stack_id, (anchor_x, anchor_y))) = self.inventory_item_at(x, y)
-            {
-                crate::windows::inventory::select_identity(&container, &stack_id);
-                self.selected_inventory = Some((container, stack_id));
-                self.selected_actor_id = None;
-                self.project_windows();
-                self.context_menu = Some(ContextMenu::InventoryRadial {
-                    x: anchor_x,
-                    y: anchor_y,
-                });
-                return None;
             }
         }
 
@@ -4306,8 +4316,14 @@ impl ConnectedScene {
                 prior_distance * (prior_fovy * 0.5).tan() / (PAPERDOLL_FOVY * 0.5).tan();
             let focus = portrait_ground.add(vec3(0.0, focus_height, 0.0));
             // Drag spins the doll; the flick decays and parks at the resting
-            // yaw, matching the original's draggable object viewer.
-            let orbit = yaw + self.paperdoll_yaw;
+            // The converse bust looks the player in the eye: camera is dead-on
+            // facing the NPC's front (+Z in pawn space). Paperdoll viewers for
+            // inventory/character follow pawn yaw + player orbit drag.
+            let orbit = if *window == "converse" {
+                yaw + core::f32::consts::PI
+            } else {
+                yaw + self.paperdoll_yaw
+            };
             let facing = vec3(orbit.sin(), 0.0, orbit.cos());
             let band = self
                 .wm

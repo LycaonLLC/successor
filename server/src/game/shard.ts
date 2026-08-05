@@ -3185,6 +3185,11 @@ export class GameShard {
       session: rustSessionNumber(session),
       player: this.actorNetId(session.actorId),
       ingressBudgetSession: session,
+      // One switch governs every debug grant. Without this the HTTP debug route
+      // works while the in-game character builder is refused, which reads as
+      // the builder being broken rather than the shard being locked. Unset in
+      // production, so a player socket still cannot grant itself anything.
+      allowDebugCommand: debugAuthorityCommandsEnabled(),
     });
   }
 
@@ -3207,6 +3212,11 @@ export class GameShard {
   }
 
   private consumeIngressBudget(session: GameSession, command: ClientCommand): boolean {
+    // The budget exists to stop players spamming the authority. A debug grant
+    // only exists behind GAME_DEBUG_AUTHORITY_COMMANDS, and the character
+    // builder legitimately commits a whole kit in one frame - rate-limiting it
+    // silently dropped part of every large grant.
+    if (isDebugAuthorityCommand(command) && debugAuthorityCommandsEnabled()) return true;
     const kind = commandKind(command);
     const rule = this.ingressBudgetRuleForKind(kind);
     const nowMs = finiteNumberOr(this.ingressBudgetConfig.nowMs(), this.clock.nowMs());
@@ -11748,6 +11758,7 @@ function commandKind(command: ClientCommand): string {
   if ("SetEquippedClothing" in command) return "SetEquippedClothing";
   if ("DebugGiveItem" in command) return "DebugGiveItem";
   if ("DebugGrantSkillBoxes" in command) return "DebugGrantSkillBoxes";
+  if ("DebugGiveCredits" in command) return "DebugGiveCredits";
   if ("DiscardStack" in command) return "DiscardStack";
   if ("EnterTransition" in command) return "EnterTransition";
   if ("UseConsumable" in command) return "UseConsumable";
@@ -11873,6 +11884,7 @@ const ingressBudgetCommandKinds = [
   "SetEquippedClothing",
   "DebugGiveItem",
   "DebugGrantSkillBoxes",
+  "DebugGiveCredits",
   "EnterTransition",
   "UseConsumable",
   "RefillAmmo",
@@ -12075,8 +12087,15 @@ function finiteNumberOr(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+// The one switch that unlocks debug grants, read at call time so a test can
+// flip it without re-importing the module.
+function debugAuthorityCommandsEnabled(): boolean {
+  const value = process.env.GAME_DEBUG_AUTHORITY_COMMANDS;
+  return value === "1" || value === "true";
+}
+
 function isDebugAuthorityCommand(command: ClientCommand): boolean {
-  return "DebugGiveItem" in command || "DebugGrantSkillBoxes" in command;
+  return "DebugGiveItem" in command || "DebugGrantSkillBoxes" in command || "DebugGiveCredits" in command;
 }
 
 function cardinalFromDirection(direction: Direction): CardinalDirection {

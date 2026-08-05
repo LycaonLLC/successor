@@ -18,6 +18,8 @@
 //!     blank advances. Value columns replace them.
 
 pub mod bank;
+#[cfg(feature = "dev-tools")]
+pub mod builder;
 pub mod clone;
 pub mod converse;
 pub mod craft;

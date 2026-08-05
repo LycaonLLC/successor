@@ -170,11 +170,18 @@ impl WindowAction {
         use WindowAction::*;
         match self {
             Command(command) => {
+                // Release builds refuse debug commands outright. Under
+                // `dev-tools` they pass, because that is the only build where
+                // the character builder exists to emit them - and the authority
+                // still refuses them unless GAME_DEBUG_AUTHORITY_COMMANDS is
+                // set, so this is the outer of two independent gates.
+                #[cfg(not(feature = "dev-tools"))]
                 if command.is_debug_only() {
-                    WindowActionResult::Rejected("debug commands are development-gated".into())
-                } else {
-                    WindowActionResult::Command(command)
+                    return WindowActionResult::Rejected(
+                        "debug commands are development-gated".into(),
+                    );
                 }
+                WindowActionResult::Command(command)
             }
             Close => WindowActionResult::Local(WindowLocalAction::Close),
             Select(id) => WindowActionResult::Local(WindowLocalAction::Select(id)),

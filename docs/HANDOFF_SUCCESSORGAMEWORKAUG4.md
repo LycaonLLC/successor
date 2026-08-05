@@ -211,6 +211,25 @@ for all of that; it writes `reports/rigid_mount_fit.json` and fails closed.
 - Inventory still has no drag-and-drop and no sub-container navigation.
 
 
+## Wave 5 — GR0K character builder, inventory radial, debug grants, item preview fill light
+
+### GR0K conversational debug character builder
+
+Stands in for SWG Core3's `CharacterBuilderTerminal` ("blue frog"):
+
+- **Multi-select page navigation**: Root -> Packs / Item Categories / Professions / Credits -> Multi-select leaf list. A tester can tick several items, packs, or skills and commit them in one action via `GRANT SELECTED`.
+- **Data-driven from runtime**: `tools/codegen/generated/debug-catalog.generated.json` (schema `successor.debug-catalog.v1`) is generated directly by `crates/successor-sim/src/bin/emit_debug_catalog.rs` probing `inventory_item_name` (173 items), `authority_skill_box_definition` (126 skills across all 7 professions), and curated packs. A `--check` flag is wired into the `run.sh --rust` hygiene gate so catalog drift fails the build.
+- **Wire commands**: `ClientCommand::DebugGiveCredits { amount }` (kind 98) added across `successor-net`, `successor-sim`, `authority_bridge`, and server protocol schemas. Negative amounts drain the wallet. Skills commit as ONE `DebugGrantSkillBoxes` call with a list of IDs.
+- **Dual debug gating**: `WindowAction::resolve` gates debug commands under `#[cfg(not(feature = "dev-tools"))]` in release builds; the server gates via `GAME_DEBUG_AUTHORITY_COMMANDS=1` on both HTTP and socket paths. Debug grants are exempted from `consumeIngressBudget` when the flag is enabled so multi-item packs commit without `ingress_budget_exhausted` drops.
+
+### Inventory radial menu & converse bust
+
+- **Inventory radial menu unblocked**: `connected_scene::handle_pointer` was swallowing right-clicks over interactive windows at `covers()` before the inventory radial branch ran. Inventory card right-clicks now resolve above the window swallow, opening the object radial with `UNEQUIP`, `EXAMINE`, `DISCARD`, `SPLICE`. Relabelled `DROP` to `DISCARD` to match the authority's `DiscardStack` semantics.
+- **Converse NPC bust camera**: `connected_scene` camera calculation for the converse window turned the camera to follow pawn yaw (looking at the NPC's back when turned away). Converse viewer camera now dead-ons the NPC's front (`yaw + PI`), looking the speaker in the eye. Trainer detection range widened from 2.5 to 16.0 cells with `in_range` gating preserved for skill purchases.
+- **Viewer seat transparency**: `VIEWER_SEAT` alpha lowered from 245 to 28 so 3D composite cells blend with the pane's translucent background instead of punching an opaque black rectangle through see-through windows.
+- **Item preview fill light**: Added secondary fill light (`PointLight { color: [0.72, 0.85, 0.96], intensity: 6.0 }`) to `ItemPreviewRenderer` in `item_preview.rs` so unlit sides of 3D item models in inventory wells remain legible.
+
+
 ## Wave 4 - functional panes, HUD defaults, chat, radar
 
 ### The thin panes were filled
