@@ -1121,6 +1121,11 @@ mod web_runtime {
                             scene.apply_server_packet(packet);
                         }
                     }
+                    SessionOut::Emit(SessionEvent::Room { msg_type, payload }) => {
+                        if let Some(scene) = CONNECTED_SCENE.get_mut() {
+                            scene.apply_room_message(&msg_type, &payload);
+                        }
+                    }
                     SessionOut::Emit(SessionEvent::Error(message)) => {
                         FATAL.set(true);
                         successor_engine_core::rt::log::log_str(&message);
