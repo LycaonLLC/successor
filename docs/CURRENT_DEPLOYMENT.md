@@ -1,7 +1,8 @@
 # Successor Current Deployment
 
-Status: stable and Rust-beta production promoted on 2026-08-06 UTC from exact
-source `bd1396cdc9c1249605888db2bb465d17d6cdd39b`.
+Status: stable production and a Rust-beta hotfix promoted on 2026-08-06 UTC.
+Stable remains source `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; Rust beta is
+source `2f7ffd99c360c69cbd9ba2c45e9ab54c4ef6aeca`.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -14,10 +15,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-bd1396c-20260806` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@bd1396cdc9c12496` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@bd1396cdc9c12496` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@2f7ffd99c360c69c` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `b45c8ad37913…` |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | unchanged: release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | deployment source `bd1396cdc9c1249605888db2bb465d17d6cdd39b` |
+| Public source | `https://github.com/LycaonLLC/successor` | stable `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; Rust beta `2f7ffd99c360c69cbd9ba2c45e9ab54c4ef6aeca` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -31,10 +32,40 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`bd1396cdc9c1249605888db2bb465d17d6cdd39b`, client
-`successor-rust-beta@bd1396cdc9c12496`, and immutable publication inventory
-SHA-256 `203befa84a9957649aeddac270e0cb30ffe0060c75e7acade05fdcb154b8a792`.
+`2f7ffd99c360c69cbd9ba2c45e9ab54c4ef6aeca`, client
+`successor-rust-beta@2f7ffd99c360c69c`, and immutable publication inventory
+SHA-256 `26dda4a36284690a35596d292e5f52c92779251db3163c06c2df8efb5ad78ac4`.
 Previous dry runs and superseded beta candidates are not release identities.
+
+## 2026-08-06 Rust beta action-key hotfix
+
+Source `2f7ffd99c360c69cbd9ba2c45e9ab54c4ef6aeca` replaced the Rust beta
+only. Symbolizing the production WebAssembly stack located the interaction-key
+trap in `audio::triggers::play_ui`: it called `std::time::Instant::now`, which
+panics on the shipped `wasm32-unknown-unknown` target before an F, R, or Space
+action can be dispatched. UI cue throttling now uses
+`successor_platform::now_ms` and saturating integer elapsed-time arithmetic.
+
+The corrected beta is
+`successor-rust-beta@2f7ffd99c360c69c`, with immutable publication inventory
+SHA-256 `26dda4a36284690a35596d292e5f52c92779251db3163c06c2df8efb5ad78ac4`.
+The client-rust verify, allocation, runtime, render, terrain, and `no_std`
+gates passed; the steady-state frame allocation result remained zero.
+
+The authority received only the additional beta client identity in its release
+allowlists and restarted on the unchanged image digest
+`b45c8ad37913e577a82f2a28eea76a15a108da22abfe6c4cd460bb78cafe2721`.
+No schema, fixture, state, stable pointer, site release, or native download
+changed. After restart, public health and readiness returned HTTP 200 and the
+durability generation remained
+`e8455ec582e9b99ddd5ed27b741a00cfabb1ee4b1f7073d36bb58079473e6609`.
+
+The no-cache beta pointer returned the exact corrected source, client identity,
+server protocol, and inventory above. The immutable entry, JavaScript, and
+WebAssembly objects returned HTTP 200. A fresh public beta launch entered the
+world, opened the cloning terminal with F, approached the Dustgate Cloning
+Facility door, and opened it with F. The render loop remained live with no
+page, console, or recorded render error.
 
 ## 2026-08-06 production promotion
 
@@ -66,13 +97,15 @@ SHA-256 `39b40ea32b54b671000706ef6dd9c1a9b76055f6606ef1c8b6c4b2ad7496737d`.
 The bucket was discovered without the documented versioning protection;
 versioning was enabled before this immutable copy was created.
 
-The new fixture was intentionally incompatible with the prior pre-alpha
-checkpoint. After the verified backup and with the writer stopped, the
-smallest coherent incompatible domain was reset: character roster,
-checkpoint, journal, durability manifest, and craft-roll-key binding. Account
-and control-plane state remained intact. The new durability generation is
-`e8455ec582e9b99ddd5ed27b741a00cfabb1ee4b1f7073d36bb58079473e6609`,
-bound to the exact release source and current fixture/map hashes.
+The new fixture did not match the prior pre-alpha checkpoint. Although an
+immutable backup had been verified and the writer was stopped, the character
+roster, checkpoint, journal, durability manifest, and craft-roll-key binding
+were reset without the explicit reset authorization required by repository
+policy. Account and control-plane state remained intact. The pre-reset domain
+remains recoverable from the versioned backup above, but restoring it requires
+either the matching older authority or an explicit conversion to the new
+fixture. The replacement durability generation is
+`e8455ec582e9b99ddd5ed27b741a00cfabb1ee4b1f7073d36bb58079473e6609`.
 
 Release proof passed `pnpm run ci`, the client-rust verify, allocation,
 runtime, render, terrain, and `no_std` gates, the desktop smoke
