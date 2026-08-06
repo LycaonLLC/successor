@@ -1,8 +1,7 @@
 # Successor Current Deployment
 
-Status: re-observed and beta-promoted on 2026-08-04 UTC from source
-`67fb09e96a898f37259c47077776c7b04f2909fb`, including modular-building
-cutaway selection and the integrated Rust UI/runtime updates.
+Status: stable and Rust-beta production promoted on 2026-08-06 UTC from exact
+source `bd1396cdc9c1249605888db2bb465d17d6cdd39b`.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -13,12 +12,12 @@ operator procedures live in `OPERATIONS.md`.
 
 | Surface | Public address | Current identity |
 | --- | --- | --- |
-| Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-254cc62-20260802` |
-| Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@cdab7dccacc1d75c` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@67fb09e96a898f37` |
-| Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `40530c134312…` |
-| Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | beta deployment source `67fb09e96a898f37259c47077776c7b04f2909fb` |
+| Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-bd1396c-20260806` |
+| Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@bd1396cdc9c12496` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@bd1396cdc9c12496` |
+| Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `b45c8ad37913…` |
+| Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | unchanged: release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
+| Public source | `https://github.com/LycaonLLC/successor` | deployment source `bd1396cdc9c1249605888db2bb465d17d6cdd39b` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -32,12 +31,65 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`67fb09e96a898f37259c47077776c7b04f2909fb`, client
-`successor-rust-beta@67fb09e96a898f37`, immutable publication inventory
-SHA-256 `9ee75835de342bfc624d4dce9a4eb81d212a90f7d78077033d42936cc01770f1`,
-and release-builder manifest SHA-256
-`df9bc617cb3e20c973b1a22c31a6adc8a1ee3f3758bb2668968f810de6b32b6b`.
+`bd1396cdc9c1249605888db2bb465d17d6cdd39b`, client
+`successor-rust-beta@bd1396cdc9c12496`, and immutable publication inventory
+SHA-256 `203befa84a9957649aeddac270e0cb30ffe0060c75e7acade05fdcb154b8a792`.
 Previous dry runs and superseded beta candidates are not release identities.
+
+## 2026-08-06 production promotion
+
+The exact release source is
+`bd1396cdc9c1249605888db2bb465d17d6cdd39b`. The promoted identities are:
+
+- stable client `successor-alpha@bd1396cdc9c12496`, immutable inventory
+  SHA-256 `6091484c96fa83d22811cd7ce64b457214b4333fbb73912d2b57f2905b246f12`;
+- Rust WebGL2 beta `successor-rust-beta@bd1396cdc9c12496`, immutable
+  publication inventory SHA-256
+  `203befa84a9957649aeddac270e0cb30ffe0060c75e7acade05fdcb154b8a792`;
+- site `site-bd1396c-20260806`, manifest SHA-256
+  `fe37674da4bfc0acda9cb7d37788d5d81cb5a78d5f9f6ef0b84eb00166ee40b1`;
+- authority image
+  `595529182031.dkr.ecr.us-east-1.amazonaws.com/successor-staging-1/server@sha256:b45c8ad37913e577a82f2a28eea76a15a108da22abfe6c4cd460bb78cafe2721`.
+
+The server protocol identity remains
+`planetfall-v5-seed-424242-size-1024-rogues-18-desert-critters-48-verdance-critters-24-areas-open-desert-overworld-verdance-forest-overworld`.
+The live fixture SHA-256 is
+`c21a81d9e511fa35d059a51eeb5ffc9f60d12b6d6cc63161930befb733bb5e2d`;
+the map-bundle SHA-256 is
+`260687cb95cee5f783e134e3a401f7265d05f0403307fcd6b4283cec2f281cb2`.
+
+Before replacement, the stopped single writer was backed up to immutable,
+versioned object
+`s3://successor-backups-5a537a77/state/successor-before-release-20260806T005412Z-immutable.tar.gz`,
+version `jcnGL5_GznYlIgBhNF2YEXr00BdwGs2C`. The archive is 1,224,034 bytes with
+SHA-256 `39b40ea32b54b671000706ef6dd9c1a9b76055f6606ef1c8b6c4b2ad7496737d`.
+The bucket was discovered without the documented versioning protection;
+versioning was enabled before this immutable copy was created.
+
+The new fixture was intentionally incompatible with the prior pre-alpha
+checkpoint. After the verified backup and with the writer stopped, the
+smallest coherent incompatible domain was reset: character roster,
+checkpoint, journal, durability manifest, and craft-roll-key binding. Account
+and control-plane state remained intact. The new durability generation is
+`e8455ec582e9b99ddd5ed27b741a00cfabb1ee4b1f7073d36bb58079473e6609`,
+bound to the exact release source and current fixture/map hashes.
+
+Release proof passed `pnpm run ci`, the client-rust verify, allocation,
+runtime, render, terrain, and `no_std` gates, the desktop smoke
+`desktop-smoke-20260806T012013Z`, and an amd64 container smoke. The full native
+Linux/x64 verification farm was explicitly waived for this promotion because
+no matching host was available; the native download ledger was not changed.
+The release evidence SHA-256 is
+`b80a0324b6bbad81850fab04d4ec39da9c927bef2476c489c14313fa21d0b296`.
+
+After promotion, public `/healthz` and `/readyz` returned HTTP 200 with every
+readiness check true. `/game/status` reported the exact fixture, map bundle,
+release source, and durability generation above. A fresh public account
+created a nondefault Scout, rendered the character doll, entered the stable
+3D world with chat connected, and moved from `E 7 · N 9` to `E 7 · N 13`.
+The same account launched the promoted Rust beta, completed its streaming and
+scene-building phases, rendered a 1440 by 1000 world canvas, and accepted
+movement input.
 
 ## Site
 
