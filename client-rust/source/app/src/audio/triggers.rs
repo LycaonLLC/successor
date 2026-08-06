@@ -89,31 +89,32 @@ impl UiCue {
 }
 
 thread_local! {
-    static LAST_CUE_TIMES: std::cell::RefCell<[Option<std::time::Instant>; 12]> =
+    static LAST_CUE_TIMES_MS: std::cell::RefCell<[Option<u64>; 12]> =
         const { std::cell::RefCell::new([None; 12]) };
 }
 
 /// Reset the per-cue retrigger floor timers (primarily for deterministic unit testing).
 pub fn clear_retrigger_floor() {
-    LAST_CUE_TIMES.with(|cell| {
+    LAST_CUE_TIMES_MS.with(|cell| {
         *cell.borrow_mut() = [None; 12];
     });
 }
 
 /// Play a UI cue, applying the per-cue retrigger floor to prevent click storms.
 pub fn play_ui(player: &mut SfxPlayer, cue: UiCue) -> bool {
-    let now = std::time::Instant::now();
-    let idx = cue.index();
-    let floor = std::time::Duration::from_millis(UI_CUE_RETRIGGER_FLOOR_MS);
+    play_ui_at(player, cue, successor_platform::now_ms().max(0.0) as u64)
+}
 
-    let too_soon = LAST_CUE_TIMES.with(|cell| {
+fn play_ui_at(player: &mut SfxPlayer, cue: UiCue, now_ms: u64) -> bool {
+    let idx = cue.index();
+    let too_soon = LAST_CUE_TIMES_MS.with(|cell| {
         let mut times = cell.borrow_mut();
-        if let Some(last) = times[idx] {
-            if now.duration_since(last) < floor {
+        if let Some(last_ms) = times[idx] {
+            if now_ms.saturating_sub(last_ms) < UI_CUE_RETRIGGER_FLOOR_MS {
                 return true;
             }
         }
-        times[idx] = Some(now);
+        times[idx] = Some(now_ms);
         false
     });
 
@@ -322,16 +323,19 @@ mod tests {
             return;
         };
         clear_retrigger_floor();
-        // First trigger plays
-        assert!(play_ui(&mut p, UiCue::ButtonTick));
-        // Immediate duplicate trigger suppressed by retrigger floor
-        assert!(!play_ui(&mut p, UiCue::ButtonTick));
-        // Distinct cue variant plays independently
-        assert!(play_ui(&mut p, UiCue::ItemTransfer));
-        // Wait out the floor duration
-        std::thread::sleep(std::time::Duration::from_millis(UI_CUE_RETRIGGER_FLOOR_MS + 5));
-        // Play succeeds again after floor elapses
-        assert!(play_ui(&mut p, UiCue::ButtonTick));
+        // First trigger plays.
+        assert!(play_ui_at(&mut p, UiCue::ButtonTick, 1_000));
+        // An immediate duplicate is suppressed without consulting std::time,
+        // which is unavailable in shipped wasm32-unknown-unknown builds.
+        assert!(!play_ui_at(&mut p, UiCue::ButtonTick, 1_000));
+        // Distinct cue variants retain independent clocks.
+        assert!(play_ui_at(&mut p, UiCue::ItemTransfer, 1_000));
+        // The same cue becomes eligible exactly at the retrigger boundary.
+        assert!(play_ui_at(
+            &mut p,
+            UiCue::ButtonTick,
+            1_000 + UI_CUE_RETRIGGER_FLOOR_MS,
+        ));
     }
 
     #[test]
