@@ -318,7 +318,7 @@ in-game proof. They need a pass against a live shard.
 
 ### GR0K conversational debug character builder
 
-Stands in for SWG Core3's `CharacterBuilderTerminal` ("blue frog"):
+Replaces the legacy MMO `CharacterBuilderTerminal` ("blue frog") flow:
 
 - **Multi-select page navigation**: Root -> Packs / Item Categories / Professions / Credits -> Multi-select leaf list. A tester can tick several items, packs, or skills and commit them in one action via `GRANT SELECTED`.
 - **Data-driven from runtime**: `tools/codegen/generated/debug-catalog.generated.json` (schema `successor.debug-catalog.v1`) is generated directly by `crates/successor-sim/src/bin/emit_debug_catalog.rs` probing `inventory_item_name` (173 items), `authority_skill_box_definition` (126 skills across all 7 professions), and curated packs. A `--check` flag is wired into the `run.sh --rust` hygiene gate so catalog drift fails the build.

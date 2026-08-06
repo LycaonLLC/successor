@@ -1,6 +1,6 @@
 //! Debug character builder, reached by conversing with GR0K.
 //!
-//! Stands in for SWG Core3's "blue frog" (`CharacterBuilderTerminal`), which is
+//! Replaces the legacy MMO "blue frog" character-builder flow, which is
 //! a single-select nested list: one click, one grant, back to the top. Kitting a
 //! character out takes dozens of round trips. This one pages the same kind of
 //! tree but every leaf is a checkbox, so a tester ticks what they want across a

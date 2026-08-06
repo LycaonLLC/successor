@@ -1771,6 +1771,29 @@ fn authority_debug_grant_skill_boxes_adds_brawler_ranged_block_boxes() {
 }
 
 #[test]
+fn authority_debug_give_credits_adjusts_and_saturates_wallet() {
+    let (config, mut state) = roll_combat_test_state();
+    let initial_credits = state.actors.get("player").unwrap().professions.credits;
+
+    let grant = state.apply_envelope(
+        &config,
+        command(1, ClientCommand::DebugGiveCredits { amount: 250 }),
+    );
+    assert_eq!(grant.status, AuthorityCommandStatus::Accepted);
+    assert_eq!(
+        state.actors.get("player").unwrap().professions.credits,
+        initial_credits + 250
+    );
+
+    let drain = state.apply_envelope(
+        &config,
+        command(2, ClientCommand::DebugGiveCredits { amount: i64::MIN }),
+    );
+    assert_eq!(drain.status, AuthorityCommandStatus::Accepted);
+    assert_eq!(state.actors.get("player").unwrap().professions.credits, 0);
+}
+
+#[test]
 fn authority_roll_vibrosword_basic_attack_uses_melee_profile_without_per_hit_xp() {
     let (_config, mut state) = roll_combat_test_state();
     {
