@@ -136,8 +136,8 @@ impl Platform for WebPlatform {
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::control::{
     configure as configure_control, publish_control_status, shutdown as shutdown_control,
-    take_ui_intents, ControlConfig, ControlStatus, ControlStatusV2, ControlUiIntent,
-    ControlWindowFrame, DEFAULT_CONTROL_PORT,
+    take_ui_intents, ControlConfig, ControlMovementStatus, ControlStatus, ControlStatusV2,
+    ControlUiIntent, ControlWindowFrame, DEFAULT_CONTROL_PORT,
 };
 
 // target-specific re-exports of free-function surface
@@ -145,7 +145,7 @@ pub use native::control::{
 pub use native::window::{
     begin_frame, deinit, end_frame, framebuffer_size, gl_error, init, is_key_down,
     mouse_button_down, mouse_position, now_ms, poll_scroll_delta, poll_text_input,
-    read_pixels_rgba, set_cursor_visible, should_quit,
+    read_pixels_rgba, set_cursor_visible, should_quit, window_focused,
 };
 
 #[cfg(target_arch = "wasm32")]

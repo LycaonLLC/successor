@@ -22,6 +22,7 @@ required-features = ["dev-tools"]
 successor-engine-core.workspace = true
 successor-engine-render.workspace = true
 successor-platform.workspace = true
+successor-movement.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 successor-client-proto.workspace = true

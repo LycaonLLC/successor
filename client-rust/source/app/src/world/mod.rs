@@ -18,6 +18,7 @@ pub mod collision_debug;
 pub mod cutaway;
 pub mod environs;
 pub mod flora;
+pub mod movement_collision;
 pub mod picking;
 pub mod props;
 pub mod streamed;

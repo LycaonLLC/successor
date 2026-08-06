@@ -9,8 +9,10 @@ const packageDir = path.resolve(here, "..");
 const defaultRepoRoot = path.resolve(packageDir, "..");
 export const DEFAULT_STAGING_DIR = path.join(packageDir, ".generated", "production-assets");
 export const PRODUCTION_MANIFEST_NAME = "production-asset-manifest.json";
-// Canonical male/female bodies and their fitted runtime wardrobes ship together.
-export const PUBLIC_RELEASE_BUDGET = Object.freeze({ maxFiles: 510, maxBytes: 292_000_000 });
+// Canonical male/female bodies, their fitted runtime wardrobes, and the current
+// authored world/weapon closure ship together. Keep less than 1 MiB headroom so
+// newly reachable assets still fail the production build instead of drifting in.
+export const PUBLIC_RELEASE_BUDGET = Object.freeze({ maxFiles: 510, maxBytes: 296_000_000 });
 
 const PAWN_CORE_FILES = [
   "game_pack.json",

@@ -15,6 +15,7 @@ const GLFW_OPENGL_CORE_PROFILE: i32 = 0x00032001;
 const GLFW_OPENGL_FORWARD_COMPAT: i32 = 0x00022006;
 const GLFW_VISIBLE: i32 = 0x00020002;
 const GLFW_COCOA_RETINA_FRAMEBUFFER: i32 = 0x00023001;
+const GLFW_FOCUSED: i32 = 0x0002_0001;
 const GLFW_TRUE: i32 = 1;
 const GLFW_FALSE: i32 = 0;
 const GLFW_CURSOR: i32 = 0x00033001;
@@ -42,6 +43,7 @@ extern "C" {
     fn glfwSwapBuffers(window: *mut GLFWwindow);
     fn glfwGetFramebufferSize(window: *mut GLFWwindow, width: *mut i32, height: *mut i32);
     fn glfwGetWindowSize(window: *mut GLFWwindow, width: *mut i32, height: *mut i32);
+    fn glfwGetWindowAttrib(window: *mut GLFWwindow, attrib: i32) -> i32;
     fn glfwGetTime() -> f64;
     fn glfwGetKey(window: *mut GLFWwindow, key: i32) -> i32;
     fn glfwGetMouseButton(window: *mut GLFWwindow, button: i32) -> i32;
@@ -233,6 +235,11 @@ pub fn framebuffer_size() -> (i32, i32) {
         }
         (w, h)
     }
+}
+pub fn window_focused() -> bool {
+    let state = STATE.lock();
+    !state.window.is_null()
+        && unsafe { glfwGetWindowAttrib(state.window, GLFW_FOCUSED) == GLFW_TRUE }
 }
 
 pub fn now_ms() -> f64 {

@@ -1150,6 +1150,7 @@ dependencies = [
  "successor-client-proto",
  "successor-engine-core",
  "successor-engine-render",
+ "successor-movement",
  "successor-net",
  "successor-platform",
 ]
@@ -1194,6 +1195,10 @@ dependencies = [
  "libm",
  "successor-engine-core",
 ]
+
+[[package]]
+name = "successor-movement"
+version = "0.0.1"
 
 [[package]]
 name = "successor-net"

@@ -17,8 +17,17 @@ pub struct LaunchEnvelope {
     pub shard: Option<String>,
     pub character_id: String,
     pub expires_at_ms: u64,
+    pub dev_spawn: Option<DevSpawn>,
     game_consumed: bool,
     chat_consumed: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DevSpawn {
+    pub area: String,
+    pub x: String,
+    pub y: String,
+    pub facing: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -91,6 +100,33 @@ impl LaunchEnvelope {
         if expires_at_ms <= now_ms {
             return Err(LaunchError::Expired);
         }
+        let dev_spawn = match obj.get("devSpawn") {
+            None => None,
+            Some(_) if game_ticket != "dev-identity" => {
+                return Err(LaunchError::Invalid(
+                    "dev spawn requires development identity".into(),
+                ));
+            }
+            Some(value) => {
+                let spawn = value
+                    .as_object()
+                    .ok_or_else(|| LaunchError::Invalid("dev spawn must be an object".into()))?;
+                let field = |key: &str| {
+                    spawn
+                        .get(key)
+                        .and_then(|value| value.as_str())
+                        .filter(|value| !value.is_empty())
+                        .map(str::to_owned)
+                        .ok_or_else(|| LaunchError::Invalid(format!("invalid dev spawn {key}")))
+                };
+                Some(DevSpawn {
+                    area: field("area")?,
+                    x: field("x")?,
+                    y: field("y")?,
+                    facing: field("facing")?,
+                })
+            }
+        };
         Ok(Self {
             schema: "successor.launch-context.v1".into(),
             game_ticket,
@@ -104,6 +140,7 @@ impl LaunchEnvelope {
                 .and_then(|v| v.as_str())
                 .map(str::to_owned),
             character_id,
+            dev_spawn,
             expires_at_ms,
             game_consumed: false,
             chat_consumed: false,
@@ -352,11 +389,40 @@ mod tests {
             .actors
             .insert("player".into(), GameActorSnapshot::default());
         GameHello {
+
             session_id: "session".into(),
             player_actor_id: "player".into(),
             snapshot,
             server_time: "now".into(),
         }
+    }
+    #[test]
+    fn development_spawn_is_explicitly_gated_by_dev_identity() {
+        let mut dev = launch_json();
+        dev["gameTicket"] = serde_json::json!("dev-identity");
+        dev["devSpawn"] = serde_json::json!({
+            "area": "open-desert-overworld",
+            "x": "700",
+            "y": "700",
+            "facing": "right"
+        });
+        let launch = LaunchEnvelope::from_json(&dev, 1000).unwrap();
+        assert_eq!(
+            launch.dev_spawn,
+            Some(DevSpawn {
+                area: "open-desert-overworld".into(),
+                x: "700".into(),
+                y: "700".into(),
+                facing: "right".into(),
+            })
+        );
+
+        let mut hosted = launch_json();
+        hosted["devSpawn"] = dev["devSpawn"].clone();
+        assert!(matches!(
+            LaunchEnvelope::from_json(&hosted, 1000),
+            Err(LaunchError::Invalid(_))
+        ));
     }
 
     #[test]

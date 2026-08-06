@@ -63,6 +63,7 @@ pub struct ControlStatusV2 {
     /// assert move, resize, and layout persistence against this instead of
     /// reading pixels.
     pub window_frames: Vec<ControlWindowFrame>,
+    pub movement: Option<ControlMovementStatus>,
 }
 
 /// One workspace frame as the control protocol reports it.
@@ -73,6 +74,25 @@ pub struct ControlWindowFrame {
     pub open: bool,
     pub iconified: bool,
     pub interactive: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ControlMovementStatus {
+    pub authoritative: (f32, f32),
+    pub predicted: (f32, f32),
+    pub rendered: (f32, f32),
+    pub correction_cells: f32,
+    pub intent: (i32, i32, bool),
+    pub applied_command_id: u64,
+    pub blocker_count: usize,
+    pub presented_ground_y: f32,
+    pub sampled_ground_y: f32,
+    pub frame_dt_ms: f32,
+    pub last_change_ms: u64,
+    pub last_send_ms: u64,
+    pub next_send_ms: u64,
+    pub sampled_at_ms: u64,
+    pub stop_retry_until_ms: u64,
 }
 #[derive(Clone, Debug)]
 pub struct NativeInputSnapshot {
@@ -524,6 +544,40 @@ impl ControlState {
             .as_deref()
             .map(json_string)
             .unwrap_or_else(|| "null".into());
+        let movement = s.movement.map_or_else(
+            || "null".to_owned(),
+            |movement| {
+                format!(
+                    "{{\"authoritative\":[{},{}],\"predicted\":[{},{}],\
+                     \"rendered\":[{},{}],\"correction_cells\":{},\
+                     \"intent\":[{},{},{}],\"applied_command_id\":{},\
+                     \"blocker_count\":{},\"presented_ground_y\":{},\
+                     \"sampled_ground_y\":{},\"frame_dt_ms\":{},\
+                     \"last_change_ms\":{},\"last_send_ms\":{},\
+                     \"next_send_ms\":{},\"sampled_at_ms\":{},\"stop_retry_until_ms\":{}}}",
+                    format_float(movement.authoritative.0),
+                    format_float(movement.authoritative.1),
+                    format_float(movement.predicted.0),
+                    format_float(movement.predicted.1),
+                    format_float(movement.rendered.0),
+                    format_float(movement.rendered.1),
+                    format_float(movement.correction_cells),
+                    movement.intent.0,
+                    movement.intent.1,
+                    movement.intent.2,
+                    movement.applied_command_id,
+                    movement.blocker_count,
+                    format_float(movement.presented_ground_y),
+                    format_float(movement.sampled_ground_y),
+                    format_float(movement.frame_dt_ms),
+                    movement.last_change_ms,
+                    movement.last_send_ms,
+                    movement.next_send_ms,
+                    movement.sampled_at_ms,
+                    movement.stop_retry_until_ms,
+                )
+            },
+        );
         let mut frames = String::from("[");
         for (index, frame) in s.window_frames.iter().enumerate() {
             if index > 0 {
@@ -546,7 +600,7 @@ impl ControlState {
             "\"schema\":\"successor.control.status.v2\",\"frame\":{},\"framebuffer\":{},\
              \"app_mode\":{},\"game_connection\":{},\"chat_connection\":{},\"shard\":{},\
              \"tick\":{},\"area\":{},\"source_hashes\":{},\"player_actor_id\":{},\
-             \"player_position\":{},\"life\":{},\"selection\":{},\"windows\":{},\
+             \"player_position\":{},\"movement\":{},\"life\":{},\"selection\":{},\"windows\":{},\
              \"window_frames\":{},\
              \"focused_window\":{},\"pending_command_kinds\":{},\"last_receipt\":{},\
              \"recording\":{},\"replaying\":{},\"renderer_degradation_ids\":{},\
@@ -564,6 +618,7 @@ impl ControlState {
             json_list(&s.source_hashes),
             actor,
             position,
+            movement,
             life,
             selection,
             json_list(&s.windows),

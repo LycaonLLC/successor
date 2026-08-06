@@ -1,5 +1,5 @@
 //! Surface specs: the in-code mapping from every registered window id to its
-//! closest original-SWG mediator family, plus the geometry and chrome metrics
+//! closest legacy mediator family, plus the geometry and chrome metrics
 //! that mapping implies.
 //!
 //! One table drives three things that used to drift apart:
@@ -12,8 +12,8 @@
 //!   * **chrome density** — [`Metrics`] fixes row pitch, type sizes, and the
 //!     action column, so a list in BANK reads like a list in LOOT.
 //!
-//! Families name the original mediator they answer to (`swgClientUserInterface`
-//! class names). Nothing here imports SWG art or data: the mediator name records
+//! Families name the original mediator they answer to (legacy client UI class
+//! names). Nothing here imports legacy art or data: the mediator name records
 //! *behavioral* intent — what the surface is for, how dense it is, whether it
 //! owns tabs — and every pixel is Successor-drawn.
 
@@ -418,7 +418,7 @@ pub const SURFACES: [Surface; 21] = [
         // with `page.Center()`. It does not scale with the viewport; at 800x600
         // it only clamps. Reflow happens on user resize, never on default.
         size: size(0.0, 660.0, 660.0, 0.0, 521.0, 521.0),
-        // `swg-ui-game` layout contract: the original minimum is 250x244.
+        // Legacy UI layout contract: the original minimum is 250x244.
         min: (250.0, 244.0),
         anchor: (0.5, 0.5),
     },

@@ -89,8 +89,8 @@ DOOR = {
     "slide_distance_m": 2.40,
     "clip_duration_s": 0.8,
     "fps": 30,
-    "pocket": {"x_min": -2.90, "x_max": -0.32, "y_min": -0.01, "y_max": 2.50,
-               "z_min": 3.44, "z_max": 3.70},
+    "door_recess": {"x_min": -2.90, "x_max": -0.32, "y_min": -0.01, "y_max": 2.50,
+                    "z_min": 3.44, "z_max": 3.70},
 }
 
 # ───────────────────── frozen structural collision proxy ──────────────────

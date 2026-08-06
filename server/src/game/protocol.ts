@@ -2080,7 +2080,12 @@ export interface GameCommandReceipt {
 
 export type GameCompactReceipt = [commandId: number, accepted: 0 | 1, tick: number, reasonCode?: string];
 
-export type GamePlayerPositionAck = [x: number, y: number];
+export type GamePlayerPositionAck = [x: number, y: number, appliedMoveCommandId: number];
+
+export interface GameMovementProfileAck {
+  walkSpeedMilliPerSecond: number;
+  sprintSpeedMilliPerSecond: number;
+}
 
 export interface GameCombatEvent {
   kind?: "ranged_roll";
@@ -2206,6 +2211,7 @@ export type GameServerPacket =
       acks: GameCompactReceipt[];
       playerActor?: GameActorSnapshot;
       playerPosition?: GamePlayerPositionAck;
+      movementProfile?: GameMovementProfileAck;
       events?: GameCombatEvent[];
       compactEvents?: GameCompactCombatEvent[];
       abilityQueue?: AbilityQueueView | null;

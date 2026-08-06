@@ -308,10 +308,7 @@ mod web_runtime {
     static CONNECTED_SCENE: GlobalCell<ConnectedScene> = GlobalCell::new();
     static CONNECTED_DT: GlobalCell<f32> = GlobalCell::new();
     static VIEW_SENT: GlobalCell<bool> = GlobalCell::new();
-    static LAST_MOVE: GlobalCell<(i32, i32, bool)> = GlobalCell::new();
-    /// Frame the move intent last changed, so a release can be re-announced
-    /// across the authority's one-second intent expiry.
-    static LAST_MOVE_FRAME: GlobalCell<u64> = GlobalCell::new();
+    static MOVEMENT_CONTROLLER: GlobalCell<movement::MovementController> = GlobalCell::new();
     static FATAL: GlobalCell<bool> = GlobalCell::new();
     static EXITING: GlobalCell<bool> = GlobalCell::new();
     static CREATOR_MODE: GlobalCell<bool> = GlobalCell::new();
@@ -445,7 +442,7 @@ mod web_runtime {
                     ));
                     CONNECTED_SCENE.set(scene);
                     VIEW_SENT.set(false);
-                    LAST_MOVE.set((0, 0, false));
+                    MOVEMENT_CONTROLLER.set(movement::MovementController::default());
                 }
                 Err(error) => {
                     FATAL.set(true);
@@ -710,13 +707,7 @@ mod web_runtime {
 
     #[no_mangle]
     pub extern "C" fn update(dt: f32) {
-        let frame = FRAME
-            .get_mut()
-            .map(|frame| {
-                *frame += 1;
-                *frame
-            })
-            .unwrap_or(0);
+        FRAME.get_mut().map(|frame| *frame += 1);
         CONNECTED_DT.set(dt.clamp(0.0, 0.1));
         if creator_mode() {
             update_creator(dt.clamp(0.0, 0.1));
@@ -728,32 +719,55 @@ mod web_runtime {
         let Some(scene) = CONNECTED_SCENE.get_mut() else {
             return;
         };
+        let movement_now_ms = successor_platform::now_ms().max(0.0) as u64;
         let ready = SESSION
             .get_mut()
             .is_some_and(|session| session.state() == SessionState::Ready);
-        if !ready {
-            scene.set_move_intent(0, 0, false);
-            return;
-        }
-
-        let (manual_dx, manual_dy, held_sprint) =
-            movement::intent_from_keys(successor_platform::is_key_down);
-        let (dx, dy) = scene.navigation_intent(manual_dx, manual_dy);
-        let intent = (dx, dy, held_sprint || scene.sprint_toggled());
+        let actor_dead = scene
+            .player_actor()
+            .is_some_and(|actor| actor.life_state != "alive");
+        let input_locked = scene.tuning_open() || actor_dead;
+        let intent = if ready && !input_locked {
+            let (manual_dx, manual_dy, held_sprint) =
+                movement::intent_from_keys(successor_platform::is_key_down);
+            let (dx, dy) = scene.navigation_intent(manual_dx, manual_dy);
+            (dx, dy, held_sprint || scene.sprint_toggled())
+        } else {
+            (0, 0, false)
+        };
         scene.set_move_intent(intent.0, intent.1, intent.2);
-        let last = LAST_MOVE.get_mut().copied().unwrap_or((0, 0, false));
-        let changed_at = LAST_MOVE_FRAME.get_mut().copied().unwrap_or(0);
-        if movement::should_send_intent(intent, last, frame, frame.saturating_sub(changed_at)) {
-            if intent != last {
-                LAST_MOVE_FRAME.set(frame);
+        let movement_update = MOVEMENT_CONTROLLER.get_mut().and_then(|controller| {
+            if !ready {
+                controller.release(movement_now_ms, movement::StopReason::Disconnected)
+            } else if actor_dead {
+                controller.release(movement_now_ms, movement::StopReason::Dead)
+            } else if input_locked {
+                controller.release(movement_now_ms, movement::StopReason::ModalInput)
+            } else {
+                controller.update(
+                    movement::IntentState {
+                        dx: intent.0,
+                        dy: intent.1,
+                        sprint: intent.2,
+                    },
+                    movement_now_ms,
+                )
             }
-            LAST_MOVE.set(intent);
+        });
+        if let Some(intent) = movement_update {
             let _ = scene.dispatch_gameplay_action(actions::GameplayAction::Move {
-                dx: intent.0,
-                dy: intent.1,
-                facing: movement::facing_from_intent(intent.0, intent.1),
-                sprint: intent.2,
+                dx: intent.dx,
+                dy: intent.dy,
+                facing: movement::facing_from_intent(intent.dx, intent.dy),
+                sprint: intent.sprint,
             });
+        }
+        if let Some(controller) = MOVEMENT_CONTROLLER.get_mut() {
+            scene.set_movement_timing(controller.timing(), movement_now_ms);
+        }
+        if !ready {
+            flush_scene_commands();
+            return;
         }
         let shift_down = successor_platform::is_key_down(Key::LeftShift);
         for key in CONNECTED_INPUT_KEYS {
@@ -777,6 +791,69 @@ mod web_runtime {
             scene.handle_scroll(scroll_y);
         }
         flush_scene_commands();
+    }
+
+    #[no_mangle]
+    pub extern "C" fn release_movement_input(reason: u32) {
+        let stop_reason = match reason {
+            0 => movement::StopReason::FocusLost,
+            _ => movement::StopReason::Transition,
+        };
+        let now_ms = successor_platform::now_ms().max(0.0) as u64;
+        let movement_update = MOVEMENT_CONTROLLER
+            .get_mut()
+            .and_then(|controller| controller.release(now_ms, stop_reason));
+        if let Some(scene) = CONNECTED_SCENE.get_mut() {
+            scene.set_move_intent(0, 0, false);
+            if let Some(intent) = movement_update {
+                let _ = scene.dispatch_gameplay_action(actions::GameplayAction::Move {
+                    dx: intent.dx,
+                    dy: intent.dy,
+                    facing: movement::facing_from_intent(intent.dx, intent.dy),
+                    sprint: intent.sprint,
+                });
+            }
+        }
+        flush_scene_commands();
+    }
+
+    /// Allocation-free connected movement probe. Indices are stable and mirrored
+    /// by `web/successor.js`; unknown/unavailable values return NaN.
+    #[no_mangle]
+    pub extern "C" fn movement_probe(index: u32) -> f64 {
+        let Some(scene) = CONNECTED_SCENE.get_mut() else {
+            return f64::NAN;
+        };
+        let Some(movement) = scene.movement_diagnostics() else {
+            return f64::NAN;
+        };
+        let timing = MOVEMENT_CONTROLLER
+            .get_mut()
+            .map(|controller| controller.timing())
+            .unwrap_or_default();
+        match index {
+            0 => movement.authoritative.0 as f64,
+            1 => movement.authoritative.1 as f64,
+            2 => movement.predicted.0 as f64,
+            3 => movement.predicted.1 as f64,
+            4 => movement.rendered.0 as f64,
+            5 => movement.rendered.1 as f64,
+            6 => movement.correction_cells as f64,
+            7 => movement.intent.0 as f64,
+            8 => movement.intent.1 as f64,
+            9 => movement.intent.2 as u8 as f64,
+            10 => movement.applied_command_id as f64,
+            11 => movement.blocker_count as f64,
+            12 => movement.presented_ground_y as f64,
+            13 => movement.sampled_ground_y as f64,
+            14 => movement.frame_dt_ms as f64,
+            15 => timing.last_change_ms as f64,
+            16 => timing.last_send_ms as f64,
+            17 => timing.next_send_ms as f64,
+            18 => timing.stop_retry_until_ms as f64,
+            19 => successor_platform::now_ms(),
+            _ => f64::NAN,
+        }
     }
 
     #[no_mangle]
@@ -911,10 +988,17 @@ mod web_runtime {
             .replacen("wss://", "https://", 1)
             .replacen("ws://", "http://", 1);
         let opts = if game_ticket == "dev-identity" {
-            json!({
+            let mut opts = json!({
                 "playerId": envelope.character_id,
                 "actorId": envelope.character_id,
-            })
+            });
+            if let (Some(object), Some(spawn)) = (opts.as_object_mut(), envelope.dev_spawn.as_ref()) {
+                object.insert("spawnArea".into(), json!(spawn.area));
+                object.insert("spawnX".into(), json!(spawn.x));
+                object.insert("spawnY".into(), json!(spawn.y));
+                object.insert("facing".into(), json!(spawn.facing));
+            }
+            opts
         } else {
             json!({
                 "gameTicket": game_ticket,

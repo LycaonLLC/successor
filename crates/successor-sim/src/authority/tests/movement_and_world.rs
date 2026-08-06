@@ -436,6 +436,38 @@ fn authority_sprint_uses_fractional_action_cost_for_smooth_moves() {
 }
 
 #[test]
+fn authority_sprint_locks_recovery_when_fractional_remainder_exhausts_action() {
+    let config = SliceAuthorityConfig::default();
+    let snapshot = crate::authority_test_slice();
+    let mut state = SliceAuthorityState::from_snapshot(&snapshot).unwrap();
+    {
+        let actor = state.actors.get_mut(&config.player_actor_id).unwrap();
+        actor.vitals.action = 1;
+        actor.sprint_action_drain_milli = 800;
+    }
+
+    let output = state.apply_envelope(
+        &config,
+        command(
+            1,
+            ClientCommand::Move {
+                dx: 1,
+                dy: 0,
+                duration_ticks: 1,
+                facing: None,
+                sprint: true,
+            },
+        ),
+    );
+
+    assert_eq!(output.status, AuthorityCommandStatus::Accepted);
+    let actor = state.actors.get(&config.player_actor_id).unwrap();
+    assert_eq!(actor.vitals.action, 0);
+    assert_eq!(actor.sprint_action_drain_milli, 0);
+    assert!(actor.sprint_recovery_locked);
+}
+
+#[test]
 fn authority_sprint_spends_action_for_faster_move() {
     let config = SliceAuthorityConfig::default();
     let snapshot = crate::authority_test_slice();

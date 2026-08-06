@@ -69,7 +69,6 @@ import {
   type GameCompactDirection,
   type GameCompactLifeState,
   type GameCompactVitals,
-  type GamePlayerPositionAck,
   type GameShardDelta,
   type GameServerPacket,
   type GameShardSnapshot,
@@ -582,6 +581,8 @@ interface AuthorityActor {
   skillPointsCap?: number;
   credits?: number;
   shotSpreadDegreesMilli?: number;
+  walkSpeedMilliPerSecond?: number;
+  sprintSpeedMilliPerSecond?: number;
   combatQueue?: GameActorCombatQueueSnapshot;
   abilityQueue?: AbilityQueueView | null;
   inCombat: boolean;
@@ -666,6 +667,9 @@ interface GameSession {
   // state or the journal; it only expands an ingress sentinel to a concrete family.
   lastResourceFamily?: string;
   seenCommands: Set<number>;
+  commandChain: Promise<void>;
+  lastMoveCommandId: number;
+  appliedMoveCommandId: number;
   ingressBudgets: Map<string, IngressBudgetBucket>;
   lastSnapshotTick: number;
   lastActorDeltaTick: number;
@@ -1786,6 +1790,9 @@ export class GameShard {
       connectedAtMs,
       characterId: identity.characterId,
       seenCommands: new Set<number>(),
+      commandChain: Promise.resolve(),
+      lastMoveCommandId: 0,
+      appliedMoveCommandId: 0,
       ingressBudgets: new Map<string, IngressBudgetBucket>(),
       lastSnapshotTick: -1,
       lastActorDeltaTick: -1,
@@ -1854,13 +1861,20 @@ export class GameShard {
       zoneId: identity.zoneId,
     });
     socket.on("message", (data) => {
-      void this.handleRawMessage(session.id, data).catch((error: unknown) => {
+      const onError = (error: unknown) => {
         this.logger?.warn({ error, sessionId: session.id }, "game message handler failed");
         this.sendError(session, "internal_error", "game command failed");
-      });
+      };
+      if (this.rustAuthorityMode === "live") {
+        session.commandChain = session.commandChain
+          .then(() => this.handleRawMessage(session.id, data))
+          .catch(onError);
+      } else {
+        void this.handleRawMessage(session.id, data).catch(onError);
+      }
     });
-    socket.on("close", () => this.disconnectSession(session.id));
     socket.on("error", (error) => this.logger?.warn({ error, sessionId: session.id }, "game socket error"));
+    socket.on("close", () => this.disconnectSession(session.id));
     const sendHello = (): void => {
       if (!this.sessions.has(session.id) || session.socket.readyState !== 1) return;
       const snapshot = this.snapshotForSession(session);
@@ -4756,6 +4770,14 @@ export class GameShard {
       : finiteInteger(rawSkillPointsCap, actor.skillPointsCap ?? 0);
     const nextCredits = finiteInteger(snapshot.credits, actor.credits ?? 0);
     const nextShotSpreadDegreesMilli = finiteInteger(snapshot.shotSpreadDegreesMilli, actor.shotSpreadDegreesMilli ?? 0);
+    const nextWalkSpeedMilliPerSecond = finiteInteger(
+      snapshot.walkSpeedMilliPerSecond,
+      actor.walkSpeedMilliPerSecond ?? 1_357,
+    );
+    const nextSprintSpeedMilliPerSecond = finiteInteger(
+      snapshot.sprintSpeedMilliPerSecond,
+      actor.sprintSpeedMilliPerSecond ?? 6_526,
+    );
     const nextCombatQueue = this.typescriptCombatQueueForRustQueue(snapshot.combatQueue);
     const nextAbilityQueue = this.typescriptAbilityQueueForRustQueue(snapshot.abilityQueue);
     const nextInCombat = snapshot.inCombat === true;
@@ -4979,6 +5001,8 @@ export class GameShard {
     actor.skillPointsUsed = nextSkillPointsUsed;
     actor.skillPointsCap = nextSkillPointsCap;
     actor.shotSpreadDegreesMilli = nextShotSpreadDegreesMilli;
+    actor.walkSpeedMilliPerSecond = nextWalkSpeedMilliPerSecond;
+    actor.sprintSpeedMilliPerSecond = nextSprintSpeedMilliPerSecond;
     actor.credits = nextCredits;
     actor.combatQueue = nextCombatQueue;
     actor.abilityQueue = nextAbilityQueue;
@@ -5507,7 +5531,7 @@ export class GameShard {
     for (const id of ownerIds) {
       this.activeTradeSessionsByActorId.delete(id);
       this.debugSeenCommandsByActor.delete(id);
-      this.debugNextCommandIdByActor.delete(id);
+      if (id !== rustActorId) this.debugNextCommandIdByActor.delete(id);
       this.rustAuthorityRegisteredActorIds.delete(id);
       this.rustAuthorityActorUpserts.delete(id);
       this.rustAuthorityLinkDeadActorIds.delete(id);
@@ -6301,12 +6325,21 @@ export class GameShard {
       && ("Move" in packet.data.envelope.command || "SetMoveIntent" in packet.data.envelope.command)
       ? performance.now()
       : 0;
+    const moveTraceReceivedAtWallMs = moveTraceReceivedAtMs > 0 ? Date.now() : 0;
     // Bare /survey //sample reuse-last: resolve the ingress sentinel to a
     // concrete family (or an honest prompt) BEFORE anything is forwarded to Rust
     // or appended to the journal.
     const resolvedResource = this.resolveResourceSentinelForSession(session, packet.data.envelope);
+    const isMoveCommand = "Move" in packet.data.envelope.command
+      || "SetMoveIntent" in packet.data.envelope.command;
     let result: SubmitCommandResult;
-    if ("reject" in resolvedResource) {
+    if (isMoveCommand && packet.data.envelope.command_id < session.lastMoveCommandId) {
+      result = {
+        receipt: this.reject(packet.data.envelope.command_id, "stale_move_command"),
+        events: [],
+        delta: this.receiptDeltaFor(session.actorId),
+      };
+    } else if ("reject" in resolvedResource) {
       this.recordCommandRejection(
         session.actorId,
         packet.data.envelope.command,
@@ -6333,10 +6366,23 @@ export class GameShard {
       }
       if (result.receipt.accepted) {
         this.recordSessionResourceContext(session, resolvedEnvelope);
+        if (isMoveCommand) {
+          session.lastMoveCommandId = Math.max(
+            session.lastMoveCommandId,
+            packet.data.envelope.command_id,
+          );
+          session.appliedMoveCommandId = session.lastMoveCommandId;
+        }
       }
     }
-    if (gameMoveTraceEnabled && ("Move" in packet.data.envelope.command || "SetMoveIntent" in packet.data.envelope.command)) {
-      this.writeMoveTraceReceipt(session, packet.data.envelope, result.receipt, moveTraceReceivedAtMs);
+    if (gameMoveTraceEnabled && isMoveCommand) {
+      this.writeMoveTraceReceipt(
+        session,
+        packet.data.envelope,
+        result.receipt,
+        moveTraceReceivedAtMs,
+        moveTraceReceivedAtWallMs,
+      );
     }
     // A receipt is an acknowledgement, not merely an in-memory result. Do not
     // release it to a client until this command group has reached stable media.
@@ -6378,14 +6424,32 @@ export class GameShard {
         playerSnapshot,
       );
       const playerMoveAck = shouldSendFullMoveAck
-        ? { playerActor: playerSnapshot }
-        : { playerPosition: playerSnapshot ? playerPositionAck(playerSnapshot) : undefined };
+        ? {
+            playerActor: playerSnapshot,
+            playerPosition: playerSnapshot
+              ? [playerSnapshot.x, playerSnapshot.y, session.appliedMoveCommandId] as [number, number, number]
+              : undefined,
+          }
+        : {
+            playerPosition: playerSnapshot
+              ? [playerSnapshot.x, playerSnapshot.y, session.appliedMoveCommandId] as [number, number, number]
+              : undefined,
+          };
       if (playerSnapshot) this.rememberActorSnapshots(session, { [playerSnapshot.id]: playerSnapshot });
       const ackEventsDue = this.pendingCombatEventsDue(session);
+      const movementActor = this.actors.get(session.actorId);
+      const movementProfile = movementActor?.walkSpeedMilliPerSecond !== undefined
+        && movementActor.sprintSpeedMilliPerSecond !== undefined
+        ? {
+            walkSpeedMilliPerSecond: movementActor.walkSpeedMilliPerSecond,
+            sprintSpeedMilliPerSecond: movementActor.sprintSpeedMilliPerSecond,
+          }
+        : undefined;
       this.send(session, {
         type: "game.acks",
         acks: session.pendingReceipts.splice(0).map(compactReceipt),
         ...playerMoveAck,
+        movementProfile,
         events: this.takePendingCombatEvents(session, ackEventsDue),
         abilityQueue: this.abilityQueueForSession(session),
         abilityQueueEvents: this.takePendingAbilityQueueEvents(session),
@@ -6409,14 +6473,18 @@ export class GameShard {
     envelope: ClientCommandEnvelope,
     receipt: GameCommandReceipt,
     receivedAtMs: number,
+    receivedAtWallMs: number,
   ): void {
     if (!gameMoveTraceEnabled || (!("Move" in envelope.command) && !("SetMoveIntent" in envelope.command))) return;
     const elapsedMs = receivedAtMs > 0 ? performance.now() - receivedAtMs : 0;
+    const tracedAtWallMs = Date.now();
     const move = "Move" in envelope.command ? envelope.command.Move : envelope.command.SetMoveIntent;
     process.stdout.write(`${JSON.stringify({
       schema: "successor.move-trace.v1",
       event: "move.receipt",
-      atMs: Date.now(),
+      atMs: tracedAtWallMs,
+      receivedAtMs: receivedAtWallMs || null,
+      authorityAppliedAtMs: tracedAtWallMs,
       shardId: this.shardId,
       actor: session.actorId,
       sessionId: session.id,
@@ -6432,6 +6500,7 @@ export class GameShard {
       durationTicks: "duration_ticks" in move ? move.duration_ticks : null,
       sprint: move.sprint === true,
       receiptMs: Number(elapsedMs.toFixed(3)),
+      receiveToAuthorityMs: Number(elapsedMs.toFixed(3)),
     })}\n`);
   }
 
@@ -7561,11 +7630,14 @@ export class GameShard {
     }
     if (this.rustAuthorityFlushInFlight) {
       this.authoritySkippedInFlightCount += 1;
-      this.resetAuthorityTickClock(now);
       return;
     }
 
-    const tickCount = this.consumeDebugAuthorityTickCount();
+    const tickCount = this.activeDebugClockAdvance
+      ? this.consumeDebugAuthorityTickCount()
+      : options.force
+        ? 1
+        : this.consumeAuthorityTickCount(now, false);
     if (tickCount <= 0) return;
     this.recordAuthorityTickStep(tickCount);
     this.rustAuthorityFlushInFlight = true;
@@ -7722,10 +7794,12 @@ export class GameShard {
         || hasVisibleInventoryDelta
         || session.pendingAbilityQueueEvents.length > 0;
       const interestRefreshDue = session.interestDirty;
+      const selfHighDetailDirty = highDetailDirtyActorIds.has(session.actorId);
       const routineDeltaDue = interestRefreshDue
         || session.lastActorDeltaTick < 0
         || this.tick - session.lastActorDeltaTick >= routineDeltaIntervalTicks;
-      const routineBudgeted = routineDeltaDue && !hasUrgentState && !interestRefreshDue;
+      const routineBudgeted =
+        routineDeltaDue && !hasUrgentState && !interestRefreshDue && !selfHighDetailDirty;
       if (routineBudgeted) {
         if (routineSessionsThisFlush >= maxRoutineSessionsPerFlush) {
           continue;
@@ -7763,7 +7837,6 @@ export class GameShard {
         ? this.routineInterestActorIds(session)
         : [];
       const hasKnownActorRemovals = includeRoutineState && this.hasActorRemovalsForSession(session);
-      const selfHighDetailDirty = highDetailDirtyActorIds.has(session.actorId);
       const focusActorIds = uniqueActorIds([
         ...(selfHighDetailDirty ? [session.actorId] : []),
         ...eventFocusActors,
@@ -10506,9 +10579,6 @@ function compactReceipt(receipt: GameCommandReceipt): GameCompactReceipt {
     : [receipt.commandId, receipt.accepted ? 1 : 0, receipt.tick];
 }
 
-function playerPositionAck(actor: GameActorSnapshot): GamePlayerPositionAck {
-  return [actor.x, actor.y];
-}
 
 function shouldSendPlayerActorMoveAck(
   move: Extract<ClientCommand, { Move: unknown }>["Move"],
@@ -11872,6 +11942,9 @@ function commandKind(command: ClientCommand): string {
 
 const ingressBudgetCapacityEnv = "GAME_INGRESS_BUDGET_CAPACITY";
 const ingressBudgetRefillEnv = "GAME_INGRESS_BUDGET_REFILL_PER_SECOND";
+const movementIngressBudgetCapacityEnv = "GAME_MOVE_INGRESS_BUDGET_CAPACITY";
+const movementIngressBudgetRefillEnv = "GAME_MOVE_INGRESS_BUDGET_REFILL_PER_SECOND";
+const defaultMovementIngressBudgetRule = { capacity: 40, refillPerSecond: 30 } as const;
 const defaultIngressBudgetRule = { capacity: 10, refillPerSecond: 5 } as const;
 const ingressBudgetCommandKinds = [
   "Move",
@@ -12051,10 +12124,18 @@ function createIngressBudgetConfig(
   const commandKinds: Record<string, IngressBudgetRule> = {};
   for (const kind of ingressBudgetCommandKinds) {
     const override = options?.commandKinds?.[kind];
+    const fallback = kind === "SetMoveIntent" || kind === "Move"
+      ? normalizeIngressBudgetRule({
+          capacity: envNumber(env[movementIngressBudgetCapacityEnv])
+            ?? defaultMovementIngressBudgetRule.capacity,
+          refillPerSecond: envNumber(env[movementIngressBudgetRefillEnv])
+            ?? defaultMovementIngressBudgetRule.refillPerSecond,
+        }, defaultMovementIngressBudgetRule)
+      : defaultRule;
     commandKinds[kind] = normalizeIngressBudgetRule({
-      capacity: override?.capacity ?? defaultRule.capacity,
-      refillPerSecond: override?.refillPerSecond ?? defaultRule.refillPerSecond,
-    }, defaultRule);
+      capacity: override?.capacity ?? fallback.capacity,
+      refillPerSecond: override?.refillPerSecond ?? fallback.refillPerSecond,
+    }, fallback);
   }
   return {
     default: defaultRule,

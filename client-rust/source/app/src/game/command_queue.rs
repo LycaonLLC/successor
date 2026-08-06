@@ -14,6 +14,10 @@ pub fn move_interval_ms() -> f32 {
     1000.0 / MOVE_COMMANDS_PER_SECOND as f32
 }
 
+/// Movement receipts are diagnostic, not a serialization barrier. Retain only
+/// a bounded recent set while newer intent commands continue transmitting.
+const MAX_MOVEMENT_IN_FLIGHT: usize = 8;
+
 /// A fresh command-id floor: `ms * 1000 + seq` (seq wraps 1..=999) so two
 /// clients created in the same millisecond, and reconnects, never collide.
 pub fn next_command_id_floor(now_ms: u64, seq: &mut u64) -> u64 {
@@ -48,6 +52,7 @@ pub struct CommandQueue {
     next_id: u64,
     pending: Vec<ClientCommandEnvelope>,
     in_flight: Option<ClientCommandEnvelope>,
+    movement_in_flight: Vec<ClientCommandEnvelope>,
     pub total_queued: u64,
 }
 
@@ -59,6 +64,7 @@ impl CommandQueue {
             next_id: command_id_floor.max(1),
             pending: Vec::new(),
             in_flight: None,
+            movement_in_flight: Vec::with_capacity(MAX_MOVEMENT_IN_FLIGHT),
             total_queued: 0,
         }
     }
@@ -106,29 +112,42 @@ impl CommandQueue {
         out
     }
 
-    /// Move the highest-priority pending command into the in-flight slot and
-    /// return it (for sending). Only one command is in flight at a time.
+    /// Move the highest-priority eligible command into its lane and return it.
+    /// Transactional commands remain single-flight; movement uses an independent
+    /// bounded lane so a delayed inventory/crafting receipt cannot stall input.
     pub fn take_next(&mut self) -> Option<ClientCommandEnvelope> {
-        if self.in_flight.is_some() || self.pending.is_empty() {
+        if self.pending.is_empty() {
             return None;
         }
-        // Pick the flush-order head.
-        let mut best = 0usize;
-        for i in 1..self.pending.len() {
-            let (pi, ci) = (
-                command_priority(&self.pending[i].command),
-                self.pending[i].command_id,
-            );
-            let (pb, cb) = (
-                command_priority(&self.pending[best].command),
-                self.pending[best].command_id,
-            );
-            if pi < pb || (pi == pb && ci < cb) {
-                best = i;
+        let mut best = None;
+        for (index, pending) in self.pending.iter().enumerate() {
+            if self.in_flight.is_some() && !Self::is_move(&pending.command) {
+                continue;
+            }
+            let replace = best.is_none_or(|current: usize| {
+                let candidate = (
+                    command_priority(&pending.command),
+                    pending.command_id,
+                );
+                let selected = (
+                    command_priority(&self.pending[current].command),
+                    self.pending[current].command_id,
+                );
+                candidate < selected
+            });
+            if replace {
+                best = Some(index);
             }
         }
-        let env = self.pending.remove(best);
-        self.in_flight = Some(env.clone());
+        let env = self.pending.remove(best?);
+        if Self::is_move(&env.command) {
+            if self.movement_in_flight.len() == MAX_MOVEMENT_IN_FLIGHT {
+                self.movement_in_flight.remove(0);
+            }
+            self.movement_in_flight.push(env.clone());
+        } else {
+            self.in_flight = Some(env.clone());
+        }
         Some(env)
     }
 
@@ -137,6 +156,14 @@ impl CommandQueue {
     pub fn settle(&mut self, command_id: u64) -> bool {
         if self.in_flight.as_ref().map(|e| e.command_id) == Some(command_id) {
             self.in_flight = None;
+            return true;
+        }
+        if let Some(pos) = self
+            .movement_in_flight
+            .iter()
+            .position(|envelope| envelope.command_id == command_id)
+        {
+            self.movement_in_flight.remove(pos);
             return true;
         }
         if let Some(pos) = self.pending.iter().position(|e| e.command_id == command_id) {
@@ -164,9 +191,12 @@ impl CommandQueue {
     pub fn in_flight(&self) -> Option<&ClientCommandEnvelope> {
         self.in_flight.as_ref()
     }
-    /// Retain unsettled commands across reconnect and replay them idempotently.
+    /// Reconnects replay transactional commands idempotently. Movement already
+    /// sent on the old transport is discarded; the controller re-announces the
+    /// current desired state on its bounded wall-clock cadence.
     pub fn reconcile_reconnect(&mut self) {
         let _ = self.defer_in_flight();
+        self.movement_in_flight.clear();
     }
 
     pub fn settle_many(&mut self, command_ids: impl IntoIterator<Item = u64>) {
@@ -176,7 +206,10 @@ impl CommandQueue {
     }
 
     pub fn pending_envelopes(&self) -> impl Iterator<Item = &ClientCommandEnvelope> {
-        self.pending.iter().chain(self.in_flight.iter())
+        self.pending
+            .iter()
+            .chain(self.in_flight.iter())
+            .chain(self.movement_in_flight.iter())
     }
 }
 
@@ -266,6 +299,49 @@ mod tests {
         assert_eq!(q.pending_len(), 1);
         assert!(q.settle(first));
         assert_eq!(q.take_next().unwrap().command_id, latest);
+    }
+
+    #[test]
+    fn movement_lane_bypasses_delayed_transaction_receipt() {
+        let mut q = q();
+        let transaction =
+            q.enqueue(ClientCommand::CloneRespawn { facility_id: None }, 1);
+        assert_eq!(q.take_next().unwrap().command_id, transaction);
+        let movement = q.enqueue(
+            ClientCommand::SetMoveIntent {
+                dx: 1,
+                dy: 0,
+                facing: None,
+                sprint: false,
+            },
+            2,
+        );
+        assert_eq!(q.take_next().unwrap().command_id, movement);
+        assert!(q.in_flight().is_some_and(|env| env.command_id == transaction));
+        assert!(q.settle(movement));
+        assert!(q.settle(transaction));
+    }
+
+    #[test]
+    fn reconnect_drops_old_transport_movement_but_replays_transaction() {
+        let mut q = q();
+        let transaction =
+            q.enqueue(ClientCommand::CloneRespawn { facility_id: None }, 1);
+        assert_eq!(q.take_next().unwrap().command_id, transaction);
+        let movement = q.enqueue(
+            ClientCommand::SetMoveIntent {
+                dx: 0,
+                dy: -1,
+                facing: None,
+                sprint: true,
+            },
+            2,
+        );
+        assert_eq!(q.take_next().unwrap().command_id, movement);
+        q.reconcile_reconnect();
+        assert_eq!(q.pending_len(), 1);
+        assert!(!q.pending_envelopes().any(|env| env.command_id == movement));
+        assert_eq!(q.take_next().unwrap().command_id, transaction);
     }
 
     #[test]

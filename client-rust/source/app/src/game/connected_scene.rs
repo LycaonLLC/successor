@@ -10,6 +10,7 @@
 //! geometry is normalized to the canonical adult height.
 
 use std::collections::HashMap;
+use core::fmt::{self, Write};
 
 use successor_client_proto::packets::{
     GameActorSnapshot, GameCommandReceipt, GameServerPacket, GameShardDelta, GameShardSnapshot,
@@ -153,6 +154,8 @@ struct ActorPawn {
     /// Smoothed rendered position (lerped toward `target` each frame) — this is
     /// what drives both the transform and the gait speed, so neither snaps.
     render_pos: (f32, f32),
+    /// Presentation height after floor/terrain transition filtering.
+    ground_y: f32,
     speed: f32,
     yaw: f32,
     present: bool,
@@ -172,9 +175,108 @@ struct CarriedMotion {
     interp: ActorInterp,
     predictor: MovePredictor,
     render_pos: (f32, f32),
+    ground_y: f32,
     target: (f32, f32),
     speed: f32,
     yaw: f32,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct MovementDiagnostics {
+    pub authoritative: (f32, f32),
+    pub predicted: (f32, f32),
+    pub rendered: (f32, f32),
+    pub correction_cells: f32,
+    pub intent: (i32, i32, bool),
+    pub applied_command_id: u64,
+    pub blocker_count: usize,
+    pub presented_ground_y: f32,
+    pub sampled_ground_y: f32,
+    pub frame_dt_ms: f32,
+    pub last_change_ms: u64,
+    pub last_send_ms: u64,
+    pub next_send_ms: u64,
+    pub sampled_at_ms: u64,
+}
+
+struct DebugText<const N: usize> {
+    bytes: [u8; N],
+    len: usize,
+}
+
+impl<const N: usize> DebugText<N> {
+    fn new() -> Self {
+        Self {
+            bytes: [0; N],
+            len: 0,
+        }
+    }
+
+    fn as_str(&self) -> &str {
+        core::str::from_utf8(&self.bytes[..self.len]).expect("debug text remains UTF-8")
+    }
+}
+
+impl<const N: usize> Write for DebugText<N> {
+    fn write_str(&mut self, value: &str) -> fmt::Result {
+        let remaining = N.saturating_sub(self.len);
+        if value.len() > remaining {
+            return Err(fmt::Error);
+        }
+        self.bytes[self.len..self.len + value.len()].copy_from_slice(value.as_bytes());
+        self.len += value.len();
+        Ok(())
+    }
+}
+
+fn draw_movement_debug(ui: &mut UiBuilder, movement: MovementDiagnostics) {
+    let mut position = DebugText::<192>::new();
+    let mut timing = DebugText::<192>::new();
+    let mut terrain = DebugText::<192>::new();
+    let _ = write!(
+        &mut position,
+        "AUTH {:.3},{:.3}  PRED {:.3},{:.3}  RENDER {:.3},{:.3}  CORR {:.3}c",
+        movement.authoritative.0,
+        movement.authoritative.1,
+        movement.predicted.0,
+        movement.predicted.1,
+        movement.rendered.0,
+        movement.rendered.1,
+        movement.correction_cells,
+    );
+    let send_age = movement.sampled_at_ms.saturating_sub(movement.last_send_ms);
+    let next_send = movement.next_send_ms.saturating_sub(movement.sampled_at_ms);
+    let _ = write!(
+        &mut timing,
+        "INTENT {},{}{}  APPLIED {}  BLOCKERS {}  FRAME {:.2}ms  SEND AGE {}ms NEXT {}ms",
+        movement.intent.0,
+        movement.intent.1,
+        if movement.intent.2 { " SPRINT" } else { "" },
+        movement.applied_command_id,
+        movement.blocker_count,
+        movement.frame_dt_ms,
+        send_age,
+        next_send,
+    );
+    let _ = write!(
+        &mut terrain,
+        "GROUND PRESENT {:.3}m  SAMPLE {:.3}m  DELTA {:.3}m",
+        movement.presented_ground_y,
+        movement.sampled_ground_y,
+        movement.sampled_ground_y - movement.presented_ground_y,
+    );
+    ui.rect(8.0, 110.0, 610.0, 59.0, [3, 8, 12, 224]);
+    ui.border(8.0, 110.0, 610.0, 59.0, 1.0, [42, 225, 231, 255]);
+    ui.text(
+        "SHIFT-C COLLISION  RED STATIC  ORANGE DYNAMIC  GREEN CLEARANCE  CYAN AUTH  YELLOW PRED  MAGENTA RENDER",
+        14.0,
+        115.0,
+        1.0,
+        [220, 245, 248, 255],
+    );
+    ui.text(position.as_str(), 14.0, 129.0, 1.0, [220, 245, 248, 255]);
+    ui.text(timing.as_str(), 14.0, 142.0, 1.0, [220, 245, 248, 255]);
+    ui.text(terrain.as_str(), 14.0, 155.0, 1.0, [220, 245, 248, 255]);
 }
 
 struct LiveActor {
@@ -446,7 +548,7 @@ const INVENTORY_RADIAL_ANGLES: [f32; 6] = [
 
 // ── Character viewer, matched to the original client's object viewer ────────
 // Values derived from the decompiled `CuiWidget3dObjectListViewer` paperdoll
-// configuration via the SWG oracle: a narrow portrait FOV, a drag that spins
+// configuration via the legacy oracle: a narrow portrait FOV, a drag that spins
 // the doll, a multiplicative flick decay, and a resting park angle.
 
 /// Windows that host a live 3D character viewer, and the viewport each one
@@ -710,6 +812,7 @@ pub struct ConnectedScene {
     slice: successor_engine_core::json::Json,
     props_loader: PropsLoader,
     collision_debug: CollisionDebugOverlay,
+    movement_collision: crate::world::movement_collision::MovementCollisionWorld,
     loaded_area_id: String,
     streamed_world: StreamedWorld,
     pawns: HashMap<String, ActorPawn>,
@@ -741,6 +844,7 @@ pub struct ConnectedScene {
     hud_state: HudState,
     overlays: hud::overlays::Overlays,
     last_dialogue_tick: i64,
+    last_applied_move_command_id: u64,
     toolbar: hud::toolbar::Toolbar,
     waypoints: hud::waypoints::WaypointStore,
     macro_runtime: crate::game::macro_runtime::MacroRuntime,
@@ -827,7 +931,12 @@ pub struct ConnectedScene {
     /// Transient muzzle-flash point lights: (entity, remaining seconds).
     muzzle_lights: Vec<(Entity, f32)>,
     sim_time: f32,
+    last_frame_dt: f32,
+    movement_timing: movement::MovementTiming,
+    movement_sampled_at_ms: u64,
     move_intent: (i32, i32, bool),
+    walk_speed_cells_per_second: f32,
+    sprint_speed_cells_per_second: f32,
     click_route: Vec<(i32, i32)>,
     click_route_index: usize,
     click_goal: Option<(i32, i32)>,
@@ -1063,6 +1172,27 @@ fn filtered_gait_speed(previous: f32, displacement_cells: f32, dt_seconds: f32) 
     previous + (instantaneous - previous) * alpha
 }
 
+const GROUND_HYSTERESIS_METERS: f32 = 0.025;
+const GROUND_SNAP_METERS: f32 = 3.0;
+const GROUND_FOLLOW_METERS_PER_SECOND: f32 = 6.0;
+
+fn smooth_ground_height(current: f32, target: f32, dt_seconds: f32) -> f32 {
+    if !current.is_finite() || !target.is_finite() {
+        return target;
+    }
+    let delta = target - current;
+    let distance = delta.abs();
+    if distance <= GROUND_HYSTERESIS_METERS {
+        return current;
+    }
+    if distance >= GROUND_SNAP_METERS {
+        return target;
+    }
+    let step = (GROUND_FOLLOW_METERS_PER_SECOND * dt_seconds.max(0.0))
+        .min(distance - GROUND_HYSTERESIS_METERS);
+    current + delta.signum() * step
+}
+
 impl ConnectedScene {
     /// Build renderer resources from stable asset ids. Area-scoped terrain and
     /// props are deferred until the first accepted authority snapshot.
@@ -1215,6 +1345,7 @@ impl ConnectedScene {
             slice,
             props_loader: loader,
             collision_debug,
+            movement_collision: crate::world::movement_collision::MovementCollisionWorld::default(),
             sun,
             loaded_area_id: String::new(),
             streamed_world: StreamedWorld::new(),
@@ -1230,6 +1361,7 @@ impl ConnectedScene {
             hud_state: HudState::default(),
             overlays: hud::overlays::Overlays::new(),
             last_dialogue_tick: i64::MIN,
+            last_applied_move_command_id: 0,
             toolbar: hud::toolbar::Toolbar::new(hud::toolbar::ToolbarDoc::blank()),
             waypoints: hud::waypoints::WaypointStore::new(),
             macro_runtime: crate::game::macro_runtime::MacroRuntime::default(),
@@ -1290,8 +1422,14 @@ impl ConnectedScene {
             center,
             muzzle_lights: Vec::with_capacity(32),
             sim_time: 0.0,
+            last_frame_dt: 0.0,
+            movement_timing: movement::MovementTiming::default(),
+            movement_sampled_at_ms: 0,
             move_intent: (0, 0, false),
             click_route: Vec::new(),
+            walk_speed_cells_per_second: crate::game::prediction::BASE_SPEED_CELLS,
+            sprint_speed_cells_per_second: crate::game::prediction::BASE_SPEED_CELLS
+                * crate::game::prediction::SPRINT_MULTIPLIER,
             click_route_index: 0,
             click_goal: None,
             debug_camera: None,
@@ -1379,6 +1517,7 @@ impl ConnectedScene {
             }
             GameServerPacket::Acks {
                 acks,
+                movement_profile,
                 player_actor,
                 player_position,
                 events,
@@ -1389,8 +1528,21 @@ impl ConnectedScene {
                 }
                 if let Some(player_actor) = player_actor {
                     self.on_player_pos(player_actor.x, player_actor.y);
-                } else if let Some(position) = player_position {
+                } else if let Some(position) = player_position.as_ref() {
                     self.on_player_pos(position.0, position.1);
+                }
+                if let Some(applied_command_id) =
+                    player_position.and_then(|position| position.2)
+                {
+                    self.last_applied_move_command_id = self
+                        .last_applied_move_command_id
+                        .max(applied_command_id);
+                }
+                if let Some(profile) = movement_profile {
+                    self.walk_speed_cells_per_second =
+                        profile.walk_speed_milli_per_second.max(0) as f32 / 1_000.0;
+                    self.sprint_speed_cells_per_second =
+                        profile.sprint_speed_milli_per_second.max(0) as f32 / 1_000.0;
                 }
                 if let Some(events) = events {
                     self.ingest_packet_events(&events);
@@ -1917,6 +2069,35 @@ impl ConnectedScene {
     pub fn on_player_pos(&mut self, x: f32, y: f32) {
         self.store.apply_player_position(x, y);
     }
+    pub fn last_applied_move_command_id(&self) -> u64 {
+        self.last_applied_move_command_id
+    }
+    pub fn movement_diagnostics(&self) -> Option<MovementDiagnostics> {
+        let pawn = self.pawns.get(&self.player_id)?;
+        let authoritative = pawn.predictor.authoritative();
+        let predicted = pawn.predictor.render_pos();
+        let correction_cells = ((predicted.0 - authoritative.0).powi(2)
+            + (predicted.1 - authoritative.1).powi(2))
+        .sqrt();
+        let wx = (pawn.render_pos.0 + 0.5) * WORLD_UNITS_PER_CELL;
+        let wz = (pawn.render_pos.1 + 0.5) * WORLD_UNITS_PER_CELL;
+        Some(MovementDiagnostics {
+            authoritative,
+            predicted,
+            rendered: pawn.render_pos,
+            correction_cells,
+            intent: self.move_intent,
+            applied_command_id: self.last_applied_move_command_id,
+            blocker_count: self.movement_collision.blocker_count(),
+            presented_ground_y: pawn.ground_y,
+            sampled_ground_y: self.ground_height_at(wx, wz),
+            frame_dt_ms: self.last_frame_dt * 1_000.0,
+            last_change_ms: self.movement_timing.last_change_ms,
+            last_send_ms: self.movement_timing.last_send_ms,
+            next_send_ms: self.movement_timing.next_send_ms,
+            sampled_at_ms: self.movement_sampled_at_ms,
+        })
+    }
     pub fn handle_tuning_toggle(&mut self, down: bool) -> bool {
         self.graphics_tuner.handle_toggle(down)
     }
@@ -2067,6 +2248,7 @@ impl ConnectedScene {
         self.selected_actor_id = previous.selected_actor_id.clone();
         self.selected_inventory = previous.selected_inventory.clone();
         self.last_dialogue_tick = previous.last_dialogue_tick;
+        self.last_applied_move_command_id = previous.last_applied_move_command_id;
         self.framebuffer = previous.framebuffer;
         self.wm.restore_workspace_state_from(&previous.wm);
         self.hud_defaults_pending = previous.hud_defaults_pending;
@@ -2144,6 +2326,7 @@ impl ConnectedScene {
     /// Routed through the same entry points the player's own action uses, so a
     /// captured pane is the pane the player would see — not a special
     /// inspection rendering. Returns false only for an unregistered window id.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn apply_control_ui_intent(&mut self, intent: &successor_platform::ControlUiIntent) -> bool {
         match intent {
             successor_platform::ControlUiIntent::Window { id, open } => {
@@ -2184,6 +2367,7 @@ impl ConnectedScene {
     /// protocol. Development-only inspection: a UI journey asserts move,
     /// resize, and layout persistence against these numbers rather than
     /// against pixels.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn window_frames(&self) -> Vec<successor_platform::ControlWindowFrame> {
         let mut frames = Vec::new();
         self.wm.for_each_geometry(|id, rect| {
@@ -2371,6 +2555,10 @@ impl ConnectedScene {
     pub fn release_movement(&mut self, _reason: movement::StopReason) -> Option<u64> {
         self.dispatch_gameplay_action(actions::GameplayAction::Stop)
     }
+    pub fn set_movement_timing(&mut self, timing: movement::MovementTiming, sampled_at_ms: u64) {
+        self.movement_timing = timing;
+        self.movement_sampled_at_ms = sampled_at_ms;
+    }
 
     /// Feed the held authority movement intent into local prediction.
     pub fn set_move_intent(&mut self, dx: i32, dy: i32, sprint: bool) {
@@ -2393,45 +2581,17 @@ impl ConnectedScene {
             self.click_goal,
             self.click_route.get(self.click_route_index).copied(),
         ) {
-            let components = self
-                .store
-                .building
-                .as_ref()
-                .and_then(|value| value.get("components"))
-                .and_then(serde_json::Value::as_array);
-            let next_blocked = components.is_some_and(|rows| {
-                rows.iter().any(|component| {
-                    matches!(
-                        component.get("kind").and_then(serde_json::Value::as_str),
-                        Some("wall" | "window" | "door")
-                    ) && component.get("cellX").and_then(serde_json::Value::as_i64)
-                        == Some(next.0 as i64)
-                        && component.get("cellY").and_then(serde_json::Value::as_i64)
-                            == Some(next.1 as i64)
-                })
-            });
+            let next_blocked = !self
+                .movement_collision
+                .anchor_clear(next.0 as f32 + 0.5, next.1 as f32 + 0.5);
             if next_blocked {
-                let mut blocked = std::collections::HashSet::new();
-                if let Some(rows) = components {
-                    for component in rows {
-                        if !matches!(
-                            component.get("kind").and_then(serde_json::Value::as_str),
-                            Some("wall" | "window" | "door")
-                        ) {
-                            continue;
-                        }
-                        if let (Some(x), Some(y)) = (
-                            component.get("cellX").and_then(serde_json::Value::as_i64),
-                            component.get("cellY").and_then(serde_json::Value::as_i64),
-                        ) {
-                            blocked.insert((x as i32, y as i32));
-                        }
-                    }
-                }
                 let start = (player.x.floor() as i32, player.y.floor() as i32);
-                self.click_route =
-                    movement::route_grid(start, goal, |x, y| blocked.contains(&(x, y)))
-                        .unwrap_or_default();
+                self.click_route = movement::route_grid(start, goal, |x, y| {
+                    !self
+                        .movement_collision
+                        .anchor_clear(x as f32 + 0.5, y as f32 + 0.5)
+                })
+                .unwrap_or_default();
                 self.click_route_index = 0;
             }
         }
@@ -2994,32 +3154,12 @@ impl ConnectedScene {
         );
         let player = self.store.actors.get(&self.store.player_actor_id)?;
         let start = (player.x.floor() as i32, player.y.floor() as i32);
-        let mut blocked = std::collections::HashSet::new();
-        if let Some(components) = self
-            .store
-            .building
-            .as_ref()
-            .and_then(|value| value.get("components"))
-            .and_then(serde_json::Value::as_array)
-        {
-            for component in components {
-                let kind = component
-                    .get("kind")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("");
-                if !matches!(kind, "wall" | "window" | "door") {
-                    continue;
-                }
-                if let (Some(cx), Some(cy)) = (
-                    component.get("cellX").and_then(serde_json::Value::as_i64),
-                    component.get("cellY").and_then(serde_json::Value::as_i64),
-                ) {
-                    blocked.insert((cx as i32, cy as i32));
-                }
-            }
-        }
-        self.click_route = movement::route_grid(start, goal, |cx, cy| blocked.contains(&(cx, cy)))
-            .unwrap_or_default();
+        self.click_route = movement::route_grid(start, goal, |cx, cy| {
+            !self
+                .movement_collision
+                .anchor_clear(cx as f32 + 0.5, cy as f32 + 0.5)
+        })
+        .unwrap_or_default();
         self.click_route_index = 0;
         self.click_goal = (!self.click_route.is_empty()).then_some(goal);
         self.streamed_world
@@ -3391,22 +3531,27 @@ impl ConnectedScene {
         self.world.flush();
     }
 
+    fn ground_height_at(&self, x: f32, z: f32) -> f32 {
+        self.props_loader
+            .floor_height_at(x, z)
+            .unwrap_or_else(|| self.terrain.height_at(x, z))
+    }
+
     /// The player's current world position (falls back to the slice centre).
     pub fn player_pos(&self) -> Vec3 {
-        let (x, z) = if let Some(p) = self.pawns.get(&self.player_id) {
-            (
-                (p.render_pos.0 + 0.5) * WORLD_UNITS_PER_CELL,
-                (p.render_pos.1 + 0.5) * WORLD_UNITS_PER_CELL,
-            )
-        } else if let Some(actor) = self.store.actors.get(&self.player_id) {
-            (
-                (actor.x + 0.5) * WORLD_UNITS_PER_CELL,
-                (actor.y + 0.5) * WORLD_UNITS_PER_CELL,
-            )
-        } else {
-            return self.center;
-        };
-        vec3(x, self.terrain.height_at(x, z), z)
+        if let Some(pawn) = self.pawns.get(&self.player_id) {
+            return vec3(
+                (pawn.render_pos.0 + 0.5) * WORLD_UNITS_PER_CELL,
+                pawn.ground_y,
+                (pawn.render_pos.1 + 0.5) * WORLD_UNITS_PER_CELL,
+            );
+        }
+        if let Some(actor) = self.store.actors.get(&self.player_id) {
+            let x = (actor.x + 0.5) * WORLD_UNITS_PER_CELL;
+            let z = (actor.y + 0.5) * WORLD_UNITS_PER_CELL;
+            return vec3(x, self.ground_height_at(x, z), z);
+        }
+        self.center
     }
 
     /// The player's current smoothed gait speed (diagnostic: should be stable
@@ -3692,32 +3837,37 @@ impl ConnectedScene {
             .remove(&actor.id)
             .filter(|carried| carried.route == route);
 
-        let (animator, lane, interp, predictor, target, render_pos, speed, yaw) = match carried {
-            Some(carried) => (
-                carried.animator,
-                carried.lane,
-                carried.interp,
-                carried.predictor,
-                carried.target,
-                carried.render_pos,
-                carried.speed,
-                carried.yaw,
-            ),
-            None => {
-                let mut interp = ActorInterp::new();
-                interp.push(self.sim_time, actor.x, actor.y, actor.lifecycle_seq);
-                (
-                    animator,
-                    lane,
-                    interp,
-                    MovePredictor::new(actor.x, actor.y),
-                    (actor.x, actor.y),
-                    (actor.x, actor.y),
-                    0.0,
-                    0.0,
-                )
-            }
-        };
+        let (animator, lane, interp, predictor, target, render_pos, ground_y, speed, yaw) =
+            match carried {
+                Some(carried) => (
+                    carried.animator,
+                    carried.lane,
+                    carried.interp,
+                    carried.predictor,
+                    carried.target,
+                    carried.render_pos,
+                    carried.ground_y,
+                    carried.speed,
+                    carried.yaw,
+                ),
+                None => {
+                    let mut interp = ActorInterp::new();
+                    interp.push(self.sim_time, actor.x, actor.y, actor.lifecycle_seq);
+                    let wx = (actor.x + 0.5) * WORLD_UNITS_PER_CELL;
+                    let wz = (actor.y + 0.5) * WORLD_UNITS_PER_CELL;
+                    (
+                        animator,
+                        lane,
+                        interp,
+                        MovePredictor::new(actor.x, actor.y),
+                        (actor.x, actor.y),
+                        (actor.x, actor.y),
+                        self.ground_height_at(wx, wz),
+                        0.0,
+                        0.0,
+                    )
+                }
+            };
 
         self.pawns.insert(
             actor.id.clone(),
@@ -3757,6 +3907,7 @@ impl ConnectedScene {
                 alive: actor.alive,
                 target,
                 render_pos,
+                ground_y,
                 speed,
                 yaw,
                 present: true,
@@ -3813,6 +3964,8 @@ impl ConnectedScene {
             &terrain,
             &self.store.prop_states,
         );
+        self.movement_collision
+            .rebuild(&self.slice, &area_id, &self.collision_debug);
         self.terrain = terrain;
         self.loaded_area_id = area_id;
         eprintln!(
@@ -3834,6 +3987,7 @@ impl ConnectedScene {
         chat_client: &mut crate::game::chat_net::ChatClient,
         chat_input: &mut successor_engine_render::ui::TextField,
     ) {
+        self.last_frame_dt = dt.max(0.0);
         if self.loading {
             self.ui.begin(w, h);
             self.loading_screen.tick(dt);
@@ -3942,6 +4096,7 @@ impl ConnectedScene {
                         interp: pawn.interp,
                         predictor: pawn.predictor,
                         render_pos: pawn.render_pos,
+                        ground_y: pawn.ground_y,
                         target: pawn.target,
                         speed: pawn.speed,
                         yaw: pawn.yaw,
@@ -4049,6 +4204,8 @@ impl ConnectedScene {
         // Visibility is per-viewport, so one pawn can be in the world and in
         // several dolls in the same frame.
         let doll_mask_for = |pawn_id: &str| doll_viewport_mask(&doll_subjects, pawn_id);
+        let terrain = &self.terrain;
+        let props_loader = &self.props_loader;
         for pawn in self.pawns.values_mut() {
             if !pawn.present {
                 for entity in pawn.entities.iter().chain(
@@ -4064,20 +4221,29 @@ impl ConnectedScene {
             }
 
             let (rx, ry) = pawn.render_pos;
-            let (nx, ny) = if pawn.id == self.player_id {
-                pawn.predictor.predict(
+            let (nx, ny, gait_distance) = if pawn.id == self.player_id {
+                let input_distance = pawn.predictor.predict(
+                    &self.movement_collision,
                     self.move_intent.0 as f32,
                     self.move_intent.1 as f32,
                     self.move_intent.2,
-                    1.0,
+                    if self.move_intent.2 {
+                        self.sprint_speed_cells_per_second
+                    } else {
+                        self.walk_speed_cells_per_second
+                    },
                     dt,
                 );
-                pawn.predictor.render_pos()
+                let predicted = pawn.predictor.render_pos();
+                (predicted.0, predicted.1, input_distance)
             } else {
-                pawn.interp.sample(self.sim_time).unwrap_or(pawn.target)
+                let sampled = pawn.interp.sample(self.sim_time).unwrap_or(pawn.target);
+                let distance =
+                    ((sampled.0 - rx).powi(2) + (sampled.1 - ry).powi(2)).sqrt();
+                (sampled.0, sampled.1, distance)
             };
             let moved = ((nx - rx) * (nx - rx) + (ny - ry) * (ny - ry)).sqrt();
-            pawn.speed = filtered_gait_speed(pawn.speed, moved, dt);
+            pawn.speed = filtered_gait_speed(pawn.speed, gait_distance, dt);
             if moved > 1e-4 {
                 pawn.yaw = (nx - rx).atan2(ny - ry);
             }
@@ -4149,16 +4315,14 @@ impl ConnectedScene {
             let rotation = Quat::from_axis_angle(Vec3::Y, pawn.yaw);
             let wx = (nx + 0.5) * WORLD_UNITS_PER_CELL;
             let wz = (ny + 0.5) * WORLD_UNITS_PER_CELL;
-            // A building's floor is a slab over the terrain, so an actor indoors
-            // stands on the slab. Sampling terrain alone sinks them into it.
-            let ground_y = self
-                .props_loader
+            let target_ground_y = props_loader
                 .floor_height_at(wx, wz)
-                .unwrap_or_else(|| self.terrain.height_at(wx, wz));
+                .unwrap_or_else(|| terrain.height_at(wx, wz));
+            pawn.ground_y = smooth_ground_height(pawn.ground_y, target_ground_y, dt);
             let pawn_mask = doll_mask_for(&pawn.id);
             for entity in &pawn.entities {
                 if let Some(transform) = self.world.get_component::<Transform>(*entity) {
-                    transform.pos = vec3(wx, ground_y, wz);
+                    transform.pos = vec3(wx, pawn.ground_y, wz);
                     transform.rot = rotation;
                 }
                 if let Some(renderer) = self.world.get_component::<MeshRenderer>(*entity) {
@@ -4190,7 +4354,7 @@ impl ConnectedScene {
                     Mat4::from_trs(pos, rotation, scale)
                 });
                 let actor_world = Mat4::from_trs(
-                    vec3(wx, ground_y, wz),
+                    vec3(wx, pawn.ground_y, wz),
                     rotation,
                     vec3(pawn.scale, pawn.scale, pawn.scale),
                 );
@@ -4327,7 +4491,7 @@ impl ConnectedScene {
                 .map(|pawn| {
                     let wx = (pawn.render_pos.0 + 0.5) * WORLD_UNITS_PER_CELL;
                     let wz = (pawn.render_pos.1 + 0.5) * WORLD_UNITS_PER_CELL;
-                    (vec3(wx, self.terrain.height_at(wx, wz), wz), pawn.yaw)
+                    (vec3(wx, pawn.ground_y, wz), pawn.yaw)
                 })
                 .unwrap_or((p, 0.0));
             // Framing is preserved while adopting the original's 22.5° FOV:
@@ -4539,16 +4703,27 @@ impl ConnectedScene {
                 self.ambience_timer = 12.0 + (self.ambience_roll % 9) as f32;
             }
         }
+        let collision_changed = self.collision_debug.sync_dynamic(
+            &mut self.world,
+            &self.area_id,
+            &self.terrain,
+            &self.store.prop_states,
+            self.store.building.as_ref(),
+        );
+        if collision_changed {
+            self.movement_collision
+                .rebuild(&self.slice, &self.area_id, &self.collision_debug);
+        }
         if self.collision_debug.enabled() {
-            self.collision_debug.sync_dynamic(
-                &mut self.world,
-                &self.area_id,
-                &self.terrain,
-                &self.store.prop_states,
-                self.store.building.as_ref(),
-            );
-            self.collision_debug
-                .update_player(&mut self.world, p.x, p.z, p.y);
+            if let Some(pawn) = self.pawns.get(&self.player_id) {
+                self.collision_debug.update_player(
+                    &mut self.world,
+                    pawn.render_pos,
+                    pawn.predictor.authoritative(),
+                    pawn.predictor.render_pos(),
+                    pawn.ground_y,
+                );
+            }
         }
 
         // 5) Render scene → screen (+ minimap composite).
@@ -4629,6 +4804,11 @@ impl ConnectedScene {
         // active palette instead of carrying their own literals, so a theme
         // change reaches every frame and not just the HUD.
         hud::set_active_palette(palette);
+        if self.collision_debug.enabled() {
+            if let Some(movement) = self.movement_diagnostics() {
+                draw_movement_debug(&mut self.ui, movement);
+            }
+        }
         hud::set_fill_opacity(self.hud_opacity);
         let interaction = self
             .nearest_interaction_prop()
@@ -5191,6 +5371,19 @@ mod tests {
         assert!((at_30 - converge_speed(120)).abs() < 1.0e-4);
         assert_eq!(filtered_gait_speed(2.5, 1.0, 0.0), 2.5);
         assert_eq!(filtered_gait_speed(2.5, 2.01, 1.0 / 60.0), 0.0);
+    }
+
+    #[test]
+    fn ground_height_hysteresis_smooths_floor_transitions_and_snaps_teleports() {
+        assert_eq!(smooth_ground_height(1.0, 1.02, 1.0 / 60.0), 1.0);
+        let first = smooth_ground_height(1.0, 1.5, 1.0 / 60.0);
+        assert!((first - 1.1).abs() < 1.0e-6, "first={first}");
+        let mut height = 1.0;
+        for _ in 0..120 {
+            height = smooth_ground_height(height, 1.5, 1.0 / 60.0);
+        }
+        assert!((height - 1.475).abs() < 1.0e-5, "height={height}");
+        assert_eq!(smooth_ground_height(1.0, 4.0, 1.0 / 60.0), 4.0);
     }
 
     #[test]

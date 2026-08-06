@@ -482,7 +482,7 @@ pub fn draw_nameplate(
     }
 }
 
-/// Contextual label for the nearest tangible world object. SWG exposes object
+/// Contextual label for the nearest tangible world object. The legacy client exposes object
 /// names as the same unboxed, projected text family as creature plates.
 pub fn draw_world_label(
     ui: &mut UiBuilder,

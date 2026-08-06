@@ -1,0 +1,8 @@
+[package]
+name = "successor-movement"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Dependency-free deterministic swept-circle movement shared by authority and clients."
+
+[dependencies]

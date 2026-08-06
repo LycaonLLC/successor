@@ -982,6 +982,10 @@ impl SliceAuthorityState {
             && is_player_like_role(&actor.role)
             && !actor.sprint_recovery_locked
             && sprint_available_milli >= sprint_cost_milli;
+        let sprint_exhausted = sprint_requested
+            && is_player_like_role(&actor.role)
+            && !actor.sprint_recovery_locked
+            && sprint_available_milli < sprint_cost_milli;
         let movement_multiplier_milli = if sprinting {
             scaled_milli(
                 movement_speed_multiplier_milli_for_actor(actor),
@@ -1028,6 +1032,13 @@ impl SliceAuthorityState {
             moved_milli,
         );
         actor.last_moved_tick = Some(movement_tick);
+        if sprint_exhausted {
+            actor.vitals.action = 0;
+            actor.sprint_action_drain_milli = 0;
+            actor.sprint_recovery_locked = true;
+            actor.sprint_recovery_regen_carry = 0;
+            actor.passive_regen_milli.action = 0;
+        }
         if sprinting {
             let sprint_action_cost = actor_sprint_action_cost_milli(
                 actor,

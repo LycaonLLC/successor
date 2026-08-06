@@ -18,6 +18,7 @@ successor-engine-core = { path = "source/engine-core" }
 successor-engine-render = { path = "source/engine-render" }
 successor-platform = { path = "source/platform" }
 successor-client-proto = { path = "source/client-proto" }
+successor-movement = { path = "../crates/successor-movement" }
 # no_std float math (only external dep of the engine crates)
 libm = "0.2"
 # std-side crates (platform / proto / app shell only)

@@ -8177,7 +8177,7 @@ describe("GameShard", () => {
       const ackPacket = packets(socket).find((packet) => packet.type === "game.acks");
       expect(ackPacket?.acks).toEqual([[2, 1, expect.any(Number)]]);
       expect(ackPacket?.playerActor).toBeUndefined();
-      expect(ackPacket?.playerPosition).toEqual([expect.any(Number), 17]);
+      expect(ackPacket?.playerPosition).toEqual([expect.any(Number), 17, 2]);
       expect(ackPacket?.playerPosition[0]).toBeLessThan(11);
     } finally {
       shard.close();
@@ -8205,7 +8205,7 @@ describe("GameShard", () => {
 
       const ackPacket = packets(socket).find((packet) => packet.type === "game.acks");
       expect(ackPacket?.acks).toEqual([[1, 1, expect.any(Number)]]);
-      expect(ackPacket?.playerPosition).toBeUndefined();
+      expect(ackPacket?.playerPosition).toEqual([expect.any(Number), 17, 1]);
       expect(ackPacket?.playerActor?.vitals.action).toBe(beforeAction - 1);
       expect(ackPacket?.playerActor?.x).toBeLessThan(11);
     } finally {

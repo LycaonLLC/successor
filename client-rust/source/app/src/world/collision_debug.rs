@@ -19,6 +19,7 @@ const ACTIVE_MASK: u32 = 0b1;
 const HIDDEN_MASK: u32 = 0;
 const EDGE_THICKNESS: f32 = 0.025;
 const PLAYER_RADIUS_CELLS: f32 = 0.3;
+const CLEARANCE_RADIUS_CELLS: f32 = 0.3;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CollisionKind {
@@ -40,8 +41,10 @@ pub struct CollisionAabb {
 #[derive(Clone, Copy)]
 struct DebugInstance {
     entity: Entity,
+    clearance_entity: Option<Entity>,
     active: bool,
     kind: CollisionKind,
+    bound: Option<CollisionAabb>,
 }
 
 struct DoorInstance {
@@ -56,11 +59,16 @@ pub struct CollisionDebugOverlay {
     active_static: MaterialId,
     active_dynamic: MaterialId,
     inactive: MaterialId,
+    clearance: MaterialId,
+    authority: MaterialId,
+    predicted: MaterialId,
     player: MaterialId,
     static_instances: Vec<DebugInstance>,
     doors: Vec<DoorInstance>,
     buildings: Vec<DebugInstance>,
     player_entity: Option<Entity>,
+    authority_entity: Option<Entity>,
+    predicted_entity: Option<Entity>,
     building_hash: u64,
 }
 
@@ -73,8 +81,10 @@ impl CollisionDebugOverlay {
         let active_static = debug_material(renderer, [1.0, 0.08, 0.04]);
         let active_dynamic = debug_material(renderer, [1.0, 0.48, 0.03]);
         let inactive = debug_material(renderer, [0.08, 0.65, 0.72]);
+        let clearance = debug_material(renderer, [0.18, 1.0, 0.12]);
+        let authority = debug_material(renderer, [0.05, 0.75, 1.0]);
+        let predicted = debug_material(renderer, [1.0, 0.92, 0.05]);
         let player = debug_material(renderer, [1.0, 0.05, 0.85]);
-        let player_entity = None;
         Self {
             enabled: false,
             box_mesh,
@@ -82,11 +92,16 @@ impl CollisionDebugOverlay {
             active_static,
             active_dynamic,
             inactive,
+            clearance,
+            authority,
+            predicted,
             player,
             static_instances: Vec::new(),
             doors: Vec::new(),
             buildings: Vec::new(),
-            player_entity,
+            player_entity: None,
+            authority_entity: None,
+            predicted_entity: None,
             building_hash: 0,
         }
     }
@@ -110,37 +125,33 @@ impl CollisionDebugOverlay {
                 self.active_static,
                 self.active_dynamic,
                 self.inactive,
+                self.clearance,
             );
         }
-        if enabled && self.player_entity.is_none() {
-            let entity = world.spawn();
-            world.set_component(
-                entity,
-                Transform {
-                    pos: vec3(0.0, ADULT_PAWN_HEIGHT_METERS * 0.5, 0.0),
-                    rot: Quat::IDENTITY,
-                    scale: vec3(
-                        PLAYER_RADIUS_CELLS * 2.0,
-                        ADULT_PAWN_HEIGHT_METERS,
-                        PLAYER_RADIUS_CELLS * 2.0,
-                    ),
-                },
-            );
-            world.set_component(
-                entity,
-                MeshRenderer {
-                    mesh: self.player_mesh,
-                    material: self.player,
-                    viewport_mask: ACTIVE_MASK,
-                    skin: SkinRef::NONE,
-                },
-            );
-            self.player_entity = Some(entity);
-        } else if let Some(entity) = self.player_entity {
-            if let Some(render) = world.get_component::<MeshRenderer>(entity) {
-                render.viewport_mask = if enabled { ACTIVE_MASK } else { HIDDEN_MASK };
-            }
-        }
+        ensure_marker(
+            world,
+            &mut self.player_entity,
+            self.player_mesh,
+            self.player,
+            PLAYER_RADIUS_CELLS,
+            enabled,
+        );
+        ensure_marker(
+            world,
+            &mut self.authority_entity,
+            self.player_mesh,
+            self.authority,
+            PLAYER_RADIUS_CELLS * 0.72,
+            enabled,
+        );
+        ensure_marker(
+            world,
+            &mut self.predicted_entity,
+            self.player_mesh,
+            self.predicted,
+            PLAYER_RADIUS_CELLS * 0.86,
+            enabled,
+        );
     }
 
     pub fn toggle(&mut self, world: &mut GameWorld) {
@@ -150,12 +161,21 @@ impl CollisionDebugOverlay {
     pub fn clear_area(&mut self, world: &mut GameWorld) {
         for instance in self.static_instances.drain(..) {
             world.destroy(instance.entity);
+            if let Some(entity) = instance.clearance_entity {
+                world.destroy(entity);
+            }
         }
         for door in self.doors.drain(..) {
             world.destroy(door.debug.entity);
+            if let Some(entity) = door.debug.clearance_entity {
+                world.destroy(entity);
+            }
         }
         for instance in self.buildings.drain(..) {
             world.destroy(instance.entity);
+            if let Some(entity) = instance.clearance_entity {
+                world.destroy(entity);
+            }
         }
         self.building_hash = 0;
         world.flush();
@@ -209,10 +229,12 @@ impl CollisionDebugOverlay {
         terrain: &TerrainStreamer,
         prop_states: &std::collections::HashMap<String, Value>,
         building: Option<&Value>,
-    ) {
+    ) -> bool {
+        let mut changed = false;
         for door in &mut self.doors {
             let active = door_blocker_active(prop_states.get(&door.prop_id));
             if active != door.debug.active {
+                changed = true;
                 door.debug.active = active;
                 apply_instance(
                     world,
@@ -221,13 +243,19 @@ impl CollisionDebugOverlay {
                     self.active_static,
                     self.active_dynamic,
                     self.inactive,
+                    self.clearance,
                 );
             }
         }
+
         let hash = building.map(stable_json_hash).unwrap_or(0);
         if hash != self.building_hash {
+            changed = true;
             for instance in self.buildings.drain(..) {
                 world.destroy(instance.entity);
+                if let Some(entity) = instance.clearance_entity {
+                    world.destroy(entity);
+                }
             }
             self.building_hash = hash;
             if let Some(components) = building
@@ -255,24 +283,38 @@ impl CollisionDebugOverlay {
             }
             self.set_enabled(world, self.enabled);
         }
+        changed
+    }
+    pub fn append_active_dynamic_bounds(&self, out: &mut Vec<successor_movement::CircleAabb>) {
+        out.extend(
+            self.doors
+                .iter()
+                .map(|door| &door.debug)
+                .chain(self.buildings.iter())
+                .filter(|instance| instance.active)
+                .filter_map(|instance| instance.bound)
+                .map(|bound| {
+                    successor_movement::CircleAabb::new(
+                        bound.left_milli,
+                        bound.top_milli,
+                        bound.right_milli,
+                        bound.bottom_milli,
+                    )
+                }),
+        );
     }
 
     pub fn update_player(
         &mut self,
         world: &mut GameWorld,
-        center_x: f32,
-        center_z: f32,
+        rendered: (f32, f32),
+        authoritative: (f32, f32),
+        predicted: (f32, f32),
         ground_y: f32,
     ) {
-        if let Some(entity) = self.player_entity {
-            if let Some(transform) = world.get_component::<Transform>(entity) {
-                transform.pos = vec3(
-                    center_x,
-                    ground_y + ADULT_PAWN_HEIGHT_METERS * 0.5,
-                    center_z,
-                );
-            }
-        }
+        update_marker(world, self.player_entity, rendered, ground_y);
+        update_marker(world, self.authority_entity, authoritative, ground_y);
+        update_marker(world, self.predicted_entity, predicted, ground_y);
     }
 
     fn spawn_bound(
@@ -290,42 +332,36 @@ impl CollisionDebugOverlay {
         let center_x = (left + right) * 0.5;
         let center_z = (top + bottom) * 0.5;
         let ground = terrain.height_at(center_x, center_z);
-        let entity = world.spawn();
-        world.set_component(
-            entity,
-            Transform {
-                pos: vec3(center_x, ground + ADULT_PAWN_HEIGHT_METERS * 0.5, center_z),
-                rot: Quat::IDENTITY,
-                scale: vec3(
-                    (right - left).max(0.001),
-                    ADULT_PAWN_HEIGHT_METERS,
-                    (bottom - top).max(0.001),
-                ),
-            },
+        let entity = spawn_box_entity(
+            world,
+            self.box_mesh,
+            material_for_kind(bound.kind, active, self.active_static, self.active_dynamic, self.inactive),
+            self.enabled,
+            center_x,
+            center_z,
+            ground,
+            (right - left).max(0.001),
+            (bottom - top).max(0.001),
+        );
+        let clearance_entity = spawn_box_entity(
+            world,
+            self.box_mesh,
+            self.clearance,
+            self.enabled,
+            center_x,
+            center_z,
+            ground + EDGE_THICKNESS,
+            (right - left).max(0.001) + CLEARANCE_RADIUS_CELLS * 2.0 * WORLD_UNITS_PER_CELL,
+            (bottom - top).max(0.001) + CLEARANCE_RADIUS_CELLS * 2.0 * WORLD_UNITS_PER_CELL,
         );
         let instance = DebugInstance {
             entity,
             active,
             kind: bound.kind,
+            bound: Some(bound),
+            clearance_entity: Some(clearance_entity),
         };
-        world.set_component(
-            entity,
-            MeshRenderer {
-                mesh: self.box_mesh,
-                material: material_for(
-                    instance,
-                    self.active_static,
-                    self.active_dynamic,
-                    self.inactive,
-                ),
-                viewport_mask: if self.enabled {
-                    ACTIVE_MASK
-                } else {
-                    HIDDEN_MASK
-                },
-                skin: SkinRef::NONE,
-            },
-        );
+
         instance
     }
     fn spawn_static_batch<G: Gpu>(
@@ -339,7 +375,7 @@ impl CollisionDebugOverlay {
         if bounds.is_empty() {
             return None;
         }
-        let (vertices, indices) = wire_bounds_mesh(bounds, terrain);
+        let (vertices, indices) = wire_bounds_mesh(bounds, terrain, 0.0);
         let mesh = renderer.upload_mesh(gpu, &vertices, &indices);
         let entity = world.spawn();
         world.set_component(entity, Transform::default());
@@ -348,11 +384,22 @@ impl CollisionDebugOverlay {
             MeshRenderer {
                 mesh,
                 material: self.active_static,
-                viewport_mask: if self.enabled {
-                    ACTIVE_MASK
-                } else {
-                    HIDDEN_MASK
-                },
+                viewport_mask: if self.enabled { ACTIVE_MASK } else { HIDDEN_MASK },
+                skin: SkinRef::NONE,
+            },
+        );
+        let (clearance_vertices, clearance_indices) =
+            wire_bounds_mesh(bounds, terrain, CLEARANCE_RADIUS_CELLS);
+        let clearance_mesh =
+            renderer.upload_mesh(gpu, &clearance_vertices, &clearance_indices);
+        let clearance_entity = world.spawn();
+        world.set_component(clearance_entity, Transform::default());
+        world.set_component(
+            clearance_entity,
+            MeshRenderer {
+                mesh: clearance_mesh,
+                material: self.clearance,
+                viewport_mask: if self.enabled { ACTIVE_MASK } else { HIDDEN_MASK },
                 skin: SkinRef::NONE,
             },
         );
@@ -360,7 +407,113 @@ impl CollisionDebugOverlay {
             entity,
             active: true,
             kind: CollisionKind::StaticProp,
+            bound: None,
+            clearance_entity: Some(clearance_entity),
         })
+    }
+}
+
+fn spawn_box_entity(
+    world: &mut GameWorld,
+    mesh: MeshId,
+    material: MaterialId,
+    enabled: bool,
+    center_x: f32,
+    center_z: f32,
+    ground: f32,
+    width: f32,
+    depth: f32,
+) -> Entity {
+    let entity = world.spawn();
+    world.set_component(
+        entity,
+        Transform {
+            pos: vec3(
+                center_x,
+                ground + ADULT_PAWN_HEIGHT_METERS * 0.5,
+                center_z,
+            ),
+            rot: Quat::IDENTITY,
+            scale: vec3(width, ADULT_PAWN_HEIGHT_METERS, depth),
+        },
+    );
+    world.set_component(
+        entity,
+        MeshRenderer {
+            mesh,
+            material,
+            viewport_mask: if enabled { ACTIVE_MASK } else { HIDDEN_MASK },
+            skin: SkinRef::NONE,
+        },
+    );
+    entity
+}
+
+fn ensure_marker(
+    world: &mut GameWorld,
+    slot: &mut Option<Entity>,
+    mesh: MeshId,
+    material: MaterialId,
+    radius_cells: f32,
+    enabled: bool,
+) {
+    if slot.is_none() {
+        let entity = world.spawn();
+        world.set_component(
+            entity,
+            Transform {
+                pos: vec3(0.0, ADULT_PAWN_HEIGHT_METERS * 0.5, 0.0),
+                rot: Quat::IDENTITY,
+                scale: vec3(
+                    radius_cells * 2.0,
+                    ADULT_PAWN_HEIGHT_METERS,
+                    radius_cells * 2.0,
+                ),
+            },
+        );
+        world.set_component(
+            entity,
+            MeshRenderer {
+                mesh,
+                material,
+                viewport_mask: if enabled { ACTIVE_MASK } else { HIDDEN_MASK },
+                skin: SkinRef::NONE,
+            },
+        );
+        *slot = Some(entity);
+    } else if let Some(render) = (*slot).and_then(|entity| world.get_component::<MeshRenderer>(entity)) {
+        render.viewport_mask = if enabled { ACTIVE_MASK } else { HIDDEN_MASK };
+    }
+}
+
+fn update_marker(
+    world: &mut GameWorld,
+    entity: Option<Entity>,
+    position_cells: (f32, f32),
+    ground_y: f32,
+) {
+    if let Some(transform) = entity.and_then(|entity| world.get_component::<Transform>(entity)) {
+        transform.pos = vec3(
+            (position_cells.0 + 0.5) * WORLD_UNITS_PER_CELL,
+            ground_y + ADULT_PAWN_HEIGHT_METERS * 0.5,
+            (position_cells.1 + 0.5) * WORLD_UNITS_PER_CELL,
+        );
+    }
+}
+
+fn material_for_kind(
+    kind: CollisionKind,
+    active: bool,
+    static_mat: MaterialId,
+    dynamic_mat: MaterialId,
+    inactive: MaterialId,
+) -> MaterialId {
+    if !active {
+        inactive
+    } else if matches!(kind, CollisionKind::Door | CollisionKind::Building) {
+        dynamic_mat
+    } else {
+        static_mat
     }
 }
 
@@ -383,13 +536,13 @@ fn material_for(
     dynamic_mat: MaterialId,
     inactive: MaterialId,
 ) -> MaterialId {
-    if !instance.active {
-        inactive
-    } else if matches!(instance.kind, CollisionKind::Door | CollisionKind::Building) {
-        dynamic_mat
-    } else {
-        static_mat
-    }
+    material_for_kind(
+        instance.kind,
+        instance.active,
+        static_mat,
+        dynamic_mat,
+        inactive,
+    )
 }
 
 fn apply_instance(
@@ -399,10 +552,22 @@ fn apply_instance(
     static_mat: MaterialId,
     dynamic_mat: MaterialId,
     inactive: MaterialId,
+    clearance: MaterialId,
 ) {
     if let Some(render) = world.get_component::<MeshRenderer>(instance.entity) {
         render.viewport_mask = if enabled { ACTIVE_MASK } else { HIDDEN_MASK };
         render.material = material_for(instance, static_mat, dynamic_mat, inactive);
+    }
+    if let Some(render) = instance
+        .clearance_entity
+        .and_then(|entity| world.get_component::<MeshRenderer>(entity))
+    {
+        render.viewport_mask = if enabled && instance.active {
+            ACTIVE_MASK
+        } else {
+            HIDDEN_MASK
+        };
+        render.material = clearance;
     }
 }
 
@@ -632,10 +797,15 @@ fn wire_box_mesh() -> (Vec<f32>, Vec<u32>) {
     }
     (vertices, indices)
 }
-fn wire_bounds_mesh(bounds: &[CollisionAabb], terrain: &TerrainStreamer) -> (Vec<f32>, Vec<u32>) {
+fn wire_bounds_mesh(
+    bounds: &[CollisionAabb],
+    terrain: &TerrainStreamer,
+    expand_cells: f32,
+) -> (Vec<f32>, Vec<u32>) {
     let (unit_vertices, unit_indices) = wire_box_mesh();
     let mut vertices = Vec::with_capacity(unit_vertices.len() * bounds.len());
     let mut indices = Vec::with_capacity(unit_indices.len() * bounds.len());
+    let expand = expand_cells * WORLD_UNITS_PER_CELL;
     for bound in bounds {
         let left = bound.left_milli as f32 / 1_000.0 * WORLD_UNITS_PER_CELL;
         let top = bound.top_milli as f32 / 1_000.0 * WORLD_UNITS_PER_CELL;
@@ -643,9 +813,9 @@ fn wire_bounds_mesh(bounds: &[CollisionAabb], terrain: &TerrainStreamer) -> (Vec
         let bottom = bound.bottom_milli as f32 / 1_000.0 * WORLD_UNITS_PER_CELL;
         let center_x = (left + right) * 0.5;
         let center_z = (top + bottom) * 0.5;
-        let ground = terrain.height_at(center_x, center_z);
-        let width = (right - left).max(0.001);
-        let depth = (bottom - top).max(0.001);
+        let ground = terrain.height_at(center_x, center_z) + expand_cells.signum() * EDGE_THICKNESS;
+        let width = (right - left).max(0.001) + expand * 2.0;
+        let depth = (bottom - top).max(0.001) + expand * 2.0;
         let base = (vertices.len() / 8) as u32;
         for vertex in unit_vertices.chunks_exact(8) {
             vertices.extend_from_slice(&[

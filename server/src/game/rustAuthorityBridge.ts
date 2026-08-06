@@ -934,6 +934,8 @@ export interface RustAuthorityActorSnapshot {
   skillPointsUsed?: number;
   skillPointsCap?: number;
   shotSpreadDegreesMilli?: number;
+  walkSpeedMilliPerSecond?: number;
+  sprintSpeedMilliPerSecond?: number;
   credits?: number;
   respawnTick?: number;
   nextSampleTick?: number;

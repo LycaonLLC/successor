@@ -26,6 +26,18 @@ impl SliceAuthorityState {
         requested: AuthorityPosition,
         area: &AreaAuthorityState,
     ) -> AuthorityPosition {
+        let mut blockers = self.circle_blockers_for_area(area_id);
+        self.push_blocked_cell_circle_blockers(area_id, &mut blockers);
+        self.clamped_unblocked_player_position_with_blockers(current, requested, area, &blockers)
+    }
+
+    fn clamped_unblocked_player_position_with_blockers(
+        &self,
+        current: AuthorityPosition,
+        requested: AuthorityPosition,
+        area: &AreaAuthorityState,
+        blockers: &[CircleAabb],
+    ) -> AuthorityPosition {
         let target = requested.clamp_to_area(area);
         if target == current {
             return target;
@@ -34,8 +46,6 @@ impl SliceAuthorityState {
             .clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32;
         let delta_y = (i64::from(target.y) - i64::from(current.y))
             .clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32;
-        let mut blockers = self.circle_blockers_for_area(area_id);
-        self.push_blocked_cell_circle_blockers(area_id, &mut blockers);
         let current_center = ground_center_from_anchor(current);
         let resolved_center = resolve_circle_move_milli(
             CirclePoint {
@@ -45,7 +55,7 @@ impl SliceAuthorityState {
             delta_x,
             delta_y,
             CIRCLE_COLLISION_RADIUS_MILLI,
-            &blockers,
+            blockers,
         );
         anchor_from_ground_center(AuthorityPosition {
             x: resolved_center.x,
@@ -59,15 +69,40 @@ impl SliceAuthorityState {
             .runtime
             .durable
             .actors
-            .keys()
-            .cloned()
+            .iter()
+            .filter_map(|(actor_id, actor)| actor.move_intent.map(|_| actor_id.clone()))
             .collect::<Vec<_>>();
+        let mut blockers_by_area = BTreeMap::new();
+        for actor_id in &actor_ids {
+            let Some(area_id) = self
+                .runtime
+                .durable
+                .actors
+                .get(actor_id)
+                .map(|actor| actor.area_id.clone())
+            else {
+                continue;
+            };
+            blockers_by_area.entry(area_id.clone()).or_insert_with(|| {
+                let mut blockers = self.circle_blockers_for_area(&area_id);
+                self.push_blocked_cell_circle_blockers(&area_id, &mut blockers);
+                blockers
+            });
+        }
         for actor_id in actor_ids {
-            self.tick_player_move_intent(&actor_id);
+            let blockers = self
+                .runtime
+                .durable
+                .actors
+                .get(&actor_id)
+                .and_then(|actor| blockers_by_area.get(&actor.area_id))
+                .map(Vec::as_slice)
+                .unwrap_or(&[]);
+            self.tick_player_move_intent(&actor_id, blockers);
         }
     }
 
-    fn tick_player_move_intent(&mut self, actor_id: &str) {
+    fn tick_player_move_intent(&mut self, actor_id: &str, blockers: &[CircleAabb]) {
         let Some(intent) = self
             .runtime
             .durable
@@ -123,6 +158,10 @@ impl SliceAuthorityState {
             && is_player_like_role(&actor_snapshot.role)
             && !actor_snapshot.sprint_recovery_locked
             && sprint_available_milli >= sprint_cost_milli;
+        let sprint_exhausted = intent.sprint
+            && is_player_like_role(&actor_snapshot.role)
+            && !actor_snapshot.sprint_recovery_locked
+            && sprint_available_milli < sprint_cost_milli;
         let movement_multiplier_milli = if sprinting {
             scaled_milli(
                 movement_speed_multiplier_milli_for_actor(&actor_snapshot),
@@ -143,11 +182,11 @@ impl SliceAuthorityState {
             actor_snapshot
                 .position
                 .offset(intent.dx, intent.dy, distance_milli);
-        let target_position = self.clamped_unblocked_player_position(
-            &actor_snapshot.area_id,
+        let target_position = self.clamped_unblocked_player_position_with_blockers(
             actor_snapshot.position,
             requested_position,
             area,
+            blockers,
         );
         let moved_milli = position_distance_milli(actor_snapshot.position, target_position);
         let target = target_position.cell();
@@ -172,6 +211,13 @@ impl SliceAuthorityState {
             moved_milli,
         );
         actor.last_moved_tick = Some(self.runtime.durable.tick);
+        if sprint_exhausted {
+            actor.vitals.action = 0;
+            actor.sprint_action_drain_milli = 0;
+            actor.sprint_recovery_locked = true;
+            actor.sprint_recovery_regen_carry = 0;
+            actor.passive_regen_milli.action = 0;
+        }
         if sprinting {
             let sprint_action_cost = actor_sprint_action_cost_milli(
                 actor,
@@ -975,7 +1021,7 @@ fn fallback_micro_reversal_allowed(
 
 #[cfg(test)]
 mod tests {
-    use super::swept_circle::CIRCLE_TRACE_SKIN_MILLI;
+    use successor_movement::CIRCLE_TRACE_SKIN_MILLI;
     use super::*;
     use successor_net::{ClientCommand, ClientCommandEnvelope, PlayerId, SessionId};
 

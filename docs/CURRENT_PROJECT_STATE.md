@@ -52,7 +52,7 @@ layout. The supported components are:
 | `client/` | Shared networking, commands, chat, state projection, audio rules, and headless automation |
 | `server/` | Account boundary, tickets, rooms, chat routing, persistence projection, and Rust bridge |
 | `crates/successor-sim/` | Deterministic gameplay authority |
-| `crates/successor-{core,inventory,net,wasm}/` | Shared Rust contracts and primitives |
+| `crates/successor-{core,inventory,movement,net,wasm}/` | Shared Rust contracts, collision kinematics, and primitives |
 | `desktop/` | Electron packaging and isolated local-authority lifecycle |
 | `site/` | Marketing, account, launch, legal, roadmap, and download presentation |
 | `ops/deploy/` | AWS infrastructure and immutable release/operator scripts |
@@ -67,10 +67,13 @@ The standalone Rust client now runs the same authority-driven game runtime on
 native GL and WebGL2. Both targets consume the checked-in open-desert slice,
 props mapping, PawnForge bodies and equipment, streamed actors, structures,
 doors, extractors, camps, corpses, farms, clock, weather, receipts, compact
-acks, and combat events. The client submits typed `successor-net` commands;
-movement prediction and reconciliation, actor interpolation, event dedupe, and
-window/HUD state remain projections of server and Rust-sim authority rather
-than a client-side gameplay fallback.
+acks, and combat events. The client submits typed `successor-net` commands.
+Continuous input uses wall-time cadence, bounded stop retries, an independent
+movement lane, and fixed-step prediction/replay against the same
+`successor-movement` swept-circle solver used by Rust authority. Applied
+movement command identity drives reconciliation; actor interpolation adapts to
+observed packet cadence. These remain projections of server and Rust-sim
+authority rather than a client-side gameplay fallback.
 
 The connected presentation uses a locked north-up orthographic camera, live
 terrain and props, complete pawn/equipment routing, environment grading,
@@ -175,9 +178,9 @@ terminals in both areas. Runtime characters cannot claim an authored actor id.
 The fixture and map bundle are byte-stable generated source:
 
 - slice SHA-256:
-  `bd489338c0d65535f4fc1d8cfe7f0dcb3f532ced7f658c756c39913ffea00c02`
+  `c21a81d9e511fa35d059a51eeb5ffc9f60d12b6d6cc63161930befb733bb5e2d`
 - map-bundle SHA-256:
-  `df23df6a59f555040f607b7ac5218d0472e6921df2132b2ed2828f2daedf9ef5`
+  `260687cb95cee5f783e134e3a401f7265d05f0403307fcd6b4283cec2f281cb2`
 
 The authority and clients have working foundations for roster/appearance,
 inventory/equipment, professions, combat and life state, surveying and

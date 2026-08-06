@@ -307,9 +307,11 @@ describe("remote headless preparation", () => {
       const wrapperPidPath = path.join(root, "wrapper.json");
       const subtreePidPath = path.join(root, "subtree.json");
       const termPath = path.join(root, "term.log");
+      const descendantReadyPath = path.join(root, "descendant-ready");
       const descendantSource = [
         "const fs = require('node:fs');",
         `process.on('SIGTERM', () => fs.appendFileSync(${JSON.stringify(termPath)}, 'descendant\\n'));`,
+        `fs.writeFileSync(${JSON.stringify(descendantReadyPath)}, 'ready\\n');`,
         "setInterval(() => {}, 1_000);",
       ].join("\n");
       const prepSource = [
@@ -331,6 +333,7 @@ describe("remote headless preparation", () => {
       const handle = await start(wrapperPath);
       const wrapper = JSON.parse(await waitForFile(wrapperPidPath));
       const subtree = JSON.parse(await waitForFile(subtreePidPath));
+      await waitForFile(descendantReadyPath);
       const descendantPgid = await readProcessGroupId(subtree.descendant);
       assert.equal(await readProcessGroupId(wrapper.pid), handle.pid);
       assert.equal(subtree.prepPgid, handle.pid, "prep child must not create a nested detached group");

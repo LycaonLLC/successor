@@ -78,9 +78,18 @@ window.addEventListener("keyup", (e) => {
     }
 });
 
-window.addEventListener("blur", () => {
+function releaseMovementInput(reason) {
     keyState.fill(0);
+    mouseButtons.fill(0);
+    if (typeof wasmExports.release_movement_input === "function") {
+        wasmExports.release_movement_input(reason);
+    }
+}
+window.addEventListener("blur", () => releaseMovementInput(0));
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") releaseMovementInput(1);
 });
+window.addEventListener("pagehide", () => releaseMovementInput(1));
 
 let mouseX = 0, mouseY = 0;
 const mouseButtons = new Uint8Array(3);
@@ -1176,6 +1185,29 @@ fetch("successor.wasm")
         const instance = results.instance;
         wasmMemory = instance.exports.memory;
         wasmExports = instance.exports;
+        window.__successorMovementProbe = () => {
+            if (typeof wasmExports.movement_probe !== "function") return null;
+            const value = index => wasmExports.movement_probe(index);
+            const authoritative = [value(0), value(1)];
+            if (!Number.isFinite(authoritative[0])) return null;
+            return {
+                authoritative,
+                predicted: [value(2), value(3)],
+                rendered: [value(4), value(5)],
+                correctionCells: value(6),
+                intent: [value(7), value(8), value(9) === 1],
+                appliedCommandId: value(10),
+                blockerCount: value(11),
+                presentedGroundY: value(12),
+                sampledGroundY: value(13),
+                frameDtMs: value(14),
+                lastChangeMs: value(15),
+                lastSendMs: value(16),
+                nextSendMs: value(17),
+                stopRetryUntilMs: value(18),
+                sampledAtMs: value(19),
+            };
+        };
 
         if (creatorStartupError) throw creatorStartupError;
         const params = new URLSearchParams(window.location.search);

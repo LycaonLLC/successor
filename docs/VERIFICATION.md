@@ -155,9 +155,9 @@ git diff --exit-code -- \
 The current checked-in identities are:
 
 - slice SHA-256:
-  `db907f43d0d19b3863db5b54508cea2f3f31e2962b83e0967be07c7248310190`
+  `c21a81d9e511fa35d059a51eeb5ffc9f60d12b6d6cc63161930befb733bb5e2d`
 - map-bundle SHA-256:
-  `4f0181134e7f0c37fa0189a89fb3ea145c3a6a34271d97a5b2f8e6f8c0dd8738`
+  `260687cb95cee5f783e134e3a401f7265d05f0403307fcd6b4283cec2f281cb2`
 
 Update the canonical and state docs in the same change when either identity
 changes.

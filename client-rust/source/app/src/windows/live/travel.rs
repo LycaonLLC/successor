@@ -131,7 +131,7 @@ mod tests {
         let ctx = test_ctx([0.0, 0.0, 400.0, 300.0], 0);
         let mut model = WindowModel::default();
         model.travel.gate = Gate::open("travel_term_1");
-        model.travel.origin = Some(("tatooine".into(), "anchorhead".into()));
+        model.travel.origin = Some(("origin-world".into(), "origin-city".into()));
         model.travel.planets = vec![TravelPlanet {
             id: "corellia".into(),
             label: "Corellia".into(),

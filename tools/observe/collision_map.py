@@ -179,7 +179,7 @@ def render(prop, door_open, out_path):
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--prop", help="only this prop id")
-    parser.add_argument("--out", default="/tmp/collision-map")
+    parser.add_argument("--out", default="/tmp/successor-collision-map")
     args = parser.parse_args()
     out_dir = pathlib.Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)

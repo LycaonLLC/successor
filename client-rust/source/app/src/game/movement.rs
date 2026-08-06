@@ -1,42 +1,100 @@
-//! WASD/arrow input -> `SetMoveIntent` command envelope. No local prediction:
-//! the player capsule advances only when the authority streams the new position
-//! (via `game.delta` / `game.acks`), exactly like the existing clients.
+//! Shared connected-movement input state for native and web clients.
+//!
+//! Input edges are transmitted immediately. Held input uses a wall-clock
+//! keepalive, and a released intent is retried through the authority's
+//! one-second expiry window. Rendering cadence never controls network cadence.
 
 use std::collections::{HashMap, VecDeque};
 use successor_engine_core::input::Key;
 use successor_net::{CardinalDirection, ClientCommand, ClientCommandEnvelope, PlayerId, SessionId};
 
-/// Frames between re-announcements of an unchanged intent.
-pub const INTENT_RESEND_FRAMES: u64 = 6;
+pub const INTENT_KEEPALIVE_MS: u64 = 500;
+pub const STOP_RETRY_MS: u64 = 250;
+pub const STOP_RETRY_WINDOW_MS: u64 = 1_000;
 
-/// How long a released intent keeps being re-announced.
-///
-/// The authority holds a move intent for one second past its last accepted
-/// update and rate-limits ingress, so a command can simply be refused. Movement
-/// survives that: it re-announces itself while a key is held. A stop does not -
-/// it is a single edge, sent once. Lose that one packet to the rate limiter and
-/// the actor keeps walking on the stale intent until it expires, which is what
-/// a player feels as the character running on after they let go.
-///
-/// So a stop re-announces too, across the authority's own expiry window. Costs
-/// a handful of commands per release, and no single rejection can swallow it.
-pub const STOP_RESEND_FRAMES: u64 = 66;
+#[derive(Clone, Copy, Debug)]
+pub struct MovementController {
+    desired: IntentState,
+    last_sent: Option<IntentState>,
+    next_send_ms: u64,
+    stop_retry_until_ms: u64,
+    last_change_ms: u64,
+    last_send_ms: u64,
+}
 
-/// Whether this frame should send the movement intent to the authority.
-pub fn should_send_intent(
-    intent: (i32, i32, bool),
-    last: (i32, i32, bool),
-    frame: u64,
-    frames_since_change: u64,
-) -> bool {
-    if intent != last {
-        return true;
+impl Default for MovementController {
+    fn default() -> Self {
+        Self {
+            desired: IntentState::default(),
+            last_sent: None,
+            next_send_ms: 0,
+            stop_retry_until_ms: 0,
+            last_change_ms: 0,
+            last_send_ms: 0,
+        }
     }
-    if !frame.is_multiple_of(INTENT_RESEND_FRAMES) {
-        return false;
+}
+
+impl MovementController {
+    pub fn desired(&self) -> IntentState {
+        self.desired
     }
-    let stopped = intent == (0, 0, false);
-    !stopped || frames_since_change < STOP_RESEND_FRAMES
+
+    pub fn timing(&self) -> MovementTiming {
+        MovementTiming {
+            last_change_ms: self.last_change_ms,
+            last_send_ms: self.last_send_ms,
+            next_send_ms: self.next_send_ms,
+            stop_retry_until_ms: self.stop_retry_until_ms,
+        }
+    }
+
+    pub fn update(&mut self, desired: IntentState, now_ms: u64) -> Option<IntentState> {
+        let changed = desired != self.desired;
+        if changed {
+            self.desired = desired;
+            self.next_send_ms = now_ms;
+            self.last_change_ms = now_ms;
+            self.stop_retry_until_ms = if desired.stopped() {
+                now_ms.saturating_add(STOP_RETRY_WINDOW_MS)
+            } else {
+                0
+            };
+        }
+        if self.last_sent.is_none() && desired.stopped() && !changed {
+            return None;
+        }
+        if !changed && now_ms < self.next_send_ms {
+            return None;
+        }
+        if !changed && desired.stopped() && now_ms > self.stop_retry_until_ms {
+            return None;
+        }
+        self.last_sent = Some(desired);
+        self.last_send_ms = now_ms;
+        self.next_send_ms = now_ms.saturating_add(if desired.stopped() {
+            STOP_RETRY_MS
+        } else {
+            INTENT_KEEPALIVE_MS
+        });
+        Some(desired)
+    }
+
+    pub fn release(&mut self, now_ms: u64, _reason: StopReason) -> Option<IntentState> {
+        self.update(IntentState::default(), now_ms)
+    }
+
+    pub fn reset(&mut self) {
+        *self = Self::default();
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MovementTiming {
+    pub last_change_ms: u64,
+    pub last_send_ms: u64,
+    pub next_send_ms: u64,
+    pub stop_retry_until_ms: u64,
 }
 
 /// Directional intent from the current key state. Convention: `+dx` = east
@@ -104,6 +162,7 @@ impl IntentState {
         *self = Self::default();
     }
 }
+
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PointerTarget {
@@ -325,39 +384,28 @@ mod tests {
     }
 
     #[test]
-    fn a_release_is_re_announced_until_the_authority_intent_expires() {
-        let walking = (1, 0, false);
-        let stopped = (0, 0, false);
+    fn cadence_uses_wall_time_and_retries_release() {
+        let mut controller = MovementController::default();
+        let walking = IntentState {
+            dx: 1,
+            dy: 0,
+            sprint: false,
+        };
+        assert_eq!(controller.update(walking, 10), Some(walking));
+        assert_eq!(controller.update(walking, 509), None);
+        assert_eq!(controller.update(walking, 510), Some(walking));
 
-        // The edge itself always sends.
-        assert!(should_send_intent(stopped, walking, 600, 0));
+        let stopped = IntentState::default();
+        assert_eq!(controller.update(stopped, 600), Some(stopped));
+        assert_eq!(controller.update(stopped, 849), None);
+        assert_eq!(controller.update(stopped, 850), Some(stopped));
+        assert_eq!(controller.update(stopped, 1_600), Some(stopped));
+        assert_eq!(controller.update(stopped, 1_851), None);
+    }
 
-        // And the stop keeps being announced across the authority's expiry
-        // window, so one refused command cannot strand the actor walking.
-        let repeats = (0..STOP_RESEND_FRAMES)
-            .filter(|offset| should_send_intent(stopped, stopped, 600 + offset, *offset))
-            .count();
-        assert!(
-            repeats >= 8,
-            "a released key must survive a dropped stop, got {repeats} re-announcements"
-        );
-
-        // Once the intent has expired on the authority there is nothing left to
-        // announce, and an idle player stops paying for commands.
-        assert!(!should_send_intent(
-            stopped,
-            stopped,
-            600,
-            STOP_RESEND_FRAMES
-        ));
-        assert!(!should_send_intent(
-            stopped,
-            stopped,
-            600,
-            STOP_RESEND_FRAMES * 10
-        ));
-
-        // A held key still re-announces forever; that path is unchanged.
-        assert!(should_send_intent(walking, walking, 600, 100_000));
+    #[test]
+    fn idle_controller_sends_nothing() {
+        let mut controller = MovementController::default();
+        assert_eq!(controller.update(IntentState::default(), 1_000), None);
     }
 }

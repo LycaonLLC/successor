@@ -21,7 +21,7 @@
     }
   },
   "hands": {
-    "source": "verified SWG runtime hands",
+    "source": "verified legacy runtime hands",
     "unchanged_by_body_refinement": true,
     "islands_per_side": 36
   },

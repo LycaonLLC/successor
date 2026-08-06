@@ -10,9 +10,6 @@ use std::collections::VecDeque;
 
 const SAMPLE_LIMIT: usize = 12;
 const RESET_CELLS: f32 = 12.0;
-/// Render this far behind the newest sample so there is always a bracketing
-/// pair to interpolate between (one authority tick at ~15 Hz).
-const INTERP_DELAY_S: f32 = 0.10;
 
 #[derive(Clone, Copy)]
 struct Sample {
@@ -25,6 +22,7 @@ struct Sample {
 pub struct ActorInterp {
     samples: VecDeque<Sample>,
     last_seq: i64,
+    interval_ema: f32,
 }
 
 impl ActorInterp {
@@ -41,6 +39,16 @@ impl ActorInterp {
                 .back()
                 .map(|s| ((x - s.x).powi(2) + (y - s.y).powi(2)).sqrt() > RESET_CELLS)
                 .unwrap_or(false);
+        if let Some(previous) = self.samples.back() {
+            let interval = t - previous.t;
+            if interval > 0.0 && interval <= 1.0 {
+                self.interval_ema = if self.interval_ema > 0.0 {
+                    self.interval_ema * 0.8 + interval * 0.2
+                } else {
+                    interval
+                };
+            }
+        }
         self.last_seq = lifecycle_seq;
         if reset {
             self.samples.clear();
@@ -51,13 +59,13 @@ impl ActorInterp {
         }
     }
 
-    /// Interpolated render position at wall-time `now` (delayed by
-    /// `INTERP_DELAY_S`). Falls back to the newest sample when the buffer is
-    /// too short to bracket.
+    /// Interpolated render position at wall-time `now`. Delay follows observed
+    /// packet cadence so jitter remains bracketed without adding fixed latency.
     pub fn sample(&self, now: f32) -> Option<(f32, f32)> {
         let newest = *self.samples.back()?;
         let front = *self.samples.front()?;
-        let target = now - INTERP_DELAY_S;
+        let delay = (self.interval_ema.max(1.0 / 30.0) * 1.5).clamp(0.05, 0.25);
+        let target = now - delay;
         if target <= front.t {
             return Some((front.x, front.y));
         }
@@ -94,13 +102,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn interpolates_between_samples() {
+    fn interpolates_between_samples_at_observed_cadence() {
         let mut it = ActorInterp::new();
         it.push(0.0, 0.0, 0.0, 1);
-        it.push(1.0, 10.0, 0.0, 1);
-        // now=0.6 → target=0.5 → halfway between (0,0) and (10,0).
-        let (x, _) = it.sample(0.6).unwrap();
+        it.push(0.1, 10.0, 0.0, 1);
+        // 100 ms cadence buffers 150 ms. At now=200 ms the target is 50 ms.
+        let (x, _) = it.sample(0.2).unwrap();
         assert!((x - 5.0).abs() < 1e-3, "got {x}");
+    }
+
+    #[test]
+    fn interpolation_delay_adapts_to_packet_cadence() {
+        let mut fast = ActorInterp::new();
+        fast.push(0.0, 0.0, 0.0, 1);
+        fast.push(0.05, 1.0, 0.0, 1);
+        let mut slow = ActorInterp::new();
+        slow.push(0.0, 0.0, 0.0, 1);
+        slow.push(0.2, 1.0, 0.0, 1);
+
+        // At the same wall-clock offset after the newest packet, the fast
+        // stream has advanced farther because it needs less jitter buffering.
+        let fast_x = fast.sample(0.25).unwrap().0;
+        let slow_x = slow.sample(0.4).unwrap().0;
+        assert!(fast_x > slow_x, "fast={fast_x} slow={slow_x}");
     }
 
     #[test]

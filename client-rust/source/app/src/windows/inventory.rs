@@ -171,7 +171,7 @@ pub struct InventoryLayout {
 }
 
 const GRID_GAP: f32 = 4.0;
-/// Original volume-page cell is 48x48 (`swg-ui-game` layout contract).
+/// Original volume-page cell is 48x48 (legacy UI layout contract).
 const GRID_CARD_MIN: f32 = 48.0;
 const GRID_LABEL_H: f32 = 14.0;
 const GRID_MIN_COLUMNS: usize = 3;
@@ -222,7 +222,7 @@ fn current_page() -> usize {
     }
 }
 
-/// SWG inventory geometry: an equipment column carrying the live character
+/// Legacy inventory geometry: an equipment column carrying the live character
 /// doll owns the left of the window, the item field owns the right, and one
 /// shallow footer carries status, economy, and the selected stack's actions.
 ///

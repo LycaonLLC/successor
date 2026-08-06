@@ -322,9 +322,12 @@ export async function waitForGameStatus(endpoint, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const remainingMs = Math.max(1, deadline - Date.now());
-    const status = await fetch(`${endpoint}/game/status`, { signal: AbortSignal.timeout(remainingMs) })
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), remainingMs);
+    const status = await fetch(`${endpoint}/game/status`, { signal: controller.signal })
       .then((response) => response.ok ? response.json() : null)
-      .catch(() => null);
+      .catch(() => null)
+      .finally(() => clearTimeout(timeout));
     if (status?.shardId && status?.source?.stateHash) return status;
     await new Promise((resolve) => setTimeout(resolve, Math.min(100, Math.max(1, deadline - Date.now()))));
   }

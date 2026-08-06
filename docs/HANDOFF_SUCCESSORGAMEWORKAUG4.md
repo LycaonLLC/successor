@@ -51,7 +51,7 @@ the ground HUD: aim lives on the pointer, and the cursor set switches to
 arrow, select, attack, interact, move, four resize axes, text, busy, blocked —
 from the same primitives the window chrome uses, so the pointer is made of the
 same material as the frames it sits on. No bitmaps, no atlas cell per
-resolution; SWG cursor art is proprietary and stays host-local.
+resolution; proprietary legacy cursor art stays host-local.
 
 The pointer is drawn last, after the composite bands, so no 3D viewer paints
 over it. `Graphics::constrainMouseCursor` clips the hardware cursor to the

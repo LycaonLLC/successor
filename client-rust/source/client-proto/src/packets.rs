@@ -557,7 +557,19 @@ impl Serialize for GameCompactReceipt {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct GamePlayerPositionAck(pub f32, pub f32);
+pub struct GamePlayerPositionAck(
+    pub f32,
+    pub f32,
+    #[serde(default)] pub Option<u64>,
+);
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GameMovementProfileAck {
+    #[serde(rename = "walkSpeedMilliPerSecond")]
+    pub walk_speed_milli_per_second: i32,
+    #[serde(rename = "sprintSpeedMilliPerSecond")]
+    pub sprint_speed_milli_per_second: i32,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type")]
@@ -603,6 +615,9 @@ pub enum GameServerPacket {
         #[serde(default)]
         #[serde(rename = "playerPosition")]
         player_position: Option<GamePlayerPositionAck>,
+        #[serde(default)]
+        #[serde(rename = "movementProfile")]
+        movement_profile: Option<GameMovementProfileAck>,
         #[serde(default)]
         events: Option<Vec<serde_json::Value>>,
         #[serde(default)]

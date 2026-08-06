@@ -488,8 +488,8 @@ def build_entry_bay(p: Part, glass: Part, glow: Part):
     box(p, jx0, jx1, dy1 + 0.10, WALL_TOP, IZ1, bzs, "CF_panel_dk")
     box(p, jx0, jx1, dy1, dy1 + 0.10, IZ1, 3.42, "CF_gunmetal")
 
-    # door pocket housing on the left of the portal
-    pk = DOOR["pocket"]
+    # door recess housing on the left of the portal
+    pk = DOOR["door_recess"]
     box(p, pk["x_min"] - 0.06, pk["x_max"], pk["y_min"], pk["y_max"],
         pk["z_min"] - 0.05, pk["z_min"], "CF_gunmetal")
     box(p, pk["x_min"] - 0.06, pk["x_max"], pk["y_max"], pk["y_max"] + 0.07,

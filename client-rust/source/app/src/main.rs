@@ -72,6 +72,27 @@ fn main() {
     // the bare `{playerId, actorId}` dev shape for any id its character store
     // already owns ("durable character identity required").
     let character_arg = arg_value(&args, "--character-id");
+    let spawn_area_arg = arg_value(&args, "--spawn-area");
+    let spawn_x_arg = arg_value(&args, "--spawn-x");
+    let spawn_y_arg = arg_value(&args, "--spawn-y");
+    let spawn_facing_arg = arg_value(&args, "--spawn-facing");
+    let dev_spawn = match (
+        spawn_area_arg.as_deref(),
+        spawn_x_arg.as_deref(),
+        spawn_y_arg.as_deref(),
+    ) {
+        (Some(area), Some(x), Some(y)) => Some((
+            area,
+            x,
+            y,
+            spawn_facing_arg.as_deref().unwrap_or("right"),
+        )),
+        (None, None, None) => None,
+        _ => {
+            eprintln!("development spawn requires --spawn-area, --spawn-x, and --spawn-y");
+            std::process::exit(2);
+        }
+    };
     let dev_identity = args.iter().any(|a| a == "--dev-identity");
     #[cfg(not(feature = "dev-tools"))]
     let _ = dev_identity;
@@ -108,6 +129,7 @@ fn main() {
                 &player,
                 &actor,
                 character_arg.as_deref(),
+                dev_spawn,
                 max_frames,
                 screenshot.as_deref(),
                 auto_walk,
@@ -1860,6 +1882,7 @@ mod connected {
         player_id: &str,
         actor_id: &str,
         character_id: Option<&str>,
+        dev_spawn: Option<(&str, &str, &str, &str)>,
         max_frames: Option<u64>,
         screenshot: Option<&str>,
         auto_walk: bool,
@@ -1871,6 +1894,7 @@ mod connected {
             player_id,
             actor_id,
             character_id,
+            dev_spawn,
             None,
             None,
             chat_endpoint,
@@ -1915,6 +1939,7 @@ mod connected {
             &character,
             &character,
             None,
+            None,
             Some(game_ticket),
             Some(chat_ticket),
             Some(chat_endpoint),
@@ -1932,6 +1957,7 @@ mod connected {
         player_id: &str,
         actor_id: &str,
         dev_character_id: Option<&str>,
+        dev_spawn: Option<(&str, &str, &str, &str)>,
         game_ticket: Option<String>,
         chat_ticket: Option<String>,
         chat_endpoint: Option<String>,
@@ -1959,7 +1985,16 @@ mod connected {
         } else if let Some(character_id) = dev_character_id {
             json!({ "characterId": character_id })
         } else {
-            json!({ "playerId": player_id, "actorId": actor_id })
+            let mut opts = json!({ "playerId": player_id, "actorId": actor_id });
+            if let (Some(object), Some((area, x, y, facing))) =
+                (opts.as_object_mut(), dev_spawn)
+            {
+                object.insert("spawnArea".into(), json!(area));
+                object.insert("spawnX".into(), json!(x));
+                object.insert("spawnY".into(), json!(y));
+                object.insert("facing".into(), json!(facing));
+            }
+            opts
         };
         let settings_root = std::env::var_os("HOME")
             .map(PathBuf::from)
@@ -2111,10 +2146,7 @@ mod connected {
                     None
                 }
             });
-        let mut last_intent = (0i32, 0i32, false);
-        // Frame the intent last changed, so a release can be re-announced
-        // across the authority's one-second intent expiry.
-        let mut last_intent_frame = 0u64;
+        let mut movement_controller = movement::MovementController::default();
         let mut chat_buf = Vec::with_capacity(64 * 1024);
         let mut chat_input = TextField::new(320);
         let mut chat_enter_was_down = false;
@@ -2131,7 +2163,13 @@ mod connected {
         #[cfg(feature = "alloc-count")]
         let mut connected_alloc_frame = None;
 
+        let mut last_frame_ms = plat::now_ms();
         while !plat::should_quit() && max_frames.is_none_or(|m| frame < m) {
+            let frame_now_ms = plat::now_ms();
+            let frame_delta_seconds =
+                ((frame_now_ms - last_frame_ms).clamp(0.0, 100.0) / 1_000.0) as f32;
+            last_frame_ms = frame_now_ms;
+            let movement_now_ms = frame_now_ms.max(0.0) as u64;
             plat::begin_frame();
             // Chat is deliberately independent: loss degrades only chat while
             // the authoritative game scene and movement continue rendering.
@@ -2273,7 +2311,9 @@ mod connected {
             // with fresh ids. UI/window keys are consumed by the scene locally.
             scene.set_move_intent(0, 0, false);
             if sess.state() == SessionState::Ready {
-                let intent = if scene.tuning_open() || chat_input.focused {
+                let window_focused = plat::window_focused();
+                let modal_input = scene.tuning_open() || chat_input.focused;
+                let intent = if !window_focused || modal_input {
                     (0, 0, false)
                 } else if auto_walk {
                     (0, -1, false)
@@ -2286,28 +2326,31 @@ mod connected {
                 let actor_dead = scene
                     .player_actor()
                     .is_some_and(|actor| actor.life_state != "alive");
-                let predicted_intent = if actor_dead { (0, 0, false) } else { intent };
+                let predicted_intent =
+                    if actor_dead || !window_focused || modal_input { (0, 0, false) } else { intent };
                 scene.set_move_intent(predicted_intent.0, predicted_intent.1, predicted_intent.2);
-                if actor_dead {
-                    if last_intent != (0, 0, false) {
-                        let _ = scene.release_movement(movement::StopReason::Dead);
-                        last_intent = (0, 0, false);
-                    }
-                } else if movement::should_send_intent(
-                    intent,
-                    last_intent,
-                    frame,
-                    frame.saturating_sub(last_intent_frame),
-                ) {
-                    if intent != last_intent {
-                        last_intent_frame = frame;
-                    }
-                    last_intent = intent;
+                let movement_update = if !window_focused {
+                    movement_controller.release(movement_now_ms, movement::StopReason::FocusLost)
+                } else if modal_input {
+                    movement_controller.release(movement_now_ms, movement::StopReason::ModalInput)
+                } else if actor_dead {
+                    movement_controller.release(movement_now_ms, movement::StopReason::Dead)
+                } else {
+                    movement_controller.update(
+                        movement::IntentState {
+                            dx: intent.0,
+                            dy: intent.1,
+                            sprint: intent.2,
+                        },
+                        movement_now_ms,
+                    )
+                };
+                if let Some(intent) = movement_update {
                     let _ = scene.dispatch_gameplay_action(actions::GameplayAction::Move {
-                        dx: intent.0,
-                        dy: intent.1,
-                        facing: movement::facing_from_intent(intent.0, intent.1),
-                        sprint: intent.2,
+                        dx: intent.dx,
+                        dy: intent.dy,
+                        facing: movement::facing_from_intent(intent.dx, intent.dy),
+                        sprint: intent.sprint,
                     });
                 }
                 if chat_consumed_escape || chat_input.focused {
@@ -2350,9 +2393,16 @@ mod connected {
                         plat::ws_send(&mut ws, &f);
                     }
                 }
-            } else if last_intent != (0, 0, false) {
-                let _ = scene.release_movement(movement::StopReason::Disconnected);
-                last_intent = (0, 0, false);
+            } else if let Some(intent) = movement_controller.release(
+                movement_now_ms,
+                movement::StopReason::Disconnected,
+            ) {
+                let _ = scene.dispatch_gameplay_action(actions::GameplayAction::Move {
+                    dx: intent.dx,
+                    dy: intent.dy,
+                    facing: movement::facing_from_intent(intent.dx, intent.dy),
+                    sprint: intent.sprint,
+                });
             }
             let _ = plat::is_key_down(Key::Escape);
 
@@ -2367,7 +2417,10 @@ mod connected {
                     plat::ws_send(socket, ping.as_bytes());
                 }
             }
+            scene.set_movement_timing(movement_controller.timing(), movement_now_ms);
             let actor = scene.player_actor();
+            let movement_diagnostics = scene.movement_diagnostics();
+            let movement_timing = movement_controller.timing();
             let status = plat::ControlStatusV2 {
                 frame,
                 framebuffer: (w > 0 && h > 0).then_some((w as u32, h as u32)),
@@ -2405,6 +2458,23 @@ mod connected {
                 }),
                 renderer_degradation_ids: Vec::new(),
                 window_frames: scene.window_frames(),
+                movement: movement_diagnostics.map(|movement| plat::ControlMovementStatus {
+                    authoritative: movement.authoritative,
+                    predicted: movement.predicted,
+                    rendered: movement.rendered,
+                    correction_cells: movement.correction_cells,
+                    intent: movement.intent,
+                    applied_command_id: movement.applied_command_id,
+                    blocker_count: movement.blocker_count,
+                    presented_ground_y: movement.presented_ground_y,
+                    sampled_ground_y: movement.sampled_ground_y,
+                    frame_dt_ms: movement.frame_dt_ms,
+                    last_change_ms: movement_timing.last_change_ms,
+                    last_send_ms: movement_timing.last_send_ms,
+                    next_send_ms: movement_timing.next_send_ms,
+                    sampled_at_ms: movement_now_ms,
+                    stop_retry_until_ms: movement_timing.stop_retry_until_ms,
+                }),
             };
             for intent in plat::take_ui_intents() {
                 if !scene.apply_control_ui_intent(&intent) {
@@ -2420,7 +2490,7 @@ mod connected {
                     &mut gpu,
                     w as u32,
                     h as u32,
-                    1.0 / 60.0,
+                    frame_delta_seconds,
                     &mut read_asset,
                     &mut chat_client,
                     &mut chat_input,
@@ -2505,8 +2575,16 @@ mod connected {
             p.z,
             sess.state()
         );
-        if last_intent != (0, 0, false) {
-            let _ = scene.release_movement(movement::StopReason::ControlReleased);
+        if let Some(intent) = movement_controller.release(
+            plat::now_ms().max(0.0) as u64,
+            movement::StopReason::ControlReleased,
+        ) {
+            let _ = scene.dispatch_gameplay_action(actions::GameplayAction::Move {
+                dx: intent.dx,
+                dy: intent.dy,
+                facing: movement::facing_from_intent(intent.dx, intent.dy),
+                sprint: intent.sprint,
+            });
             while let Some(env) = scene.take_next_command() {
                 if let Ok(SessionOut::SendFrame(f)) = sess.send_command(&env) {
                     plat::ws_send(&mut ws, &f);
