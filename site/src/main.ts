@@ -1,11 +1,14 @@
 // Per-page progressive enhancement. Every page's content works without
-// this file; home cinema media, download rows, and account/device/play
-// interactions light up when it runs.
+// this file; the theme deck, home cinema media, download rows, and
+// account/device/play interactions light up when it runs.
 import { initAccountPage } from "./features/account";
 import { initConnectPage } from "./features/connect";
 import { initPlayPage } from "./features/play";
 import { initDownloads } from "./features/downloads";
 import { initHome } from "./features/home";
+import { initTheme } from "./features/theme";
+
+initTheme(document);
 
 const page = document.body.dataset.page;
 

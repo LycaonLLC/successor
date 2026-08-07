@@ -1,52 +1,71 @@
-/* Neutral monochrome system.
-   Dark default, light via prefers-color-scheme.
-   Zero chroma on brand/UI tokens. Danger/ok keep semantic color. */
+/* Successor site tokens — five keyed themes.
+ *
+ * DAWN is the site's own daylight glass: pale field, translucent blue panels.
+ * SIGNAL / PHOSPHOR / AMBER / OXIDE are byte-exact ports of the game client's
+ * `hud.rs` THEMES (bg_panel/bg_cell at their shipped alphas, ink, dim ink,
+ * hairline, accent, accent_soft, danger). Picking one dresses the site in the
+ * same chrome the Rust client draws in the field — that parity is tested in
+ * tests/theme-contract.test.ts against client-rust/source/app/src/hud.rs.
+ *
+ * Grammar (shared by every theme):
+ *   --field       page ground
+ *   --panel       translucent pane fill (the game's bg_panel)
+ *   --cell        inset cell fill (the game's bg_cell)
+ *   --ink         primary type        --ink-dim   secondary type
+ *   --hairline    structural rule     --line      soft mixed rule
+ *   --accent      bright chrome       --accent-soft  hover/active wash
+ *   --accent-ink  dark ink ON the accent rail (game caption text)
+ *   --danger      shared alarm red    --ok        confirm green
+ * Derived lines and glass always go through color-mix(in oklab, …).
+ */
 :root {
-  --frame: oklch(0.12 0 0);
-  --frame-2: oklch(0.16 0 0);
-  --frame-3: oklch(0.2 0 0);
-  --seam: oklch(0.42 0 0 / 0.42);
+  /* ── theme: dawn (default) ─────────────────────────────────────────── */
+  --field: oklch(0.965 0.012 225);
+  --field-deep: oklch(0.93 0.02 228);
+  --panel: oklch(0.9 0.035 222 / 0.58);
+  --cell: oklch(0.985 0.008 220 / 0.72);
+  --ink: oklch(0.28 0.045 235);
+  --ink-dim: oklch(0.45 0.035 233);
+  --hairline: oklch(0.78 0.05 224);
+  --accent: oklch(0.52 0.11 219);
+  --accent-soft: oklch(0.87 0.055 218 / 0.7);
+  --accent-ink: oklch(0.985 0.01 220);
+  --danger: oklch(0.54 0.19 27);
+  --ok: oklch(0.52 0.12 155);
+  --glass-blur: 14px;
+  --glow-alpha: 20%;
+  --scheme: light;
 
-  --chalk: oklch(0.96 0 0);
-  --dust: oklch(0.78 0 0);
-
-  --primary: oklch(0.96 0 0);
-  --primary-ink: oklch(0.12 0 0);
-  --primary-hover: oklch(0.9 0 0);
-  --primary-press: oklch(0.82 0 0);
-
-  --link: oklch(0.88 0 0);
-  --link-hover: oklch(0.96 0 0);
-  --link-decoration: oklch(0.7 0 0 / 0.5);
-
-  --focus: oklch(0.9 0 0);
-  --selection-bg: oklch(0.36 0 0);
-  --selection-ink: oklch(0.96 0 0);
-
-  --active-border: oklch(0.9 0 0);
-  --control-active: oklch(0.96 0 0);
-  --edge-glow: oklch(0.96 0 0 / 0.28);
-
-  --danger: oklch(0.72 0.17 25);
-  --ok: oklch(0.78 0.13 155);
+  /* ── shared structure ──────────────────────────────────────────────── */
+  --line: color-mix(in oklab, var(--ink) 14%, transparent);
+  --line-strong: color-mix(in oklab, var(--ink) 22%, transparent);
+  --edge: color-mix(in oklab, var(--accent) 80%, transparent);
+  --edge-soft: color-mix(in oklab, var(--accent) 42%, transparent);
+  --glass: color-mix(in oklab, var(--field) 72%, transparent);
+  --focus: var(--accent);
+  --selection-bg: color-mix(in oklab, var(--accent) 30%, var(--field));
+  --selection-ink: var(--ink);
 
   --font-display: "Karrik", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible Next", system-ui, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
 
-  --step-5: clamp(2.5rem, 1.7rem + 3.4vw, 4.5rem);
-  --step-4: clamp(1.85rem, 1.4rem + 2vw, 2.85rem);
-  --step-3: clamp(1.35rem, 1.15rem + 0.9vw, 1.75rem);
-  --step-2: clamp(1.125rem, 1.05rem + 0.4vw, 1.35rem);
+  --step-5: clamp(2.4rem, 1.6rem + 3.4vw, 4.4rem);
+  --step-4: clamp(1.8rem, 1.35rem + 2vw, 2.8rem);
+  --step-3: clamp(1.3rem, 1.12rem + 0.9vw, 1.7rem);
+  --step-2: clamp(1.1rem, 1.03rem + 0.4vw, 1.3rem);
+  --micro: 0.72rem;
+  --micro-track: 0.14em;
 
   --gutter: clamp(1rem, 4vw, 2.5rem);
-  --page-max: 72rem;
+  --page-max: 76rem;
   --topbar-h: 3.5rem;
-  --text-max: 40rem;
+  --text-max: 42rem;
 
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --speed: 160ms;
+  --speed-panel: 240ms;
+  --speed-scene: 480ms;
 
   --z-base: 0;
   --z-content: 1;
@@ -54,60 +73,97 @@
   --z-head: 20;
   --z-menu: 25;
   --z-skip: 30;
+
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --frame: oklch(0.985 0 0);
-    --frame-2: oklch(0.96 0 0);
-    --frame-3: oklch(0.935 0 0);
-    --seam: oklch(0.45 0 0 / 0.28);
+/* ── theme: signal — hud.rs THEMES[0] ────────────────────────────────── */
+[data-theme="signal"] {
+  --field: #05100f;
+  --field-deep: #030a0a;
+  --panel: rgb(17 51 55 / 0.91);
+  --cell: rgb(10 30 32 / 0.92);
+  --ink: #cfe9ef;
+  --ink-dim: #899a9e;
+  --hairline: #1a4d53;
+  --accent: #48d6e6;
+  --accent-soft: rgb(22 64 69 / 0.92);
+  --accent-ink: #0b2226;
+  --danger: #e34a4a;
+  --ok: #4fd68a;
+  --glass-blur: 16px;
+  --glow-alpha: 14%;
+  --scheme: dark;
+  color-scheme: dark;
+}
 
-    --chalk: oklch(0.16 0 0);
-    --dust: oklch(0.38 0 0);
+/* ── theme: phosphor — hud.rs THEMES[1] ──────────────────────────────── */
+[data-theme="phosphor"] {
+  --field: #04110a;
+  --field-deep: #020a05;
+  --panel: rgb(17 61 29 / 0.91);
+  --cell: rgb(10 36 17 / 0.92);
+  --ink: #9cf0b4;
+  --ink-dim: #45b362;
+  --hairline: #195c2c;
+  --accent: #46ff7a;
+  --accent-soft: rgb(21 76 37 / 0.92);
+  --accent-ink: #0a2913;
+  --danger: #e34a4a;
+  --ok: #46ff7a;
+  --glass-blur: 16px;
+  --glow-alpha: 12%;
+  --scheme: dark;
+  color-scheme: dark;
+}
 
-    --primary: oklch(0.16 0 0);
-    --primary-ink: oklch(0.985 0 0);
-    --primary-hover: oklch(0.28 0 0);
-    --primary-press: oklch(0.1 0 0);
+/* ── theme: amber — hud.rs THEMES[2] ─────────────────────────────────── */
+[data-theme="amber"] {
+  --field: #120d05;
+  --field-deep: #0a0703;
+  --panel: rgb(61 43 18 / 0.91);
+  --cell: rgb(36 25 10 / 0.92);
+  --ink: #ffd98c;
+  --ink-dim: #ad945f;
+  --hairline: #5c401b;
+  --accent: #ffb24a;
+  --accent-soft: rgb(76 53 22 / 0.92);
+  --accent-ink: #29200b;
+  --danger: #e34a4a;
+  --ok: #7fce6a;
+  --glass-blur: 16px;
+  --glow-alpha: 12%;
+  --scheme: dark;
+  color-scheme: dark;
+}
 
-    --link: oklch(0.28 0 0);
-    --link-hover: oklch(0.12 0 0);
-    --link-decoration: oklch(0.4 0 0 / 0.45);
-
-    --focus: oklch(0.28 0 0);
-    --selection-bg: oklch(0.82 0 0);
-    --selection-ink: oklch(0.12 0 0);
-
-    --active-border: oklch(0.28 0 0);
-    --control-active: oklch(0.16 0 0);
-    --edge-glow: oklch(0.16 0 0 / 0.18);
-
-    --danger: oklch(0.5 0.19 25);
-    --ok: oklch(0.42 0.12 155);
-  }
+/* ── theme: oxide — hud.rs THEMES[3] ─────────────────────────────────── */
+[data-theme="oxide"] {
+  --field: #100704;
+  --field-deep: #090402;
+  --panel: rgb(54 25 14 / 0.91);
+  --cell: rgb(31 14 8 / 0.92);
+  --ink: #e6d4b8;
+  --ink-dim: #938876;
+  --hairline: #512515;
+  --accent: #e0673a;
+  --accent-soft: rgb(67 31 17 / 0.92);
+  --accent-ink: #2b130a;
+  --danger: #e34a4a;
+  --ok: #8ec27a;
+  --glass-blur: 16px;
+  --glow-alpha: 13%;
+  --scheme: dark;
+  color-scheme: dark;
 }
 
 @media (prefers-contrast: more) {
   :root {
-    --seam: oklch(0.55 0 0 / 0.7);
-    --dust: oklch(0.84 0 0);
-    --link: oklch(0.94 0 0);
-    --link-decoration: oklch(0.88 0 0 / 0.75);
-    --focus: oklch(0.98 0 0);
-    --active-border: oklch(0.98 0 0);
-    --edge-glow: oklch(1 0 0 / 0.45);
+    --ink: oklch(0.2 0.045 235);
+    --ink-dim: oklch(0.34 0.04 233);
   }
-}
-
-@media (prefers-color-scheme: light) and (prefers-contrast: more) {
-  :root {
-    --seam: oklch(0.28 0 0 / 0.55);
-    --dust: oklch(0.28 0 0);
-    --link: oklch(0.14 0 0);
-    --link-decoration: oklch(0.22 0 0 / 0.7);
-    --focus: oklch(0.1 0 0);
-    --active-border: oklch(0.1 0 0);
-    --edge-glow: oklch(0 0 0 / 0.32);
-  }
+  [data-theme="signal"] { --ink: #e6f5f9; --ink-dim: #a8bcc0; }
+  [data-theme="phosphor"] { --ink: #c8f7d6; --ink-dim: #6fce8b; }
+  [data-theme="amber"] { --ink: #ffe7b8; --ink-dim: #c9b083; }
+  [data-theme="oxide"] { --ink: #f2e6d2; --ink-dim: #b3a894; }
 }

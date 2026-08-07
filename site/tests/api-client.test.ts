@@ -255,11 +255,21 @@ describe("alpha-api client", () => {
     // entry and cleared by /play/ in one visit. Tickets, tokens, and cookies stay
     // banned there like everywhere else (asserted below).
     const handoff = join(srcDir, "features", "characterHandoff.ts");
+    // Second ruled exception: the theme deck persists one cosmetic preference
+    // (the palette id) under its versioned localStorage key. Credentials stay
+    // banned there like everywhere else (asserted below).
+    const theme = join(srcDir, "features", "theme.ts");
     for (const file of walk(srcDir).filter((f) => f.endsWith(".ts"))) {
       const source = readFileSync(file, "utf8");
       if (file === handoff) {
         expect(source, file).not.toMatch(/localStorage|document\.cookie/);
         expect(source, file).not.toMatch(/ticket|token|csrf|password/i);
+        continue;
+      }
+      if (file === theme) {
+        expect(source, file).not.toMatch(/sessionStorage|document\.cookie/);
+        // \btoken\b: the file legitimately documents tokens.css.
+        expect(source, file).not.toMatch(/ticket|\btoken\b|csrf|password/i);
         continue;
       }
       expect(source, file).not.toMatch(/localStorage|sessionStorage|document\.cookie/);

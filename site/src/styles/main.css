@@ -1,8 +1,8 @@
-/* Successor public site — neutral monochrome frame.
-   Dark default, system light/dark, hard cuts, calm chrome. */
+/* Successor public site — the client's chrome, one order of fidelity up.
+   Five keyed themes: DAWN glass by default, SIGNAL/PHOSPHOR/AMBER/OXIDE
+   ported byte-exact from the game client's hud.rs. */
 @import "./tokens.css";
 @import "./base.css";
 @import "./components.css";
 @import "./home.css";
 @import "./pages.css";
-@import "./finish.css";

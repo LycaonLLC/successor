@@ -66,6 +66,12 @@
       "sourceCommit": "77198e88",
       "capturedAt": "2026-07-28",
       "notes": "Actual 80x24 client-tui frame fixture, embedded as selectable text at its native proportions."
+    },
+    "nativeCaptureLane": {
+      "root": ".site-captures/",
+      "sourceCommit": "5d40e029",
+      "capturedAt": "2026-08-07",
+      "notes": "Native Rust dev client on the local authority; control-server screenshots; debug-granted loadouts; honest HUD."
     }
   },
   "slots": [
@@ -151,6 +157,28 @@
       ],
       "source": "verification/ledgers/artifacts/client3d/verify-full-1784899243000-3d--revive-a0/proofs/h3d-revive-01-downed.png",
       "provenance": "verificationFarm"
+    },
+    {
+      "id": "home-door-prompt",
+      "status": "available",
+      "files": [
+        "/media/door-prompt-1280.webp",
+        "/media/door-prompt-800.webp"
+      ],
+      "source": ".site-captures/raw/dustgate-door-prompt.bmp",
+      "provenance": "nativeCaptureLane",
+      "note": "Dustgate Cloning Facility with the live [F] OPEN prompt, captured in the native Rust client."
+    },
+    {
+      "id": "home-bank-window",
+      "status": "available",
+      "files": [
+        "/media/bank-window-1280.webp",
+        "/media/bank-window-800.webp"
+      ],
+      "source": ".site-captures/raw/dustgate-bank-window.bmp",
+      "provenance": "nativeCaptureLane",
+      "note": "Bank window open at the Dustgate terminal in the native Rust client."
     },
     {
       "id": "home-terminal-tui",

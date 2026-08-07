@@ -2,15 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Where it stands | Successor</title>
-    <meta
-      name="description"
-      content="What is live in Successor, what is in testing, and what comes later."
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Roadmap | Successor</title>
+    <meta name="description" content="A short ledger. Nothing here is a promise." />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#F8F8F8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#eef4f7" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Karrik-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link
@@ -26,44 +22,19 @@
   <body data-page="roadmap">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
-      <div class="shell">
-        <a class="wordmark" href="/">
-          <img
-            class="wordmark-mark"
-            src="/brand/successor-mark.svg"
-            width="20"
-            height="20"
-            alt=""
-            decoding="async"
-          />
-          <img
-            class="wordmark-type"
-            src="/brand/successor-wordmark.svg"
-            width="132"
-            height="16"
-            alt="Successor"
-            decoding="async"
-          />
-        </a>
-        <nav class="site-nav" aria-label="Site">
-          <ul class="nav-inline">
-            <li><a href="/">Home</a></li>
-            <li><a href="/roadmap/" aria-current="page">Roadmap</a></li>
-            <li><a href="/alpha/">Alpha</a></li>
-            <li><a href="/account/">Account</a></li>
-            <li><a href="/play/">Play</a></li>
-          </ul>
-          <details class="nav-menu">
-            <summary>Menu</summary>
-            <ul class="nav-list">
-              <li><a href="/">Home</a></li>
-              <li><a href="/roadmap/" aria-current="page">Roadmap</a></li>
-              <li><a href="/alpha/">Alpha</a></li>
-              <li><a href="/account/">Account</a></li>
-              <li><a href="/play/">Play</a></li>
-            </ul>
-          </details>
-        </nav>
+      <a class="brand" href="/" aria-label="Successor home">
+        <img src="/brand/successor-mark.svg" width="20" height="20" alt="" decoding="async" />
+        <img src="/brand/successor-wordmark.svg" width="132" height="16" alt="Successor" decoding="async" />
+      </a>
+      <nav aria-label="Site">
+        <a href="/roadmap/" aria-current="page">Roadmap</a>
+        <a href="/alpha/">Alpha</a>
+        <a href="/account/">Account</a>
+        <a href="/download/">Download</a>
+        <a href="/play/">Play</a>
+      </nav>
+      <div class="side">
+        <div data-theme-deck></div>
       </div>
     </header>
 
@@ -75,7 +46,7 @@
 
       <section class="page-section roadmap-group" aria-labelledby="h-live">
         <h2 id="h-live">
-          <span class="status-chip" data-tone="live">LIVE IN ALPHA</span>
+          <span class="status-chip" data-tone="live">Live in alpha</span>
           <span class="roadmap-group-title">Here now</span>
         </h2>
         <ul class="roadmap-list">
@@ -104,17 +75,17 @@
 
       <section class="page-section roadmap-group" aria-labelledby="h-playtest">
         <h2 id="h-playtest">
-          <span class="status-chip" data-tone="play">IN PLAYTESTING</span>
+          <span class="status-chip" data-tone="play">In playtesting</span>
           <span class="roadmap-group-title">Under test</span>
         </h2>
         <ul class="roadmap-list">
           <li class="roadmap-item">
-            <h3>The first hour</h3>
-            <p>Clearer guidance around Dustgate and Knox Vale.</p>
+            <h3>The Rust client</h3>
+            <p>A native and web client, rebuilt from the metal up.</p>
           </li>
           <li class="roadmap-item">
-            <h3>Terminal download</h3>
-            <p>Public Linux and macOS packages are available now.</p>
+            <h3>The first hour</h3>
+            <p>Clearer guidance around Dustgate and Knox Vale.</p>
           </li>
           <li class="roadmap-item">
             <h3>Larger sessions</h3>
@@ -125,7 +96,7 @@
 
       <section class="page-section roadmap-group" aria-labelledby="h-horizon">
         <h2 id="h-horizon">
-          <span class="status-chip" data-tone="horizon">LATER</span>
+          <span class="status-chip" data-tone="next">Later</span>
           <span class="roadmap-group-title">Past invite alpha</span>
         </h2>
         <ul class="roadmap-list">
@@ -145,27 +116,25 @@
       </section>
 
       <section class="page-section" aria-labelledby="h-alpha-link">
-        <h2 id="h-alpha-link">Alpha access</h2>
-        <div class="cta-row">
-          <a class="btn btn-primary" href="/alpha/">Successor Alpha Access</a>
-          <a class="btn btn-secondary" href="/play/">Play</a>
+        <h2 id="h-alpha-link" class="visually-hidden">Alpha access</h2>
+        <div class="cinema-ctas">
+          <a class="btn btn-primary" href="/alpha/">Join the alpha</a>
+          <a class="btn" href="/play/">Play</a>
         </div>
       </section>
     </main>
 
     <footer class="site-foot">
-      <div class="shell">
-        <p>Invite alpha. Saves may reset.</p>
-        <ul class="foot-links">
-          <li><a href="/roadmap/">Roadmap</a></li>
-          <li><a href="/alpha/">Alpha</a></li>
-          <li><a href="/legal/terms/">Terms</a></li>
-          <li><a href="/legal/privacy/">Privacy</a></li>
-          <li><a href="/download/">Downloads</a></li>
-          <li><a href="/legal/terms/#contact">Contact</a></li>
-        </ul>
-        <p class="foot-credit">From Lycaon LLC, in partnership with ROYCORP GAME STUDIOS.</p>
-      </div>
+      <p class="fine">Invite alpha. Saves may reset.</p>
+      <nav aria-label="Footer">
+        <a href="/roadmap/">Roadmap</a>
+        <a href="/alpha/">Alpha</a>
+        <a href="/legal/terms/">Terms</a>
+        <a href="/legal/privacy/">Privacy</a>
+        <a href="/download/">Downloads</a>
+        <a href="/legal/terms/#contact">Contact</a>
+      </nav>
+      <p class="fine">From Lycaon LLC, in partnership with ROYCORP GAME STUDIOS.</p>
     </footer>
   </body>
 </html>
