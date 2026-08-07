@@ -68,12 +68,19 @@ pub struct ToolbarAction {
 
 /// The bindable verb set for the 12-slot bar. Window shortcuts cover the
 /// PERMANENT dock destinations only.
-pub const TOOLBAR_ACTIONS: [ToolbarAction; 14] = [
+pub const TOOLBAR_ACTIONS: [ToolbarAction; 15] = [
     ToolbarAction {
         id: "attack",
         label: "ATTACK",
         icon: "crosshair",
         description: "STRIKE THE CURRENT TARGET.",
+        kind: ActionKind::Verb,
+    },
+    ToolbarAction {
+        id: "aimed",
+        label: "AIMED SHOT",
+        icon: "examine",
+        description: "SPEND ACTION ON A PRECISE SHOT.",
         kind: ActionKind::Verb,
     },
     ToolbarAction {
@@ -200,6 +207,16 @@ impl ToolbarDoc {
             slots: vec![None; SLOT_COUNT],
             binds: DEFAULT_BINDS.iter().map(|s| s.to_string()).collect(),
         }
+    }
+
+    /// Fresh-install loadout: the two combat verbs live on `1` and `2`, the
+    /// original's number-row grammar. Persisted docs never pass through this —
+    /// `from_json` overlays a `blank()` base, so an emptied slot stays empty.
+    pub fn default_loadout() -> Self {
+        let mut doc = Self::blank();
+        doc.slots[0] = Some(SlotRef::Action("attack".to_string()));
+        doc.slots[1] = Some(SlotRef::Action("aimed".to_string()));
+        doc
     }
 
     /// Read + migrate a stored doc section. Corrupt/missing → blank default;

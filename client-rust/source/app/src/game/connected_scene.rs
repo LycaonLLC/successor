@@ -323,7 +323,7 @@ fn spatial_chat_payload(message: &ChatMessage) -> Option<(&str, &str)> {
 /// Keys sampled by both connected hosts. The permanent-window entries are
 /// deliberately represented by their advertised `KeyboardEvent.code` mapping
 /// below rather than a second hand-maintained registry.
-pub const CONNECTED_INPUT_KEYS: [Key; 16] = [
+pub const CONNECTED_INPUT_KEYS: [Key; 24] = [
     Key::C,
     Key::I,
     Key::P,
@@ -340,6 +340,14 @@ pub const CONNECTED_INPUT_KEYS: [Key; 16] = [
     Key::Tab,
     Key::Digit1,
     Key::Digit2,
+    Key::Digit3,
+    Key::Digit4,
+    Key::Digit5,
+    Key::Digit6,
+    Key::Digit7,
+    Key::Digit8,
+    Key::Digit9,
+    Key::Digit0,
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -1384,7 +1392,7 @@ impl ConnectedScene {
             overlays: hud::overlays::Overlays::new(),
             last_dialogue_tick: i64::MIN,
             last_applied_move_command_id: 0,
-            toolbar: hud::toolbar::Toolbar::new(hud::toolbar::ToolbarDoc::blank()),
+            toolbar: hud::toolbar::Toolbar::new(hud::toolbar::ToolbarDoc::default_loadout()),
             waypoints: hud::waypoints::WaypointStore::new(),
             macro_runtime: crate::game::macro_runtime::MacroRuntime::default(),
             macro_actions: Vec::with_capacity(crate::game::macro_runtime::STEPS_PER_TICK_MAX),
@@ -2902,8 +2910,7 @@ impl ConnectedScene {
                     ammo_type: None,
                 })
             }
-            Key::Space | Key::Digit1 => return self.shot_action("basic_shot"),
-            Key::Digit2 => return self.shot_action("aimed_shot"),
+            Key::Space => return self.shot_action("basic_shot"),
             Key::Tab => {
                 self.cycle_target();
                 return None;
@@ -5238,12 +5245,8 @@ impl ConnectedScene {
                 }
                 hud::HudAction::RunVerb(verb) => {
                     let gameplay = match verb {
-                        "attack" => self.selected_actor_id.clone().map(|target_actor_id| {
-                            actions::GameplayAction::Attack {
-                                action_id: "basic_shot".into(),
-                                target_actor_id,
-                            }
-                        }),
+                        "attack" => self.shot_action("basic_shot"),
+                        "aimed" => self.shot_action("aimed_shot"),
                         "kneel" | "stand" => Some(actions::GameplayAction::SetPosture {
                             posture: verb.into(),
                         }),
