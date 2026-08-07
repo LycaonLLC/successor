@@ -2046,7 +2046,7 @@ impl ConnectedScene {
         if received_dialogue && self.win_model.converse.npc.is_some() {
             self.open_workspace_window("converse");
         }
-        self.hud_state.interact = if let Some(prop) = self.nearest_interaction_prop() {
+        self.hud_state.interact = if let Some(prop) = Self::nearest_interaction_prop(&self.slice, &self.store, &self.player_id, &self.area_id) {
             Some(hud::InteractHud {
                 label: format!("[F] {}", prop.label.to_uppercase()),
                 hold_frac: None,
@@ -2491,7 +2491,7 @@ impl ConnectedScene {
         }
         // Proximity alone is not a pointer verb: the prop also has to be under
         // the pointer, or every door in reach would claim the cursor.
-        if let (Some(vp), Some(prop)) = (self.viewport_projection(), self.nearest_interaction_prop())
+        if let (Some(vp), Some(prop)) = (self.viewport_projection(), Self::nearest_interaction_prop(&self.slice, &self.store, &self.player_id, &self.area_id))
         {
             let (sx, sy) = self.cell_to_screen(&vp, prop.x, prop.y, 1.45);
             let d2 = (sx - x) * (sx - x) + (sy - y) * (sy - y);
@@ -2672,16 +2672,23 @@ impl ConnectedScene {
         }
     }
 
-    fn nearest_interaction_prop(&self) -> Option<InteractionProp<'_>> {
-        let player = self.store.actors.get(&self.player_id)?;
-        self.slice
+    /// Narrow field borrows (not `&self`) so callers can keep the result
+    /// alive across `&mut self.ui` / overlay work in the same frame.
+    fn nearest_interaction_prop<'a>(
+        slice: &'a successor_engine_core::json::Json,
+        store: &crate::game::authority::AuthorityStore,
+        player_id: &str,
+        area_id: &str,
+    ) -> Option<InteractionProp<'a>> {
+        let player = store.actors.get(player_id)?;
+        slice
             .get("props")
             .and_then(successor_engine_core::json::Json::as_array)?
             .iter()
             .filter(|prop| {
                 prop.get("areaId")
                     .and_then(successor_engine_core::json::Json::as_str)
-                    == Some(self.area_id.as_str())
+                    == Some(area_id)
             })
             .filter_map(|prop| {
                 let cell = prop.get("cell")?;
@@ -2916,7 +2923,7 @@ impl ConnectedScene {
                 return None;
             }
             Key::F => {
-                if let Some(prop) = self.nearest_interaction_prop() {
+                if let Some(prop) = Self::nearest_interaction_prop(&self.slice, &self.store, &self.player_id, &self.area_id) {
                     if prop.kind.contains("door") {
                         return Some(actions::GameplayAction::ToggleDoor {
                             prop_id: prop.id.to_string(),
@@ -4180,6 +4187,7 @@ impl ConnectedScene {
     /// Per-frame: reconcile pawns with the authoritative actor set, animate, and
     /// render the full scene + FX + HUD.
     #[allow(clippy::too_many_arguments)]
+
     pub fn frame<G: Gpu>(
         &mut self,
         gpu: &mut G,
@@ -4193,6 +4201,7 @@ impl ConnectedScene {
         self.last_frame_dt = dt.max(0.0);
         // Stream completions land before anything consumes them this frame.
         self.streamer.pump(platform);
+
         // Travel hold: keep streaming the destination spawn neighborhood and
         // release the transition once it settles; the deadline forces
         // fail-closed marker placement rather than hanging the transition.
@@ -4292,6 +4301,7 @@ impl ConnectedScene {
             );
         }
         self.macro_actions.clear();
+
         self.macro_runtime.tick(
             self.store.tick,
             self.selected_actor_id.as_deref(),
@@ -4415,6 +4425,7 @@ impl ConnectedScene {
             self.spawn_pawn(gpu, platform, &live, faction);
         }
         self.sim_time += dt.max(0.0);
+
         // Every open viewer renders its own subject this frame. Each composite
         // is banded by the owning window's draw rank, so a viewer paints over
         // its own panel and under anything stacked above it — the original
@@ -4648,6 +4659,7 @@ impl ConnectedScene {
         }
 
         // 3) Cameras track the player's terrain elevation and eye-level focus.
+
         let p = self.player_pos();
         let focus = follow_focus(p);
         self.center = p;
@@ -4687,6 +4699,7 @@ impl ConnectedScene {
         }
 
         // Streamed clock and weather own sun, clear color, grade, fog, and
+
         // precipitation. The noon/clear build state lasts only until accepted
         // authority sections arrive.
         self.environs.apply_clock(self.store.world_clock());
@@ -4869,6 +4882,7 @@ impl ConnectedScene {
         self.weather
             .set(active_weather.kind, active_weather.strength);
         self.weather.update(dt);
+
         {
             use successor_engine_core::audio::{Point, SpatialOpts};
             const WEATHER_LOOP_KEY: u32 = 0x5745_4154;
@@ -4993,9 +5007,11 @@ impl ConnectedScene {
         }
 
         // 5) Render scene → screen (+ minimap composite).
+
         self.renderer
             .render(gpu, &mut self.world, w, h)
             .expect("render failed");
+
 
         // 6) Weather (ambient dust) → the FX pool, then integrate + draw all
         //    billboards over the scene in the follow-camera frame.
@@ -5076,9 +5092,13 @@ impl ConnectedScene {
             }
         }
         hud::set_fill_opacity(self.hud_opacity);
-        let interaction = self
-            .nearest_interaction_prop()
-            .map(|prop| (prop.label.to_string(), prop.kind == "door", prop.x, prop.y));
+        let interaction = Self::nearest_interaction_prop(
+            &self.slice,
+            &self.store,
+            &self.player_id,
+            &self.area_id,
+        )
+        .map(|prop| (prop.label, prop.kind == "door", prop.x, prop.y));
         let store = &self.store;
         let terrain = &self.terrain;
         let area_id = self.area_id.as_str();

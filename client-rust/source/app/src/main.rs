@@ -2484,9 +2484,18 @@ mod connected {
                 }
             }
             plat::publish_control_status(status);
-            #[cfg(feature = "alloc-count")]
-            successor_engine_core::rt::alloc::reset_alloc_count();
+        #[cfg(feature = "alloc-count")]
+        {
+                successor_engine_core::rt::alloc::reset_alloc_count();
+                #[cfg(not(target_arch = "wasm32"))]
+                if connected_stable_frames >= 240 {
+                    successor_client::alloc_trace::reset_histogram();
+                    successor_client::alloc_trace::arm_trace();
+                }
+            }
             if w > 0 && h > 0 {
+                #[cfg(all(feature = "alloc-count", not(target_arch = "wasm32")))]
+                successor_client::alloc_trace::scene_active(true);
                 scene.frame(
                     &mut gpu,
                     w as u32,
@@ -2496,6 +2505,8 @@ mod connected {
                     &mut chat_client,
                     &mut chat_input,
                 );
+                #[cfg(all(feature = "alloc-count", not(target_arch = "wasm32")))]
+                successor_client::alloc_trace::scene_active(false);
                 #[cfg(feature = "alloc-count")]
                 {
                     let actor_count = scene.actor_count();
@@ -2510,6 +2521,8 @@ mod connected {
                             connected_frame_allocs = connected_frame_allocs.max(allocations);
                             if allocations != 0 {
                                 connected_alloc_frame.get_or_insert(frame);
+                                #[cfg(not(target_arch = "wasm32"))]
+                                successor_client::alloc_trace::absorb_frame(frame);
                             }
                         }
                     }
@@ -2611,6 +2624,8 @@ mod connected {
                     "connected-frame-allocs {connected_frame_allocs} first-frame {:?}",
                     connected_alloc_frame
                 );
+                #[cfg(not(target_arch = "wasm32"))]
+                successor_client::alloc_trace::dump_alloc_trace(24);
                 if connected_frame_allocs != 0 {
                     eprintln!(
                         "CONNECTED ALLOC GATE FAIL: {connected_frame_allocs} steady-state allocations"

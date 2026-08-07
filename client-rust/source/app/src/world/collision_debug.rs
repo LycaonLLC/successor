@@ -248,7 +248,13 @@ impl CollisionDebugOverlay {
             }
         }
 
-        let hash = building.map(stable_json_hash).unwrap_or(0);
+        // Only `components` feed collision bounds; sibling metadata (`tick`,
+        // `schema`, …) churns every authority snapshot and must not trigger a
+        // destroy/respawn + movement-collision rebuild every frame.
+        let hash = building
+            .and_then(|value| value.get("components"))
+            .map(stable_json_hash)
+            .unwrap_or(0);
         if hash != self.building_hash {
             changed = true;
             for instance in self.buildings.drain(..) {

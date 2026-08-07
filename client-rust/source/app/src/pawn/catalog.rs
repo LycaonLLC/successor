@@ -1018,7 +1018,24 @@ impl PawnCatalog {
                     parse_weapon_hand_spec(&bytes)
                 }
             };
-            self.hand_specs.insert(key.to_string(), parsed);
+            // Distinct weapon keys may share one attach file (manifest
+            // variants): one resolved fetch fills every sharer. Without this,
+            // the streamer's per-id `take` hands the single completion to
+            // one key and the others re-fetch the same bytes, which can
+            // livelock `custom_specs_pending` when a sharer drains the file
+            // before its sibling resolves.
+            let shared: Vec<String> = self
+                .custom_weapon_paths
+                .iter()
+                .filter(|(other, other_paths)| {
+                    other_paths.attach == paths.attach && other.as_str() != key
+                })
+                .map(|(other, _)| other.clone())
+                .collect();
+            self.hand_specs.insert(key.to_string(), parsed.clone());
+            for other in shared {
+                self.hand_specs.entry(other).or_insert_with(|| parsed.clone());
+            }
         }
         Streamed::Ready(self.hand_specs.get(key).and_then(|s| s.as_ref()))
     }

@@ -6,6 +6,8 @@
 
 pub mod audio;
 pub mod assets;
+#[cfg(all(feature = "alloc-count", not(target_arch = "wasm32")))]
+pub mod alloc_trace;
 pub mod demo;
 pub mod game;
 #[cfg(not(target_arch = "wasm32"))]
@@ -262,8 +264,12 @@ pub fn configured_renderer<G: Gpu>(gpu: &mut G) -> Result<Renderer, String> {
 
 // Allocation-counting global allocator: installed only under `alloc-count`, so
 // the `make check-allocs` build proves zero steady-state per-frame allocations
-// while normal builds pay nothing.
-#[cfg(feature = "alloc-count")]
+// while normal builds pay nothing. Native installs the tracing variant
+// (SUCCESSOR_ALLOC_TRACE=1 names offending call sites; zero-cost when unset).
+#[cfg(all(feature = "alloc-count", not(target_arch = "wasm32")))]
+#[global_allocator]
+static GLOBAL: crate::alloc_trace::TraceAllocator = crate::alloc_trace::TraceAllocator;
+#[cfg(all(feature = "alloc-count", target_arch = "wasm32"))]
 #[global_allocator]
 static GLOBAL: successor_engine_core::rt::alloc::CountingAllocator<std::alloc::System> =
     successor_engine_core::rt::alloc::CountingAllocator::new(std::alloc::System);

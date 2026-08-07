@@ -35,12 +35,25 @@ fn phase_scale(phase: &str) -> f32 {
     }
 }
 
+/// Case-insensitive substring check against a lowercase ASCII literal.
+/// Allocation-free: runs in the per-frame weather selection path.
+fn contains_ci(haystack: &str, needle: &str) -> bool {
+    debug_assert!(needle.bytes().all(|b| !b.is_ascii_uppercase()));
+    if needle.len() > haystack.len() {
+        return false;
+    }
+    haystack
+        .as_bytes()
+        .windows(needle.len())
+        .any(|window| window.eq_ignore_ascii_case(needle.as_bytes()))
+}
+
 /// Map a streamed `eventType` to the renderer's precipitation kind.
 fn kind_for_event(event_type: &str) -> WeatherKind {
-    let lower = event_type.to_ascii_lowercase();
-    if lower.contains("rain") || lower.contains("storm") && lower.contains("thunder") {
+    let has = |needle: &str| contains_ci(event_type, needle);
+    if has("rain") || has("storm") && has("thunder") {
         WeatherKind::Rain
-    } else if lower.contains("dust") || lower.contains("sand") || lower.contains("storm") {
+    } else if has("dust") || has("sand") || has("storm") {
         WeatherKind::DustStorm
     } else {
         WeatherKind::Clear

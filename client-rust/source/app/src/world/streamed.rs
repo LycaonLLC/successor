@@ -865,7 +865,13 @@ impl StreamedWorld {
                         w_milli: (max_x - min_x + 1) as f64 * 1000.0,
                         h_milli: (max_y - min_y + 1) as f64 * 1000.0,
                     };
-                    let state = self.cutaway_states.entry(id.to_string()).or_default();
+                    if !self.cutaway_states.contains_key(id) {
+                        self.cutaway_states.insert(id.to_string(), crate::world::cutaway::CutawayState::default());
+                    }
+                    let state = self
+                        .cutaway_states
+                        .get_mut(id)
+                        .expect("inserted above");
                     crate::world::cutaway::sample(
                         state,
                         store.tick as f64,
