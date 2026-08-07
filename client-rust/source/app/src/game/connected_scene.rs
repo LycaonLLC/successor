@@ -323,7 +323,7 @@ fn spatial_chat_payload(message: &ChatMessage) -> Option<(&str, &str)> {
 /// Keys sampled by both connected hosts. The permanent-window entries are
 /// deliberately represented by their advertised `KeyboardEvent.code` mapping
 /// below rather than a second hand-maintained registry.
-pub const CONNECTED_INPUT_KEYS: [Key; 13] = [
+pub const CONNECTED_INPUT_KEYS: [Key; 16] = [
     Key::C,
     Key::I,
     Key::P,
@@ -337,6 +337,9 @@ pub const CONNECTED_INPUT_KEYS: [Key; 13] = [
     Key::R,
     Key::F,
     Key::Space,
+    Key::Tab,
+    Key::Digit1,
+    Key::Digit2,
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -2899,45 +2902,11 @@ impl ConnectedScene {
                     ammo_type: None,
                 })
             }
-            Key::Space => {
-                let player = self.store.actors.get(&self.store.player_actor_id);
-                let player_faction = player.and_then(|actor| actor.faction_id.as_deref());
-                let player_position = player.map(|actor| (actor.x, actor.y)).unwrap_or_default();
-                let selected_target = self
-                    .selected_actor_id
-                    .as_ref()
-                    .filter(|id| id.as_str() != self.store.player_actor_id)
-                    .filter(|id| {
-                        self.store
-                            .actors
-                            .get(id.as_str())
-                            .is_some_and(|actor| actor.life_state == "alive")
-                    })
-                    .cloned();
-                let target = selected_target.or_else(|| {
-                    self.store
-                        .actors
-                        .values()
-                        .filter(|actor| {
-                            actor.id != self.store.player_actor_id
-                                && actor.life_state == "alive"
-                                && (actor.pvp_status.as_deref() == Some("overt")
-                                    || actor.role.as_deref() == Some("skirmisher"))
-                                && actor.faction_id.as_deref() != player_faction
-                        })
-                        .min_by(|left, right| {
-                            let left_distance = (left.x - player_position.0).powi(2)
-                                + (left.y - player_position.1).powi(2);
-                            let right_distance = (right.x - player_position.0).powi(2)
-                                + (right.y - player_position.1).powi(2);
-                            left_distance.total_cmp(&right_distance)
-                        })
-                        .map(|actor| actor.id.clone())
-                })?;
-                return Some(actions::GameplayAction::Attack {
-                    action_id: "basic_shot".into(),
-                    target_actor_id: target,
-                });
+            Key::Space | Key::Digit1 => return self.shot_action("basic_shot"),
+            Key::Digit2 => return self.shot_action("aimed_shot"),
+            Key::Tab => {
+                self.cycle_target();
+                return None;
             }
             Key::F => {
                 if let Some(prop) = self.nearest_interaction_prop() {
@@ -2963,7 +2932,8 @@ impl ConnectedScene {
                             (player.x, player.y),
                         )
                     })
-                    .map(str::to_owned);
+                    .map(str::to_owned)
+                    .or_else(|| self.nearest_lootable_actor_corpse());
                 if let Some(corpse_id) = corpse_id {
                     self.loot_corpse_id = Some(corpse_id);
                     self.project_windows();
@@ -2999,6 +2969,114 @@ impl ConnectedScene {
             _ => {}
         }
         None
+    }
+
+    /// Queue a combat action against the selected target, else the nearest
+    /// hostile — the shared body behind Space, `1` (basic) and `2` (aimed).
+    fn shot_action(&self, action_id: &str) -> Option<actions::GameplayAction> {
+        let player = self.store.actors.get(&self.store.player_actor_id);
+        let player_faction = player.and_then(|actor| actor.faction_id.as_deref());
+        let player_position = player.map(|actor| (actor.x, actor.y)).unwrap_or_default();
+        let selected_target = self
+            .selected_actor_id
+            .as_ref()
+            .filter(|id| id.as_str() != self.store.player_actor_id)
+            .filter(|id| {
+                self.store
+                    .actors
+                    .get(id.as_str())
+                    .is_some_and(|actor| actor.life_state == "alive")
+            })
+            .cloned();
+        let target = selected_target.or_else(|| {
+            self.store
+                .actors
+                .values()
+                .filter(|actor| {
+                    actor.id != self.store.player_actor_id
+                        && actor.life_state == "alive"
+                        && (actor.pvp_status.as_deref() == Some("overt")
+                            || actor.role.as_deref() == Some("skirmisher"))
+                        && actor.faction_id.as_deref() != player_faction
+                })
+                .min_by(|left, right| {
+                    let left_distance = (left.x - player_position.0).powi(2)
+                        + (left.y - player_position.1).powi(2);
+                    let right_distance = (right.x - player_position.0).powi(2)
+                        + (right.y - player_position.1).powi(2);
+                    left_distance.total_cmp(&right_distance)
+                })
+                .map(|actor| actor.id.clone())
+        })?;
+        Some(actions::GameplayAction::Attack {
+            action_id: action_id.to_string(),
+            target_actor_id: target,
+        })
+    }
+
+    /// Tab targeting: cycle the live non-self actors in this area by distance,
+    /// starting after the current selection (wrapping).
+    fn cycle_target(&mut self) {
+        let Some(player) = self.store.actors.get(&self.store.player_actor_id) else {
+            return;
+        };
+        let (px, py) = (player.x, player.y);
+        let mut candidates: Vec<(String, f32)> = self
+            .store
+            .actors
+            .values()
+            .filter(|actor| {
+                actor.id != self.store.player_actor_id
+                    && actor.area_id == self.area_id
+                    && actor.life_state == "alive"
+            })
+            .map(|actor| {
+                (
+                    actor.id.clone(),
+                    (actor.x - px).powi(2) + (actor.y - py).powi(2),
+                )
+            })
+            .collect();
+        if candidates.is_empty() {
+            return;
+        }
+        candidates.sort_by(|left, right| left.1.total_cmp(&right.1).then(left.0.cmp(&right.0)));
+        let next = match self
+            .selected_actor_id
+            .as_deref()
+            .and_then(|current| candidates.iter().position(|(id, _)| id == current))
+        {
+            Some(at) => (at + 1) % candidates.len(),
+            None => 0,
+        };
+        self.selected_actor_id = Some(candidates[next].0.clone());
+        self.project_windows();
+    }
+
+    /// Nearest authority-marked lootable world corpse (rogues, wildlife) —
+    /// `player_corpses` only carries player bodies, but the actor snapshot
+    /// flags every corpse the authority will open for us.
+    fn nearest_lootable_actor_corpse(&self) -> Option<String> {
+        let player = self.store.actors.get(&self.player_id)?;
+        let (px, py) = (player.x, player.y);
+        let reach_sq = crate::windows::EXTRACTOR_REACH_CELLS.powi(2);
+        self.store
+            .actors
+            .values()
+            .filter(|actor| {
+                actor.id != self.player_id
+                    && actor.area_id == self.area_id
+                    && actor.lootable == Some(true)
+            })
+            .map(|actor| {
+                (
+                    actor.id.clone(),
+                    (actor.x - px).powi(2) + (actor.y - py).powi(2),
+                )
+            })
+            .filter(|(_, distance_sq)| *distance_sq <= reach_sq)
+            .min_by(|left, right| left.1.total_cmp(&right.1))
+            .map(|(id, _)| id)
     }
 
     pub fn sprint_toggled(&self) -> bool {

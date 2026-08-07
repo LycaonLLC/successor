@@ -230,31 +230,69 @@ pub fn project(
     // Loot: only the world-opened corpse projects; rows are the inventory
     // rows streamed for that corpse's container.
     model.loot = ctx.loot_corpse_id.as_deref().and_then(|cid| {
-        let corpse = decode_rows::<PlayerCorpse>(&store.player_corpses)
+        if let Some(corpse) = decode_rows::<PlayerCorpse>(&store.player_corpses)
             .into_iter()
-            .find(|c| c.id == cid)?;
-        let dx = corpse.x - player_pos.0;
-        let dy = corpse.y - player_pos.1;
+            .find(|c| c.id == cid)
+        {
+            let dx = corpse.x - player_pos.0;
+            let dy = corpse.y - player_pos.1;
+            let rows: Vec<InventoryRow> = model
+                .inventory
+                .rows
+                .iter()
+                .filter(|r| r.container == corpse.container)
+                .cloned()
+                .collect();
+            return Some(LootModel {
+                kind: LootTargetKind::Corpse,
+                target_id: corpse.id.clone(),
+                container: corpse.container.clone(),
+                label: format!(
+                    "CORPSE OF {}",
+                    sanitize_text(&corpse.owner_label, 32).to_uppercase()
+                ),
+                rows,
+                credits_present: corpse.credits_present,
+                credits_count: corpse.credits_count,
+                in_reach: (dx * dx + dy * dy).sqrt() <= EXTRACTOR_REACH_CELLS,
+                rights_mine: corpse.is_owner,
+                harvest_actor_id: None,
+            });
+        }
+        // NPC world corpse: `player_corpses` only carries player bodies, but
+        // the authority marks any openable corpse on its actor snapshot and
+        // streams its `corpse:<actor-id>` container rows to the entitled
+        // looter like every other container.
+        let actor = store.actors.get(cid)?;
+        if actor.lootable != Some(true) {
+            return None;
+        }
+        let container = format!("corpse:{cid}");
+        let dx = actor.x - player_pos.0;
+        let dy = actor.y - player_pos.1;
         let rows: Vec<InventoryRow> = model
             .inventory
             .rows
             .iter()
-            .filter(|r| r.container == corpse.container)
+            .filter(|r| r.container == container)
             .cloned()
             .collect();
         Some(LootModel {
             kind: LootTargetKind::Corpse,
-            target_id: corpse.id.clone(),
-            container: corpse.container.clone(),
+            target_id: cid.to_string(),
+            container,
             label: format!(
                 "CORPSE OF {}",
-                sanitize_text(&corpse.owner_label, 32).to_uppercase()
+                sanitize_text(&actor_label(actor), 32).to_uppercase()
             ),
             rows,
-            credits_present: corpse.credits_present,
-            credits_count: corpse.credits_count,
+            credits_present: false,
+            credits_count: 0,
             in_reach: (dx * dx + dy * dy).sqrt() <= EXTRACTOR_REACH_CELLS,
-            rights_mine: corpse.is_owner,
+            rights_mine: actor
+                .loot_rights_actor_id
+                .as_deref()
+                .is_none_or(|rights| rights == summary.actor_id),
             harvest_actor_id: None,
         })
     });

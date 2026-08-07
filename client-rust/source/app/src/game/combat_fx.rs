@@ -103,9 +103,15 @@ impl CombatEvent {
         }
     }
 
-    /// Decode one server event object, reading fields defensively. Returns
-    /// `None` when the id is missing (undeliverable — nothing to dedupe on).
+    /// Decode one server event, reading fields defensively. The wire carries
+    /// two shapes: the verbose object (`events`) and the
+    /// `GameCompactCombatEvent` tuple (`compactEvents`, protocol.ts) that the
+    /// size-reduction wave made the shipping default. Returns `None` when the
+    /// id is missing (undeliverable — nothing to dedupe on).
     pub fn from_json(v: &serde_json::Value) -> Option<Self> {
+        if let Some(tuple) = v.as_array() {
+            return Self::from_compact(tuple);
+        }
         let id = v
             .get("id")
             .or_else(|| v.get("eventId"))
@@ -137,48 +143,133 @@ impl CombatEvent {
             .unwrap_or("");
         let prev_life = str_field(v, "previousLifeState");
         let life = str_field(v, "lifeState");
+        let kind = v.get("kind").and_then(|k| k.as_str()).unwrap_or("");
+        let weapon = WeaponVisual::from_weapon_id(v.get("weaponId").and_then(|w| w.as_str()));
 
-        let killed = lifecycle_kind == "killed" || (prev_life != life && life == "respawning");
-        let downed = lifecycle_kind == "downed" || (prev_life != life && life == "downed");
+        Some(Self::assemble(AssembleFields {
+            id,
+            tick,
+            shooter,
+            target,
+            origin,
+            hit_point,
+            damage,
+            effect_kind,
+            lifecycle_kind,
+            lifecycle_cause,
+            prev_life: &prev_life,
+            life: &life,
+            kind,
+            weapon,
+        }))
+    }
+
+    /// Decode the compact tuple. Index layout mirrors `compactCombatEvent` in
+    /// `server/src/game/shard.ts` / `GameCompactCombatEvent` in protocol.ts:
+    /// 0 id · 2 tick · 3 shooter · 4 target · 5/6 hit x/y · 7 damage ·
+    /// 9 previousLifeState · 10 lifeState · 13 lifecycle.kind ·
+    /// 16 lifecycle.cause · 17 weaponId · 19 effect.kind · 23/24 origin x/y ·
+    /// 25 kind.
+    fn from_compact(t: &[serde_json::Value]) -> Option<Self> {
+        let id = t.first()?.as_i64()?;
+        let tick = t.get(2).and_then(|x| x.as_i64()).unwrap_or(0);
+        let damage = t.get(7).and_then(|x| x.as_f64()).unwrap_or(0.0) as f32;
+        if !damage.is_finite() {
+            return None;
+        }
+        let tuple_str = |at: usize| {
+            t.get(at)
+                .and_then(|x| x.as_str())
+                .unwrap_or("")
+                .to_string()
+        };
+        let tuple_point = |x_at: usize, y_at: usize| -> Option<[f32; 2]> {
+            let x = t.get(x_at)?.as_f64()? as f32;
+            let y = t.get(y_at)?.as_f64()? as f32;
+            (x.is_finite() && y.is_finite()).then_some([x, y])
+        };
+        let prev_life = tuple_str(9);
+        let life = tuple_str(10);
+        Some(Self::assemble(AssembleFields {
+            id,
+            tick,
+            shooter: tuple_str(3),
+            target: tuple_str(4),
+            origin: tuple_point(23, 24),
+            hit_point: tuple_point(5, 6),
+            damage,
+            effect_kind: t.get(19).and_then(|x| x.as_str()).unwrap_or(""),
+            lifecycle_kind: t.get(13).and_then(|x| x.as_str()).unwrap_or(""),
+            lifecycle_cause: t.get(16).and_then(|x| x.as_str()).unwrap_or(""),
+            prev_life: &prev_life,
+            life: &life,
+            kind: t.get(25).and_then(|x| x.as_str()).unwrap_or(""),
+            weapon: WeaponVisual::from_weapon_id(t.get(17).and_then(|x| x.as_str())),
+        }))
+    }
+
+    /// Shared presentation derivation — outcome precedence, kill/down edges,
+    /// and ranged classification are identical for both wire shapes.
+    fn assemble(fields: AssembleFields<'_>) -> Self {
+        let killed = fields.lifecycle_kind == "killed"
+            || (fields.prev_life != fields.life && fields.life == "respawning");
+        let downed = fields.lifecycle_kind == "downed"
+            || (fields.prev_life != fields.life && fields.life == "downed");
 
         // Outcome precedence (events.ts): deflect/shield > dodge > sleep >
         // damaging blood > sparks.
-        let deflected = effect_kind == "deflected"
-            || effect_kind == "shield"
-            || lifecycle_cause == "personal shield"
-            || lifecycle_cause == "personal-shield";
-        let dodged = effect_kind == "dodge" || lifecycle_cause == "dodged";
+        let deflected = fields.effect_kind == "deflected"
+            || fields.effect_kind == "shield"
+            || fields.lifecycle_cause == "personal shield"
+            || fields.lifecycle_cause == "personal-shield";
+        let dodged = fields.effect_kind == "dodge" || fields.lifecycle_cause == "dodged";
         let outcome = if deflected {
             CombatOutcome::Deflect
         } else if dodged {
             CombatOutcome::Dodge
-        } else if effect_kind == "sleep" {
+        } else if fields.effect_kind == "sleep" {
             CombatOutcome::Sleep
-        } else if damage > 0.0 {
+        } else if fields.damage > 0.0 {
             CombatOutcome::Blood
         } else {
             CombatOutcome::Spark
         };
 
-        let kind = v.get("kind").and_then(|k| k.as_str()).unwrap_or("");
-        let ranged = kind == "ranged_roll" || origin.is_some();
-        let weapon = WeaponVisual::from_weapon_id(v.get("weaponId").and_then(|w| w.as_str()));
-
-        Some(Self {
-            id,
-            tick,
-            shooter_actor_id: shooter,
-            target_actor_id: target,
-            origin,
-            hit_point,
-            damage,
+        let ranged = fields.kind == "ranged_roll" || fields.origin.is_some();
+        Self {
+            id: fields.id,
+            tick: fields.tick,
+            shooter_actor_id: fields.shooter,
+            target_actor_id: fields.target,
+            origin: fields.origin,
+            hit_point: fields.hit_point,
+            damage: fields.damage,
             outcome,
             killed,
             downed,
             ranged,
-            weapon,
-        })
+            weapon: fields.weapon,
+        }
     }
+}
+
+/// Field bundle for `CombatEvent::assemble` — one struct so both wire decoders
+/// feed the identical derivation.
+struct AssembleFields<'a> {
+    id: i64,
+    tick: i64,
+    shooter: String,
+    target: String,
+    origin: Option<[f32; 2]>,
+    hit_point: Option<[f32; 2]>,
+    damage: f32,
+    effect_kind: &'a str,
+    lifecycle_kind: &'a str,
+    lifecycle_cause: &'a str,
+    prev_life: &'a str,
+    life: &'a str,
+    kind: &'a str,
+    weapon: WeaponVisual,
 }
 
 fn str_field(v: &serde_json::Value, key: &str) -> String {
@@ -328,6 +419,75 @@ mod tests {
         assert!(ev.ranged);
         assert!(!ev.killed);
         assert_eq!(ev.weapon, WeaponVisual::Slugthrower);
+    }
+
+    /// The shipping wire shape: `compactEvents` tuples per
+    /// `GameCompactCombatEvent` (protocol.ts) / `compactCombatEvent`
+    /// (shard.ts). A tuple must decode identically to its verbose twin —
+    /// this is the contract that keeps combat FX alive on the live wire.
+    fn shot_tuple(id: i64) -> serde_json::Value {
+        json!([
+            id,          // 0 id
+            null,        // 1 commandId
+            900,         // 2 tick
+            "1:1",       // 3 shooterActorId
+            "npc:9",     // 4 targetActorId
+            14.0,        // 5 hitX
+            12.0,        // 6 hitY
+            18,          // 7 damage
+            "torso",     // 8 zone
+            "alive",     // 9 previousLifeState
+            "alive",     // 10 lifeState
+            3,           // 11 targetLifecycleSeq
+            0,           // 12 bleedStackCount
+            null,        // 13 lifecycleKind
+            null,        // 14 lifecycleFrom
+            null,        // 15 lifecycleTo
+            null,        // 16 lifecycleCause
+            "slugthrower", // 17 weaponId
+            null,        // 18 ammoTypeId
+            null,        // 19 effectKind
+            null,        // 20 effectStacks
+            null,        // 21 effectThreshold
+            null,        // 22 effectRemainingMs
+            10.0,        // 23 originX
+            12.0,        // 24 originY
+            "ranged_roll", // 25 kind
+        ])
+    }
+
+    #[test]
+    fn decodes_the_compact_tuple_identically_to_the_object() {
+        let object = CombatEvent::from_json(&shot_json(41)).expect("object decodes");
+        let tuple = CombatEvent::from_json(&shot_tuple(41)).expect("tuple decodes");
+        assert_eq!(tuple, object);
+    }
+
+    #[test]
+    fn compact_kill_lifecycle_reads_killed_and_boosts_magnitude() {
+        let mut t = shot_tuple(7);
+        t[13] = json!("killed");
+        t[9] = json!("alive");
+        t[10] = json!("respawning");
+        let ev = CombatEvent::from_json(&t).expect("decodes");
+        assert!(ev.killed);
+        assert!(ev.magnitude() > CombatEvent::from_json(&shot_tuple(8)).unwrap().magnitude());
+    }
+
+    #[test]
+    fn compact_shield_effect_wins_outcome_precedence() {
+        let mut t = shot_tuple(9);
+        t[19] = json!("shield");
+        assert_eq!(
+            CombatEvent::from_json(&t).unwrap().outcome,
+            CombatOutcome::Deflect
+        );
+    }
+
+    #[test]
+    fn compact_tuple_without_id_is_dropped() {
+        assert!(CombatEvent::from_json(&json!([null, null, 900])).is_none());
+        assert!(CombatEvent::from_json(&json!([])).is_none());
     }
 
     #[test]
