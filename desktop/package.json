@@ -15,7 +15,7 @@
     "verify:key-ownership": "node scripts/verify-key-ownership.mjs"
   },
   "dependencies": {
-    "electron": "42.2.0"
+    "electron": "42.5.1"
   },
   "devDependencies": {
     "@successor/client": "workspace:*",
