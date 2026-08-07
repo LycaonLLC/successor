@@ -40,11 +40,32 @@ pub enum AssetError {
     Unreadable,
 }
 
+/// Opaque handle for an in-flight asynchronous asset request.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct AssetHandle(pub u64);
+
+/// Poll result for an asynchronous asset request.
+#[derive(Debug)]
+pub enum AssetPoll {
+    Pending,
+    Ready(Vec<u8>),
+    Failed,
+}
+
 /// Services required by the renderer-neutral application state machine.
 pub trait Platform {
     fn monotonic_ms(&self) -> u64;
     fn logical_size(&self) -> (u32, u32);
     fn read_asset(&self, stable_id: &str) -> Result<Vec<u8>, AssetError>;
+    /// Begin an asynchronous fetch of `stable_id`. `None` means the backend
+    /// has no async channel; callers then fall back to `read_asset`.
+    fn begin_asset(&mut self, _stable_id: &str) -> Option<AssetHandle> {
+        None
+    }
+    /// Poll a handle previously returned by `begin_asset`.
+    fn poll_asset(&mut self, _handle: AssetHandle) -> AssetPoll {
+        AssetPoll::Failed
+    }
     fn load_settings(&self, scope: SettingsScope) -> Option<Vec<u8>>;
     fn save_settings(&mut self, scope: SettingsScope, bytes: &[u8]) -> Result<(), String>;
     fn report_fatal(&mut self, message: &str);
@@ -54,6 +75,9 @@ pub trait Platform {
 pub struct NativePlatform {
     pub asset_root: std::path::PathBuf,
     pub settings_root: std::path::PathBuf,
+    /// Completed immediate reads awaiting `poll_asset`.
+    pub asset_requests: std::collections::HashMap<u64, Result<Vec<u8>, AssetError>>,
+    pub next_asset_handle: u64,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -82,6 +106,22 @@ impl Platform for NativePlatform {
         };
         let path = self.asset_root.join(relative);
         fs_read(path.to_str().ok_or(AssetError::InvalidId)?).map_err(|_| AssetError::Unreadable)
+    }
+    /// Native "async" is immediate: local disk reads are fast, so begin
+    /// resolves inline and the first poll delivers the bytes.
+    fn begin_asset(&mut self, stable_id: &str) -> Option<AssetHandle> {
+        self.next_asset_handle = self.next_asset_handle.max(1);
+        let handle = AssetHandle(self.next_asset_handle);
+        self.next_asset_handle += 1;
+        let result = self.read_asset(stable_id);
+        self.asset_requests.insert(handle.0, result);
+        Some(handle)
+    }
+    fn poll_asset(&mut self, handle: AssetHandle) -> AssetPoll {
+        match self.asset_requests.remove(&handle.0) {
+            Some(Ok(bytes)) => AssetPoll::Ready(bytes),
+            Some(Err(_)) | None => AssetPoll::Failed,
+        }
     }
     fn load_settings(&self, scope: SettingsScope) -> Option<Vec<u8>> {
         let name = match scope {
@@ -124,6 +164,12 @@ impl Platform for WebPlatform {
     }
     fn read_asset(&self, stable_id: &str) -> Result<Vec<u8>, AssetError> {
         http_get(stable_id).map_err(|_| AssetError::Unreadable)
+    }
+    fn begin_asset(&mut self, stable_id: &str) -> Option<AssetHandle> {
+        web::net::asset_begin(stable_id).map(|id| AssetHandle(id as u64))
+    }
+    fn poll_asset(&mut self, handle: AssetHandle) -> AssetPoll {
+        web::net::asset_poll(handle.0 as u32)
     }
     fn load_settings(&self, _scope: SettingsScope) -> Option<Vec<u8>> {
         None
@@ -169,3 +215,36 @@ pub use native::net::{ws_connect, ws_poll, ws_send, WsEvent, WsHandle};
 pub use web::net::{http_get, http_post_json};
 #[cfg(target_arch = "wasm32")]
 pub use web::net::{ws_connect, ws_poll, ws_send, WsEvent, WsHandle};
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_async_channel_resolves_immediately() {
+        let root = std::env::temp_dir().join(format!("successor-platform-test-{}", std::process::id()));
+        let asset_dir = root.join("client-3d/public/assets/test");
+        std::fs::create_dir_all(&asset_dir).expect("create asset dir");
+        std::fs::write(asset_dir.join("probe.bin"), b"probe-bytes").expect("write asset");
+        let mut platform = NativePlatform {
+            asset_root: root.clone(),
+            settings_root: root.join("settings"),
+            asset_requests: std::collections::HashMap::new(),
+            next_asset_handle: 0,
+        };
+        let handle = platform
+            .begin_asset("assets/test/probe.bin")
+            .expect("native channel always begins");
+        match platform.poll_asset(handle) {
+            AssetPoll::Ready(bytes) => assert_eq!(bytes, b"probe-bytes"),
+            _ => panic!("native first poll must deliver bytes"),
+        }
+        // Consumed handles fail closed; distinct ids get distinct handles.
+        assert!(matches!(platform.poll_asset(handle), AssetPoll::Failed));
+        let second = platform.begin_asset("assets/test/probe.bin").expect("re-begin");
+        assert_ne!(handle, second);
+        let missing = platform.begin_asset("assets/test/absent.bin").expect("begin succeeds");
+        assert!(matches!(platform.poll_asset(missing), AssetPoll::Failed));
+        std::fs::remove_dir_all(&root).ok();
+    }
+}

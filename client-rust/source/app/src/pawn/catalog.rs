@@ -22,8 +22,10 @@ use successor_engine_render::renderer::{MaterialDesc, Renderer};
 
 use super::creatures::{species_for_sprite, CreatureSpecies};
 use super::pack::{upload_static_parts, PawnTemplate};
+use crate::assets::stream::{AssetStreamer, ByteSource, Streamed};
 use crate::world::area::fnv1a32;
 use crate::world::ADULT_PAWN_HEIGHT_METERS;
+use successor_platform::Platform;
 
 /// Byte provider over stable asset ids (`Platform::read_asset` adapter).
 pub type AssetRead<'a> = dyn FnMut(&str) -> Option<Vec<u8>> + 'a;
@@ -544,6 +546,10 @@ pub struct PawnCatalog {
     legacy_weapons: HashMap<WeaponRigKind, Option<RigModel>>,
     custom_weapon_paths: HashMap<String, WeaponPaths>,
     custom_weapon_by_item: HashMap<i64, String>,
+    /// Parsed custom attach specs (streamed); also fills `custom_weapon_by_item`.
+    hand_specs: HashMap<String, Option<WeaponHandSpec>>,
+    /// Streamer epoch when `warm_custom_specs` last ran (skip unchanged).
+    spec_warm_epoch: u64,
     custom_weapons: HashMap<String, Option<RigModel>>,
     /// Item id → sex-specific GLB paths (relative to the equipment directory).
     equipment_paths: HashMap<String, EquipmentPaths>,
@@ -792,15 +798,9 @@ impl PawnCatalog {
                                 custom_weapon_by_item.insert(item_id, key.clone());
                             }
                         }
-                        if let Some(item_id) = read(&format!("assets/pawn-pack/weapons/{attach}"))
-                            .and_then(|bytes| {
-                                serde_json::from_slice::<WeaponAttachSpec>(&bytes)
-                                    .ok()
-                                    .and_then(|spec| spec.item_id)
-                            })
-                        {
-                            custom_weapon_by_item.insert(item_id, key.clone());
-                        }
+                        // Attach-spec `item_id` aliases resolve lazily through
+                        // the streamer in `hand_spec_for` (they used to cost a
+                        // synchronous ~1 MB read per weapon at scene build).
                         custom_weapon_paths.insert(
                             key,
                             WeaponPaths {
@@ -828,6 +828,8 @@ impl PawnCatalog {
             legacy_weapons: HashMap::new(),
             custom_weapon_paths,
             custom_weapon_by_item,
+            hand_specs: HashMap::new(),
+            spec_warm_epoch: u64::MAX,
             custom_weapons: HashMap::new(),
             equipment_paths,
             equipment: HashMap::new(),
@@ -853,30 +855,41 @@ impl PawnCatalog {
         }
     }
 
-    /// The body for a route; lazily loads special/creature templates. `None`
-    /// means "typed fallback" — the caller renders the explicit missing-asset
-    /// presentation (base human body for specials, marker for creatures).
+    /// The body for a route; lazily loads special/creature templates through
+    /// the asset streamer. `Pending` means the model is still in flight — the
+    /// caller renders nothing for that pawn this frame and retries. `Ready`
+    /// with `None` means "typed fallback" — the caller renders the explicit
+    /// missing-asset presentation (base human body for specials, marker for
+    /// creatures). Human bodies are required boot assets and never pend.
     pub fn body_for<G: Gpu>(
         &mut self,
         gpu: &mut G,
         renderer: &mut Renderer,
-        read: &mut AssetRead<'_>,
+        platform: &mut dyn Platform,
+        streamer: &mut AssetStreamer,
         route: BodyRoute,
-    ) -> Option<&BodyAssets> {
+    ) -> Streamed<Option<&BodyAssets>> {
         match route {
-            BodyRoute::Human { female } => Some(self.human(female)),
+            BodyRoute::Human { female } => Streamed::Ready(Some(self.human(female))),
             BodyRoute::Special { body_key } => {
                 if !self.special.contains_key(body_key) {
                     let stable_id = format!("assets/pawn-pack/special/{body_key}.glb");
-                    let loaded = read(&stable_id).and_then(|bytes| {
-                        load_body(gpu, renderer, &bytes, Some(ADULT_PAWN_HEIGHT_METERS))
-                    });
-                    if loaded.is_none() {
-                        self.record(PawnAssetIssue::MissingSpecialBody { stable_id });
+                    match streamer.resolve(platform, &stable_id) {
+                        ByteSource::Pending => return Streamed::Pending,
+                        ByteSource::Missing => {
+                            self.record(PawnAssetIssue::MissingSpecialBody { stable_id });
+                            self.special.insert(body_key, None);
+                        }
+                        ByteSource::Ready(bytes) => {
+                            let loaded = load_body(gpu, renderer, &bytes, Some(ADULT_PAWN_HEIGHT_METERS));
+                            if loaded.is_none() {
+                                self.record(PawnAssetIssue::MissingSpecialBody { stable_id });
+                            }
+                            self.special.insert(body_key, loaded);
+                        }
                     }
-                    self.special.insert(body_key, loaded);
                 }
-                self.special.get(body_key).and_then(|b| b.as_ref())
+                Streamed::Ready(self.special.get(body_key).and_then(|b| b.as_ref()))
             }
             BodyRoute::Creature { species } => {
                 let key = species.species_id;
@@ -884,18 +897,25 @@ impl PawnCatalog {
                     // Creature GLBs are authored at world scale; per-species
                     // mesh_scale applies on top (no height normalization).
                     let stable_id = species.asset_path.trim_start_matches('/').to_string();
-                    let loaded = read(&stable_id).and_then(|bytes| {
-                        load_body(gpu, renderer, &bytes, None).map(|mut b| {
-                            b.scale = species.mesh_scale;
-                            b
-                        })
-                    });
-                    if loaded.is_none() {
-                        self.record(PawnAssetIssue::MissingCreature { stable_id });
+                    match streamer.resolve(platform, &stable_id) {
+                        ByteSource::Pending => return Streamed::Pending,
+                        ByteSource::Missing => {
+                            self.record(PawnAssetIssue::MissingCreature { stable_id });
+                            self.creatures.insert(key, None);
+                        }
+                        ByteSource::Ready(bytes) => {
+                            let loaded = load_body(gpu, renderer, &bytes, None).map(|mut b| {
+                                b.scale = species.mesh_scale;
+                                b
+                            });
+                            if loaded.is_none() {
+                                self.record(PawnAssetIssue::MissingCreature { stable_id });
+                            }
+                            self.creatures.insert(key, loaded);
+                        }
                     }
-                    self.creatures.insert(key, loaded);
                 }
-                self.creatures.get(key).and_then(|b| b.as_ref())
+                Streamed::Ready(self.creatures.get(key).and_then(|b| b.as_ref()))
             }
         }
     }
@@ -920,19 +940,31 @@ impl PawnCatalog {
         }
     }
 
-    /// The rigid weapon rig for a family; lazily loaded, typed miss.
+    /// The rigid weapon rig for a family; lazily streamed, typed miss.
+    /// `Pending` until both the attach spec and the GLB land.
     pub fn weapon_rig<G: Gpu>(
         &mut self,
         gpu: &mut G,
         renderer: &mut Renderer,
-        read: &mut AssetRead<'_>,
+        platform: &mut dyn Platform,
+        streamer: &mut AssetStreamer,
         kind: WeaponRigKind,
-    ) -> Option<&RigModel> {
+    ) -> Streamed<Option<&RigModel>> {
         if !self.legacy_weapons.contains_key(&kind) {
+            let attach_bytes = match streamer.resolve(platform, kind.attach_stable_id()) {
+                ByteSource::Pending => return Streamed::Pending,
+                ByteSource::Missing => None,
+                ByteSource::Ready(bytes) => Some(bytes),
+            };
+            let glb_bytes = match streamer.resolve(platform, kind.stable_id()) {
+                ByteSource::Pending => return Streamed::Pending,
+                ByteSource::Missing => None,
+                ByteSource::Ready(bytes) => Some(bytes),
+            };
             let hand_spec =
-                read(kind.attach_stable_id()).and_then(|bytes| parse_weapon_hand_spec(&bytes));
+                attach_bytes.and_then(|bytes| parse_weapon_hand_spec(&bytes));
             let loaded = hand_spec.and_then(|hand_spec| {
-                read(kind.stable_id())
+                glb_bytes
                     .and_then(|bytes| upload_static_parts(gpu, renderer, &bytes).ok())
                     .map(|parts| RigModel {
                         parts,
@@ -956,20 +988,87 @@ impl PawnCatalog {
             }
             self.legacy_weapons.insert(kind, loaded);
         }
-        self.legacy_weapons.get(&kind).and_then(|r| r.as_ref())
+        Streamed::Ready(self.legacy_weapons.get(&kind).and_then(|r| r.as_ref()))
+    }
+
+    /// The parsed hand spec for a custom weapon key; streamed and cached.
+    /// A resolved spec also registers its authored `item_id` alias.
+    fn hand_spec_for(
+        &mut self,
+        platform: &mut dyn Platform,
+        streamer: &mut AssetStreamer,
+        key: &str,
+    ) -> Streamed<Option<&WeaponHandSpec>> {
+        if !self.hand_specs.contains_key(key) {
+            let Some(paths) = self.custom_weapon_paths.get(key) else {
+                return Streamed::Ready(None);
+            };
+            let attach_id = format!("assets/pawn-pack/weapons/{}", paths.attach);
+            let parsed = match streamer.resolve(platform, &attach_id) {
+                ByteSource::Pending => return Streamed::Pending,
+                ByteSource::Missing => None,
+                ByteSource::Ready(bytes) => {
+                    // The alias table lives in the attach json, not the
+                    // weapons manifest: register it on first resolve.
+                    if let Ok(spec) = serde_json::from_slice::<WeaponAttachSpec>(&bytes) {
+                        if let Some(item_id) = spec.item_id {
+                            self.custom_weapon_by_item.insert(item_id, key.to_string());
+                        }
+                    }
+                    parse_weapon_hand_spec(&bytes)
+                }
+            };
+            self.hand_specs.insert(key.to_string(), parsed);
+        }
+        Streamed::Ready(self.hand_specs.get(key).and_then(|s| s.as_ref()))
+    }
+
+    /// Whether any custom weapon's attach spec is still unresolved. While
+    /// true, an unmapped `weapon_item_id` cannot be ruled out of the custom
+    /// table — callers treat the lookup as pending rather than legacy.
+    pub fn custom_specs_pending(&self) -> bool {
+        self.custom_weapon_paths
+            .keys()
+            .any(|key| !self.hand_specs.contains_key(key.as_str()))
+    }
+
+    /// Queue every unresolved custom attach spec (background fill of the
+    /// item-id alias table) and parse any that landed. Idempotent via the
+    /// streamer; after this settles `custom_specs_pending` is false.
+    pub fn warm_custom_specs(&mut self, platform: &mut dyn Platform, streamer: &mut AssetStreamer) {
+        // Allocation-free steady state: re-collect the unresolved key list
+        // only when the streamer delivered something since the last warm.
+        let epoch = streamer.ready_epoch();
+        if self.spec_warm_epoch == epoch {
+            return;
+        }
+        self.spec_warm_epoch = epoch;
+        let keys: Vec<String> = self
+            .custom_weapon_paths
+            .keys()
+            .filter(|key| !self.hand_specs.contains_key(key.as_str()))
+            .cloned()
+            .collect();
+        for key in keys {
+            // hand_spec_for requests when unresolved and parses + registers
+            // the item-id alias once the bytes land.
+            let _ = self.hand_spec_for(platform, streamer, &key);
+        }
     }
 
     /// Resolve an authority weapon snapshot to its exact presentation model.
     /// The backing item id wins; the normalized weapon id is the legacy
-    /// fallback for snapshots that predate `weaponItemId`.
+    /// fallback for snapshots that predate `weaponItemId`. Models and attach
+    /// specs stream: `Pending` until the pieces land, then the exact rig.
     pub fn weapon_rig_for<G: Gpu>(
         &mut self,
         gpu: &mut G,
         renderer: &mut Renderer,
-        read: &mut AssetRead<'_>,
+        platform: &mut dyn Platform,
+        streamer: &mut AssetStreamer,
         weapon_id: Option<&str>,
         weapon_item_id: Option<i64>,
-    ) -> Option<&RigModel> {
+    ) -> Streamed<Option<&RigModel>> {
         let custom_key = weapon_item_id
             .and_then(|item_id| self.custom_weapon_by_item.get(&item_id).cloned())
             .or_else(|| {
@@ -978,19 +1077,38 @@ impl PawnCatalog {
                     .filter(|id| self.custom_weapon_paths.contains_key(id))
             });
         let Some(key) = custom_key else {
-            if weapon_item_id == Some(3104) {
-                return self.weapon_rig(gpu, renderer, read, WeaponRigKind::PlasmaHilt);
+            // An unmapped item id may still hide in an unresolved attach spec:
+            // fill the alias table in the background and pend the weapon until
+            // the table settles (legacy rigs would otherwise mis-bind).
+            if weapon_item_id.is_some() && self.custom_specs_pending() {
+                self.warm_custom_specs(platform, streamer);
+                return Streamed::Pending;
             }
-            return rig_for_weapon_id(weapon_id)
-                .and_then(|kind| self.weapon_rig(gpu, renderer, read, kind));
+            if weapon_item_id == Some(3104) {
+                return self.weapon_rig(gpu, renderer, platform, streamer, WeaponRigKind::PlasmaHilt);
+            }
+            let Some(kind) = rig_for_weapon_id(weapon_id) else {
+                return Streamed::Ready(None);
+            };
+            return self.weapon_rig(gpu, renderer, platform, streamer, kind);
         };
         if !self.custom_weapons.contains_key(&key) {
-            let paths = self.custom_weapon_paths.get(&key)?.clone();
-            let hand_spec = read(&format!("assets/pawn-pack/weapons/{}", paths.attach))
-                .and_then(|bytes| parse_weapon_hand_spec(&bytes));
+            let Some(paths) = self.custom_weapon_paths.get(&key).cloned() else {
+                return Streamed::Ready(None);
+            };
+            let hand_spec = match self.hand_spec_for(platform, streamer, &key) {
+                Streamed::Pending => return Streamed::Pending,
+                Streamed::Ready(spec) => spec.cloned(),
+            };
+            let glb_id = format!("assets/pawn-pack/weapons/{}", paths.glb);
+            let glb_bytes = match streamer.resolve(platform, &glb_id) {
+                ByteSource::Pending => return Streamed::Pending,
+                ByteSource::Missing => None,
+                ByteSource::Ready(bytes) => Some(bytes),
+            };
             let loaded = hand_spec.and_then(|hand_spec| {
                 let model_scale = hand_spec.scale_to_pawn.unwrap_or(paths.scale);
-                read(&format!("assets/pawn-pack/weapons/{}", paths.glb))
+                glb_bytes
                     .and_then(|bytes| upload_static_parts(gpu, renderer, &bytes).ok())
                     .map(|mut parts| {
                         if (model_scale - 1.0).abs() > f32::EPSILON {
@@ -1028,7 +1146,7 @@ impl PawnCatalog {
             }
             self.custom_weapons.insert(key.clone(), loaded);
         }
-        self.custom_weapons.get(&key).and_then(|rig| rig.as_ref())
+        Streamed::Ready(self.custom_weapons.get(&key).and_then(|rig| rig.as_ref()))
     }
 
     /// A worn/hair equipment piece by manifest item id (case-insensitive).
@@ -1038,13 +1156,16 @@ impl PawnCatalog {
         &mut self,
         gpu: &mut G,
         renderer: &mut Renderer,
-        read: &mut AssetRead<'_>,
+        platform: &mut dyn Platform,
+        streamer: &mut AssetStreamer,
         item_id: &str,
         body_joints: usize,
         female: bool,
-    ) -> Option<&EquipmentPiece> {
+    ) -> Streamed<Option<&EquipmentPiece>> {
         let item_key = item_id.to_ascii_lowercase();
-        let paths = self.equipment_paths.get(&item_key)?;
+        let Some(paths) = self.equipment_paths.get(&item_key) else {
+            return Streamed::Ready(None);
+        };
         let use_female_variant = female && paths.female.is_some();
         let cache_key = if use_female_variant {
             format!("female:{item_key}")
@@ -1061,7 +1182,13 @@ impl PawnCatalog {
                 &paths.default
             }
             .clone();
-            let loaded = read(&format!("assets/pawn-pack/equipment/{glb}"))
+            let stable_id = format!("assets/pawn-pack/equipment/{glb}");
+            let bytes = match streamer.resolve(platform, &stable_id) {
+                ByteSource::Pending => return Streamed::Pending,
+                ByteSource::Missing => None,
+                ByteSource::Ready(bytes) => Some(bytes),
+            };
+            let loaded = bytes
                 .and_then(|bytes| PawnTemplate::from_bytes(&bytes).ok())
                 .map(|template| {
                     let joint_count = template.joint_count();
@@ -1079,16 +1206,16 @@ impl PawnCatalog {
                 Some(piece) if piece.joint_count != body_joints => {
                     self.record(PawnAssetIssue::IncompatibleEquipmentRig { item_id: item_key });
                     self.equipment.insert(cache_key, None);
-                    return None;
+                    return Streamed::Ready(None);
                 }
                 Some(_) => {}
             }
             self.equipment.insert(cache_key.clone(), loaded);
         }
-        match self.equipment.get(&cache_key) {
+        Streamed::Ready(match self.equipment.get(&cache_key) {
             Some(Some(piece)) if piece.joint_count == body_joints => Some(piece),
             _ => None,
-        }
+        })
     }
 
     /// Resolve an authored equipment material slot to its actor-specific color.

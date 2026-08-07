@@ -27,6 +27,9 @@ const requestedMaxPacketBytes = process.env.GAME_MAX_PACKET_BYTES ?? "65536";
 const expectedSourceStateHash = process.env.GAME_EXPECT_SOURCE_STATE_HASH;
 const expectedSourceActorCount = integerEnv("GAME_EXPECT_SOURCE_ACTOR_COUNT");
 
+const argv = new Set(process.argv.slice(2));
+const skipBuild = argv.has("--skip-build") || process.env.SERVER_LOCAL_SKIP_BUILD === "1";
+const stopOnly = argv.has("--stop");
 
 const startedAt = new Date().toISOString();
 let lockHandle = null;
@@ -36,8 +39,40 @@ try {
   await fs.mkdir(stateDir, { recursive: true });
   lockHandle = await acquireLock(lockPath);
 
-  await runForeground("pnpm", ["--dir", "server", "build"]);
-  await runForeground("cargo", ["build", "-p", "successor-sim", "--example", "authority_bridge_server"], rustAuthorityBridgeCargoEnv());
+  if (stopOnly) {
+    const pids = [];
+    for (const file of [pidPath, listenerPidPath]) {
+      try {
+        for (const line of (await fs.readFile(file, "utf8")).split("\n")) {
+          const pid = Number(line.trim());
+          if (Number.isInteger(pid) && pid > 0) pids.push(pid);
+        }
+      } catch { /* absent pid file means nothing to stop */ }
+    }
+    await stopPids(pids, port);
+    await removeIfExists(pidPath);
+    await removeIfExists(listenerPidPath);
+    await removeIfExists(metaPath);
+    console.log(JSON.stringify({ status: "stopped", port, pids }));
+    process.exit(0);
+  }
+
+  if (skipBuild) {
+    const serverDist = path.join(serverRoot, "dist", "index.js");
+    const bridgeBin = path.join(repoRoot, "target", "debug", "examples", "authority_bridge_server");
+    try {
+      await fs.access(serverDist);
+      await fs.access(bridgeBin);
+      console.log(JSON.stringify({ status: "skip-build", skipped: ["pnpm --dir server build", "cargo build -p successor-sim --example authority_bridge_server"] }));
+    } catch {
+      console.log(JSON.stringify({ status: "skip-build-ignored", reason: "build artifacts absent; running full build" }));
+      await runForeground("pnpm", ["--dir", "server", "build"]);
+      await runForeground("cargo", ["build", "-p", "successor-sim", "--example", "authority_bridge_server"], rustAuthorityBridgeCargoEnv());
+    }
+  } else {
+    await runForeground("pnpm", ["--dir", "server", "build"]);
+    await runForeground("cargo", ["build", "-p", "successor-sim", "--example", "authority_bridge_server"], rustAuthorityBridgeCargoEnv());
+  }
 
   const beforeScan = await scanPort(port);
   assertNoUnmanagedListeners(beforeScan, "before restart");

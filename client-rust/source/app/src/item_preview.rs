@@ -20,6 +20,9 @@ use successor_engine_render::model::upload_glb;
 use successor_engine_render::renderer::Renderer;
 use successor_engine_render::window::{WindowManager, TITLE_H};
 
+use successor_platform::Platform;
+
+use crate::assets::stream::{AssetStreamer, ByteSource, Streamed};
 use crate::windows::{InventoryRow, WindowModel};
 use crate::GameWorld;
 
@@ -187,7 +190,8 @@ impl ItemPreviewRenderer {
         screen_w: u32,
         screen_h: u32,
         time: f32,
-        read_asset: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
+        platform: &mut dyn Platform,
+        streamer: &mut AssetStreamer,
     ) {
         // Icons belong to the window that hosts them: banding their composites
         // by that window's draw rank keeps them under anything stacked above,
@@ -230,7 +234,8 @@ impl ItemPreviewRenderer {
                         screen_w,
                         screen_h,
                         time,
-                        read_asset,
+                        platform,
+                        streamer,
                     );
                     lane_index += 1;
                 }
@@ -258,7 +263,8 @@ impl ItemPreviewRenderer {
                     screen_w,
                     screen_h,
                     time,
-                    read_asset,
+                    platform,
+                    streamer,
                 );
             } else {
                 self.deactivate_lane(EXAMINE_LANE, world);
@@ -303,17 +309,28 @@ impl ItemPreviewRenderer {
         screen_w: u32,
         screen_h: u32,
         time: f32,
-        read_asset: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
+        platform: &mut dyn Platform,
+        streamer: &mut AssetStreamer,
     ) {
         if let Some(requested) = requested {
-            let loaded = self
-                .load_model(requested, gpu, renderer, read_asset)
-                .or_else(|| {
-                    (requested != UNKNOWN_MODEL)
-                        .then(|| self.load_model(UNKNOWN_MODEL, gpu, renderer, read_asset))
-                        .flatten()
-                });
-            self.assign_model(index, requested, loaded, world);
+            // Streamed preview: keep last frame's lane content while the
+            // model is in flight, then swap it in complete. Terminal misses
+            // keep the UNKNOWN_MODEL placeholder behavior.
+            let loaded = match self.load_model(requested, gpu, renderer, platform, streamer) {
+                Streamed::Pending => None,
+                Streamed::Ready(model) => Some(model.or_else(|| {
+                    if requested == UNKNOWN_MODEL {
+                        return None;
+                    }
+                    match self.load_model(UNKNOWN_MODEL, gpu, renderer, platform, streamer) {
+                        Streamed::Ready(fallback) => fallback,
+                        Streamed::Pending => None,
+                    }
+                })),
+            };
+            if let Some(loaded) = loaded {
+                self.assign_model(index, requested, loaded, world);
+            }
         }
         let viewport = FIRST_VIEWPORT + index as u8;
         let lane = &mut self.lanes[index];
@@ -458,16 +475,24 @@ impl ItemPreviewRenderer {
         path: &str,
         gpu: &mut G,
         renderer: &mut Renderer,
-        read_asset: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
-    ) -> Option<CachedModel> {
+        platform: &mut dyn Platform,
+        streamer: &mut AssetStreamer,
+    ) -> Streamed<Option<CachedModel>> {
         if let Some(model) = self.cache.get(path) {
-            return Some(model.clone());
+            return Streamed::Ready(Some(model.clone()));
         }
-        let bytes = read_asset(path)?;
-        let doc = glb::parse(&bytes).ok()?;
-        let model = build_cached_model(gpu, renderer, &doc)?;
-        self.cache.insert(path.to_string(), model.clone());
-        Some(model)
+        let bytes = match streamer.resolve(platform, path) {
+            ByteSource::Pending => return Streamed::Pending,
+            ByteSource::Missing => None,
+            ByteSource::Ready(bytes) => Some(bytes),
+        };
+        let model = bytes
+            .and_then(|bytes| glb::parse(&bytes).ok())
+            .and_then(|doc| build_cached_model(gpu, renderer, &doc));
+        if let Some(model) = &model {
+            self.cache.insert(path.to_string(), model.clone());
+        }
+        Streamed::Ready(model)
     }
 }
 

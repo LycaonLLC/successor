@@ -40,6 +40,14 @@ extern "C" {
         out_buf_ptr: *mut u8,
         out_buf_max_len: u32,
     ) -> i32;
+
+    // Async asset channel. begin starts a shim-side fetch (pack-index and
+    // object-store aware, exactly like js_fetch_get's fallback chain) and
+    // returns a nonzero handle, or 0 when the request cannot start. poll
+    // mirrors the two-phase protocol with one extra state: -1 pending,
+    // -2 failed, >=0 ready (byte length).
+    fn js_asset_begin(path_ptr: *const u8, path_len: u32) -> u32;
+    fn js_asset_poll(id: u32, out_buf_ptr: *mut u8, out_buf_max_len: u32) -> i32;
 }
 
 pub fn ws_connect(url_str: &str) -> Result<WsHandle, String> {
@@ -128,4 +136,34 @@ pub fn http_get(url_str: &str) -> Result<Vec<u8>, String> {
     }
     buf.truncate(written as usize);
     Ok(buf)
+}
+
+/// Start an asynchronous fetch of `stable_id`; `None` when the shim cannot
+/// start the request.
+pub fn asset_begin(stable_id: &str) -> Option<u32> {
+    let id = unsafe { js_asset_begin(stable_id.as_ptr(), stable_id.len() as u32) };
+    if id == 0 {
+        None
+    } else {
+        Some(id)
+    }
+}
+
+/// Poll an in-flight async fetch; on `Ready` the bytes are copied out and the
+/// shim-side entry is consumed.
+pub fn asset_poll(id: u32) -> crate::AssetPoll {
+    let total = unsafe { js_asset_poll(id, core::ptr::null_mut(), 0) };
+    if total == -1 {
+        return crate::AssetPoll::Pending;
+    }
+    if total < 0 {
+        return crate::AssetPoll::Failed;
+    }
+    let mut buf = vec![0u8; total as usize];
+    let written = unsafe { js_asset_poll(id, buf.as_mut_ptr(), total as u32) };
+    if written < 0 {
+        return crate::AssetPoll::Failed;
+    }
+    buf.truncate(written as usize);
+    crate::AssetPoll::Ready(buf)
 }

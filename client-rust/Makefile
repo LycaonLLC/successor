@@ -27,7 +27,7 @@ STOREFRONT_ORIGIN ?= https://www.successorgame.com
 GAME_ORIGIN ?= wss://world.successorgame.com
 CHAT_ORIGIN ?= wss://world.successorgame.com
 
-.PHONY: all native dev web web-release run serve strip-port size-check bench bench-check \
+.PHONY: all native dev web web-release run serve serve-dev connect-local strip-port size-check bench bench-check \
         bench-baseline check-allocs connected-check-allocs runtime-check render-check terrain-check model-check test-unit nostd verify clean
 
 all: native web
@@ -56,17 +56,8 @@ web:
 	mkdir -p out/web
 	cp target/$(WASM_TARGET)/release/successor_client.wasm $(WASM_OUT)
 	cp web/index.html web/successor.js out/web/
-	mkdir -p out/web/parity-assets
-	cp ../client-3d/public/assets/world-items/commerce_facility.glb out/web/parity-assets/
-	cp ../client-3d/public/assets/pawn-pack/weapons/custom/lightning_carbine.glb out/web/parity-assets/
-	cp ../client-3d/public/assets/creatures/mossmuff_adult.glb out/web/parity-assets/
-	cp ../client-3d/public/assets/wave-props/everyday-wave-20260719/prepared-foods/successor_food_beer_mug.glb out/web/parity-assets/
-	cp ../client-3d/public/assets/items/custom/accessories/field_cap.glb out/web/parity-assets/
-	cp ../client-3d/public/assets/world-items/megalith_brick_hex.glb out/web/parity-assets/
-	mkdir -p out/web/assets out/web/successor-slice out/web/render
-	cp -R ../client-3d/public/assets/. out/web/assets/
-	cp -R ../client/public/successor-slice/. out/web/successor-slice/
-	cp ../client-3d/src/render/props-mapping.json out/web/render/
+# Assets are served from repo sources by tools/dev-serve.mjs; nothing else is
+# copied here. `make serve` (or `make serve-dev`) wires URLs to repo paths.
 
 web-release:
 	$(CARGO) build --release --target $(WASM_TARGET) -p successor-client --lib
@@ -82,8 +73,18 @@ web-release:
 run: native
 	./$(NATIVE_BIN) $(ARGS)
 
+# Loopback dev server: serves out/web and maps asset URLs to repo sources.
+# Injects a dev-identity launch context for the local authority on :28093.
 serve: web
-	cd out/web && $(PYTHON) -m http.server 8080
+	node tools/dev-serve.mjs --root out/web --port 8080
+
+serve-dev: serve
+
+# Native connected loop against the local authority: starts it when absent.
+PLAYER ?= local-dev
+connect-local: dev
+	curl -fsS http://127.0.0.1:28093/game/status >/dev/null 2>&1 || (cd .. && pnpm server:local:persistent)
+	./$(DEV_NATIVE_BIN) --dev-identity --endpoint ws://127.0.0.1:28093 --player-id $(PLAYER) --actor-id $(PLAYER) $(ARGS)
 
 # no_std purity proof: the engine crates must build for a bare-metal target.
 nostd:

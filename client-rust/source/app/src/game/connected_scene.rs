@@ -51,6 +51,7 @@ use crate::world::props::{building_terrain_exclusions, PropsLoader};
 use crate::world::streamed::StreamedWorld;
 use crate::world::terrain::Biome;
 use crate::world::{ADULT_PAWN_HEIGHT_METERS, WORLD_UNITS_PER_CELL};
+use successor_platform::Platform;
 use crate::GameWorld;
 use successor_engine_render::cursor::{self, CursorKind, CursorStyle};
 
@@ -159,6 +160,11 @@ struct ActorPawn {
     speed: f32,
     yaw: f32,
     present: bool,
+    /// Equipment item ids whose models were still in flight at spawn; the
+    /// gear-retry pass respawns the pawn once they settle.
+    pending_equipment: Vec<String>,
+    /// The weapon rig was still in flight at spawn.
+    pending_weapon: bool,
 }
 
 /// Motion held across a wardrobe rebuild.
@@ -803,6 +809,13 @@ pub type PersistedSections = (
     Option<serde_json::Value>,
 );
 
+/// Active travel transition: the loading screen stays up until the
+/// destination's spawn-neighborhood props stream in, or the deadline forces
+/// fail-closed marker placement.
+struct TravelHold {
+    deadline_ms: u64,
+}
+
 pub struct ConnectedScene {
     pub world: GameWorld,
     pub renderer: Renderer,
@@ -942,6 +955,12 @@ pub struct ConnectedScene {
     click_goal: Option<(i32, i32)>,
     /// Inspection orbit. `None` is the shipped locked camera.
     debug_camera: Option<DebugCamera>,
+    /// Bounded async asset fetches (wardrobe, creatures, region props).
+    streamer: crate::assets::stream::AssetStreamer,
+    /// Travel transition in progress, if any.
+    travel_hold: Option<TravelHold>,
+    /// Scratch id list for the streamed-gear retry pass (reused each frame).
+    gear_retry: Vec<String>,
 }
 
 fn follow_focus(ground: Vec3) -> Vec3 {
@@ -1440,6 +1459,9 @@ impl ConnectedScene {
                 screen
             },
             loading: true,
+            streamer: crate::assets::stream::AssetStreamer::new(),
+            travel_hold: None,
+            gear_retry: Vec::new(),
         })
     }
 
@@ -3567,23 +3589,92 @@ impl ConnectedScene {
     }
 
     /// Spawn a pawn using the actor's authoritative archetype and attachments.
+    /// Streamed-gear retry: pawns spawned while wardrobe/weapon models were
+    /// still in flight are rebuilt through the ordinary stale-pawn path once
+    /// every outstanding model settles (Ready or terminally Missing).
+    fn retry_pending_gear<G: Gpu>(&mut self, gpu: &mut G, platform: &mut dyn Platform) {
+        self.gear_retry.clear();
+        for (id, pawn) in &self.pawns {
+            if !pawn.pending_equipment.is_empty() || pawn.pending_weapon {
+                self.gear_retry.push(id.clone());
+            }
+        }
+        for id in self.gear_retry.drain(..) {
+            let Some(pawn) = self.pawns.get(&id) else {
+                continue;
+            };
+            let route = pawn.route;
+            let pending_equipment = pawn.pending_equipment.clone();
+            let pending_weapon = pawn.pending_weapon;
+            let weapon_id = pawn.presentation.weapon.clone();
+            let weapon_item_id = pawn.presentation.weapon_item_id;
+            let Some(body) = self.pawn_catalog.body_mut(route) else {
+                continue;
+            };
+            let joints = body.template.joint_count();
+            let female = matches!(route, BodyRoute::Human { female: true });
+            let mut settled = true;
+            for item_id in &pending_equipment {
+                let stream = self.pawn_catalog.equipment_piece(
+                    gpu,
+                    &mut self.renderer,
+                    platform,
+                    &mut self.streamer,
+                    item_id,
+                    joints,
+                    female,
+                );
+                if matches!(stream, crate::assets::stream::Streamed::Pending) {
+                    settled = false;
+                }
+            }
+            if pending_weapon {
+                let stream = self.pawn_catalog.weapon_rig_for(
+                    gpu,
+                    &mut self.renderer,
+                    platform,
+                    &mut self.streamer,
+                    weapon_id.as_deref(),
+                    weapon_item_id,
+                );
+                if matches!(stream, crate::assets::stream::Streamed::Pending) {
+                    settled = false;
+                }
+            }
+            if settled {
+                self.stale_pawns.push(id);
+            }
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn spawn_pawn<G: Gpu>(
         &mut self,
         gpu: &mut G,
-        read_asset: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
+        platform: &mut dyn Platform,
         actor: &LiveActor,
         faction: Option<[f32; 3]>,
     ) {
         let requested = route_for(actor.sprite.as_deref(), &actor.id);
-        let route = if self
-            .pawn_catalog
-            .body_for(gpu, &mut self.renderer, read_asset, requested)
-            .is_some()
-        {
-            requested
-        } else {
-            BodyRoute::Human { female: false }
+        // A streamed body still in flight defers the whole pawn: it stays
+        // absent (projection continues, no meshes) and spawn retries on a
+        // later frame. A terminal miss keeps the typed fallback presentation.
+        let body_stream = self.pawn_catalog.body_for(
+            gpu,
+            &mut self.renderer,
+            platform,
+            &mut self.streamer,
+            requested,
+        );
+        let route = match body_stream {
+            crate::assets::stream::Streamed::Pending => return,
+            crate::assets::stream::Streamed::Ready(body) => {
+                if body.is_some() {
+                    requested
+                } else {
+                    BodyRoute::Human { female: false }
+                }
+            }
         };
         let (body_parts, scale, joints, hand, animator) = {
             let body = self
@@ -3634,18 +3725,26 @@ impl ConnectedScene {
         }
         let mut equipment_meshes = Vec::new();
         let mut attached_equipment_ids = Vec::with_capacity(equipment.len());
+        let mut pending_equipment: Vec<String> = Vec::new();
         for worn_piece in &equipment {
-            let loaded = self
-                .pawn_catalog
-                .equipment_piece(
-                    gpu,
-                    &mut self.renderer,
-                    read_asset,
-                    &worn_piece.item_id,
-                    joints,
-                    matches!(route, BodyRoute::Human { female: true }),
-                )
-                .map(|piece| (piece.part_meshes.clone(), piece.part_material_names.clone()));
+            let piece_stream = self.pawn_catalog.equipment_piece(
+                gpu,
+                &mut self.renderer,
+                platform,
+                &mut self.streamer,
+                &worn_piece.item_id,
+                joints,
+                matches!(route, BodyRoute::Human { female: true }),
+            );
+            let loaded = match piece_stream {
+                crate::assets::stream::Streamed::Pending => {
+                    pending_equipment.push(worn_piece.item_id.clone());
+                    continue;
+                }
+                crate::assets::stream::Streamed::Ready(piece) => {
+                    piece.map(|piece| (piece.part_meshes.clone(), piece.part_material_names.clone()))
+                }
+            };
             let Some((part_meshes, material_names)) = loaded else {
                 continue;
             };
@@ -3730,15 +3829,23 @@ impl ConnectedScene {
             entities.push(e);
         }
 
-        let resolved_weapon = self
-            .pawn_catalog
-            .weapon_rig_for(
-                gpu,
-                &mut self.renderer,
-                read_asset,
-                actor.weapon.as_deref(),
-                actor.weapon_item_id,
-            )
+        let weapon_stream = self.pawn_catalog.weapon_rig_for(
+            gpu,
+            &mut self.renderer,
+            platform,
+            &mut self.streamer,
+            actor.weapon.as_deref(),
+            actor.weapon_item_id,
+        );
+        let mut pending_weapon = false;
+        let resolved_weapon = match weapon_stream {
+            crate::assets::stream::Streamed::Pending => {
+                pending_weapon = true;
+                None
+            }
+            crate::assets::stream::Streamed::Ready(rig) => rig,
+        };
+        let resolved_weapon = resolved_weapon
             .map(|rig| {
                 (
                     rig.parts.clone(),
@@ -3911,20 +4018,22 @@ impl ConnectedScene {
                 speed,
                 yaw,
                 present: true,
+                pending_equipment,
+                pending_weapon,
             },
         );
     }
 
-    fn sync_active_area<G: Gpu>(
-        &mut self,
-        gpu: &mut G,
-        read_asset: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
-    ) {
+    fn sync_active_area<G: Gpu>(&mut self, gpu: &mut G, platform: &mut dyn Platform) {
         if self.area_id.is_empty() || self.loaded_area_id == self.area_id {
             return;
         }
         let area_id = self.area_id.clone();
         let player = self.player_pos();
+        let player_cell = (
+            player.x / WORLD_UNITS_PER_CELL,
+            player.z / WORLD_UNITS_PER_CELL,
+        );
         self.props_loader.clear(&mut self.world);
         self.collision_debug.clear_area(&mut self.world);
         self.streamed_world.clear(&mut self.world);
@@ -3945,16 +4054,7 @@ impl ConnectedScene {
             player.x as f64,
             player.z as f64,
         );
-        let placed = self.props_loader.load(
-            &mut self.world,
-            &mut self.renderer,
-            gpu,
-            &self.slice,
-            &terrain,
-            Some(&area_id),
-            read_asset,
-            0b1,
-        );
+        self.props_loader.begin_area(&self.slice, Some(&area_id));
         self.collision_debug.load_area(
             &mut self.world,
             &mut self.renderer,
@@ -3968,9 +4068,27 @@ impl ConnectedScene {
             .rebuild(&self.slice, &area_id, &self.collision_debug);
         self.terrain = terrain;
         self.loaded_area_id = area_id;
+        // Region-streamed props: place whatever of the destination spawn
+        // neighborhood is already cached, queue the rest, and hold the travel
+        // transition until the neighborhood settles (deadline: fail-closed
+        // marker placement via force_place_neighborhood).
+        self.travel_hold = Some(TravelHold {
+            deadline_ms: platform.monotonic_ms() + 30_000,
+        });
+        let placed = self.props_loader.sync_regions(
+            &mut self.world,
+            &mut self.renderer,
+            gpu,
+            &self.terrain,
+            platform,
+            &mut self.streamer,
+            player_cell,
+            0b1,
+        );
         eprintln!(
-            "connected: active area {} streamed, {placed} props placed",
-            self.loaded_area_id
+            "connected: active area {} streaming, {placed} props placed, {} region-gated",
+            self.loaded_area_id,
+            self.props_loader.pending_count(),
         );
     }
 
@@ -3983,12 +4101,50 @@ impl ConnectedScene {
         w: u32,
         h: u32,
         dt: f32,
-        read_asset: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
+        platform: &mut dyn Platform,
         chat_client: &mut crate::game::chat_net::ChatClient,
         chat_input: &mut successor_engine_render::ui::TextField,
     ) {
         self.last_frame_dt = dt.max(0.0);
-        if self.loading {
+        // Stream completions land before anything consumes them this frame.
+        self.streamer.pump(platform);
+        // Travel hold: keep streaming the destination spawn neighborhood and
+        // release the transition once it settles; the deadline forces
+        // fail-closed marker placement rather than hanging the transition.
+        if let Some(hold) = &self.travel_hold {
+            let deadline_ms = hold.deadline_ms;
+            let player_cell = self
+                .store
+                .actors
+                .get(&self.store.player_actor_id)
+                .map(|actor| (actor.x, actor.y))
+                .unwrap_or((0.0, 0.0));
+            self.props_loader.sync_regions(
+                &mut self.world,
+                &mut self.renderer,
+                gpu,
+                &self.terrain,
+                platform,
+                &mut self.streamer,
+                player_cell,
+                0b1,
+            );
+            if self.props_loader.pending_in_region(player_cell) == 0 {
+                self.travel_hold = None;
+            } else if platform.monotonic_ms() > deadline_ms {
+                eprintln!("connected: travel stream deadline; marker-placing stragglers");
+                self.props_loader.force_place_region(
+                    &mut self.world,
+                    &mut self.renderer,
+                    gpu,
+                    &self.terrain,
+                    player_cell,
+                    0b1,
+                );
+                self.travel_hold = None;
+            }
+        }
+        if self.loading || self.travel_hold.is_some() {
             self.ui.begin(w, h);
             self.loading_screen.tick(dt);
             self.loading_screen.draw(&mut self.ui, w as f32, h as f32);
@@ -4029,7 +4185,27 @@ impl ConnectedScene {
             );
             self.hud_defaults_pending = [false; hud::HUD_SURFACE_COUNT];
         }
-        self.sync_active_area(gpu, read_asset);
+        self.sync_active_area(gpu, platform);
+        // Region watcher: stream prop models for the player's 3×3 region
+        // neighborhood; pending props place on the frame their bytes land.
+        if self.props_loader.pending_count() > 0 {
+            let player_cell = self
+                .store
+                .actors
+                .get(&self.store.player_actor_id)
+                .map(|actor| (actor.x, actor.y))
+                .unwrap_or((0.0, 0.0));
+            self.props_loader.sync_regions(
+                &mut self.world,
+                &mut self.renderer,
+                gpu,
+                &self.terrain,
+                platform,
+                &mut self.streamer,
+                player_cell,
+                0b1,
+            );
+        }
         self.macro_actions.clear();
         self.macro_runtime.tick(
             self.store.tick,
@@ -4047,6 +4223,7 @@ impl ConnectedScene {
         }
         self.missing_pawns.clear();
         self.stale_pawns.clear();
+        self.retry_pending_gear(gpu, platform);
         for (id, actor) in self.store.render_actors() {
             if !self.pawns.contains_key(id) {
                 self.missing_pawns.push(id.clone());
@@ -4150,7 +4327,7 @@ impl ConnectedScene {
                 lifecycle_seq: actor.lifecycle_seq,
             };
             let faction = live.faction.as_deref().map(faction_rgb);
-            self.spawn_pawn(gpu, read_asset, &live, faction);
+            self.spawn_pawn(gpu, platform, &live, faction);
         }
         self.sim_time += dt.max(0.0);
         // Every open viewer renders its own subject this frame. Each composite
@@ -4410,16 +4587,19 @@ impl ConnectedScene {
             );
         }
 
-        self.streamed_world.sync(
-            &mut self.world,
-            &mut self.renderer,
-            gpu,
-            &self.terrain,
-            &self.store,
-            &self.area_id,
-            read_asset,
-            dt,
-        );
+        {
+            let mut read_asset = |stable_id: &str| platform.read_asset(stable_id).ok();
+            self.streamed_world.sync(
+                &mut self.world,
+                &mut self.renderer,
+                gpu,
+                &self.terrain,
+                &self.store,
+                &self.area_id,
+                &mut read_asset,
+                dt,
+            );
+        }
 
         // Streamed clock and weather own sun, clear color, grade, fog, and
         // precipitation. The noon/clear build state lasts only until accepted
@@ -4572,7 +4752,8 @@ impl ConnectedScene {
             w,
             h,
             self.sim_time,
-            read_asset,
+            platform,
+            &mut self.streamer,
         );
         // Enterable cutaways advance only against the accepted authority tick.
         // Prefer the same authority actor centre used by the browser renderer;

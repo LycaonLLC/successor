@@ -9,7 +9,8 @@ const successorBuild = Object.freeze({
     clientReleaseId: "",
     serverReleaseId: "",
     gameOrigin: "",
-    chatOrigin: ""
+    chatOrigin: "",
+    objectStore: false
 });
 
 const canvas = document.getElementById("app");
@@ -615,7 +616,10 @@ function audioPlay(path, key, gain, pan, looped, polyphony) {
         return false;
     }
     const buffer = audioBuffers.get(path);
-    if (!buffer) return false;
+    if (!buffer) {
+        ensureClipDecode(path);
+        return false;
+    }
     if (intent.looped) audioStop(key);
     const keyed = audioVoicesByKey.get(key);
     const limit = voiceLimit(polyphony, intent.looped);
@@ -717,15 +721,27 @@ async function prepareWebAudio() {
         audioPrepared = true;
         return;
     }
+    // Core audio ships in its own pack fetched right after the visual boot
+    // stage; wait for it so panel/chat/footstep cues are decoded at entry.
+    if (releaseFiles?.has("packs/audio-boot.spak")) {
+        try { await fetchPackIntoCache("packs/audio-boot.spak"); } catch (error) { audioError("packs/audio-boot.spak", error); }
+    }
+    await decodeCachedClips(paths);
+    audioPrepared = true;
+}
+
+async function decodeCachedClips(paths) {
+    const cache = globalThis.__successorFetchCache;
     let next = 0;
     const worker = async () => {
         while (next < paths.length) {
             const path = paths[next++];
+            if (audioBuffers.has(path)) continue;
             const bytes = cache.get(path);
+            if (!bytes) continue; // undecoded clips decode lazily on first trigger
             try {
-                if (!bytes) throw new Error("encoded clip missing");
                 const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-                audioBuffers.set(path, await context.decodeAudioData(copy));
+                audioBuffers.set(path, await audioContext.decodeAudioData(copy));
             } catch (error) {
                 audioError(path, error);
             } finally {
@@ -734,7 +750,28 @@ async function prepareWebAudio() {
         }
     };
     await Promise.all(Array.from({ length: Math.min(6, paths.length) }, worker));
-    audioPrepared = true;
+}
+
+// Lazy clip path: a trigger for an undecoded clip starts the fetch/decode and
+// is itself skipped; subsequent triggers play normally.
+const pendingClipDecodes = new Map();
+function ensureClipDecode(path) {
+    if (audioBuffers.has(path) || pendingClipDecodes.has(path) || !audioContext) return;
+    pendingClipDecodes.set(path, (async () => {
+        try {
+            const cache = globalThis.__successorFetchCache;
+            if (!cache.get(path)) {
+                const packed = packIndex[path];
+                if (packed) await fetchPackIntoCache(packed.pack);
+                else await fetchStandaloneIntoCache(path);
+            }
+            await decodeCachedClips([path]);
+        } catch (error) {
+            audioError(path, error);
+        } finally {
+            pendingClipDecodes.delete(path);
+        }
+    })());
 }
 
 function deepFreeze(value) {
@@ -788,36 +825,157 @@ function getString(ptr, len) {
     return new TextDecoder().decode(bytes);
 }
 
+// Manifest files keyed by stable id, populated by fetchInitialAssets. In
+// object-store releases assets resolve to content-addressed immutable objects
+// so the browser/CDN cache survives release boundaries.
+let releaseFiles = null;
+let packIndex = {};
+function assetUrl(path) {
+    if (!successorBuild.objectStore) return path;
+    const file = releaseFiles?.get(path);
+    if (!file) throw new Error(`asset not in release manifest: ${path}`);
+    return `/objects/${file.sha256}`;
+}
+
+// ── Asset packs (successor.assetpack.v1) ────────────────────────────────────
+// Packs are a pure transport concern: they are unpacked into the stable-id
+// byte cache and the Rust runtime always reads by stable id.
+const fetchedPacks = new Map();
+// Async asset channel state for js_asset_begin/js_asset_poll. Entries:
+// { state: "pending" | "ready" | "error", bytes: Uint8Array | null }.
+const assetRequests = new Map();
+let nextAssetHandle = 1;
+function unpackPack(bytes) {
+    const magic = new TextDecoder().decode(bytes.subarray(0, 6));
+    if (magic !== "SPAK1\n") throw new Error("bad pack magic");
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const indexLength = view.getUint32(6, true);
+    const indexStart = 10;
+    const index = JSON.parse(new TextDecoder().decode(bytes.subarray(indexStart, indexStart + indexLength)));
+    if (index.schema !== "successor.assetpack.v1" || !Array.isArray(index.entries)) throw new Error("bad pack index");
+    const payloadStart = indexStart + indexLength;
+    return index.entries.map(entry => {
+        const slice = bytes.slice(payloadStart + entry.offset, payloadStart + entry.offset + entry.bytes);
+        if (slice.byteLength !== entry.bytes) throw new Error(`pack entry truncated: ${entry.path}`);
+        return [entry.path, slice];
+    });
+}
+
+async function fetchPackIntoCache(packPath) {
+    let pending = fetchedPacks.get(packPath);
+    if (!pending) {
+        pending = (async () => {
+            const response = await fetch(assetUrl(packPath));
+            if (!response.ok) throw new Error(`pack ${response.status}: ${packPath}`);
+            for (const [path, bytes] of unpackPack(new Uint8Array(await response.arrayBuffer()))) {
+                globalThis.__successorFetchCache.set(path, bytes);
+            }
+        })();
+        fetchedPacks.set(packPath, pending);
+    }
+    return pending;
+}
+
+function fetchPackIntoCacheSync(packPath) {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", assetUrl(packPath), false); // synchronous
+    xhr.overrideMimeType("text/plain; charset=x-user-defined");
+    xhr.send(null);
+    if (xhr.status !== 200) throw new Error(`pack ${xhr.status}: ${packPath}`);
+    const text = xhr.responseText;
+    const bytes = new Uint8Array(text.length);
+    for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i) & 0xff;
+    for (const [path, entryBytes] of unpackPack(bytes)) {
+        globalThis.__successorFetchCache.set(path, entryBytes);
+    }
+}
+
+async function fetchStandaloneIntoCache(path, onBytes) {
+    const file = releaseFiles.get(path);
+    const response = await fetch(assetUrl(path));
+    if (!response.ok) throw new Error(`asset ${response.status}: ${path}`);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (file && bytes.byteLength !== file.bytes) throw new Error(`asset size mismatch: ${path}`);
+    globalThis.__successorFetchCache.set(path, bytes);
+    if (onBytes) onBytes(bytes.byteLength);
+}
+
+// Stage 1: visual boot pack + standalone boot documents — the world opens as
+// soon as these land. Stage 2: core audio. Everything else streams after the
+// first world frame (and on demand via the async asset channel).
 async function fetchInitialAssets() {
     showLoading("STREAMING WORLD", "READING RELEASE MANIFEST", 0);
     const manifestResponse = await fetch("release-manifest.json", { cache: "no-store" });
     if (!manifestResponse.ok) throw new Error(`release manifest ${manifestResponse.status}`);
     const manifest = await manifestResponse.json();
-    if (!Array.isArray(manifest.initialAssets)) throw new Error("release manifest has no initial asset stream");
-    const files = new Map(manifest.files.map(file => [file.path, file]));
-    const assets = manifest.initialAssets.map(path => {
-        const file = files.get(path);
-        if (!file) throw new Error(`initial asset missing from inventory: ${path}`);
-        return file;
-    });
-    const total = assets.reduce((sum, file) => sum + file.bytes, 0);
-    let loaded = 0;
+    releaseFiles = new Map(manifest.files.map(file => [file.path, file]));
+    packIndex = manifest.packIndex ?? {};
+    const boot = manifest.boot ?? manifest.initialAssets;
+    if (!Array.isArray(boot) || boot.length === 0) throw new Error("release manifest has no boot stream");
     globalThis.__successorFetchCache = new Map();
-    let next = 0;
-    const worker = async () => {
-        while (next < assets.length) {
-            const file = assets[next++];
-            const response = await fetch(file.path);
-            if (!response.ok) throw new Error(`asset ${response.status}: ${file.path}`);
-            const bytes = new Uint8Array(await response.arrayBuffer());
-            if (bytes.byteLength !== file.bytes) throw new Error(`asset size mismatch: ${file.path}`);
-            globalThis.__successorFetchCache.set(file.path, bytes);
-            loaded += bytes.byteLength;
-            const mib = value => (value / 1048576).toFixed(1);
-            showLoading("STREAMING WORLD", `${mib(loaded)} / ${mib(total)} MiB`, total > 0 ? loaded / total : 1);
+
+    const AUDIO_BOOT_PACK = "packs/audio-boot.spak";
+    const stagePacks = new Set();
+    const stageStandalone = [];
+    let total = 0;
+    for (const id of boot) {
+        const packed = packIndex[id];
+        if (packed) {
+            if (packed.pack !== AUDIO_BOOT_PACK) {
+                stagePacks.add(packed.pack);
+                total += packed.bytes;
+            }
+        } else {
+            stageStandalone.push(id);
+            total += releaseFiles.get(id)?.bytes ?? 0;
+        }
+    }
+    // Spawn-neighborhood region packs stage with the visual boot so the first
+    // world frame has its props; every other region streams via the watcher.
+    for (const packPath of manifest.bootPacks ?? []) {
+        if (!stagePacks.has(packPath) && releaseFiles.has(packPath)) {
+            stagePacks.add(packPath);
+            total += releaseFiles.get(packPath)?.bytes ?? 0;
+        }
+    }
+    let loaded = 0;
+    const mib = value => (value / 1048576).toFixed(1);
+    const report = () => showLoading("STREAMING WORLD", `${mib(loaded)} / ${mib(total)} MiB`, total > 0 ? loaded / total : 1);
+    report();
+    const stageJobs = [...stagePacks].map(async packPath => {
+        await fetchPackIntoCache(packPath);
+        loaded += releaseFiles.get(packPath)?.bytes ?? 0;
+        report();
+    });
+    let nextStandalone = 0;
+    const standaloneWorker = async () => {
+        while (nextStandalone < stageStandalone.length) {
+            const id = stageStandalone[nextStandalone++];
+            await fetchStandaloneIntoCache(id, bytes => { loaded += bytes; report(); });
         }
     };
-    await Promise.all(Array.from({ length: Math.min(6, assets.length) }, worker));
+    await Promise.all([...stageJobs, ...Array.from({ length: Math.min(6, stageStandalone.length) }, standaloneWorker)]);
+    if (releaseFiles.has(AUDIO_BOOT_PACK)) {
+        fetchPackIntoCache(AUDIO_BOOT_PACK).catch(error => audioError(AUDIO_BOOT_PACK, error));
+    }
+}
+
+// After the first world frame: pull the shared remainder packs only
+// (audio-rest, world-rest). Wardrobe, creature, and region-pack bytes are
+// deliberately NOT prefetched — they stream on demand through the async
+// asset channel (wearing actor / creature entering AOI, region watcher).
+// Races with on-demand requests are deduped by fetchedPacks / the byte cache.
+function startBackgroundPrefetch() {
+    const packs = [...releaseFiles.keys()].filter(path =>
+        path.startsWith("packs/") &&
+        !path.startsWith("packs/region/") &&
+        path !== "packs/boot.spak" &&
+        !fetchedPacks.has(path));
+    (async () => {
+        for (const packPath of packs) {
+            try { await fetchPackIntoCache(packPath); } catch (error) { audioError(packPath, error); }
+        }
+    })().catch(() => {});
 }
 
 let firstWorldFrame = false;
@@ -1145,9 +1303,23 @@ const importObject = {
                 const cache = globalThis.__successorFetchCache;
 
                 let bytes = cache.get(url);
+                if (!bytes && packIndex[url]) {
+                    // Rust demanded a packed asset before the background stream
+                    // reached it: sync-fetch the whole pack once (logged — every
+                    // hit here is a prefetch-ordering bug worth fixing).
+                    console.warn("sync pack fallback:", url, "via", packIndex[url].pack);
+                    try {
+                        fetchPackIntoCacheSync(packIndex[url].pack);
+                    } catch (error) {
+                        console.error("pack fallback failed:", url, error);
+                        return -1;
+                    }
+                    bytes = cache.get(url);
+                }
                 if (!bytes) {
+                    console.warn("sync asset fallback:", url);
                     const xhr = new XMLHttpRequest();
-                    xhr.open("GET", url, false); // synchronous
+                    xhr.open("GET", assetUrl(url), false); // synchronous
                     xhr.overrideMimeType("text/plain; charset=x-user-defined");
                     xhr.send(null);
                     if (xhr.status !== 200) {
@@ -1171,6 +1343,61 @@ const importObject = {
                 console.error("fetch_get network error:", e, url);
                 return -1;
             }
+        },
+        // Async asset channel backing Rust Platform::begin_asset. Starts a
+        // real (non-blocking) fetch through the same pack-index/object-store
+        // resolution as js_fetch_get, then returns a handle immediately.
+        js_asset_begin: (pathPtr, pathLen) => {
+            const path = getString(pathPtr, pathLen);
+            if (!globalThis.__successorFetchCache) globalThis.__successorFetchCache = new Map();
+            const cache = globalThis.__successorFetchCache;
+            const handle = nextAssetHandle++;
+            const entry = { state: "pending", bytes: null };
+            assetRequests.set(handle, entry);
+            const cached = cache.get(path);
+            if (cached) {
+                entry.state = "ready";
+                entry.bytes = cached;
+                return handle;
+            }
+            const fail = (error) => {
+                console.error("async asset failed:", path, error);
+                entry.state = "error";
+            };
+            const complete = () => {
+                const bytes = cache.get(path);
+                if (bytes) {
+                    entry.state = "ready";
+                    entry.bytes = bytes;
+                } else {
+                    fail(new Error("asset missing after fetch"));
+                }
+            };
+            const pack = packIndex[path];
+            if (pack) fetchPackIntoCache(pack.pack).then(complete).catch(fail);
+            else fetchStandaloneIntoCache(path).then(complete).catch(fail);
+            return handle;
+        },
+        // Poll an in-flight async fetch. -1 pending, -2 failed/unknown; once
+        // ready, a null buffer returns the length and the copy call delivers
+        // the bytes and consumes the entry (two-phase, like js_fetch_get).
+        js_asset_poll: (id, outPtr, outMaxLen) => {
+            const entry = assetRequests.get(id);
+            if (!entry) return -2;
+            if (entry.state === "pending") return -1;
+            if (entry.state === "error") {
+                assetRequests.delete(id);
+                return -2;
+            }
+            const bytes = entry.bytes;
+            if (outMaxLen > 0 && outPtr !== 0) {
+                const len = Math.min(bytes.length, outMaxLen);
+                const dest = new Uint8Array(wasmMemory.buffer, outPtr, len);
+                dest.set(bytes.subarray(0, len));
+                assetRequests.delete(id);
+                return len;
+            }
+            return bytes.length;
         }
     }
 };
@@ -1297,6 +1524,7 @@ fetch("successor.wasm")
                     if (!firstWorldFrame) {
                         firstWorldFrame = true;
                         finishLoading();
+                        startBackgroundPrefetch();
                     }
                 } else if (demoSelector === 0 && typeof wasmExports.net_state === "function") {
                     const state = wasmExports.net_state();
@@ -1306,6 +1534,7 @@ fetch("successor.wasm")
                         if (!firstWorldFrame) {
                             firstWorldFrame = true;
                             finishLoading();
+                            startBackgroundPrefetch();
                         }
                     }
                     if (typeof wasmExports.net_fatal === "function" && wasmExports.net_fatal() === 1) {

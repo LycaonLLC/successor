@@ -5,6 +5,7 @@
 //! the wasm cdylib exports live here behind `target_arch = "wasm32"`.
 
 pub mod audio;
+pub mod assets;
 pub mod demo;
 pub mod game;
 #[cfg(not(target_arch = "wasm32"))]
@@ -903,8 +904,8 @@ mod web_runtime {
                     CHAT_INPUT.get_mut(),
                 ) {
                     let dt = CONNECTED_DT.get_mut().copied().unwrap_or(1.0 / 60.0);
-                    let mut read_asset = read_web_asset;
-                    scene.frame(gpu, w, h, dt, &mut read_asset, chat_client, chat_input);
+                    let mut platform = successor_platform::WebPlatform;
+                    scene.frame(gpu, w, h, dt, &mut platform, chat_client, chat_input);
                 }
             } else if let Some(scene) = SCENE.get_mut() {
                 scene

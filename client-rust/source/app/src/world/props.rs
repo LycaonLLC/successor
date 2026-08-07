@@ -15,7 +15,9 @@ use serde_json::Value;
 
 use super::cutaway::{self, CutawayState, RegionMilli};
 use super::streamed::WorldAssetIssue;
+use crate::assets::stream::{AssetStreamer, ByteSource};
 use crate::GameWorld;
+use successor_platform::Platform;
 use successor_engine_core::ecs::{Entity, WorldOps};
 use successor_engine_core::glb::{self, GlbDocument};
 use successor_engine_core::json::Json;
@@ -107,10 +109,47 @@ struct SlideDoor<'a> {
     distance: f32,
 }
 
+/// A slice prop parsed at `begin_area`, awaiting region-gated placement.
+struct PendingProp {
+    prop: Json,
+    entry: Json,
+    id: String,
+    cell_x: f32,
+    cell_z: f32,
+    size_w_cells: f32,
+    size_h_cells: f32,
+    rotation: f32,
+    random_yaw: bool,
+    glb_ref: Option<String>,
+    stable_id: Option<String>,
+    /// Streaming region `(cell / REGION_CELLS)`.
+    region: (i32, i32),
+}
+
+/// Streaming region edge in cells: 8×8 map chunks of 16 cells.
+pub const REGION_CELLS: f32 = 128.0;
+
+/// Region coordinate for a cell position.
+fn region_of(cell_x: f32, cell_z: f32) -> (i32, i32) {
+    (
+        (cell_x / REGION_CELLS).floor() as i32,
+        (cell_z / REGION_CELLS).floor() as i32,
+    )
+}
+
+/// Chebyshev 3×3 region neighborhood test.
+fn in_neighborhood(region: (i32, i32), center: (i32, i32)) -> bool {
+    (region.0 - center.0).abs() <= 1 && (region.1 - center.1).abs() <= 1
+}
+
 pub struct PropsLoader {
     mapping: Json,
     asset_base: String,
     cache: HashMap<String, Option<PropModel>>,
+    /// Area props parsed by `begin_area`, placed by `sync_regions`/`load`.
+    pending: Vec<PendingProp>,
+    /// GI occluders accumulated across placements (area lifetime).
+    occluders: Vec<GiOccluder>,
     /// Entities spawned by the last `load` calls (released by `clear`).
     spawned: Vec<Entity>,
     /// Area-local cutaway state and its explicitly selected render entities.
@@ -121,6 +160,13 @@ pub struct PropsLoader {
     doors: Vec<DoorInstance>,
     /// Typed optional-asset degradation (bounded, deduped).
     issues: Vec<WorldAssetIssue>,
+    /// Streamer epoch at the last placement sweep; skips re-probing when
+    /// nothing new landed.
+    sweep_epoch: u64,
+    /// Region at the last sweep; a region change re-arms the sweep.
+    sweep_region: (i32, i32),
+    /// Set when `begin_area` adds new pendings; re-arms the sweep.
+    sweep_dirty: bool,
 }
 
 const MAX_PROP_ISSUES: usize = 32;
@@ -141,12 +187,17 @@ impl PropsLoader {
         Ok(PropsLoader {
             mapping,
             asset_base,
+            pending: Vec::new(),
+            occluders: Vec::new(),
             cache: HashMap::new(),
             spawned: Vec::new(),
             enterables: Vec::new(),
             height_cutaways: Vec::new(),
             doors: Vec::new(),
             issues: Vec::new(),
+            sweep_epoch: u64::MAX,
+            sweep_region: (i32::MIN, i32::MIN),
+            sweep_dirty: false,
         })
     }
 
@@ -170,6 +221,8 @@ impl PropsLoader {
         self.enterables.clear();
         self.height_cutaways.clear();
         self.doors.clear();
+        self.pending.clear();
+        self.occluders.clear();
         world.flush();
     }
 
@@ -268,10 +321,241 @@ impl PropsLoader {
         }
     }
 
+    /// Parse the visible props of one area into the region-gated pending set.
+    /// Nothing is placed and no model bytes are read here; `sync_regions`
+    /// (streamed) or `load` (synchronous, tests/demos) performs placement.
+    pub fn begin_area(&mut self, slice: &Json, area_id: Option<&str>) {
+        self.pending.clear();
+        self.sweep_dirty = true;
+        let Some(props) = slice.get("props").and_then(Json::as_array) else {
+            return;
+        };
+        for prop in props {
+            if let Some(pending) = self.parse_pending(prop, area_id) {
+                self.pending.push(pending);
+            }
+        }
+    }
+
+    /// Props still awaiting placement (region-gated).
+    pub fn pending_count(&self) -> usize {
+        self.pending.len()
+    }
+
+    /// Pending props inside the single streaming region containing
+    /// `center_cell` (cell coordinates). The travel transition holds until
+    /// this reaches 0; the wider 3×3 neighborhood streams after release via
+    /// the region watcher.
+    pub fn pending_in_region(&self, center_cell: (f32, f32)) -> usize {
+        let player_region = region_of(center_cell.0, center_cell.1);
+        self.pending
+            .iter()
+            .filter(|pending| pending.region == player_region)
+            .count()
+    }
+
+    fn parse_pending(&self, prop: &Json, area_id: Option<&str>) -> Option<PendingProp> {
+        if prop.get("visible").and_then(Json::as_bool) == Some(false) {
+            return None;
+        }
+        if let Some(area) = area_id {
+            if prop.get("areaId").and_then(Json::as_str) != Some(area) {
+                return None;
+            }
+        }
+        let asset_key = prop.get("assetKey").and_then(Json::as_str);
+        let kind = prop.get("kind").and_then(Json::as_str);
+        let entry = asset_key
+            .and_then(|k| self.entry(k))
+            .or_else(|| kind.and_then(|k| self.entry(k)))
+            .cloned()?;
+        if entry.get("skip").and_then(Json::as_bool) == Some(true) {
+            return None;
+        }
+        let id = prop
+            .get("id")
+            .and_then(Json::as_str)
+            .unwrap_or("")
+            .to_string();
+        let (cell_x, cell_z) = prop
+            .get("cell")
+            .map(|cell| {
+                (
+                    cell.get("x").and_then(Json::as_f32).unwrap_or(0.0),
+                    cell.get("y").and_then(Json::as_f32).unwrap_or(0.0),
+                )
+            })
+            .unwrap_or((0.0, 0.0));
+        let (size_w_cells, size_h_cells) = prop
+            .get("size")
+            .map(|size| {
+                (
+                    size.get("w").and_then(Json::as_f32).unwrap_or(1.0),
+                    size.get("h").and_then(Json::as_f32).unwrap_or(1.0),
+                )
+            })
+            .unwrap_or((1.0, 1.0));
+        let rotation = prop.get("rotation").and_then(Json::as_f32).unwrap_or(0.0);
+        let random_yaw = entry
+            .get("randomYaw")
+            .and_then(Json::as_bool)
+            .unwrap_or(false);
+        let glb_ref = entry
+            .get("glb")
+            .and_then(Json::as_str)
+            .map(str::to_string);
+        let stable_id = glb_ref.as_ref().map(|glb_ref| self.stable_id_for(glb_ref));
+        Some(PendingProp {
+            prop: prop.clone(),
+            entry,
+            id,
+            cell_x,
+            cell_z,
+            size_w_cells,
+            size_h_cells,
+            rotation,
+            random_yaw,
+            glb_ref,
+            stable_id,
+            region: region_of(cell_x, cell_z),
+        })
+    }
+
+    /// Public path (`/assets/world-items/foo.glb`) → stable asset id.
+    fn stable_id_for(&self, glb_ref: &str) -> String {
+        let public = if glb_ref.starts_with('/') {
+            glb_ref.to_string()
+        } else {
+            format!("{}{}", self.asset_base, glb_ref)
+        };
+        public.trim_start_matches('/').to_string()
+    }
+
+    /// Region-gated streamed placement: every pending prop inside the 3×3
+    /// region neighborhood of `center_cell` (cell coordinates) whose model is
+    /// cached, just landed, or terminally missing places this call; the rest
+    /// are requested through the streamer and place on a later frame.
+    /// Returns placements performed this call.
+    #[allow(clippy::too_many_arguments)]
+    pub fn sync_regions<G: Gpu>(
+        &mut self,
+        world: &mut GameWorld,
+        renderer: &mut Renderer,
+        gpu: &mut G,
+        terrain: &TerrainStreamer,
+        platform: &mut dyn Platform,
+        streamer: &mut AssetStreamer,
+        center_cell: (f32, f32),
+        mask: u32,
+    ) -> usize {
+        let player_region = region_of(center_cell.0, center_cell.1);
+        // Allocation-free steady state: only re-probe pending props when the
+        // streamer delivered something, the player crossed a region boundary,
+        // or a new area was parsed.
+        let epoch = streamer.ready_epoch();
+        if !self.sweep_dirty && self.sweep_region == player_region && self.sweep_epoch == epoch {
+            return 0;
+        }
+        self.sweep_dirty = false;
+        self.sweep_region = player_region;
+        self.sweep_epoch = epoch;
+        let mut placed = 0;
+        let mut index = 0;
+        while index < self.pending.len() {
+            if !in_neighborhood(self.pending[index].region, player_region) {
+                index += 1;
+                continue;
+            }
+            let ready = match (
+                self.pending[index].glb_ref.clone(),
+                self.pending[index].stable_id.clone(),
+            ) {
+                (None, _) => true, // placeholder entry: no bytes needed
+                (Some(glb_ref), Some(stable_id)) => {
+                    if self.cache.contains_key(&glb_ref) {
+                        true
+                    } else {
+                        match streamer.resolve(platform, &stable_id) {
+                            ByteSource::Pending => false,
+                            ByteSource::Missing => {
+                                self.record(WorldAssetIssue::MissingModel {
+                                    stable_id: stable_id.clone(),
+                                });
+                                self.cache.insert(glb_ref, None);
+                                true
+                            }
+                            ByteSource::Ready(bytes) => {
+                                let model = glb::parse(&bytes)
+                                    .ok()
+                                    .and_then(|doc| upload_model(renderer, gpu, &doc));
+                                if model.is_none() {
+                                    self.record(WorldAssetIssue::MissingModel { stable_id });
+                                }
+                                self.cache.insert(glb_ref, model);
+                                true
+                            }
+                        }
+                    }
+                }
+                (Some(_), None) => unreachable!("glb_ref implies stable_id"),
+            };
+            if !ready {
+                index += 1;
+                continue;
+            }
+            let pending = self.pending.remove(index);
+            placed += usize::from(self.place_prop(world, renderer, gpu, terrain, &pending, mask));
+        }
+        if placed > 0 {
+            renderer.gi_set_occluders(&self.occluders);
+        }
+        placed
+    }
+
+    /// Deadline path for the travel hold: place every prop of the current
+    /// region immediately, substituting the explicit missing-asset marker for
+    /// models that never arrived (fail-closed, same presentation as a fetch
+    /// failure). The wider neighborhood keeps streaming via the watcher.
+    #[allow(clippy::too_many_arguments)]
+    pub fn force_place_region<G: Gpu>(
+        &mut self,
+        world: &mut GameWorld,
+        renderer: &mut Renderer,
+        gpu: &mut G,
+        terrain: &TerrainStreamer,
+        center_cell: (f32, f32),
+        mask: u32,
+    ) -> usize {
+        let player_region = region_of(center_cell.0, center_cell.1);
+        let mut placed = 0;
+        let mut index = 0;
+        while index < self.pending.len() {
+            if self.pending[index].region != player_region {
+                index += 1;
+                continue;
+            }
+            if let (Some(glb_ref), Some(stable_id)) = (
+                self.pending[index].glb_ref.clone(),
+                self.pending[index].stable_id.clone(),
+            ) {
+                if !self.cache.contains_key(&glb_ref) {
+                    self.record(WorldAssetIssue::MissingModel { stable_id });
+                    self.cache.insert(glb_ref, None);
+                }
+            }
+            let pending = self.pending.remove(index);
+            placed += usize::from(self.place_prop(world, renderer, gpu, terrain, &pending, mask));
+        }
+        if placed > 0 {
+            renderer.gi_set_occluders(&self.occluders);
+        }
+        placed
+    }
+
     /// Place every visible prop of one area from a parsed slice into the
-    /// world. `area_id = None` places every area (developer world demo);
-    /// connected rendering always scopes to the accepted active area. `read`
-    /// resolves stable asset ids (`assets/world-items/*.glb`) to bytes.
+    /// world, synchronously. Retained for tests and developer demos; the
+    /// connected scene streams placement through `begin_area` +
+    /// `sync_regions`. `area_id = None` places every area.
     #[allow(clippy::too_many_arguments)]
     pub fn load<G: Gpu>(
         &mut self,
@@ -284,274 +568,66 @@ impl PropsLoader {
         read: &mut dyn FnMut(&str) -> Option<Vec<u8>>,
         mask: u32,
     ) -> usize {
-        let Some(props) = slice.get("props").and_then(Json::as_array) else {
-            return 0;
-        };
+        self.begin_area(slice, area_id);
         let mut placed = 0;
-        let mut occ: Vec<GiOccluder> = Vec::new();
-        for prop in props {
-            if prop.get("visible").and_then(Json::as_bool) == Some(false) {
-                continue;
+        while let Some(pending) = self.pending.pop() {
+            if let Some(glb_ref) = &pending.glb_ref {
+                self.ensure_model(renderer, gpu, read, glb_ref);
             }
-            if let Some(area) = area_id {
-                if prop.get("areaId").and_then(Json::as_str) != Some(area) {
-                    continue;
-                }
-            }
-            let asset_key = prop.get("assetKey").and_then(Json::as_str);
-            let kind = prop.get("kind").and_then(Json::as_str);
-            // Resolve mapping: assetKey first, then kind.
-            let entry = asset_key
-                .and_then(|k| self.entry(k))
-                .or_else(|| kind.and_then(|k| self.entry(k)))
-                .cloned();
+            placed += usize::from(self.place_prop(world, renderer, gpu, terrain, &pending, mask));
+        }
+        renderer.gi_set_occluders(&self.occluders);
+        placed
+    }
 
-            let id = prop.get("id").and_then(Json::as_str).unwrap_or("");
-            let (cell_x, cell_z) = prop
-                .get("cell")
-                .map(|cell| {
-                    (
-                        cell.get("x").and_then(Json::as_f32).unwrap_or(0.0),
-                        cell.get("y").and_then(Json::as_f32).unwrap_or(0.0),
-                    )
-                })
-                .unwrap_or((0.0, 0.0));
-            let cx = cell_x * WORLD_UNITS_PER_CELL;
-            let cy = cell_z * WORLD_UNITS_PER_CELL;
-            let (size_w_cells, size_h_cells) = prop
-                .get("size")
-                .map(|size| {
-                    (
-                        size.get("w").and_then(Json::as_f32).unwrap_or(1.0),
-                        size.get("h").and_then(Json::as_f32).unwrap_or(1.0),
-                    )
-                })
-                .unwrap_or((1.0, 1.0));
-            let sw = size_w_cells * WORLD_UNITS_PER_CELL;
-            let sh = size_h_cells * WORLD_UNITS_PER_CELL;
-            let rotation = prop.get("rotation").and_then(Json::as_f32).unwrap_or(0.0);
+    /// Shared per-prop placement. The model (or its recorded miss) must
+    /// already sit in the cache for `glb_ref` entries.
+    fn place_prop<G: Gpu>(
+        &mut self,
+        world: &mut GameWorld,
+        renderer: &mut Renderer,
+        gpu: &mut G,
+        terrain: &TerrainStreamer,
+        pending: &PendingProp,
+        mask: u32,
+    ) -> bool {
+        let entry = &pending.entry;
+        let id = pending.id.as_str();
+        let cx = pending.cell_x * WORLD_UNITS_PER_CELL;
+        let cy = pending.cell_z * WORLD_UNITS_PER_CELL;
+        let sw = pending.size_w_cells * WORLD_UNITS_PER_CELL;
+        let sh = pending.size_h_cells * WORLD_UNITS_PER_CELL;
+        let rotation = pending.rotation;
+        let random_yaw = pending.random_yaw;
+        let prop = &pending.prop;
+        let size_w_cells = pending.size_w_cells;
+        let size_h_cells = pending.size_h_cells;
 
-            let Some(entry) = entry else { continue };
-            if entry.get("skip").and_then(Json::as_bool) == Some(true) {
-                continue;
-            }
-            let random_yaw = entry
-                .get("randomYaw")
-                .and_then(Json::as_bool)
-                .unwrap_or(false);
-
-            if let Some(glb_ref) = entry.get("glb").and_then(Json::as_str) {
-                if !self.ensure_model(renderer, gpu, read, glb_ref) {
-                    // Never invisible: the mapped model failed to load, so the
-                    // instance renders the explicit missing-asset marker.
-                    let ground_x = cx + sw / 2.0;
-                    let ground_z = cy + sh / 2.0;
-                    let ground_y = terrain.height_at(ground_x, ground_z);
-                    let mesh = placeholder_cube(renderer, gpu);
-                    let material = renderer.add_material_desc(
-                        successor_engine_render::renderer::MaterialDesc {
-                            base_color: MISSING_TINT,
-                            ..successor_engine_render::renderer::MaterialDesc::default()
-                        },
-                    );
-                    let e = world.spawn();
-                    world.set_component(
-                        e,
-                        Transform {
-                            pos: vec3(ground_x, ground_y + 0.6, ground_z),
-                            rot: Quat::from_yaw(core::f32::consts::FRAC_PI_4),
-                            scale: vec3(0.35, 1.2, 0.35),
-                        },
-                    );
-                    world.set_component(
-                        e,
-                        MeshRenderer {
-                            mesh,
-                            material,
-                            viewport_mask: mask,
-                            skin: SkinRef::NONE,
-                        },
-                    );
-                    self.spawned.push(e);
-                    continue;
-                }
-                let enterable = entry.get("enterable");
-                let reveal_prefixes = enterable.and_then(enterable_reveal_prefixes);
-                let reveal_name_includes = enterable.and_then(enterable_reveal_name_includes);
-                let slide_door = parse_slide_door(&entry);
-                let (fx, fz, hy, alb, parts) = {
-                    let model = self.cache.get(glb_ref).unwrap().as_ref().unwrap();
-                    let parts: Vec<PlacedPart> = model
-                        .parts
-                        .iter()
-                        .copied()
-                        .map(|part| PlacedPart {
-                            reveal: reveal_prefixes.is_some_and(|prefixes| {
-                                part_matches_reveal_selectors(
-                                    &model.node_names,
-                                    &model.node_parents,
-                                    part.node_index,
-                                    prefixes,
-                                    reveal_name_includes,
-                                    slide_door.map(|door| door.node),
-                                )
-                            }),
-                            door: slide_door.is_some_and(|door| {
-                                node_or_ancestor_matches(
-                                    &model.node_names,
-                                    &model.node_parents,
-                                    part.node_index,
-                                    |name| name == door.node,
-                                )
-                            }),
-                            part,
-                        })
-                        .collect();
-                    (
-                        model.footprint_x,
-                        model.footprint_z,
-                        model.height_y,
-                        model.mean_albedo,
-                        parts,
-                    )
-                };
-                let (fit_x, fit_z) = fit_footprint(&entry, fx, fz);
-                let (yaw, scale) = placement(rotation, random_yaw, id, sw, sh, fit_x, fit_z);
-                let ground_x = cx + sw / 2.0;
-                let ground_z = cy + sh / 2.0;
-                let pos = vec3(ground_x, terrain.height_at(ground_x, ground_z), ground_z);
-                let initial_cutoff_y = player_head_cutoff_y(pos.y);
-
-                let mut instance_entities = if enterable.is_some() && reveal_prefixes.is_none() {
-                    Some(Vec::with_capacity(parts.len()))
-                } else {
-                    None
-                };
-                let placement = Mat4::from_trs(pos, Quat::from_yaw(yaw), vec3(scale, scale, scale));
-                let mut reveal = Vec::new();
-                let mut door_parts = Vec::new();
-                for placed_part in parts {
-                    let part = placed_part.part;
-                    let (part_pos, part_rot, part_scale) = placement.mul(part.local).to_trs();
-                    let transform = Transform {
-                        pos: part_pos,
-                        rot: part_rot,
-                        scale: part_scale,
-                    };
-                    let e = world.spawn();
-                    self.spawned.push(e);
-                    if let Some(entities) = instance_entities.as_mut() {
-                        entities.push(e);
-                    }
-                    world.set_component(e, transform);
-                    let mesh_renderer = MeshRenderer {
-                        mesh: part.mesh,
-                        material: part.material,
-                        viewport_mask: mask,
-                        skin: SkinRef::NONE,
-                    };
-                    world.set_component(e, mesh_renderer);
-                    if placed_part.reveal {
-                        world.set_component(
-                            e,
-                            HeightCutaway {
-                                cutoff_y: initial_cutoff_y,
-                                amount: 0.0,
-                            },
-                        );
-                        reveal.push(RevealEntity { entity: e });
-                    } else if instance_entities.is_some() {
-                        world.set_component(
-                            e,
-                            HeightCutaway {
-                                cutoff_y: initial_cutoff_y,
-                                amount: 0.0,
-                            },
-                        );
-                    }
-                    if placed_part.door {
-                        if let Some(door) = slide_door {
-                            door_parts.push(DoorPart {
-                                entity: e,
-                                closed: transform,
-                                open: door_open_transform(
-                                    transform,
-                                    yaw,
-                                    scale,
-                                    door.axis,
-                                    door.distance,
-                                ),
-                            });
-                        }
-                    }
-                }
-                if let (Some(enterable), Some(_)) = (enterable, reveal_prefixes) {
-                    self.enterables.push(EnterableInstance {
-                        cell_x,
-                        cell_z,
-                        regions: placed_interior_regions(prop, size_w_cells, size_h_cells),
-                        floor_height: enterable
-                            .get("floorHeightM")
-                            .and_then(Json::as_f32)
-                            .unwrap_or(0.0),
-                        reveal,
-                        cutaway: CutawayState::default(),
-                        fade_seconds: enterable_fade_seconds(enterable),
-                    });
-                }
-                if !door_parts.is_empty() {
-                    self.doors.push(DoorInstance {
-                        prop_id: id.to_string(),
-                        open: false,
-                        parts: door_parts,
-                    });
-                }
-                if let (Some(enterable), Some(entities)) = (enterable, instance_entities) {
-                    self.height_cutaways.push(EnterableProp {
-                        entities,
-                        region: RegionMilli {
-                            x_milli: cx as f64 * 1000.0,
-                            y_milli: cy as f64 * 1000.0,
-                            w_milli: sw as f64 * 1000.0,
-                            h_milli: sh as f64 * 1000.0,
-                        },
-                        state: CutawayState::default(),
-                        fade_seconds: enterable_fade_seconds(enterable),
-                    });
-                }
-                occ.push(GiOccluder {
-                    center: [pos.x, pos.y + hy * scale * 0.5, pos.z],
-                    half_extents: [fx * scale * 0.5, hy * scale * 0.5, fz * scale * 0.5],
-                    yaw,
-                    albedo: alb,
-                });
-                placed += 1;
-            } else if let Some(ph) = entry.get("placeholder") {
-                let height = ph.get("height").and_then(Json::as_f32).unwrap_or(0.8);
-                let tint = ph
-                    .get("tint")
-                    .and_then(Json::as_str)
-                    .map(parse_hex)
-                    .unwrap_or([0.43, 0.4, 0.34, 1.0]);
-                let (yaw, _) = placement(rotation, random_yaw, id, sw, sh, 1.0, 1.0);
+        if let Some(glb_ref) = &pending.glb_ref {
+            let cached = self.cache.get(glb_ref);
+            let Some(cached) = cached else {
+                unreachable!("place_prop requires a resolved cache slot");
+            };
+            if cached.is_none() {
+                // Never invisible: the mapped model failed to load, so the
+                // instance renders the explicit missing-asset marker.
                 let ground_x = cx + sw / 2.0;
                 let ground_z = cy + sh / 2.0;
                 let ground_y = terrain.height_at(ground_x, ground_z);
                 let mesh = placeholder_cube(renderer, gpu);
-                let material =
-                    renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
-                        base_color: tint,
-                        blend: (tint)[3] < 1.0,
+                let material = renderer.add_material_desc(
+                    successor_engine_render::renderer::MaterialDesc {
+                        base_color: MISSING_TINT,
                         ..successor_engine_render::renderer::MaterialDesc::default()
-                    });
+                    },
+                );
                 let e = world.spawn();
-                self.spawned.push(e);
                 world.set_component(
                     e,
                     Transform {
-                        pos: vec3(ground_x, ground_y + height / 2.0, ground_z),
-                        rot: Quat::from_yaw(yaw),
-                        scale: vec3(sw.max(0.5), height, sh.max(0.5)),
+                        pos: vec3(ground_x, ground_y + 0.6, ground_z),
+                        rot: Quat::from_yaw(core::f32::consts::FRAC_PI_4),
+                        scale: vec3(0.35, 1.2, 0.35),
                     },
                 );
                 world.set_component(
@@ -563,17 +639,207 @@ impl PropsLoader {
                         skin: SkinRef::NONE,
                     },
                 );
-                occ.push(GiOccluder {
-                    center: [ground_x, ground_y + height * 0.5, ground_z],
-                    half_extents: [sw.max(0.5) * 0.5, height * 0.5, sh.max(0.5) * 0.5],
-                    yaw,
-                    albedo: [tint[0], tint[1], tint[2]],
-                });
-                placed += 1;
+                self.spawned.push(e);
+                return true;
             }
+            let enterable = entry.get("enterable");
+            let reveal_prefixes = enterable.and_then(enterable_reveal_prefixes);
+            let reveal_name_includes = enterable.and_then(enterable_reveal_name_includes);
+            let slide_door = parse_slide_door(entry);
+            let (fx, fz, hy, alb, parts) = {
+                let model = self.cache.get(glb_ref).unwrap().as_ref().unwrap();
+                let parts: Vec<PlacedPart> = model
+                    .parts
+                    .iter()
+                    .copied()
+                    .map(|part| PlacedPart {
+                        reveal: reveal_prefixes.is_some_and(|prefixes| {
+                            part_matches_reveal_selectors(
+                                &model.node_names,
+                                &model.node_parents,
+                                part.node_index,
+                                prefixes,
+                                reveal_name_includes,
+                                slide_door.map(|door| door.node),
+                            )
+                        }),
+                        door: slide_door.is_some_and(|door| {
+                            node_or_ancestor_matches(
+                                &model.node_names,
+                                &model.node_parents,
+                                part.node_index,
+                                |name| name == door.node,
+                            )
+                        }),
+                        part,
+                    })
+                    .collect();
+                (
+                    model.footprint_x,
+                    model.footprint_z,
+                    model.height_y,
+                    model.mean_albedo,
+                    parts,
+                )
+            };
+            let (fit_x, fit_z) = fit_footprint(entry, fx, fz);
+            let (yaw, scale) = placement(rotation, random_yaw, id, sw, sh, fit_x, fit_z);
+            let ground_x = cx + sw / 2.0;
+            let ground_z = cy + sh / 2.0;
+            let pos = vec3(ground_x, terrain.height_at(ground_x, ground_z), ground_z);
+            let initial_cutoff_y = player_head_cutoff_y(pos.y);
+
+            let mut instance_entities = if enterable.is_some() && reveal_prefixes.is_none() {
+                Some(Vec::with_capacity(parts.len()))
+            } else {
+                None
+            };
+            let placement = Mat4::from_trs(pos, Quat::from_yaw(yaw), vec3(scale, scale, scale));
+            let mut reveal = Vec::new();
+            let mut door_parts = Vec::new();
+            for placed_part in parts {
+                let part = placed_part.part;
+                let (part_pos, part_rot, part_scale) = placement.mul(part.local).to_trs();
+                let transform = Transform {
+                    pos: part_pos,
+                    rot: part_rot,
+                    scale: part_scale,
+                };
+                let e = world.spawn();
+                self.spawned.push(e);
+                if let Some(entities) = instance_entities.as_mut() {
+                    entities.push(e);
+                }
+                world.set_component(e, transform);
+                let mesh_renderer = MeshRenderer {
+                    mesh: part.mesh,
+                    material: part.material,
+                    viewport_mask: mask,
+                    skin: SkinRef::NONE,
+                };
+                world.set_component(e, mesh_renderer);
+                if placed_part.reveal {
+                    world.set_component(
+                        e,
+                        HeightCutaway {
+                            cutoff_y: initial_cutoff_y,
+                            amount: 0.0,
+                        },
+                    );
+                    reveal.push(RevealEntity { entity: e });
+                } else if instance_entities.is_some() {
+                    world.set_component(
+                        e,
+                        HeightCutaway {
+                            cutoff_y: initial_cutoff_y,
+                            amount: 0.0,
+                        },
+                    );
+                }
+                if placed_part.door {
+                    if let Some(door) = slide_door {
+                        door_parts.push(DoorPart {
+                            entity: e,
+                            closed: transform,
+                            open: door_open_transform(
+                                transform,
+                                yaw,
+                                scale,
+                                door.axis,
+                                door.distance,
+                            ),
+                        });
+                    }
+                }
+            }
+            if let (Some(enterable), Some(_)) = (enterable, reveal_prefixes) {
+                self.enterables.push(EnterableInstance {
+                    cell_x: pending.cell_x,
+                    cell_z: pending.cell_z,
+                    regions: placed_interior_regions(prop, size_w_cells, size_h_cells),
+                    floor_height: enterable
+                        .get("floorHeightM")
+                        .and_then(Json::as_f32)
+                        .unwrap_or(0.0),
+                    reveal,
+                    cutaway: CutawayState::default(),
+                    fade_seconds: enterable_fade_seconds(enterable),
+                });
+            }
+            if !door_parts.is_empty() {
+                self.doors.push(DoorInstance {
+                    prop_id: id.to_string(),
+                    open: false,
+                    parts: door_parts,
+                });
+            }
+            if let (Some(enterable), Some(entities)) = (enterable, instance_entities) {
+                self.height_cutaways.push(EnterableProp {
+                    entities,
+                    region: RegionMilli {
+                        x_milli: cx as f64 * 1000.0,
+                        y_milli: cy as f64 * 1000.0,
+                        w_milli: sw as f64 * 1000.0,
+                        h_milli: sh as f64 * 1000.0,
+                    },
+                    state: CutawayState::default(),
+                    fade_seconds: enterable_fade_seconds(enterable),
+                });
+            }
+            self.occluders.push(GiOccluder {
+                center: [pos.x, pos.y + hy * scale * 0.5, pos.z],
+                half_extents: [fx * scale * 0.5, hy * scale * 0.5, fz * scale * 0.5],
+                yaw,
+                albedo: alb,
+            });
+            return true;
         }
-        renderer.gi_set_occluders(&occ);
-        placed
+        if let Some(ph) = entry.get("placeholder") {
+            let height = ph.get("height").and_then(Json::as_f32).unwrap_or(0.8);
+            let tint = ph
+                .get("tint")
+                .and_then(Json::as_str)
+                .map(parse_hex)
+                .unwrap_or([0.43, 0.4, 0.34, 1.0]);
+            let (yaw, _) = placement(rotation, random_yaw, id, sw, sh, 1.0, 1.0);
+            let ground_x = cx + sw / 2.0;
+            let ground_z = cy + sh / 2.0;
+            let ground_y = terrain.height_at(ground_x, ground_z);
+            let mesh = placeholder_cube(renderer, gpu);
+            let material =
+                renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
+                    base_color: tint,
+                    blend: (tint)[3] < 1.0,
+                    ..successor_engine_render::renderer::MaterialDesc::default()
+                });
+            let e = world.spawn();
+            self.spawned.push(e);
+            world.set_component(
+                e,
+                Transform {
+                    pos: vec3(ground_x, ground_y + height / 2.0, ground_z),
+                    rot: Quat::from_yaw(yaw),
+                    scale: vec3(sw.max(0.5), height, sh.max(0.5)),
+                },
+            );
+            world.set_component(
+                e,
+                MeshRenderer {
+                    mesh,
+                    material,
+                    viewport_mask: mask,
+                    skin: SkinRef::NONE,
+                },
+            );
+            self.occluders.push(GiOccluder {
+                center: [ground_x, ground_y + height * 0.5, ground_z],
+                half_extents: [sw.max(0.5) * 0.5, height * 0.5, sh.max(0.5) * 0.5],
+                yaw,
+                albedo: [tint[0], tint[1], tint[2]],
+            });
+            return true;
+        }
+        false
     }
 
     /// Update authored enterable props from the authoritative local player.
@@ -624,13 +890,7 @@ impl PropsLoader {
         if let Some(slot) = self.cache.get(glb_ref) {
             return slot.is_some();
         }
-        // Public path (`/assets/world-items/foo.glb`) → stable asset id.
-        let public = if glb_ref.starts_with('/') {
-            glb_ref.to_string()
-        } else {
-            format!("{}{}", self.asset_base, glb_ref)
-        };
-        let stable_id = public.trim_start_matches('/').to_string();
+        let stable_id = self.stable_id_for(glb_ref);
         let model = read(&stable_id)
             .and_then(|bytes| glb::parse(&bytes).ok())
             .and_then(|doc| upload_model(renderer, gpu, &doc));

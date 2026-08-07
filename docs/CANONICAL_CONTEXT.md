@@ -75,6 +75,10 @@ www.successorgame.com
   -> S3/CloudFront site shell
   -> stable `/play/` pointer and opt-in `/beta/` pointer
   -> separate immutable browser-client releases on CloudFront
+  -> content-addressed `objects/<sha256>` payloads for streamed Rust-beta assets
+     (immutable `SPAK1` packs plus standalone wardrobe/creature files; boot
+     closure + spawn-region packs staged first, region packs and wardrobe
+     streamed on demand through the async asset channel)
   -> same-origin account/control routes
   -> release-bound one-use game and chat tickets
   -> world.successorgame.com ALB

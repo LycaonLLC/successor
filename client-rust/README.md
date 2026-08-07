@@ -75,8 +75,73 @@ make run                                      # build native, then launch it
 ./out/bin/successor --demo parity-basic --gl # windowed visual QA
 ./out/bin/successor --demo terrain --frames 5 --screenshot /tmp/shot.bmp
 
-make serve    # build web, serve out/web on http://localhost:8080
+make serve      # build web, serve repo assets + out/web on http://127.0.0.1:18081
 ```
+
+`make serve` runs `tools/dev-serve.mjs`, a loopback dev server that maps the
+repository's authoritative asset directories straight from disk — `make web`
+copies no assets. `make serve-dev` additionally injects a development launch
+envelope (`dev-identity` tickets) so the page enters the world directly against
+a loopback authority (`pnpm server:local:persistent`, port 28093).
+`make connect-local PLAYER=name` does the native equivalent.
+`--release <dir>` serves an assembled release directory instead, including its
+`/objects/<sha256>` content-addressed namespace.
+
+## Web release assembly and staged loading
+
+`make web-release` (or `node tools/web-release.mjs ...`) assembles the
+immutable release directory under `out/web-release/`:
+
+- `index.html`, `successor.js` (release shim), `successor.wasm`,
+  `release-manifest.json`, the content packs under `packs/`, and every
+  standalone asset file (pawn-pack wardrobe trees stay standalone for
+  on-demand streaming).
+- The release manifest is `successor.rust-web-release.v2`: `files[]` carry
+  `{path, bytes, sha256}`, `boot[]` lists the boot-closure asset ids, and
+  `packIndex` maps packed asset id → `{pack, offset, bytes}`.
+- Pack format (`tools/boot-closure.mjs` owns the boot set): `SPAK1\n` magic,
+  u32le index length, JSON index (`successor.assetpack.v1`, entries with
+  `{path, offset, bytes, sha256}`), then concatenated payloads. Packs are
+  immutable once published; `boot.spak`, `audio-boot.spak`, `audio-rest.spak`,
+  and `world-rest.spak` are emitted today.
+- The shim fetches `boot.spak` (+ standalone boot ids) and the
+  `bootPacks`-listed spawn-region packs before launch, then `audio-boot.spak`
+  and the shared remainder packs in the background after the first world
+  frame. Region packs, creature GLBs, and the pawn-pack wardrobe are **not**
+  prefetched: they stream on demand through the async asset channel.
+- Phase 5 streaming: `Platform::begin_asset`/`poll_asset` (FFI imports
+  `js_asset_begin`/`js_asset_poll` on web, immediate resolution on native)
+  back an `AssetStreamer` (`source/app/src/assets/stream.rs`, 64 in-flight
+  slots, terminal-failure set, completion epoch). Consumers: pawn bodies
+  (specials/creatures), weapon rigs + hand specs, equipment pieces, world
+  props, and the item preview. `Pending` renders without the piece and
+  retries on the completion epoch; `Missing` (terminal) maps to the typed
+  fallback or explicit missing-asset marker — never a refetch loop.
+- World props group into region packs (`packs/region/<areaId>/<rx>-<ry>.spak`,
+  region = 128×128 cells) plus a `sparse.spak` for sub-256KiB mergers. A
+  region watcher streams the player's 3×3 neighborhood; the travel hold keeps
+  the transition up until the destination **spawn region** settles (30s
+  deadline forces fail-closed marker placement), with the wider neighborhood
+  streaming in right after release. Only the spawn region's packs are staged
+  in `bootPacks`, keeping the stage-1 wire ≈24MB gzipped.
+- Custom weapon attach specs resolve lazily: `warm_custom_specs` fills the
+  item-id alias table in the background; an unmapped `weaponItemId` pends its
+  rig until the table settles rather than mis-binding a legacy rig.
+- Audio clips decode on first trigger; no synchronous fallback paths remain
+  (the pack-aware sync fallback is only reachable when the async channel is
+  absent, e.g. tests).
+- `node tools/web-release.mjs --local-dev --out out/web-release-local ...`
+  builds a loopback-only variant that keeps the development launch path for
+  full release-path verification against a local authority. The published
+  beta never uses it; the release shim otherwise strips URL/dev launches and
+  requires hosted tickets.
+
+The publisher (`ops/deploy/scripts/publish-client-assets.mjs --object-store`)
+uploads this tree into the content-addressed object store: object key =
+`objects/<sha256 of uncompressed content>`, gzip level 9 for compressible
+types (including `.spak`), 16-wide upload pool, and the publish order
+objects → release-scoped files → manifest → `current.json`. Re-publication of
+an unchanged client is six small requests.
 
 Headless entry points (no window, used by the gates):
 

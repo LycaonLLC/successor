@@ -2006,6 +2006,8 @@ mod connected {
         let mut app = App::new(NativePlatform {
             asset_root: PathBuf::from(".."),
             settings_root,
+            asset_requests: std::collections::HashMap::new(),
+            next_asset_handle: 0,
         });
         app.mode = AppMode::Loading;
         let mut lifecycle = GameLifecycle::default();
@@ -2485,13 +2487,12 @@ mod connected {
             #[cfg(feature = "alloc-count")]
             successor_engine_core::rt::alloc::reset_alloc_count();
             if w > 0 && h > 0 {
-                let mut read_asset = |stable_id: &str| app.platform.read_asset(stable_id).ok();
                 scene.frame(
                     &mut gpu,
                     w as u32,
                     h as u32,
                     frame_delta_seconds,
-                    &mut read_asset,
+                    &mut app.platform,
                     &mut chat_client,
                     &mut chat_input,
                 );
