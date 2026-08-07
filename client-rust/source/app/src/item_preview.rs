@@ -93,6 +93,10 @@ struct PreviewLane {
     requested: String,
     item_id: Option<u32>,
     item_key: String,
+    /// Path whose streamed load has not settled yet. `assign_model` clears it;
+    /// while set, `changed_path` keeps re-requesting so a lane that first saw
+    /// `ByteSource::Pending` still picks the model up when the fetch lands.
+    pending: Option<String>,
     model: Option<ActiveModel>,
 }
 
@@ -169,6 +173,7 @@ impl ItemPreviewRenderer {
                 requested: String::new(),
                 item_id: None,
                 item_key: String::new(),
+                pending: None,
                 model: None,
             });
         }
@@ -287,13 +292,19 @@ impl ItemPreviewRenderer {
     fn changed_path(&mut self, index: usize, row: &InventoryRow) -> Option<String> {
         let changed = self.lanes[index].item_id != Some(row.item_id)
             || self.lanes[index].item_key != row.item;
-        if !changed {
-            return None;
+        if changed {
+            let path = self.model_path(row);
+            let lane = &mut self.lanes[index];
+            lane.item_id = Some(row.item_id);
+            lane.item_key.clone_from(&row.item);
+            lane.pending = Some(path.clone());
+            return Some(path);
         }
-        let path = self.model_path(row);
-        self.lanes[index].item_id = Some(row.item_id);
-        self.lanes[index].item_key.clone_from(&row.item);
-        Some(path)
+        // Identity is unchanged but an earlier request never settled
+        // (`assign_model` was not reached): keep asking, or a stream that
+        // returned `Pending` on its first frame leaves the lane dark forever.
+        // `None` in the settled case keeps the steady frame loop allocation-free.
+        self.lanes[index].pending.clone()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -315,18 +326,22 @@ impl ItemPreviewRenderer {
         if let Some(requested) = requested {
             // Streamed preview: keep last frame's lane content while the
             // model is in flight, then swap it in complete. Terminal misses
-            // keep the UNKNOWN_MODEL placeholder behavior.
+            // keep the UNKNOWN_MODEL placeholder behavior. A miss whose
+            // placeholder fetch is itself still in flight stays unsettled so
+            // the lane keeps retrying instead of latching dark.
             let loaded = match self.load_model(requested, gpu, renderer, platform, streamer) {
                 Streamed::Pending => None,
-                Streamed::Ready(model) => Some(model.or_else(|| {
+                Streamed::Ready(Some(model)) => Some(Some(model)),
+                Streamed::Ready(None) => {
                     if requested == UNKNOWN_MODEL {
-                        return None;
+                        Some(None)
+                    } else {
+                        match self.load_model(UNKNOWN_MODEL, gpu, renderer, platform, streamer) {
+                            Streamed::Ready(fallback) => Some(fallback),
+                            Streamed::Pending => None,
+                        }
                     }
-                    match self.load_model(UNKNOWN_MODEL, gpu, renderer, platform, streamer) {
-                        Streamed::Ready(fallback) => fallback,
-                        Streamed::Pending => None,
-                    }
-                })),
+                }
             };
             if let Some(loaded) = loaded {
                 self.assign_model(index, requested, loaded, world);
@@ -447,6 +462,7 @@ impl ItemPreviewRenderer {
         let lane = &mut self.lanes[index];
         lane.requested.clear();
         lane.requested.push_str(requested);
+        lane.pending = None;
         lane.model = model.map(ActiveModel::new);
         let part_count = lane
             .model
