@@ -223,7 +223,12 @@ impl ToolbarDoc {
     /// invalid action ids become empty slots; binds fall back per slot.
     pub fn load(section: Option<&Value>) -> Self {
         let mut doc = Self::blank();
-        let Some(v) = section else { return doc };
+        // No persisted section at all = a fresh install: ship the number-row
+        // combat loadout. A present-but-empty doc is a player's own emptied
+        // bar and stays empty.
+        let Some(v) = section else {
+            return Self::default_loadout();
+        };
         if let Some(slots) = v.get("slots").and_then(|s| s.as_array()) {
             for (i, raw) in slots.iter().take(SLOT_COUNT).enumerate() {
                 doc.slots[i] = migrate_slot(raw);
