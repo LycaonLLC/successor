@@ -5206,7 +5206,11 @@ impl ConnectedScene {
             self.window_layout_dirty = true;
         }
         let captured = tuning_open || context_open || manager_captured || hud_lock_changed;
-        self.hud_actions.clear();
+        // No clear here: `handle_key`'s toolbar presses push into
+        // `hud_actions` from the host loop BEFORE this frame runs, and the
+        // drain below leaves the vec empty for the next frame. An early clear
+        // silently discarded every keyboard toolbar activation while click
+        // activations (pushed during `build_hud`) survived.
         let mut hud_frame = hud::HudFrame {
             state: &self.hud_state,
             toolbar: &mut self.toolbar,
