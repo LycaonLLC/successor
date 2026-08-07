@@ -1,166 +1,132 @@
+// Five-theme contract: DAWN daylight glass by default, plus the four game
+// chromes ported byte-exact from the Rust client. The client's hud.rs is the
+// single source of truth — this suite reads it and holds tokens.css and
+// theme.ts to the same bytes, so a client palette change that forgets the
+// site (or vice versa) fails here.
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readPage, ROUTE_FILES, sitePath } from "./helpers";
+import { GAME_PARITY, THEMES, THEME_STORAGE_KEY, storedTheme } from "../src/features/theme";
 
-const EXPECTED_TOKENS = [
-  "--frame",
-  "--frame-2",
-  "--frame-3",
-  "--seam",
-  "--chalk",
-  "--dust",
-  "--primary",
-  "--primary-ink",
-  "--primary-hover",
-  "--primary-press",
-  "--link",
-  "--link-hover",
-  "--link-decoration",
-  "--focus",
-  "--selection-bg",
-  "--selection-ink",
-  "--active-border",
-  "--control-active",
-  "--edge-glow",
-  "--danger",
-  "--ok",
-] as const;
+const tokensCss = readFileSync(sitePath("src/styles/tokens.css"), "utf8");
+const baseCss = readFileSync(sitePath("src/styles/base.css"), "utf8");
+const componentsCss = readFileSync(sitePath("src/styles/components.css"), "utf8");
+const hudRs = readFileSync(
+  join(sitePath(".."), "client-rust/source/app/src/hud.rs"),
+  "utf8",
+);
 
-const REMOVED_TOKENS = [
-  "--uv",
-  "--uv-ink",
-  "--uv-dim",
-  "--uv-glow",
-  "--signal",
-  "--signal-hover",
-  "--signal-press",
-  "--oxide",
-  "--oxide-ink",
-  "--hud",
-] as const;
+const GAME_THEME_IDS = ["signal", "phosphor", "amber", "oxide"] as const;
 
-function walkDir(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const fullPath = join(dir, entry.name);
-    return entry.isDirectory() ? walkDir(fullPath) : [fullPath];
+/** hud.rs THEMES entries, in declaration order. */
+function hudPalettes(): Array<Record<string, string>> {
+  const body = hudRs.slice(hudRs.indexOf("pub const THEMES"), hudRs.indexOf("];", hudRs.indexOf("pub const THEMES")));
+  const entries = [...body.matchAll(/Palette\s*\{([\s\S]*?)\}/g)];
+  return entries.map((entry) => {
+    const fields = entry[1] ?? "";
+    const palette: Record<string, string> = {};
+    for (const match of fields.matchAll(/(\w+):\s*hexa?\(0x([0-9a-fA-F]{6})/g)) {
+      const [, key, hex] = match;
+      if (key !== undefined && hex !== undefined) palette[key] = `#${hex.toLowerCase()}`;
+    }
+    return palette;
   });
 }
 
-describe("monochrome theme contract", () => {
-  it("tokens.css has dark default and @media (prefers-color-scheme: light)", () => {
-    const tokensCss = readFileSync(sitePath("src/styles/tokens.css"), "utf8");
-    expect(tokensCss).toContain(":root {");
-    expect(tokensCss).toContain("@media (prefers-color-scheme: light) {");
-    const rootIndex = tokensCss.indexOf(":root {");
-    const mediaIndex = tokensCss.indexOf("@media (prefers-color-scheme: light)");
-    expect(rootIndex).toBeGreaterThan(-1);
-    expect(mediaIndex).toBeGreaterThan(rootIndex);
+describe("game palette parity", () => {
+  const palettes = hudPalettes();
+
+  it("hud.rs still ships exactly four themes", () => {
+    expect(palettes).toHaveLength(4);
   });
 
-  it.each([...ROUTE_FILES])("%s advertises dark light and both media-qualified theme colors", (route) => {
+  it.each(GAME_THEME_IDS.map((id, index) => [id, index] as const))(
+    "%s matches hud.rs byte-for-byte in theme.ts and tokens.css",
+    (id, index) => {
+      const hud = palettes[index];
+      if (!hud) throw new Error(`hud.rs palette ${index} missing`);
+      const bgPanel = hud.bg_panel ?? "";
+      const bgCell = hud.bg_cell ?? "";
+      const parity = GAME_PARITY[id];
+      expect(parity.accent).toBe(hud.accent);
+      expect(parity.ink).toBe(hud.ink);
+      expect(parity.inkDim).toBe(hud.ink_dim);
+      expect(parity.hairline).toBe(hud.hairline);
+      expect(parity.bgPanel).toBe(bgPanel);
+      expect(parity.bgCell).toBe(bgCell);
+      expect(parity.accentSoft).toBe(hud.accent_soft);
+      expect(parity.danger).toBe(hud.danger);
+
+      // tokens.css block for the theme carries the same bytes.
+      const start = tokensCss.indexOf(`[data-theme="${id}"]`);
+      expect(start, `tokens.css missing [data-theme="${id}"]`).toBeGreaterThan(0);
+      const block = tokensCss.slice(start, tokensCss.indexOf("}", start));
+      expect(block).toContain(`--ink: ${hud.ink};`);
+      expect(block).toContain(`--ink-dim: ${hud.ink_dim};`);
+      expect(block).toContain(`--hairline: ${hud.hairline};`);
+      expect(block).toContain(`--accent: ${hud.accent};`);
+      expect(block).toContain(`--danger: ${hud.danger};`);
+      // Panel/cell carry hud.rs alphas 232/235 -> 0.91/0.92 (2dp).
+      const [pr = 0, pg = 0, pb = 0] = [1, 3, 5].map((at) => parseInt(bgPanel.slice(at, at + 2), 16));
+      expect(block).toContain(`--panel: rgb(${pr} ${pg} ${pb} / 0.91);`);
+      const [cr = 0, cg = 0, cb = 0] = [1, 3, 5].map((at) => parseInt(bgCell.slice(at, at + 2), 16));
+      expect(block).toContain(`--cell: rgb(${cr} ${cg} ${cb} / 0.92);`);
+      expect(block).toContain("color-scheme: dark;");
+
+      // Deck swatch shows the shipped accent.
+      expect(componentsCss).toContain(
+        `.theme-deck button[data-theme-pick="${id}"] .swatch { background: ${hud.accent}; }`,
+      );
+    },
+  );
+});
+
+describe("theme system", () => {
+  it("dawn is the default: light scheme on :root, no data-theme required", () => {
+    const root = tokensCss.slice(tokensCss.indexOf(":root {"), tokensCss.indexOf("[data-theme="));
+    expect(root).toContain("color-scheme: light;");
+    const first = THEMES[0];
+    if (!first) throw new Error("THEMES is empty");
+    expect(first.id).toBe("dawn");
+    expect(first.inGame).toBe(false);
+    expect(THEMES).toHaveLength(5);
+  });
+
+  it("storedTheme accepts only known ids and falls back to dawn", () => {
+    expect(storedTheme({ getItem: () => "phosphor" })).toBe("phosphor");
+    expect(storedTheme({ getItem: () => "garbage" })).toBe("dawn");
+    expect(storedTheme({ getItem: () => null })).toBe("dawn");
+    expect(THEME_STORAGE_KEY).toBe("successor-theme");
+  });
+
+  it.each([...ROUTE_FILES])("%s mounts the deck and a scripted theme-color meta", (route) => {
     const html = readPage(route);
-    expect(html).toContain('<meta name="color-scheme" content="dark light" />');
-    expect(html).toContain('<meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />');
-    expect(html).toContain('<meta name="theme-color" content="#F8F8F8" media="(prefers-color-scheme: light)" />');
+    expect(html).toContain("data-theme-deck");
+    expect(html).toContain('content="dark light"');
+    const plain = [...html.matchAll(/<meta name="theme-color"(?![^>]*media)/g)];
+    expect(plain, "exactly one non-media theme-color meta").toHaveLength(1);
   });
 
-  it("no CSS or SVG source contains UV/ultraviolet/purple/cyan/amber brand markers or #7B5CFF", () => {
-    const forbidden = [/uv/i, /ultraviolet/i, /purple/i, /cyan/i, /amber/i, /#7b5cff/i];
-
-    const cssFiles = walkDir(sitePath("src/styles")).filter((f) => f.endsWith(".css"));
-    const svgFiles = [
-      ...walkDir(sitePath("public")).filter((f) => f.endsWith(".svg")),
-      ...walkDir(sitePath("src")).filter((f) => f.endsWith(".svg")),
-    ];
-
-    for (const file of [...cssFiles, ...svgFiles]) {
-      const content = readFileSync(file, "utf8");
-      for (const pattern of forbidden) {
-        expect(content, `${file} matches forbidden pattern ${pattern}`).not.toMatch(pattern);
-      }
-    }
+  it("prefers-reduced-motion kill switch still exists", () => {
+    expect(baseCss).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
-  it("all hex fills in brand and favicon SVGs are grayscale", () => {
-    const brandAndFavSvgs = [
-      ...walkDir(sitePath("public/brand")).filter((f) => f.endsWith(".svg")),
-      sitePath("public/favicon.svg"),
-    ];
-
-    for (const svgPath of brandAndFavSvgs) {
-      const content = readFileSync(svgPath, "utf8");
-      const hexMatches = content.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
-      for (const hex of hexMatches) {
-        let r = 0, g = 0, b = 0;
-        if (hex.length === 4) {
-          const rChar = hex[1]!;
-          const gChar = hex[2]!;
-          const bChar = hex[3]!;
-          r = parseInt(rChar + rChar, 16);
-          g = parseInt(gChar + gChar, 16);
-          b = parseInt(bChar + bChar, 16);
-        } else if (hex.length === 7 || hex.length === 9) {
-          r = parseInt(hex.slice(1, 3), 16);
-          g = parseInt(hex.slice(3, 5), 16);
-          b = parseInt(hex.slice(5, 7), 16);
-        }
-        expect(r, `${svgPath} hex ${hex} red component`).toBe(g);
-        expect(g, `${svgPath} hex ${hex} green component`).toBe(b);
-      }
+  it("every theme keeps readable ink (WCAG AA on its own cell)", () => {
+    const luminance = (hex: string): number => {
+      const channel = (value: number): number => {
+        const c = value / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      };
+      const [r = 0, g = 0, b = 0] = [1, 3, 5].map((at) => channel(parseInt(hex.slice(at, at + 2), 16)));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    for (const id of GAME_THEME_IDS) {
+      const parity = GAME_PARITY[id];
+      const contrast =
+        (Math.max(luminance(parity.ink), luminance(parity.bgCell)) + 0.05) /
+        (Math.min(luminance(parity.ink), luminance(parity.bgCell)) + 0.05);
+      expect(contrast, `${id} ink on cell`).toBeGreaterThanOrEqual(4.5);
     }
-  });
-
-  it("expected semantic theme tokens exist in tokens.css and removed tokens/comments are gone", () => {
-    const tokensCss = readFileSync(sitePath("src/styles/tokens.css"), "utf8");
-    for (const token of EXPECTED_TOKENS) {
-      expect(tokensCss).toContain(`${token}:`);
-    }
-    for (const token of REMOVED_TOKENS) {
-      expect(tokensCss).not.toContain(token);
-    }
-  });
-
-  it("only --danger and --ok may have nonzero OKLCH chroma in tokens.css", () => {
-    const tokensCss = readFileSync(sitePath("src/styles/tokens.css"), "utf8");
-    const declRegex = /(--[a-z0-9-]+)\s*:\s*oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*[\d.]+)?\s*\)/gi;
-    let match: RegExpExecArray | null;
-    while ((match = declRegex.exec(tokensCss)) !== null) {
-      const varName = match[1]!;
-      const chromaStr = match[3]!;
-      const chroma = parseFloat(chromaStr);
-      if (varName === "--danger" || varName === "--ok") {
-        expect(chroma, `${varName} expected non-zero chroma`).toBeGreaterThan(0);
-      } else {
-        expect(chroma, `${varName} must have zero chroma`).toBe(0);
-      }
-    }
-  });
-
-  it("no manual theme-toggle hook or switch is introduced across site routes and scripts", () => {
-    const jsTsFiles = walkDir(sitePath("src")).filter((f) => f.endsWith(".ts") || f.endsWith(".js"));
-    const htmlFiles = ROUTE_FILES.map((r) => sitePath(r));
-
-    const togglePatterns = [/theme-toggle/i, /toggle-theme/i, /prefers-color-scheme\s*=/i, /localStorage.*theme/i];
-
-    for (const file of [...htmlFiles, ...jsTsFiles]) {
-      const content = readFileSync(file, "utf8");
-      for (const pattern of togglePatterns) {
-        expect(content, `${file} matches theme toggle pattern ${pattern}`).not.toMatch(pattern);
-      }
-    }
-  });
-
-  it("prefers-reduced-motion media query rule still exists", () => {
-    const cssFiles = walkDir(sitePath("src/styles")).filter((f) => f.endsWith(".css"));
-    let found = false;
-    for (const file of cssFiles) {
-      const content = readFileSync(file, "utf8");
-      if (content.includes("prefers-reduced-motion")) {
-        found = true;
-        break;
-      }
-    }
-    expect(found, "prefers-reduced-motion rule should exist in CSS").toBe(true);
   });
 });

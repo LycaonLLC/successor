@@ -237,8 +237,8 @@ function normalizeHostedCharacter(value: unknown): HostedCharacterRecord | null 
 }
 
 function isHostedAppearance(value: unknown): value is CharDollAppearance {
-  if (!isPlainRecord(value) || Object.keys(value).some((key) => FORBIDDEN_KEYS.has(key) || !["skinTone", "hair", "hairMat", "face"].includes(key))) return false;
-  if (typeof value.skinTone !== "string" || value.skinTone.length > 64 || (value.hair !== null && typeof value.hair !== "string") || (typeof value.hair === "string" && value.hair.length > 64) || typeof value.hairMat !== "string" || value.hairMat.length > 64) return false;
+  if (!isPlainRecord(value) || Object.keys(value).some((key) => FORBIDDEN_KEYS.has(key) || !["body", "skinTone", "hair", "hairMat", "face"].includes(key))) return false;
+  if ((value.body !== "male" && value.body !== "female") || typeof value.skinTone !== "string" || value.skinTone.length > 64 || (value.hair !== null && typeof value.hair !== "string") || (typeof value.hair === "string" && value.hair.length > 64) || typeof value.hairMat !== "string" || value.hairMat.length > 64) return false;
   if (!Object.prototype.hasOwnProperty.call(value, "face")) return false;
   if (value.face === null) return true;
   if (!isPlainRecord(value.face) || Object.keys(value.face).some((key) => !["eyes", "brows", "nose", "mouth", "eyeColor", "browColor", "lipColor"].includes(key))) return false;

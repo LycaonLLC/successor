@@ -28,6 +28,7 @@ use successor_inventory::{
 use successor_net::{ClientCommand, ClientCommandEnvelope, PlayerId, SessionId};
 use thiserror::Error;
 
+pub use authority::debug_catalog;
 pub use authority::{
     AbilityQueueEntryClass, AbilityQueueLifecycle, AuthorityAbilityQueueEntrySnapshot,
     AuthorityAbilityQueueEventSnapshot, AuthorityAbilityQueueSnapshot,

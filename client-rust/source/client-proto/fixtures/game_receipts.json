@@ -1,0 +1,12 @@
+{
+  "_comment": "Synthetic fixture representing game.receipts",
+  "type": "game.receipts",
+  "receipts": [
+    {
+      "commandId": 103,
+      "accepted": true,
+      "tick": 44
+    }
+  ],
+  "events": []
+}

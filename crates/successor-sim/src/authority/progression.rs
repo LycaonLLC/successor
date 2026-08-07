@@ -215,7 +215,7 @@ pub(super) fn profession_stat_curve(track_bonus: i32, base: i32, per_step: i32) 
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct AuthoritySkillBoxDefinition {
+pub(crate) struct AuthoritySkillBoxDefinition {
     pub(super) id: String,
     pub(super) profession: AuthorityProfessionKind,
     pub(super) title: Option<String>,
@@ -1117,7 +1117,7 @@ pub(super) enum AuthorityTitleError {
     Unavailable,
 }
 
-pub(super) fn authority_skill_box_definition(
+pub(crate) fn authority_skill_box_definition(
     skill_box_id: &str,
 ) -> Option<AuthoritySkillBoxDefinition> {
     let id = normalize_skill_box_id(skill_box_id);
@@ -1216,7 +1216,7 @@ fn skill_box_profession_suffix(id: &str) -> Option<(AuthorityProfessionKind, &st
     None
 }
 
-fn authority_skill_box_tracks(profession: AuthorityProfessionKind) -> &'static [&'static str] {
+pub(crate) fn authority_skill_box_tracks(profession: AuthorityProfessionKind) -> &'static [&'static str] {
     match profession {
         AuthorityProfessionKind::Marksman => &["rifle", "pistol", "tactics", "fieldcraft"],
         AuthorityProfessionKind::Scout => {

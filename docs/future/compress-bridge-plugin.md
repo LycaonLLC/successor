@@ -2,7 +2,7 @@
 
 > Preserved on 2026-07-28. This is design source, not current runtime
 > documentation. Recheck every code path, hash, and implementation-status claim
-> against `main` before using it. Current truth lives in
+> against the current source tree before using it. Current truth lives in
 > `docs/CANONICAL_CONTEXT.md`, `docs/CURRENT_PROJECT_STATE.md`, and
 > `docs/VERIFICATION.md`.
 
@@ -11,7 +11,7 @@
 **Hard law:** DEV/LOCAL ComPress docker stack ONLY (`compressmain-db-1` pg 5435 / `compressmain-redis-1` 6381 / mailpit 8025). ZERO prod mutation. Prod cutover = W3 behind §8.1 pre-cutover check.
 
 ## Grounding (verified this pass)
-- ComPressMain on `enterprise-refactor@9534ce63` (live branch is `master`; a huge per-store-RLS refactor is in flight — `AGENTS.md` + `docs/cutover/*`; prod at migration **0096**). Local dev stack is UP (docker `compressmain-*`).
+- ComPress revision `9534ce63` was the studied source; a large per-store-RLS refactor was in flight, and production was at migration **0096**. Reverify all of this against current ComPress instructions.
 - Historical plugin ownership rule, to be reverified against current ComPress
   instructions: **core owns models+migrations; plugins own
   services/routes/types/settings**; `ComPressPlugin`
@@ -24,7 +24,7 @@
 ## OPEN DECISIONS FOR MAIN (ruling before build)
 1. **Dev DB isolation.** The shared `compressmain` mirror is the enterprise-refactor test mirror (rebuilt by `pnpm parity:refresh`), so mutating it (my migration + a Successor store) risks colliding with in-flight refactor work AND gets wiped on the next refresh. **RECOMMEND: a dedicated ephemeral successor dev DB** (own compose project / DB name, mirrors the bazaar's isolation model) so W2 never touches the refactor mirror; fall back to the shared mirror only if you want it in the parity lineage now. **(D1)**
 2. **Migration + cutover ledger.** Core migration adds `successor_profiles`/`successor_characters`/reservations. Prod is 0096; the cutover ledger (`docs/cutover/CUTOVER.md`) is a PROD artifact. **RECOMMEND: author the migration as the next number but DO NOT append it to the cutover ledger in W2** (dev-apply only); the ledger row + FORCE-RLS wiring is W3's ceremony. **(D2)**
-3. **Branch.** **RECOMMEND: isolated worktree off `enterprise-refactor@9534ce63`** (matches the studied code + bazaar base). No push to any branch in W2. **(D3)**
+3. **Source revision.** **RECOMMEND: use the exact studied ComPress revision `9534ce63` in an isolated checkout.** Preserve changes only in the requested destination. **(D3)**
 4. **Redemption transport.** **RECOMMEND: keep the game's existing HTTP redeem** (extend `tickets.ts`) against the successor plugin's `GET …/session-ticket/:ticket` (reads+consumes the Redis ticket, returns the payload). Shared-Redis is a W3 hardening option. **(D4)**
 
 ## 1. DATA MODEL (core migration — dev-apply only in W2)
@@ -47,7 +47,7 @@ Entitlement summary computed with `hasEntitlement` (login gate) + highest `succe
 - One recurring **product + product_plan** (`billingModel:'recurring'`, `intervalUnit:'month'`, `amount:499`, `billingEngine:'stripe_billing'`, **test mode**) whose `entitlementBundle = [{kind:'feature',ref:'successor.access'},{kind:'feature',ref:'successor.tier.premium',metadata:{characterSlots:10}}]`.
 - Stripe test webhook → `stripe-gateway` bridge → `subscriptions` lifecycle → `entitlement-hooks` grants `activeUntil=currentPeriodEnd` (grace = the §3d clamp, inherited).
 
-## 4. GAME-SIDE (successor repo, worktree off the W1 branch/train tip)
+## 4. GAME-SIDE (successor repo at the exact requested source revision)
 - Extend `server/src/auth/tickets.ts` response schema: add `profileId, characterId, characterName, entitlement{access,tier,characterSlots,activeUntil}, moderation`.
 - `colyseusRoom.identityFromOptions` ticket path becomes REAL: resolve `characterId` → load sim-state, set `ownerRef=profileId`, spawn/appearance/worn from the character record; carry the entitlement onto the session.
 - **Login gate:** reject the join (`1008`) if `!entitlement.access`. `GAME_ALLOW_DEV_IDENTITY` stays ON locally (W1) so dev/harness paths still bypass; the ticket path enforces the gate.

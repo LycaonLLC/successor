@@ -1,0 +1,175 @@
+{
+  "asset": {
+    "bytes": 8337816,
+    "file": "home_modular_court.glb",
+    "images": {
+      "external_image_uri_count": 0,
+      "image_count": 27
+    },
+    "sha256": "sha256:4fbc8e48b136846e32c28a3373dcca2f0ab515d2a1464e69ae25f83dd580458a"
+  },
+  "bbox_span_m": [
+    9.968,
+    3.7655,
+    8.078
+  ],
+  "building": "home_modular_court",
+  "collision": {
+    "boxes": 339,
+    "door_boxes": 4,
+    "sha256": "sha256:b9a86970938c2d423e775f73962ba1cefd71f2a72f895a2c4f11991c42157d47",
+    "structure_boxes": 335
+  },
+  "collisionProxy": {
+    "furnitureCount": 37,
+    "includesFurniture": true,
+    "sidecar": "home_modular_court_collision.json",
+    "source": "home_modular_court",
+    "structuralOnly": false,
+    "wallCount": 74
+  },
+  "cutaway": {
+    "faces": {
+      "back": "wall_back__",
+      "front": "wall_front__",
+      "left": "wall_left__",
+      "right": "wall_right__"
+    },
+    "hide": [
+      "roof__",
+      "wall_front__",
+      "wall_back__",
+      "wall_left__",
+      "wall_right__",
+      "wall_court__"
+    ],
+    "keep": [
+      "floor__",
+      "interior__"
+    ],
+    "revealPrefixes": [
+      "roof__",
+      "wall_front__",
+      "wall_back__",
+      "wall_left__",
+      "wall_right__",
+      "wall_court__"
+    ],
+    "stub_by_face": true
+  },
+  "door": {
+    "axisLocal": [
+      1,
+      0,
+      0
+    ],
+    "clips": [
+      "door_close",
+      "door_open"
+    ],
+    "closedInGlb": true,
+    "local_axis": "X",
+    "node": "door_slide",
+    "slide_axis_local": [
+      1,
+      0,
+      0
+    ],
+    "slide_distance_m": 0.846
+  },
+  "door_cells": [
+    [
+      5,
+      4
+    ],
+    [
+      6,
+      4
+    ]
+  ],
+  "exteriorEntry": {
+    "doorCells": [
+      [
+        5,
+        4
+      ],
+      [
+        6,
+        4
+      ]
+    ],
+    "doorNode": "door_slide",
+    "facing": "south",
+    "frontAxis": "+Z"
+  },
+  "floorHeightM": 0.02,
+  "floorTopY": 0.02,
+  "footprintCells": [
+    10,
+    8
+  ],
+  "footprint_max_m": [
+    9.5,
+    7.6
+  ],
+  "front": "+Z",
+  "interiorRegions": [
+    {
+      "floorTopY": 0.02,
+      "id": "living",
+      "maxX": 7.6,
+      "maxZ": 7.6,
+      "minX": 0.0,
+      "minZ": 3.8
+    },
+    {
+      "floorTopY": 0.02,
+      "id": "kitchen",
+      "maxX": 9.5,
+      "maxZ": 7.6,
+      "minX": 7.6,
+      "minZ": 3.8
+    },
+    {
+      "floorTopY": 0.02,
+      "id": "bed",
+      "maxX": 3.8,
+      "maxZ": 3.8,
+      "minX": 0.0,
+      "minZ": 1.9
+    },
+    {
+      "floorTopY": 0.02,
+      "id": "bath",
+      "maxX": 3.8,
+      "maxZ": 1.9,
+      "minX": 0.0,
+      "minZ": 0.0
+    }
+  ],
+  "label": "Modular Courtyard Home",
+  "materials": 547,
+  "promised_clear_cells": {},
+  "runtimeKey": "home_modular_court",
+  "runtime_scale_at_10x8_cells": 1.0,
+  "schema": "successor.runtime-building-manifest.v1",
+  "service_anchor_cells": {},
+  "source": {
+    "floorBoundsM": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        9.5,
+        7.6
+      ]
+    ],
+    "furnishedPlacements": 33,
+    "placements": 311,
+    "plan": "home_court",
+    "provenance": "home_modular_court.provenance.json"
+  },
+  "tri_count": 43532,
+  "units": "m"
+}

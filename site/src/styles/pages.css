@@ -1,448 +1,352 @@
-/* ---- Inner pages (account, connect, play, download, legal, alpha, roadmap) ----
-   Calm work surfaces under the same neutral monochrome chrome. */
+/* Interior pages: account, play stage, connect, download, alpha, roadmap, legal. */
+
+.shell {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
 
 .page-head {
-  padding-block: clamp(2.5rem, 6vw, 4rem) 0;
-  position: relative;
-}
-
-.page-head::before {
-  content: "";
-  display: block;
-  width: 2rem;
-  height: 2px;
-  margin-bottom: 1.25rem;
-  background: var(--active-border);
-  box-shadow: 0 0 12px var(--edge-glow);
-}
-
-.page-head h1 {
-  font-size: var(--step-4);
-  margin-top: 0;
+  margin: clamp(2rem, 6vh, 3.4rem) 0 1.6rem;
 }
 
 .page-head .lede {
-  margin-top: 1rem;
+  color: var(--ink-dim);
   font-size: var(--step-2);
-  line-height: 1.45;
-  color: var(--dust);
+  margin: 0;
 }
 
 .page-section {
-  margin-top: clamp(2.5rem, 6vw, 4.25rem);
+  margin: clamp(1.6rem, 4vh, 2.6rem) 0;
 }
 
-.page-section h2 {
-  font-size: var(--step-3);
-  margin-bottom: 1rem;
+.prose p { color: var(--ink-dim); }
+
+.note {
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  background: var(--cell);
+  font-size: 0.9rem;
+  max-width: var(--text-max);
 }
 
-.page-section .prose {
-  color: var(--dust);
+.note strong { color: var(--danger); }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
-.page-section .prose strong,
-.page-section .prose a {
-  color: var(--chalk);
-}
-
-.page-section .prose a:hover {
-  color: var(--link-hover);
-}
-
+/* ── benches: sign in / register as two frames ───────────────────────── */
 .bench-pair {
   display: grid;
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: clamp(0.9rem, 2.2vw, 1.5rem);
+  align-items: start;
 }
 
-@media (min-width: 56rem) {
-  .bench-pair {
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
-  }
+.bench-pair .frame h2 { display: none; } /* caption band carries the title */
+
+.form-grid { display: grid; gap: 0.2rem; }
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.8rem;
 }
 
-.panel h2 {
-  font-size: 1.375rem;
+.check-field {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  font-size: 0.9rem;
+  margin: 0.4rem 0;
 }
 
-.panel > p {
-  margin-top: 0.75rem;
-  font-size: 0.9375rem;
-  color: var(--dust);
+.check-field input { margin-top: 0.2rem; accent-color: var(--accent); }
+
+.roster-list,
+.device-list {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
 }
 
-.panel form {
-  margin-top: 1.375rem;
+.roster-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.8rem;
 }
 
-.panel-form {
-  margin-top: 1.5rem;
+/* ── workshop / play stage ───────────────────────────────────────────── */
+.workshop-stage {
+  position: relative;
 }
-
-.panel-form h3 {
-  margin: 0;
-  font-size: 1.2rem;
-}
-
-.panel-form .form-grid {
-  margin-top: 1rem;
-}
-
-[data-requires-session][data-session-state="unknown"] .session-gated,
-[data-requires-session][data-session-state="none"] .session-gated {
-  display: none;
-}
-
-noscript .note {
-  margin-top: 2rem;
-}
-
-/* Legal prose */
-.legal-body {
-  max-width: var(--text-max);
-  margin-top: 2rem;
-}
-
-.legal-body h2 {
-  font-size: var(--step-3);
-  margin-top: 2.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.legal-body p,
-.legal-body li {
-  color: var(--dust);
-}
-
-.legal-body strong {
-  color: var(--chalk);
-}
-
-.legal-body ul {
-  padding-left: 1.25rem;
-  margin: 0.75rem 0;
-}
-
-.legal-body li + li {
-  margin-top: 0.5rem;
-}
-
-.legal-meta {
-  margin-top: 0.75rem;
-  font-size: 0.9375rem;
-  color: var(--dust);
-}
-
-/* Account workbench densifies under the stage. */
-body[data-page="account"] .page-head {
-  padding-block: clamp(1.5rem, 3vw, 2.25rem) 0;
-}
-
-body[data-page="account"] .page-head h1 {
-  font-size: clamp(1.9rem, 3.5vw, 2.6rem);
-}
-
-body[data-page="account"] .page-head .lede {
-  margin-top: 0.75rem;
-  font-size: 1.0625rem;
-}
-
-body[data-page="account"] .page-section {
-  margin-top: 1.5rem;
-}
-
-body[data-page="account"] .panel {
-  padding: 1.25rem;
-}
-
-body[data-page="account"] .panel form {
-  margin-top: 1rem;
-}
-
-body[data-page="account"] .panel > p {
-  margin-top: 0.5rem;
-}
-
-body[data-page="account"] .field {
-  gap: 0.25rem;
-}
-
-body[data-page="account"] .field .hint {
-  font-size: 0.78125rem;
-}
-
-body[data-page="account"] .check-field {
-  font-size: 0.875rem;
-}
-
-body[data-page="account"] .panel .form-actions {
-  margin-top: 1rem;
-}
-
-/* ---- Runtime stages ----
-   The client owns the surface, the site owns the rim. */
 
 body[data-page="play"] {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
   min-height: 100dvh;
-}
-
-/* In full view the authenticated client owns the browser viewport. The small
-   parent-level exit control remains above the cross-origin frame. */
-body[data-page="play"][data-play-state="live"][data-play-view="full"] {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100vh;
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden;
-  overscroll-behavior: none;
-  padding: 0;
-}
-
-body[data-page="play"][data-play-state="live"][data-play-view="full"] > .skip-link,
-body[data-page="play"][data-play-state="live"][data-play-view="full"] > .topbar,
-body[data-page="play"][data-play-state="live"][data-play-view="full"] > .site-foot {
-  display: none;
-}
-
-body[data-page="play"][data-play-state="live"][data-play-view="full"] .play-main {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  flex: none;
-}
-
-body[data-page="play"][data-play-state="live"][data-play-view="full"] .game-stage {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  padding: 0;
-}
-
-/* A validated roster/workshop handoff goes straight through this neutral
-   loading surface; the character-picker panel never flashes between the
-   player's ENTER action and the game client. */
-body[data-page="play"][data-play-state="launching"][data-play-view="full"] {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100vh;
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden;
-  overscroll-behavior: none;
-  padding: 0;
-}
-
-body[data-page="play"][data-play-state="launching"][data-play-view="full"] > .skip-link,
-body[data-page="play"][data-play-state="launching"][data-play-view="full"] > .topbar,
-body[data-page="play"][data-play-state="launching"][data-play-view="full"] > .site-foot {
-  display: none;
-}
-
-body[data-page="play"][data-play-state="launching"][data-play-view="full"] .play-main {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  flex: none;
-}
-
-body[data-page="play"][data-play-state="launching"][data-play-view="full"] .game-stage {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  padding: 0;
-}
-
-.play-main {
-  flex: 1 0 auto;
-  display: flex;
-  flex-direction: column;
 }
 
 .game-stage {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  min-height: calc(100vh - var(--topbar-h));
   min-height: calc(100dvh - var(--topbar-h));
-  background: var(--frame);
   padding-bottom: env(safe-area-inset-bottom);
-}
-
-.stage-panel {
-  width: min(100% - 2 * var(--gutter), 30rem);
-  margin-inline: auto;
-  padding-block: clamp(1.5rem, 4vh, 3.5rem);
-  display: grid;
-  gap: 1.25rem;
-}
-
-.stage-panel h1 {
-  font-size: var(--step-4);
-}
-
-.stage-lede {
-  color: var(--dust);
-}
-
-.stage-hint {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  color: var(--dust);
-}
-
-.game-stage[data-stage-state="live"] .stage-panel,
-.game-stage[data-stage-state="launching"] .stage-panel {
-  visibility: hidden;
-}
-
-.game-stage[data-stage-state="launching"]::after {
-  content: "OPENING WORLD…";
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: var(--dust);
-  font: 700 0.75rem/1 var(--font-body);
-  letter-spacing: 0.12em;
-}
-
-.play-frame-controls {
-  position: absolute;
-  z-index: var(--z-head);
-  top: max(0.75rem, env(safe-area-inset-top));
-  right: max(0.75rem, env(safe-area-inset-right));
-  display: none;
-}
-
-.game-stage[data-stage-state="live"] .play-frame-controls {
-  display: flex;
-}
-
-.play-frame-control {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.75rem;
-  gap: 0.625rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--seam);
-  border-radius: 0;
-  background: var(--frame-2);
-  color: var(--chalk);
-  font: 700 0.875rem/1 var(--font-body);
-  cursor: pointer;
-}
-
-.play-frame-control:hover {
-  border-color: var(--active-border);
-  background: var(--frame-3);
-}
-
-.play-frame-control:active {
-  background: var(--primary);
-  color: var(--primary-ink);
-}
-
-body[data-play-view="full"] #play-frame-enter,
-body[data-play-view="framed"] #play-frame-exit {
-  display: none;
-}
-
-body[data-page="play"][data-play-state="live"][data-play-view="framed"] {
-  overflow: hidden;
-  cursor: auto;
-}
-
-.stage-frame {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  background: var(--frame);
 }
 
 .creator-stage {
   position: relative;
   width: 100%;
-  min-height: calc(100vh - var(--topbar-h));
   min-height: calc(100dvh - var(--topbar-h));
-  background: var(--frame);
-  border-block-end: 1px solid var(--seam);
   padding-bottom: env(safe-area-inset-bottom);
+  background: var(--field-deep);
+  border-bottom: 1px solid var(--line);
 }
 
-.stage-caption {
-  margin-block: 1.25rem 0;
-  max-width: var(--text-max);
-  color: var(--dust);
+.creator-stage iframe,
+.game-stage iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--field-deep);
 }
 
-body[data-page="account"][data-session-state="active"] .account-intro {
-  display: none;
+.stage-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--field-deep);
 }
 
 .stage-veil {
   position: absolute;
   inset: 0;
-  z-index: var(--z-content);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.25rem;
-  padding: 2rem var(--gutter);
+  display: grid;
+  place-content: center;
+  gap: 0.9rem;
   text-align: center;
-  background: var(--frame);
+  padding: var(--gutter);
 }
 
-.creator-stage[data-stage-state="live"] .stage-veil {
-  display: none;
-}
-
-.creator-stage[data-stage-state="unavailable"] .stage-mark {
-  display: none;
-}
-
-/* Neutral pulse while the client wakes. */
+.creator-stage[data-stage-state="ready"] .stage-veil { display: none; }
 .stage-mark {
-  width: 0.7rem;
-  height: 0.7rem;
-  background: var(--control-active);
-  box-shadow: 0 0 14px var(--edge-glow);
-  animation: stage-breathe 1.8s var(--ease-out) infinite;
+  width: 2.2rem;
+  height: 2.2rem;
+  margin: 0 auto;
+  border: 2px solid var(--edge);
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: stage-spin 900ms linear infinite;
 }
 
-@keyframes stage-breathe {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
+@keyframes stage-spin { to { transform: rotate(1turn); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-mark { animation: none; opacity: 0.6; }
 }
 
-.stage-status {
-  max-width: 38ch;
-  color: var(--dust);
+.stage-status { color: var(--ink-dim); }
+
+.stage-caption {
+  color: var(--ink-dim);
+  font-size: 0.9rem;
+  padding: 0.7rem 0;
+  margin: 0;
 }
 
-.stage-status:empty {
+/* Play: the launch panel floats as a frame over the stage field. */
+.play-main .game-stage {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(
+      42rem 22rem at 50% 8%,
+      color-mix(in oklab, var(--accent) 10%, transparent),
+      transparent 62%
+    ),
+    var(--field-deep);
+}
+
+.stage-panel {
+  position: relative;
+  z-index: 1;
+  width: min(30rem, calc(100vw - 2 * var(--gutter)));
+  background: var(--panel);
+  border: 1px solid var(--edge-soft);
+  border-top: 2px solid var(--edge);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.08);
+  padding: clamp(1.1rem, 3vw, 1.6rem);
+  margin: clamp(1.5rem, 6vh, 3rem) 0;
+}
+
+.stage-panel h1 {
+  font-size: var(--step-3);
+  margin-bottom: 0.3rem;
+}
+
+.stage-lede {
+  color: var(--ink-dim);
+  margin-bottom: 1rem;
+}
+
+.stage-hint {
+  color: var(--ink-dim);
+  font-size: 0.85rem;
+  margin: 0.6rem 0 0;
+}
+
+.game-stage[data-stage-state="running"] .stage-panel { display: none; }
+
+.play-frame-controls {
+  position: absolute;
+  top: calc(0.6rem + env(safe-area-inset-top));
+  right: calc(0.6rem + env(safe-area-inset-right));
+  z-index: var(--z-head);
+  display: none;
+  gap: 0.5rem;
+}
+
+.game-stage[data-stage-state="running"] .play-frame-controls { display: flex; }
+
+.play-frame-control {
+  appearance: none;
+  border: 1px solid var(--edge-soft);
+  background: color-mix(in oklab, var(--field-deep) 82%, transparent);
+  color: var(--ink);
+  font: 600 0.62rem / 1 var(--font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.play-frame-control:hover { border-color: var(--edge); color: var(--accent); }
+
+/* Live client owns the viewport: no site chrome, no document scroll. The
+ * framed return state keeps the page pinned while the client stays mounted. */
+body[data-page="play"][data-play-state="live"][data-play-view="full"] {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  overflow: hidden;
+  padding: 0;
+}
+
+body[data-page="play"][data-play-state="live"][data-play-view="full"] > .topbar {
   display: none;
 }
+
+body[data-page="play"][data-play-state="live"][data-play-view="full"] > .site-foot {
+  display: none;
+}
+
+body[data-page="play"][data-play-state="live"][data-play-view="full"] .play-main {
+  height: 100%;
+}
+
+body[data-page="play"][data-play-state="live"][data-play-view="full"] .game-stage {
+  height: 100%;
+  min-height: 0;
+}
+
+body[data-page="play"][data-play-state="live"][data-play-view="framed"] {
+  overflow: hidden;
+}
+
+/* Signed in, nothing sits between the topbar and the workshop stage. */
+body[data-page="account"][data-session-state="active"] .account-intro {
+  display: none;
+}
+
+/* ── routes (alpha) ──────────────────────────────────────────────────── */
+.route-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(0.9rem, 2.2vw, 1.4rem);
+}
+
+.route-item {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+  padding: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  backdrop-filter: blur(var(--glass-blur));
+}
+
+.route-item p { margin: 0; color: var(--ink-dim); font-size: 0.9rem; }
+
+/* ── roadmap ─────────────────────────────────────────────────────────── */
+.status-chip {
+  display: inline-block;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--edge);
+  color: var(--accent);
+  font: 700 0.62rem / 1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-right: 0.6rem;
+}
+
+.status-chip[data-tone="play"] {
+  border-color: var(--line-strong);
+  color: var(--ink-dim);
+}
+
+.status-chip[data-tone="next"] {
+  border-color: var(--line);
+  color: var(--ink-dim);
+  border-style: dashed;
+}
+
+.roadmap-group-title { vertical-align: middle; }
+
+.roadmap-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.9rem;
+}
+
+.roadmap-item {
+  padding: 0.9rem 1rem;
+  background: var(--cell);
+  border: 1px solid var(--line);
+}
+
+.roadmap-item h3 { font-size: 1.05rem; margin-bottom: 0.25rem; }
+.roadmap-item p { margin: 0; color: var(--ink-dim); font-size: 0.9rem; }
+
+/* ── legal ───────────────────────────────────────────────────────────── */
+.legal-prose {
+  max-width: var(--text-max);
+}
+
+.legal-prose h2 { margin-top: 2rem; }
+.legal-prose p, .legal-prose li { color: var(--ink-dim); }
+.legal-prose strong { color: var(--ink); }
+
+/* ── downloads ───────────────────────────────────────────────────────── */
+.dl-loading { color: var(--ink-dim); }

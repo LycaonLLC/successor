@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -47,9 +48,7 @@ async function assertPidGone(pid, label) {
   assert.equal(pidAlive(pid), false, `${label} must be dead`);
 }
 async function readProcessGroupId(pid) {
-  const stat = await fs.readFile(`/proc/${pid}/stat`, "utf8");
-  const fields = stat.slice(stat.lastIndexOf(")") + 2).trim().split(/\s+/u);
-  return Number(fields[2]);
+  return Number(execFileSync("ps", ["-o", "pgid=", "-p", String(pid)], { encoding: "utf8" }).trim());
 }
 
 async function withOuterChildPhase(t, run) {
@@ -272,8 +271,8 @@ describe("remote headless preparation", () => {
       const resultPath = path.join(root, "result.json");
       const childSource = [
         "const fs = require('node:fs');",
-        "const stat = fs.readFileSync('/proc/self/stat', 'utf8');",
-        "const pgid = Number(stat.slice(stat.lastIndexOf(')') + 2).trim().split(/\\s+/)[2]);",
+        "const { execFileSync } = require('node:child_process');",
+        "const pgid = Number(execFileSync('ps', ['-o', 'pgid=', '-p', String(process.pid)], { encoding: 'utf8' }).trim());",
         `fs.writeFileSync(${JSON.stringify(childPidPath)}, JSON.stringify({ pid: process.pid, pgid }));`,
         "setTimeout(() => process.exit(0), 40);",
       ].join("\n");
@@ -308,15 +307,17 @@ describe("remote headless preparation", () => {
       const wrapperPidPath = path.join(root, "wrapper.json");
       const subtreePidPath = path.join(root, "subtree.json");
       const termPath = path.join(root, "term.log");
+      const descendantReadyPath = path.join(root, "descendant-ready");
       const descendantSource = [
         "const fs = require('node:fs');",
         `process.on('SIGTERM', () => fs.appendFileSync(${JSON.stringify(termPath)}, 'descendant\\n'));`,
+        `fs.writeFileSync(${JSON.stringify(descendantReadyPath)}, 'ready\\n');`,
         "setInterval(() => {}, 1_000);",
       ].join("\n");
       const prepSource = [
         "const fs = require('node:fs');",
-        "const { spawn } = require('node:child_process');",
-        "const pgid = () => Number(fs.readFileSync('/proc/self/stat', 'utf8').slice(fs.readFileSync('/proc/self/stat', 'utf8').lastIndexOf(')') + 2).trim().split(/\\s+/)[2]);",
+        "const { execFileSync, spawn } = require('node:child_process');",
+        "const pgid = () => Number(execFileSync('ps', ['-o', 'pgid=', '-p', String(process.pid)], { encoding: 'utf8' }).trim());",
         `process.on('SIGTERM', () => fs.appendFileSync(${JSON.stringify(termPath)}, 'prep\\n'));`,
         `const descendant = spawn(process.execPath, ["-e", ${JSON.stringify(descendantSource)}], { stdio: 'ignore' });`,
         `fs.writeFileSync(${JSON.stringify(subtreePidPath)}, JSON.stringify({ prep: process.pid, prepPgid: pgid(), descendant: descendant.pid }));`,
@@ -332,6 +333,7 @@ describe("remote headless preparation", () => {
       const handle = await start(wrapperPath);
       const wrapper = JSON.parse(await waitForFile(wrapperPidPath));
       const subtree = JSON.parse(await waitForFile(subtreePidPath));
+      await waitForFile(descendantReadyPath);
       const descendantPgid = await readProcessGroupId(subtree.descendant);
       assert.equal(await readProcessGroupId(wrapper.pid), handle.pid);
       assert.equal(subtree.prepPgid, handle.pid, "prep child must not create a nested detached group");

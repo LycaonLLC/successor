@@ -21,6 +21,7 @@ const ENTRY = "https://runtime.example/releases/0f3a/index.html";
 const ORIGIN = "https://runtime.example";
 
 const APPEARANCE = {
+  body: "female" as const,
   skinTone: "#b98a5e",
   hair: "hair_mop",
   hairMat: "hair_raven",

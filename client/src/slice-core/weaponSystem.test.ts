@@ -82,9 +82,15 @@ describe("canonical weapon and ammunition catalog", () => {
   it("contains exactly the supported weapon and ammunition ids", () => {
     expect(allWeaponIds).toEqual([
       "slugthrower",
+      "wpn-pistol",
       "wpn-smg",
       "wpn-carbine",
       "lightning-carbine",
+      "wpn-assault",
+      "wpn-shotgun",
+      "wpn-sniper",
+      "wpn-heavy",
+      "wpn-launcher",
       "vibrosword",
       "scrapline-machete",
       "field-saber",

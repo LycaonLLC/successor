@@ -38,6 +38,7 @@ export interface TuiOptions {
 export interface HostedLaunch {
   gameTicket?: string;
   chatTicket?: string;
+  clientReleaseId?: string;
   /** Exact storefront Origin for matchmake/WS admission. Not a secret, but
    *  carried only in memory alongside the tickets. */
   origin?: string;

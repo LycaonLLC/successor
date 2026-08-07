@@ -1,0 +1,171 @@
+{
+  "generator": "successor content-pipeline/labs/humanoid-runtime-refit/author_starter_apparel.py",
+  "bodies": {
+    "male": {
+      "body": "client-3d/public/assets/pawn-pack/pawn_male.glb",
+      "body_sha256": "a865e80f3fe740c135633c2c03b94afcfb0d10def3756cb7ca43fec5e51e7f9c",
+      "under_bodysuit": {
+        "path": "client-3d/public/assets/pawn-pack/equipment/Under/under_bodysuit.glb",
+        "bytes": 58648,
+        "sha256": "24e67fe6ab502546f58a07cb9be24e87880cb2d341f4e2c56488eee37bde2d0b",
+        "vertices": 782,
+        "triangles": 1473,
+        "offset_mm": 1.0,
+        "zones": [
+          "torso",
+          "pelvis",
+          "left_upper_arm",
+          "right_upper_arm",
+          "left_forearm",
+          "right_forearm",
+          "left_thigh",
+          "right_thigh",
+          "left_calf",
+          "right_calf"
+        ],
+        "bbox_min": [
+          -0.825,
+          0.07358,
+          -0.11524
+        ],
+        "bbox_max": [
+          0.825,
+          1.52882,
+          0.14956
+        ]
+      },
+      "boots_canvas_ankle": {
+        "path": "client-3d/public/assets/pawn-pack/equipment/Under/boots_canvas_ankle.glb",
+        "bytes": 31872,
+        "sha256": "5980ff35c965522e2e88a03b63abdea9a75f49982c5e90fbd4a6c54f3f461cd6",
+        "offset_mm": 10.0,
+        "shaft_top_m": 0.215,
+        "trim_bottom_m": 0.185,
+        "sole_floor_m": -0.004,
+        "sides": [
+          {
+            "mesh": "boots_canvas_ankle_l",
+            "vertices": 84,
+            "triangles": 152,
+            "rim_triangles": 28,
+            "trim_triangles": 34,
+            "sole_triangles": 9,
+            "upper_triangles": 109,
+            "bbox_min": [
+              0.01736,
+              -0.004,
+              -0.08373
+            ],
+            "bbox_max": [
+              0.14289,
+              0.21549,
+              0.19618
+            ]
+          },
+          {
+            "mesh": "boots_canvas_ankle_r",
+            "vertices": 84,
+            "triangles": 152,
+            "rim_triangles": 28,
+            "trim_triangles": 33,
+            "sole_triangles": 9,
+            "upper_triangles": 110,
+            "bbox_min": [
+              -0.14289,
+              -0.004,
+              -0.08373
+            ],
+            "bbox_max": [
+              -0.01736,
+              0.21549,
+              0.19618
+            ]
+          }
+        ]
+      }
+    },
+    "female": {
+      "body": "client-3d/public/assets/pawn-pack/pawn_female.glb",
+      "body_sha256": "9eb7242ce49fcd7d7afa53a898c35e5b7b5fd0d5d99d7109bfc82e33e4f095e9",
+      "under_bodysuit": {
+        "path": "client-3d/public/assets/pawn-pack/equipment/Female/Under/under_bodysuit.glb",
+        "bytes": 60608,
+        "sha256": "a4500baef1a8f9fdab63b472b2b2fc04c31c0ec7a93f84321ae43039e807de75",
+        "vertices": 817,
+        "triangles": 1543,
+        "offset_mm": 1.0,
+        "zones": [
+          "torso",
+          "pelvis",
+          "left_upper_arm",
+          "right_upper_arm",
+          "left_forearm",
+          "right_forearm",
+          "left_thigh",
+          "right_thigh",
+          "left_calf",
+          "right_calf"
+        ],
+        "bbox_min": [
+          -0.825,
+          0.05723,
+          -0.09718
+        ],
+        "bbox_max": [
+          0.825,
+          1.52847,
+          0.1516
+        ]
+      },
+      "boots_canvas_ankle": {
+        "path": "client-3d/public/assets/pawn-pack/equipment/Female/Under/boots_canvas_ankle.glb",
+        "bytes": 33220,
+        "sha256": "24fb7c94ad564ded849884cb8e750e9898e85a8703a86012369404c845e93a51",
+        "offset_mm": 10.0,
+        "shaft_top_m": 0.215,
+        "trim_bottom_m": 0.185,
+        "sole_floor_m": -0.004,
+        "sides": [
+          {
+            "mesh": "boots_canvas_ankle_l",
+            "vertices": 96,
+            "triangles": 176,
+            "rim_triangles": 28,
+            "trim_triangles": 37,
+            "sole_triangles": 12,
+            "upper_triangles": 127,
+            "bbox_min": [
+              0.02941,
+              -0.004,
+              -0.09631
+            ],
+            "bbox_max": [
+              0.12945,
+              0.21492,
+              0.17378
+            ]
+          },
+          {
+            "mesh": "boots_canvas_ankle_r",
+            "vertices": 97,
+            "triangles": 178,
+            "rim_triangles": 28,
+            "trim_triangles": 37,
+            "sole_triangles": 12,
+            "upper_triangles": 129,
+            "bbox_min": [
+              -0.12945,
+              -0.004,
+              -0.09631
+            ],
+            "bbox_max": [
+              -0.02941,
+              0.21492,
+              0.17378
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

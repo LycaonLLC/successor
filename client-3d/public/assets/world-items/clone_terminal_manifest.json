@@ -1,0 +1,65 @@
+{
+  "asset": {
+    "bytes": 602384,
+    "file": "clone_terminal.glb",
+    "images": [
+      {
+        "bytes": 191962,
+        "embedded": true,
+        "mime": "image/png",
+        "name": "clone_terminal_normal"
+      },
+      {
+        "bytes": 101193,
+        "embedded": true,
+        "mime": "image/jpeg",
+        "name": "clone_terminal_basecolor"
+      },
+      {
+        "bytes": 235722,
+        "embedded": true,
+        "mime": "image/png",
+        "name": "clone_terminal_orm"
+      },
+      {
+        "bytes": 14117,
+        "embedded": true,
+        "mime": "image/png",
+        "name": "clone_screen_emissive"
+      }
+    ],
+    "sha256": "sha256:a80270f416040b68a47b152d834bba4760ec7362546bc9b883e13a372878bbbd"
+  },
+  "bake": {
+    "atlasObjects": 1,
+    "baseColorCarriesLighting": true,
+    "runtimeSpecialObjects": 2,
+    "uvCoverage": 0.8253
+  },
+  "bbox_span_m": [
+    0.956,
+    1.78,
+    0.7916
+  ],
+  "footprint_m": [
+    0.956,
+    0.792
+  ],
+  "front": "+Z",
+  "height_range_m": [
+    1.62,
+    1.86
+  ],
+  "materials": [
+    "CF_Body",
+    "CF_Glow",
+    "CF_GlowAmber",
+    "CF_Screen"
+  ],
+  "prop": "clone_terminal",
+  "root_node": "Gear_clone_terminal",
+  "runtime_scale_at_1x1_cell": 1.046025,
+  "schema": "successor.runtime-prop-manifest.v1",
+  "tri_count": 832,
+  "units": "m"
+}

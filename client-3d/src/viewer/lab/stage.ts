@@ -41,7 +41,17 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { SUCCESSOR_3D_CONFIG } from "../../config";
-import { clonePawnBody, cloneSpecialPawnBody, type PawnBody, type PawnPack, type SlugthrowerAttachSpec } from "../../assets/pawnPack";
+import {
+  applyPawnBodyZoneMask,
+  clonePawnBody,
+  cloneSpecialPawnBody,
+  collectPawnBodyZoneMeshes,
+  resolvePawnBodyZoneMask,
+  type PawnBody,
+  type PawnBodyZoneMesh,
+  type PawnPack,
+  type SlugthrowerAttachSpec,
+} from "../../assets/pawnPack";
 import { resolveEquipmentSlotMaterial, type EquipmentSlotMaterialSource } from "../../assets/equipmentMaterials";
 import type { PawnEquipmentItem } from "../../assets/pawnRigTypes";
 import { attachPawnEquipmentSet } from "../../render/pawns";
@@ -51,11 +61,20 @@ import { Ps2PostRenderer } from "../../render/post";
 import { paintTerrainPixel } from "../../render/terrain/procgen";
 import { SlugthrowerRig } from "../../render/weapons/slugthrowerRig";
 import { SwordRig } from "../../render/weapons/swordRig";
+import {
+  PlasmaPresentation,
+  PLASMA_SWORD_COLOR,
+  PLASMA_SWORD_MODEL_KEY,
+} from "../../render/weapons/plasmaPresentation";
+import { makeGlowSprite } from "../../render/fx/particles";
 import type { WorldEnvironment } from "../../render/environment";
 import { LabFx } from "./fx";
 
 export type LabBodyKey = PawnBody | "droid_grok_humanoid";
 export const DROID_BODY_KEY = "droid_grok_humanoid";
+
+/** Glow sprite shared by every lab plasma rebuild (module lifetime). */
+let labGlowSprite: CanvasTexture | null = null;
 
 export type CameraPresetName = "quarter" | "front" | "side" | "close" | "grip";
 export const CAMERA_PRESET_ORDER: readonly CameraPresetName[] = ["quarter", "front", "side", "close", "grip"];
@@ -248,6 +267,8 @@ export class LabPawn {
   private readonly animator: PawnAnimator;
   private readonly maskedClips = new MaskedClipCache();
   private readonly attachedEquipment: Object3D[] = [];
+  /** Base-body zones cached before the lab swaps body materials or attaches apparel. */
+  private readonly bodyZoneMeshes: readonly PawnBodyZoneMesh[];
   /** Read-only view of attached equipment roots — crease-method plugins
    * (shader swaps, per-garment drivers) traverse these; never mutate. */
   get attachments(): readonly Object3D[] {
@@ -255,6 +276,7 @@ export class LabPawn {
   }
   private gunRig: SlugthrowerRig | null = null;
   private swordRig: SwordRig | null = null;
+  private plasma: PlasmaPresentation | null = null;
   private weapon: LabWeaponSelection | null = null;
   private selectedClip = "idle";
   private selectedLayer: "base" | "upper" | "hand" | "montage" | "arm" = "base";
@@ -277,6 +299,7 @@ export class LabPawn {
       const cloned = cloneSpecialPawnBody(pack, bodyKey);
       if (!cloned) throw new Error(`special pawn body unavailable: ${bodyKey}`);
       this.bodyRoot = cloned;
+      this.bodyZoneMeshes = [];
       const heightM = pack.specialBodies.get(bodyKey)?.heightM ?? 1.7;
       this.bodyRoot.scale.setScalar(SUCCESSOR_3D_CONFIG.pawnPack.heightTargetUnits / heightM);
       // Droid chassis keeps its authored surface detail; convert to matcap so
@@ -291,6 +314,7 @@ export class LabPawn {
       });
     } else {
       this.bodyRoot = clonePawnBody(pack, bodyKey, { bare: this.bareBody });
+      this.bodyZoneMeshes = collectPawnBodyZoneMeshes(this.bodyRoot);
       this.bodyRoot.scale.setScalar(pack.scale);
       const skin = new MeshMatcapMaterial({ matcap, color: new Color(BODY_SKIN_COLOR) });
       this.bodyRoot.traverse((object) => {
@@ -325,14 +349,18 @@ export class LabPawn {
   setWorn(itemIds: readonly string[]): string[] {
     for (const attached of this.attachedEquipment) attached.removeFromParent();
     this.attachedEquipment.length = 0;
-    if (this.isDroid || itemIds.length === 0) return [];
-    attachPawnEquipmentSet(
+    if (this.isDroid) return [];
+    const attachedItemIds = attachPawnEquipmentSet(
       this.pack,
       this.bodyRoot,
       itemIds,
       (item: PawnEquipmentItem, source: EquipmentSlotMaterialSource) =>
         resolveEquipmentSlotMaterial(source, item, item.mat, { kind: "world", matcap: this.matcap }),
       this.attachedEquipment,
+    );
+    applyPawnBodyZoneMask(
+      this.bodyZoneMeshes,
+      resolvePawnBodyZoneMask(this.pack.equipment, attachedItemIds),
     );
     const worn = new Set<string>();
     for (const attached of this.attachedEquipment) {
@@ -355,6 +383,8 @@ export class LabPawn {
     this.gunRig = null;
     this.swordRig?.dispose();
     this.swordRig = null;
+    this.plasma?.dispose();
+    this.plasma = null;
     this.weapon = selection;
     if (!selection) {
       this.syncWeaponContext(true);
@@ -389,6 +419,12 @@ export class LabPawn {
       this.swordRig = new SwordRig(this.pack, handR, spine);
     } else {
       this.swordRig = new SwordRig(this.pack, handR, spine, selection.spec, selection.scene, selection.scale, selection.id);
+      if (selection.id === PLASMA_SWORD_MODEL_KEY) {
+        // Lab mirrors the runtime presentation exactly: the hilt is a normal
+        // catalogue model welded by SwordRig, plus the pure-effect blade.
+        labGlowSprite ??= makeGlowSprite();
+        this.plasma = new PlasmaPresentation(this.swordRig, labGlowSprite, PLASMA_SWORD_COLOR, true);
+      }
     }
     this.syncWeaponContext(true);
   }
@@ -508,6 +544,9 @@ export class LabPawn {
     if (this.swordRig) {
       for (let i = 0; i < 8; i += 1) this.swordRig.update(1 / 30);
     }
+    if (this.plasma) {
+      for (let i = 0; i < 8; i += 1) this.plasma.update(1 / 30);
+    }
   }
 
   private reloadProgress(): { elapsedS: number; totalS: number } | null {
@@ -625,6 +664,7 @@ export class LabPawn {
       this.weaponMixer?.update(dtSeconds);
     }
     this.swordRig?.update(dtSeconds);
+    this.plasma?.update(dtSeconds);
   }
 
   dispose(): void {

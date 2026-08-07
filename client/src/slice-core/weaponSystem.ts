@@ -4,9 +4,15 @@ import weaponSpecPayload from "./specs/weapons.v1.json";
 
 export type WeaponId =
   | "slugthrower"
+  | "wpn-pistol"
   | "wpn-smg"
   | "wpn-carbine"
   | "lightning-carbine"
+  | "wpn-assault"
+  | "wpn-shotgun"
+  | "wpn-sniper"
+  | "wpn-heavy"
+  | "wpn-launcher"
   | "vibrosword"
   | "scrapline-machete"
   | "field-saber"
@@ -72,15 +78,32 @@ function parseWeaponSpecPayload(payload: unknown): Record<WeaponId, WeaponSpec> 
   }
   const weapons = parsed.weapons as Partial<Record<WeaponId, WeaponSpecPayloadEntry>>;
   const slugthrower = validateWeaponSpec(weapons.slugthrower, "slugthrower");
+  const wpnPistol = validateWeaponSpec(weapons["wpn-pistol"], "wpn-pistol");
   const wpnSmg = validateWeaponSpec(weapons["wpn-smg"], "wpn-smg");
   const wpnCarbine = validateWeaponSpec(weapons["wpn-carbine"], "wpn-carbine");
   const lightningCarbine = validateWeaponSpec(weapons["lightning-carbine"], "lightning-carbine");
+  const wpnAssault = validateWeaponSpec(weapons["wpn-assault"], "wpn-assault");
+  const wpnShotgun = validateWeaponSpec(weapons["wpn-shotgun"], "wpn-shotgun");
+  const wpnSniper = validateWeaponSpec(weapons["wpn-sniper"], "wpn-sniper");
+  const wpnHeavy = validateWeaponSpec(weapons["wpn-heavy"], "wpn-heavy");
+  const wpnLauncher = validateWeaponSpec(weapons["wpn-launcher"], "wpn-launcher");
   const vibrosword = validateWeaponSpec(weapons.vibrosword, "vibrosword");
   const scraplineMachete = validateWeaponSpec(weapons["scrapline-machete"], "scrapline-machete");
   const fieldSaber = validateWeaponSpec(weapons["field-saber"], "field-saber");
   const quarryChopper = validateWeaponSpec(weapons["quarry-chopper"], "quarry-chopper");
   const unarmed = validateWeaponSpec(weapons.unarmed, "unarmed");
-  for (const ranged of [slugthrower, wpnSmg, wpnCarbine, lightningCarbine]) {
+  for (const ranged of [
+    slugthrower,
+    wpnPistol,
+    wpnSmg,
+    wpnCarbine,
+    lightningCarbine,
+    wpnAssault,
+    wpnShotgun,
+    wpnSniper,
+    wpnHeavy,
+    wpnLauncher,
+  ]) {
     if (ranged.slot !== "longGun" || ranged.caliber !== "slug") {
       throw new Error(`${ranged.id} weapon slot/ammo contract mismatch`);
     }
@@ -101,9 +124,15 @@ function parseWeaponSpecPayload(payload: unknown): Record<WeaponId, WeaponSpec> 
   }
   return {
     slugthrower,
+    "wpn-pistol": wpnPistol,
     "wpn-smg": wpnSmg,
     "wpn-carbine": wpnCarbine,
     "lightning-carbine": lightningCarbine,
+    "wpn-assault": wpnAssault,
+    "wpn-shotgun": wpnShotgun,
+    "wpn-sniper": wpnSniper,
+    "wpn-heavy": wpnHeavy,
+    "wpn-launcher": wpnLauncher,
     vibrosword,
     "scrapline-machete": scraplineMachete,
     "field-saber": fieldSaber,

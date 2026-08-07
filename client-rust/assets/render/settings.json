@@ -1,0 +1,199 @@
+{
+  "schema": "successor.render-settings.v1",
+  "version": 1,
+  "selected_preset": "medium",
+  "presets": {
+    "low": {
+      "ambient_intensity": 0.5,
+      "emissive_scalar": 1.0,
+      "exposure": 1.0,
+      "bloom": {
+        "threshold": 1.0,
+        "intensity": 0.25,
+        "radius": 0.75
+      },
+      "sun": {
+        "azimuth_degrees": -45.0,
+        "elevation_degrees": 55.0,
+        "color": [
+          1.0,
+          0.97,
+          0.9
+        ],
+        "intensity": 1.0
+      },
+      "aa": {
+        "enabled": true,
+        "edge_threshold_min": 0.0312,
+        "edge_threshold": 0.125,
+        "subpixel_blend": 0.5
+      },
+      "ao": {
+        "intensity": 1.0
+      },
+      "shadows": {
+        "map_size": 1024,
+        "world_radius": 48.0,
+        "depth_bias": 0.0015,
+        "normal_bias": 1.5,
+        "penumbra": 24.0
+      },
+      "color_grading": {
+        "saturation": 1.0,
+        "contrast": 1.0,
+        "gamma": 1.0,
+        "temperature": 0.0,
+        "tint": 0.0,
+        "lift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "color_gamma": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "gain": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "palette": {
+        "enabled": false,
+        "levels": 16,
+        "strength": 0.0,
+        "dither": 0.0
+      }
+    },
+    "medium": {
+      "ambient_intensity": 0.78,
+      "emissive_scalar": 1.0,
+      "exposure": 1.08,
+      "bloom": {
+        "threshold": 1.0,
+        "intensity": 0.55,
+        "radius": 1.0
+      },
+      "sun": {
+        "azimuth_degrees": -45.0,
+        "elevation_degrees": 55.0,
+        "color": [
+          1.0,
+          0.97,
+          0.9
+        ],
+        "intensity": 2.45
+      },
+      "aa": {
+        "enabled": true,
+        "edge_threshold_min": 0.0312,
+        "edge_threshold": 0.125,
+        "subpixel_blend": 0.75
+      },
+      "ao": {
+        "intensity": 1.0
+      },
+      "shadows": {
+        "map_size": 2048,
+        "world_radius": 48.0,
+        "depth_bias": 0.0015,
+        "normal_bias": 1.5,
+        "penumbra": 40.0
+      },
+      "color_grading": {
+        "saturation": 1.1,
+        "contrast": 1.0,
+        "gamma": 1.0,
+        "temperature": 0.02,
+        "tint": 0.0,
+        "lift": [
+          0.03,
+          0.025,
+          0.02
+        ],
+        "color_gamma": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "gain": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "palette": {
+        "enabled": false,
+        "levels": 16,
+        "strength": 0.0,
+        "dither": 0.0
+      }
+    },
+    "high": {
+      "ambient_intensity": 0.5,
+      "emissive_scalar": 1.0,
+      "exposure": 1.0,
+      "bloom": {
+        "threshold": 1.0,
+        "intensity": 0.7,
+        "radius": 1.35
+      },
+      "sun": {
+        "azimuth_degrees": -45.0,
+        "elevation_degrees": 55.0,
+        "color": [
+          1.0,
+          0.97,
+          0.9
+        ],
+        "intensity": 1.0
+      },
+      "aa": {
+        "enabled": true,
+        "edge_threshold_min": 0.02,
+        "edge_threshold": 0.09,
+        "subpixel_blend": 0.85
+      },
+      "ao": {
+        "intensity": 1.0
+      },
+      "shadows": {
+        "map_size": 4096,
+        "world_radius": 48.0,
+        "depth_bias": 0.0015,
+        "normal_bias": 1.5,
+        "penumbra": 55.0
+      },
+      "color_grading": {
+        "saturation": 1.0,
+        "contrast": 1.0,
+        "gamma": 1.0,
+        "temperature": 0.0,
+        "tint": 0.0,
+        "lift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "color_gamma": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "gain": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "palette": {
+        "enabled": false,
+        "levels": 16,
+        "strength": 0.0,
+        "dither": 0.0
+      }
+    }
+  }
+}

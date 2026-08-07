@@ -1,0 +1,53 @@
+[package]
+name = "successor-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Successor native/web Rust client: composition root binding engine, renderer, platform, and protocol."
+
+[lib]
+name = "successor_client"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "successor"
+path = "src/main.rs"
+
+[[bin]]
+name = "successor-control"
+path = "src/bin/successor-control.rs"
+required-features = ["dev-tools"]
+
+[dependencies]
+successor-engine-core.workspace = true
+successor-engine-render.workspace = true
+successor-platform.workspace = true
+successor-movement.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+successor-client-proto.workspace = true
+successor-net = { path = "../../../crates/successor-net" }
+fontdue = { version = "0.9.3", default-features = false }
+libm.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# Native-only pure-Rust MP3 decode (web decodes via Web Audio); keeps the wasm
+# module free of the decoder.
+rmp3 = { version = "0.3", default-features = false, features = ["std", "float"] }
+
+# Wasm networking runtime: the sans-IO session/protocol + matchmake JSON run on
+# web too (transport is the WebSocket/fetch shim in `platform::web`).
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+successor-client-proto.workspace = true
+
+[dev-dependencies]
+successor-engine-render = { workspace = true, features = ["std"] }
+
+[features]
+default = []
+dev-tools = []
+alloc-count = [
+    "successor-engine-core/alloc-count",
+    "successor-engine-render/alloc-count",
+    "successor-platform/alloc-count",
+]

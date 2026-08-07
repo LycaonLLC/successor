@@ -35,15 +35,15 @@ ComPress user
 
 ## Repository Management
 
-ComPress is not vendored or forked into Successor. The canonical ComPress
-checkout owns `plugins/successor`, its account models, and ticket routes.
-Successor consumes that capability only through the versioned HTTP and Redis
-ticket boundary; game authority and game persistence stay in this repository.
+ComPress is not vendored or forked into Successor. Its owning repository
+controls `plugins/successor`, account models, and ticket routes. Successor
+consumes that capability only through the versioned HTTP and Redis ticket
+boundary; game authority and game persistence stay in this repository.
 
 Cross-repository work uses separate commits in each owning repository. The
-bridge verifier targets the canonical ComPress checkout by default and accepts
-`COMPRESS_MAIN_ROOT` when CI or another workstation checks it out elsewhere.
-Temporary feature worktrees are never an integration source of truth.
+bridge verifier accepts `COMPRESS_MAIN_ROOT` as the explicit ComPress checkout
+location. Bind cross-repository proof to exact revisions; do not infer authority
+from checkout names, branch names, or worktree layout.
 
 ## Ownership Map
 

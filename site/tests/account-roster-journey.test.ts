@@ -17,7 +17,7 @@ const session: SessionInfo = {
   status: "active",
 };
 
-const appearance = { skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null };
+const appearance = { body: "male" as const, skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null };
 const worn = [{ item: "under_bodysuit", colors: ["#89cff0"] }];
 
 const scout: Character = {

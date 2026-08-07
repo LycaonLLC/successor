@@ -1,0 +1,731 @@
+{
+  "artifacts": {
+    "collision": {
+      "bytes": 73649,
+      "path": "home_modular_court_collision.json",
+      "sha256": "b9a86970938c2d423e775f73962ba1cefd71f2a72f895a2c4f11991c42157d47"
+    },
+    "glb": {
+      "bytes": 9015332,
+      "path": "home_modular_court.glb",
+      "sha256": "49264de5adaf417556ac6df1ec937b4aee18bed2c6e88c976683e1eb34c3ecc0"
+    },
+    "manifest": {
+      "bytes": 3123,
+      "path": "home_modular_court_manifest.json",
+      "sha256": "0c7a7a696836301ca335927b1278cb003ed2400b4ec81aa5f197bc692c9f6c46"
+    }
+  },
+  "asset": {
+    "bytes": 9015332,
+    "path": "home_modular_court.glb",
+    "sha256": "sha256:49264de5adaf417556ac6df1ec937b4aee18bed2c6e88c976683e1eb34c3ecc0"
+  },
+  "asset_id": "home_modular_court",
+  "contract": {
+    "collision": "home_modular_court_collision.json",
+    "entryDoor": "door_slide",
+    "floorTopY": 0.02,
+    "footprintCells": [
+      10,
+      8
+    ],
+    "manifest": "home_modular_court_manifest.json"
+  },
+  "generator": {
+    "lod": 0,
+    "path": "src/package_runtime_buildings.py",
+    "sha256": "5f6e4f4d2c9f2f37fc2e4bdd4391a140e04ad2af7820bcc6a407395e74b7c9e1"
+  },
+  "modules": [
+    {
+      "collision": {
+        "path": "build/collision/ceiling_1x1__plasterlined.collision.json",
+        "sha256": "934f4eeb7cef52c083635c42da3b564d205d389bfd682f14d05b0b25ae91b621"
+      },
+      "glb": {
+        "bytes": 3432,
+        "path": "build/modules/ceiling_1x1__plasterlined_lod0.glb",
+        "sha256": "e2de1c575d6f48e78d715293665d2253ca30adbb985bfb02c35c0d31e862d523"
+      },
+      "id": "ceiling_1x1__plasterlined",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/ceiling_cham_1x1__plasterlined.collision.json",
+        "sha256": "c4bcf98c97f41b74cca1067c19da7e75c8b7960515367df8d5aa57ff41c60e1c"
+      },
+      "glb": {
+        "bytes": 3820,
+        "path": "build/modules/ceiling_cham_1x1__plasterlined_lod0.glb",
+        "sha256": "0216ac6533a8699bb6b3df5cb7fb5c842d8bde2dce08ddb129fedab8a29cc8d2"
+      },
+      "id": "ceiling_cham_1x1__plasterlined",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/column__sintered.collision.json",
+        "sha256": "0288553a57eb141fd5e8a504e94817e96103d3367136fe1165517265ad2fc238"
+      },
+      "glb": {
+        "bytes": 21784,
+        "path": "build/modules/column__sintered_lod0.glb",
+        "sha256": "1edcd27cab8347c2a422acdbd14b89552526f9a597fc7a4f584e9968ab72982e"
+      },
+      "id": "column__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/door_inner_2c__panelclad.collision.json",
+        "sha256": "ee43ca0df0c4393bd91d03f2ca58d0339ca3cab8af06812e43374c43ceae28dc"
+      },
+      "glb": {
+        "bytes": 236992,
+        "path": "build/modules/door_inner_2c__panelclad_lod0.glb",
+        "sha256": "c29e934e44e8c79f9d5949bdbfef82c0251e4d49469c1da17a15692265b84b64"
+      },
+      "id": "door_inner_2c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/door_inner_2c__plasterlined.collision.json",
+        "sha256": "949b78b80ab6b37e375aa91aaf2d51f316fc4a6d29f8bcb9cedb7001746a29a9"
+      },
+      "glb": {
+        "bytes": 211108,
+        "path": "build/modules/door_inner_2c__plasterlined_lod0.glb",
+        "sha256": "5b542ee993356c46576773b960b631cae768d9d5239c1c30f63b5b20cbec882f"
+      },
+      "id": "door_inner_2c__plasterlined",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/door_slide_2c__sintered.collision.json",
+        "sha256": "d50dca109f9734c23284e9366cf15bac94e8bfd048e71fa62a99d9a51549c566"
+      },
+      "glb": {
+        "bytes": 217504,
+        "path": "build/modules/door_slide_2c__sintered_lod0.glb",
+        "sha256": "963afa5b32546a7f46165a8b6161bc7067cd1b079ec72a060466c3b9dbaaeb00"
+      },
+      "id": "door_slide_2c__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/entry_apron_2c__sintered.collision.json",
+        "sha256": "97a361f393a672ff943b4206129acba62e0df4a3eded956b42c0415d6b54eabd"
+      },
+      "glb": {
+        "bytes": 11884,
+        "path": "build/modules/entry_apron_2c__sintered_lod0.glb",
+        "sha256": "1e78b9130f2d5db6e5123df72f78677622c7d4ecf3177bf8672e1afbfd2cf1f4"
+      },
+      "id": "entry_apron_2c__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/floor_1x1__panelclad.collision.json",
+        "sha256": "f26cd0760ab21d0258518c5c81fc4a06c98c5b6225d4957a01a566e5300cefe5"
+      },
+      "glb": {
+        "bytes": 7564,
+        "path": "build/modules/floor_1x1__panelclad_lod0.glb",
+        "sha256": "b49ddeb21df5605aa2262f5a6afaac70cbe814d11a7b748a08cb0ce20d453c46"
+      },
+      "id": "floor_1x1__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/floor_1x1__sintered.collision.json",
+        "sha256": "97a7ecffce98eefeed72040395a71f8fbb0e116f53b03bace269cf37b294beb5"
+      },
+      "glb": {
+        "bytes": 4416,
+        "path": "build/modules/floor_1x1__sintered_lod0.glb",
+        "sha256": "1afa58178344e518db24fc98103a1e3546b77ea6a78364cd83501b8546c6e23c"
+      },
+      "id": "floor_1x1__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/floor_cham_1x1__panelclad.collision.json",
+        "sha256": "5c7d6bda02af13f1e2571bd1b5ac0d351d8c57ed4da064f40672c419fced225c"
+      },
+      "glb": {
+        "bytes": 5080,
+        "path": "build/modules/floor_cham_1x1__panelclad_lod0.glb",
+        "sha256": "2d2e0c713f284283bb192d6219e5499a5ab83b5c0de45304a18563c967316c96"
+      },
+      "id": "floor_cham_1x1__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/floor_cham_1x1__sintered.collision.json",
+        "sha256": "4a4429851419baaf95b8dbb914ca46ed18379267013838af328b1840c1e04c5e"
+      },
+      "glb": {
+        "bytes": 5048,
+        "path": "build/modules/floor_cham_1x1__sintered_lod0.glb",
+        "sha256": "a1821d3f6e9d13954b580c3af8183feef14cbe05811d0bcb505dc3e50e41bd26"
+      },
+      "id": "floor_cham_1x1__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/found_cham_1x1__sintered.collision.json",
+        "sha256": "1632ab20bbd50580ad4a629066df14b77594fc746338ebda13f42c52c8bb28fb"
+      },
+      "glb": {
+        "bytes": 6312,
+        "path": "build/modules/found_cham_1x1__sintered_lod0.glb",
+        "sha256": "c0d835ebf5f6397e25b3b77531fa0b17f725fdc526987c1a07e6bd6cb3537a9d"
+      },
+      "id": "found_cham_1x1__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/foundation_1x1__sintered.collision.json",
+        "sha256": "408b7b90b12a8bcd22eca02c36a5b4e37977e996e390773b153b155866b61a19"
+      },
+      "glb": {
+        "bytes": 5424,
+        "path": "build/modules/foundation_1x1__sintered_lod0.glb",
+        "sha256": "a94a48157159322f5f50969ae6961953844b6e870ae6d8ec121e6125e8f93031"
+      },
+      "id": "foundation_1x1__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_bed_2c__panelclad.collision.json",
+        "sha256": "a2a08484adb884fcedd1463f34461933d2ff13ae0d08546586cbd5d7dbb43574"
+      },
+      "glb": {
+        "bytes": 88928,
+        "path": "build/modules/furn_bed_2c__panelclad_lod0.glb",
+        "sha256": "53afddbde833a2cb1470adec0bbc782e38c9abc4fb3ed4144389977309c33e46"
+      },
+      "id": "furn_bed_2c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_bench_2c__panelclad.collision.json",
+        "sha256": "ead6e84004572dc8152971641c23d5fefade0b029e07a6f228fbe15757f6c85d"
+      },
+      "glb": {
+        "bytes": 110980,
+        "path": "build/modules/furn_bench_2c__panelclad_lod0.glb",
+        "sha256": "018d5bc41ab6d8304a8466bcb0f42f91900007d84c01aa61193970bf3fa6c098"
+      },
+      "id": "furn_bench_2c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_chair_1c__panelclad.collision.json",
+        "sha256": "eb6f1cdaea3f77943b05eca62939d038a49dbd4408440d6cd44571ffc0f8a025"
+      },
+      "glb": {
+        "bytes": 52132,
+        "path": "build/modules/furn_chair_1c__panelclad_lod0.glb",
+        "sha256": "daaa2ea380975961928da634fd1285c29b48b55ebe7245aa60d7c8acc60cd6eb"
+      },
+      "id": "furn_chair_1c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_chest_1c__panelclad.collision.json",
+        "sha256": "4e26dc2627b2c703360510341a0265d39dc7c01ca2f63a3241ef6ffa066d2de3"
+      },
+      "glb": {
+        "bytes": 26692,
+        "path": "build/modules/furn_chest_1c__panelclad_lod0.glb",
+        "sha256": "2c4786561dd80c9c52d280880872c41f1074c5c2c3e1fe70662ce63c8512bd6a"
+      },
+      "id": "furn_chest_1c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_corner_hearth__panelclad.collision.json",
+        "sha256": "cb530c19cd574dc661fc87908c6d8b09be07e2fd30f2234f35d8b3c0cc0d83b2"
+      },
+      "glb": {
+        "bytes": 54244,
+        "path": "build/modules/furn_corner_hearth__panelclad_lod0.glb",
+        "sha256": "d71acb059f615689232c700c67785f6935b20875be569e27fb59a40058910dac"
+      },
+      "id": "furn_corner_hearth__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_corner_shelf__panelclad.collision.json",
+        "sha256": "f33a4481c46711873cedd16ca40ac2703e37b70a376e0258c547f1f725dae78f"
+      },
+      "glb": {
+        "bytes": 43276,
+        "path": "build/modules/furn_corner_shelf__panelclad_lod0.glb",
+        "sha256": "c1ea8c47063e8ad717b9c4836e6cd199b5c25d616d461466001449590ed7ac51"
+      },
+      "id": "furn_corner_shelf__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_corner_store__panelclad.collision.json",
+        "sha256": "aa45949714aeb8b1786426c581b684a2b89b0e1ddee8bfe1c064088023f59a3c"
+      },
+      "glb": {
+        "bytes": 36920,
+        "path": "build/modules/furn_corner_store__panelclad_lod0.glb",
+        "sha256": "cdd89639fb4a1700189fccf10175db50551e669677bea182907ffe2d5ece00b8"
+      },
+      "id": "furn_corner_store__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_crate_stack__panelclad.collision.json",
+        "sha256": "79d36c1c70727abfb2d5e3369ca2ddf6c51fa548499e07c668ef46641578725d"
+      },
+      "glb": {
+        "bytes": 46740,
+        "path": "build/modules/furn_crate_stack__panelclad_lod0.glb",
+        "sha256": "f3293455ee6b9bc70f5651bf4a3622f3f498ae1cf8e345275785ba72e569c2d1"
+      },
+      "id": "furn_crate_stack__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_lamp_wall__panelclad.collision.json",
+        "sha256": "6cfecc94c25626a77cd0c015a9085f4b96639bb8d8172ced40951824273cf712"
+      },
+      "glb": {
+        "bytes": 37884,
+        "path": "build/modules/furn_lamp_wall__panelclad_lod0.glb",
+        "sha256": "32df49e6cd8b1b29c9cc70e779f8354c46a248d5044a5e993e786da846f790b5"
+      },
+      "id": "furn_lamp_wall__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_lamp_wall__sintered.collision.json",
+        "sha256": "c22d5a1ff6d38cb1a8b2342523b269648594644d44f8d25e8ec7c9b2cc901ee0"
+      },
+      "glb": {
+        "bytes": 36216,
+        "path": "build/modules/furn_lamp_wall__sintered_lod0.glb",
+        "sha256": "21958be5cb9be0047e54f2160264269b44d3ca57c6ed63bfe9a9524c3300a50e"
+      },
+      "id": "furn_lamp_wall__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_nightstand__panelclad.collision.json",
+        "sha256": "e54a64a0f8124cfa5002ba23e8286f5f3fbc917b418e566474a82a2efa114083"
+      },
+      "glb": {
+        "bytes": 36568,
+        "path": "build/modules/furn_nightstand__panelclad_lod0.glb",
+        "sha256": "6081b7c35d47c22c69dd0675f1102d4f7582eeddf3e8216e94f6fb53b444f547"
+      },
+      "id": "furn_nightstand__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_pendant_1c__panelclad.collision.json",
+        "sha256": "900b502c0bec5e00559e1165810886242d47e3e072ab8fc71613158119b225b9"
+      },
+      "glb": {
+        "bytes": 19988,
+        "path": "build/modules/furn_pendant_1c__panelclad_lod0.glb",
+        "sha256": "30739ce199caf2fba5c89d633e6b7cfd63d32716bf9725874cf13cd45b5987ee"
+      },
+      "id": "furn_pendant_1c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_planter_1c__panelclad.collision.json",
+        "sha256": "a9e6f4d565435cf0ccd792e77ab8c2f79ff5bc9f1534838fdfc133a1da8ee123"
+      },
+      "glb": {
+        "bytes": 75924,
+        "path": "build/modules/furn_planter_1c__panelclad_lod0.glb",
+        "sha256": "f28bee45812cb85ff8b65f99ef9191f121cbe591bb53d805e8714057166d67e3"
+      },
+      "id": "furn_planter_1c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_shelf_1c__panelclad.collision.json",
+        "sha256": "e4176b53db397cb627b0d395cebe6a9dba015c9d58d951bd5f9cee3d1abde461"
+      },
+      "glb": {
+        "bytes": 22204,
+        "path": "build/modules/furn_shelf_1c__panelclad_lod0.glb",
+        "sha256": "af9ac4c977ecf05e7498e5ee3139140bfcebb4eddfa923671269be2e5713c3d1"
+      },
+      "id": "furn_shelf_1c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_sideboard_2c__panelclad.collision.json",
+        "sha256": "cf6278917252fbba9509f870c684bb325da1f73a4b50f54bf4ec7fdc92f12335"
+      },
+      "glb": {
+        "bytes": 103340,
+        "path": "build/modules/furn_sideboard_2c__panelclad_lod0.glb",
+        "sha256": "4af41b2291d924ad5cb5597cebcca836265fac80c336c1c4139c6fb09d01c65d"
+      },
+      "id": "furn_sideboard_2c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_sink_1c__panelclad.collision.json",
+        "sha256": "60c38008176eb11ce38f3288556e5d02a9955224466a48a5d4622434b43789dc"
+      },
+      "glb": {
+        "bytes": 80468,
+        "path": "build/modules/furn_sink_1c__panelclad_lod0.glb",
+        "sha256": "145f539597efcb375ffd574d7cc6a3e8c721363d61d404f3d36ec1cfcc963bf4"
+      },
+      "id": "furn_sink_1c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_stool__panelclad.collision.json",
+        "sha256": "e255b57cae4c44ef1cd62a6853cd254b9c3c3004f391c75d16addaaf1dc186fd"
+      },
+      "glb": {
+        "bytes": 25828,
+        "path": "build/modules/furn_stool__panelclad_lod0.glb",
+        "sha256": "8e3941c7bd9b392f23a5ddcbf5a852a67ac9ef8fe0d2aea6b0f49dfb0247b57b"
+      },
+      "id": "furn_stool__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_stove_1c__panelclad.collision.json",
+        "sha256": "6383594f8bb1b657a8c67b96463d9648300dbcd88756d37adefbd6bb20d278f3"
+      },
+      "glb": {
+        "bytes": 83028,
+        "path": "build/modules/furn_stove_1c__panelclad_lod0.glb",
+        "sha256": "286452b4c3b0318acf963739dc363b0a080c59ec7a65d023469fe9fef90dfecf"
+      },
+      "id": "furn_stove_1c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_table_1c__panelclad.collision.json",
+        "sha256": "0c98020d398dd3019488bde502cbd44f4ee3f2b0bfdd6518edd271e4b9099ff6"
+      },
+      "glb": {
+        "bytes": 87728,
+        "path": "build/modules/furn_table_1c__panelclad_lod0.glb",
+        "sha256": "eef631cb8f1080bd97ffc512dfc0259aa12278ff846bca71f51ee70b4a9e7ecf"
+      },
+      "id": "furn_table_1c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/furn_wall_cab_1c__panelclad.collision.json",
+        "sha256": "021f42dbad8f1c69f3ef84b24407fa05f5b5e7aca5570b0d83beea04b05877c2"
+      },
+      "glb": {
+        "bytes": 30368,
+        "path": "build/modules/furn_wall_cab_1c__panelclad_lod0.glb",
+        "sha256": "c002028786a2f82e7e7fb89028c27dea243a427e09b9d013afce4f13f1108603"
+      },
+      "id": "furn_wall_cab_1c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/roof_deck_1x1__sintered.collision.json",
+        "sha256": "378a0eb82196f9c601bf8a208d56a3985dd9721cec2b3bf30a5ecff07e08b14c"
+      },
+      "glb": {
+        "bytes": 7480,
+        "path": "build/modules/roof_deck_1x1__sintered_lod0.glb",
+        "sha256": "c52c7c2396f96a500ce71552b9bffb8f6e6d0e08d4b37a9c6b1bdf864198244d"
+      },
+      "id": "roof_deck_1x1__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/roof_light_flat_1x1__sintered.collision.json",
+        "sha256": "ec25c1276ce93da0548d69ddd2b59a7569faadf22da3e9ef50491129dc1ca5be"
+      },
+      "glb": {
+        "bytes": 31300,
+        "path": "build/modules/roof_light_flat_1x1__sintered_lod0.glb",
+        "sha256": "a4402d54f0c4210ff56bd199e585b8d0fa91d8aec99399e82fd4ecc318cdd771"
+      },
+      "id": "roof_light_flat_1x1__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/roof_skirt_1c__sintered.collision.json",
+        "sha256": "88b16f5b877401e738b221f3406d7ea9d962d61e8fcd959698c3e23d76927d88"
+      },
+      "glb": {
+        "bytes": 11132,
+        "path": "build/modules/roof_skirt_1c__sintered_lod0.glb",
+        "sha256": "ab54cdde48a0d3453acf612414f1eef38970ce54be4ff6ce9fd59cdba9d2b06a"
+      },
+      "id": "roof_skirt_1c__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/roof_skirt_cham__sintered.collision.json",
+        "sha256": "a5b1739d599c2b32eaab19419b5ac88853b27dcd778a089b4f0dfe29ea43562b"
+      },
+      "glb": {
+        "bytes": 17676,
+        "path": "build/modules/roof_skirt_cham__sintered_lod0.glb",
+        "sha256": "048272d57c080f42fc373745c920a213e43821a43d5c0a5754ac239ace7b87f9"
+      },
+      "id": "roof_skirt_cham__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/wall_1c__panelclad.collision.json",
+        "sha256": "8568e361acc8909ea07c8fda190f550bee2f20dcf81855b098cda40d13f8eea4"
+      },
+      "glb": {
+        "bytes": 37044,
+        "path": "build/modules/wall_1c__panelclad_lod0.glb",
+        "sha256": "8afeaa32b2eacec3691659a33247ad4c9f1fe97b32c100f3b38ebee5d7703170"
+      },
+      "id": "wall_1c__panelclad",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/wall_1c__plasterlined.collision.json",
+        "sha256": "0c2d61b50b2e946dc5255dd7501f77c1d8e74d9bfce2bc80968ff02bb5fc2895"
+      },
+      "glb": {
+        "bytes": 30856,
+        "path": "build/modules/wall_1c__plasterlined_lod0.glb",
+        "sha256": "74410e082f5daeeb6287cc82612f16222832949711127df55194344a3a0ff769"
+      },
+      "id": "wall_1c__plasterlined",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/wall_1c__sintered.collision.json",
+        "sha256": "4d4c403a10a18d2f86d2130057381419352cb4e72e3b55f42ad9859ffe298154"
+      },
+      "glb": {
+        "bytes": 30872,
+        "path": "build/modules/wall_1c__sintered_lod0.glb",
+        "sha256": "8cc27185001276e324983f8951a02d082f46cc8ef49860f9e2171021c0410557"
+      },
+      "id": "wall_1c__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/wall_cham_1c__sintered.collision.json",
+        "sha256": "7cdccafeb63a1c45bb0737fee03b0f12d7ce6d6c39b7afbee681289f135759bb"
+      },
+      "glb": {
+        "bytes": 73472,
+        "path": "build/modules/wall_cham_1c__sintered_lod0.glb",
+        "sha256": "db0069922b7bf3df76e5f0af1dabe1abde7df3e47c581ce74585360147ed260f"
+      },
+      "id": "wall_cham_1c__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/wall_half_1c__sintered.collision.json",
+        "sha256": "75f7ffda5d40d12c0b8bc39b5426447e362741824477ad839adb201af372a028"
+      },
+      "glb": {
+        "bytes": 15636,
+        "path": "build/modules/wall_half_1c__sintered_lod0.glb",
+        "sha256": "fd80343697f16a2b65191368364b93d92a1f0fb12ec7494562cea273e92b9ad9"
+      },
+      "id": "wall_half_1c__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/wall_tee__sintered.collision.json",
+        "sha256": "fca493df6c485d954658e760ab2582b816356a145343f1d8b91a8528933325f8"
+      },
+      "glb": {
+        "bytes": 29360,
+        "path": "build/modules/wall_tee__sintered_lod0.glb",
+        "sha256": "4e1b83fcf02db2a585378efb4fcc1219795d14d2adc5acadb6c5ae24368fb851"
+      },
+      "id": "wall_tee__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/window_cler_1c__sintered.collision.json",
+        "sha256": "4831fba90fc06359e7af9818b7eb9d8ecf085f9aada2b5046f2359277957cb84"
+      },
+      "glb": {
+        "bytes": 51592,
+        "path": "build/modules/window_cler_1c__sintered_lod0.glb",
+        "sha256": "00fd72248187567a4329821e537112eef071c11a401aa740fa28cb4669c299d0"
+      },
+      "id": "window_cler_1c__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/window_slot_1c__sintered.collision.json",
+        "sha256": "26eae56a750e72a8d2819bade6efed096c9e69b40848e112130e7f95bef4da2d"
+      },
+      "glb": {
+        "bytes": 103048,
+        "path": "build/modules/window_slot_1c__sintered_lod0.glb",
+        "sha256": "a96856f26a86bcb2fd68c2fd862e02685076845ab2f7cbac1a62de6574e3b5b5"
+      },
+      "id": "window_slot_1c__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/collision/window_tall_2c__sintered.collision.json",
+        "sha256": "74fdbba411eb8d543e47f83731a29781d4ef8cfa97d9e7611742f65dd334bafd"
+      },
+      "glb": {
+        "bytes": 111208,
+        "path": "build/modules/window_tall_2c__sintered_lod0.glb",
+        "sha256": "97c17b52f2cc0a5db6858ab2d085dace6f9751914281612c208e1b7f03c498d4"
+      },
+      "id": "window_tall_2c__sintered",
+      "lane": "core"
+    },
+    {
+      "collision": {
+        "path": "build/expansion_furniture/collision/xs_san_basin_1c__panelclad.collision.json",
+        "sha256": "a5130d88eae351535a5414cef043a204efc38cc428345131149d96de69d4aea4"
+      },
+      "glb": {
+        "bytes": 137756,
+        "path": "build/expansion_furniture/modules/xs_san_basin_1c__panelclad_lod0.glb",
+        "sha256": "7df47d292086142ff1574aa377b6b28e3f345fd3fc6dd9e62e02b0d2779c0ee4"
+      },
+      "id": "xs_san_basin_1c__panelclad",
+      "lane": "expansion_furniture"
+    },
+    {
+      "collision": {
+        "path": "build/expansion_furniture/collision/xs_san_drain_1c__panelclad.collision.json",
+        "sha256": "45c79f2757c767fe5da8e7ccf500cb9396205d38f429fca8df0e330a159dd8b8"
+      },
+      "glb": {
+        "bytes": 71668,
+        "path": "build/expansion_furniture/modules/xs_san_drain_1c__panelclad_lod0.glb",
+        "sha256": "019c7e40030583d120174e9d7fcb52f3b9625a1a9b7d127f67b2a21fedb1c444"
+      },
+      "id": "xs_san_drain_1c__panelclad",
+      "lane": "expansion_furniture"
+    },
+    {
+      "collision": {
+        "path": "build/expansion_furniture/collision/xs_san_mirrorcab_1c__panelclad.collision.json",
+        "sha256": "7bc5220b55994e50ad3e30ededc0caa129a73ed5fd677f0ab5848ff3e1376b7c"
+      },
+      "glb": {
+        "bytes": 87640,
+        "path": "build/expansion_furniture/modules/xs_san_mirrorcab_1c__panelclad_lod0.glb",
+        "sha256": "d274a541dc499ea364d2fee9485ef4fab954220c7462bf6f4b4609f297ca3c3f"
+      },
+      "id": "xs_san_mirrorcab_1c__panelclad",
+      "lane": "expansion_furniture"
+    },
+    {
+      "collision": {
+        "path": "build/expansion_furniture/collision/xs_san_reclaimer_1c__panelclad.collision.json",
+        "sha256": "bcc9857f9bb6427b69146ca311ded29445666985e08105d85fca399315c7ecc9"
+      },
+      "glb": {
+        "bytes": 141768,
+        "path": "build/expansion_furniture/modules/xs_san_reclaimer_1c__panelclad_lod0.glb",
+        "sha256": "ece43fd2505a07e7ff88354cc7855bc2da2538cf519ffb13e03de8591f1e7501"
+      },
+      "id": "xs_san_reclaimer_1c__panelclad",
+      "lane": "expansion_furniture"
+    }
+  ],
+  "pack": {
+    "colour_accessors_quantized": 592,
+    "images_embedded": 0,
+    "pngs_normalized_rgba8": 27,
+    "unique_image_bytes": 0
+  },
+  "runtime_key": "home_modular_court",
+  "schema": "successor.runtime-building-provenance.v1",
+  "source_plan": "home_court",
+  "sources": [
+    {
+      "path": "src/package_runtime_buildings.py",
+      "sha256": "5f6e4f4d2c9f2f37fc2e4bdd4391a140e04ad2af7820bcc6a407395e74b7c9e1"
+    },
+    {
+      "path": "src/assemble_home.py",
+      "sha256": "236cc54de80f2e1cd0ab572fa5fdc0731e76de10617062fe8d6c227e50ab8692"
+    },
+    {
+      "path": "src/home_plan.py",
+      "sha256": "3f0bc706756a76fa5182b1b8f1e008d71fba087c25e6faeda66c1a131a02544b"
+    },
+    {
+      "path": "src/kit_grid.py",
+      "sha256": "b1cda4f166174d37edf25d64dd35d9fc108571676a8a1b5a417e29b0aa61fb19"
+    },
+    {
+      "path": "src/kit_spec.py",
+      "sha256": "04456196e9e3cbe5554f576fd61582ec03bee6e02db9c7212a870f267da53fae"
+    },
+    {
+      "path": "src/pack_runtime_glb.py",
+      "sha256": "694cfff9a23674c4be7846005f8b1b090ff5667cb554c632f2b5339abf232f6d"
+    },
+    {
+      "path": "build/buildkit.manifest.json",
+      "sha256": "3dad4470f218c43c7c3812c2d64a4a0cb4b17f56299a9fc0a3ed479fe406e59d"
+    }
+  ]
+}

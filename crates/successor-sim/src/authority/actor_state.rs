@@ -1066,6 +1066,10 @@ pub struct AuthorityActorSnapshot {
     #[serde(default)]
     pub shot_spread_degrees_milli: i32,
     #[serde(default)]
+    pub walk_speed_milli_per_second: i32,
+    #[serde(default)]
+    pub sprint_speed_milli_per_second: i32,
+    #[serde(default)]
     pub credits: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub combat_queue: Option<AuthorityCombatQueueSnapshot>,
@@ -1161,6 +1165,20 @@ impl AuthorityActorSnapshot {
                     )
                 })
                 .unwrap_or(0),
+            walk_speed_milli_per_second: scaled_milli(
+                PLAYER_SPEED_MILLI_CELLS_PER_SECOND,
+                movement_speed_multiplier_milli_for_actor(actor),
+            ),
+            sprint_speed_milli_per_second: scaled_milli(
+                PLAYER_SPEED_MILLI_CELLS_PER_SECOND,
+                scaled_milli(
+                    movement_speed_multiplier_milli_for_actor(actor),
+                    scaled_milli(
+                        SPRINT_SPEED_MULTIPLIER_MILLI,
+                        sprint_speed_multiplier_milli_for_actor(actor),
+                    ),
+                ),
+            ),
             credits: actor.professions.credits,
             combat_queue: AuthorityCombatQueueSnapshot::from_actor(actor),
             ability_queue: AuthorityAbilityQueueSnapshot::from_actor(actor),

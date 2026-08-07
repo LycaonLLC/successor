@@ -1,7 +1,13 @@
 # Successor Current Project State
 
-Status: current implementation inventory after the 2026-07-29 public-alpha
-release. Exact public hashes and pointers live in `CURRENT_DEPLOYMENT.md`.
+Status: current implementation inventory as of 2026-08-04, after the
+2026-07-29 public-alpha release. Exact public hashes and pointers live in
+`CURRENT_DEPLOYMENT.md`.
+
+Work in progress on `integration/rust-ui-runtime-20260803` is not described
+here as shipped. That branch's state, its open defects, and the reasoning
+behind them live in `HANDOFF_SUCCESSORGAMEWORKAUG4.md`. Nothing from it is
+merged to `main` or deployed.
 
 ## What is real now
 
@@ -15,8 +21,8 @@ The current release includes:
 - full-viewport browser play with no page content below the game;
 - a parent-owned exit/full-view control and ordinary visible cursor;
 - automatic keyboard focus, Enter-to-chat, and clean character switching;
-- exact creator appearance through roster, Rust checkpoint, relog, and world
-  rendering;
+- exact creator body, face, hair, and color appearance through roster, Rust
+  checkpoint, relog, and world rendering;
 - local, zone, and global chat in the graphical HUD and terminal client;
 - in-place world travel with inventory, equipment, skills, professions,
   vitals, credits, and appearance continuity;
@@ -35,14 +41,9 @@ characters.
 
 ## Supported repository shape
 
-There is one canonical checkout:
-
-```text
-~/dev/games/successor
-```
-
-It is on `main`, which is the only local long-lived branch and the only
-registered Successor worktree. The supported components are:
+The supported repository shape is defined by project-relative paths and does
+not depend on a checkout location, branch name, workstation, or worktree
+layout. The supported components are:
 
 | Path | Role |
 | --- | --- |
@@ -51,15 +52,74 @@ registered Successor worktree. The supported components are:
 | `client/` | Shared networking, commands, chat, state projection, audio rules, and headless automation |
 | `server/` | Account boundary, tickets, rooms, chat routing, persistence projection, and Rust bridge |
 | `crates/successor-sim/` | Deterministic gameplay authority |
-| `crates/successor-{core,inventory,net,wasm}/` | Shared Rust contracts and primitives |
+| `crates/successor-{core,inventory,movement,net,wasm}/` | Shared Rust contracts, collision kinematics, and primitives |
 | `desktop/` | Electron packaging and isolated local-authority lifecycle |
 | `site/` | Marketing, account, launch, legal, roadmap, and download presentation |
 | `ops/deploy/` | AWS infrastructure and immutable release/operator scripts |
+| `client-rust/` | Rust native/WebGL2 client workspace; source now includes the independently published `/beta/` WebGL2 route and release tooling, while native remains development-only |
 
 There is no supported 2D game client. `client/` has one headless entry point and
 contains no visual runtime; graphical presentation belongs to `client-3d/`.
 The checked-in slice and map bundle are renderer-neutral authority inputs, not
 an old 2D game.
+
+The standalone Rust client now runs the same authority-driven game runtime on
+native GL and WebGL2. Both targets consume the checked-in open-desert slice,
+props mapping, PawnForge bodies and equipment, streamed actors, structures,
+doors, extractors, camps, corpses, farms, clock, weather, receipts, compact
+acks, and combat events. The client submits typed `successor-net` commands.
+Continuous input uses wall-time cadence, bounded stop retries, an independent
+movement lane, and fixed-step prediction/replay against the same
+`successor-movement` swept-circle solver used by Rust authority. Applied
+movement command identity drives reconciliation; actor interpolation adapts to
+observed packet cadence. These remain projections of server and Rust-sim
+authority rather than a client-side gameplay fallback.
+
+The connected presentation uses a locked north-up orthographic camera, live
+terrain and props, complete pawn/equipment routing, environment grading,
+weather, bounded effects, immediate-mode HUD/windows, dock and toolbar,
+datapad, macros, options, and redacted bug reporting. Native connected audio
+uses the platform mixer. WebGL2 consumes the same `ConnectedScene`, requires a
+strict one-use launch envelope, fetches stable-id assets fail-closed, unlocks
+audio only after a gesture, renders correctly at resized viewports and through
+the forced RGBA8 fallback, and rebuilds GPU resources after WebGL context loss
+without resetting the live network session or authority projection.
+
+The renderer loads the versioned
+`client-rust/assets/render/settings.json` Low/Medium/High presets and exposes a
+Backquote graphics-mastering overlay through the existing immediate-mode UI.
+Lighting, shadows, AO/emissive response, bloom, FXAA, exposure, color grade,
+and palette quantization apply live. Native save uses atomic replacement;
+reload validates completely; web applies the checked-in document read-only.
+The current visual proof inspected all three pages, changed lighting and color,
+observed distinct pixels, saved/reloaded the override, and restored the exact
+checked-in defaults.
+
+Native developer builds retain the explicit loopback-only `successor-control`
+path. Nine connected journey groups and nine deterministic input replays cover
+the live command/window families; focused failure journeys cover launch,
+release/source/schema, packet, receipt, reconnect, chat-loss, required-asset,
+command-rejection, and authority-shutdown behavior. Chromium proof covers live
+entry, commands, selection/combat rejection, permanent windows, zoom, desktop
+and resized layouts, gesture-gated audio, forced half-float fallback, and
+context loss/recovery. A matched legacy `client-3d` frame confirms the same
+north-up fixture composition and authority state.
+
+The source now promotes WebGL2 as an opt-in beta without replacing the stable
+clients. The site has a real `/beta/` route and an independent
+`/beta/release.json` pointer; ticket minting and redemption bind stable and beta
+release ids end to end. Public Rust artifacts exclude URL launch capabilities,
+carry exact storefront/game/chat/client/server identities, and emit a
+deterministic hashed inventory. The native Rust build remains unshipped and the
+download ledger is unchanged.
+
+The stripped native and WebAssembly artifacts remain subject to the 6 MiB and
+4 MiB absolute caps. Standard runtime and connected frame loops must retain
+zero steady-state allocations, and runtime, terrain, render, and RSS gates
+remain below their absolute budgets. This source status does not claim that a
+beta pointer, server allowlist, site release, or public player journey has been
+promoted; those volatile identities belong only in `CURRENT_DEPLOYMENT.md`.
+
 
 Source assets and generated runtime assets have separate homes. PawnForge
 source work remains outside this repository; promoted GLBs, face atlases,
@@ -118,9 +178,9 @@ terminals in both areas. Runtime characters cannot claim an authored actor id.
 The fixture and map bundle are byte-stable generated source:
 
 - slice SHA-256:
-  `69a19db8289b0d4711ccca5d4febef39b8dcd2ef662f9f70539935e49af8680e`
+  `c21a81d9e511fa35d059a51eeb5ffc9f60d12b6d6cc63161930befb733bb5e2d`
 - map-bundle SHA-256:
-  `01df5d1d178a8199b5bbd62f7e2107f017f5ae2ba1ca45081bb0ecdbb8f65795`
+  `260687cb95cee5f783e134e3a401f7265d05f0403307fcd6b4283cec2f281cb2`
 
 The authority and clients have working foundations for roster/appearance,
 inventory/equipment, professions, combat and life state, surveying and
@@ -132,8 +192,9 @@ or presentation is finished.
 ## Character and durability contract
 
 The file-backed `successor.character-store.v2` record owns roster/profile
-metadata, complete appearance, bounded character records, and the one-way
-first-entry marker. Rust owns durable gameplay state. The checkpoint contains
+metadata, complete appearance including a canonical `male`/`female` body route,
+bounded character records, and the one-way first-entry marker. Rust owns
+durable gameplay state. The checkpoint contains
 inventory, equipment, position, vitals, profession and skill state, credits,
 recipes, and other actor progress.
 
@@ -210,7 +271,11 @@ picker or require a second click. Opening `/play/` directly still presents the
 picker as a recovery path. This source behavior is not public until a new site
 release is promoted.
 
-The face compositor uses a runtime-cut skinned overlay from the PawnForge body
+The creator exposes the two canonical PawnForge humanoid bodies. The persisted
+choice deterministically selects `adventurer-premium-male` or
+`adventurer-premium-female` in the authority, browser client, and native client;
+both share the same 50-joint/47-clip runtime contract and fixed starter outfit.
+The face compositor uses a runtime-cut skinned overlay from the selected body
 mesh. It shares the body skeleton and renders exact stored styles/colors in
 world pawns, roster dolls, paper dolls, and portraits.
 
@@ -221,21 +286,17 @@ There is no public TUI archive yet.
 
 ## Repository recovery and retained plans
 
-The 2026-07-28 cleanup reduced 210 registered worktrees to the one canonical
-checkout. Every old ref, worktree tip, dirty patch, non-reproducible payload,
-and the corrupt-checkout raw tree was preserved before removal at:
-
-```text
-~/dev/releases/successor-preconsolidation-20260728T1811-MDT
-```
-
-The verified `successor-all-refs.bundle` and `SHA256SUMS` are the recovery
-boundary. Do not recreate the full worktree farm; extract one named item into a
-temporary worktree and reevaluate it against `main`.
+The 2026-07-28 repository cleanup preserved old refs, dirty patches,
+non-reproducible payloads, and a corrupt-checkout raw tree in an external
+pre-consolidation archive. The verified `successor-all-refs.bundle` and
+`SHA256SUMS` identify that recovery boundary. Its storage location is
+environment-specific and must be supplied explicitly when recovery is needed.
+Do not recreate the former worktree farm; extract one named item into an
+isolated checkout and reevaluate it against the current source tree.
 
 Eleven useful Creative Wave briefs remain under `docs/future/` with explicit
 non-current status. They were not deleted. The unfinished property/farming
-iteration remains excluded from `main` as archive commit
+iteration remains excluded from the current source as archive commit
 `fa7a9977200f1e668e26a04a08a24e4e654eca94` and
 `property-farm-wip.patch` in the recovery archive. It contains partial
 land-claim, parcel, starter-seed, server projection, and farm-HUD work; it is
@@ -258,6 +319,6 @@ The next work should be chosen from these actual gaps:
 6. Continue real game content, balance, onboarding, performance budgets, and
    focused visual gates. The systems breadth is ahead of the playable content.
 
-`main` may contain documentation or site changes newer than the deployed
+The development source may contain documentation or site changes newer than the deployed
 authority. Built, published, promoted, and player-verified states must always
 be reported separately.

@@ -1,0 +1,31 @@
+{
+  "asset_id": "successor_humanoid_source_rb_v4_anim",
+  "asset_path": "content-pipeline/labs/humanoid-runtime-refit/source/male/rb_v4_anim.glb",
+  "asset_hash": "sha256:dd6d99baa5de4cbe585fc7075eb9e5bb3cc0006d809ca2655095a533a43f8be5",
+  "asset_kind": "model_glb",
+  "tool": {
+    "name": "Khronos glTF Blender I/O",
+    "version": "5.2.39",
+    "tool_snapshot_id": null
+  },
+  "prompt": {
+    "text": "Export the approved stylized Successor male body on the canonical 50-joint runtime rig and retain the complete 47-clip runtime animation set.",
+    "denylist_audit": "passed:tools/denylist/check.sh",
+    "negative_terms": []
+  },
+  "seed": null,
+  "request_id": null,
+  "human_edits": [
+    {
+      "by": "Successor PawnForge body iteration lane",
+      "date": "2026-08-01T06:24:55Z",
+      "summary": "Refined the body silhouette and faceting, then rebound and gate-verified the runtime animation set."
+    }
+  ],
+  "review": {
+    "art_director": "Michael Kelly",
+    "approved_at": "2026-08-01T06:24:55Z",
+    "notes": "Pinned as the approved male source for the humanoid runtime refit and retained with its measured sidecar."
+  },
+  "regeneration_command": null
+}

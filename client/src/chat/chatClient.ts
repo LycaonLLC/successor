@@ -80,6 +80,8 @@ export interface ChatClientOptions {
   onBubble?: (message: ChatBubbleMessage) => void;
   /** Standalone capability; sent once as the first websocket frame. */
   authTicket?: string;
+  /** Exact release bound into the standalone chat capability. */
+  authReleaseId?: string;
   onFailure?: (reason: "chat-failed") => void;
   /** Node clients supply a socket carrying an exact Origin header for the
    *  server's admission policy; browsers keep the native constructor. */
@@ -302,7 +304,12 @@ function connectChat(
   socket.addEventListener("open", () => {
     if (state.socket !== socket || state.manuallyClosed) return;
     if (options.authTicket) {
-      socket.send(JSON.stringify({ type: "chat.authenticate", chatTicket: options.authTicket }));
+      if (!options.authReleaseId) throw new Error("standalone chat release id required");
+      socket.send(JSON.stringify({
+        type: "chat.authenticate",
+        chatTicket: options.authTicket,
+        release: options.authReleaseId,
+      }));
       options.authTicket = undefined;
     }
     state.connected = true;

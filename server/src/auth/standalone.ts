@@ -1,5 +1,5 @@
 import type { LaunchProvenance, LaunchPurpose, RedeemedLaunch } from "../alpha/index.js";
-import type { CharacterRecord, CharacterStore } from "../game/characterStore.js";
+import { characterSpriteForAppearance, type CharacterRecord, type CharacterStore } from "../game/characterStore.js";
 import { characterAuthoritySeed } from "../game/characterAuthoritySeed.js";
 import type { GameActorAppearanceSnapshot, GameActorSnapshot, GameActorVitals, GameActorWornPiece } from "../game/protocol.js";
 import type { ChatSessionIdentity } from "../chat/hub.js";
@@ -13,6 +13,7 @@ export interface StandaloneLaunchIdentity extends ChatSessionIdentity {
   readonly characterId: string;
   readonly returningCharacter: boolean;
   readonly appearance: GameActorAppearanceSnapshot;
+  readonly sprite: string;
   readonly worn: GameActorWornPiece[];
   readonly wornColors: Record<string, string[]>;
   readonly professionIds: string[];
@@ -53,14 +54,19 @@ export async function redeemStandaloneLaunch(
   purpose: LaunchPurpose,
   controlStore: StandaloneLaunchStore,
   characterStore: CharacterStore,
-  config: Pick<RuntimeAuthConfig, "shardId" | "clientReleaseId" | "serverReleaseId" | "issuer">,
+  config: Pick<RuntimeAuthConfig, "shardId" | "clientReleaseId" | "acceptedClientReleaseIds" | "serverReleaseId" | "issuer">,
   isCharacterIdReserved?: (characterId: string) => boolean,
+  presentedClientReleaseId = config.clientReleaseId,
 ): Promise<StandaloneLaunchIdentity> {
+  const acceptedReleases = config.acceptedClientReleaseIds ?? [config.clientReleaseId];
+  if (!acceptedReleases.includes(presentedClientReleaseId)) {
+    throw new Error("client release is not accepted");
+  }
   const launch = await controlStore.redeemCapability({
     token,
     purpose,
     shardId: config.shardId,
-    clientReleaseId: config.clientReleaseId,
+    clientReleaseId: presentedClientReleaseId,
     serverReleaseId: config.serverReleaseId,
     issuer: config.issuer,
   });
@@ -101,6 +107,7 @@ export function standaloneIdentity(launch: RedeemedLaunch, character: CharacterR
     characterId: character.id,
     returningCharacter: character.worldEntryClaimed,
     appearance,
+    sprite: characterSpriteForAppearance(character.appearance),
     worn: character.worn.map((entry) => ({ item: entry.item, colors: [...entry.colors] })),
     wornColors: Object.fromEntries(Object.entries(character.wornColors).map(([item, colors]) => [item, [...colors]])),
     professionIds: authoritySeed.professionIds ?? [],

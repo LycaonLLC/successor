@@ -1,0 +1,29 @@
+{
+  "body": "pawn_female_refined.glb",
+  "source_repository": "ssh://bunker/home/lycaon/git/successor.git",
+  "source_branch": "body-refine-20260802",
+  "source_commit": "d3fdfa2831bf938c0d9c8bf06f8796a00a935af5",
+  "source_sha256": "bd99fdb32fc40291780d92b1494f07a428c439204b306a2a6d32d2bc403c0c8b",
+  "clips_from": "hash-pinned runtime shell during promotion",
+  "actions": 0,
+  "runtime_actions": 47,
+  "verts": 3262,
+  "tris": 5882,
+  "height": 1.7525,
+  "vertex_groups": 50,
+  "head": {
+    "method": "reviewed shared-topology 10-ring, 16-column faceted head and neck graft",
+    "face_panel_faces": 56,
+    "art_gates": {
+      "depth_over_height": true,
+      "rear_fill": true,
+      "occiput_peak": true
+    }
+  },
+  "hands": {
+    "source": "verified legacy runtime hands",
+    "unchanged_by_body_refinement": true,
+    "islands_per_side": 36
+  },
+  "review": "Final Bunker humanoid refinement; immutable, head, transition, animation-proof, and viewer gates completed before commit."
+}

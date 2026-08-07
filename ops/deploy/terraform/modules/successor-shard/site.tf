@@ -237,6 +237,23 @@ resource "aws_cloudfront_distribution" "site" {
     }
   }
 
+  dynamic "ordered_cache_behavior" {
+    for_each = toset(["/client/release.json", "/beta/release.json"])
+    content {
+      path_pattern               = ordered_cache_behavior.value
+      target_origin_id           = "site-s3"
+      viewer_protocol_policy     = "redirect-to-https"
+      allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+      cached_methods             = ["GET", "HEAD"]
+      cache_policy_id            = data.aws_cloudfront_cache_policy.site_dynamic.id
+      response_headers_policy_id = aws_cloudfront_response_headers_policy.site_security.id
+      function_association {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.site_rewrite.arn
+      }
+    }
+  }
+
   ordered_cache_behavior {
     path_pattern               = "/alpha-api/*"
     target_origin_id           = "successor-alb"

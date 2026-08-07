@@ -1,0 +1,397 @@
+{
+  "failures": [
+    "female: hat_field_cap floats 10.7 mm off the head (> 3 mm)",
+    "male: lightning_carbine grip buried 65.9 mm (> 30 mm)",
+    "female: lightning_carbine grip buried 65.9 mm (> 30 mm)",
+    "male: wpn_carbine grip buried 66.2 mm (> 30 mm)",
+    "female: wpn_carbine grip buried 66.2 mm (> 30 mm)",
+    "male: wpn_launcher grip buried 64.9 mm (> 30 mm)",
+    "female: wpn_launcher grip buried 64.9 mm (> 30 mm)",
+    "male: wpn_smg grip buried 66.2 mm (> 30 mm)",
+    "female: wpn_smg grip buried 66.2 mm (> 30 mm)",
+    "male: wpn_sniper grip buried 66.2 mm (> 30 mm)",
+    "female: wpn_sniper grip buried 66.2 mm (> 30 mm)"
+  ],
+  "items": {
+    "field_saber": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -19.017,
+        "max_depth_mm": 19.017,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      },
+      "male": {
+        "clearance_mm": -19.018,
+        "max_depth_mm": 19.018,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      }
+    },
+    "hat_field_cap": {
+      "bone": "head",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": 10.738,
+        "max_depth_mm": 0.0,
+        "mount_world_pos": [
+          0.0,
+          1.55,
+          -0.0
+        ]
+      },
+      "male": {
+        "clearance_mm": -1.253,
+        "max_depth_mm": 1.253,
+        "mount_world_pos": [
+          0.0,
+          1.55,
+          -0.0
+        ]
+      }
+    },
+    "lightning_carbine": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -65.902,
+        "max_depth_mm": 65.902,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "male": {
+        "clearance_mm": -65.902,
+        "max_depth_mm": 65.902,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      }
+    },
+    "plasma_hilt": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": 58.944,
+        "max_depth_mm": 0.0,
+        "mount_world_pos": [
+          -0.933,
+          1.49021,
+          0.14622
+        ]
+      },
+      "male": {
+        "clearance_mm": 58.945,
+        "max_depth_mm": 0.0,
+        "mount_world_pos": [
+          -0.933,
+          1.49021,
+          0.14622
+        ]
+      }
+    },
+    "plasma_sword": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -4.527,
+        "max_depth_mm": 4.527,
+        "mount_world_pos": [
+          -0.87898,
+          1.42687,
+          0.01134
+        ]
+      },
+      "male": {
+        "clearance_mm": -4.525,
+        "max_depth_mm": 4.525,
+        "mount_world_pos": [
+          -0.87898,
+          1.42687,
+          0.01134
+        ]
+      }
+    },
+    "quarry_chopper": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -8.216,
+        "max_depth_mm": 8.216,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      },
+      "male": {
+        "clearance_mm": -8.215,
+        "max_depth_mm": 8.215,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      }
+    },
+    "scrapline_machete": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -8.622,
+        "max_depth_mm": 8.622,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      },
+      "male": {
+        "clearance_mm": -8.621,
+        "max_depth_mm": 8.621,
+        "mount_world_pos": [
+          -0.88102,
+          1.42927,
+          0.01644
+        ]
+      }
+    },
+    "slugthrower": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -6.753,
+        "max_depth_mm": 6.753,
+        "mount_world_pos": [
+          -0.95308,
+          1.40112,
+          0.05585
+        ]
+      },
+      "male": {
+        "clearance_mm": -6.751,
+        "max_depth_mm": 6.751,
+        "mount_world_pos": [
+          -0.95308,
+          1.40112,
+          0.05585
+        ]
+      }
+    },
+    "vibrosword": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -8.307,
+        "max_depth_mm": 8.307,
+        "mount_world_pos": [
+          -0.933,
+          1.49021,
+          0.14622
+        ]
+      },
+      "male": {
+        "clearance_mm": -8.306,
+        "max_depth_mm": 8.306,
+        "mount_world_pos": [
+          -0.933,
+          1.49021,
+          0.14622
+        ]
+      }
+    },
+    "wpn_assault": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -4.988,
+        "max_depth_mm": 4.988,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "male": {
+        "clearance_mm": -4.987,
+        "max_depth_mm": 4.987,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      }
+    },
+    "wpn_carbine": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "male": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      }
+    },
+    "wpn_heavy": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -4.988,
+        "max_depth_mm": 4.988,
+        "mount_world_pos": [
+          -1.12789,
+          1.3512,
+          -0.04882
+        ]
+      },
+      "male": {
+        "clearance_mm": -4.987,
+        "max_depth_mm": 4.987,
+        "mount_world_pos": [
+          -1.12789,
+          1.3512,
+          -0.04882
+        ]
+      }
+    },
+    "wpn_launcher": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -64.904,
+        "max_depth_mm": 64.904,
+        "mount_world_pos": [
+          -1.12789,
+          1.3512,
+          -0.04882
+        ]
+      },
+      "male": {
+        "clearance_mm": -64.904,
+        "max_depth_mm": 64.904,
+        "mount_world_pos": [
+          -1.12789,
+          1.3512,
+          -0.04882
+        ]
+      }
+    },
+    "wpn_pistol": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -8.806,
+        "max_depth_mm": 8.806,
+        "mount_world_pos": [
+          -0.96525,
+          1.3933,
+          -0.03986
+        ]
+      },
+      "male": {
+        "clearance_mm": -8.806,
+        "max_depth_mm": 8.806,
+        "mount_world_pos": [
+          -0.96525,
+          1.3933,
+          -0.03986
+        ]
+      }
+    },
+    "wpn_shotgun": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -8.645,
+        "max_depth_mm": 8.645,
+        "mount_world_pos": [
+          -1.17527,
+          1.33959,
+          -0.03814
+        ]
+      },
+      "male": {
+        "clearance_mm": -8.644,
+        "max_depth_mm": 8.644,
+        "mount_world_pos": [
+          -1.17527,
+          1.33959,
+          -0.03814
+        ]
+      }
+    },
+    "wpn_smg": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "male": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      }
+    },
+    "wpn_sniper": {
+      "bone": "hand_r",
+      "delta_pos_mm": 0.0,
+      "female": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      },
+      "male": {
+        "clearance_mm": -66.176,
+        "max_depth_mm": 66.176,
+        "mount_world_pos": [
+          -1.09909,
+          1.35926,
+          -0.03486
+        ]
+      }
+    }
+  },
+  "limits": {
+    "grip_depth_mm": 30.0,
+    "head_float_mm": 3.0,
+    "variant_pos_mm": 1.0
+  },
+  "schema": "successor.rigid-mount-fit.v1"
+}

@@ -28,7 +28,7 @@ const DRESSED_RECORD: CharacterApiRecord = {
   id: "char-dressed",
   ownerRef: "acct-1",
   name: "Chungas",
-  appearance: { skinTone: "#4a3223", hair: "hair_afro2", hairMat: "hair_crimson", face: null },
+  appearance: { body: "female", skinTone: "#4a3223", hair: "hair_afro2", hairMat: "hair_crimson", face: null },
   worn: [{ item: "top_rigged_tank", colors: ["#804040", "#3f7472"] }],
   position: null,
   lastLogoutAt: null,
@@ -99,6 +99,7 @@ describe("character creator blank draft", () => {
     root.querySelector<HTMLButtonElement>('[data-ref="newButton"]')!.click();
 
     const probe = window.__successor3dCharacterSelect!;
+    expect(dollAppearances.at(-1)?.body).toBe("male");
     expect(probe.mode).toBe("create");
     // Blank canonical draft: SHAVED — no selected appearance, hair, or dye
     // state retained. Clothing is not draft state at all: the doll previews
@@ -162,6 +163,8 @@ describe("character creator blank draft", () => {
     await vi.waitFor(() => expect(window.__successor3dCharacterSelect?.characterCount).toBe(1));
 
     root.querySelector<HTMLButtonElement>('[data-ref="newButton"]')!.click();
+    root.querySelectorAll<HTMLButtonElement>('[data-ref="bodyStepper"] button')[1]!.click();
+    expect(dollAppearances.at(-1)?.body).toBe("female");
     const createButton = root.querySelector<HTMLButtonElement>('[data-ref="createButton"]')!;
     expect(createButton.disabled).toBe(true);
     expect(window.__successor3dCharacterSelect?.draftInitialProfessionId).toBeNull();
@@ -179,6 +182,7 @@ describe("character creator blank draft", () => {
       name: "Bruiser",
       initialProfessionId: "brawler",
       appearance: {
+        body: "female",
         face: {
           eyes: "stoic",
           brows: "stoic",
@@ -220,9 +224,10 @@ describe("character creator blank draft", () => {
     expect(root.querySelector('[data-ref="wardrobeSections"]')).toBeNull();
     expect(root.querySelectorAll(".sc3d-cs-stepper[data-slot]")).toHaveLength(0);
     expect(root.querySelectorAll(".sc3d-cs-zonelabel")).toHaveLength(0);
-    // Appearance steppers: HAIR plus the four FACE feature steppers — still
-    // zero clothing steppers ([data-slot] stays empty).
-    expect(root.querySelectorAll(".sc3d-cs-stepper")).toHaveLength(5);
+    // Appearance steppers: BODY, HAIR, and the four FACE feature steppers —
+    // still zero clothing steppers ([data-slot] stays empty).
+    expect(root.querySelectorAll(".sc3d-cs-stepper")).toHaveLength(6);
+    expect(root.querySelector('[data-ref="bodyStepper"]')).not.toBeNull();
     expect(root.querySelector('[data-ref="hairStepper"]')).not.toBeNull();
     for (const ref of ["faceEyesStepper", "faceBrowsStepper", "faceNoseStepper", "faceMouthStepper"]) {
       expect(root.querySelector(`[data-ref="${ref}"]`)).not.toBeNull();

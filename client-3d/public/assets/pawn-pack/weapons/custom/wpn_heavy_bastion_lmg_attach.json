@@ -36,6 +36,11 @@
       0,
       0,
       0.1
+    ],
+    "foregrip_contact": [
+      0,
+      -0.0262,
+      0.1121
     ]
   },
   "orientation": {
@@ -76,7 +81,13 @@
       -45,
       0
     ],
+    "arc_lift": 0.14,
     "derivation": "Copied from accepted STEN back-carry contract; geometry-independent root mount."
   },
-  "provenance": "reset-zero-01 modular family; textured via STEN 2048 atlas bake pattern (bake_modular.py, deterministic)."
+  "provenance": "reset-zero-01 modular family; textured via STEN 2048 atlas bake pattern (bake_modular.py, deterministic).",
+  "support_hand_derivation": "Authored support-WRIST target measured from THIS model's own shroud, replacing the global foregrip contact offset (which assumes the legacy handguard radius at scale 1 and buried the wrist inside fat / scaled / caged housings). y = -(shroud half-height - 0.003) leaves the wrist ~3 mm inside the shroud shell, matching the measured contact on the accepted Kiln carbine (-2.9 mm); z = shroud mid-length, which also walks the forearm forward off the side magazine and the front canister cage.",
+  "hold": {
+    "resting_yaw_deg": 24.06,
+    "derivation": "Bastion LMG carries the longest tail behind the grip in the catalogue (0.424 m from grip socket to butt), and at the class-default resting yaw (0.1 rad / 5.7 deg) its Module_stock PENETRATED the right upper arm during rifle_run_f (-13.5 mm). Bore leveling pins pitch and yaw about the grip socket, so the tail can only be moved by the resting bore yaw - and because the correction pivots ON the grip, the firing-hand weld is untouched. Swept 0.10-0.60 rad in the live Lab across idle/walk/run(x2)/fire/reload(eject,pouch,seat) on both bodies and re-measured after each authored change: 0.30 rad still left -11.7 mm at run, 0.35 rad only +0.6 mm. 0.42 rad (24.06 deg) is the first value with real margin on BOTH bodies in EVERY pose, and it stays under boreLevel.maxYawCorrectionRad (0.45) where the correction saturates. Support-hand contact is unchanged at -3.0 mm."
+  }
 }

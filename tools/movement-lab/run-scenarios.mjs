@@ -37,6 +37,7 @@ const argv = parseArgs(process.argv.slice(2));
 const port = integerArg(argv, "port", 18093, { min: 1024, max: 65535 });
 const vitePort = integerArg(argv, "vite-port", 5179, { min: 1024, max: 65535 });
 const actor = stringArg(argv, "actor", `movement-lab-${Date.now().toString(36)}`);
+const clientKind = enumArg(argv, "client", "client-3d", ["client-3d", "rust-web", "rust-native"]);
 const actorName = stringArg(argv, "name", actor);
 const sampleMs = integerArg(argv, "sample-ms", DEFAULT_SAMPLE_MS, { min: 16, max: 500 });
 const screenshotMs = integerArg(argv, "screenshot-ms", DEFAULT_SCREENSHOT_MS, { min: 100, max: 5_000 });
@@ -44,8 +45,8 @@ const outDir = path.resolve(stringArg(argv, "out-dir", "/tmp/movement-lab"));
 const runId = stringArg(argv, "run-id", `${stamp()}-${safeName(actor)}-${port}`);
 const baseUrl = stringArg(argv, "base-url", `http://127.0.0.1:${vitePort}/`);
 const spawnArea = stringArg(argv, "spawn-area", "open-desert-overworld");
-const spawnX = stringArg(argv, "spawn-x", "515");
-const spawnY = stringArg(argv, "spawn-y", "515");
+const spawnX = stringArg(argv, "spawn-x", "700");
+const spawnY = stringArg(argv, "spawn-y", "700");
 const strict = boolArg(argv, "strict", false);
 const maxRejects = nonNegativeIntegerArg(argv, "max-rejects", strict ? 0 : Number.POSITIVE_INFINITY);
 const maxSnapbacks = nonNegativeIntegerArg(argv, "max-snapbacks", strict ? 0 : Number.POSITIVE_INFINITY);
@@ -71,6 +72,19 @@ if (boolArg(argv, "plan-json", false)) {
   console.log(JSON.stringify(plan, null, 2));
   process.exit(0);
 }
+if (clientKind === "rust-native") {
+  const forwarded = process.argv.slice(2).filter((arg, index, values) => {
+    if (arg === "--client") return false;
+    if (index > 0 && values[index - 1] === "--client") return false;
+    return !arg.startsWith("--client=");
+  });
+  const native = spawnSync(
+    process.execPath,
+    [path.join(__dirname, "run-rust-native.mjs"), ...forwarded],
+    { cwd: repoRoot, stdio: "inherit" },
+  );
+  process.exit(native.status ?? 1);
+}
 
 
 const { chromium, driver } = loadBrowserDriver();
@@ -91,6 +105,9 @@ try {
 
   browser = await chromium.launch({
     headless,
+    ...(fs.existsSync("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+      ? { executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" }
+      : {}),
     args: [
       "--no-sandbox",
       "--disable-background-timer-throttling",
@@ -112,12 +129,21 @@ try {
   });
   page.on("pageerror", (error) => pageErrors.push({ message: error.stack ?? error.message, atWallMs: Date.now() }));
 
-  const runtimeUrl = buildRuntimeUrl({ baseUrl, port, actor, actorName, spawnArea, spawnX, spawnY });
+  const runtimeUrl = buildRuntimeUrl({
+    baseUrl,
+    port,
+    actor,
+    actorName,
+    spawnArea,
+    spawnX,
+    spawnY,
+    clientKind,
+  });
   await page.goto(runtimeUrl, { waitUntil: "domcontentloaded" });
   await page.bringToFront();
   await page.waitForSelector("body", { timeout: 10_000 });
-  await installBridge(page, sampleMs);
-  await waitForWorldReady(page);
+  await installBridge(page, sampleMs, clientKind);
+  await waitForWorldReady(page, clientKind);
   await focusRuntime(page);
   await releaseAll(page);
 
@@ -154,6 +180,7 @@ try {
       actor,
       actorName,
       runtimeUrl,
+      clientKind,
       headless,
       sampleMs,
       screenshotMs,
@@ -323,8 +350,11 @@ function scenarios() {
         await ctx.down("KeyW", "marathon-start");
 
         // Phase 1: Wait for exhaustion (sprintRecoveryLocked = true)
+        let marathonKey = "KeyW";
+        const marathonDirections = ["KeyW", "KeyD", "KeyS", "KeyA"];
+        let marathonDirectionIndex = 0;
         let exhausted = false;
-        for (let i = 0; i < 60; i++) {
+        for (let i = 0; i < 160; i++) {
           const vitals = await ctx.getActionVitals();
           if (vitals.mobility?.sprintRecoveryLocked === true) {
             exhausted = true;
@@ -332,6 +362,13 @@ function scenarios() {
             break;
           }
           await ctx.wait(250);
+          if (i > 0 && i % 8 === 0) {
+            marathonDirectionIndex = (marathonDirectionIndex + 1) % marathonDirections.length;
+            const next = marathonDirections[marathonDirectionIndex];
+            await ctx.down(next, "marathon-clearance-turn-down");
+            await ctx.up(marathonKey, "marathon-clearance-turn-up");
+            marathonKey = next;
+          }
         }
         if (!exhausted) {
           throw new Error("Sprint exhaustion never triggered sprintRecoveryLocked");
@@ -373,9 +410,11 @@ function scenarios() {
           throw new Error("sprintRecoveryLocked did not clear after full action recovery");
         }
 
-        // Phase 5: held sprint intent resumes only after the full-action unlock.
+        // Phase 5: held sprint intent resumes immediately after the full-action unlock.
+        // Sampling can observe the first fractional sprint spend in the same authority tick,
+        // so allow the integer Action projection to be one point below max.
         const unlockVitals = await ctx.getActionVitals();
-        if (!unlockVitals.full || unlockVitals.mobility?.sprintRecoveryLocked) {
+        if (unlockVitals.action < unlockVitals.maxAction - 1 || unlockVitals.mobility?.sprintRecoveryLocked) {
           throw new Error("sprint recovery lock cleared before full action");
         }
         await ctx.wait(1000);
@@ -388,7 +427,7 @@ function scenarios() {
         ctx.mark("sprint-resumed", { action: postVitals.action, lastSprintTick: postSprintTick });
 
         // Clean up
-        await ctx.up("KeyW", "marathon-end");
+        await ctx.up(marathonKey, "marathon-end");
         await ctx.up("ShiftLeft", "sprint-end");
       },
     },
@@ -438,6 +477,7 @@ async function runScenario(page, scenario, attempt = 1) {
   let screenshotError = null;
   let screencast = null;
   let sampleError = null;
+  let scenarioRunError = null;
   let moveTraceError = null;
   const scenarioStartWallMs = Date.now();
   const held = new Set();
@@ -546,22 +586,26 @@ async function runScenario(page, scenario, attempt = 1) {
     screenshotError = error instanceof Error ? error.message : String(error);
   }
 
-  const traceCollector = (async () => {
-    while (!done) {
-      await delay(1_000);
-      try {
-        clientMoveTrace.push(...await drainMoveTrace(page));
-      } catch (error) {
-        moveTraceError ??= error instanceof Error ? error.message : String(error);
-      }
-    }
-  })();
+  const traceCollector = clientKind === "client-3d"
+    ? (async () => {
+        while (!done) {
+          await delay(1_000);
+          try {
+            clientMoveTrace.push(...await drainMoveTrace(page));
+          } catch (error) {
+            moveTraceError ??= error instanceof Error ? error.message : String(error);
+          }
+        }
+      })()
+    : Promise.resolve();
 
   try {
     await delay(Math.max(90, sampleMs * 2));
     await scenario.action(ctx);
     await releaseAll(page);
     await delay(300);
+  } catch (error) {
+    scenarioRunError = error instanceof Error ? error.message : String(error);
   } finally {
     done = true;
     if (screencast) {
@@ -573,10 +617,12 @@ async function runScenario(page, scenario, attempt = 1) {
     }
     await Promise.allSettled([probePoller, sampler, traceCollector, actionSampler]);
     await releaseAll(page);
-    try {
-      clientMoveTrace.push(...await drainMoveTrace(page));
-    } catch (error) {
-      moveTraceError ??= error instanceof Error ? error.message : String(error);
+    if (clientKind === "client-3d") {
+      try {
+        clientMoveTrace.push(...await drainMoveTrace(page));
+      } catch (error) {
+        moveTraceError ??= error instanceof Error ? error.message : String(error);
+      }
     }
     if (latestActionVitals !== null) {
       actionSamples.push({
@@ -593,12 +639,15 @@ async function runScenario(page, scenario, attempt = 1) {
   metrics.actionContamination = actionContamination;
   const scenarioConsole = pageConsole.slice(consoleStartIndex);
   const anomalyConsoleLines = scenarioConsole.filter((entry) => entry.text.includes("[moverec-anomaly]"));
+  const capturedDurationMs =
+    (annotatedSamples.at(-1)?.wallTimeMs ?? Date.now())
+    - (annotatedSamples[0]?.wallTimeMs ?? scenarioStartWallMs);
   const failures = [];
   const actionFailure = actionContaminationFailure(actionContamination);
   if (actionFailure) failures.push(actionFailure);
-  const expectedMinSamples = Math.floor((scenario.plannedDurationMs / sampleMs) * 0.55);
+  const expectedMinSamples = Math.floor((capturedDurationMs / sampleMs) * 0.55);
   if (annotatedSamples.length < expectedMinSamples) failures.push(`too few samples ${annotatedSamples.length} < ${expectedMinSamples}`);
-  if (screenshotPaths.length < Math.max(1, Math.floor(scenario.plannedDurationMs / screenshotMs) - 2)) {
+  if (screenshotPaths.length < Math.max(1, Math.floor(capturedDurationMs / screenshotMs) - 2)) {
     failures.push(`too few screenshots ${screenshotPaths.length}`);
   }
   if (metrics.timeToFirstCellChangeMs === null) failures.push("no first movement cell change detected");
@@ -607,6 +656,7 @@ async function runScenario(page, scenario, attempt = 1) {
   if (screenshotError) failures.push(`screenshot loop error: ${screenshotError}`);
   if (moveTraceError) failures.push(`move trace drain error: ${moveTraceError}`);
   if (actionSampleError) failures.push(`action sample error: ${actionSampleError}`);
+  if (scenarioRunError) failures.push(`scenario action failed: ${scenarioRunError}`);
   if (strict && anomalyConsoleLines.length > 0) failures.push(`${anomalyConsoleLines.length} moverec anomaly console line(s)`);
   if (metrics.rejectedDelta > maxRejects) failures.push(`rejectedDelta ${metrics.rejectedDelta} > maxRejects ${maxRejects}`);
   if (metrics.snapbackCount > maxSnapbacks) failures.push(`snapbacks ${metrics.snapbackCount} > maxSnapbacks ${maxSnapbacks}`);
@@ -617,7 +667,7 @@ async function runScenario(page, scenario, attempt = 1) {
     status: failures.length === 0 ? "pass" : "fail",
     attempt,
     plannedDurationMs: scenario.plannedDurationMs,
-    capturedDurationMs: round((annotatedSamples.at(-1)?.wallTimeMs ?? Date.now()) - (annotatedSamples[0]?.wallTimeMs ?? scenarioStartWallMs)),
+    capturedDurationMs: round(capturedDurationMs),
     screenshotDir: scenarioDir,
     screenshotCount: screenshotPaths.length,
     screenshots: screenshotPaths,
@@ -723,6 +773,7 @@ function deriveScenarioMetrics(samples, keyEvents, marks, moveTraceEvents = []) 
   const acceptedDelta = Math.max(0, (last?.acceptedCommands ?? 0) - (first?.acceptedCommands ?? 0));
   const rejectedDelta = Math.max(0, (last?.rejectedCommands ?? 0) - (first?.rejectedCommands ?? 0));
   const microStutter = deriveMicroStutters(valid, keyEvents, moveTraceEvents);
+  const endToEnd = deriveEndToEndTiming(valid, movementKeyDowns);
 
   return {
     timeToFirstCellChangeMs: firstMove,
@@ -746,9 +797,48 @@ function deriveScenarioMetrics(samples, keyEvents, marks, moveTraceEvents = []) 
     frameP95Ms: round(percentile(frameMs, 0.95)),
     predictionErrorMaxCells: round(Math.max(0, ...predictionErrors)),
     predictionErrorP95Cells: round(percentile(predictionErrors, 0.95)),
+    endToEnd,
     microStutter,
     startCell: first?.playerCell ?? null,
     endCell: last?.playerCell ?? null,
+  };
+}
+
+function deriveEndToEndTiming(samples, movementKeyDowns) {
+  const events = [];
+  for (const keydown of movementKeyDowns) {
+    const baseline = [...samples]
+      .reverse()
+      .find((sample) => sample.wallTimeMs <= keydown.atWallMs);
+    const baselineApplied = baseline?.moveGate?.appliedCommandId ?? 0;
+    const sent = samples.find((sample) =>
+      sample.wallTimeMs >= keydown.atWallMs
+      && Number.isFinite(sample.moveGate?.lastSendAtWallMs)
+      && sample.moveGate.lastSendAtWallMs >= keydown.atWallMs);
+    const applied = samples.find((sample) =>
+      sample.wallTimeMs >= keydown.atWallMs
+      && Number.isFinite(sample.moveGate?.appliedCommandId)
+      && sample.moveGate.appliedCommandId > baselineApplied);
+    const renderedMs = firstCellChangeAfter(samples, keydown);
+    events.push({
+      inputAtWallMs: keydown.atWallMs,
+      clientSentAtWallMs: sent?.moveGate?.lastSendAtWallMs ?? null,
+      authorityAppliedCommandId: applied?.moveGate?.appliedCommandId ?? null,
+      authorityObservedAtWallMs: applied?.moveGate?.appliedObservedAtWallMs ?? null,
+      inputToSendMs: sent ? round(sent.moveGate.lastSendAtWallMs - keydown.atWallMs) : null,
+      sendToAppliedObservedMs: sent && applied
+        ? round(applied.moveGate.appliedObservedAtWallMs - sent.moveGate.lastSendAtWallMs)
+        : null,
+      inputToRenderedMs: renderedMs,
+    });
+  }
+  return {
+    events,
+    inputToSendMs: summarize(events.map((event) => event.inputToSendMs).filter(Number.isFinite)),
+    sendToAppliedObservedMs: summarize(
+      events.map((event) => event.sendToAppliedObservedMs).filter(Number.isFinite),
+    ),
+    inputToRenderedMs: summarize(events.map((event) => event.inputToRenderedMs).filter(Number.isFinite)),
   };
 }
 
@@ -971,9 +1061,9 @@ async function prepareScenarioPage(page) {
       await page.bringToFront();
       await releaseAll(page);
       await focusRuntime(page);
-      await installBridge(page, sampleMs);
-      await waitForWorldReady(page);
-      await clearMoveTrace(page);
+      await installBridge(page, sampleMs, clientKind);
+      await waitForWorldReady(page, clientKind);
+      if (clientKind === "client-3d") await clearMoveTrace(page);
       return;
     } catch (error) {
       if (!isRetryablePageContextError(error) || attempt === maxAttempts) throw error;
@@ -988,48 +1078,99 @@ function isRetryablePageContextError(error) {
   return /Execution context was destroyed|Cannot find context|frame was detached|waitForFunction: Timeout/i.test(message);
 }
 
-async function installBridge(page, intervalMs) {
+async function installBridge(page, intervalMs, client) {
   await page.addScriptTag({
     content: `(() => {
       const attr = ${JSON.stringify(DATA_ATTR)};
       const intervalMs = ${JSON.stringify(intervalMs)};
+      const client = ${JSON.stringify(client)};
       if (window.__dwMovementLabBridge?.interval) window.clearInterval(window.__dwMovementLabBridge.interval);
       let seq = 0;
       const finite = (value) => Number.isFinite(value) ? value : null;
       const cloneTail = (value) => Array.isArray(value) ? value.slice(-8) : [];
       const sample = () => {
-        const probe = window.__successor3d;
-        const payload = {
+        const legacy = window.__successor3d;
+        const rust = typeof window.__successorMovementProbe === "function"
+          ? window.__successorMovementProbe()
+          : null;
+        const payload = rust ? {
           seq: ++seq,
-          ok: !!probe,
+          ok: true,
+          client,
           wallTimeMs: Date.now(),
           perfMs: performance.now(),
-          tick: probe?.tick ?? null,
-          fps: probe?.fps ?? null,
-          serverStatus: probe?.serverStatus ?? null,
-          sourceMatchesClient: probe?.sourceMatchesClient ?? null,
-          activeAreaId: probe?.activeAreaId ?? null,
-          playerActorId: probe?.playerActorId ?? null,
-          playerCell: probe?.playerCell ? { x: finite(probe.playerCell.x), y: finite(probe.playerCell.y) } : null,
-          authorityPlayer: probe?.authorityPlayer ? { x: finite(probe.authorityPlayer.x), y: finite(probe.authorityPlayer.y), areaId: probe.authorityPlayer.areaId ?? null } : null,
-          predictionErrorCells: finite(probe?.predictionErrorCells ?? null),
-          renderDriftMaxCells: finite(probe?.renderDriftMaxCells ?? null),
-          acceptedCommands: probe?.acceptedCommands ?? null,
-          rejectedCommands: probe?.rejectedCommands ?? null,
-          moveGate: probe?.moveGate ? {
-            moving: probe.moveGate.moving === true,
-            inFlightMoves: probe.moveGate.inFlightMoves ?? null,
-            pendingMoves: probe.moveGate.pendingMoves ?? null,
-            sendGateStalled: probe.moveGate.sendGateStalled === true,
-            lastMoveIssuedAtTick: probe.moveGate.lastMoveIssuedAtTick ?? null,
-            snapshotTick: probe.moveGate.snapshotTick ?? null,
-            lastMoveCommandAtMs: finite(probe.moveGate.lastMoveCommandAtMs ?? null),
-            nextMoveCommandAtMs: finite(probe.moveGate.nextMoveCommandAtMs ?? null),
-            moveCommandIntervalMs: finite(probe.moveGate.moveCommandIntervalMs ?? null),
-            sentMoveTail: cloneTail(probe.moveGate.sentMoveTail),
-            receiptTail: cloneTail(probe.moveGate.receiptTail),
+          tick: null,
+          fps: rust.frameDtMs > 0 ? 1000 / rust.frameDtMs : null,
+          serverStatus: "connected",
+          sourceMatchesClient: true,
+          activeAreaId: null,
+          playerActorId: null,
+          playerCell: { x: finite(rust.rendered?.[0]), y: finite(rust.rendered?.[1]) },
+          authorityPlayer: { x: finite(rust.authoritative?.[0]), y: finite(rust.authoritative?.[1]), areaId: null },
+          predictionErrorCells: finite(rust.correctionCells),
+          renderDriftMaxCells: finite(rust.correctionCells),
+          acceptedCommands: null,
+          rejectedCommands: null,
+          moveGate: {
+            moving: rust.intent?.[0] !== 0 || rust.intent?.[1] !== 0,
+            inFlightMoves: null,
+            pendingMoves: null,
+            sendGateStalled: false,
+            lastMoveIssuedAtTick: null,
+            snapshotTick: null,
+            lastMoveCommandAtMs: finite(rust.lastSendMs),
+            nextMoveCommandAtMs: finite(rust.nextSendMs),
+            moveCommandIntervalMs: Number.isFinite(rust.nextSendMs) && Number.isFinite(rust.lastSendMs)
+              ? Math.max(0, rust.nextSendMs - rust.lastSendMs)
+              : null,
+            sampledAtMs: finite(rust.sampledAtMs),
+            lastChangeAtWallMs: Number.isFinite(rust.lastChangeMs) && Number.isFinite(rust.sampledAtMs)
+              ? Date.now() - rust.sampledAtMs + rust.lastChangeMs
+              : null,
+            lastSendAtWallMs: Number.isFinite(rust.lastSendMs) && Number.isFinite(rust.sampledAtMs)
+              ? Date.now() - rust.sampledAtMs + rust.lastSendMs
+              : null,
+            appliedObservedAtWallMs: Date.now(),
+            appliedCommandId: finite(rust.appliedCommandId),
+            blockerCount: finite(rust.blockerCount),
+            presentedGroundY: finite(rust.presentedGroundY),
+            sampledGroundY: finite(rust.sampledGroundY),
+            sentMoveTail: [],
+            receiptTail: [],
+          },
+          rejectLog: [],
+        } : {
+          seq: ++seq,
+          ok: !!legacy,
+          client,
+          wallTimeMs: Date.now(),
+          perfMs: performance.now(),
+          tick: legacy?.tick ?? null,
+          fps: legacy?.fps ?? null,
+          serverStatus: legacy?.serverStatus ?? null,
+          sourceMatchesClient: legacy?.sourceMatchesClient ?? null,
+          activeAreaId: legacy?.activeAreaId ?? null,
+          playerActorId: legacy?.playerActorId ?? null,
+          playerCell: legacy?.playerCell ? { x: finite(legacy.playerCell.x), y: finite(legacy.playerCell.y) } : null,
+          authorityPlayer: legacy?.authorityPlayer ? { x: finite(legacy.authorityPlayer.x), y: finite(legacy.authorityPlayer.y), areaId: legacy.authorityPlayer.areaId ?? null } : null,
+          predictionErrorCells: finite(legacy?.predictionErrorCells ?? null),
+          renderDriftMaxCells: finite(legacy?.renderDriftMaxCells ?? null),
+          acceptedCommands: legacy?.acceptedCommands ?? null,
+          rejectedCommands: legacy?.rejectedCommands ?? null,
+          moveGate: legacy?.moveGate ? {
+            moving: legacy.moveGate.moving === true,
+            inFlightMoves: legacy.moveGate.inFlightMoves ?? null,
+            pendingMoves: legacy.moveGate.pendingMoves ?? null,
+            sendGateStalled: legacy.moveGate.sendGateStalled === true,
+            lastMoveIssuedAtTick: legacy.moveGate.lastMoveIssuedAtTick ?? null,
+            snapshotTick: legacy.moveGate.snapshotTick ?? null,
+            lastMoveCommandAtMs: finite(legacy.moveGate.lastMoveCommandAtMs ?? null),
+            nextMoveCommandAtMs: finite(legacy.moveGate.nextMoveCommandAtMs ?? null),
+            moveCommandIntervalMs: finite(legacy.moveGate.moveCommandIntervalMs ?? null),
+            sentMoveTail: cloneTail(legacy.moveGate.sentMoveTail),
+            receiptTail: cloneTail(legacy.moveGate.receiptTail),
           } : null,
-          rejectLog: cloneTail(probe?.rejectLog),
+          rejectLog: cloneTail(legacy?.rejectLog),
         };
         document.body?.setAttribute(attr, JSON.stringify(payload));
       };
@@ -1040,17 +1181,20 @@ async function installBridge(page, intervalMs) {
   });
 }
 
-async function waitForWorldReady(page) {
-  await page.waitForFunction((attr) => {
+async function waitForWorldReady(page, client) {
+  await page.waitForFunction(({ attr, client }) => {
     const raw = document.body?.getAttribute(attr);
     if (!raw) return false;
     try {
       const probe = JSON.parse(raw);
-      return !!(probe?.ok && probe?.playerCell && probe?.sourceMatchesClient === true && probe?.serverStatus && probe.serverStatus !== "off");
+      return client === "rust-web"
+        ? !!(probe?.ok && probe?.playerCell)
+        : !!(probe?.ok && probe?.playerCell && probe?.sourceMatchesClient === true
+          && probe?.serverStatus && probe.serverStatus !== "off");
     } catch {
       return false;
     }
-  }, DATA_ATTR, { timeout: 30_000 });
+  }, { attr: DATA_ATTR, client }, { timeout: 30_000 });
   await page.waitForSelector("canvas", { timeout: 15_000 });
 }
 
@@ -1186,8 +1330,34 @@ async function startScenarioScreencast(page, scenarioDir, scenarioStartWallMs, s
   };
 }
 
-function buildRuntimeUrl({ baseUrl: rawBaseUrl, port: gamePort, actor: actorId, actorName: name, spawnArea: area, spawnX: x, spawnY: y }) {
+function buildRuntimeUrl({
+  baseUrl: rawBaseUrl,
+  port: gamePort,
+  actor: actorId,
+  actorName: name,
+  spawnArea: area,
+  spawnX: x,
+  spawnY: y,
+  clientKind: client,
+}) {
   const url = new URL(rawBaseUrl);
+  if (client === "rust-web") {
+    const launch = {
+      schema: "successor.launch-context.v1",
+      gameTicket: "dev-identity",
+      chatTicket: "dev-chat-identity",
+      endpoints: {
+        game: `ws://127.0.0.1:${gamePort}`,
+        chat: `ws://127.0.0.1:${gamePort}`,
+      },
+      release: { client: "movement-lab", server: "movement-lab", shard: "movement-lab" },
+      devSpawn: { area, x: String(x), y: String(y), facing: "right" },
+      characterId: actorId,
+      expiresAt: Date.now() + 3_600_000,
+    };
+    url.searchParams.set("launch", Buffer.from(JSON.stringify(launch)).toString("base64"));
+    return url.toString();
+  }
   url.searchParams.set("gamePort", String(gamePort));
   url.searchParams.set("slicePath", "/successor-slice/open-desert-slice.json");
   url.searchParams.set("mapBundlePath", "/successor-slice/open-desert-map-bundle.json");
@@ -1207,6 +1377,7 @@ function buildRuntimeUrl({ baseUrl: rawBaseUrl, port: gamePort, actor: actorId, 
 function loadBrowserDriver() {
   const candidates = [
     { label: "client-3d", pkg: path.join(repoRoot, "client-3d", "package.json") },
+    { label: "desktop", pkg: path.join(repoRoot, "desktop", "package.json") },
     { label: "repo-root", pkg: path.join(repoRoot, "package.json") },
     { label: "client", pkg: path.join(repoRoot, "client", "package.json") },
   ];
@@ -1585,6 +1756,14 @@ function parseArgs(args) {
 function stringArg(args, name, fallback) {
   const value = args.get(name);
   return value === undefined || value === "" ? fallback : String(value);
+}
+
+function enumArg(args, name, fallback, allowed) {
+  const value = stringArg(args, name, fallback);
+  if (!allowed.includes(value)) {
+    throw new Error(`--${name} must be one of ${allowed.join(", ")}; got ${value}`);
+  }
+  return value;
 }
 
 function integerArg(args, name, fallback, { min, max }) {

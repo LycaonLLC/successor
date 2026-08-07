@@ -7,6 +7,7 @@ export interface RuntimeAuthConfig {
   readonly shardId: string;
   readonly clientReleaseId: string;
   readonly serverReleaseId: string;
+  readonly acceptedClientReleaseIds?: readonly string[];
   readonly issuer: string;
   /** Exact HTTPS storefront origin required by standalone HTTP cookie/API admission. */
   readonly origin?: string;
@@ -134,9 +135,20 @@ export function runtimeAuthConfigFromEnv(env: NodeJS.ProcessEnv = process.env): 
   const serverReleaseId = required(env.SUCCESSOR_SERVER_RELEASE_ID ?? env.SUCCESSOR_RELEASE_ID ?? "dev", "SUCCESSOR_SERVER_RELEASE_ID");
   const issuer = required(env.SUCCESSOR_LAUNCH_ISSUER ?? "successor-server", "SUCCESSOR_LAUNCH_ISSUER");
   if (mode === "legacy") return { mode, shardId, clientReleaseId, serverReleaseId, issuer };
+  const acceptedClientReleaseIds = (env.SUCCESSOR_ALPHA_CLIENT_RELEASE_ALLOWLIST ?? clientReleaseId)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (
+    acceptedClientReleaseIds.length === 0
+    || !acceptedClientReleaseIds.includes(clientReleaseId)
+    || acceptedClientReleaseIds.some((value) => !/^[A-Za-z0-9][A-Za-z0-9._@-]{0,127}$/u.test(value))
+  ) {
+    throw new Error("SUCCESSOR_ALPHA_CLIENT_RELEASE_ALLOWLIST must contain the default client release and only valid release ids");
+  }
   const controlDbPath = required(env.ALPHA_CONTROL_DB_PATH, "ALPHA_CONTROL_DB_PATH");
   const claimSecret = parseSecret(required(env.ALPHA_CONTROL_CLAIM_SECRET, "ALPHA_CONTROL_CLAIM_SECRET"));
   const origin = requiredStandaloneOrigin(env.SUCCESSOR_ALPHA_ORIGIN, "SUCCESSOR_ALPHA_ORIGIN");
   const clientOrigin = requiredStandaloneOrigin(env.SUCCESSOR_ALPHA_CLIENT_ORIGIN, "SUCCESSOR_ALPHA_CLIENT_ORIGIN");
-  return { mode, shardId, clientReleaseId, serverReleaseId, issuer, origin, clientOrigin, controlDbPath, claimSecret };
+  return { mode, shardId, clientReleaseId, acceptedClientReleaseIds, serverReleaseId, issuer, origin, clientOrigin, controlDbPath, claimSecret };
 }

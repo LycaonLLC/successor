@@ -38,6 +38,7 @@ export interface CharacterFaceConfig {
 }
 
 export interface CharacterAppearance {
+  body: "male" | "female";
   skinTone: string;
   /** Manifest hair id, or null for shaved. */
   hair: string | null;

@@ -4,13 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Successor</title>
-    <meta
-      name="description"
-      content="A hard road through open desert and occupied places."
-    />
+    <meta name="description" content="A hard road through open desert and occupied places." />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#F8F8F8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#eef4f7" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Karrik-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link
@@ -40,281 +36,260 @@
   <body data-page="home">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
-      <div class="shell">
-        <a class="wordmark" href="/" aria-current="page">
-          <img
-            class="wordmark-mark"
-            src="/brand/successor-mark.svg"
-            width="20"
-            height="20"
-            alt=""
-            decoding="async"
-          />
-          <img
-            class="wordmark-type"
-            src="/brand/successor-wordmark.svg"
-            width="132"
-            height="16"
-            alt="Successor"
-            decoding="async"
-          />
-        </a>
-        <nav class="site-nav" aria-label="Site">
-          <ul class="nav-inline">
-            <li><a href="/" aria-current="page">Home</a></li>
-            <li><a href="/roadmap/">Roadmap</a></li>
-            <li><a href="/alpha/">Alpha</a></li>
-            <li><a href="/account/">Account</a></li>
-            <li><a href="/play/">Play</a></li>
-          </ul>
-          <details class="nav-menu">
-            <summary>Menu</summary>
-            <ul class="nav-list">
-              <li><a href="/" aria-current="page">Home</a></li>
-              <li><a href="/roadmap/">Roadmap</a></li>
-              <li><a href="/alpha/">Alpha</a></li>
-              <li><a href="/account/">Account</a></li>
-              <li><a href="/play/">Play</a></li>
-            </ul>
-          </details>
-        </nav>
+      <a class="brand" href="/" aria-label="Successor home">
+        <img src="/brand/successor-mark.svg" width="20" height="20" alt="" decoding="async" />
+        <img src="/brand/successor-wordmark.svg" width="132" height="16" alt="Successor" decoding="async" />
+      </a>
+      <nav aria-label="Site">
+        <a href="/roadmap/">Roadmap</a>
+        <a href="/alpha/">Alpha</a>
+        <a href="/account/">Account</a>
+        <a href="/download/">Download</a>
+        <a href="/play/">Play</a>
+      </nav>
+      <div class="side">
+        <div data-theme-deck></div>
       </div>
     </header>
 
-    <main id="main" class="home-main">
-      <section
-        class="cinema-hero"
-        aria-labelledby="h-hero"
-        data-cinema-hero
-        data-media-mode="static"
-      >
-        <figure class="cinema-stage" data-slot="identity-hero-desktop">
-          <picture data-slot="identity-hero-mobile">
-            <source
-              media="(max-width: 47.99rem)"
-              srcset="/media/cinematic-poster-mobile.webp"
-              type="image/webp"
-              width="1080"
-              height="1920"
-            />
-            <img
-              class="cinema-poster"
-              src="/media/cinematic-poster-desktop.webp"
-              width="1920"
-              height="1080"
-              fetchpriority="high"
-              decoding="async"
-              alt=""
-            />
-          </picture>
-          <video
-            data-cinema-video
-            class="cinema-video"
-            autoplay
-            muted
-            playsinline
-            loop
-            preload="metadata"
-            poster="/media/cinematic-poster-desktop.webp"
-            aria-hidden="true"
-            data-poster-desktop="/media/cinematic-poster-desktop.webp"
-            data-poster-mobile="/media/cinematic-poster-mobile.webp"
-            data-src-desktop-webm="/media/cinematic-reel-desktop.webm"
-            data-src-desktop-mp4="/media/cinematic-reel-desktop.mp4"
-            data-src-mobile-webm="/media/cinematic-reel-mobile.webm"
-            data-src-mobile-mp4="/media/cinematic-reel-mobile.mp4"
-          ></video>
-        </figure>
-        <div class="cinema-veil" aria-hidden="true"></div>
-        <div class="cinema-copy">
+    <main id="main">
+      <section class="cinema" data-cinema-hero data-media-mode="static" aria-label="Successor, in motion">
+        <picture data-slot="identity-hero-desktop">
+          <source media="(max-width: 47.99rem)" srcset="/media/cinematic-poster-mobile.webp" />
           <img
-            class="cinema-wordmark"
-            src="/brand/successor-wordmark.svg"
-            width="405"
-            height="50"
-            alt="Successor"
+            src="/media/cinematic-poster-desktop.webp"
+            width="1920"
+            height="1080"
+            alt="Open desert at first light; a traveler walks toward Dustgate."
+            fetchpriority="high"
             decoding="async"
           />
-          <h1 id="h-hero">The world is occupied.</h1>
-          <p class="cinema-support">A hard road through open desert and occupied places.</p>
-          <div class="cinema-actions">
-            <a class="btn btn-primary" href="/alpha/">Join the Alpha</a>
-            <a class="btn btn-secondary" href="#world">See the World</a>
+        </picture>
+        <video
+          data-cinema-video
+          data-slot="identity-hero-mobile"
+          data-src-desktop-webm="/media/cinematic-reel-desktop.webm"
+          data-src-desktop-mp4="/media/cinematic-reel-desktop.mp4"
+          data-src-mobile-webm="/media/cinematic-reel-mobile.webm"
+          data-src-mobile-mp4="/media/cinematic-reel-mobile.mp4"
+          data-poster-desktop="/media/cinematic-poster-desktop.webp"
+          data-poster-mobile="/media/cinematic-poster-mobile.webp"
+          muted
+          playsinline
+          loop
+          preload="none"
+          aria-hidden="true"
+          tabindex="-1"
+        ></video>
+        <div class="cinema-veil">
+          <img
+            class="wordmark-hero"
+            src="/brand/successor-wordmark.svg"
+            width="480"
+            height="58"
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+          />
+          <h1>The world is occupied.</h1>
+          <div class="cinema-ctas">
+            <a class="btn btn-primary" href="/play/">Enter the field</a>
+            <a class="btn" href="/download/">Get the client</a>
           </div>
+          <p class="cinema-plaque">
+            <span>Live world</span>
+            <span>Planetfall V5</span>
+            <span>Open desert · Verdance</span>
+            <span>Invite alpha</span>
+          </p>
         </div>
         <button
           type="button"
-          class="btn btn-icon cinema-sound"
+          class="btn btn-secondary cinema-sound"
           data-cinema-sound
-          hidden
-          aria-pressed="false"
           data-label-mute="Mute"
           data-label-unmute="Sound on"
+          hidden
         >
           Sound on
         </button>
       </section>
 
-      <section id="world" class="act act-world" aria-labelledby="h-world" data-reveal>
-        <figure class="act-media act-media-bleed" data-slot="home-crossing-open">
-          <img
-            src="/media/crossing-1520.webp"
-            srcset="/media/crossing-760.webp 760w, /media/crossing-1520.webp 1520w"
-            sizes="100vw"
-            width="1520"
-            height="640"
-            loading="lazy"
-            decoding="async"
-            alt="Open desert around a shelter door: empty ground in every direction."
-          />
-        </figure>
-        <div class="act-rail">
-          <div class="act-copy">
-            <h2 id="h-world">Connected Lands</h2>
-            <p>Open desert. Verdance forest. Travel terminals join the long crossings.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="act act-craft" aria-labelledby="h-craft" data-reveal>
-        <div class="act-split">
-          <div class="act-copy">
-            <h2 id="h-craft">Gear Has a History</h2>
-            <p>What you carry came from a trainer, a workbench, a trade, or a fight.</p>
-          </div>
-          <figure class="act-media" data-slot="home-moment-craft">
+      <section class="home-section" aria-labelledby="h-record">
+        <h2 id="h-record">Field record</h2>
+        <p class="section-lede">Captured in the client. Nothing staged.</p>
+        <div class="plate-grid">
+          <figure class="plate is-wide ticked" data-reveal data-plate="dustgate" data-slot="home-hero-wide">
+            <span class="tick" aria-hidden="true"></span>
+            <img
+              src="/media/hero-dustgate-1600.webp"
+              srcset="/media/hero-dustgate-640.webp 640w, /media/hero-dustgate-960.webp 960w, /media/hero-dustgate-1600.webp 1600w"
+              sizes="100vw"
+              width="1600"
+              height="1000"
+              loading="lazy"
+              decoding="async"
+              alt="Dustgate shelter and the people gathered around it."
+            />
+            <figcaption class="plaque"><b>Dustgate</b><span>Open desert · live shard</span></figcaption>
+          </figure>
+          <figure class="plate ticked" data-reveal data-plate="crossing" data-slot="home-crossing-open">
+            <span class="tick" aria-hidden="true"></span>
+            <img
+              src="/media/crossing-1520.webp"
+              srcset="/media/crossing-760.webp 760w, /media/crossing-1520.webp 1520w"
+              sizes="(min-width: 56rem) 33vw, 100vw"
+              width="1520"
+              height="950"
+              loading="lazy"
+              decoding="async"
+              alt="Open desert around a shelter door: empty ground in every direction."
+            />
+            <figcaption class="plaque"><b>The crossing</b><span>Travel network</span></figcaption>
+          </figure>
+          <figure class="plate ticked" data-reveal data-plate="craft" data-slot="home-moment-craft">
+            <span class="tick" aria-hidden="true"></span>
             <img
               src="/media/craft-camp-kit-1200.webp"
               srcset="/media/craft-camp-kit-640.webp 640w, /media/craft-camp-kit-1200.webp 1200w"
-              sizes="(min-width: 56rem) 52vw, 100vw"
+              sizes="(min-width: 56rem) 33vw, 100vw"
               width="1200"
               height="750"
               loading="lazy"
               decoding="async"
               alt="Craft window on the assemble step for a camp kit pattern."
             />
+            <figcaption class="plaque"><b>Gear has a history</b><span>Craft · trade · loot</span></figcaption>
           </figure>
-        </div>
-      </section>
-
-      <section class="act act-tension" aria-labelledby="h-tension" data-reveal>
-        <div class="act-split act-split-invert">
-          <figure class="act-media" data-slot="home-moment-downed">
+          <figure class="plate ticked" data-reveal data-plate="door" data-slot="home-door-prompt">
+            <span class="tick" aria-hidden="true"></span>
+            <img
+              src="/media/door-prompt-1280.webp"
+              srcset="/media/door-prompt-800.webp 800w, /media/door-prompt-1280.webp 1280w"
+              sizes="(min-width: 56rem) 33vw, 100vw"
+              width="1280"
+              height="720"
+              loading="lazy"
+              decoding="async"
+              alt="The Dustgate Cloning Facility door with a live [F] OPEN prompt in the native client."
+            />
+            <figcaption class="plaque"><b>Doors obey</b><span>Native Rust client</span></figcaption>
+          </figure>
+          <figure class="plate ticked" data-reveal data-plate="bank" data-slot="home-bank-window">
+            <span class="tick" aria-hidden="true"></span>
+            <img
+              src="/media/bank-window-1280.webp"
+              srcset="/media/bank-window-800.webp 800w, /media/bank-window-1280.webp 1280w"
+              sizes="(min-width: 56rem) 33vw, 100vw"
+              width="1280"
+              height="720"
+              loading="lazy"
+              decoding="async"
+              alt="The bank window open at the Dustgate terminal in the native client."
+            />
+            <figcaption class="plaque"><b>The bank holds</b><span>Native Rust client</span></figcaption>
+          </figure>
+          <figure class="plate ticked" data-reveal data-plate="downed" data-slot="home-moment-downed">
+            <span class="tick" aria-hidden="true"></span>
             <img
               src="/media/downed-recovery-1200.webp"
               srcset="/media/downed-recovery-640.webp 640w, /media/downed-recovery-1200.webp 1200w"
-              sizes="(min-width: 56rem) 58vw, 100vw"
+              sizes="(min-width: 56rem) 33vw, 100vw"
               width="1200"
               height="750"
               loading="lazy"
               decoding="async"
               alt="A downed player lies in the sand while an incapacitated panel counts down."
             />
+            <figcaption class="plaque"><b>Death leaves a mark</b><span>Your corpse remains</span></figcaption>
           </figure>
-          <div class="act-copy">
-            <h2 id="h-tension">Death Leaves a Mark</h2>
-            <p>Your corpse remains where you fell.</p>
-          </div>
         </div>
       </section>
 
-      <section class="act act-dustgate home-section" aria-label="Dustgate" data-reveal>
-        <figure class="dustgate-frame" data-slot="home-hero-wide">
-          <img
-            src="/media/hero-dustgate-1600.webp"
-            srcset="
-              /media/hero-dustgate-640.webp   640w,
-              /media/hero-dustgate-960.webp   960w,
-              /media/hero-dustgate-1600.webp 1600w
-            "
-            sizes="100vw"
-            width="1600"
-            height="1000"
-            loading="lazy"
-            decoding="async"
-            alt="Dustgate shelter and the people gathered around it."
-          />
-          <figcaption>Dustgate.</figcaption>
-        </figure>
-      </section>
-
-      <section class="terminal-act home-section" aria-labelledby="h-terminal" data-terminal-preview>
-        <div class="shell terminal-head">
-          <div>
-            <h2 id="h-terminal">Successor Runs in a Terminal</h2>
-            <p>Play from a terminal. The public build is still in testing.</p>
+      <section class="home-section" aria-labelledby="h-chrome">
+        <h2 id="h-chrome">Wear the chrome</h2>
+        <div class="chrome-line">
+          <div class="chrome-copy">
+            <p class="section-lede">
+              Four chromes ship in the client. This site wears the same bytes.
+            </p>
+            <div data-theme-deck></div>
           </div>
-          <button type="button" class="btn btn-secondary terminal-replay" data-terminal-replay>
-            Replay opening
-          </button>
-        </div>
-        <figure class="terminal-viewport" data-slot="home-terminal-tui">
-          <div class="terminal-crawl" aria-hidden="true">
-            <div class="terminal-crawl-plane">
-              <p class="terminal-crawl-kicker">DUSTGATE / FIRST CYCLE</p>
-              <p>
-                Dustgate holds the desert margin. Roads and rusted shells lead out into country
-                that does not care whether you are ready.
-              </p>
-              <p>
-                You step onto the road with a novice trade and the clothes on your back.
-              </p>
-              <p>The rest is already out there.</p>
+          <div class="frame demo-window ticked" aria-hidden="true">
+            <span class="tick"></span>
+            <div class="frame-caption"><span>DEV1 (INVENTORY)</span><span>×</span></div>
+            <div class="frame-body">
+              <span class="demo-cell is-live">SLG</span>
+              <span class="demo-cell">MED</span>
+              <span class="demo-cell">WPN</span>
+              <span class="demo-cell">ORE</span>
+              <span class="demo-cell">KIT</span>
+              <span class="demo-cell">—</span>
+              <div class="demo-vitals">
+                <span class="demo-bar is-danger demo-bar-health"><span></span></span>
+                <span class="demo-bar demo-bar-action"><span></span></span>
+                <span class="demo-bar demo-bar-mind"><span></span></span>
+              </div>
             </div>
           </div>
-          <!-- Actual client-tui 80x24 frame fixture, kept as text rather than a scaled image. -->
-          <pre class="terminal-screen" data-terminal-screen tabindex="0" aria-label="Successor terminal client field screen"> SUCCESSOR · OPEN DESERT
+        </div>
+      </section>
 
-
-
-
-
-
-
-
+      <section class="home-section" aria-labelledby="h-terminal" data-terminal-preview>
+        <h2 id="h-terminal">It runs in a terminal</h2>
+        <div class="term frame" data-slot="home-terminal-tui">
+          <div class="frame-caption"><span>SUCCESSOR · TUI</span><span>80 × 24</span></div>
+          <div class="frame-body">
+            <div data-crawl aria-hidden="true">
+              <p class="crawl-line micro">DUSTGATE / FIRST CYCLE</p>
+              <p class="crawl-line">Dustgate holds the desert margin.</p>
+              <p class="crawl-line">You step onto the road with a novice trade and the clothes on your back.</p>
+              <p class="crawl-line">The rest is already out there.</p>
+            </div>
+            <pre class="term-field" data-terminal-screen tabindex="0" aria-label="Successor terminal client field screen"><span class="t-accent"> SUCCESSOR · OPEN DESERT</span>
 
  You stand in the open desert. The light is hard and flat, heat standing on
    the sand.
  A rogue trooper comes into scope, a stretch off to the east, weapon drawn.
- › /attack rogue-1
+ <span class="t-accent">› /attack rogue-1</span>
  Your shot takes the rogue trooper square in the chest — 18.
- ✗ SAMPLE RESOURCE DENIED — SAMPLER COOLING.
- ◆ The scanner paints Dantooine iron strongest far off to the east — 100% at
-   the peak.
-────────────────────────────────────────────────────────────────────────────────
-
- [local] Rusk: anyone near the extractor?
-────────────────────────────────────────────────────────────────────────────────
- &gt; /attack rogue-1                                                   0✓ 0✗ · —</pre>
-          <figcaption>The field, at 80 × 24.</figcaption>
-        </figure>
-      </section>
-
-      <section class="alpha-close" aria-labelledby="h-alpha">
-        <div class="shell">
-          <h2 id="h-alpha">Join the Alpha</h2>
-          <p class="lede">Invite alpha. Access is limited.</p>
-          <div class="cta-row">
-            <a class="btn btn-primary" href="/alpha/">Join the Alpha</a>
-            <a class="btn btn-secondary" href="/play/">Play</a>
+ <span class="t-danger">✗ SAMPLE RESOURCE DENIED — SAMPLER COOLING.</span>
+ <span class="t-ok">◆ The scanner paints Daxmere iron strongest far off to the east — 100% at
+   the peak.</span>
+<span class="t-dim">────────────────────────────────────────────────────────────────────────────────</span>
+ <span class="t-dim">[local] Rusk: anyone near the extractor?</span>
+<span class="t-dim">────────────────────────────────────────────────────────────────────────────────</span>
+ <span class="t-accent">&gt; /attack rogue-1</span>                                                   <span class="t-dim">0✓ 0✗ · —</span></pre>
           </div>
+        </div>
+        <div class="term-controls">
+          <span class="micro">Same world. Same account. SSH-friendly.</span>
+          <button type="button" class="act" data-terminal-replay>Replay opening</button>
         </div>
       </section>
     </main>
 
-    <footer class="site-foot">
-      <div class="shell">
-        <p>Invite alpha. Saves may reset.</p>
-        <ul class="foot-links">
-          <li><a href="/roadmap/">Roadmap</a></li>
-          <li><a href="/alpha/">Alpha</a></li>
-          <li><a href="/legal/terms/">Terms</a></li>
-          <li><a href="/legal/privacy/">Privacy</a></li>
-          <li><a href="/download/">Downloads</a></li>
-          <li><a href="/legal/terms/#contact">Contact</a></li>
-        </ul>
-        <p class="foot-credit">From Lycaon LLC, in partnership with ROYCORP GAME STUDIOS.</p>
+    <div class="join-band">
+      <div class="inner">
+        <h2>Access is limited.</h2>
+        <div class="cinema-ctas">
+          <a class="btn btn-primary" href="/alpha/">Join the alpha</a>
+          <a class="btn" href="/play/">Play</a>
+        </div>
       </div>
+    </div>
+
+    <footer class="site-foot">
+      <p class="fine">Invite alpha. Saves may reset.</p>
+      <nav aria-label="Footer">
+        <a href="/roadmap/">Roadmap</a>
+        <a href="/alpha/">Alpha</a>
+        <a href="/legal/terms/">Terms</a>
+        <a href="/legal/privacy/">Privacy</a>
+        <a href="/download/">Downloads</a>
+        <a href="/legal/terms/#contact">Contact</a>
+      </nav>
+      <p class="fine">From Lycaon LLC, in partnership with ROYCORP GAME STUDIOS.</p>
     </footer>
   </body>
 </html>

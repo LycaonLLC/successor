@@ -124,6 +124,7 @@ const FIXED_STARTER_WORN: readonly CharacterWornPiece[] = FIXED_STARTER_ITEM_IDS
  * masquerade as the "new" draft when defaults matched its appearance).
  * hairMat stays preset so picking any style lands on a sane color. */
 const DEFAULT_APPEARANCE: CharDollAppearance = {
+  body: "male",
   skinTone: SKIN_TONES[1],
   hair: null,
   hairMat: "hair_umber",
@@ -215,6 +216,8 @@ export function renderCharacterSelect(root: HTMLElement, injectedPort?: Characte
               <div class="sc3d-cs-secthead"><b>INITIAL PROFESSION</b><span>16 SKILL POINTS</span></div>
               <p class="sc3d-cs-fieldnote">A normal novice allocation. Skill points only — no gear comes with it. You can unlearn it later.</p>
               <div class="sc3d-cs-profgrid" data-ref="createProfessionGrid"></div>
+              <div class="sc3d-cs-secthead"><b>BODY</b><span>2 TYPES</span></div>
+              <div class="sc3d-cs-stepper" data-ref="bodyStepper" aria-label="Body type"></div>
               <div class="sc3d-cs-secthead"><b>SKIN</b></div>
               <div class="sc3d-cs-swatchrow" data-ref="skinRow" aria-label="Skin tone"></div>
               <div class="sc3d-cs-secthead"><b>HAIR</b><span data-ref="hairCount"></span></div>
@@ -265,6 +268,7 @@ export function renderCharacterSelect(root: HTMLElement, injectedPort?: Characte
     nameInput: required<HTMLInputElement>(root, '[data-ref="nameInput"]'),
     nameNote: required<HTMLElement>(root, '[data-ref="nameNote"]'),
     createProfessionGrid: required<HTMLElement>(root, '[data-ref="createProfessionGrid"]'),
+    bodyStepper: required<HTMLElement>(root, '[data-ref="bodyStepper"]'),
     skinRow: required<HTMLElement>(root, '[data-ref="skinRow"]'),
     hairCount: required<HTMLElement>(root, '[data-ref="hairCount"]'),
     hairStepper: required<HTMLElement>(root, '[data-ref="hairStepper"]'),
@@ -511,6 +515,13 @@ export function renderCharacterSelect(root: HTMLElement, injectedPort?: Characte
   };
 
   const renderCreatorRows = (): void => {
+    const body = draft.body ?? "male";
+    stepper(refs.bodyStepper, body === "female" ? "BODY TYPE 2" : "BODY TYPE 1", () => {
+      draft.body = body === "female" ? "male" : "female";
+      renderCreatorRows();
+      syncDoll();
+    });
+
     refs.skinRow.textContent = "";
     for (const tone of SKIN_TONES) {
       refs.skinRow.appendChild(swatchButton(tone, tone, draft.skinTone === tone, () => {

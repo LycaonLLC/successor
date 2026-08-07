@@ -82,9 +82,15 @@ for (const [itemId, modelPath] of Object.entries(itemModels)) {
 /** Canonical base item per authority weapon — the row marked equipped for legacy zero-item snapshots. */
 const canonicalItemIdByWeaponId: Partial<Record<WeaponId, number>> = {
   slugthrower: 3101,
+  "wpn-pistol": 3122,
   "wpn-smg": 3111,
   "wpn-carbine": 3112,
   "lightning-carbine": 3121,
+  "wpn-assault": 3123,
+  "wpn-shotgun": 3124,
+  "wpn-sniper": 3125,
+  "wpn-heavy": 3126,
+  "wpn-launcher": 3127,
   vibrosword: 3103,
   "scrapline-machete": 3105,
   "field-saber": 3106,
@@ -102,6 +108,12 @@ const weaponIdByItemId: Partial<Record<number, WeaponId>> = {
   3111: "wpn-smg",
   3112: "wpn-carbine",
   3121: "lightning-carbine",
+  3122: "wpn-pistol",
+  3123: "wpn-assault",
+  3124: "wpn-shotgun",
+  3125: "wpn-sniper",
+  3126: "wpn-heavy",
+  3127: "wpn-launcher",
 };
 
 const consumableCommandIdByItemId: Partial<Record<number, string>> = {

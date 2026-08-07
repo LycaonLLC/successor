@@ -32,7 +32,18 @@
       "scale": 1
     },
     {
+      "id": "plasma_sword",
+      "glb": "../plasma_hilt.glb",
+      "attach": "custom/plasma_hilt_attach.json",
+      "class": "melee",
+      "track": "brawler",
+      "label": "Plasma Sword",
+      "tier_hint": "exotic",
+      "scale": 1
+    },
+    {
       "id": "wpn_pistol",
+      "item_ids": [3122],
       "glb": "custom/wpn_pistol_badge_bolt.glb",
       "attach": "custom/wpn_pistol_badge_bolt_attach.json",
       "class": "pistol",
@@ -43,6 +54,7 @@
     },
     {
       "id": "wpn_smg",
+      "item_ids": [3101, 3111],
       "glb": "custom/wpn_smg_sten_mk2.glb",
       "attach": "custom/wpn_smg_sten_mk2_attach.json",
       "class": "smg",
@@ -53,6 +65,7 @@
     },
     {
       "id": "wpn_carbine",
+      "item_ids": [3112],
       "glb": "custom/wpn_carbine_kiln.glb",
       "attach": "custom/wpn_carbine_kiln_attach.json",
       "class": "rifle",
@@ -73,6 +86,7 @@
     },
     {
       "id": "wpn_assault",
+      "item_ids": [3123],
       "glb": "custom/wpn_rifle_slagrail_vanguard.glb",
       "attach": "custom/wpn_rifle_slagrail_vanguard_attach.json",
       "class": "rifle",
@@ -83,6 +97,7 @@
     },
     {
       "id": "wpn_shotgun",
+      "item_ids": [3124],
       "glb": "custom/wpn_shotgun_coilgate_scatter.glb",
       "attach": "custom/wpn_shotgun_coilgate_scatter_attach.json",
       "class": "shotgun",
@@ -93,16 +108,18 @@
     },
     {
       "id": "wpn_sniper",
+      "item_ids": [3125],
       "glb": "custom/wpn_carbine_kiln.glb",
       "attach": "custom/wpn_carbine_kiln_attach.json",
       "class": "rifle",
       "track": "commando",
-      "label": "Kiln Long Pattern (interim)",
+      "label": "Kiln Long Pattern",
       "tier_hint": "S",
       "scale": 1
     },
     {
       "id": "wpn_heavy",
+      "item_ids": [3126],
       "glb": "custom/wpn_heavy_bastion_lmg.glb",
       "attach": "custom/wpn_heavy_bastion_lmg_attach.json",
       "class": "rifle",
@@ -113,6 +130,7 @@
     },
     {
       "id": "wpn_launcher",
+      "item_ids": [3127],
       "glb": "custom/wpn_launcher_flare_net.glb",
       "attach": "custom/wpn_launcher_flare_net_attach.json",
       "class": "launcher",

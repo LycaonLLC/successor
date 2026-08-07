@@ -13,7 +13,16 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
-import { clonePawnBody, loadPawnPack, type PawnBody, type PawnEquipmentItem, type PawnPack } from "../assets/pawnPack";
+import {
+  applyPawnBodyZoneMask,
+  clonePawnBody,
+  collectPawnBodyZoneMeshes,
+  loadPawnPack,
+  resolvePawnBodyZoneMask,
+  type PawnBody,
+  type PawnEquipmentItem,
+  type PawnPack,
+} from "../assets/pawnPack";
 import { attachPawnEquipmentSet, createPawnMatcapTexture } from "../render/pawns";
 import { attachPawnFaceDecal, faceSignature, type PawnFaceConfig } from "../render/faceDecal";
 import {
@@ -163,13 +172,6 @@ export async function mountCharDollPreview(host: HTMLElement): Promise<CharDollP
       dollRoot = null;
       mixer = null;
     }
-    const body = clonePawnBody(loaded, appearance.body ?? "male");
-    // Skin tint: matcap body material in the character's tone (the same
-    // material class the world renderer uses — flat, PS2-friendly).
-    const skin = new MeshMatcapMaterial({ matcap, color: new Color(appearance.skinTone) });
-    body.traverse((object) => {
-      if (object instanceof SkinnedMesh) object.material = skin;
-    });
     // Worn gear: same equipment attach/material resolver as in-world pawns.
     // Appearance hair is independent from inventory headwear.
     const equipmentIds: string[] = [];
@@ -182,12 +184,24 @@ export async function mountCharDollPreview(host: HTMLElement): Promise<CharDollP
     const attachIds = appearance.hair && !equipmentIds.includes(appearance.hair)
       ? [...equipmentIds, appearance.hair]
       : equipmentIds;
-    attachPawnEquipmentSet(
+    const body = clonePawnBody(loaded, appearance.body ?? "male");
+    const bodyZoneMeshes = collectPawnBodyZoneMeshes(body);
+    // Skin tint: matcap body material in the character's tone (the same
+    // material class the world renderer uses — flat, PS2-friendly).
+    const skin = new MeshMatcapMaterial({ matcap, color: new Color(appearance.skinTone) });
+    body.traverse((object) => {
+      if (object instanceof SkinnedMesh) object.material = skin;
+    });
+    const attachedItemIds = attachPawnEquipmentSet(
       loaded,
       body,
       attachIds,
       equipmentMaterial,
       equipmentAttachments,
+    );
+    applyPawnBodyZoneMask(
+      bodyZoneMeshes,
+      resolvePawnBodyZoneMask(loaded.equipment, attachedItemIds),
     );
     attachPawnFaceDecal(body, dollFaceToWire(appearance.face ?? null), equipmentAttachments);
     const materialGeneration = equipmentMaterialGeneration;

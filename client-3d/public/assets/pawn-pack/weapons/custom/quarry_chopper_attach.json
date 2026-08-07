@@ -37,9 +37,10 @@
   },
   "stow_socket": {
     "space": "spine_03_local",
-    "pos": [0.16, 0, -0.14],
-    "rot_deg": [85, -45, 0],
-    "derivation": "Existing Successor spine_03 back-carry contract."
+    "pos": [-0.0396, 0.2477, -0.1347],
+    "rot_deg": [-179.47, -2.96, -9.01],
+    "arc_lift": 0.13,
+    "derivation": "Solved from the ACCEPTED Vibrosword back carry, same melee_early family frame as scrapline_machete. The previous placeholder was never consumed (SwordRig forced one global melee transform), leaving this chopper horizontal across the neck with the tip 0.44 m out past the pawn's left shoulder. rot_deg maps this family's +Y blade axis onto the accepted spine-local blade direction and its +Z thickness axis onto the accepted flat-normal, so the heavy blade lies flat on the back with the cutting edge lateral. pos seats this chopper's OWN measured midpoint (y=0.18475) on the accepted carry midpoint plus its half-thickness offset (0.0234 vs the Vibrosword's 0.0237); the short 0.58 m silhouette therefore rides high and centred on the back instead of dangling. Tip lands at spine-local y=-0.2214."
   },
   "measured_runtime": {
     "mesh_count": 1,

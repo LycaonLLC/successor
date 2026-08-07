@@ -47,7 +47,7 @@ describe("/play/ is a game shell", () => {
     expect(body).toContain("min-height: 100dvh");
     // The header is one shared token, so stage math can never drift from it.
     expect(tokensCss).toContain("--topbar-h: 3.5rem;");
-    expect(block(componentsCss, ".topbar .shell")).toContain("min-height: var(--topbar-h)");
+    expect(block(componentsCss, ".topbar")).toContain("min-height: var(--topbar-h)");
   });
 
   it("fills the stage edge to edge with the frame — no box, no ratio, no border", () => {

@@ -1,0 +1,19 @@
+{
+  "schema": "successor.client-rust.budgets.v1",
+  "sizes": { "native_stripped_max_bytes": 6291456, "wasm_stripped_max_bytes": 4194304 },
+  "runtime": {
+    "frame_allocs_steady_max": 0,
+    "peak_rss_max_bytes": 536870912,
+    "frame_p99_max_ms": { "darwin-arm64-apple-m2-max": 8.33 }
+  },
+  "render": {
+    "gpu_p99_max_ms": { "darwin-arm64-apple-m2-max": 16.67 }
+  },
+  "terrain": {
+    "gpu_p99_max_ms": { "darwin-arm64-apple-m2-max": 8.33 }
+  },
+  "regression": {
+    "size_max_growth_bytes": 524288, "size_max_growth_pct": 25,
+    "perf_max_regress_pct": 100, "rss_max_regress_pct": 5
+  }
+}

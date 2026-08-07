@@ -1,21 +1,4 @@
-/* Self-hosted fonts. Karrik Regular from Velvetyne (SIL OFL 1.1);
-   Atkinson Hyperlegible Next latin variable subset (SIL OFL 1.1).
-   Provenance: site/public/fonts/LICENSES.txt */
-@font-face {
-  font-family: "Karrik";
-  src: url("/fonts/Karrik-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Atkinson Hyperlegible Next";
-  src: url("/fonts/AtkinsonHyperlegibleNext-Latin-var.woff2") format("woff2-variations");
-  font-weight: 200 800;
-  font-style: normal;
-  font-display: swap;
-}
-
+/* Base layer: reset, page field, ambient glow, type rhythm. */
 *,
 *::before,
 *::after {
@@ -23,23 +6,42 @@
 }
 
 html {
-  color-scheme: dark light;
-  scroll-behavior: smooth;
+  height: 100%;
+  scrollbar-gutter: stable;
 }
 
 body {
   margin: 0;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: var(--frame);
-  color: var(--chalk);
+  min-height: 100%;
+  background: var(--field);
+  color: var(--ink);
   font-family: var(--font-body);
-  font-size: 1.0625rem;
-  line-height: 1.65;
-  overflow-x: clip;
+  font-size: 1rem;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  transition: background-color var(--speed-panel) var(--ease), color var(--speed-panel) var(--ease);
+}
+
+/* Ambient field: one radial accent pour high on the page, one deep floor.
+ * The pour is the theme's presence even before any panel draws. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-base);
+  pointer-events: none;
+  background:
+    radial-gradient(
+      70rem 34rem at 24% -8%,
+      color-mix(in oklab, var(--accent) var(--glow-alpha), transparent),
+      transparent 62%
+    ),
+    linear-gradient(180deg, transparent 55%, color-mix(in oklab, var(--field-deep) 85%, transparent));
+}
+
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-ink);
 }
 
 h1,
@@ -48,106 +50,90 @@ h3 {
   font-family: var(--font-display);
   font-weight: 400;
   line-height: 1.08;
-  letter-spacing: -0.02em;
-  margin: 0;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.5em;
   text-wrap: balance;
 }
 
+h1 { font-size: var(--step-5); }
+h2 { font-size: var(--step-3); }
+h3 { font-size: var(--step-2); }
+
 p {
-  margin: 0;
   max-width: var(--text-max);
+  margin: 0 0 1em;
   text-wrap: pretty;
 }
 
-img,
-video {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
-
 a {
-  color: var(--link);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.2em;
-  text-decoration-color: var(--link-decoration);
+  color: var(--ink);
+  text-decoration-color: color-mix(in oklab, var(--accent) 55%, transparent);
+  text-underline-offset: 0.22em;
+  transition: color var(--speed) var(--ease), text-decoration-color var(--speed) var(--ease);
 }
 
 a:hover {
-  color: var(--link-hover);
-  text-decoration-color: var(--link-hover);
+  color: var(--accent);
+  text-decoration-color: var(--accent);
 }
 
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
-  border-radius: 1px;
 }
 
-::selection {
-  background: var(--selection-bg);
-  color: var(--selection-ink);
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+code,
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+/* Micro label: the game's caption voice. Deliberate system, used as window
+ * captions and plaque labels — never as a floating eyebrow. */
+.micro {
+  font-family: var(--font-body);
+  font-size: var(--micro);
+  font-weight: 600;
+  letter-spacing: var(--micro-track);
+  text-transform: uppercase;
+  color: var(--ink-dim);
 }
 
 .skip-link {
   position: fixed;
-  top: max(0.75rem, env(safe-area-inset-top));
-  left: max(0.75rem, env(safe-area-inset-left));
+  top: -100%;
+  left: var(--gutter);
   z-index: var(--z-skip);
-  padding: 0.5rem 0.875rem;
-  background: var(--frame-2);
-  color: var(--chalk);
-  border: 1px solid var(--seam);
-  transform: translateY(-300%);
+  padding: 0.5rem 0.9rem;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  color: var(--ink);
+  backdrop-filter: blur(var(--glass-blur));
 }
 
 .skip-link:focus-visible {
-  transform: none;
+  top: 0.75rem;
 }
 
-.shell {
-  width: min(100% - 2 * var(--gutter), var(--page-max));
-  margin-inline: auto;
-}
-
-.prose {
-  max-width: var(--text-max);
-}
-
-.prose p + p {
-  margin-top: 1em;
-}
-
-.prose strong {
-  color: var(--chalk);
-}
-
-.full-bleed {
-  width: 100%;
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
+main {
+  position: relative;
+  z-index: var(--z-content);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

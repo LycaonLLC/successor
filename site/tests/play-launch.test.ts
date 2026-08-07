@@ -15,7 +15,7 @@ import { mountPage, settle } from "./helpers";
 
 const ENTRY = "https://client.example/releases/0f3a/index.html";
 const CLIENT_ORIGIN = "https://client.example";
-const CHARACTER_APPEARANCE = { skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null };
+const CHARACTER_APPEARANCE = { body: "female" as const, skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null };
 const CHARACTER_WORN = [{ item: "under_bodysuit", colors: ["#89cff0"] }];
 
 const CONTEXT = {
@@ -54,6 +54,16 @@ function gameFrame(): HTMLIFrameElement {
   if (!(iframe instanceof HTMLIFrameElement) || !iframe.contentWindow) throw new Error("missing game frame");
   return iframe;
 }
+function signalClientReady(iframe = gameFrame()): void {
+  const source = iframe.contentWindow;
+  if (!source) throw new Error("missing frame window");
+  window.dispatchEvent(new MessageEvent("message", {
+    origin: CLIENT_ORIGIN,
+    source,
+    data: { type: CLIENT_READY_TYPE },
+  }));
+}
+
 
 beforeEach(() => {
   vi.useRealTimers();
@@ -107,6 +117,7 @@ describe("launch protocol contract", () => {
       source: win,
       data: { type: CLIENT_READY_TYPE },
     }));
+    await settle();
     expect(postMessage).toHaveBeenCalledWith({ type: LAUNCH_MESSAGE_TYPE, launch: CONTEXT }, CLIENT_ORIGIN);
     expect(document.activeElement).toBe(iframe);
     window.dispatchEvent(new MessageEvent("message", { origin: CLIENT_ORIGIN, source: win, data: { type: CLIENT_READY_TYPE } }));
@@ -259,9 +270,12 @@ describe("launch protocol contract", () => {
     await settle();
     await settle();
 
+    expect(playTicket).toHaveBeenCalledTimes(1);
+    const replacement = gameFrame();
+    signalClientReady(replacement);
+    await settle();
     expect(playTicket).toHaveBeenCalledTimes(2);
     expect(playTicket).toHaveBeenLastCalledWith("char-2");
-    const replacement = gameFrame();
     expect(replacement).not.toBe(oldFrame);
     expect(oldFrame.isConnected).toBe(false);
   });
@@ -291,9 +305,13 @@ describe("direct-entry handoff on /play/", () => {
     expect(window.sessionStorage.getItem(SELECTED_CHARACTER_KEY)).toBeNull();
     const select = document.getElementById("launch-character");
     expect(select instanceof HTMLSelectElement && select.value).toBe("char-1");
+    expect(api.playTicket).not.toHaveBeenCalled();
+    const iframe = gameFrame();
+    signalClientReady(iframe);
+    await settle();
     expect(api.playTicket).toHaveBeenCalledTimes(1);
     expect(api.playTicket).toHaveBeenCalledWith("char-1");
-    expect(gameFrame().src).toBe(ENTRY);
+    expect(iframe.src).toBe(ENTRY);
     expect(document.body.dataset.playState).toBe("live");
     expect(document.body.dataset.playView).toBe("full");
   });
@@ -348,6 +366,9 @@ describe("direct-entry handoff on /play/", () => {
     expect(button?.disabled).toBe(false);
     submitLaunch();
     await settle();
+    expect(api.playTicket).not.toHaveBeenCalled();
+    signalClientReady();
+    await settle();
     expect(api.playTicket).toHaveBeenCalledTimes(1);
   });
 
@@ -378,6 +399,9 @@ describe("direct-entry handoff on /play/", () => {
     await settle();
     const select = document.getElementById("launch-character");
     expect(select instanceof HTMLSelectElement && select.value).toBe("char-1");
+    expect(api.playTicket).not.toHaveBeenCalled();
+    signalClientReady();
+    await settle();
     expect(api.playTicket).toHaveBeenCalledWith("char-1");
     // Second consume is empty — one-shot.
     expect(storeSelectedCharacterId(window, "char-1")).toBe(true);

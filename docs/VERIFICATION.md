@@ -1,13 +1,12 @@
 # Successor Verification
 
-Status: current verification contract and latest public proof as of
-2026-07-29.
+Status: current verification contract and latest local source proof as of
+2026-08-02; latest public proof remains 2026-07-29.
 
-Run commands from the canonical Bunker checkout,
-`~/dev/games/successor`, unless a section says otherwise. A passing result
-belongs to the exact source tree that produced it. Historical screenshots,
-migration reports, another worktree, or a public release cannot prove current
-`main`.
+Run commands from the repository root in the checkout being verified. A passing
+result belongs to the exact source revision and working tree that produced it.
+Historical screenshots, migration reports, another checkout, or a public
+release cannot prove the current development source.
 
 Architecture and scope live in `CANONICAL_CONTEXT.md`. Current implementation
 inventory lives in `CURRENT_PROJECT_STATE.md`. Volatile public identities and
@@ -16,17 +15,15 @@ release debt live in `CURRENT_DEPLOYMENT.md`.
 ## Install and source identity
 
 ```bash
-cd ~/dev/games/successor
 git status --short
-git branch --show-current
-git worktree list --porcelain
+git rev-parse HEAD
 pnpm install --frozen-lockfile
 pnpm verify:successor-context
 ```
 
-Normal development expects a clean `main` checkout and one registered
-Successor worktree. Temporary task worktrees are acceptable while active, but
-must be merged or archived and removed before handoff.
+Development may use any branch or checkout layout. Bind proof to the exact
+revision and working tree, preserve unrelated changes, and remove temporary
+isolation created for the task before handoff.
 
 ## Required source gates
 
@@ -73,6 +70,65 @@ gates before handoff.
 | Desktop supervisor | `pnpm --dir desktop check && pnpm --dir desktop test && pnpm --dir desktop verify:key-ownership` |
 | Marketing and launch site | `pnpm site:test && pnpm site:build` |
 | Release tooling | `pnpm deploy:contract && pnpm --dir desktop release:manifest` |
+| Standalone Rust client | `make -C client-rust verify && make -C client-rust check-allocs && make -C client-rust runtime-check && make -C client-rust render-check && make -C client-rust terrain-check && make -C client-rust nostd`; connected changes also run `make -C client-rust connected-check-allocs CONNECTED_ENDPOINT=... CONNECTED_PLAYER=... CONNECTED_ACTOR=...` against a disposable authority |
+
+`client-rust/` is outside both root workspaces. Its own gates are mandatory:
+`verify` covers tests, corpus audit, and stripped native/wasm size budgets;
+`check-allocs` requires zero steady-state allocations in the standard scene;
+`connected-check-allocs` applies the same invariant after deferred connected
+presentation initialization and requires at least 240 stable actor-count
+frames; `runtime-check` checks frame time and RSS; `render-check` checks native
+material-parity GPU p99; `terrain-check` checks deterministic desert and forest
+ROI probes plus terrain GPU p99; and `nostd` builds both engine crates for
+`thumbv7em-none-eabihf`. Browser renderer changes additionally require the
+corresponding WebGL2 probe, connected authority commands and receipts, a resize
+round trip, deterministic half-float-disabled fallback, gesture-gated audio,
+and rendered context-loss recovery without replaying the launch capability.
+
+For a Rust web beta release, build the immutable artifact from the exact source
+and server protocol identities:
+
+```bash
+make -C client-rust web-release \
+  SOURCE_COMMIT=<40-char-source-commit> \
+  CLIENT_RELEASE_ID=successor-rust-beta@<source-prefix> \
+  SERVER_RELEASE_ID=<server-protocol-id>
+```
+
+Inspect `client-rust/out/web-release/release-manifest.json`, then dry-run
+`publish-client-assets.mjs` against that directory and
+`promote-client-runtime.mjs` with
+`--destination site/current/beta/release.json --channel beta
+--server-release-id <server-protocol-id>`. The beta pointer and stable
+`site/current/client/release.json` pointer are independent.
+
+Browser beta proof must use `/beta/` and cover exact-parent READY/launch,
+release-bound game and chat redemption, movement and receipts, resize,
+gesture-gated audio, RGBA8 fallback, WebGL context loss/recovery, clean exit,
+fresh-ticket re-entry, and character switching. Inspect URLs, storage, DOM,
+console output, and proof artifacts for capability leakage. Repeat a stable
+`/play/` journey after beta proof.
+
+Native agent-control changes additionally require a real loopback journey:
+launch a windowed demo or connected client with `--control-port N`, pipe
+multiple input commands through `out/bin/successor-control`, request and
+inspect a protocol screenshot, save `successor.input.v1`, relaunch with
+`--replay-input`, and prove the replayed UI or actor result in a second
+screenshot. A TCP acknowledgement alone is not visual or gameplay proof.
+
+Graphics-tuning changes additionally require: load the checked-in
+`assets/render/settings.json`, open the Backquote overlay through
+`successor-control`, inspect all three control pages, change both a lighting or
+post value and a palette/color value, capture the visible output difference,
+save and reload the document, then restore the intended checked-in preset.
+Verify a second launch consumes the saved/default document. Palette and grade
+proof must inspect pixels; JSON values or uniform logs alone are insufficient.
+
+`client-rust/budgets.json` is authoritative. Its fidelity-first caps are 6 MiB
+stripped native, 4 MiB stripped WebAssembly, 8.33 ms runtime/terrain p99,
+16.67 ms generic render p99, zero steady-state frame allocations, and 512 MiB
+peak RSS. Relative headroom is `max(512 KiB, 25%)` for size, 100% for
+performance, and 5% for RSS; absolute caps still apply.
 
 Changes under `client-3d/` or shared `client/src/` must also rebuild the
 packaged desktop:
@@ -99,9 +155,9 @@ git diff --exit-code -- \
 The current checked-in identities are:
 
 - slice SHA-256:
-  `69a19db8289b0d4711ccca5d4febef39b8dcd2ef662f9f70539935e49af8680e`
+  `c21a81d9e511fa35d059a51eeb5ffc9f60d12b6d6cc63161930befb733bb5e2d`
 - map-bundle SHA-256:
-  `01df5d1d178a8199b5bbd62f7e2107f017f5ae2ba1ca45081bb0ecdbb8f65795`
+  `260687cb95cee5f783e134e3a401f7265d05f0403307fcd6b4283cec2f281cb2`
 
 Update the canonical and state docs in the same change when either identity
 changes.
@@ -211,7 +267,7 @@ pnpm verify:full --dry-run --pretty
 pnpm verify:full
 ```
 
-The full run executes fresh against the canonical source hash. Generated
+The full run executes fresh against the identified source revision. Generated
 ledgers, screenshots, and build output are evidence artifacts, not committed
 source.
 
@@ -222,6 +278,7 @@ reset, key rotation, or pointer promotion:
 
 ```bash
 curl -fsS https://www.successorgame.com/client/release.json | jq .
+curl -fsS https://www.successorgame.com/beta/release.json | jq .
 curl -fsS https://www.successorgame.com/downloads/manifest.json | jq .
 curl -fsS https://world.successorgame.com/healthz | jq .
 curl -fsS https://world.successorgame.com/readyz | jq .
@@ -261,11 +318,10 @@ The sealed amd64 image is:
 595529182031.dkr.ecr.us-east-1.amazonaws.com/successor-staging-1/server@sha256:0e7d1055fba3787c35c9c367d0d3b07136f95d47decb919cb0c873bd1d994040
 ```
 
-The release evidence is under:
-
-```text
-~/dev/releases/successor-alpha-b9262b21-20260729
-```
+The release evidence is identified by public-journey digest
+`7df2b5fbd681bda99d0eadf664d1b631517f4b9bdd8961aa4bb7daaecd405cc6`;
+its storage location is environment-specific and is not part of the
+verification contract.
 
 The final authenticated public journey passed 25 checks. It proved:
 
@@ -326,28 +382,22 @@ authority restart, repaired public launch, or authenticated world entry.
 
 ## Repository recovery
 
-The pre-consolidation archive is:
-
-```text
-~/dev/releases/successor-preconsolidation-20260728T1811-MDT
-```
-
-It contains the verified all-refs bundle for the former 210 worktrees, dirty
-patches and untracked payloads, the corrupt-checkout raw archive, and the
-unfinished property/farming patch. Read-only integrity checks are:
+The pre-consolidation archive contains the verified all-refs bundle for the
+former worktrees, dirty patches and untracked payloads, the corrupt-checkout
+raw archive, and the unfinished property/farming patch. Its storage location is
+environment-specific and must be supplied explicitly:
 
 ```bash
-archive=~/dev/releases/successor-preconsolidation-20260728T1811-MDT
+archive="${SUCCESSOR_RECOVERY_ARCHIVE:?set recovery archive path}"
+repo="${SUCCESSOR_REPO_ROOT:-$PWD}"
 sha256sum --check "$archive/SHA256SUMS"
-git -C ~/dev/games/successor bundle verify \
-  "$archive/successor-all-refs.bundle"
-git -C ~/dev/games/successor bundle list-heads \
-  "$archive/successor-all-refs.bundle"
+git -C "$repo" bundle verify "$archive/successor-all-refs.bundle"
+git -C "$repo" bundle list-heads "$archive/successor-all-refs.bundle"
 ```
 
-Do not restore the whole worktree farm. Extract one named commit, patch, or
-payload into an isolated disposable worktree, revalidate it against `main`,
-then either integrate it or remove the worktree.
+Do not restore the former worktree farm. Extract one named commit, patch, or
+payload into an isolated checkout, revalidate it against the current source
+tree, then either integrate it or remove the temporary checkout.
 
 ## Before committing
 
@@ -358,7 +408,8 @@ then either integrate it or remove the worktree.
    presented as shipped behavior.
 3. Run focused checks, `pnpm run ci`, and `pnpm hygiene:rust`.
 4. Rebuild and smoke the desktop package when its inputs changed.
-5. Commit and push only the intended files to `main`.
+5. Commit or otherwise preserve only the intended files in the requested
+   source destination.
 6. Report source, built, published, promoted, and player-verified states
    separately.
 

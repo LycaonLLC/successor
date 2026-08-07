@@ -37,9 +37,10 @@
   },
   "stow_socket": {
     "space": "spine_03_local",
-    "pos": [0.16, 0, -0.14],
-    "rot_deg": [85, -45, 0],
-    "derivation": "Existing Successor spine_03 back-carry contract."
+    "pos": [-0.0474, 0.2959, -0.1372],
+    "rot_deg": [-179.47, -2.96, -9.01],
+    "arc_lift": 0.14,
+    "derivation": "Solved from the ACCEPTED Vibrosword back carry (config swordStow 91/9/-93 @ -0.04,0.25,-0.135). The previous value was a placeholder copied from the rifle contract and was never even consumed: SwordRig used one global transform for every melee model, which laid this +Y-blade export HORIZONTALLY ACROSS THE NECK (measured carry pitch +9.8 deg, tip 0.50 m out to the pawn's left at neck height) while the +Z-blade Vibrosword raked correctly down the back at -80 deg. rot_deg reproduces the Vibrosword's spine-local blade direction (0.1564,-0.9875,-0.0172) on this family's +Y blade axis AND its flat-normal (-0.0517,0.0092,-0.9986) on this family's +Z thickness axis, so the blade lies flat on the back with the cutting edge lateral, never toward the body. pos seats this model's OWN measured midpoint (y=0.2335) on the accepted carry midpoint, then shifts along the back normal by this blade's half-thickness (0.0267) minus the Vibrosword's (0.0237), so the flat rests where the accepted flat rested. Blade tip lands at spine-local y=-0.2408, well inside the accepted -0.4305 envelope."
   },
   "measured_runtime": {
     "mesh_count": 1,

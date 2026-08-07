@@ -6,7 +6,8 @@ const schema = "successor.state-lock.v1";
 if (!lockPath) fail("state-lock supervisor requires a lock path");
 const lockStat = fs.statSync(lockPath);
 let lockFd: number | null = null;
-for (const name of fs.readdirSync("/proc/self/fd")) {
+const fdDirectory = fs.existsSync("/proc/self/fd") ? "/proc/self/fd" : "/dev/fd";
+for (const name of fs.readdirSync(fdDirectory)) {
   const fd = Number(name);
   if (!Number.isInteger(fd) || fd <= 3) continue;
   try {

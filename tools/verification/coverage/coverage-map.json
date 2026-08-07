@@ -515,6 +515,20 @@
       }
     },
     {
+      "kind": "DebugGiveCredits",
+      "systemId": "exchange",
+      "debugOnly": true,
+      "refs": {
+        "files": [
+          {
+            "path": "crates/successor-sim/src/authority/tests/core_and_combat.rs",
+            "anchor": "fn authority_debug_give_credits_adjusts_and_saturates_wallet()"
+          }
+        ],
+        "scenarios": []
+      }
+    },
+    {
       "kind": "DebugGrantSkillBoxes",
       "systemId": "profession_training",
       "debugOnly": true,

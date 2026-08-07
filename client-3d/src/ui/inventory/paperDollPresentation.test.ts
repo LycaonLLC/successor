@@ -44,6 +44,20 @@ describe("paper-doll weapon presentation parity", () => {
       modelKey: "lightning_carbine",
       visible: true,
     });
+    for (const [weaponId, itemId, modelKey] of [
+      ["wpn-pistol", 3122, "wpn_pistol"],
+      ["wpn-assault", 3123, "wpn_assault"],
+      ["wpn-shotgun", 3124, "wpn_shotgun"],
+      ["wpn-sniper", 3125, "wpn_sniper"],
+      ["wpn-heavy", 3126, "wpn_heavy"],
+      ["wpn-launcher", 3127, "wpn_launcher"],
+    ] as const) {
+      expect(resolvePaperDollWeaponPresentation(weaponId, itemId)).toMatchObject({
+        lane: "rifle",
+        modelKey,
+        visible: true,
+      });
+    }
   });
 
   it("resolves every current catalog melee model on the melee rig", () => {

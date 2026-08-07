@@ -95,6 +95,7 @@ function buildLaunchOptions(
     hosted: {
       gameTicket: envelope.gameTicket,
       chatTicket: envelope.chatTicket,
+      clientReleaseId: envelope.release.client,
       origin,
       onLegFailure,
     },

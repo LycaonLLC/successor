@@ -6,7 +6,7 @@ revisiting. They do not report current implementation status.
 
 Before building from one of these files:
 
-1. Compare its assumptions with `main`.
+1. Compare its assumptions with the current source tree.
 2. Replace stale paths, hashes, and numeric allocations.
 3. Move any implemented contract into `docs/specs/` or the relevant canonical
    document in the same change.

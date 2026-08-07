@@ -74,16 +74,17 @@
   "stow_socket": {
     "space": "spine_03_local",
     "pos": [
-      0.16,
-      0,
-      -0.14
+      -0.04,
+      0.25,
+      -0.135
     ],
     "rot_deg": [
-      85,
-      -45,
-      0
+      91,
+      9,
+      -93
     ],
-    "derivation": "Existing Successor spine_03 back-carry contract."
+    "arc_lift": 0.14,
+    "derivation": "The ACCEPTED live carry, written down. This file previously carried the rifle contract's [0.16,0,-0.14]/[85,-45,0] as a placeholder, which disagreed with what actually shipped: SwordRig ignored the file entirely and used config.pawnPack.swordStow. These values ARE that config block (solved 2026-07-08 against the live skeleton: guard just behind/above the right shoulder blade, blade raking down the back, flat against the back plane), so promoting them to the authored socket is pose-identical to the accepted build and simply makes the legacy benchmark explicit and per-model tunable."
   },
   "provenance": "Source-authored powered cleaver redesign derived from the F4 lane; deterministic rebuild via build_vibrosword_powered.py."
 }

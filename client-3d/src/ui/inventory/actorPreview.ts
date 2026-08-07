@@ -1,4 +1,5 @@
 import {
+  type CanvasTexture,
   Color,
   Group,
   Material,
@@ -21,8 +22,11 @@ import {
 } from "../../assets/equipmentMaterials";
 import { installPawnRim } from "../../render/pawnRim";
 import {
+  applyPawnBodyZoneMask,
   clonePawnBody,
   cloneSpecialPawnBody,
+  collectPawnBodyZoneMeshes,
+  resolvePawnBodyZoneMask,
   type PawnBody,
   type PawnEquipmentItem,
   type PawnPack,
@@ -53,7 +57,16 @@ import { attachPawnFaceDecal, faceSignature, type PawnFaceConfig } from "../../r
 import { clampTurntableZoom } from "../turntableInteraction";
 import { SlugthrowerRig } from "../../render/weapons/slugthrowerRig";
 import { SwordRig } from "../../render/weapons/swordRig";
+import {
+  PlasmaPresentation,
+  PLASMA_SWORD_COLOR,
+  PLASMA_SWORD_MODEL_KEY,
+} from "../../render/weapons/plasmaPresentation";
+import { makeGlowSprite } from "../../render/fx/particles";
 import { resolveWieldPose } from "./wieldPose";
+
+/** Glow sprite shared by every preview rebuild (module-lifetime, like the doll's). */
+let previewGlowSprite: CanvasTexture | null = null;
 
 export interface ActorPreviewRenderVM {
   open: boolean;
@@ -192,6 +205,7 @@ export class ActorPreviewRenderer {
   private animator: PawnAnimator | null = null;
   private slugthrowerRig: SlugthrowerRig | null = null;
   private swordRig: SwordRig | null = null;
+  private plasma: PlasmaPresentation | null = null;
   private holdingWeapon = false;
   private weaponStowed = false;
   // Pack convention: yaw-0 IS the rig's authored FRONT (pawnYaw.ts law).
@@ -250,6 +264,7 @@ export class ActorPreviewRenderer {
     this.slugthrowerRig?.update(Math.min(0.05, Math.max(0, dtSeconds)), null, this.holdingWeapon ? "auto" : "off");
     this.swordRig?.setStowed(this.weaponStowed);
     this.swordRig?.update(Math.min(0.05, Math.max(0, dtSeconds)));
+    this.plasma?.update(Math.min(0.05, Math.max(0, dtSeconds)));
 
     renderer.setScissorTest(true);
     renderer.setViewport(0, 0, width, height);
@@ -289,6 +304,7 @@ export class ActorPreviewRenderer {
     const bodyRoot = look.specialBodyKey
       ? cloneSpecialPawnBody(this.pack, look.specialBodyKey) ?? clonePawnBody(this.pack, look.body)
       : clonePawnBody(this.pack, look.body);
+    const bodyZoneMeshes = look.specialBodyKey ? [] : collectPawnBodyZoneMeshes(bodyRoot);
     const specialBodyLoaded = Boolean(look.specialBodyKey && this.pack.specialBodies.has(look.specialBodyKey));
     bodyRoot.name = `successor-examine-preview:${actorId}`;
     bodyRoot.rotation.set(0, 0, 0);
@@ -347,12 +363,16 @@ export class ActorPreviewRenderer {
     if (isDowned) this.animator.playMontage("death_b", { holdEnd: true, startAtEnd: true });
 
     if (!specialBodyLoaded) {
-      attachPawnEquipmentSet(
+      const attachedItemIds = attachPawnEquipmentSet(
         this.pack,
         bodyRoot,
         look.equipmentIds,
         (item, source) => this.equipmentMaterial(item, source),
         this.equipmentAttachments,
+      );
+      applyPawnBodyZoneMask(
+        bodyZoneMeshes,
+        resolvePawnBodyZoneMask(this.pack.equipment, attachedItemIds),
       );
       attachPawnFaceDecal(bodyRoot, look.face, this.equipmentAttachments);
     }
@@ -397,6 +417,12 @@ export class ActorPreviewRenderer {
         );
         this.swordRig.setVisible(true);
         this.swordRig.setStowed(stowed, { snap: true });
+        if (look.weaponModelKey === PLASMA_SWORD_MODEL_KEY) {
+          // Same presentation object the world pawn and paper doll use, so
+          // the hilt/blade relationship cannot drift between the three.
+          previewGlowSprite ??= makeGlowSprite();
+          this.plasma = new PlasmaPresentation(this.swordRig, previewGlowSprite, PLASMA_SWORD_COLOR, !stowed);
+        }
       }
     }
   }
@@ -405,6 +431,8 @@ export class ActorPreviewRenderer {
     this.equipmentMaterialGeneration += 1;
     this.slugthrowerRig?.dispose();
     this.slugthrowerRig = null;
+    this.plasma?.dispose();
+    this.plasma = null;
     this.swordRig?.dispose();
     this.swordRig = null;
     this.animator?.dispose();

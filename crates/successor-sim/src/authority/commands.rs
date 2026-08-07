@@ -501,6 +501,9 @@ impl SliceAuthorityState {
             ClientCommand::DebugGrantSkillBoxes { skill_box_ids } => {
                 self.apply_debug_grant_skill_boxes(config, skill_box_ids)
             }
+            ClientCommand::DebugGiveCredits { amount } => {
+                self.apply_debug_give_credits(config, *amount)
+            }
             ClientCommand::GroupInvite { target_actor_id } => {
                 self.apply_group_invite(config, target_actor_id)
             }
@@ -697,6 +700,9 @@ impl SliceAuthorityState {
                 self.apply_guild_rescind_war(config, opposing_guild_id)
             }
             ClientCommand::GuildDisband {} => self.apply_guild_disband(config),
+            ClientCommand::PurchaseTravelTicket { .. }
+            | ClientCommand::UseTravelTicket { .. }
+            | ClientCommand::ToggleDoor { .. } => Err(AuthorityRejectReason::TargetUnavailable),
         }
     }
 
@@ -830,6 +836,32 @@ impl SliceAuthorityState {
         Ok(())
     }
 
+    /// Debug-only wallet adjustment.
+    ///
+    /// Signed on purpose: a tester needs to prove the empty-wallet paths as
+    /// often as the rich ones, and the only other way to spend a debug balance
+    /// down is to find something to buy. Both directions saturate, so no amount
+    /// can wrap the balance.
+    pub(super) fn apply_debug_give_credits(
+        &mut self,
+        config: &SliceAuthorityConfig,
+        amount: i64,
+    ) -> Result<(), AuthorityRejectReason> {
+        let actor = self
+            .runtime
+            .durable
+            .actors
+            .get_mut(&config.player_actor_id)
+            .ok_or(AuthorityRejectReason::UnknownActor)?;
+        if amount >= 0 {
+            actor.professions.add_credits(amount.unsigned_abs());
+        } else {
+            let drained = actor.professions.credits.saturating_sub(amount.unsigned_abs());
+            actor.professions.set_credits(Some(drained));
+        }
+        Ok(())
+    }
+
     pub(super) fn apply_set_move_intent(
         &mut self,
         config: &SliceAuthorityConfig,
@@ -950,6 +982,10 @@ impl SliceAuthorityState {
             && is_player_like_role(&actor.role)
             && !actor.sprint_recovery_locked
             && sprint_available_milli >= sprint_cost_milli;
+        let sprint_exhausted = sprint_requested
+            && is_player_like_role(&actor.role)
+            && !actor.sprint_recovery_locked
+            && sprint_available_milli < sprint_cost_milli;
         let movement_multiplier_milli = if sprinting {
             scaled_milli(
                 movement_speed_multiplier_milli_for_actor(actor),
@@ -996,6 +1032,13 @@ impl SliceAuthorityState {
             moved_milli,
         );
         actor.last_moved_tick = Some(movement_tick);
+        if sprint_exhausted {
+            actor.vitals.action = 0;
+            actor.sprint_action_drain_milli = 0;
+            actor.sprint_recovery_locked = true;
+            actor.sprint_recovery_regen_carry = 0;
+            actor.passive_regen_milli.action = 0;
+        }
         if sprinting {
             let sprint_action_cost = actor_sprint_action_cost_milli(
                 actor,

@@ -2,7 +2,7 @@ import childProcess from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const flockBin = "/usr/bin/flock";
+const flockBins = ["/usr/bin/flock", "/opt/homebrew/bin/flock", "/usr/local/bin/flock"] as const;
 const handshakeSchema = "successor.state-lock.v1";
 const handshakeTimeoutMs = 5_000;
 const releaseTimeoutMs = 2_000;
@@ -24,12 +24,15 @@ export async function acquireHostedStateLock(stateDir: string, lockPath = path.j
   const resolvedStateDir = path.resolve(stateDir);
   const resolvedLockPath = path.resolve(lockPath);
   fs.mkdirSync(resolvedStateDir, { recursive: true });
-  if (!fs.existsSync(flockBin)) throw new Error(`hosted state locking requires ${flockBin}`);
+  const flockBin = [process.env.SUCCESSOR_FLOCK_BIN, ...flockBins]
+    .find((candidate) => candidate && fs.existsSync(candidate));
+  if (!flockBin) throw new Error(`hosted state locking requires one of ${flockBins.join(", ")}`);
   const moduleDir = path.dirname(new URL(import.meta.url).pathname);
   const supervisorCandidates = [path.join(moduleDir, "state-lock-supervisor.js"), path.join(moduleDir, "..", "dist", "state-lock-supervisor.js")];
   const supervisorPath = supervisorCandidates.find((candidate) => fs.existsSync(candidate));
   if (!supervisorPath) throw new Error(`hosted state-lock supervisor is missing at ${supervisorCandidates.join(", ")}`);
-  const child = childProcess.spawn(flockBin, ["--exclusive", "--nonblock", "--no-fork", resolvedLockPath, process.execPath, supervisorPath, resolvedLockPath], {
+  const flockArgs = ["-x", "-n", ...(process.platform === "linux" ? ["--no-fork"] : []), resolvedLockPath, process.execPath, supervisorPath, resolvedLockPath];
+  const child = childProcess.spawn(flockBin, flockArgs, {
     cwd: resolvedStateDir,
     detached: true,
     stdio: ["pipe", "ignore", "pipe", "pipe"],
@@ -39,7 +42,11 @@ export async function acquireHostedStateLock(stateDir: string, lockPath = path.j
     const handshake = await waitForHandshake(child, resolvedLockPath);
     const lease = { lockPath: resolvedLockPath, ownerPid: handshake.pid, child, released: false };
     activeLease = lease;
-    child.once("exit", () => { if (activeLease === lease) activeLease = undefined; });
+    child.once("exit", () => {
+      if (activeLease === lease) activeLease = undefined;
+      if (lease.released || !child.pid) return;
+      try { process.kill(-child.pid, "SIGKILL"); } catch { /* process group already gone */ }
+    });
     return lease;
   } catch (error) {
     try { child.stdin?.destroy(); } catch { /* already closed */ }

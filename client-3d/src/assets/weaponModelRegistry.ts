@@ -5,12 +5,19 @@
  */
 const WEAPON_MODEL_BY_ITEM: Readonly<Record<number, string>> = {
   3101: "wpn_smg",
+  3104: "plasma_sword",
   3105: "scrapline_machete",
   3106: "field_saber",
   3107: "quarry_chopper",
   3111: "wpn_smg",
   3112: "wpn_carbine",
   3121: "lightning_carbine",
+  3122: "wpn_pistol",
+  3123: "wpn_assault",
+  3124: "wpn_shotgun",
+  3125: "wpn_sniper",
+  3126: "wpn_heavy",
+  3127: "wpn_launcher",
 };
 
 const WEAPON_MODEL_BY_WEAPON_ID: Readonly<Record<string, string>> = {

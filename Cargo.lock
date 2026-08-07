@@ -516,6 +516,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "successor-movement"
+version = "0.0.1"
+
+[[package]]
 name = "successor-net"
 version = "0.0.1"
 dependencies = [
@@ -532,6 +536,7 @@ dependencies = [
  "serde_json",
  "successor-core",
  "successor-inventory",
+ "successor-movement",
  "successor-net",
  "thiserror",
 ]
