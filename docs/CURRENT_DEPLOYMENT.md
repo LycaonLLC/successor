@@ -1,8 +1,10 @@
 # Successor Current Deployment
 
-Status: stable production and a Rust-beta hotfix promoted on 2026-08-06 UTC.
-Stable remains source `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; Rust beta is
-source `2f7ffd99c360c69cbd9ba2c45e9ab54c4ef6aeca`.
+Status: authority image, Rust beta, and site promoted on 2026-08-07 UTC from
+`integration/rust-ui-runtime-20260803`. Stable browser client remains source
+`bd1396cdc9c1249605888db2bb465d17d6cdd39b`; the authority, Rust beta, and site
+are source `e1e0e44caa38b1d1f254877edabf05bd1e26a12c` (site content built at
+content-identical ancestor `62202406`).
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -13,12 +15,12 @@ operator procedures live in `OPERATIONS.md`.
 
 | Surface | Public address | Current identity |
 | --- | --- | --- |
-| Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-bd1396c-20260806` |
-| Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@bd1396cdc9c12496` |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@2f7ffd99c360c69c` |
-| Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `b45c8ad37913…` |
+| Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-62202406-20260807`, manifest `701293dde14bfac9e860d1c8079eea069dd67562f303b0f82e02537745ece808` |
+| Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@bd1396cdc9c12496` (unchanged) |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@e1e0e44caa38b1d1`, manifest `551b0fff8ced3c7c39c0b8da91c8b9810d7da5c37b78879992fa074fae9758d8` |
+| Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `sha256:47abcfe6c86b090553093dc3375d164571f719d0952c8e0cb871182d8394ecb5` (tags `rel-62202406`, `rel-0efb2347`, `rel-e1e0e44c`) |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | unchanged: release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | stable `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; Rust beta `2f7ffd99c360c69cbd9ba2c45e9ab54c4ef6aeca` |
+| Public source | `https://github.com/LycaonLLC/successor` | stable `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; authority/beta/site `e1e0e44caa38b1d1f254877edabf05bd1e26a12c` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -32,10 +34,80 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`2f7ffd99c360c69cbd9ba2c45e9ab54c4ef6aeca`, client
-`successor-rust-beta@2f7ffd99c360c69c`, and immutable publication inventory
-SHA-256 `26dda4a36284690a35596d292e5f52c92779251db3163c06c2df8efb5ad78ac4`.
+`e1e0e44caa38b1d1f254877edabf05bd1e26a12c`, client
+`successor-rust-beta@e1e0e44caa38b1d1`, and immutable publication inventory
+SHA-256 `551b0fff8ced3c7c39c0b8da91c8b9810d7da5c37b78879992fa074fae9758d8`.
 Previous dry runs and superseded beta candidates are not release identities.
+
+
+## 2026-08-07 integration promotion — authority, Rust beta, site
+
+Release evidence document SHA-256 (the recorded maintenance seal identity):
+`f9d837dec8faed775e1fc7c9c02a8af4b2489d994b413d2e22738fb70a863b10`
+(source and copy: `/tmp/release-evidence-e1e0e44c.json` on the cockpit at mint
+time; bind it into the ops evidence store on the next operator session).
+
+What shipped, all from `integration/rust-ui-runtime-20260803`:
+
+- **Authority image** `sha256:47abcfe6c86b090553093dc3375d164571f719d0952c8e0cb871182d8394ecb5`
+  replaced `b45c8ad37913…` via the documented SSM maintenance deploy
+  (`GAME_SHARD_MANIFEST_PATH` had to be supplied explicitly — the preflight
+  default filename does not match the live `state-generation.manifest.json`).
+  Zero sessions were connected; the durable state tree was untouched and the
+  durability generation remained
+  `e8455ec582e9b99ddd5ed27b741a00cfabb1ee4b1f7073d36bb58079473e6609`.
+  The allowlist gained `successor-rust-beta@e1e0e44caa38b1d1`; prior stable and
+  beta identities remain accepted. This image carries the co-dev movement
+  overhaul with per-kind ingress budgets, room-message handling, and the idle
+  pong flush.
+- **Rust web beta** `successor-rust-beta@e1e0e44caa38b1d1`, publication
+  manifest `551b0fff8ced3c7c39c0b8da91c8b9810d7da5c37b78879992fa074fae9758d8`,
+  published to the object store (first population: 301 objects + 9 in-dist
+  duplicates) and pointer-flipped after the authority accepted the new id.
+  Client fixes in this release: compact combat-event tuple decoding (combat
+  FX/floating text/SFX were silently dead on the live wire), NPC world-corpse
+  looting (window opens from the actor snapshot's lootable marking), streamed
+  inventory 3D preview retry, Tab target cycling, full number-row toolbar key
+  sampling, and a fresh-install toolbar loadout (ATTACK on 1, AIMED SHOT on 2).
+- **Site** `site-62202406-20260807` — ground-up FE rewrite on the game's own
+  chrome with five keyed themes (DAWN default; SIGNAL/PHOSPHOR/AMBER/OXIDE are
+  byte-exact hud.rs ports, contract-tested against the client source), minimal
+  copy, evidence-plaque field record including two native Rust client
+  captures, and the real TUI frame. Published immutable under
+  `site/releases/site-62202406-20260807` and promoted to `site/current`.
+
+Verification basis: static G0 gates (context, private-path — on the cockpit
+checkout; the deploy worktree lacks the `hub/main` ref the private-path gate
+expects — commands, coverage, denylist, fixture contract, zero-GPU, wardrobe,
+deploy contract) all pass; client-rust unit suite 439 at release head;
+workspace suites 586 at `5d40e029` with client-rust-only deltas after;
+site suite 178 with performance budgets met; amd64 container smoke (read-only
+rootfs, tmpfs state) healthy; live Bunker Xvfb runtime proofs (door
+open/close, combat FX visible post-fix, NPC loot window, Tab cycling). The
+full verification farm is NOT runnable on currently available hosts: every 3D
+journey task is `linux-only` (Mac ineligible) and Playwright 1.59 does not
+support Chromium on ubuntu26.04-x64 (Bunker ineligible) — the same
+host-availability waiver recorded for the 2026-08-06 promotion. Restoring a
+supported Linux farm host is the standing gap.
+
+Public post-deploy checks: `/healthz` 200, `/game/status` live with
+`rustLive: true` on the preserved state; beta pointer serves the exact new
+source, client id, and manifest; the immutable entry answers HTTP 200; a
+contextless direct open of the release index fail-closes with
+`hosted launch is not configured` while booting the wasm and canvas (the
+ticketed `/beta/` path is the supported entry). A signed-in public-account
+launch has not yet been exercised for this promotion.
+
+Operational drift found and worked around during this promotion (fix
+forward): `~/.config/successor/instance-id.txt` on the provider host names a
+stale instance; the AWS CLI 2.31/ubuntu26 build crashes on `ssm send-command`
+(boto3 venv used instead); `publish-site.mjs` requires `--output-dir` despite
+advertising a default; `promote-client-runtime` inputs are trusted for
+`--source-commit` (a wrong tail was initially published and immediately
+re-flipped); the release-seal tooling rejects current v2 asset manifests and
+the stable manifest's own release-id shape, and the standalone farm scheduler
+has no eligible host (above). The site `/current.json` public pointer route
+returns 403 at the edge (route never wired); the S3 object exists.
 
 ## 2026-08-06 Rust beta action-key hotfix
 
