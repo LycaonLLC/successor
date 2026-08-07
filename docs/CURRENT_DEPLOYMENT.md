@@ -3,8 +3,9 @@
 Status: authority image, Rust beta, and site promoted on 2026-08-07 UTC from
 `integration/rust-ui-runtime-20260803`. Stable browser client remains source
 `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; the authority, Rust beta, and site
-are source `e1e0e44caa38b1d1f254877edabf05bd1e26a12c` (site content built at
-content-identical ancestor `62202406`).
+are source `4b659e80f9ea2f652606167782694c4ef26aaa1f` (authority image content
+identical from `62202406`; site content built at content-identical ancestor
+`62202406`).
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -17,10 +18,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-62202406-20260807`, manifest `701293dde14bfac9e860d1c8079eea069dd67562f303b0f82e02537745ece808` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@bd1396cdc9c12496` (unchanged) |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@e1e0e44caa38b1d1`, manifest `551b0fff8ced3c7c39c0b8da91c8b9810d7da5c37b78879992fa074fae9758d8` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@4b659e80f9ea2f65`, manifest `f83a1a1054d112cd0be0e5285ccf70253768c1db8e6f4e4c86679fe3c8ef0490` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `sha256:47abcfe6c86b090553093dc3375d164571f719d0952c8e0cb871182d8394ecb5` (tags `rel-62202406`, `rel-0efb2347`, `rel-e1e0e44c`) |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | unchanged: release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | stable `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; authority/beta/site `e1e0e44caa38b1d1f254877edabf05bd1e26a12c` |
+| Public source | `https://github.com/LycaonLLC/successor` | stable `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; authority/beta/site `4b659e80f9ea2f652606167782694c4ef26aaa1f` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -34,9 +35,12 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`e1e0e44caa38b1d1f254877edabf05bd1e26a12c`, client
-`successor-rust-beta@e1e0e44caa38b1d1`, and immutable publication inventory
-SHA-256 `551b0fff8ced3c7c39c0b8da91c8b9810d7da5c37b78879992fa074fae9758d8`.
+`4b659e80f9ea2f652606167782694c4ef26aaa1f`, client
+`successor-rust-beta@4b659e80f9ea2f65`, and immutable publication inventory
+SHA-256 `f83a1a1054d112cd0be0e5285ccf70253768c1db8e6f4e4c86679fe3c8ef0490`.
+It supersedes the same-day `e1e0e44c` beta (kept in the allowlist) by adding
+the keyboard-toolbar action fix; a hud_actions clear in frame() was
+discarding key-pushed toolbar verbs before the drain.
 Previous dry runs and superseded beta candidates are not release identities.
 
 
@@ -89,6 +93,16 @@ journey task is `linux-only` (Mac ineligible) and Playwright 1.59 does not
 support Chromium on ubuntu26.04-x64 (Bunker ineligible) — the same
 host-availability waiver recorded for the 2026-08-06 promotion. Restoring a
 supported Linux farm host is the standing gap.
+
+Runtime-presentation proof (Bunker Xvfb, local authority, same source):
+fresh-install toolbar shows ATTACK/AIMED on 1/2; Tab selects the sparring
+partner and keys 1/2 return `accepted:ok` receipts; combat FX draw (muzzle
+light, outcome burst, floating text); doors open/close; a rights-held NPC
+corpse opens the loot window and row TAKE transfers. Known tooling boundary:
+`DebugGiveItem` cannot grant wardrobe ids (73xx, 7319, even 9900001) on
+current-fixture shards — clothing enters via the creation lifecycle; debug
+wardrobe grants only work against pre-catalog-cut states, which blocks
+outfit-portrait capture automation on fresh shards.
 
 Public post-deploy checks: `/healthz` 200, `/game/status` live with
 `rustLive: true` on the preserved state; beta pointer serves the exact new
