@@ -1,13 +1,12 @@
 # Successor Current Deployment
 
-Status: authority image, Rust beta, and site promoted on 2026-08-07 UTC from
-`integration/rust-ui-runtime-20260803`. Stable browser client remains source
-`bd1396cdc9c1249605888db2bb465d17d6cdd39b`; the authority and site are source
-`4b659e80f9ea2f652606167782694c4ef26aaa1f` (authority image content
-identical from `62202406`; site content built at content-identical ancestor
-`62202406`). Later on 2026-08-07 the Rust beta pointer moved to source
-`792dfa58c7064afbca35bdb07842a866c574faaf` (see the beta promotion entry
-below); the authority image and site are unchanged.
+Status: site and Rust beta promoted on 2026-08-08 UTC from
+`dev/rust-client` source `2d9f1e14467efcf526712ee54aa4840911d433aa`.
+Stable browser client remains source
+`bd1396cdc9c1249605888db2bb465d17d6cdd39b`; the authority remains source
+`4b659e80f9ea2f652606167782694c4ef26aaa1f` with image content identical from
+`62202406`. The authority image, stable pointer, native download ledger, and
+durable state were unchanged.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -18,12 +17,12 @@ operator procedures live in `OPERATIONS.md`.
 
 | Surface | Public address | Current identity |
 | --- | --- | --- |
-| Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-62202406-20260807`, manifest `701293dde14bfac9e860d1c8079eea069dd67562f303b0f82e02537745ece808` |
+| Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-2d9f1e1-20260808`, manifest `49e925113742ae98f61c9658ef10080b819e36dd407e61fc813ce30611f55092` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@bd1396cdc9c12496` (unchanged) |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@792dfa58c7064afb`, manifest `d58f158963cf2ce109e889f9b2e000d07ce567df4fb949edb23a3f13212e90a8` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@2d9f1e14467efcf`, manifest `7ba73519c97334a04f212d39ec46b20e46a1427c6861019fa2886f4459d01ecd` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `sha256:47abcfe6c86b090553093dc3375d164571f719d0952c8e0cb871182d8394ecb5` (tags `rel-62202406`, `rel-0efb2347`, `rel-e1e0e44c`) |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | unchanged: release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | stable `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; authority/site `4b659e80f9ea2f652606167782694c4ef26aaa1f`; beta `792dfa58c7064afbca35bdb07842a866c574faaf` |
+| Public source | `https://github.com/LycaonLLC/successor` | stable `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; authority `4b659e80f9ea2f652606167782694c4ef26aaa1f`; site/beta `2d9f1e14467efcf526712ee54aa4840911d433aa` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -37,13 +36,45 @@ no-cache pointers and immutable release prefixes; promotion or rollback of one
 does not move the other.
 
 The promoted beta identity is source
-`4b659e80f9ea2f652606167782694c4ef26aaa1f`, client
-`successor-rust-beta@4b659e80f9ea2f65`, and immutable publication inventory
-SHA-256 `f83a1a1054d112cd0be0e5285ccf70253768c1db8e6f4e4c86679fe3c8ef0490`.
-It supersedes the same-day `e1e0e44c` beta (kept in the allowlist) by adding
-the keyboard-toolbar action fix; a hud_actions clear in frame() was
-discarding key-pushed toolbar verbs before the drain.
+`2d9f1e14467efcf526712ee54aa4840911d433aa`, client
+`successor-rust-beta@2d9f1e14467efcf`, and immutable publication inventory
+SHA-256 `7ba73519c97334a04f212d39ec46b20e46a1427c6861019fa2886f4459d01ecd`.
 Previous dry runs and superseded beta candidates are not release identities.
+
+## 2026-08-08 site and Rust beta promotion — entry overlay fix
+
+Site and beta-only promotion; authority image, stable pointer, native ledger,
+and durable state were untouched.
+
+- Source `2d9f1e14467efcf526712ee54aa4840911d433aa`
+  (`fix(site): dismiss beta entry panel after handoff`). The launch lifecycle
+  sets `data-stage-state="live"`; the site CSS incorrectly hid the entry panel
+  and exposed frame controls only for the unused state `running`. The CSS and
+  regression contract now use the actual `live` state.
+- Site `site-2d9f1e1-20260808`, immutable manifest
+  `49e925113742ae98f61c9658ef10080b819e36dd407e61fc813ce30611f55092`
+  (53 files), promoted to `site/current`. The authenticated S3 pointer names
+  that exact release and manifest. The documented public `/current.json` route
+  returned HTTP 403 during verification; `/beta/` and its promoted stylesheet
+  returned HTTP 200 and contained the corrected live-state selector.
+- Client `successor-rust-beta@2d9f1e14467efcf`, immutable publication
+  inventory SHA-256
+  `7ba73519c97334a04f212d39ec46b20e46a1427c6861019fa2886f4459d01ecd`
+  (6 uploaded, 304 skipped-existing; web-release manifest
+  `16adc27ce4b70e72f80f56ab3f0ed4e56d7ce1fe6459290d8f478b2422b23b4e`).
+- Authority allowlist gained `successor-rust-beta@2d9f1e14467efcf` via the
+  documented SSM interactive path; `successor.service` restarted with zero
+  sessions and returned `active`.
+- Verification: site suite 179/179, site build and all seven transfer budgets
+  passed; Rust hygiene and the clean-tree workspace build/test gates passed.
+  Root CI passed context, command/coverage, verification, deploy, Terraform,
+  and denylist checks, then stopped at the pre-existing transitive
+  `@colyseus/core` `nanoid <3.3.17` production-audit finding. Public Chromium
+  loaded the promoted stylesheet, observed the `live` entry panel as
+  `display: none`, observed frame controls as `display: flex`, and visually
+  confirmed no panel over the frame. The beta pointer and immutable client
+  entry returned HTTP 200; `/healthz` returned 200, `/readyz` reported every
+  check true, and `/game/status` reported `rustLive: true`.
 
 ## 2026-08-07 Rust beta promotion — lighting settings release
 
