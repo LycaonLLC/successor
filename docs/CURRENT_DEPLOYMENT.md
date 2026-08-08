@@ -2,10 +2,12 @@
 
 Status: authority image, Rust beta, and site promoted on 2026-08-07 UTC from
 `integration/rust-ui-runtime-20260803`. Stable browser client remains source
-`bd1396cdc9c1249605888db2bb465d17d6cdd39b`; the authority, Rust beta, and site
-are source `4b659e80f9ea2f652606167782694c4ef26aaa1f` (authority image content
+`bd1396cdc9c1249605888db2bb465d17d6cdd39b`; the authority and site are source
+`4b659e80f9ea2f652606167782694c4ef26aaa1f` (authority image content
 identical from `62202406`; site content built at content-identical ancestor
-`62202406`).
+`62202406`). Later on 2026-08-07 the Rust beta pointer moved to source
+`792dfa58c7064afbca35bdb07842a866c574faaf` (see the beta promotion entry
+below); the authority image and site are unchanged.
 
 This file owns volatile production identity. Product and authority contracts
 live in `CANONICAL_CONTEXT.md`, implementation inventory lives in
@@ -18,10 +20,10 @@ operator procedures live in `OPERATIONS.md`.
 | --- | --- | --- |
 | Site, account, stable launch, and beta launch | `https://www.successorgame.com/` | `site-62202406-20260807`, manifest `701293dde14bfac9e860d1c8079eea069dd67562f303b0f82e02537745ece808` |
 | Stable browser pointer | `https://www.successorgame.com/client/release.json` | `successor-alpha@bd1396cdc9c12496` (unchanged) |
-| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@4b659e80f9ea2f65`, manifest `f83a1a1054d112cd0be0e5285ccf70253768c1db8e6f4e4c86679fe3c8ef0490` |
+| Beta browser pointer | `https://www.successorgame.com/beta/release.json` | `successor-rust-beta@792dfa58c7064afb`, manifest `d58f158963cf2ce109e889f9b2e000d07ce567df4fb949edb23a3f13212e90a8` |
 | Game and chat authority | `https://world.successorgame.com/` and `wss://world.successorgame.com` | image digest `sha256:47abcfe6c86b090553093dc3375d164571f719d0952c8e0cb871182d8394ecb5` (tags `rel-62202406`, `rel-0efb2347`, `rel-e1e0e44c`) |
 | Native download ledger | `https://www.successorgame.com/downloads/manifest.json` | unchanged: release `successor-alpha@cdab7dccacc1d75c`, version `0.0.4`, four builds |
-| Public source | `https://github.com/LycaonLLC/successor` | stable `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; authority/beta/site `4b659e80f9ea2f652606167782694c4ef26aaa1f` |
+| Public source | `https://github.com/LycaonLLC/successor` | stable `bd1396cdc9c1249605888db2bb465d17d6cdd39b`; authority/site `4b659e80f9ea2f652606167782694c4ef26aaa1f`; beta `792dfa58c7064afbca35bdb07842a866c574faaf` |
 
 The site and immutable browser assets are in S3 behind CloudFront. One
 digest-pinned authority container runs on private EC2 behind the public ALB.
@@ -43,12 +45,39 @@ the keyboard-toolbar action fix; a hud_actions clear in frame() was
 discarding key-pushed toolbar verbs before the drain.
 Previous dry runs and superseded beta candidates are not release identities.
 
+## 2026-08-07 Rust beta promotion — lighting settings release
+
+Beta-only flip; authority image, site, stable pointer, and durable state were
+untouched.
+
+- Source `792dfa58c7064afbca35bdb07842a866c574faaf` ("saving lighting
+  settings"; removes pawn auto point lights, adds the `auto_point_light_scale`
+  graphics tuning slider and per-preset values, adds
+  `client-rust/tools/connect-local.sh`).
+- Client `successor-rust-beta@792dfa58c7064afb`; immutable publication
+  inventory SHA-256
+  `d58f158963cf2ce109e889f9b2e000d07ce567df4fb949edb23a3f13212e90a8`
+  (publish: 6 uploaded, 304 skipped-existing; web-release manifest
+  `8d638d7097bfbf38566c122246273ab08152007b43c3c083254ed0e1b51cc00a`).
+- Authority allowlist gained `successor-rust-beta@792dfa58c7064afb` via the
+  documented SSM interactive path; `successor.service` restarted with zero
+  sessions connected and returned `active`. A first publication stamped with
+  pre-rebase commit `944cf16…` (content-identical tree) was superseded before
+  pointer promotion; its allowlist id is kept, matching prior superseded-id
+  practice.
+- Verification: `https://www.successorgame.com/beta/release.json` serves the
+  new pointer; immutable `index.html`, `successor.js`, and `successor.wasm`
+  (3,445,303 bytes) return HTTP 200 from the new release prefix; the wasm
+  embeds `successor.render-settings.v1` with `auto_point_light_scale`
+  (`0.37007576` medium preset); `/healthz` 200, `/readyz` all checks true,
+  `/game/status` `rustLive: true`.
+
 
 ## 2026-08-07 integration promotion — authority, Rust beta, site
 
 Release evidence document SHA-256 (the recorded maintenance seal identity):
 `f9d837dec8faed775e1fc7c9c02a8af4b2489d994b413d2e22738fb70a863b10`
-(source and copy: `/tmp/release-evidence-e1e0e44c.json` on the cockpit at mint
+(source and copy: `release-evidence-e1e0e44c.json` on the cockpit at mint
 time; bind it into the ops evidence store on the next operator session).
 
 What shipped, all from `integration/rust-ui-runtime-20260803`:

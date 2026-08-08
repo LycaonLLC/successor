@@ -95,6 +95,16 @@ describe("/play/ is a game shell", () => {
     ).toContain("height: 100%");
   });
 
+  it("removes the entry panel when the live frame owns the stage", () => {
+    expect(pagesCss).toContain(
+      '.game-stage[data-stage-state="live"] .stage-panel { display: none; }',
+    );
+    expect(pagesCss).toContain(
+      '.game-stage[data-stage-state="live"] .play-frame-controls { display: flex; }',
+    );
+    expect(pagesCss).not.toContain('.game-stage[data-stage-state="running"]');
+  });
+
   it("keeps an exit control above the cross-origin frame and a framed return state", () => {
     expect(playHtml).toContain('id="play-frame-exit"');
     expect(playHtml).toContain('id="play-frame-enter"');

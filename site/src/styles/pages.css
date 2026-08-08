@@ -209,7 +209,7 @@ body[data-page="play"] {
   margin: 0.6rem 0 0;
 }
 
-.game-stage[data-stage-state="running"] .stage-panel { display: none; }
+.game-stage[data-stage-state="live"] .stage-panel { display: none; }
 
 .play-frame-controls {
   position: absolute;
@@ -220,7 +220,7 @@ body[data-page="play"] {
   gap: 0.5rem;
 }
 
-.game-stage[data-stage-state="running"] .play-frame-controls { display: flex; }
+.game-stage[data-stage-state="live"] .play-frame-controls { display: flex; }
 
 .play-frame-control {
   appearance: none;
