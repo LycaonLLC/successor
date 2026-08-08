@@ -79,7 +79,7 @@ impl PawnScene {
         renderer.set_ambient(0.45);
         renderer.set_fog([0.09, 0.10, 0.12], 40.0, 80.0);
         let mut world = GameWorld::new();
-        let gpu_parts: PawnGpuParts = template.upload(gpu, &mut renderer);
+        let gpu_parts: PawnGpuParts = template.upload(gpu, &mut renderer).map_err(|_| ())?;
 
         // A row of pawns, each with a gait + tint.
         #[allow(clippy::type_complexity)]
@@ -336,22 +336,22 @@ fn load_weapon<G: Gpu>(
     let mount_bytes =
         std::fs::read("../client-3d/public/assets/pawn-pack/slugthrower_attach.json").ok()?;
     let hand_spec = parse_weapon_hand_spec(&mount_bytes)?;
-    let parts = super::pack::upload_static_parts(gpu, renderer, &bytes).ok()?;
+    let model = crate::assets::model::upload_static_model(gpu, renderer, &bytes).ok()?;
     let mut entities = Vec::new();
-    for (mesh, material, local) in parts {
+    for part in model.parts {
         let e = world.spawn();
-        let (pos, rot, scale) = local.to_trs();
+        let (pos, rot, scale) = part.local.to_trs();
         world.set_component(e, Transform { pos, rot, scale });
         world.set_component(
             e,
             MeshRenderer {
-                mesh,
-                material,
+                mesh: part.mesh,
+                material: part.material,
                 viewport_mask: 0b1,
                 skin: SkinRef::NONE,
             },
         );
-        entities.push((e, local));
+        entities.push((e, part.local));
     }
     Some(WeaponRig {
         entities,

@@ -75,11 +75,7 @@ pub fn debug_catalog_skill_boxes() -> Vec<DebugCatalogSkillBox> {
             let Some(definition) = authority_skill_box_definition(&id) else {
                 continue;
             };
-            let tier = id
-                .rsplit('-')
-                .next()
-                .unwrap_or("")
-                .to_owned();
+            let tier = id.rsplit('-').next().unwrap_or("").to_owned();
             boxes.push(DebugCatalogSkillBox {
                 title: definition.title.clone().unwrap_or_else(|| id.clone()),
                 profession: profession.id().to_owned(),

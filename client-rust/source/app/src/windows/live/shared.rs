@@ -66,7 +66,12 @@ impl Pane {
 
     /// Two label/value pairs on one line — the readout strip a terminal opens
     /// with, at half the vertical cost of stacking them.
-    pub(crate) fn field_pair(&mut self, ui: &mut UiBuilder, left: (&str, &str), right: (&str, &str)) {
+    pub(crate) fn field_pair(
+        &mut self,
+        ui: &mut UiBuilder,
+        left: (&str, &str),
+        right: (&str, &str),
+    ) {
         let half = ((self.w - 12.0) * 0.5).max(0.0);
         chrome::field(ui, self.x, self.y, half, left.0, left.1, self.metrics);
         self.y = chrome::field(
@@ -122,7 +127,12 @@ impl Pane {
     }
 
     /// Draw a rail into the space [`Pane::reserve_footer`] set aside.
-    pub(crate) fn footer(&self, ui: &mut UiBuilder, at: Option<f32>, labels: &[&str]) -> Option<usize> {
+    pub(crate) fn footer(
+        &self,
+        ui: &mut UiBuilder,
+        at: Option<f32>,
+        labels: &[&str],
+    ) -> Option<usize> {
         let y = at?;
         if labels.is_empty() {
             return None;

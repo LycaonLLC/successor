@@ -236,9 +236,11 @@ mod tests {
         out.clear();
         bank(&mut ui, ctx, &model, &mut out);
 
-        assert!(out.contains(&WindowAction::Command(ClientCommand::BankDepositCredits {
-            amount: 100
-        })));
+        assert!(
+            out.contains(&WindowAction::Command(ClientCommand::BankDepositCredits {
+                amount: 100
+            }))
+        );
 
         // Test tab 1 retrieve
         let ctx_tab1 = test_ctx(RECT, 1);

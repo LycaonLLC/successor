@@ -1,5 +1,5 @@
-use crate::windows::live::shared::*;
 use crate::windows::chrome::{self};
+use crate::windows::live::shared::*;
 use crate::windows::{accent, dim, label, Ctx, WindowAction, WindowModel};
 use successor_engine_render::ui::UiBuilder;
 use successor_net::ClientCommand;
@@ -17,7 +17,11 @@ pub fn datapad(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<
                 "POSITION",
                 &format!(
                     "{} {}, {}",
-                    if area_id.is_empty() { "UNKNOWN" } else { &area_id },
+                    if area_id.is_empty() {
+                        "UNKNOWN"
+                    } else {
+                        &area_id
+                    },
                     player_x,
                     player_y
                 ),
@@ -30,20 +34,53 @@ pub fn datapad(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<
                 let chart_h = 80.0f32.min((pane.bottom - pane.y - 120.0).max(40.0));
                 let chart_y = pane.y;
                 let chart_rect = [pane.x, chart_y, pane.w, chart_h];
-                ui.border(chart_rect[0], chart_rect[1], chart_rect[2], chart_rect[3], 1.0, dim());
+                ui.border(
+                    chart_rect[0],
+                    chart_rect[1],
+                    chart_rect[2],
+                    chart_rect[3],
+                    1.0,
+                    dim(),
+                );
 
                 let center_x = pane.x + pane.w * 0.5;
                 let center_y = chart_y + chart_h * 0.5;
 
                 // Center crosshair grid lines
-                ui.line(pane.x + 4.0, center_y, pane.x + pane.w - 4.0, center_y, 1.0, dim());
-                ui.line(center_x, chart_y + 4.0, center_x, chart_y + chart_h - 4.0, 1.0, dim());
+                ui.line(
+                    pane.x + 4.0,
+                    center_y,
+                    pane.x + pane.w - 4.0,
+                    center_y,
+                    1.0,
+                    dim(),
+                );
+                ui.line(
+                    center_x,
+                    chart_y + 4.0,
+                    center_x,
+                    chart_y + chart_h - 4.0,
+                    1.0,
+                    dim(),
+                );
 
                 // Cardinal direction indicator
-                ui.text("N", center_x - 3.0, chart_y + 4.0, pane.metrics.caption_px, accent());
+                ui.text(
+                    "N",
+                    center_x - 3.0,
+                    chart_y + 4.0,
+                    pane.metrics.caption_px,
+                    accent(),
+                );
 
                 // Player blip
-                ui.text("@", center_x - 3.0, center_y - 4.0, pane.metrics.caption_px, accent());
+                ui.text(
+                    "@",
+                    center_x - 3.0,
+                    center_y - 4.0,
+                    pane.metrics.caption_px,
+                    accent(),
+                );
 
                 // Waypoint markers relative to player cell
                 for wp in model
@@ -123,14 +160,19 @@ pub fn datapad(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<
             for draft in model.craft.drafts.iter().take(10) {
                 any = true;
                 let Some(mut row) = rows.next(ui) else { break };
-                if model.craft.factory.available && draft.remaining_uses > 0
-                    && row.action(ui, "MANUFACTURE") {
-                        out.push(WindowAction::Command(ClientCommand::FactoryManufacture {
-                            factory_id: model.craft.factory.prop_id.clone().unwrap_or_default(),
-                            schematic_id: draft.id.clone(),
-                        }));
-                    }
-                row.value(ui, &format!("USES {}/{}", draft.remaining_uses, draft.max_uses));
+                if model.craft.factory.available
+                    && draft.remaining_uses > 0
+                    && row.action(ui, "MANUFACTURE")
+                {
+                    out.push(WindowAction::Command(ClientCommand::FactoryManufacture {
+                        factory_id: model.craft.factory.prop_id.clone().unwrap_or_default(),
+                        schematic_id: draft.id.clone(),
+                    }));
+                }
+                row.value(
+                    ui,
+                    &format!("USES {}/{}", draft.remaining_uses, draft.max_uses),
+                );
                 row.value(ui, &format!("RECIPE {}", draft.recipe_id));
                 row.label(ui, &format!("OUT {} | {}", draft.output_item_id, draft.id));
             }

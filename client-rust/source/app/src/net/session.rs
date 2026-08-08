@@ -389,7 +389,6 @@ mod tests {
             .actors
             .insert("player".into(), GameActorSnapshot::default());
         GameHello {
-
             session_id: "session".into(),
             player_actor_id: "player".into(),
             snapshot,

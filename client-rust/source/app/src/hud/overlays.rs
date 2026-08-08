@@ -428,13 +428,7 @@ pub fn draw_nameplate(
         } else {
             alpha_scale(pal.danger, opacity)
         };
-        ui.text(
-            tag,
-            x - width * 0.5,
-            line_y,
-            1.25,
-            tag_tint,
-        );
+        ui.text(tag, x - width * 0.5, line_y, 1.25, tag_tint);
         line_y += 10.0;
     }
 
@@ -477,7 +471,14 @@ pub fn draw_nameplate(
 
         // Baseline tick
         let tick_w = 6.0;
-        ui.line(x - tick_w * 0.5, bottom, x + tick_w * 0.5, bottom, 1.0, bracket);
+        ui.line(
+            x - tick_w * 0.5,
+            bottom,
+            x + tick_w * 0.5,
+            bottom,
+            1.0,
+            bracket,
+        );
         ui.line(x, bottom, x, bottom - 3.0, 1.0, bracket);
     }
 }
@@ -668,7 +669,8 @@ mod tests {
             y,
         );
 
-        let max_w = ui.measure_text("TARGET NAME", 1.45)
+        let max_w = ui
+            .measure_text("TARGET NAME", 1.45)
             .max(ui.measure_text("DESCRIPTOR", 1.2))
             .max(ui.measure_text("TAG", 1.25));
         // `y` is the name's baseline, so the plate reaches a full cap height
@@ -696,7 +698,10 @@ mod tests {
         assert!(min_px >= left, "brackets min_px {min_px} >= left {left}");
         assert!(max_px <= right, "brackets max_px {max_px} <= right {right}");
         assert!(min_py >= top, "brackets min_py {min_py} >= top {top}");
-        assert!(max_py <= bottom, "brackets max_py {max_py} <= bottom {bottom}");
+        assert!(
+            max_py <= bottom,
+            "brackets max_py {max_py} <= bottom {bottom}"
+        );
     }
 
     #[test]
@@ -734,6 +739,9 @@ mod tests {
             300.0,
         );
 
-        assert!(ui_dead.quads > ui_alive.quads, "dead nameplate must emit extra quads for strike-through line");
+        assert!(
+            ui_dead.quads > ui_alive.quads,
+            "dead nameplate must emit extra quads for strike-through line"
+        );
     }
 }

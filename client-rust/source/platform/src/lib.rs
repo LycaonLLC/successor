@@ -222,7 +222,8 @@ mod tests {
 
     #[test]
     fn native_async_channel_resolves_immediately() {
-        let root = std::env::temp_dir().join(format!("successor-platform-test-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("successor-platform-test-{}", std::process::id()));
         let asset_dir = root.join("client-3d/public/assets/test");
         std::fs::create_dir_all(&asset_dir).expect("create asset dir");
         std::fs::write(asset_dir.join("probe.bin"), b"probe-bytes").expect("write asset");
@@ -241,9 +242,13 @@ mod tests {
         }
         // Consumed handles fail closed; distinct ids get distinct handles.
         assert!(matches!(platform.poll_asset(handle), AssetPoll::Failed));
-        let second = platform.begin_asset("assets/test/probe.bin").expect("re-begin");
+        let second = platform
+            .begin_asset("assets/test/probe.bin")
+            .expect("re-begin");
         assert_ne!(handle, second);
-        let missing = platform.begin_asset("assets/test/absent.bin").expect("begin succeeds");
+        let missing = platform
+            .begin_asset("assets/test/absent.bin")
+            .expect("begin succeeds");
         assert!(matches!(platform.poll_asset(missing), AssetPoll::Failed));
         std::fs::remove_dir_all(&root).ok();
     }

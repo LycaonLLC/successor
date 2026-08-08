@@ -140,9 +140,15 @@ enum Command {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ControlUiIntent {
     /// `None` toggles.
-    Window { id: String, open: Option<bool> },
+    Window {
+        id: String,
+        open: Option<bool>,
+    },
     Theme(usize),
-    Opacity { hud: bool, value: f32 },
+    Opacity {
+        hud: bool,
+        value: f32,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

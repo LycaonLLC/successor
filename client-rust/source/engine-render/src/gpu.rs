@@ -524,6 +524,9 @@ impl MockGpu {
         self.next += 1;
         self.next
     }
+    pub fn resources_created(&self) -> u32 {
+        self.next
+    }
 
     pub fn draw_calls(&self) -> usize {
         self.log

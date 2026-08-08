@@ -174,11 +174,7 @@ pub fn resolve_circle_move_milli(
     position
 }
 
-pub fn circle_intersects_aabb(
-    center: CirclePoint,
-    radius_milli: i32,
-    blocker: CircleAabb,
-) -> bool {
+pub fn circle_intersects_aabb(center: CirclePoint, radius_milli: i32, blocker: CircleAabb) -> bool {
     circle_aabb_overlap_push(center, radius_milli.max(0), blocker).is_some()
 }
 
@@ -834,14 +830,15 @@ mod tests {
             CircleAabb::new(5_000, 0, 5_200, 5_000),
             CircleAabb::new(5_000, 5_000, 5_200, 10_000),
         ];
-        let result = resolve(
-            CirclePoint { x: 4_698, y: 2_000 },
-            500,
-            6_000,
-            &blockers,
+        let result = resolve(CirclePoint { x: 4_698, y: 2_000 }, 500, 6_000, &blockers);
+        assert!(
+            result.x <= 4_700,
+            "wall normal must remain closed: {result:?}"
         );
-        assert!(result.x <= 4_700, "wall normal must remain closed: {result:?}");
-        assert!(result.y >= 7_998, "seam must preserve tangential travel: {result:?}");
+        assert!(
+            result.y >= 7_998,
+            "seam must preserve tangential travel: {result:?}"
+        );
     }
 
     #[test]
@@ -850,12 +847,7 @@ mod tests {
             CircleAabb::new(5_000, 0, 5_200, 10_000),
             CircleAabb::new(0, 5_000, 10_000, 5_200),
         ];
-        let result = resolve(
-            CirclePoint { x: 4_000, y: 4_000 },
-            3_000,
-            3_000,
-            &blockers,
-        );
+        let result = resolve(CirclePoint { x: 4_000, y: 4_000 }, 3_000, 3_000, &blockers);
         assert!(result.x <= 4_700 && result.y <= 4_700, "{result:?}");
         for blocker in blockers {
             assert!(!circle_intersects_aabb(

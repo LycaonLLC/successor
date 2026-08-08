@@ -200,6 +200,17 @@ impl GraphicsTuner {
             ui,
             x,
             y,
+            "AUTO POINT LIGHT SCALE",
+            &mut preset.auto_point_light_scale,
+            0.0,
+            8.0,
+            2,
+        );
+        y += ROW_H;
+        changed |= slider_row(
+            ui,
+            x,
+            y,
             "AO INTENSITY",
             &mut preset.ao.intensity,
             0.0,
@@ -346,7 +357,14 @@ impl GraphicsTuner {
             2,
         );
         y += ROW_H + 5.0;
-        changed |= ui.checkbox(x + 18.0, y, 18.0, "FXAA ENABLED", &mut preset.aa.enabled, crate::hud::button_style());
+        changed |= ui.checkbox(
+            x + 18.0,
+            y,
+            18.0,
+            "FXAA ENABLED",
+            &mut preset.aa.enabled,
+            crate::hud::button_style(),
+        );
         y += ROW_H + 5.0;
         changed |= slider_row(
             ui,
@@ -541,7 +559,16 @@ fn slider_row(
     let display = format!("{value:.precision$}");
     let display_w = ui.measure_text(&display, 1.2);
     ui.text(&display, x + 208.0 - display_w, y + 7.0, 1.2, MUTED);
-    ui.slider(x + 220.0, y + 2.0, 330.0, 20.0, value, min, max, crate::hud::button_style())
+    ui.slider(
+        x + 220.0,
+        y + 2.0,
+        330.0,
+        20.0,
+        value,
+        min,
+        max,
+        crate::hud::button_style(),
+    )
 }
 
 fn option_row(

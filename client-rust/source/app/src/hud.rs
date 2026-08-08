@@ -18,6 +18,39 @@
 
 use successor_engine_render::font::{RasterFont, RasterGlyph};
 use successor_engine_render::ui::{AtlasMeta, TextField, UiBuilder};
+pub(crate) struct TextBuffer<const N: usize> {
+    bytes: [u8; N],
+    len: usize,
+}
+
+impl<const N: usize> TextBuffer<N> {
+    pub(crate) const fn new() -> Self {
+        Self {
+            bytes: [0; N],
+            len: 0,
+        }
+    }
+
+    pub(crate) fn as_str(&self) -> &str {
+        core::str::from_utf8(&self.bytes[..self.len]).expect("formatted UI text is UTF-8")
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.len = 0;
+    }
+}
+
+impl<const N: usize> core::fmt::Write for TextBuffer<N> {
+    fn write_str(&mut self, value: &str) -> core::fmt::Result {
+        let available = self.bytes.len().saturating_sub(self.len);
+        if value.len() > available {
+            return Err(core::fmt::Error);
+        }
+        self.bytes[self.len..self.len + value.len()].copy_from_slice(value.as_bytes());
+        self.len += value.len();
+        Ok(())
+    }
+}
 
 pub mod layout;
 pub mod overlays;
@@ -305,9 +338,7 @@ pub fn palette(theme_index: usize) -> Palette {
 /// left every frame cyan under any other theme. The grammar is what is fixed —
 /// translucent pane, one bright perimeter, dark ink on the caption rail — so
 /// the tones come from the theme and only the structure is hardcoded.
-pub fn window_style(
-    palette: &Palette,
-) -> successor_engine_render::window::WindowStyle {
+pub fn window_style(palette: &Palette) -> successor_engine_render::window::WindowStyle {
     let mut style = successor_engine_render::window::WindowStyle::default();
     let bright = palette.accent;
     let inset = shade(palette.accent, 0.42);
@@ -1660,8 +1691,8 @@ pub fn build_hud(
     if let Some(rect) = hud_content_rect(manager, WEAPON_STATUS_ID) {
         plate::draw_weapon_plate(ui, &pal, st, rect);
     }
-    let group_rail = hud_content_rect(manager, GROUP_ROSTER_ID)
-        .unwrap_or_else(|| layout::compute(sw, sh).group);
+    let group_rail =
+        hud_content_rect(manager, GROUP_ROSTER_ID).unwrap_or_else(|| layout::compute(sw, sh).group);
     plate::draw_group(ui, &pal, st, sw, group_rail, out);
 
     // Interact chip and toasts stay tied to the live chat pane, so they follow
@@ -1742,7 +1773,10 @@ mod tests {
     #[test]
     fn relations_follow_the_owner_ruling() {
         // An NPC that does not fight, and anything dead, is not a threat read.
-        assert_eq!(relation_for(&actor("profession_trainer"), "me", None), RelationHud::Social);
+        assert_eq!(
+            relation_for(&actor("profession_trainer"), "me", None),
+            RelationHud::Social
+        );
         let mut corpse = actor("skirmisher");
         corpse.will_auto_aggro = Some(true);
         corpse.life_state = "dead".to_string();
@@ -1772,7 +1806,10 @@ mod tests {
 
         let mut ally = actor("player");
         ally.player_organization_id = Some("guild-a".to_string());
-        assert_eq!(relation_for(&ally, "me", Some("guild-a")), RelationHud::Allied);
+        assert_eq!(
+            relation_for(&ally, "me", Some("guild-a")),
+            RelationHud::Allied
+        );
         assert_eq!(
             relation_for(&ally, "me", Some("guild-b")),
             RelationHud::Player,
@@ -1787,7 +1824,10 @@ mod tests {
         // PVP outranks shared colours: an open enemy reads red even in-guild.
         let mut enemy = ally.clone();
         enemy.pvp_status = Some("hostile".to_string());
-        assert_eq!(relation_for(&enemy, "me", Some("guild-a")), RelationHud::Hostile);
+        assert_eq!(
+            relation_for(&enemy, "me", Some("guild-a")),
+            RelationHud::Hostile
+        );
     }
 
     #[test]

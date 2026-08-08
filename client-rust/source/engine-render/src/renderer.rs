@@ -192,7 +192,6 @@ impl Default for MaterialDesc {
     }
 }
 
-#[derive(Clone, Copy)]
 pub struct RendererLimits {
     pub max_cameras: usize,
     pub max_draws: usize,
@@ -204,6 +203,8 @@ pub struct RendererLimits {
     pub shadow_world_radius: f32,
     /// Quality tier (shadow filtering, GI cones, HDR target).
     pub quality: RenderQuality,
+    /// Maximum point lights considered by each camera.
+    pub max_point_lights: usize,
     /// Maximum nearest point lights supplied to one transparent draw.
     pub max_forward_lights: usize,
 }
@@ -218,6 +219,7 @@ impl Default for RendererLimits {
             shadow_size: RenderQuality::Medium.shadow_size(),
             shadow_world_radius: 48.0,
             quality: RenderQuality::Medium,
+            max_point_lights: 256,
             max_forward_lights: 32,
         }
     }
@@ -314,6 +316,8 @@ pub struct PaletteSettings {
 pub struct RendererSettings {
     pub ambient_intensity: f32,
     pub emissive_scalar: f32,
+    /// Linear master scale on every gathered point light's intensity.
+    pub point_light_scale: f32,
     pub exposure: f32,
     pub ao_intensity: f32,
     pub bloom_threshold: f32,
@@ -331,6 +335,7 @@ impl Default for RendererSettings {
         Self {
             ambient_intensity: 0.28,
             emissive_scalar: 1.0,
+            point_light_scale: 1.0,
             exposure: 1.0,
             ao_intensity: 1.0,
             bloom_threshold: 1.0,
@@ -381,6 +386,8 @@ impl RendererSettings {
         matches!(self.shadows.map_size, 512 | 1024 | 2048 | 4096)
             && self.ambient_intensity.is_finite()
             && self.emissive_scalar.is_finite()
+            && self.point_light_scale.is_finite()
+            && self.point_light_scale >= 0.0
             && self.exposure.is_finite()
             && self.ao_intensity.is_finite()
             && self.bloom_threshold.is_finite()
@@ -490,11 +497,10 @@ pub struct Renderer {
     // Deferred screen targets (recreated on resize).
     gbuffer_rt: Option<SizedRt>,
     scene_rt: Option<SizedRt>,
+    ldr_rt: Option<SizedRt>,
     bloom_extract_rt: Option<SizedRt>,
     scene_copy_rt: Option<SizedRt>,
     bloom_blur_rt: Option<SizedRt>,
-    ldr_rt: Option<SizedRt>,
-    exposure: f32,
     // Point-light volume resources.
     pl_vbo: BufferId,
     pl_ebo: BufferId,
@@ -510,6 +516,7 @@ pub struct Renderer {
     grade: Grade,
     bloom: BloomSettings,
     settings: RendererSettings,
+    exposure: f32,
     // reused scratch
     cameras: Vec<Camera>,
     comp_quads: Vec<CompositeQuad>,
@@ -518,9 +525,10 @@ pub struct Renderer {
     uniforms: Vec<Uniform>,
     draw_scratch: Vec<usize>,
     scene_draws: Vec<DrawRecord>,
-    scene_lights: Vec<SceneLight>,
+    selected_lights: Vec<SceneLight>,
     forward_lights: Vec<ForwardLight>,
     max_forward_lights: usize,
+    max_point_lights: usize,
     shadow_view_proj: [f32; 16],
     skin_arena: Vec<[f32; 16]>,
     fog_color: [f32; 3],
@@ -685,7 +693,7 @@ impl Renderer {
         let (pl_verts, pl_indices) = crate::primitives::capsule(1.0, 2.0, 8, 4);
         let pl_vbo = gpu.create_buffer(f32_bytes(&pl_verts), BufferUsage::Static);
         let pl_ebo = gpu.create_index_buffer(u32_bytes(&pl_indices), BufferUsage::Static);
-        let pl_inst_seed = alloc::vec![0u8; 256 * 8 * 4];
+        let pl_inst_seed = alloc::vec![0u8; limits.max_point_lights * 8 * 4];
         let pl_inst_buf = gpu.create_buffer(&pl_inst_seed, BufferUsage::Dynamic);
         let gi = if q.gi_cones() > 0 {
             Some(GiVolume::new(gpu))
@@ -750,16 +758,16 @@ impl Renderer {
             normal_tex,
             black_tex,
             scene_rt: None,
-            exposure: 1.0,
-            pl_vbo,
-            scene_copy_rt: None,
+            ldr_rt: None,
             bloom_extract_rt: None,
             bloom_blur_rt: None,
-            ldr_rt: None,
+            exposure: 1.0,
+            pl_vbo,
             pl_ebo,
+            scene_copy_rt: None,
             pl_index_count: pl_indices.len() as u32,
             pl_inst_buf,
-            pl_scratch: Vec::with_capacity(256 * 8),
+            pl_scratch: Vec::with_capacity(limits.max_point_lights * 8),
             gi,
             meshes: Vec::new(),
             materials: Vec::new(),
@@ -769,11 +777,12 @@ impl Renderer {
             cameras: Vec::with_capacity(limits.max_cameras),
             comp_quads: Vec::with_capacity(limits.max_cameras),
             overlays: Vec::with_capacity(16),
-            scene_lights: Vec::with_capacity(limits.max_draws),
+            quad: Vec::with_capacity(limits.max_quad_floats),
+            uniforms: Vec::with_capacity(64),
+            selected_lights: Vec::with_capacity(limits.max_point_lights),
             forward_lights: Vec::with_capacity(limits.max_forward_lights),
             max_forward_lights: limits.max_forward_lights.min(32),
-            quad: Vec::with_capacity(limits.max_quad_floats),
-            uniforms: Vec::with_capacity(48),
+            max_point_lights: limits.max_point_lights,
             draw_scratch: Vec::with_capacity(limits.max_draws),
             scene_draws: Vec::with_capacity(limits.max_draws),
             shadow_view_proj: Mat4::IDENTITY.to_cols_array(),
@@ -1251,27 +1260,9 @@ impl Renderer {
             shadow_light = Some(tuned_sun);
         }
 
-        // --- gather + sort cameras (copy out; keeps queries non-overlapping) ---
-        self.scene_lights.clear();
-        {
-            let mut query = world.query2::<PointLight, Transform>();
-            while let Some((entity, light, transform)) = query.next() {
-                if self.scene_lights.len() == self.scene_lights.capacity() {
-                    break;
-                }
-                self.scene_lights.push(SceneLight {
-                    entity_index: entity.index,
-                    entity_generation: entity.generation,
-                    light: ForwardLight {
-                        position: [transform.pos.x, transform.pos.y, transform.pos.z],
-                        radius: light.radius,
-                        color: light.color,
-                        intensity: light.intensity,
-                    },
-                    distance2: 0.0,
-                });
-            }
-        }
+        // Sort cameras. Each camera scans the world light storage directly so
+        // the nearest-light result is independent of mesh draw capacity and
+        // ECS iteration prefixes.
         self.cameras.clear();
         {
             let mut q = world.query1::<Camera>();
@@ -1496,6 +1487,71 @@ impl Renderer {
         });
         Ok(())
     }
+    fn select_lights_for_camera<W: RenderWorld>(&mut self, world: &mut W, eye: Vec3) {
+        self.selected_lights.clear();
+        let scale = self.settings.point_light_scale;
+        let mut query = world.query2::<PointLight, Transform>();
+        while let Some((entity, light, transform)) = query.next() {
+            let intensity = light.intensity * scale;
+            if !transform.pos.x.is_finite()
+                || !transform.pos.y.is_finite()
+                || !transform.pos.z.is_finite()
+                || !light.radius.is_finite()
+                || light.radius <= 0.0
+                || !intensity.is_finite()
+                || intensity <= 0.0
+                || light
+                    .color
+                    .iter()
+                    .any(|value| !value.is_finite() || *value < 0.0)
+                || light.color.iter().all(|value| *value == 0.0)
+            {
+                continue;
+            }
+            let dx = transform.pos.x - eye.x;
+            let dy = transform.pos.y - eye.y;
+            let dz = transform.pos.z - eye.z;
+            let distance = libm::sqrtf(dx * dx + dy * dy + dz * dz) - light.radius;
+            let selected = SceneLight {
+                entity_index: entity.index,
+                entity_generation: entity.generation,
+                light: ForwardLight {
+                    position: [transform.pos.x, transform.pos.y, transform.pos.z],
+                    radius: light.radius,
+                    color: light.color,
+                    intensity,
+                },
+                distance2: distance.max(0.0),
+            };
+            if self.selected_lights.len() < self.max_point_lights {
+                self.selected_lights.push(selected);
+            } else if let Some((worst, current)) =
+                self.selected_lights
+                    .iter()
+                    .enumerate()
+                    .max_by(|(_, left), (_, right)| {
+                        left.distance2
+                            .total_cmp(&right.distance2)
+                            .then_with(|| left.entity_index.cmp(&right.entity_index))
+                            .then_with(|| left.entity_generation.cmp(&right.entity_generation))
+                    })
+            {
+                let better = selected.distance2 < current.distance2
+                    || (selected.distance2 == current.distance2
+                        && (selected.entity_index, selected.entity_generation)
+                            < (current.entity_index, current.entity_generation));
+                if better {
+                    self.selected_lights[worst] = selected;
+                }
+            }
+        }
+        self.selected_lights.sort_unstable_by(|left, right| {
+            left.distance2
+                .total_cmp(&right.distance2)
+                .then_with(|| left.entity_index.cmp(&right.entity_index))
+                .then_with(|| left.entity_generation.cmp(&right.entity_generation))
+        });
+    }
 
     /// Deferred screen camera: G-buffer → sun light → point lights → tonemap.
     #[allow(clippy::too_many_arguments)]
@@ -1509,6 +1565,7 @@ impl Renderer {
         main_light: Option<DirectionalLight>,
         use_shadow: bool,
     ) {
+        self.select_lights_for_camera(world, cam.eye);
         let rect = match cam.target {
             CamTarget::Screen(r) => r,
             _ => return,
@@ -1759,11 +1816,9 @@ impl Renderer {
         gpu.set_uniforms(&self.uniforms);
         self.draw_fullscreen(gpu);
         gpu.end_pass();
-
         // --- point-light volumes (additive into the HDR scene target) ---
         self.point_light_pass(
             gpu,
-            world,
             scene_rt,
             full,
             &view_proj,
@@ -2069,10 +2124,9 @@ impl Renderer {
 
     /// Point-light volume pass: gather lights, additive PBR into `scene_rt`.
     #[allow(clippy::too_many_arguments)]
-    fn point_light_pass<G: Gpu, W: RenderWorld>(
+    fn point_light_pass<G: Gpu>(
         &mut self,
         gpu: &mut G,
-        world: &mut W,
         scene_rt: RenderTargetId,
         full: RectPx,
         view_proj: &[f32; 16],
@@ -2082,25 +2136,18 @@ impl Renderer {
         gh: u32,
     ) {
         self.pl_scratch.clear();
-        let mut count = 0u32;
-        {
-            let mut q = world.query2::<PointLight, Transform>();
-            while let Some((_, pl, tr)) = q.next() {
-                if count >= 256 {
-                    break;
-                }
-                self.pl_scratch.extend_from_slice(&[
-                    tr.pos.x,
-                    tr.pos.y,
-                    tr.pos.z,
-                    pl.radius,
-                    pl.color[0],
-                    pl.color[1],
-                    pl.color[2],
-                    pl.intensity,
-                ]);
-                count += 1;
-            }
+        let count = self.selected_lights.len() as u32;
+        for light in &self.selected_lights {
+            self.pl_scratch.extend_from_slice(&[
+                light.light.position[0],
+                light.light.position[1],
+                light.light.position[2],
+                light.light.radius,
+                light.light.color[0],
+                light.light.color[1],
+                light.light.color[2],
+                light.light.intensity,
+            ]);
         }
         if count == 0 {
             return;
@@ -2307,6 +2354,7 @@ impl Renderer {
         main_light: Option<DirectionalLight>,
         use_shadow: bool,
     ) {
+        self.select_lights_for_camera(world, cam.eye);
         let (target, vp) = match cam.target {
             CamTarget::Screen(rect) => (PassTarget::Screen, viewport_px(rect, screen_w, screen_h)),
             CamTarget::Texture(rt) => {
@@ -2541,20 +2589,20 @@ impl Renderer {
                 ]),
             });
             if matches!(mode, DrawMode::Forward | DrawMode::Transparent) {
-                for light in &mut self.scene_lights {
+                for light in &mut self.selected_lights {
                     let dx = light.light.position[0] - tr.pos.x;
                     let dy = light.light.position[1] - tr.pos.y;
                     let dz = light.light.position[2] - tr.pos.z;
                     light.distance2 = dx * dx + dy * dy + dz * dz;
                 }
-                self.scene_lights.sort_unstable_by(|left, right| {
+                self.selected_lights.sort_unstable_by(|left, right| {
                     left.distance2
                         .total_cmp(&right.distance2)
                         .then_with(|| left.entity_index.cmp(&right.entity_index))
                         .then_with(|| left.entity_generation.cmp(&right.entity_generation))
                 });
                 self.forward_lights.clear();
-                for light in self.scene_lights.iter().take(self.max_forward_lights) {
+                for light in self.selected_lights.iter().take(self.max_forward_lights) {
                     self.forward_lights.push(light.light);
                 }
                 gpu.set_forward_lights(&self.forward_lights);
@@ -2591,9 +2639,11 @@ impl Renderer {
                         name: "u_transmission",
                         value: UniformValue::Float(material_desc.transmission),
                     });
+                    let ior = material_desc.ior.max(1.0);
+                    let dielectric_ratio = (ior - 1.0) / (ior + 1.0);
                     self.uniforms.push(Uniform {
                         name: "u_ior",
-                        value: UniformValue::Float(material_desc.ior),
+                        value: UniformValue::Float(ior),
                     });
                     self.uniforms.push(Uniform {
                         name: "u_metallic",
@@ -2603,11 +2653,11 @@ impl Renderer {
                         name: "u_roughness",
                         value: UniformValue::Float(material_desc.roughness),
                     });
-                    let ior = material_desc.ior.max(1.0);
-                    let ratio = (ior - 1.0) / (ior + 1.0);
                     self.uniforms.push(Uniform {
                         name: "u_dielectricF0",
-                        value: UniformValue::Float(ratio * ratio * material_desc.specular),
+                        value: UniformValue::Float(
+                            dielectric_ratio * dielectric_ratio * material_desc.specular,
+                        ),
                     });
                     self.uniforms.push(Uniform {
                         name: "u_clearcoat",

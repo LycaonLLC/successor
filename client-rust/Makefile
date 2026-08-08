@@ -80,11 +80,12 @@ serve: web
 
 serve-dev: serve
 
-# Native connected loop against the local authority: starts it when absent.
+# Native connected loop against the local authority: starts it when absent,
+# then joins through the durable roster character managed by the script (the
+# shard rejects bare dev identities for ids the character store owns).
 PLAYER ?= local-dev
 connect-local: dev
-	curl -fsS http://127.0.0.1:28093/game/status >/dev/null 2>&1 || (cd .. && pnpm server:local:persistent)
-	./$(DEV_NATIVE_BIN) --dev-identity --endpoint ws://127.0.0.1:28093 --player-id $(PLAYER) --actor-id $(PLAYER) $(ARGS)
+	tools/connect-local.sh --name "$(PLAYER)" -- $(ARGS)
 
 # no_std purity proof: the engine crates must build for a bare-metal target.
 nostd:

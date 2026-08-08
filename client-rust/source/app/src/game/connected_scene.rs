@@ -9,8 +9,8 @@
 //! terrain supplies elevation, props use fixture footprints, and pawn source
 //! geometry is normalized to the canonical adult height.
 
-use std::collections::HashMap;
 use core::fmt::{self, Write};
+use std::collections::HashMap;
 
 use successor_client_proto::packets::{
     GameActorSnapshot, GameCommandReceipt, GameServerPacket, GameShardDelta, GameShardSnapshot,
@@ -51,9 +51,9 @@ use crate::world::props::{building_terrain_exclusions, PropsLoader};
 use crate::world::streamed::StreamedWorld;
 use crate::world::terrain::Biome;
 use crate::world::{ADULT_PAWN_HEIGHT_METERS, WORLD_UNITS_PER_CELL};
-use successor_platform::Platform;
 use crate::GameWorld;
 use successor_engine_render::cursor::{self, CursorKind, CursorStyle};
+use successor_platform::Platform;
 
 #[derive(Clone, Copy)]
 struct HeldWeaponRig {
@@ -67,7 +67,6 @@ struct HeldWeaponRig {
     support_hand: bool,
 }
 
-/// A rigid weapon attachment, updated from its animated hand socket each frame.
 struct WeaponAttachment {
     entities: Vec<(Entity, Mat4)>,
     hand: usize,
@@ -134,7 +133,6 @@ impl PawnPresentation {
     }
 }
 
-/// A rendered pawn for one live actor: one entity per body/equipment part.
 struct ActorPawn {
     id: String,
     name: String,
@@ -160,11 +158,18 @@ struct ActorPawn {
     speed: f32,
     yaw: f32,
     present: bool,
-    /// Equipment item ids whose models were still in flight at spawn; the
-    /// gear-retry pass respawns the pawn once they settle.
     pending_equipment: Vec<String>,
-    /// The weapon rig was still in flight at spawn.
     pending_weapon: bool,
+}
+
+impl ActorPawn {
+    fn owned_entities(&self) -> impl Iterator<Item = Entity> + '_ {
+        self.entities.iter().copied().chain(
+            self.weapon
+                .iter()
+                .flat_map(|weapon| weapon.entities.iter().map(|(entity, _)| *entity)),
+        )
+    }
 }
 
 /// Motion held across a wardrobe rebuild.
@@ -1091,8 +1096,6 @@ fn restore_window_layout(
         return [true; crate::hud::HUD_SURFACE_COUNT];
     };
 
-
-
     let mut missing_hud = [true; crate::hud::HUD_SURFACE_COUNT];
     let mut open_rows = Vec::new();
     for (row_index, row) in rows.iter().enumerate() {
@@ -1564,12 +1567,9 @@ impl ConnectedScene {
                 } else if let Some(position) = player_position.as_ref() {
                     self.on_player_pos(position.0, position.1);
                 }
-                if let Some(applied_command_id) =
-                    player_position.and_then(|position| position.2)
-                {
-                    self.last_applied_move_command_id = self
-                        .last_applied_move_command_id
-                        .max(applied_command_id);
+                if let Some(applied_command_id) = player_position.and_then(|position| position.2) {
+                    self.last_applied_move_command_id =
+                        self.last_applied_move_command_id.max(applied_command_id);
                 }
                 if let Some(profile) = movement_profile {
                     self.walk_speed_cells_per_second =
@@ -2021,7 +2021,11 @@ impl ConnectedScene {
                 .unwrap_or("refused");
             let mut text = String::with_capacity(reason.len() + 8);
             for ch in reason.chars() {
-                text.push(if ch == '_' { ' ' } else { ch.to_ascii_uppercase() });
+                text.push(if ch == '_' {
+                    ' '
+                } else {
+                    ch.to_ascii_uppercase()
+                });
             }
             self.hud_state.banner = Some(hud::BannerHud {
                 text,
@@ -2046,7 +2050,9 @@ impl ConnectedScene {
         if received_dialogue && self.win_model.converse.npc.is_some() {
             self.open_workspace_window("converse");
         }
-        self.hud_state.interact = if let Some(prop) = Self::nearest_interaction_prop(&self.slice, &self.store, &self.player_id, &self.area_id) {
+        self.hud_state.interact = if let Some(prop) =
+            Self::nearest_interaction_prop(&self.slice, &self.store, &self.player_id, &self.area_id)
+        {
             Some(hud::InteractHud {
                 label: format!("[F] {}", prop.label.to_uppercase()),
                 hold_frac: None,
@@ -2360,7 +2366,10 @@ impl ConnectedScene {
     /// captured pane is the pane the player would see — not a special
     /// inspection rendering. Returns false only for an unregistered window id.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn apply_control_ui_intent(&mut self, intent: &successor_platform::ControlUiIntent) -> bool {
+    pub fn apply_control_ui_intent(
+        &mut self,
+        intent: &successor_platform::ControlUiIntent,
+    ) -> bool {
         match intent {
             successor_platform::ControlUiIntent::Window { id, open } => {
                 if self.wm.rect(id).is_none() {
@@ -2491,8 +2500,15 @@ impl ConnectedScene {
         }
         // Proximity alone is not a pointer verb: the prop also has to be under
         // the pointer, or every door in reach would claim the cursor.
-        if let (Some(vp), Some(prop)) = (self.viewport_projection(), Self::nearest_interaction_prop(&self.slice, &self.store, &self.player_id, &self.area_id))
-        {
+        if let (Some(vp), Some(prop)) = (
+            self.viewport_projection(),
+            Self::nearest_interaction_prop(
+                &self.slice,
+                &self.store,
+                &self.player_id,
+                &self.area_id,
+            ),
+        ) {
             let (sx, sy) = self.cell_to_screen(&vp, prop.x, prop.y, 1.45);
             let d2 = (sx - x) * (sx - x) + (sy - y) * (sy - y);
             if d2 <= PROP_PICK_RADIUS_PX * PROP_PICK_RADIUS_PX {
@@ -2923,7 +2939,12 @@ impl ConnectedScene {
                 return None;
             }
             Key::F => {
-                if let Some(prop) = Self::nearest_interaction_prop(&self.slice, &self.store, &self.player_id, &self.area_id) {
+                if let Some(prop) = Self::nearest_interaction_prop(
+                    &self.slice,
+                    &self.store,
+                    &self.player_id,
+                    &self.area_id,
+                ) {
                     if prop.kind.contains("door") {
                         return Some(actions::GameplayAction::ToggleDoor {
                             prop_id: prop.id.to_string(),
@@ -3014,8 +3035,8 @@ impl ConnectedScene {
                         && actor.faction_id.as_deref() != player_faction
                 })
                 .min_by(|left, right| {
-                    let left_distance = (left.x - player_position.0).powi(2)
-                        + (left.y - player_position.1).powi(2);
+                    let left_distance =
+                        (left.x - player_position.0).powi(2) + (left.y - player_position.1).powi(2);
                     let right_distance = (right.x - player_position.0).powi(2)
                         + (right.y - player_position.1).powi(2);
                     left_distance.total_cmp(&right_distance)
@@ -3785,7 +3806,6 @@ impl ConnectedScene {
                 PawnAnimator::new(&body.template),
             )
         };
-
         let mut equipment = actor.worn.clone();
         if equipment.is_empty()
             && matches!(route, BodyRoute::Human { .. })
@@ -3833,9 +3853,12 @@ impl ConnectedScene {
                     pending_equipment.push(worn_piece.item_id.clone());
                     continue;
                 }
-                crate::assets::stream::Streamed::Ready(piece) => {
-                    piece.map(|piece| (piece.part_meshes.clone(), piece.part_material_names.clone()))
-                }
+                crate::assets::stream::Streamed::Ready(piece) => piece.map(|piece| {
+                    (
+                        piece.part_meshes.clone(),
+                        piece.part_material_names.clone(),
+                    )
+                }),
             };
             let Some((part_meshes, material_names)) = loaded else {
                 continue;
@@ -3937,25 +3960,24 @@ impl ConnectedScene {
             }
             crate::assets::stream::Streamed::Ready(rig) => rig,
         };
-        let resolved_weapon = resolved_weapon
-            .map(|rig| {
-                (
-                    rig.parts.clone(),
-                    HeldWeaponRig {
-                        mount: rig.mount,
-                        grip: rig.grip,
-                        foregrip: rig.foregrip,
-                        muzzle: rig.muzzle,
-                        foregrip_contact: rig.foregrip_contact,
-                        resting_yaw_rad: rig.resting_yaw_rad,
-                        support_arm: rig.support_arm,
-                        support_hand: rig.support_hand,
-                    },
-                    rig.melee,
-                    rig.plasma_blade_part,
-                    rig.stow.clone(),
-                )
-            });
+        let resolved_weapon = resolved_weapon.map(|rig| {
+            (
+                rig.parts.clone(),
+                HeldWeaponRig {
+                    mount: rig.mount,
+                    grip: rig.grip,
+                    foregrip: rig.foregrip,
+                    muzzle: rig.muzzle,
+                    foregrip_contact: rig.foregrip_contact,
+                    resting_yaw_rad: rig.resting_yaw_rad,
+                    support_arm: rig.support_arm,
+                    support_hand: rig.support_hand,
+                },
+                rig.melee,
+                rig.plasma_blade_part,
+                rig.stow.clone(),
+            )
+        });
         let lane = resolved_weapon
             .as_ref()
             .map(|(_, _, melee, _, _)| {
@@ -3976,7 +3998,9 @@ impl ConnectedScene {
                     .map(|bone| (bone, stow.mount, stow.arc_lift))
             });
         let weapon = resolved_weapon
-            .map(|(parts, held, _, plasma_blade_part, _)| (parts, held, plasma_blade_part))
+            .map(|(parts, held, _, plasma_blade_part, _)| {
+                (parts, held, plasma_blade_part)
+            })
             .zip(hand)
             .map(|((parts, held, plasma_blade_part), hand)| {
                 let mut weapon_entities = Vec::with_capacity(parts.len());
@@ -4272,11 +4296,7 @@ impl ConnectedScene {
             self.hud_layout_viewport = Some(live);
         }
         if self.hud_defaults_pending.iter().any(|missing| *missing) {
-            hud::apply_missing_hud_surface_defaults(
-                &mut self.wm,
-                live,
-                &self.hud_defaults_pending,
-            );
+            hud::apply_missing_hud_surface_defaults(&mut self.wm, live, &self.hud_defaults_pending);
             self.hud_defaults_pending = [false; hud::HUD_SURFACE_COUNT];
         }
         self.sync_active_area(gpu, platform);
@@ -4313,8 +4333,8 @@ impl ConnectedScene {
         }
         self.macro_actions = macro_actions;
         // 1) Reconcile pawn set with live actors.
-        for p in self.pawns.values_mut() {
-            p.present = false;
+        for pawn in self.pawns.values_mut() {
+            pawn.present = false;
         }
         self.missing_pawns.clear();
         self.stale_pawns.clear();
@@ -4351,13 +4371,8 @@ impl ConnectedScene {
         }
         while let Some(id) = self.stale_pawns.pop() {
             if let Some(pawn) = self.pawns.remove(&id) {
-                for entity in pawn.entities {
+                for entity in pawn.owned_entities() {
                     self.world.destroy(entity);
-                }
-                if let Some(weapon) = pawn.weapon {
-                    for (entity, _) in weapon.entities {
-                        self.world.destroy(entity);
-                    }
                 }
                 self.carried_motion.insert(
                     id.clone(),
@@ -4452,9 +4467,6 @@ impl ConnectedScene {
                 _ => Some(self.player_id.as_str()),
             };
         }
-        // Viewer rotation follows the original object viewer: a drag spins the
-        // doll, the flick decays multiplicatively once released, and the doll
-        // then parks at the resting yaw instead of turning forever.
         if self.paperdoll_drag_x.is_none() {
             let dt = dt.max(0.0);
             if self.paperdoll_spin.abs() > PAPERDOLL_SPIN_EPS {
@@ -4481,18 +4493,13 @@ impl ConnectedScene {
         let props_loader = &self.props_loader;
         for pawn in self.pawns.values_mut() {
             if !pawn.present {
-                for entity in pawn.entities.iter().chain(
-                    pawn.weapon
-                        .iter()
-                        .flat_map(|weapon| weapon.entities.iter().map(|(entity, _)| entity)),
-                ) {
-                    if let Some(transform) = self.world.get_component::<Transform>(*entity) {
+                for entity in pawn.owned_entities() {
+                    if let Some(transform) = self.world.get_component::<Transform>(entity) {
                         transform.pos = vec3(0.0, -10_000.0, 0.0);
                     }
                 }
                 continue;
             }
-
             let (rx, ry) = pawn.render_pos;
             let (nx, ny, gait_distance) = if pawn.id == self.player_id {
                 let input_distance = pawn.predictor.predict(
@@ -4511,8 +4518,9 @@ impl ConnectedScene {
                 (predicted.0, predicted.1, input_distance)
             } else {
                 let sampled = pawn.interp.sample(self.sim_time).unwrap_or(pawn.target);
-                let distance =
-                    ((sampled.0 - rx).powi(2) + (sampled.1 - ry).powi(2)).sqrt();
+                let distance = ((sampled.0 - rx) * (sampled.0 - rx)
+                    + (sampled.1 - ry) * (sampled.1 - ry))
+                    .sqrt();
                 (sampled.0, sampled.1, distance)
             };
             let moved = ((nx - rx) * (nx - rx) + (ny - ry) * (ny - ry)).sqrt();
@@ -4603,6 +4611,11 @@ impl ConnectedScene {
                     renderer.skin = SkinRef { offset, count };
                 }
             }
+            let actor_world = Mat4::from_trs(
+                vec3(wx, pawn.ground_y, wz),
+                rotation,
+                vec3(pawn.scale, pawn.scale, pawn.scale),
+            );
             if let Some(weapon) = &pawn.weapon {
                 let raw_held_socket = body
                     .template
@@ -4626,11 +4639,6 @@ impl ConnectedScene {
                     pos.y += arc_lift * (core::f32::consts::PI * ease).sin();
                     Mat4::from_trs(pos, rotation, scale)
                 });
-                let actor_world = Mat4::from_trs(
-                    vec3(wx, pawn.ground_y, wz),
-                    rotation,
-                    vec3(pawn.scale, pawn.scale, pawn.scale),
-                );
                 for &(entity, local) in &weapon.entities {
                     let part_local = if weapon.plasma_blade == Some(entity) {
                         let (_, rotation, scale) = local.to_trs();
@@ -5011,7 +5019,6 @@ impl ConnectedScene {
         self.renderer
             .render(gpu, &mut self.world, w, h)
             .expect("render failed");
-
 
         // 6) Weather (ambient dust) → the FX pool, then integrate + draw all
         //    billboards over the scene in the follow-camera frame.

@@ -256,7 +256,11 @@ pub fn survey(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                 };
 
                 let owner_str = if camp.vm.is_owner { "OWNER" } else { "VISITOR" };
-                let footprint_str = if camp.in_footprint { "FOOTPRINT" } else { "OUTSIDE" };
+                let footprint_str = if camp.in_footprint {
+                    "FOOTPRINT"
+                } else {
+                    "OUTSIDE"
+                };
                 r.value(ui, footprint_str);
                 r.value(ui, owner_str);
                 let caption = format!("CELL {}, {}", camp.vm.cell_x, camp.vm.cell_y);

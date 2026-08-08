@@ -39,9 +39,20 @@ cd client-rust
 out/bin/successor-dev --demo parity-basic --gl --control-port 0
 ```
 
-Or connect to a local authority. A durable roster character must join by
-`--character-id`; the shard rejects the bare `{playerId, actorId}` dev shape for
-any id its character store already owns:
+Or connect to a local authority. `client-rust/tools/connect-local.sh` runs the
+whole loop: brings the local authority up when it is not answering, creates (or
+reuses) a durable roster character, builds `successor-dev` when missing, and
+launches with the dev-identity join. `make -C client-rust connect-local` is the
+same script; `PLAYER=<name>` picks the character and `ARGS` passes extra client
+flags. Client flags go after `--`:
+
+```sh
+client-rust/tools/connect-local.sh --name local-dev -- --control-port 47778
+```
+
+By hand, a durable roster character must join by `--character-id`; the shard
+rejects the bare `{playerId, actorId}` dev shape for any id its character store
+already owns:
 
 ```sh
 cd client-rust

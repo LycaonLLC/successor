@@ -119,7 +119,14 @@ impl Default for CursorStyle {
 ///
 /// `phase_ms` only drives [`CursorKind::Busy`]; every other kind is static, so
 /// a caller that never shows a busy pointer can pass zero.
-pub fn draw(ui: &mut UiBuilder, kind: CursorKind, x: f32, y: f32, style: CursorStyle, phase_ms: u64) {
+pub fn draw(
+    ui: &mut UiBuilder,
+    kind: CursorKind,
+    x: f32,
+    y: f32,
+    style: CursorStyle,
+    phase_ms: u64,
+) {
     let s = style.size / DESIGN;
     match kind {
         CursorKind::Arrow => arrow(ui, x, y, s, style),
@@ -134,7 +141,14 @@ pub fn draw(ui: &mut UiBuilder, kind: CursorKind, x: f32, y: f32, style: CursorS
         CursorKind::Attack => reticle(ui, x, y, s, style),
         CursorKind::Interact => {
             arrow(ui, x, y, s, style);
-            chevron(ui, x + 10.0 * s, y + 10.0 * s, 4.5 * s, 1.5 * s, style.accent);
+            chevron(
+                ui,
+                x + 10.0 * s,
+                y + 10.0 * s,
+                4.5 * s,
+                1.5 * s,
+                style.accent,
+            );
         }
         CursorKind::Move => four_way(ui, x, y, s, style),
         CursorKind::ResizeHorizontal => double_arrow(ui, x, y, 1.0, 0.0, s, style),
@@ -167,7 +181,15 @@ fn fan(ui: &mut UiBuilder, points: &[(f32, f32)], ox: f32, oy: f32, s: f32, rgba
     }
 }
 
-fn outline(ui: &mut UiBuilder, points: &[(f32, f32)], ox: f32, oy: f32, s: f32, w: f32, rgba: [u8; 4]) {
+fn outline(
+    ui: &mut UiBuilder,
+    points: &[(f32, f32)],
+    ox: f32,
+    oy: f32,
+    s: f32,
+    w: f32,
+    rgba: [u8; 4],
+) {
     for index in 0..points.len() {
         let (x0, y0) = points[index];
         let (x1, y1) = points[(index + 1) % points.len()];
@@ -239,9 +261,32 @@ fn double_arrow(ui: &mut UiBuilder, x: f32, y: f32, dx: f32, dy: f32, s: f32, st
         w + 1.0,
         style.shadow,
     );
-    ui.line(x - dx * arm, y - dy * arm, x + dx * arm, y + dy * arm, w, style.edge);
-    head(ui, x + dx * arm, y + dy * arm, dx, dy, 4.0 * s, style.accent);
-    head(ui, x - dx * arm, y - dy * arm, -dx, -dy, 4.0 * s, style.accent);
+    ui.line(
+        x - dx * arm,
+        y - dy * arm,
+        x + dx * arm,
+        y + dy * arm,
+        w,
+        style.edge,
+    );
+    head(
+        ui,
+        x + dx * arm,
+        y + dy * arm,
+        dx,
+        dy,
+        4.0 * s,
+        style.accent,
+    );
+    head(
+        ui,
+        x - dx * arm,
+        y - dy * arm,
+        -dx,
+        -dy,
+        4.0 * s,
+        style.accent,
+    );
 }
 
 /// Solid arrowhead at `(hx, hy)` pointing along the unit vector `(dx, dy)`.
@@ -272,10 +317,7 @@ fn busy(ui: &mut UiBuilder, x: f32, y: f32, s: f32, style: CursorStyle, phase_ms
     let w = (1.6 * s).max(1.0);
     ui.ring(x, y, r, 16, w, style.fill);
     let turn = (phase_ms % 1_200) as f32 / 1_200.0 * core::f32::consts::TAU;
-    let mut prev = (
-        x + libm::cosf(turn) * r,
-        y + libm::sinf(turn) * r,
-    );
+    let mut prev = (x + libm::cosf(turn) * r, y + libm::sinf(turn) * r);
     for step in 1..=5 {
         let angle = turn + step as f32 / 5.0 * (core::f32::consts::TAU * 0.28);
         let next = (x + libm::cosf(angle) * r, y + libm::sinf(angle) * r);
@@ -286,13 +328,7 @@ fn busy(ui: &mut UiBuilder, x: f32, y: f32, s: f32, style: CursorStyle, phase_ms
 
 /// Four L-brackets inset into a rect — the original's selection box, reused by
 /// the world target indicator.
-pub fn corner_ticks(
-    ui: &mut UiBuilder,
-    rect: [f32; 4],
-    arm: f32,
-    thickness: f32,
-    rgba: [u8; 4],
-) {
+pub fn corner_ticks(ui: &mut UiBuilder, rect: [f32; 4], arm: f32, thickness: f32, rgba: [u8; 4]) {
     let [x, y, w, h] = rect;
     let arm = arm.min(w * 0.5).min(h * 0.5);
     let t = thickness.max(1.0);
@@ -354,7 +390,14 @@ mod tests {
     #[test]
     fn arrow_ink_starts_at_the_hotspot() {
         let mut ui = builder();
-        draw(&mut ui, CursorKind::Arrow, 100.0, 100.0, CursorStyle::default(), 0);
+        draw(
+            &mut ui,
+            CursorKind::Arrow,
+            100.0,
+            100.0,
+            CursorStyle::default(),
+            0,
+        );
         let style = CursorStyle::default();
         // Tallest arrow vertex is 16 design units; the shadow adds a 3-unit
         // offset and the outline stroke half a pixel on top of that.
@@ -362,8 +405,14 @@ mod tests {
         let (min_x, min_y, max_x, max_y) = ink_bounds(&ui, 1280.0, 720.0);
         assert!(min_x >= 100.0 - 1.5, "ink left of the hotspot: {min_x}");
         assert!(min_y >= 100.0 - 1.5, "ink above the hotspot: {min_y}");
-        assert!(max_x <= 100.0 + extent, "arrow wider than its silhouette: {max_x}");
-        assert!(max_y <= 100.0 + extent, "arrow taller than its silhouette: {max_y}");
+        assert!(
+            max_x <= 100.0 + extent,
+            "arrow wider than its silhouette: {max_x}"
+        );
+        assert!(
+            max_y <= 100.0 + extent,
+            "arrow taller than its silhouette: {max_y}"
+        );
     }
 
     /// Centred kinds straddle the hotspot; a resize pointer that only grew

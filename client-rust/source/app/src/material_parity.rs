@@ -447,7 +447,7 @@ fn add_asset<G: Gpu>(
     let doc = glb::parse(bytes).map_err(|error| format!("asset {cell} parse: {error:?}"))?;
     let uploaded = upload_glb(renderer, gpu, &doc)
         .map_err(|error| format!("asset {cell} upload: {error:?}"))?;
-    let globals = node_globals(&doc);
+    let globals = doc.node_globals();
     let mut min = vec3(f32::MAX, f32::MAX, f32::MAX);
     let mut max = vec3(f32::MIN, f32::MIN, f32::MIN);
     for (node_index, node) in doc.nodes.iter().enumerate() {
@@ -507,25 +507,6 @@ fn add_asset<G: Gpu>(
         }
     }
     Ok(())
-}
-
-fn node_globals(doc: &glb::GlbDocument) -> Vec<Mat4> {
-    let mut globals = vec![Mat4::IDENTITY; doc.nodes.len()];
-    for root in &doc.scene_roots {
-        fill_globals(doc, *root, Mat4::IDENTITY, &mut globals);
-    }
-    globals
-}
-
-fn fill_globals(doc: &glb::GlbDocument, node_index: usize, parent: Mat4, globals: &mut [Mat4]) {
-    let Some(node) = doc.nodes.get(node_index) else {
-        return;
-    };
-    let global = parent.mul(Mat4::from_trs(node.translation, node.rotation, node.scale));
-    globals[node_index] = global;
-    for child in &node.children {
-        fill_globals(doc, *child, global, globals);
-    }
 }
 
 #[derive(Debug)]

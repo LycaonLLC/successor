@@ -81,12 +81,9 @@ fn main() {
         spawn_x_arg.as_deref(),
         spawn_y_arg.as_deref(),
     ) {
-        (Some(area), Some(x), Some(y)) => Some((
-            area,
-            x,
-            y,
-            spawn_facing_arg.as_deref().unwrap_or("right"),
-        )),
+        (Some(area), Some(x), Some(y)) => {
+            Some((area, x, y, spawn_facing_arg.as_deref().unwrap_or("right")))
+        }
         (None, None, None) => None,
         _ => {
             eprintln!("development spawn requires --spawn-area, --spawn-x, and --spawn-y");
@@ -1986,9 +1983,7 @@ mod connected {
             json!({ "characterId": character_id })
         } else {
             let mut opts = json!({ "playerId": player_id, "actorId": actor_id });
-            if let (Some(object), Some((area, x, y, facing))) =
-                (opts.as_object_mut(), dev_spawn)
-            {
+            if let (Some(object), Some((area, x, y, facing))) = (opts.as_object_mut(), dev_spawn) {
                 object.insert("spawnArea".into(), json!(area));
                 object.insert("spawnX".into(), json!(x));
                 object.insert("spawnY".into(), json!(y));
@@ -2328,8 +2323,11 @@ mod connected {
                 let actor_dead = scene
                     .player_actor()
                     .is_some_and(|actor| actor.life_state != "alive");
-                let predicted_intent =
-                    if actor_dead || !window_focused || modal_input { (0, 0, false) } else { intent };
+                let predicted_intent = if actor_dead || !window_focused || modal_input {
+                    (0, 0, false)
+                } else {
+                    intent
+                };
                 scene.set_move_intent(predicted_intent.0, predicted_intent.1, predicted_intent.2);
                 let movement_update = if !window_focused {
                     movement_controller.release(movement_now_ms, movement::StopReason::FocusLost)
@@ -2395,10 +2393,9 @@ mod connected {
                         plat::ws_send(&mut ws, &f);
                     }
                 }
-            } else if let Some(intent) = movement_controller.release(
-                movement_now_ms,
-                movement::StopReason::Disconnected,
-            ) {
+            } else if let Some(intent) =
+                movement_controller.release(movement_now_ms, movement::StopReason::Disconnected)
+            {
                 let _ = scene.dispatch_gameplay_action(actions::GameplayAction::Move {
                     dx: intent.dx,
                     dy: intent.dy,
@@ -2484,8 +2481,8 @@ mod connected {
                 }
             }
             plat::publish_control_status(status);
-        #[cfg(feature = "alloc-count")]
-        {
+            #[cfg(feature = "alloc-count")]
+            {
                 successor_engine_core::rt::alloc::reset_alloc_count();
                 #[cfg(not(target_arch = "wasm32"))]
                 if connected_stable_frames >= 240 {
@@ -2659,6 +2656,15 @@ fn run_model_corpus() {
     let mut primitives = 0usize;
     let mut materials = 0usize;
     let mut images = 0usize;
+    let mut explicit_lights = 0usize;
+    let mut explicit_light_node_refs = 0usize;
+    let mut emissive_candidates = 0usize;
+    let mut inferred_lights = 0usize;
+    let mut retained_lights = 0usize;
+    let mut suppressed_low_flux = 0usize;
+    let mut suppressed_duplicates = 0usize;
+    let mut light_errors = 0usize;
+    let mut over_budget_lights = 0usize;
     let mut decode_errors = 0usize;
     let mut transform_errors = 0usize;
     let mut unsupported = 0usize;
@@ -2694,19 +2700,67 @@ fn run_model_corpus() {
             }
         };
         models += 1;
-        primitives += document
+        let model_primitives = document
             .meshes
             .iter()
             .map(|mesh| mesh.primitives.len())
             .sum::<usize>();
+        primitives += model_primitives;
         materials += document.materials.len();
         images += document.images.len();
-        for image in &document.images {
-            if successor_engine_core::image::decode_image(&image.mime_type, &image.bytes).is_err() {
-                eprintln!("failed to decode embedded image in {path}");
-                decode_errors += 1;
+        explicit_lights += document.lights.len();
+        explicit_light_node_refs += document
+            .nodes
+            .iter()
+            .filter(|node| node.light.is_some())
+            .count();
+        for light in &document.lights {
+            if light
+                .color
+                .iter()
+                .any(|value| !value.is_finite() || *value < 0.0)
+                || !light.intensity.is_finite()
+                || light.intensity < 0.0
+                || light
+                    .range
+                    .is_some_and(|range| !range.is_finite() || range <= 0.0)
+            {
+                light_errors += 1;
             }
         }
+        let mut image_means = Vec::with_capacity(document.images.len());
+        for image in &document.images {
+            match successor_engine_core::image::decode_image(&image.mime_type, &image.bytes) {
+                Ok(decoded) => image_means.push(Some(
+                    successor_engine_render::model::emissive_texture_mean_linear(&decoded.pixels),
+                )),
+                Err(_) => {
+                    eprintln!("failed to decode embedded image in {path}");
+                    decode_errors += 1;
+                    image_means.push(None);
+                }
+            }
+        }
+        let means = document
+            .materials
+            .iter()
+            .map(|material| {
+                material
+                    .emissive_texture
+                    .and_then(|reference| document.textures.get(reference.texture))
+                    .and_then(|texture| image_means.get(texture.source))
+                    .copied()
+                    .flatten()
+            })
+            .collect::<Vec<_>>();
+        let report = successor_client::assets::model::light_extraction_report(&document, &means);
+        emissive_candidates += report.candidates;
+        retained_lights += report.retained;
+        inferred_lights += report.retained.saturating_sub(report.explicit);
+        suppressed_low_flux += report.suppressed_low_flux;
+        suppressed_duplicates += report.suppressed_duplicate;
+        light_errors += report.errors;
+        over_budget_lights += report.over_budget;
         let rest_pose: Vec<successor_engine_core::anim::JointTransform> = document
             .nodes
             .iter()
@@ -2762,9 +2816,11 @@ fn run_model_corpus() {
         }
     }
     println!(
-        "{{\"models\":{models},\"primitives\":{primitives},\"materials\":{materials},\"images\":{images},\"unsupported\":{unsupported},\"decode_errors\":{decode_errors},\"transform_errors\":{transform_errors},\"skipped\":{skipped}}}"
+        "{{\"models\":{models},\"primitives\":{primitives},\"materials\":{materials},\"images\":{images},\"explicit_light_definitions\":{explicit_lights},\"explicit_light_references\":{explicit_light_node_refs},\"emissive_candidates\":{emissive_candidates},\"retained_lights\":{retained_lights},\"inferred_lights\":{inferred_lights},\"suppressed_low_flux\":{suppressed_low_flux},\"suppressed_duplicates\":{suppressed_duplicates},\"light_errors\":{light_errors},\"over_budget_lights\":{over_budget_lights},\"unsupported\":{unsupported},\"decode_errors\":{decode_errors},\"transform_errors\":{transform_errors},\"skipped\":{skipped}}}"
     );
-    if unsupported + decode_errors + transform_errors + skipped != 0 {
+    if unsupported + decode_errors + transform_errors + skipped + light_errors + over_budget_lights
+        != 0
+    {
         std::process::exit(1);
     }
 }

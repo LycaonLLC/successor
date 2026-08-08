@@ -118,7 +118,7 @@ impl Pool {
 
 /// A cached optional GLB model (uploaded once) or its typed absence.
 enum ModelSlot {
-    Loaded(Vec<(MeshId, MaterialId, Mat4)>),
+    Loaded(crate::assets::model::StaticModel),
     Missing,
 }
 
@@ -314,9 +314,9 @@ impl StreamedWorld {
     ) -> bool {
         if !self.models.contains_key(stable_id) {
             let slot = match read(stable_id).and_then(|bytes| {
-                crate::pawn::pack::upload_static_parts(gpu, renderer, &bytes).ok()
+                crate::assets::model::upload_static_model(gpu, renderer, &bytes).ok()
             }) {
-                Some(parts) => ModelSlot::Loaded(parts),
+                Some(model) => ModelSlot::Loaded(model),
                 None => {
                     self.record(WorldAssetIssue::MissingModel {
                         stable_id: stable_id.to_string(),
@@ -366,32 +366,44 @@ impl StreamedWorld {
 
     /// Spawn a loaded model's parts at a placement; appends the entities.
     fn spawn_model(
-        &mut self,
+        &self,
         world: &mut GameWorld,
         stable_id: &str,
         placement: Mat4,
         out: &mut Vec<Entity>,
     ) {
-        let Some(ModelSlot::Loaded(parts)) = self.models.get(stable_id) else {
+        let Some(ModelSlot::Loaded(model)) = self.models.get(stable_id) else {
             return;
         };
-        // Snapshot part descriptors first: spawning borrows `world`, not
-        // `self`, but `parts` borrows `self.models` — copy the small list.
-        let baked: Vec<(MeshId, MaterialId, Mat4)> = parts.clone();
-        for (mesh, material, local) in baked {
-            let (pos, rot, scale) = placement.mul(local).to_trs();
-            let e = world.spawn();
-            world.set_component(e, Transform { pos, rot, scale });
+        out.reserve(model.parts.len() + model.lights.len());
+        for part in &model.parts {
+            let (pos, rot, scale) = placement.mul(part.local).to_trs();
+            let entity = world.spawn();
+            world.set_component(entity, Transform { pos, rot, scale });
             world.set_component(
-                e,
+                entity,
                 MeshRenderer {
-                    mesh,
-                    material,
+                    mesh: part.mesh,
+                    material: part.material,
                     viewport_mask: MASK,
                     skin: SkinRef::NONE,
                 },
             );
-            out.push(e);
+            out.push(entity);
+        }
+        for light in &model.lights {
+            let (pos, rot, scale) = placement.mul(light.local).to_trs();
+            let entity = world.spawn();
+            world.set_component(entity, Transform { pos, rot, scale });
+            world.set_component(
+                entity,
+                successor_engine_render::components::PointLight {
+                    color: light.color,
+                    intensity: light.intensity,
+                    radius: light.radius,
+                },
+            );
+            out.push(entity);
         }
     }
 
@@ -866,12 +878,12 @@ impl StreamedWorld {
                         h_milli: (max_y - min_y + 1) as f64 * 1000.0,
                     };
                     if !self.cutaway_states.contains_key(id) {
-                        self.cutaway_states.insert(id.to_string(), crate::world::cutaway::CutawayState::default());
+                        self.cutaway_states.insert(
+                            id.to_string(),
+                            crate::world::cutaway::CutawayState::default(),
+                        );
                     }
-                    let state = self
-                        .cutaway_states
-                        .get_mut(id)
-                        .expect("inserted above");
+                    let state = self.cutaway_states.get_mut(id).expect("inserted above");
                     crate::world::cutaway::sample(
                         state,
                         store.tick as f64,
@@ -1123,7 +1135,60 @@ fn hex_rgba(s: &str) -> [f32; 4] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assets::model::{EmbeddedLightSource, EmbeddedPointLight, StaticModel};
     use serde_json::json;
+    use successor_engine_render::components::PointLight;
+
+    #[test]
+    fn model_lights_follow_each_instance_and_pool_lifecycle() {
+        let mut streamed = StreamedWorld::new();
+        streamed.models.insert(
+            "fixture".to_string(),
+            ModelSlot::Loaded(StaticModel {
+                parts: Vec::new(),
+                lights: vec![EmbeddedPointLight {
+                    source: EmbeddedLightSource::Inferred,
+                    node: 0,
+                    local: Mat4::from_translation(vec3(1.0, 2.0, 3.0)),
+                    color: [0.2, 0.7, 1.0],
+                    intensity: 4.0,
+                    radius: 6.0,
+                }],
+            }),
+        );
+        let mut world = GameWorld::new();
+        let mut entities = Vec::new();
+        streamed.spawn_model(
+            &mut world,
+            "fixture",
+            Mat4::from_translation(vec3(10.0, 0.0, -2.0)),
+            &mut entities,
+        );
+        streamed.spawn_model(
+            &mut world,
+            "fixture",
+            Mat4::from_translation(vec3(-4.0, 1.0, 8.0)),
+            &mut entities,
+        );
+        assert_eq!(entities.len(), 2);
+
+        let mut positions = Vec::new();
+        let mut query = world.query2::<PointLight, Transform>();
+        while let Some((_, light, transform)) = query.next() {
+            assert_eq!(light.color, [0.2, 0.7, 1.0]);
+            assert_eq!(light.intensity, 4.0);
+            assert_eq!(light.radius, 6.0);
+            positions.push(transform.pos);
+        }
+        positions.sort_by(|left, right| left.x.total_cmp(&right.x));
+        assert_eq!(positions, vec![vec3(-3.0, 3.0, 11.0), vec3(11.0, 2.0, 1.0)]);
+
+        streamed
+            .camps
+            .insert("fixture-row".to_string(), entities, 1, 0);
+        streamed.clear(&mut world);
+        assert!(world.query2::<PointLight, Transform>().next().is_none());
+    }
 
     #[test]
     fn farm_tile_decodes_growth_and_moisture() {

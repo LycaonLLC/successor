@@ -279,15 +279,21 @@ mod tests {
         let found = commands_under_sweep(&fixture_live_model(false));
 
         assert!(
-            found.iter().any(|c| matches!(c, ClientCommand::AddTradeItem { item, .. } if item.item_id == 303)),
+            found.iter().any(
+                |c| matches!(c, ClientCommand::AddTradeItem { item, .. } if item.item_id == 303)
+            ),
             "inventory rows must offer ADD; got {found:?}"
         );
         assert!(
-            found.iter().any(|c| matches!(c, ClientCommand::RemoveTradeItem { item, .. } if item.item_id == 101)),
+            found.iter().any(
+                |c| matches!(c, ClientCommand::RemoveTradeItem { item, .. } if item.item_id == 101)
+            ),
             "own offer rows must offer REMOVE; got {found:?}"
         );
         assert!(
-            found.iter().any(|c| matches!(c, ClientCommand::SetTradeCoin { .. })),
+            found
+                .iter()
+                .any(|c| matches!(c, ClientCommand::SetTradeCoin { .. })),
             "credit rail must be reachable; got {found:?}"
         );
         assert!(
@@ -340,7 +346,12 @@ mod tests {
         let mut ui = UiBuilder::new(icons.meta);
         let mut out = Vec::new();
         ui.begin(1280, 900);
-        trade(&mut ui, test_ctx(RECT), &fixture_live_model(false), &mut out);
+        trade(
+            &mut ui,
+            test_ctx(RECT),
+            &fixture_live_model(false),
+            &mut out,
+        );
 
         assert!(ui.quads > 0, "a live trade session must paint its columns");
     }
@@ -365,10 +376,12 @@ mod tests {
         out.clear();
         trade(&mut ui, ctx, &model, &mut out);
 
-        assert!(out.contains(&WindowAction::Command(ClientCommand::ProposeTrade {
-            partner_actor_id: "partner_99".to_string(),
-            offer: vec![],
-            request: vec![],
-        })));
+        assert!(
+            out.contains(&WindowAction::Command(ClientCommand::ProposeTrade {
+                partner_actor_id: "partner_99".to_string(),
+                offer: vec![],
+                request: vec![],
+            }))
+        );
     }
 }

@@ -177,12 +177,7 @@ impl CombatEvent {
         if !damage.is_finite() {
             return None;
         }
-        let tuple_str = |at: usize| {
-            t.get(at)
-                .and_then(|x| x.as_str())
-                .unwrap_or("")
-                .to_string()
-        };
+        let tuple_str = |at: usize| t.get(at).and_then(|x| x.as_str()).unwrap_or("").to_string();
         let tuple_point = |x_at: usize, y_at: usize| -> Option<[f32; 2]> {
             let x = t.get(x_at)?.as_f64()? as f32;
             let y = t.get(y_at)?.as_f64()? as f32;
@@ -427,31 +422,31 @@ mod tests {
     /// this is the contract that keeps combat FX alive on the live wire.
     fn shot_tuple(id: i64) -> serde_json::Value {
         json!([
-            id,          // 0 id
-            null,        // 1 commandId
-            900,         // 2 tick
-            "1:1",       // 3 shooterActorId
-            "npc:9",     // 4 targetActorId
-            14.0,        // 5 hitX
-            12.0,        // 6 hitY
-            18,          // 7 damage
-            "torso",     // 8 zone
-            "alive",     // 9 previousLifeState
-            "alive",     // 10 lifeState
-            3,           // 11 targetLifecycleSeq
-            0,           // 12 bleedStackCount
-            null,        // 13 lifecycleKind
-            null,        // 14 lifecycleFrom
-            null,        // 15 lifecycleTo
-            null,        // 16 lifecycleCause
+            id,            // 0 id
+            null,          // 1 commandId
+            900,           // 2 tick
+            "1:1",         // 3 shooterActorId
+            "npc:9",       // 4 targetActorId
+            14.0,          // 5 hitX
+            12.0,          // 6 hitY
+            18,            // 7 damage
+            "torso",       // 8 zone
+            "alive",       // 9 previousLifeState
+            "alive",       // 10 lifeState
+            3,             // 11 targetLifecycleSeq
+            0,             // 12 bleedStackCount
+            null,          // 13 lifecycleKind
+            null,          // 14 lifecycleFrom
+            null,          // 15 lifecycleTo
+            null,          // 16 lifecycleCause
             "slugthrower", // 17 weaponId
-            null,        // 18 ammoTypeId
-            null,        // 19 effectKind
-            null,        // 20 effectStacks
-            null,        // 21 effectThreshold
-            null,        // 22 effectRemainingMs
-            10.0,        // 23 originX
-            12.0,        // 24 originY
+            null,          // 18 ammoTypeId
+            null,          // 19 effectKind
+            null,          // 20 effectStacks
+            null,          // 21 effectThreshold
+            null,          // 22 effectRemainingMs
+            10.0,          // 23 originX
+            12.0,          // 24 originY
             "ranged_roll", // 25 kind
         ])
     }

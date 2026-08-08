@@ -17,7 +17,6 @@ use super::cutaway::{self, CutawayState, RegionMilli};
 use super::streamed::WorldAssetIssue;
 use crate::assets::stream::{AssetStreamer, ByteSource};
 use crate::GameWorld;
-use successor_platform::Platform;
 use successor_engine_core::ecs::{Entity, WorldOps};
 use successor_engine_core::glb::{self, GlbDocument};
 use successor_engine_core::json::Json;
@@ -27,8 +26,8 @@ use successor_engine_render::components::{
 };
 use successor_engine_render::gi::GiOccluder;
 use successor_engine_render::gpu::Gpu;
-use successor_engine_render::model::upload_glb;
 use successor_engine_render::renderer::Renderer;
+use successor_platform::Platform;
 
 /// A distinct GLB uploaded once: its parts (mesh+material) and measured XZ
 /// footprint (post-recenter), used to fit instances to their cell size.
@@ -44,6 +43,7 @@ struct PropPart {
 
 struct PropModel {
     parts: Vec<PropPart>,
+    lights: Vec<crate::assets::model::EmbeddedPointLight>,
     /// Names and ancestry stay alongside the baked parts; GLB node identity
     /// must survive upload because enterable metadata names source nodes.
     node_names: Vec<Option<String>>,
@@ -54,6 +54,29 @@ struct PropModel {
     height_y: f32,
     /// Index-weighted mean base color, for the GI occluder proxy.
     mean_albedo: [f32; 3],
+}
+
+fn spawn_embedded_lights(
+    world: &mut GameWorld,
+    spawned: &mut Vec<Entity>,
+    lights: &[crate::assets::model::EmbeddedPointLight],
+    placement: Mat4,
+) {
+    spawned.reserve(lights.len());
+    for light in lights {
+        let (pos, rot, scale) = placement.mul(light.local).to_trs();
+        let entity = world.spawn();
+        world.set_component(entity, Transform { pos, rot, scale });
+        world.set_component(
+            entity,
+            successor_engine_render::components::PointLight {
+                color: light.color,
+                intensity: light.intensity,
+                radius: light.radius,
+            },
+        );
+        spawned.push(entity);
+    }
 }
 struct EnterableProp {
     entities: Vec<Entity>,
@@ -400,10 +423,7 @@ impl PropsLoader {
             .get("randomYaw")
             .and_then(Json::as_bool)
             .unwrap_or(false);
-        let glb_ref = entry
-            .get("glb")
-            .and_then(Json::as_str)
-            .map(str::to_string);
+        let glb_ref = entry.get("glb").and_then(Json::as_str).map(str::to_string);
         let stable_id = glb_ref.as_ref().map(|glb_ref| self.stable_id_for(glb_ref));
         Some(PendingProp {
             prop: prop.clone(),
@@ -615,12 +635,11 @@ impl PropsLoader {
                 let ground_z = cy + sh / 2.0;
                 let ground_y = terrain.height_at(ground_x, ground_z);
                 let mesh = placeholder_cube(renderer, gpu);
-                let material = renderer.add_material_desc(
-                    successor_engine_render::renderer::MaterialDesc {
+                let material =
+                    renderer.add_material_desc(successor_engine_render::renderer::MaterialDesc {
                         base_color: MISSING_TINT,
                         ..successor_engine_render::renderer::MaterialDesc::default()
-                    },
-                );
+                    });
                 let e = world.spawn();
                 world.set_component(
                     e,
@@ -646,7 +665,7 @@ impl PropsLoader {
             let reveal_prefixes = enterable.and_then(enterable_reveal_prefixes);
             let reveal_name_includes = enterable.and_then(enterable_reveal_name_includes);
             let slide_door = parse_slide_door(entry);
-            let (fx, fz, hy, alb, parts) = {
+            let (fx, fz, hy, alb, parts, lights) = {
                 let model = self.cache.get(glb_ref).unwrap().as_ref().unwrap();
                 let parts: Vec<PlacedPart> = model
                     .parts
@@ -680,6 +699,7 @@ impl PropsLoader {
                     model.height_y,
                     model.mean_albedo,
                     parts,
+                    model.lights.clone(),
                 )
             };
             let (fit_x, fit_z) = fit_footprint(entry, fx, fz);
@@ -752,6 +772,7 @@ impl PropsLoader {
                     }
                 }
             }
+            spawn_embedded_lights(world, &mut self.spawned, &lights, placement);
             if let (Some(enterable), Some(_)) = (enterable, reveal_prefixes) {
                 self.enterables.push(EnterableInstance {
                     cell_x: pending.cell_x,
@@ -1267,7 +1288,7 @@ fn upload_model<G: Gpu>(
     gpu: &mut G,
     doc: &GlbDocument,
 ) -> Option<PropModel> {
-    let globals = node_globals(doc);
+    let globals = doc.node_globals();
     let node_names = doc.nodes.iter().map(|node| node.name.clone()).collect();
     let parents = node_parents(doc);
     // First pass: AABB over baked positions.
@@ -1279,7 +1300,8 @@ fn upload_model<G: Gpu>(
             continue;
         };
         for prim in &mesh.primitives {
-            for p in &prim.positions {
+            let positions = prim.morphed_positions();
+            for p in &positions {
                 let w = globals[ni].transform_point(vec3(p[0], p[1], p[2]));
                 min = vec3(min.x.min(w.x), min.y.min(w.y), min.z.min(w.z));
                 max = vec3(max.x.max(w.x), max.y.max(w.y), max.z.max(w.z));
@@ -1293,7 +1315,14 @@ fn upload_model<G: Gpu>(
     let cz = (min.z + max.z) * 0.5;
     let offset = vec3(-cx, -min.y, -cz);
 
-    let uploaded = upload_glb(renderer, gpu, doc).ok()?;
+    let prepared = successor_engine_render::model::prepare_glb(doc).ok()?;
+    let mut lights = crate::assets::model::extract_embedded_lights(
+        doc,
+        &prepared.material_emissive_texture_means,
+    )
+    .ok()?;
+    let uploaded =
+        successor_engine_render::model::upload_prepared_glb(renderer, gpu, doc, prepared).ok()?;
 
     // Accumulate a mean albedo (weighted by index count) for the GI occluder proxy.
     let mut albedo_sum = [0.0f32; 3];
@@ -1341,8 +1370,14 @@ fn upload_model<G: Gpu>(
     } else {
         [0.7, 0.68, 0.64]
     };
+    for light in &mut lights {
+        light.local = recenter
+            .mul(globals.get(light.node).copied().unwrap_or(Mat4::IDENTITY))
+            .mul(light.local);
+    }
     Some(PropModel {
         parts,
+        lights,
         node_names,
         node_parents: parents,
         footprint_x: (max.x - min.x).max(0.01),
@@ -1350,37 +1385,6 @@ fn upload_model<G: Gpu>(
         height_y: (max.y - min.y).max(0.01),
         mean_albedo,
     })
-}
-
-fn node_globals(doc: &GlbDocument) -> Vec<Mat4> {
-    let n = doc.nodes.len();
-    let mut globals = vec![Mat4::IDENTITY; n];
-    let mut done = vec![false; n];
-    let mut roots = doc.scene_roots.clone();
-    if roots.is_empty() {
-        let mut has_parent = vec![false; n];
-        for node in &doc.nodes {
-            for &c in &node.children {
-                if c < n {
-                    has_parent[c] = true;
-                }
-            }
-        }
-        roots = (0..n).filter(|&i| !has_parent[i]).collect();
-    }
-    let mut stack: Vec<(usize, Mat4)> = roots.iter().map(|&r| (r, Mat4::IDENTITY)).collect();
-    while let Some((idx, parent)) = stack.pop() {
-        if idx >= n || done[idx] {
-            continue;
-        }
-        done[idx] = true;
-        let g = parent.mul(doc.nodes[idx].local_matrix());
-        globals[idx] = g;
-        for &c in &doc.nodes[idx].children {
-            stack.push((c, g));
-        }
-    }
-    globals
 }
 
 fn node_parents(doc: &GlbDocument) -> Vec<Option<usize>> {
@@ -1573,6 +1577,50 @@ impl WorldScene {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn prop_light_instances_share_descriptors_and_clear_with_the_region() {
+        let descriptor = crate::assets::model::EmbeddedPointLight {
+            source: crate::assets::model::EmbeddedLightSource::Inferred,
+            node: 0,
+            local: Mat4::from_translation(vec3(0.5, 1.0, -0.5)),
+            color: [1.0, 0.4, 0.1],
+            intensity: 3.0,
+            radius: 4.0,
+        };
+        let mut loader = PropsLoader::new("{}").expect("loader");
+        let mut world = GameWorld::new();
+        spawn_embedded_lights(
+            &mut world,
+            &mut loader.spawned,
+            &[descriptor],
+            Mat4::from_translation(vec3(2.0, 3.0, 4.0)),
+        );
+        spawn_embedded_lights(
+            &mut world,
+            &mut loader.spawned,
+            &[descriptor],
+            Mat4::from_translation(vec3(-2.0, 0.0, 1.0)),
+        );
+
+        let mut positions = Vec::new();
+        let mut query =
+            world.query2::<successor_engine_render::components::PointLight, Transform>();
+        while let Some((_, light, transform)) = query.next() {
+            assert_eq!(light.color, descriptor.color);
+            assert_eq!(light.intensity, descriptor.intensity);
+            assert_eq!(light.radius, descriptor.radius);
+            positions.push(transform.pos);
+        }
+        positions.sort_by(|left, right| left.x.total_cmp(&right.x));
+        assert_eq!(positions, vec![vec3(-1.5, 1.0, 0.5), vec3(2.5, 4.0, 3.5)]);
+
+        loader.clear(&mut world);
+        assert!(world
+            .query2::<successor_engine_render::components::PointLight, Transform>()
+            .next()
+            .is_none());
+    }
 
     #[test]
     fn hash_yaw_deterministic_and_in_range() {

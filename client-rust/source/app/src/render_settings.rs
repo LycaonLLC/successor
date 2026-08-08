@@ -66,6 +66,9 @@ pub struct QualityPresets {
 pub struct PresetSettings {
     pub ambient_intensity: f32,
     pub emissive_scalar: f32,
+    /// Linear master scale on point lights auto-added from GLB-embedded
+    /// descriptors (explicit `KHR_lights_punctual` and name-inferred emitters).
+    pub auto_point_light_scale: f32,
     pub exposure: f32,
     pub bloom: BloomSettings,
     pub sun: SunSettings,
@@ -226,6 +229,7 @@ impl PresetSettings {
         Self {
             ambient_intensity: 0.5,
             emissive_scalar: 1.0,
+            auto_point_light_scale: 1.0,
             exposure: 1.0,
             bloom: BloomSettings {
                 threshold: 1.0,
@@ -300,6 +304,13 @@ impl PresetSettings {
     pub fn validate(&self, name: &str) -> Result<(), String> {
         finite_range(name, "ambient_intensity", self.ambient_intensity, 0.0, 2.0)?;
         finite_range(name, "emissive_scalar", self.emissive_scalar, 0.0, 8.0)?;
+        finite_range(
+            name,
+            "auto_point_light_scale",
+            self.auto_point_light_scale,
+            0.0,
+            8.0,
+        )?;
         finite_range(name, "exposure", self.exposure, 0.1, 4.0)?;
         finite_range(name, "bloom.threshold", self.bloom.threshold, 0.0, 8.0)?;
         finite_range(name, "bloom.intensity", self.bloom.intensity, 0.0, 4.0)?;
@@ -390,6 +401,7 @@ impl PresetSettings {
         RendererSettings {
             ambient_intensity: self.ambient_intensity,
             emissive_scalar: self.emissive_scalar,
+            point_light_scale: self.auto_point_light_scale,
             exposure: self.exposure,
             ao_intensity: self.ao.intensity,
             bloom_threshold: self.bloom.threshold,

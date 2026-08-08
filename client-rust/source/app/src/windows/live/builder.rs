@@ -21,7 +21,8 @@ use successor_net::ClientCommand;
 /// Generated from the authority's own tables. See
 /// `crates/successor-sim/src/bin/emit_debug_catalog.rs`; a hygiene gate fails
 /// when this file drifts from the runtime.
-const CATALOG_JSON: &str = include_str!("../../../../../../tools/codegen/generated/debug-catalog.generated.json");
+const CATALOG_JSON: &str =
+    include_str!("../../../../../../tools/codegen/generated/debug-catalog.generated.json");
 
 pub struct CatalogItem {
     pub id: u32,
@@ -196,11 +197,9 @@ impl BuilderState {
             }));
         }
         if !self.skills.is_empty() {
-            out.push(WindowAction::Command(
-                ClientCommand::DebugGrantSkillBoxes {
-                    skill_box_ids: self.skills.clone(),
-                },
-            ));
+            out.push(WindowAction::Command(ClientCommand::DebugGrantSkillBoxes {
+                skill_box_ids: self.skills.clone(),
+            }));
         }
         self.last_result = Some(format!(
             "GRANTED {} ITEM(S), {} SKILL(S)",
@@ -224,7 +223,12 @@ pub fn with_state<R>(f: impl FnOnce(&mut BuilderState) -> R) -> R {
 
 /// Draw the builder into `rect`. Returns false when the player asked to leave,
 /// so the caller can hand the column back to ordinary dialogue.
-pub fn draw(ui: &mut UiBuilder, rect: [f32; 4], metrics: Metrics, out: &mut Vec<WindowAction>) -> bool {
+pub fn draw(
+    ui: &mut UiBuilder,
+    rect: [f32; 4],
+    metrics: Metrics,
+    out: &mut Vec<WindowAction>,
+) -> bool {
     with_state(|state| draw_state(state, ui, rect, metrics, out))
 }
 
@@ -250,7 +254,13 @@ fn draw_state(
         }
         Page::Credits => "BUILDER / CREDITS".to_string(),
     };
-    ui.text(&crumb, x + metrics.gutter, y + 2.0, metrics.caption_px, dim());
+    ui.text(
+        &crumb,
+        x + metrics.gutter,
+        y + 2.0,
+        metrics.caption_px,
+        dim(),
+    );
 
     let selected = state.selected();
     if selected > 0 {

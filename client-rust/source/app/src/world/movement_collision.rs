@@ -13,14 +13,18 @@ pub struct MovementCollisionWorld {
 impl MovementCollisionWorld {
     pub fn rebuild(&mut self, slice: &Json, area_id: &str, dynamic: &CollisionDebugOverlay) {
         self.blockers.clear();
-        self.blockers.extend(authored_collision_bounds(slice, area_id).into_iter().map(|bound| {
-            CircleAabb::new(
-                bound.left_milli,
-                bound.top_milli,
-                bound.right_milli,
-                bound.bottom_milli,
-            )
-        }));
+        self.blockers.extend(
+            authored_collision_bounds(slice, area_id)
+                .into_iter()
+                .map(|bound| {
+                    CircleAabb::new(
+                        bound.left_milli,
+                        bound.top_milli,
+                        bound.right_milli,
+                        bound.bottom_milli,
+                    )
+                }),
+        );
         dynamic.append_active_dynamic_bounds(&mut self.blockers);
     }
 
@@ -60,7 +64,6 @@ impl MovementCollisionWorld {
             )
         })
     }
-
 
     pub fn blocker_count(&self) -> usize {
         self.blockers.len()

@@ -125,10 +125,7 @@ impl CommandQueue {
                 continue;
             }
             let replace = best.is_none_or(|current: usize| {
-                let candidate = (
-                    command_priority(&pending.command),
-                    pending.command_id,
-                );
+                let candidate = (command_priority(&pending.command), pending.command_id);
                 let selected = (
                     command_priority(&self.pending[current].command),
                     self.pending[current].command_id,
@@ -304,8 +301,7 @@ mod tests {
     #[test]
     fn movement_lane_bypasses_delayed_transaction_receipt() {
         let mut q = q();
-        let transaction =
-            q.enqueue(ClientCommand::CloneRespawn { facility_id: None }, 1);
+        let transaction = q.enqueue(ClientCommand::CloneRespawn { facility_id: None }, 1);
         assert_eq!(q.take_next().unwrap().command_id, transaction);
         let movement = q.enqueue(
             ClientCommand::SetMoveIntent {
@@ -317,7 +313,9 @@ mod tests {
             2,
         );
         assert_eq!(q.take_next().unwrap().command_id, movement);
-        assert!(q.in_flight().is_some_and(|env| env.command_id == transaction));
+        assert!(q
+            .in_flight()
+            .is_some_and(|env| env.command_id == transaction));
         assert!(q.settle(movement));
         assert!(q.settle(transaction));
     }
@@ -325,8 +323,7 @@ mod tests {
     #[test]
     fn reconnect_drops_old_transport_movement_but_replays_transaction() {
         let mut q = q();
-        let transaction =
-            q.enqueue(ClientCommand::CloneRespawn { facility_id: None }, 1);
+        let transaction = q.enqueue(ClientCommand::CloneRespawn { facility_id: None }, 1);
         assert_eq!(q.take_next().unwrap().command_id, transaction);
         let movement = q.enqueue(
             ClientCommand::SetMoveIntent {

@@ -85,9 +85,7 @@ impl MovePredictor {
                 );
                 self.pred_x = resolved.0;
                 self.pred_y = resolved.1;
-                moved += ((resolved.0 - before.0).powi(2)
-                    + (resolved.1 - before.1).powi(2))
-                .sqrt();
+                moved += ((resolved.0 - before.0).powi(2) + (resolved.1 - before.1).powi(2)).sqrt();
             }
         }
         let lead = if sprint { SPRINT_LEAD } else { WALK_LEAD };

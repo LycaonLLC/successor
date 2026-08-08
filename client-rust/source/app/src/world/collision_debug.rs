@@ -341,7 +341,13 @@ impl CollisionDebugOverlay {
         let entity = spawn_box_entity(
             world,
             self.box_mesh,
-            material_for_kind(bound.kind, active, self.active_static, self.active_dynamic, self.inactive),
+            material_for_kind(
+                bound.kind,
+                active,
+                self.active_static,
+                self.active_dynamic,
+                self.inactive,
+            ),
             self.enabled,
             center_x,
             center_z,
@@ -390,14 +396,17 @@ impl CollisionDebugOverlay {
             MeshRenderer {
                 mesh,
                 material: self.active_static,
-                viewport_mask: if self.enabled { ACTIVE_MASK } else { HIDDEN_MASK },
+                viewport_mask: if self.enabled {
+                    ACTIVE_MASK
+                } else {
+                    HIDDEN_MASK
+                },
                 skin: SkinRef::NONE,
             },
         );
         let (clearance_vertices, clearance_indices) =
             wire_bounds_mesh(bounds, terrain, CLEARANCE_RADIUS_CELLS);
-        let clearance_mesh =
-            renderer.upload_mesh(gpu, &clearance_vertices, &clearance_indices);
+        let clearance_mesh = renderer.upload_mesh(gpu, &clearance_vertices, &clearance_indices);
         let clearance_entity = world.spawn();
         world.set_component(clearance_entity, Transform::default());
         world.set_component(
@@ -405,7 +414,11 @@ impl CollisionDebugOverlay {
             MeshRenderer {
                 mesh: clearance_mesh,
                 material: self.clearance,
-                viewport_mask: if self.enabled { ACTIVE_MASK } else { HIDDEN_MASK },
+                viewport_mask: if self.enabled {
+                    ACTIVE_MASK
+                } else {
+                    HIDDEN_MASK
+                },
                 skin: SkinRef::NONE,
             },
         );
@@ -434,11 +447,7 @@ fn spawn_box_entity(
     world.set_component(
         entity,
         Transform {
-            pos: vec3(
-                center_x,
-                ground + ADULT_PAWN_HEIGHT_METERS * 0.5,
-                center_z,
-            ),
+            pos: vec3(center_x, ground + ADULT_PAWN_HEIGHT_METERS * 0.5, center_z),
             rot: Quat::IDENTITY,
             scale: vec3(width, ADULT_PAWN_HEIGHT_METERS, depth),
         },
@@ -487,7 +496,9 @@ fn ensure_marker(
             },
         );
         *slot = Some(entity);
-    } else if let Some(render) = (*slot).and_then(|entity| world.get_component::<MeshRenderer>(entity)) {
+    } else if let Some(render) =
+        (*slot).and_then(|entity| world.get_component::<MeshRenderer>(entity))
+    {
         render.viewport_mask = if enabled { ACTIVE_MASK } else { HIDDEN_MASK };
     }
 }

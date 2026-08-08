@@ -642,7 +642,10 @@ mod tests {
         assert_eq!(surfaced.channel, ChatChannel::System);
         assert_eq!(surfaced.text, "You are not in a guild.");
         assert!(
-            client.history.iter().any(|m| m.text == "You are not in a guild."),
+            client
+                .history
+                .iter()
+                .any(|m| m.text == "You are not in a guild."),
             "the refusal must be recorded in the log, not just returned"
         );
     }

@@ -284,3 +284,127 @@ fn animated_morph_weights_are_rejected() {
         Err(GlbError::Unsupported("animated morph weights"))
     ));
 }
+
+#[test]
+fn punctual_light_defaults_and_authored_values() {
+    let json = r#"{
+      "extensions":{"KHR_lights_punctual":{"lights":[
+        {"type":"point"},
+        {"name":"lamp","type":"point","color":[0.2,0.4,0.8],"intensity":12.5,"range":7.0}
+      ]}},
+      "nodes":[
+        {"extensions":{"KHR_lights_punctual":{"light":0}}},
+        {"extensions":{"KHR_lights_punctual":{"light":1}}}
+      ]
+    }"#;
+    let doc = parse(&build_glb(json, &[])).expect("lights");
+    assert_eq!(doc.lights.len(), 2);
+    assert_eq!(doc.lights[0].kind, GlbLightKind::Point);
+    assert_eq!(doc.lights[0].color, [1.0; 3]);
+    assert_eq!(doc.lights[0].intensity, 1.0);
+    assert_eq!(doc.lights[0].range, None);
+    assert_eq!(doc.lights[1].name.as_deref(), Some("lamp"));
+    assert_eq!(doc.lights[1].color, [0.2, 0.4, 0.8]);
+    assert_eq!(doc.lights[1].range, Some(7.0));
+    assert_eq!(doc.nodes[0].light, Some(0));
+    assert_eq!(doc.nodes[1].light, Some(1));
+}
+
+#[test]
+fn punctual_light_shared_nested_reference_and_globals() {
+    let json = r#"{
+      "extensions":{"KHR_lights_punctual":{"lights":[{"type":"spot","spot":{"innerConeAngle":0.1,"outerConeAngle":0.5}}]}},
+      "scene":0,"scenes":[{"nodes":[0]}],
+      "nodes":[
+        {"translation":[2,0,0],"children":[1]},
+        {"translation":[0,3,0],"extensions":{"KHR_lights_punctual":{"light":0}}},
+        {"translation":[9,0,0],"extensions":{"KHR_lights_punctual":{"light":0}}}
+      ]
+    }"#;
+    let doc = parse(&build_glb(json, &[])).expect("lights");
+    assert_eq!(doc.nodes[1].light, Some(0));
+    assert_eq!(doc.nodes[2].light, Some(0));
+    let globals = doc.node_globals();
+    assert_eq!(globals[0].transform_point(Vec3::ZERO), vec3(2.0, 0.0, 0.0));
+    assert_eq!(globals[1].transform_point(Vec3::ZERO), vec3(2.0, 3.0, 0.0));
+    assert_eq!(globals[2].transform_point(Vec3::ZERO), vec3(9.0, 0.0, 0.0));
+}
+
+#[test]
+fn node_globals_visit_unselected_roots_before_lower_index_children() {
+    let json = r#"{
+      "nodes":[
+        {"translation":[0,3,0]},
+        {"translation":[2,0,0],"children":[0]}
+      ]
+    }"#;
+    let doc = parse(&build_glb(json, &[])).expect("unselected hierarchy");
+    let globals = doc.node_globals();
+    assert_eq!(globals[0].transform_point(Vec3::ZERO), vec3(2.0, 3.0, 0.0));
+    assert_eq!(globals[1].transform_point(Vec3::ZERO), vec3(2.0, 0.0, 0.0));
+}
+
+#[test]
+fn punctual_light_rejects_malformed_values_and_unknown_required_extensions() {
+    for json in [
+        r#"{"extensions":{"KHR_lights_punctual":{"lights":[{"type":"point","intensity":-1}]}}}"#,
+        r#"{"extensions":{"KHR_lights_punctual":{"lights":[{"type":"point","range":0}]}}}"#,
+        r#"{"extensions":{"KHR_lights_punctual":{"lights":[{"type":"point","color":[1,2]}]}}}"#,
+        r#"{"extensions":{"KHR_lights_punctual":{"lights":[{"type":"point"}]}},"nodes":[{"extensions":{"KHR_lights_punctual":{"light":3}}}]}"#,
+        r#"{"extensions":{"KHR_lights_punctual":{"lights":[{"type":"point"}]}},"nodes":[{"extensions":{"KHR_lights_punctual":{}}}]}"#,
+        r#"{"extensions":{"KHR_lights_punctual":{"lights":[{"type":"spot","spot":5}]}}}"#,
+        r#"{"extensions":{"KHR_lights_punctual":{"lights":[{"type":"spot","spot":{"outerConeAngle":0}}]}}}"#,
+        r#"{"extensionsRequired":["KHR_lights_punctual"]}"#,
+        r#"{"extensionsRequired":["VENDOR_unknown"]}"#,
+    ] {
+        assert!(
+            parse(&build_glb(json, &[])).is_err(),
+            "accepted malformed fixture"
+        );
+    }
+}
+
+#[test]
+fn punctual_light_required_extension_accepts_only_renderable_points() {
+    let point = r#"{
+      "extensionsRequired":["KHR_lights_punctual"],
+      "extensions":{"KHR_lights_punctual":{"lights":[{"type":"point"}]}}
+    }"#;
+    let doc = parse(&build_glb(point, &[])).expect("required point extension");
+    assert_eq!(doc.lights[0].kind, GlbLightKind::Point);
+
+    for kind in ["spot", "directional"] {
+        let optional = format!(
+            r#"{{"extensions":{{"KHR_lights_punctual":{{"lights":[{{"type":"{kind}"}}]}}}}}}"#
+        );
+        assert!(
+            parse(&build_glb(&optional, &[])).is_ok(),
+            "optional {kind} definitions are parsed for validation"
+        );
+        let required = format!(
+            r#"{{"extensionsRequired":["KHR_lights_punctual"],"extensions":{{"KHR_lights_punctual":{{"lights":[{{"type":"{kind}"}}]}}}}}}"#
+        );
+        assert!(
+            parse(&build_glb(&required, &[])).is_err(),
+            "required {kind} cannot be rendered as a point"
+        );
+    }
+}
+
+#[test]
+fn primitive_morphed_positions_match_authored_default_weights() {
+    let primitive = GlbPrimitive {
+        positions: vec![[0.0, 1.0, 2.0], [3.0, 4.0, 5.0]],
+        morph_targets: vec![GlbMorphTarget {
+            positions: vec![[2.0, 0.0, -2.0], [0.0, 4.0, 2.0]],
+            ..GlbMorphTarget::default()
+        }],
+        morph_weights: vec![0.5],
+        ..GlbPrimitive::default()
+    };
+
+    assert_eq!(
+        primitive.morphed_positions(),
+        vec![[1.0, 1.0, 1.0], [3.0, 6.0, 6.0]]
+    );
+}

@@ -106,7 +106,10 @@ pub fn splice(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                 for scan in model.splice.scans.iter().take(3) {
                     let Some(mut row) = rows.next(ui) else { break };
                     row.value(ui, &scan.tier.to_ascii_uppercase());
-                    row.label(ui, &format!("{} ({})", scan.cultivar_name, scan.species_name));
+                    row.label(
+                        ui,
+                        &format!("{} ({})", scan.cultivar_name, scan.species_name),
+                    );
                 }
                 pane.resume(&rows);
             }
@@ -171,11 +174,13 @@ pub fn splice(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                             [(1, 1, "2B"), (1, 0, "2A"), (0, 1, "1B"), (0, 0, "1A")]
                         {
                             if row.action(ui, label_str) {
-                                out.push(WindowAction::Command(ClientCommand::SpliceChooseAllele {
-                                    locus: line.locus,
-                                    from_parent: parent,
-                                    allele,
-                                }));
+                                out.push(WindowAction::Command(
+                                    ClientCommand::SpliceChooseAllele {
+                                        locus: line.locus,
+                                        from_parent: parent,
+                                        allele,
+                                    },
+                                ));
                             }
                         }
                         row.value(ui, &format!("LOCUS {}", line.locus));
@@ -223,7 +228,11 @@ pub fn splice(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<W
                             ));
                         }
                         row.value(ui, &format!("{} / {}", line.value_milli, line.cap_milli));
-                        row.label_tinted(ui, &line.label, if line.can_raise { label() } else { dim() });
+                        row.label_tinted(
+                            ui,
+                            &line.label,
+                            if line.can_raise { label() } else { dim() },
+                        );
                     }
                     pane.resume(&rows);
 

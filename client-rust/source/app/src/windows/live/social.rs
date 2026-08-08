@@ -1,5 +1,5 @@
-use crate::windows::live::shared::{self, *};
 use crate::windows::chrome::{self};
+use crate::windows::live::shared::{self, *};
 use crate::windows::{dim, label, Ctx, WindowAction, WindowModel};
 use successor_engine_render::ui::UiBuilder;
 use successor_net::ClientCommand;
@@ -155,7 +155,11 @@ pub fn guild(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
         if !member.online {
             row.value(ui, "OFFLINE");
         }
-        row.label_tinted(ui, &member.name, if member.online { label() } else { dim() });
+        row.label_tinted(
+            ui,
+            &member.name,
+            if member.online { label() } else { dim() },
+        );
     }
     if !any {
         chrome::empty(ui, pane.x, rows.cursor(), "ROSTER EMPTY");

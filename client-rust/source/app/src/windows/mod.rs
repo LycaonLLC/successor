@@ -287,7 +287,9 @@ impl WindowAction {
                 WindowActionResult::Local(WindowLocalAction::SetWaypointActive { id, active })
             }
             DeleteWaypoint(id) => WindowActionResult::Local(WindowLocalAction::DeleteWaypoint(id)),
-            SetWindowOpacity(v) => WindowActionResult::Local(WindowLocalAction::SetWindowOpacity(v)),
+            SetWindowOpacity(v) => {
+                WindowActionResult::Local(WindowLocalAction::SetWindowOpacity(v))
+            }
             SetHudOpacity(v) => WindowActionResult::Local(WindowLocalAction::SetHudOpacity(v)),
             ExchangeRetrieve(_) | ExchangeStore(_) => {
                 WindowActionResult::Rejected("exchange requires item variant and quantity".into())
@@ -554,7 +556,10 @@ mod tests {
         let dim_half = dim();
         let active_half = active();
 
-        assert!(slot_half[3] < slot_full[3], "fill opacity must scale slot alpha");
+        assert!(
+            slot_half[3] < slot_full[3],
+            "fill opacity must scale slot alpha"
+        );
         assert_eq!(text_half, text_full, "text ink must not be faded");
         assert_eq!(dim_half, dim_full, "dim ink must not be faded");
         assert_eq!(active_half, active_full, "active ink must not be faded");

@@ -4,10 +4,10 @@
 //! `GameWorld` and the demo/playable runners. The native binary is `main.rs`;
 //! the wasm cdylib exports live here behind `target_arch = "wasm32"`.
 
-pub mod audio;
-pub mod assets;
 #[cfg(all(feature = "alloc-count", not(target_arch = "wasm32")))]
 pub mod alloc_trace;
+pub mod assets;
+pub mod audio;
 pub mod demo;
 pub mod game;
 #[cfg(not(target_arch = "wasm32"))]
@@ -999,7 +999,8 @@ mod web_runtime {
                 "playerId": envelope.character_id,
                 "actorId": envelope.character_id,
             });
-            if let (Some(object), Some(spawn)) = (opts.as_object_mut(), envelope.dev_spawn.as_ref()) {
+            if let (Some(object), Some(spawn)) = (opts.as_object_mut(), envelope.dev_spawn.as_ref())
+            {
                 object.insert("spawnArea".into(), json!(spawn.area));
                 object.insert("spawnX".into(), json!(spawn.x));
                 object.insert("spawnY".into(), json!(spawn.y));

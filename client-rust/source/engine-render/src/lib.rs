@@ -55,10 +55,11 @@ mod tests {
         assert!(super::renderer::visible_in(0b101, 2));
     }
 
-    fn setup() -> (MockGpu, Renderer, RWorld, MeshId, MaterialId) {
+    fn setup_with_limits(
+        limits: RendererLimits,
+    ) -> (MockGpu, Renderer, RWorld, MeshId, MaterialId) {
         let mut gpu = MockGpu::default();
-        let mut r = Renderer::new(&mut gpu, RendererLimits::default())
-            .expect("renderer initialization failed");
+        let mut r = Renderer::new(&mut gpu, limits).expect("renderer initialization failed");
         let (v, i) = super::primitives::cube();
         let mesh = r.upload_mesh(&mut gpu, &v, &i);
         let mat = r.add_material_desc(MaterialDesc {
@@ -66,6 +67,10 @@ mod tests {
             ..MaterialDesc::default()
         });
         (gpu, r, RWorld::new(), mesh, mat)
+    }
+
+    fn setup() -> (MockGpu, Renderer, RWorld, MeshId, MaterialId) {
+        setup_with_limits(RendererLimits::default())
     }
     #[test]
     fn renderer_init_requires_four_mrt_attachments() {
@@ -449,7 +454,13 @@ mod tests {
     }
 
     fn deferred_scene() -> (MockGpu, Renderer, RWorld, MeshId, MaterialId) {
-        let (mut gpu, r, mut w, mesh, mat) = setup();
+        deferred_scene_with_limits(RendererLimits::default())
+    }
+
+    fn deferred_scene_with_limits(
+        limits: RendererLimits,
+    ) -> (MockGpu, Renderer, RWorld, MeshId, MaterialId) {
+        let (mut gpu, r, mut w, mesh, mat) = setup_with_limits(limits);
         let l = w.spawn();
         w.set_component(
             l,
@@ -538,6 +549,10 @@ mod tests {
                 blend: true,
                 emissive_factor: [1.0, 0.5, 0.25],
                 emissive_strength: 2.0,
+                metallic: 0.35,
+                roughness: 0.42,
+                ior: 1.7,
+                specular: 0.6,
                 ..MaterialDesc::default()
             },
         );
@@ -562,6 +577,11 @@ mod tests {
         };
         assert!(has("u_emissiveStrength", 6.0));
         assert!(has("u_aoIntensity", 1.75));
+        assert!(has("u_metallic", 0.35));
+        assert!(has("u_roughness", 0.42));
+        assert!(has("u_ior", 1.7));
+        let ratio = (1.7 - 1.0) / (1.7 + 1.0);
+        assert!(has("u_dielectricF0", ratio * ratio * 0.6));
     }
 
     #[test]
@@ -610,6 +630,262 @@ mod tests {
             vec![1],
             "one instanced point-light draw of 1 instance"
         );
+    }
+
+    #[test]
+    fn point_lights_are_capped_ranked_and_filtered() {
+        let mut limits = RendererLimits::default();
+        limits.max_point_lights = 2;
+        let (mut gpu, mut renderer, mut world, _, _) = deferred_scene_with_limits(limits);
+        for (index, z) in [10.5, 13.0, 20.0].into_iter().enumerate() {
+            let entity = world.spawn();
+            world.set_component(
+                entity,
+                Transform {
+                    pos: vec3(index as f32, 5.0, z),
+                    ..Transform::default()
+                },
+            );
+            world.set_component(
+                entity,
+                PointLight {
+                    color: [1.0, 0.5, 0.25],
+                    intensity: 2.0,
+                    radius: 1.0,
+                },
+            );
+        }
+        let invalid = world.spawn();
+        world.set_component(invalid, Transform::default());
+        world.set_component(
+            invalid,
+            PointLight {
+                color: [1.0; 3],
+                intensity: 0.0,
+                radius: 10.0,
+            },
+        );
+        renderer
+            .render(&mut gpu, &mut world, 640, 480)
+            .expect("render failed");
+        let instances: Vec<u32> = gpu
+            .log
+            .iter()
+            .filter_map(|call| match call {
+                MockCall::DrawInstanced { instances } => Some(*instances),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(instances, vec![2]);
+    }
+
+    #[test]
+    fn point_light_ranking_is_independent_of_mesh_draw_capacity() {
+        let mut limits = RendererLimits::default();
+        limits.max_draws = 1;
+        limits.max_point_lights = 1;
+        let (mut gpu, mut renderer, mut world, _, material) = deferred_scene_with_limits(limits);
+        renderer.update_material_desc(
+            material,
+            MaterialDesc {
+                blend: true,
+                ..MaterialDesc::default()
+            },
+        );
+        for (z, color) in [(30.0, [1.0, 0.0, 0.0]), (10.5, [0.0, 1.0, 0.0])] {
+            let entity = world.spawn();
+            world.set_component(
+                entity,
+                Transform {
+                    pos: vec3(0.0, 5.0, z),
+                    ..Transform::default()
+                },
+            );
+            world.set_component(
+                entity,
+                PointLight {
+                    color,
+                    intensity: 1.0,
+                    radius: 0.5,
+                },
+            );
+        }
+
+        renderer
+            .render(&mut gpu, &mut world, 640, 480)
+            .expect("render");
+        let selected = gpu
+            .log
+            .iter()
+            .filter_map(|call| match call {
+                MockCall::ForwardLights(lights) => Some(lights),
+                _ => None,
+            })
+            .next_back()
+            .expect("forward light selection");
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0].color, [0.0, 1.0, 0.0]);
+    }
+
+    #[test]
+    fn camera_cap_is_filtered_deterministic_and_shared_with_transparency() {
+        let mut limits = RendererLimits::default();
+        limits.max_point_lights = 2;
+        let (mut gpu, mut renderer, mut world, mesh, _) = deferred_scene_with_limits(limits);
+        let transparent = renderer.add_material_desc(MaterialDesc {
+            base_color: [1.0, 1.0, 1.0, 0.5],
+            blend: true,
+            ..MaterialDesc::default()
+        });
+        let draw = world.spawn();
+        world.set_component(draw, Transform::default());
+        world.set_component(
+            draw,
+            MeshRenderer {
+                mesh,
+                material: transparent,
+                viewport_mask: 0b01,
+                ..Default::default()
+            },
+        );
+
+        for (position, color, intensity, radius) in [
+            (vec3(0.0, 5.0, 10.0), [0.2, 0.4, 0.8], 3.0, 0.5),
+            (vec3(0.0, 5.0, 12.0), [0.9, 0.3, 0.1], 5.0, 0.5),
+            (Vec3::ZERO, [0.1, 1.0, 0.2], 9.0, 0.5),
+            (vec3(0.0, 5.0, 10.0), [0.0; 3], 10.0, 10.0),
+        ] {
+            let entity = world.spawn();
+            world.set_component(
+                entity,
+                Transform {
+                    pos: position,
+                    ..Transform::default()
+                },
+            );
+            world.set_component(
+                entity,
+                PointLight {
+                    color,
+                    intensity,
+                    radius,
+                },
+            );
+        }
+
+        renderer
+            .render(&mut gpu, &mut world, 640, 480)
+            .expect("first render");
+        let selected = gpu
+            .log
+            .iter()
+            .filter_map(|call| match call {
+                MockCall::ForwardLights(lights) => Some(lights.clone()),
+                _ => None,
+            })
+            .next_back()
+            .expect("transparent light upload");
+        assert_eq!(
+            selected,
+            vec![
+                crate::gpu::ForwardLight {
+                    position: [0.0, 5.0, 10.0],
+                    radius: 0.5,
+                    color: [0.2, 0.4, 0.8],
+                    intensity: 3.0,
+                },
+                crate::gpu::ForwardLight {
+                    position: [0.0, 5.0, 12.0],
+                    radius: 0.5,
+                    color: [0.9, 0.3, 0.1],
+                    intensity: 5.0,
+                },
+            ]
+        );
+        assert_eq!(
+            gpu.log
+                .iter()
+                .filter_map(|call| match call {
+                    MockCall::DrawInstanced { instances } => Some(*instances),
+                    _ => None,
+                })
+                .collect::<Vec<_>>(),
+            vec![2],
+        );
+
+        gpu.log.clear();
+        renderer
+            .render(&mut gpu, &mut world, 640, 480)
+            .expect("repeat render");
+        assert_eq!(
+            gpu.log
+                .iter()
+                .filter(|call| matches!(call, MockCall::ForwardLights(_)))
+                .count(),
+            1,
+            "camera scratch must not retain a prior frame",
+        );
+    }
+
+    #[test]
+    fn equal_distance_light_cap_uses_entity_identity_as_the_tie_break() {
+        let mut limits = RendererLimits::default();
+        limits.max_point_lights = 2;
+        let (mut gpu, mut renderer, mut world, mesh, _) = deferred_scene_with_limits(limits);
+        let transparent = renderer.add_material_desc(MaterialDesc {
+            blend: true,
+            ..MaterialDesc::default()
+        });
+        let draw = world.spawn();
+        world.set_component(
+            draw,
+            Transform {
+                pos: vec3(0.0, 5.0, 10.0),
+                ..Transform::default()
+            },
+        );
+        world.set_component(
+            draw,
+            MeshRenderer {
+                mesh,
+                material: transparent,
+                viewport_mask: 0b01,
+                ..Default::default()
+            },
+        );
+        for position in [[1.0, 5.0, 10.0], [-1.0, 5.0, 10.0], [0.0, 6.0, 10.0]] {
+            let entity = world.spawn();
+            world.set_component(
+                entity,
+                Transform {
+                    pos: vec3(position[0], position[1], position[2]),
+                    ..Transform::default()
+                },
+            );
+            world.set_component(
+                entity,
+                PointLight {
+                    color: [1.0; 3],
+                    intensity: 1.0,
+                    radius: 0.25,
+                },
+            );
+        }
+        renderer
+            .render(&mut gpu, &mut world, 640, 480)
+            .expect("tied lights");
+        let selected = gpu
+            .log
+            .iter()
+            .filter_map(|call| match call {
+                MockCall::ForwardLights(lights) => Some(lights),
+                _ => None,
+            })
+            .next_back()
+            .expect("forward lights");
+        assert_eq!(selected.len(), 2);
+        assert_eq!(selected[0].position, [1.0, 5.0, 10.0]);
+        assert_eq!(selected[1].position, [-1.0, 5.0, 10.0]);
     }
 
     #[test]
@@ -768,6 +1044,92 @@ mod tests {
             lights.last().expect("furthest selected").position,
             [31.0, 0.0, 0.0]
         );
+    }
+
+    #[test]
+    fn point_light_scale_scales_gathered_lights_and_filters_at_zero() {
+        let (mut gpu, mut renderer, mut world, mesh, _) = deferred_scene();
+        let transparent = renderer.add_material_desc(MaterialDesc {
+            base_color: [1.0, 1.0, 1.0, 0.5],
+            blend: true,
+            ..MaterialDesc::default()
+        });
+        let entity = world.spawn();
+        world.set_component(entity, Transform::default());
+        world.set_component(
+            entity,
+            MeshRenderer {
+                mesh,
+                material: transparent,
+                viewport_mask: 0b01,
+                ..Default::default()
+            },
+        );
+        let light = world.spawn();
+        world.set_component(
+            light,
+            Transform {
+                pos: vec3(0.0, 1.0, 0.0),
+                ..Transform::default()
+            },
+        );
+        world.set_component(
+            light,
+            PointLight {
+                color: [1.0, 0.5, 0.25],
+                intensity: 2.0,
+                radius: 10.0,
+            },
+        );
+
+        let mut settings = renderer.settings();
+        settings.point_light_scale = 1.5;
+        renderer
+            .apply_settings(&mut gpu, settings)
+            .expect("settings apply");
+        renderer
+            .render(&mut gpu, &mut world, 640, 480)
+            .expect("scaled render");
+        let lights = gpu
+            .log
+            .iter()
+            .filter_map(|call| match call {
+                MockCall::ForwardLights(lights) => Some(lights),
+                _ => None,
+            })
+            .next_back()
+            .expect("forward light upload");
+        assert_eq!(lights.len(), 1);
+        assert_eq!(lights[0].intensity, 3.0);
+
+        // Zero scale suppresses every gathered point light.
+        let mut settings = renderer.settings();
+        settings.point_light_scale = 0.0;
+        renderer
+            .apply_settings(&mut gpu, settings)
+            .expect("settings apply");
+        gpu.log.clear();
+        renderer
+            .render(&mut gpu, &mut world, 640, 480)
+            .expect("zero-scaled render");
+        assert_eq!(
+            gpu.log
+                .iter()
+                .filter(|c| matches!(c, MockCall::DrawInstanced { .. }))
+                .count(),
+            0,
+            "zero point-light scale draws no light volumes"
+        );
+        let lights = gpu
+            .log
+            .iter()
+            .filter_map(|call| match call {
+                MockCall::ForwardLights(lights) => Some(lights),
+                _ => None,
+            })
+            .next_back()
+            .expect("forward light upload");
+        assert!(lights.is_empty(), "zero scale gathers no lights");
     }
 
     #[test]

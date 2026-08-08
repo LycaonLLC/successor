@@ -95,6 +95,31 @@ The current visual proof inspected all three pages, changed lighting and color,
 observed distinct pixels, saved/reloaded the override, and restored the exact
 checked-in defaults.
 
+### World-light source status
+
+The Rust client source models two world-light inputs: explicit
+`KHR_lights_punctual` point lights authored in GLB documents, and conservative
+point lights inferred from real emissive geometry. Inference requires effective
+non-black emissive data and a strict marker token (`glow`, `lampglow`, `sconce`,
+`pendant`, `chandelier`, `beacon`, `bulb`, `flame`, `ember`, `campfire`, or
+`hearth`); generic `light` names are insufficient. Shared-index emitters are
+clustered within 0.25 m, large emitters are partitioned into deterministic 2 m
+cells, tiny flux is suppressed, and each model is capped at 64 retained lights.
+Explicit lights are authoritative. Static placement is node-global ×
+anchor-local; animated placement uses the skeleton bone global × local.
+
+Local exact-source verification is complete; this change has not been published
+or promoted. `model-check` scanned 2,577 models and 19,138 primitives and
+reported 631 emissive candidates, 557 retained/inferred lights, 74 low-flux
+suppressions, zero light errors, and zero over-budget models. Byte-identical
+fixture assets showed localized warm `BK_lampglow` spill at the modular starter
+home, cyan/amber `CF_Glow` at the clone terminal, and separated facility pools
+in native GL and WebGL2 HDR/RGBA8. The renderer selects at most 256 point lights
+per camera and 32 per transparent draw; light entities follow the owning props
+loader, streamed-model pool slot, actor/equipment presentation, or rigid weapon
+attachment. Generated point lights do not cast shadows, so conservative
+range/flux bounds intentionally limit wall bleed.
+
 Native developer builds retain the explicit loopback-only `successor-control`
 path. Nine connected journey groups and nine deterministic input replays cover
 the live command/window families; focused failure journeys cover launch,

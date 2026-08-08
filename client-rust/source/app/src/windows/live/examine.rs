@@ -1,5 +1,5 @@
-use crate::windows::live::shared::*;
 use crate::windows::chrome::{self};
+use crate::windows::live::shared::*;
 use crate::windows::model::ItemKind;
 use crate::windows::{accent, label, value, Ctx, WindowAction, WindowModel};
 use successor_engine_render::ui::UiBuilder;
@@ -114,7 +114,8 @@ pub fn examine(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<
             }
         }
 
-        if item.kind() == ItemKind::Weapon || item.variant_id >= 31_000_000 || item.item_id == 3101 {
+        if item.kind() == ItemKind::Weapon || item.variant_id >= 31_000_000 || item.item_id == 3101
+        {
             pane.y += 4.0;
             heading(&mut pane, ui, "WEAPON SPECIFICATIONS");
             let variant = item.variant_id;

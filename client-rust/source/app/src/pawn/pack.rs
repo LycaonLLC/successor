@@ -5,7 +5,6 @@
 
 use successor_engine_core::anim::{apply_animation, JointTransform, Skeleton};
 use successor_engine_core::glb::{self, GlbDocument, GlbError};
-use successor_engine_core::math::Mat4;
 use successor_engine_render::components::{MaterialId, MeshId};
 use successor_engine_render::gpu::Gpu;
 use successor_engine_render::renderer::Renderer;
@@ -119,9 +118,16 @@ impl PawnTemplate {
     }
 
     /// Upload the baked parts to the renderer (skinned meshes + materials).
-    pub fn upload<G: Gpu>(&self, gpu: &mut G, renderer: &mut Renderer) -> PawnGpuParts {
-        let uploaded = successor_engine_render::model::upload_glb(renderer, gpu, &self.doc)
-            .expect("parsed pawn document must upload");
+    pub fn upload<G: Gpu>(
+        &self,
+        gpu: &mut G,
+        renderer: &mut Renderer,
+    ) -> Result<PawnGpuParts, GlbError> {
+        let prepared = successor_engine_render::model::prepare_glb(&self.doc)
+            .map_err(|_| GlbError::Unsupported("pawn model upload"))?;
+        let uploaded =
+            successor_engine_render::model::upload_prepared_glb(renderer, gpu, &self.doc, prepared)
+                .map_err(|_| GlbError::Unsupported("pawn model upload"))?;
         let (parts, material_names) = uploaded
             .primitives
             .into_iter()
@@ -142,10 +148,10 @@ impl PawnTemplate {
                 Some(((part.mesh, part.material), material_name))
             })
             .unzip();
-        PawnGpuParts {
+        Ok(PawnGpuParts {
             parts,
             material_names,
-        }
+        })
     }
 }
 
@@ -179,59 +185,6 @@ fn bake_skinned(prim: &glb::GlbPrimitive) -> Vec<f32> {
         ]);
     }
     out
-}
-
-/// Load a static GLB through the shared material/mesh uploader and retain each
-/// source node's global transform for socket composition.
-pub fn upload_static_parts<G: Gpu>(
-    gpu: &mut G,
-    renderer: &mut Renderer,
-    bytes: &[u8],
-) -> Result<Vec<(MeshId, MaterialId, Mat4)>, GlbError> {
-    let doc = glb::parse(bytes)?;
-    let count = doc.nodes.len();
-    let mut globals = vec![Mat4::IDENTITY; count];
-    let mut done = vec![false; count];
-    let mut roots = doc.scene_roots.clone();
-    if roots.is_empty() {
-        let mut has_parent = vec![false; count];
-        for node in &doc.nodes {
-            for &child in &node.children {
-                if child < count {
-                    has_parent[child] = true;
-                }
-            }
-        }
-        roots = (0..count).filter(|&index| !has_parent[index]).collect();
-    }
-    let mut stack: Vec<(usize, Mat4)> = roots.iter().map(|&root| (root, Mat4::IDENTITY)).collect();
-    while let Some((index, parent)) = stack.pop() {
-        if index >= count || done[index] {
-            continue;
-        }
-        done[index] = true;
-        let global = parent.mul(doc.nodes[index].local_matrix());
-        globals[index] = global;
-        for &child in &doc.nodes[index].children {
-            stack.push((child, global));
-        }
-    }
-    let uploaded = successor_engine_render::model::upload_glb(renderer, gpu, &doc)
-        .map_err(|_| GlbError::Unsupported("model upload"))?;
-    let mut parts = Vec::new();
-    for (node_index, node) in doc.nodes.iter().enumerate() {
-        let Some(mesh_index) = node.mesh else {
-            continue;
-        };
-        for primitive in uploaded
-            .primitives
-            .iter()
-            .filter(|primitive| primitive.source_mesh == mesh_index)
-        {
-            parts.push((primitive.mesh, primitive.material, globals[node_index]));
-        }
-    }
-    Ok(parts)
 }
 
 #[cfg(test)]

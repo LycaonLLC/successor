@@ -276,4 +276,6 @@ mod imp {
 }
 
 #[cfg(all(feature = "alloc-count", not(target_arch = "wasm32")))]
-pub use imp::{absorb_frame, arm_trace, dump_alloc_trace, reset_histogram, scene_active, TraceAllocator};
+pub use imp::{
+    absorb_frame, arm_trace, dump_alloc_trace, reset_histogram, scene_active, TraceAllocator,
+};

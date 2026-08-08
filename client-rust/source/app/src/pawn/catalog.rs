@@ -21,7 +21,8 @@ use successor_engine_render::primitives;
 use successor_engine_render::renderer::{MaterialDesc, Renderer};
 
 use super::creatures::{species_for_sprite, CreatureSpecies};
-use super::pack::{upload_static_parts, PawnTemplate};
+use super::pack::PawnTemplate;
+use crate::assets::model::upload_static_model;
 use crate::assets::stream::{AssetStreamer, ByteSource, Streamed};
 use crate::world::area::fnv1a32;
 use crate::world::ADULT_PAWN_HEIGHT_METERS;
@@ -196,7 +197,6 @@ pub enum PawnAssetIssue {
     MissingWeaponManifest,
 }
 
-/// A loaded, GPU-resident body: template + canonical scale + uploaded parts.
 pub struct BodyAssets {
     pub template: PawnTemplate,
     pub scale: f32,
@@ -218,7 +218,7 @@ fn load_body<G: Gpu>(
         Some(h) => template.uniform_scale_for_height(h)?,
         None => 1.0,
     };
-    let gpu_parts = template.upload(gpu, renderer);
+    let gpu_parts = template.upload(gpu, renderer).ok()?;
     let mut part_meshes = gpu_parts.parts;
     key_face_panel_material(
         gpu,
@@ -286,7 +286,6 @@ fn key_face_panel_material<G: Gpu>(
     parts[index].1 = renderer.add_material_desc(desc);
 }
 
-/// A rigid weapon rig model: uploaded static parts + their node-local mats.
 pub struct RigModel {
     pub parts: Vec<(MeshId, MaterialId, Mat4)>,
     pub mount: Mat4,
@@ -506,8 +505,6 @@ fn append_plasma_blade<G: Gpu>(
     parts.push((mesh, material, local));
     index
 }
-
-/// One baked worn-equipment piece: skinned parts sharing the body palette.
 pub struct EquipmentPiece {
     pub part_meshes: Vec<(MeshId, MaterialId)>,
     pub part_material_names: Vec<Option<String>>,
@@ -842,8 +839,7 @@ impl PawnCatalog {
     pub fn issues(&self) -> &[PawnAssetIssue] {
         &self.issues
     }
-
-    fn record(&mut self, issue: PawnAssetIssue) {
+    pub(crate) fn record(&mut self, issue: PawnAssetIssue) {
         record_issue(&mut self.issues, issue);
     }
 
@@ -881,7 +877,8 @@ impl PawnCatalog {
                             self.special.insert(body_key, None);
                         }
                         ByteSource::Ready(bytes) => {
-                            let loaded = load_body(gpu, renderer, &bytes, Some(ADULT_PAWN_HEIGHT_METERS));
+                            let loaded =
+                                load_body(gpu, renderer, &bytes, Some(ADULT_PAWN_HEIGHT_METERS));
                             if loaded.is_none() {
                                 self.record(PawnAssetIssue::MissingSpecialBody { stable_id });
                             }
@@ -961,13 +958,16 @@ impl PawnCatalog {
                 ByteSource::Missing => None,
                 ByteSource::Ready(bytes) => Some(bytes),
             };
-            let hand_spec =
-                attach_bytes.and_then(|bytes| parse_weapon_hand_spec(&bytes));
+            let hand_spec = attach_bytes.and_then(|bytes| parse_weapon_hand_spec(&bytes));
             let loaded = hand_spec.and_then(|hand_spec| {
                 glb_bytes
-                    .and_then(|bytes| upload_static_parts(gpu, renderer, &bytes).ok())
-                    .map(|parts| RigModel {
-                        parts,
+                    .and_then(|bytes| upload_static_model(gpu, renderer, &bytes).ok())
+                    .map(|model| RigModel {
+                        parts: model
+                            .parts
+                            .into_iter()
+                            .map(|part| (part.mesh, part.material, part.local))
+                            .collect(),
                         mount: hand_spec.mount,
                         foregrip: hand_spec.foregrip,
                         grip: hand_spec.grip,
@@ -1034,7 +1034,9 @@ impl PawnCatalog {
                 .collect();
             self.hand_specs.insert(key.to_string(), parsed.clone());
             for other in shared {
-                self.hand_specs.entry(other).or_insert_with(|| parsed.clone());
+                self.hand_specs
+                    .entry(other)
+                    .or_insert_with(|| parsed.clone());
             }
         }
         Streamed::Ready(self.hand_specs.get(key).and_then(|s| s.as_ref()))
@@ -1102,7 +1104,13 @@ impl PawnCatalog {
                 return Streamed::Pending;
             }
             if weapon_item_id == Some(3104) {
-                return self.weapon_rig(gpu, renderer, platform, streamer, WeaponRigKind::PlasmaHilt);
+                return self.weapon_rig(
+                    gpu,
+                    renderer,
+                    platform,
+                    streamer,
+                    WeaponRigKind::PlasmaHilt,
+                );
             }
             let Some(kind) = rig_for_weapon_id(weapon_id) else {
                 return Streamed::Ready(None);
@@ -1126,18 +1134,25 @@ impl PawnCatalog {
             let loaded = hand_spec.and_then(|hand_spec| {
                 let model_scale = hand_spec.scale_to_pawn.unwrap_or(paths.scale);
                 glb_bytes
-                    .and_then(|bytes| upload_static_parts(gpu, renderer, &bytes).ok())
-                    .map(|mut parts| {
+                    .and_then(|bytes| {
+                        crate::assets::model::upload_static_model(gpu, renderer, &bytes).ok()
+                    })
+                    .map(|mut model| {
                         if (model_scale - 1.0).abs() > f32::EPSILON {
                             let scale = Mat4::from_trs(
                                 successor_engine_core::math::Vec3::ZERO,
                                 Quat::IDENTITY,
                                 vec3(model_scale, model_scale, model_scale),
                             );
-                            for (_, _, local) in &mut parts {
-                                *local = scale.mul(*local);
+                            for part in &mut model.parts {
+                                part.local = scale.mul(part.local);
                             }
                         }
+                        let mut parts = model
+                            .parts
+                            .into_iter()
+                            .map(|part| (part.mesh, part.material, part.local))
+                            .collect::<Vec<_>>();
                         let plasma_blade_part = (key == "plasma_sword")
                             .then(|| append_plasma_blade(gpu, renderer, &mut parts));
                         RigModel {
@@ -1207,14 +1222,14 @@ impl PawnCatalog {
             };
             let loaded = bytes
                 .and_then(|bytes| PawnTemplate::from_bytes(&bytes).ok())
-                .map(|template| {
+                .and_then(|template| {
                     let joint_count = template.joint_count();
-                    let gpu_parts = template.upload(gpu, renderer);
-                    EquipmentPiece {
+                    let gpu_parts = template.upload(gpu, renderer).ok()?;
+                    Some(EquipmentPiece {
                         part_meshes: gpu_parts.parts,
                         part_material_names: gpu_parts.material_names,
                         joint_count,
-                    }
+                    })
                 });
             match &loaded {
                 None => self.record(PawnAssetIssue::MissingEquipment {

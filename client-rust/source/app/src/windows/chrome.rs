@@ -352,7 +352,15 @@ pub fn field(
     } else {
         x + label_w
     };
-    text_clipped(ui, value, value_x, y, metrics.label_px, available, super::value());
+    text_clipped(
+        ui,
+        value,
+        value_x,
+        y,
+        metrics.label_px,
+        available,
+        super::value(),
+    );
     y + metrics.row_h - 4.0
 }
 

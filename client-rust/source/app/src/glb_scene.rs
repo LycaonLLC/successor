@@ -5,8 +5,8 @@
 
 use successor_engine_core::anim::{apply_animation, JointTransform, Skeleton};
 use successor_engine_core::ecs::{Entity, WorldOps};
-use successor_engine_core::glb::{self, GlbAnimation, GlbDocument};
-use successor_engine_core::math::{vec3, Mat4, Vec3};
+use successor_engine_core::glb::{self, GlbAnimation};
+use successor_engine_core::math::{vec3, Vec3};
 use successor_engine_render::components::{
     CamTarget, Camera, DirectionalLight, MeshRenderer, Projection, SkinRef, Transform,
 };
@@ -41,7 +41,7 @@ impl GlbScene {
         renderer.set_ambient(0.35);
         let mut world = GameWorld::new();
 
-        let globals = node_globals(&doc);
+        let globals = doc.node_globals();
         let skinned = !doc.skins.is_empty();
         let skeleton = if skinned {
             Skeleton::from_document(&doc, 0)
@@ -205,43 +205,6 @@ impl GlbScene {
             }
         }
     }
-}
-
-/// World matrices for every node (roots outward).
-fn node_globals(doc: &GlbDocument) -> Vec<Mat4> {
-    let n = doc.nodes.len();
-    let mut globals = alloc_vec_identity(n);
-    let mut done = vec![false; n];
-    // Depth-first from scene roots (fallback: nodes with no parent, else all).
-    let mut roots = doc.scene_roots.clone();
-    if roots.is_empty() {
-        let mut has_parent = vec![false; n];
-        for node in &doc.nodes {
-            for &c in &node.children {
-                if c < n {
-                    has_parent[c] = true;
-                }
-            }
-        }
-        roots = (0..n).filter(|&i| !has_parent[i]).collect();
-    }
-    let mut stack: Vec<(usize, Mat4)> = roots.iter().map(|&r| (r, Mat4::IDENTITY)).collect();
-    while let Some((idx, parent)) = stack.pop() {
-        if idx >= n || done[idx] {
-            continue;
-        }
-        done[idx] = true;
-        let g = parent.mul(doc.nodes[idx].local_matrix());
-        globals[idx] = g;
-        for &c in &doc.nodes[idx].children {
-            stack.push((c, g));
-        }
-    }
-    globals
-}
-
-fn alloc_vec_identity(n: usize) -> Vec<Mat4> {
-    vec![Mat4::IDENTITY; n]
 }
 
 fn min3(a: Vec3, b: Vec3) -> Vec3 {

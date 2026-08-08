@@ -557,11 +557,7 @@ impl Serialize for GameCompactReceipt {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct GamePlayerPositionAck(
-    pub f32,
-    pub f32,
-    #[serde(default)] pub Option<u64>,
-);
+pub struct GamePlayerPositionAck(pub f32, pub f32, #[serde(default)] pub Option<u64>);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GameMovementProfileAck {

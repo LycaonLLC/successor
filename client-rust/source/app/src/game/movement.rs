@@ -163,7 +163,6 @@ impl IntentState {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PointerTarget {
     Actor,

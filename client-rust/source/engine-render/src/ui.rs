@@ -529,7 +529,13 @@ impl UiBuilder {
         );
         if *value {
             let pad = (size * 0.24).max(2.0);
-            self.rect(x + pad, y + pad, size - pad * 2.0, size - pad * 2.0, style.active);
+            self.rect(
+                x + pad,
+                y + pad,
+                size - pad * 2.0,
+                size - pad * 2.0,
+                style.active,
+            );
         }
         let ty = y + (size - GLYPH_H as f32 * 1.5) * 0.5;
         self.text(label, x + size + 8.0, ty, 1.5, style.text);
@@ -572,7 +578,11 @@ impl UiBuilder {
             y + (h - thumb) * 0.5,
             thumb,
             thumb,
-            if response.held { style.text } else { style.active },
+            if response.held {
+                style.text
+            } else {
+                style.active
+            },
         );
         changed
     }
@@ -700,7 +710,11 @@ impl UiBuilder {
         } else if self.mpressed && !r.hovered {
             field.focused = false;
         }
-        let edge = if field.focused { style.active } else { style.edge };
+        let edge = if field.focused {
+            style.active
+        } else {
+            style.edge
+        };
         self.rect(x, y, w, h, style.fill);
         self.border(x, y, w, h, 1.0, edge);
         let ty = y + (h - GLYPH_H as f32 * px) * 0.5;
@@ -865,11 +879,29 @@ mod tests {
         let mut value = 0.0;
         ui.set_input(75.0, 15.0, true);
         ui.begin(200, 100);
-        assert!(ui.slider(0.0, 0.0, 100.0, 30.0, &mut value, -1.0, 1.0, ButtonStyle::default()));
+        assert!(ui.slider(
+            0.0,
+            0.0,
+            100.0,
+            30.0,
+            &mut value,
+            -1.0,
+            1.0,
+            ButtonStyle::default()
+        ));
         assert!((value - 0.5).abs() < 1.0e-6);
         ui.set_input(150.0, 15.0, true);
         ui.begin(200, 100);
-        assert!(!ui.slider(0.0, 0.0, 100.0, 30.0, &mut value, -1.0, 1.0, ButtonStyle::default()));
+        assert!(!ui.slider(
+            0.0,
+            0.0,
+            100.0,
+            30.0,
+            &mut value,
+            -1.0,
+            1.0,
+            ButtonStyle::default()
+        ));
         assert!((value - 0.5).abs() < 1.0e-6);
     }
 

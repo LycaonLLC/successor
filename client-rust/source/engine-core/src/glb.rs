@@ -97,6 +97,22 @@ pub enum ChannelPath {
     Scale,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum GlbLightKind {
+    Point,
+    Spot,
+    Directional,
+}
+
+#[derive(Clone, Debug)]
+pub struct GlbPunctualLight {
+    pub name: Option<String>,
+    pub kind: GlbLightKind,
+    pub color: [f32; 3],
+    pub intensity: f32,
+    pub range: Option<f32>,
+}
+
 #[derive(Clone, Debug)]
 pub struct GlbNode {
     pub name: Option<String>,
@@ -107,6 +123,7 @@ pub struct GlbNode {
     pub mesh: Option<usize>,
     pub skin: Option<usize>,
     pub weights: Vec<f32>,
+    pub light: Option<usize>,
 }
 
 impl GlbNode {
@@ -131,6 +148,27 @@ pub struct GlbPrimitive {
     pub morph_weights: Vec<f32>,
     pub indices: Vec<u32>,
     pub material: Option<usize>,
+}
+
+impl GlbPrimitive {
+    /// Vertex positions after applying the primitive's authored default morph
+    /// weights. Import-time consumers must use the same geometry the renderer
+    /// uploads when deriving bounds, emitters, or other spatial metadata.
+    pub fn morphed_positions(&self) -> Vec<[f32; 3]> {
+        let mut positions = self.positions.clone();
+        for (target_index, target) in self.morph_targets.iter().enumerate() {
+            let weight = self.morph_weights.get(target_index).copied().unwrap_or(0.0);
+            if weight == 0.0 {
+                continue;
+            }
+            for (value, delta) in positions.iter_mut().zip(&target.positions) {
+                for axis in 0..3 {
+                    value[axis] += delta[axis] * weight;
+                }
+            }
+        }
+        positions
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -241,6 +279,7 @@ pub struct GlbDocument {
     pub images: Vec<GlbImage>,
     pub textures: Vec<GlbTexture>,
     pub texture_samplers: Vec<GlbTextureSampler>,
+    pub lights: Vec<GlbPunctualLight>,
     /// Root node indices of the default scene (falls back to scene 0).
     pub scene_roots: Vec<usize>,
 }
@@ -250,6 +289,51 @@ impl GlbDocument {
         self.animations
             .iter()
             .find(|a| a.name.as_deref() == Some(name))
+    }
+
+    /// World matrices in deterministic scene traversal order. Nodes not
+    /// reachable from the selected scene are treated as additional roots.
+    pub fn node_globals(&self) -> Vec<Mat4> {
+        fn visit(
+            doc: &GlbDocument,
+            index: usize,
+            parent: Mat4,
+            done: &mut [bool],
+            out: &mut [Mat4],
+        ) {
+            if index >= doc.nodes.len() || done[index] {
+                return;
+            }
+            done[index] = true;
+            let global = parent.mul(doc.nodes[index].local_matrix());
+            out[index] = global;
+            for &child in &doc.nodes[index].children {
+                visit(doc, child, global, done, out);
+            }
+        }
+
+        let mut out = alloc::vec![Mat4::IDENTITY; self.nodes.len()];
+        let mut done = alloc::vec![false; self.nodes.len()];
+        let mut has_parent = alloc::vec![false; self.nodes.len()];
+        for node in &self.nodes {
+            for &child in &node.children {
+                if let Some(has_parent) = has_parent.get_mut(child) {
+                    *has_parent = true;
+                }
+            }
+        }
+        for &root in &self.scene_roots {
+            visit(self, root, Mat4::IDENTITY, &mut done, &mut out);
+        }
+        for index in 0..self.nodes.len() {
+            if !done[index] && !has_parent[index] {
+                visit(self, index, Mat4::IDENTITY, &mut done, &mut out);
+            }
+        }
+        for index in 0..self.nodes.len() {
+            visit(self, index, Mat4::IDENTITY, &mut done, &mut out);
+        }
+        out
     }
 }
 
@@ -509,9 +593,9 @@ fn read_mat4s(bin: &[u8], av: &AccessorView) -> Result<Vec<Mat4>, GlbError> {
 // Top-level parse
 // ---------------------------------------------------------------------------
 
-const GLB_MAGIC: u32 = 0x4654_6C67; // "glTF" little-endian
-const CHUNK_JSON: u32 = 0x4E4F_534A; // "JSON"
-const CHUNK_BIN: u32 = 0x004E_4942; // "BIN\0"
+const GLB_MAGIC: u32 = 0x4654_6C67;
+const CHUNK_JSON: u32 = 0x4E4F_534A;
+const CHUNK_BIN: u32 = 0x004E_4942;
 
 /// Parse a `.glb` byte blob into a [`GlbDocument`].
 pub fn parse(bytes: &[u8]) -> Result<GlbDocument, GlbError> {
@@ -521,7 +605,6 @@ pub fn parse(bytes: &[u8]) -> Result<GlbDocument, GlbError> {
     if rd_u32(bytes, 4)? != 2 {
         return Err(GlbError::BadVersion);
     }
-    // Walk chunks.
     let mut pos = 12usize;
     let mut json_bytes: Option<&[u8]> = None;
     let mut bin_bytes: Option<&[u8]> = None;
@@ -538,20 +621,34 @@ pub fn parse(bytes: &[u8]) -> Result<GlbDocument, GlbError> {
             CHUNK_BIN => bin_bytes = Some(&bytes[start..end]),
             _ => {}
         }
-        // Chunks are 4-byte aligned.
         pos = end + ((4 - (clen & 3)) & 3);
     }
     let json_slice = json_bytes.ok_or(GlbError::BadChunk)?;
     let json_str = core::str::from_utf8(json_slice).map_err(|_| GlbError::BadChunk)?;
     let gltf = Json::parse(json_str.trim_end_matches(' '))?;
-
-    if gltf.get("extensionsRequired").is_some() {
-        return Err(GlbError::Unsupported("extensionsRequired"));
+    let mut punctual_lights_required = false;
+    if let Some(required) = gltf.get("extensionsRequired") {
+        let names = required
+            .as_array()
+            .ok_or(GlbError::Unsupported("extensionsRequired"))?;
+        for name in names {
+            match name.as_str() {
+                Some("KHR_lights_punctual") => punctual_lights_required = true,
+                _ => return Err(GlbError::Unsupported("extensionsRequired")),
+            }
+        }
     }
     let bin = bin_bytes.unwrap_or(&[]);
-
+    let lights = parse_lights(&gltf)?;
+    if punctual_lights_required
+        && (lights.is_empty() || lights.iter().any(|light| light.kind != GlbLightKind::Point))
+    {
+        return Err(GlbError::Unsupported(
+            "required KHR_lights_punctual light type",
+        ));
+    }
     Ok(GlbDocument {
-        nodes: parse_nodes(&gltf)?,
+        nodes: parse_nodes(&gltf, lights.len())?,
         meshes: parse_meshes(&gltf, bin)?,
         materials: parse_materials(&gltf)?,
         skins: parse_skins(&gltf, bin)?,
@@ -559,11 +656,123 @@ pub fn parse(bytes: &[u8]) -> Result<GlbDocument, GlbError> {
         images: parse_images(&gltf, bin)?,
         textures: parse_textures(&gltf)?,
         texture_samplers: parse_texture_samplers(&gltf)?,
+        lights,
         scene_roots: parse_scene_roots(&gltf),
     })
 }
 
-fn parse_nodes(gltf: &Json) -> Result<Vec<GlbNode>, GlbError> {
+fn parse_lights(gltf: &Json) -> Result<Vec<GlbPunctualLight>, GlbError> {
+    let Some(extensions) = gltf.get("extensions") else {
+        return Ok(Vec::new());
+    };
+    let Some(khr) = extensions.get("KHR_lights_punctual") else {
+        return Ok(Vec::new());
+    };
+    let values = khr
+        .get("lights")
+        .and_then(Json::as_array)
+        .ok_or(GlbError::Unsupported("KHR_lights_punctual lights"))?;
+    let mut out = Vec::with_capacity(values.len());
+    for light in values {
+        let kind = match light.get("type").and_then(Json::as_str) {
+            Some("point") => GlbLightKind::Point,
+            Some("spot") => GlbLightKind::Spot,
+            Some("directional") => GlbLightKind::Directional,
+            _ => return Err(GlbError::Unsupported("KHR_lights_punctual type")),
+        };
+        let color = strict_color(light.get("color"))?;
+        let intensity = strict_nonnegative(light.get("intensity"), 1.0, "light intensity")?;
+        let range = light
+            .get("range")
+            .map(|v| strict_positive(v, "light range"))
+            .transpose()?;
+        if kind == GlbLightKind::Directional && range.is_some() {
+            return Err(GlbError::Unsupported("directional light range"));
+        }
+        if kind == GlbLightKind::Spot {
+            if let Some(spot) = light.get("spot") {
+                if spot.as_object().is_none() {
+                    return Err(GlbError::Unsupported("spot"));
+                }
+                let inner = strict_angle(spot.get("innerConeAngle"), 0.0)?;
+                let outer = strict_angle(spot.get("outerConeAngle"), core::f32::consts::FRAC_PI_4)?;
+                if outer <= 0.0 || inner > outer {
+                    return Err(GlbError::Unsupported("spot cone angles"));
+                }
+            }
+        }
+        out.push(GlbPunctualLight {
+            name: light.get("name").and_then(Json::as_str).map(String::from),
+            kind,
+            color,
+            intensity,
+            range,
+        });
+    }
+    Ok(out)
+}
+
+fn strict_f32(value: Option<&Json>, default: f32, what: &'static str) -> Result<f32, GlbError> {
+    match value {
+        None => Ok(default),
+        Some(value) => {
+            let number = value.as_f64().ok_or(GlbError::Unsupported(what))?;
+            let value = number as f32;
+            if !number.is_finite() || !value.is_finite() {
+                return Err(GlbError::Unsupported(what));
+            }
+            Ok(value)
+        }
+    }
+}
+fn strict_nonnegative(
+    value: Option<&Json>,
+    default: f32,
+    what: &'static str,
+) -> Result<f32, GlbError> {
+    let value = strict_f32(value, default, what)?;
+    if value < 0.0 {
+        Err(GlbError::Unsupported(what))
+    } else {
+        Ok(value)
+    }
+}
+fn strict_positive(value: &Json, what: &'static str) -> Result<f32, GlbError> {
+    let value = strict_f32(Some(value), 0.0, what)?;
+    if value <= 0.0 {
+        Err(GlbError::Unsupported(what))
+    } else {
+        Ok(value)
+    }
+}
+fn strict_color(value: Option<&Json>) -> Result<[f32; 3], GlbError> {
+    let Some(values) = value else {
+        return Ok([1.0; 3]);
+    };
+    let values = values
+        .as_array()
+        .ok_or(GlbError::Unsupported("light color"))?;
+    if values.len() != 3 {
+        return Err(GlbError::Unsupported("light color"));
+    }
+    let mut color = [0.0; 3];
+    for (slot, value) in color.iter_mut().zip(values) {
+        *slot = strict_nonnegative(Some(value), 0.0, "light color")?;
+        if *slot > 1.0 {
+            return Err(GlbError::Unsupported("light color"));
+        }
+    }
+    Ok(color)
+}
+fn strict_angle(value: Option<&Json>, default: f32) -> Result<f32, GlbError> {
+    let value = strict_f32(value, default, "spot cone angle")?;
+    if !(0.0..=core::f32::consts::FRAC_PI_2).contains(&value) {
+        return Err(GlbError::Unsupported("spot cone angle"));
+    }
+    Ok(value)
+}
+
+fn parse_nodes(gltf: &Json, light_count: usize) -> Result<Vec<GlbNode>, GlbError> {
     let mut out = Vec::new();
     let Some(nodes) = gltf.get("nodes").and_then(Json::as_array) else {
         return Ok(out);
@@ -586,6 +795,22 @@ fn parse_nodes(gltf: &Json) -> Result<Vec<GlbNode>, GlbError> {
                     .collect()
             })
             .unwrap_or_default();
+        let light = if let Some(extensions) = n.get("extensions") {
+            if let Some(khr) = extensions.get("KHR_lights_punctual") {
+                let value = khr
+                    .get("light")
+                    .ok_or(GlbError::Unsupported("node light"))?;
+                let index = value.as_i64().ok_or(GlbError::Unsupported("node light"))?;
+                if index < 0 || index as usize >= light_count {
+                    return Err(GlbError::Unsupported("node light"));
+                }
+                Some(index as usize)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
         out.push(GlbNode {
             name: n.get("name").and_then(Json::as_str).map(String::from),
             translation: t,
@@ -595,6 +820,7 @@ fn parse_nodes(gltf: &Json) -> Result<Vec<GlbNode>, GlbError> {
             mesh: u(n, "mesh"),
             skin: u(n, "skin"),
             weights: read_f32_array(n.get("weights")),
+            light,
         });
     }
     Ok(out)

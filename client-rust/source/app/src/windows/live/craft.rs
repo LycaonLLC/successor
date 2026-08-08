@@ -45,8 +45,16 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
         Some(session) => match session.phase.as_str() {
             "browse" => 0,
             "slots" => {
-                let can = session.slot_screen.as_ref().map(|s| s.can_assemble).unwrap_or(false);
-                if can { 2 } else { 1 }
+                let can = session
+                    .slot_screen
+                    .as_ref()
+                    .map(|s| s.can_assemble)
+                    .unwrap_or(false);
+                if can {
+                    2
+                } else {
+                    1
+                }
             }
             "assembled" => 3,
             _ => 0,
@@ -54,13 +62,7 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
     };
 
     // Stage rail header: SCHEMATIC (0), LOAD (1), ASSEMBLE (2), TUNE (3), FINISH (4).
-    let rail_labels = [
-        "1:SCHEMATIC",
-        "2:LOAD",
-        "3:ASSEMBLE",
-        "4:TUNE",
-        "5:FINISH",
-    ];
+    let rail_labels = ["1:SCHEMATIC", "2:LOAD", "3:ASSEMBLE", "4:TUNE", "5:FINISH"];
 
     if let Some(clicked) = pane.rail(ui, &rail_labels) {
         SELECTED_STAGE.with(|s| *s.borrow_mut() = Some(clicked));
@@ -198,7 +200,13 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                                 }));
                             }
                             if short {
-                                row.value(ui, &format!("SHORT ({}/{})", resource.qty_available, slot.required_qty));
+                                row.value(
+                                    ui,
+                                    &format!(
+                                        "SHORT ({}/{})",
+                                        resource.qty_available, slot.required_qty
+                                    ),
+                                );
                                 row.label_tinted(ui, &slot.resource_kind_label, dim());
                             } else {
                                 row.value(ui, &format!("FIT x{}", resource.qty_available));
@@ -233,7 +241,14 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                 pane.field_pair(
                     ui,
                     ("SLOTS FILLED", &format!("{filled} / {total}")),
-                    ("GATE", if screen.can_assemble { "READY" } else { "INCOMPLETE" }),
+                    (
+                        "GATE",
+                        if screen.can_assemble {
+                            "READY"
+                        } else {
+                            "INCOMPLETE"
+                        },
+                    ),
                 );
 
                 if screen.can_assemble {
@@ -256,7 +271,10 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
             if let Some(assembled) = assembled {
                 pane.field_pair(
                     ui,
-                    ("POINTS LEFT", &assembled.experimentation_points_remaining.to_string()),
+                    (
+                        "POINTS LEFT",
+                        &assembled.experimentation_points_remaining.to_string(),
+                    ),
                     (
                         "ASSEMBLY",
                         &format!("{:.1}%", assembled.assembly_quality_milli as f32 / 10.0),
@@ -284,8 +302,15 @@ pub fn craft(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec<Wi
                         String::new()
                     };
 
-                    row.value(ui, &format!("{} / {}{}", line.value_milli, line.cap_milli, chance_text));
-                    row.label_tinted(ui, &line.label, if line.can_raise { label() } else { dim() });
+                    row.value(
+                        ui,
+                        &format!("{} / {}{}", line.value_milli, line.cap_milli, chance_text),
+                    );
+                    row.label_tinted(
+                        ui,
+                        &line.label,
+                        if line.can_raise { label() } else { dim() },
+                    );
                 }
                 pane.resume(&rows);
 

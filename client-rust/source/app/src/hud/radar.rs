@@ -7,43 +7,13 @@
 //! in projected coordinates. Dot clicks take priority over ground clicks
 //! (`CLICK_GRAB_PX`); ground clicks inside the scope request a relative move.
 
-use core::cell::{Cell, RefCell};
 use crate::world::terrain::{sample_terrain, Biome, TerrainSample};
-use core::fmt::{self, Write};
-
-struct TextBuffer {
-    bytes: [u8; 48],
-    len: usize,
-}
-
-impl TextBuffer {
-    fn new() -> Self {
-        Self {
-            bytes: [0; 48],
-            len: 0,
-        }
-    }
-
-    fn as_str(&self) -> &str {
-        core::str::from_utf8(&self.bytes[..self.len]).expect("formatted radar text is UTF-8")
-    }
-}
-
-impl Write for TextBuffer {
-    fn write_str(&mut self, value: &str) -> fmt::Result {
-        let available = self.bytes.len().saturating_sub(self.len);
-        if value.len() > available {
-            return Err(fmt::Error);
-        }
-        self.bytes[self.len..self.len + value.len()].copy_from_slice(value.as_bytes());
-        self.len += value.len();
-        Ok(())
-    }
-}
+use core::cell::{Cell, RefCell};
+use core::fmt::Write;
 
 use successor_engine_render::ui::UiBuilder;
 
-use super::{HudAction, HudState, Palette, RadarClass};
+use super::{HudAction, HudState, Palette, RadarClass, TextBuffer};
 
 /// World radius the scope covers (cells).
 pub const RADIUS_CELLS: f32 = 96.0;
@@ -147,9 +117,12 @@ fn sample_to_tint(sample: &TerrainSample, pal: &Palette) -> [u8; 4] {
     let w1 = sample.weights[1];
     let w2 = sample.weights[2];
 
-    let r = (b0 * (0.65 + 0.35 * w0) + h0 * (0.35 * w1) + a0 * (0.30 * w2) + d0 * 0.05) * sample.macro_tint;
-    let g = (b1 * (0.65 + 0.35 * w0) + h1 * (0.35 * w1) + a1 * (0.30 * w2) + d1 * 0.05) * sample.macro_tint;
-    let b = (b2 * (0.65 + 0.35 * w0) + h2 * (0.35 * w1) + a2 * (0.30 * w2) + d2 * 0.05) * sample.macro_tint;
+    let r = (b0 * (0.65 + 0.35 * w0) + h0 * (0.35 * w1) + a0 * (0.30 * w2) + d0 * 0.05)
+        * sample.macro_tint;
+    let g = (b1 * (0.65 + 0.35 * w0) + h1 * (0.35 * w1) + a1 * (0.30 * w2) + d1 * 0.05)
+        * sample.macro_tint;
+    let b = (b2 * (0.65 + 0.35 * w0) + h2 * (0.35 * w1) + a2 * (0.30 * w2) + d2 * 0.05)
+        * sample.macro_tint;
 
     [
         r.clamp(0.0, 255.0) as u8,
@@ -186,9 +159,11 @@ fn get_or_update_terrain_cache(
             let range_radius = RANGE_LADDER_CELLS[range_index.min(RANGE_LADDER_CELLS.len() - 1)];
             let step = (2.0 * range_radius) / (PREVIEW_GRID_SIZE as f32);
             for gy in 0..PREVIEW_GRID_SIZE {
-                let wz = (cell_z as f64 + 0.5) - range_radius as f64 + (gy as f64 + 0.5) * step as f64;
+                let wz =
+                    (cell_z as f64 + 0.5) - range_radius as f64 + (gy as f64 + 0.5) * step as f64;
                 for gx in 0..PREVIEW_GRID_SIZE {
-                    let wx = (cell_x as f64 + 0.5) - range_radius as f64 + (gx as f64 + 0.5) * step as f64;
+                    let wx = (cell_x as f64 + 0.5) - range_radius as f64
+                        + (gx as f64 + 0.5) * step as f64;
                     let sample = sample_terrain(seed, wx, wz, biome);
                     cache.colors[gy * PREVIEW_GRID_SIZE + gx] = sample_to_tint(&sample, pal);
                 }
@@ -379,10 +354,7 @@ pub fn click_action_at(
     let ry_cells = ry_px / scale;
     let dx_cells = rx_cells * cos_h + ry_cells * sin_h;
     let dy_cells = -rx_cells * sin_h + ry_cells * cos_h;
-    Some(HudAction::RadarMove {
-        dx_cells,
-        dy_cells,
-    })
+    Some(HudAction::RadarMove { dx_cells, dy_cells })
 }
 
 /// Resolve a click against the default scope size.
@@ -427,13 +399,7 @@ pub fn draw_radar(
 
     // 1. Terrain preview backdrop clipped to scope circle rim
     if let Some((player_x, player_z)) = st.position {
-        let colors = get_or_update_terrain_cache(
-            player_x,
-            player_z,
-            st.world_seed,
-            st.biome,
-            pal,
-        );
+        let colors = get_or_update_terrain_cache(player_x, player_z, st.world_seed, st.biome, pal);
         let rows = FACE_ROWS as usize;
         let step_y = 2.0 * rim / rows as f32;
         let step_x = 2.0 * rim / rows as f32;
@@ -469,10 +435,12 @@ pub fn draw_radar(
                 let dx_cells = rx_cells * cos_h + ry_cells * sin_h;
                 let dy_cells = -rx_cells * sin_h + ry_cells * cos_h;
 
-                let gx = (((dx_cells + range_radius) / (2.0 * range_radius) * (PREVIEW_GRID_SIZE as f32))
+                let gx = (((dx_cells + range_radius) / (2.0 * range_radius)
+                    * (PREVIEW_GRID_SIZE as f32))
                     .floor() as i32)
                     .clamp(0, (PREVIEW_GRID_SIZE - 1) as i32) as usize;
-                let gy = (((dy_cells + range_radius) / (2.0 * range_radius) * (PREVIEW_GRID_SIZE as f32))
+                let gy = (((dy_cells + range_radius) / (2.0 * range_radius)
+                    * (PREVIEW_GRID_SIZE as f32))
                     .floor() as i32)
                     .clamp(0, (PREVIEW_GRID_SIZE - 1) as i32) as usize;
 
@@ -537,7 +505,7 @@ pub fn draw_radar(
         if r_px <= rim - 3.0 {
             ui.ring(cx, cy, r_px, 56, 0.6, grid_color);
 
-            let mut buf = TextBuffer::new();
+            let mut buf = TextBuffer::<48>::new();
             let _ = write!(&mut buf, "{:.0}m", r_cells);
             let label_str = buf.as_str();
             let label_w = ui.measure_text(label_str, 0.95);
@@ -545,13 +513,7 @@ pub fn draw_radar(
             let lx = cx + diag_sin * r_px;
             let ly = cy - diag_cos * r_px;
 
-            ui.text(
-                label_str,
-                lx - label_w * 0.5,
-                ly - 3.5,
-                0.95,
-                pal.ink_dim,
-            );
+            ui.text(label_str, lx - label_w * 0.5, ly - 3.5, 0.95, pal.ink_dim);
         }
     }
     // Cardinals: mark directions with a rim tick plus glyph, rotating with
@@ -598,7 +560,10 @@ pub fn draw_radar(
     }
 
     let target_id = st.target.as_ref().map(|t| t.actor_id.as_str());
-    let target_dead_or_down = st.target.as_ref().is_some_and(|t| !t.alive || t.stamp.is_some());
+    let target_dead_or_down = st
+        .target
+        .as_ref()
+        .is_some_and(|t| !t.alive || t.stamp.is_some());
 
     for contact in &st.radar_contacts {
         let plotted = plot_contact_at(contact.dx_cells, contact.dy_cells, scope);
@@ -631,7 +596,7 @@ pub fn draw_radar(
 
     ui.ring(cx, cy, 5.0, 20, 2.0, [42, 225, 231, 80]);
     ui.rect(cx - 2.0, cy - 2.0, 4.0, 4.0, pal.accent);
-    let mut coords = TextBuffer::new();
+    let mut coords = TextBuffer::<48>::new();
     if let Some((east, north)) = st.position {
         let _ = write!(&mut coords, "E {:.0} / N {:.0}", east, north);
     } else {
@@ -660,7 +625,7 @@ pub fn draw_radar(
     ui.text("-", btn_out_x + 4.0, btn_y + 1.0, 1.1, pal.ink_dim);
 
     let range_cur = current_range_radius();
-    let mut range_buf = TextBuffer::new();
+    let mut range_buf = TextBuffer::<48>::new();
     let _ = write!(&mut range_buf, "{:.0}m", range_cur);
     let range_w = ui.measure_text(range_buf.as_str(), 1.1);
     ui.text(
@@ -847,8 +812,14 @@ mod tests {
             let p = plot_contact_at(dx, dy, scope);
             assert!(p.clamped, "far contact ({dx},{dy}) must clamp");
             let r = (p.sx * p.sx + p.sy * p.sy).sqrt();
-            assert!((r - max_r).abs() < 1e-3, "clamped dist {r} must equal max_r {max_r}");
-            assert!(r + 4.0 <= rim + 1e-3, "blip boundary {r}+4.0 escapes scope rim {rim}");
+            assert!(
+                (r - max_r).abs() < 1e-3,
+                "clamped dist {r} must equal max_r {max_r}"
+            );
+            assert!(
+                r + 4.0 <= rim + 1e-3,
+                "blip boundary {r}+4.0 escapes scope rim {rim}"
+            );
         }
     }
 
@@ -858,7 +829,10 @@ mod tests {
         set_camera_heading(0.0);
         let range = current_range_radius();
         let p_exact = plot_contact_at(range, 0.0, 128.0);
-        assert!(!p_exact.clamped, "contact at exact range edge must NOT clamp");
+        assert!(
+            !p_exact.clamped,
+            "contact at exact range edge must NOT clamp"
+        );
         assert!((p_exact.sx - (128.0 / 2.0 - 9.0)).abs() < 1e-3);
 
         let p_inside = plot_contact_at(range - 0.001, 0.0, 128.0);
@@ -879,14 +853,23 @@ mod tests {
         ] {
             let (sx, sy, scope) = scope_of(pane);
             assert!(sx >= pane[0] - 1e-3, "scope left inside pane bounds");
-            assert!(sx + scope <= pane[0] + pane[2] + 1e-3, "scope right inside pane bounds");
+            assert!(
+                sx + scope <= pane[0] + pane[2] + 1e-3,
+                "scope right inside pane bounds"
+            );
             assert!(sy >= pane[1] - 1e-3, "scope top inside pane bounds");
-            assert!(sy + scope + COORD_RAIL <= pane[1] + pane[3] + 1e-3, "scope floor inside pane bounds");
+            assert!(
+                sy + scope + COORD_RAIL <= pane[1] + pane[3] + 1e-3,
+                "scope floor inside pane bounds"
+            );
 
             let scale = scale_for(scope);
             assert!(scale > 0.0, "scale must be positive");
             let max_r = (scope / 2.0 - 9.0).max(1.0);
-            assert!((scale - max_r / 96.0).abs() < 1e-4, "scale must derive from scope max_r");
+            assert!(
+                (scale - max_r / 96.0).abs() < 1e-4,
+                "scale must derive from scope max_r"
+            );
         }
     }
 
@@ -896,11 +879,17 @@ mod tests {
         set_camera_heading(0.0);
         let p_north = plot_contact_at(0.0, -50.0, 128.0);
         assert!(p_north.sx.abs() < 1e-3);
-        assert!(p_north.sy < 0.0, "North is screen-up when camera heading is 0");
+        assert!(
+            p_north.sy < 0.0,
+            "North is screen-up when camera heading is 0"
+        );
 
         set_camera_heading(std::f32::consts::FRAC_PI_2);
         let p_north_rot = plot_contact_at(0.0, -50.0, 128.0);
-        assert!(p_north_rot.sx > 0.0, "North rotates to screen-right when camera looks East");
+        assert!(
+            p_north_rot.sx > 0.0,
+            "North rotates to screen-right when camera looks East"
+        );
         assert!(p_north_rot.sy.abs() < 1e-3);
 
         set_camera_heading(0.0);
@@ -921,15 +910,23 @@ mod tests {
         let click_y = c + plotted.sy;
         match click_action_at(&st, click_x, click_y, scope) {
             Some(HudAction::RadarMove { dx_cells, dy_cells }) => {
-                assert!((dx_cells - dx_init).abs() < 1e-3, "round trip dx mismatch: {dx_cells} vs {dx_init}");
-                assert!((dy_cells - dy_init).abs() < 1e-3, "round trip dy mismatch: {dy_cells} vs {dy_init}");
+                assert!(
+                    (dx_cells - dx_init).abs() < 1e-3,
+                    "round trip dx mismatch: {dx_cells} vs {dx_init}"
+                );
+                assert!(
+                    (dy_cells - dy_init).abs() < 1e-3,
+                    "round trip dy mismatch: {dy_cells} vs {dy_init}"
+                );
             }
             other => panic!("expected move action, got {other:?}"),
         }
 
         let test_click_x = c + 25.0;
         let test_click_y = c - 15.0;
-        if let Some(HudAction::RadarMove { dx_cells, dy_cells }) = click_action_at(&st, test_click_x, test_click_y, scope) {
+        if let Some(HudAction::RadarMove { dx_cells, dy_cells }) =
+            click_action_at(&st, test_click_x, test_click_y, scope)
+        {
             let replotted = plot_contact_at(dx_cells, dy_cells, scope);
             assert!((c + replotted.sx - test_click_x).abs() < 1e-3);
             assert!((c + replotted.sy - test_click_y).abs() < 1e-3);
@@ -952,7 +949,14 @@ mod tests {
         let mut out = Vec::new();
 
         ui.begin(1280, 720);
-        draw_radar(&mut ui, &crate::hud::palette(0), &st, [0.0, 0.0, 128.0, 128.0], false, &mut out);
+        draw_radar(
+            &mut ui,
+            &crate::hud::palette(0),
+            &st,
+            [0.0, 0.0, 128.0, 128.0],
+            false,
+            &mut out,
+        );
         let quads_unselected = ui.quads;
 
         st.target = Some(crate::hud::TargetHud {
@@ -962,10 +966,20 @@ mod tests {
             ..Default::default()
         });
         ui.begin(1280, 720);
-        draw_radar(&mut ui, &crate::hud::palette(0), &st, [0.0, 0.0, 128.0, 128.0], false, &mut out);
+        draw_radar(
+            &mut ui,
+            &crate::hud::palette(0),
+            &st,
+            [0.0, 0.0, 128.0, 128.0],
+            false,
+            &mut out,
+        );
         let quads_selected = ui.quads;
 
-        assert!(quads_selected > quads_unselected, "selected target must emit extra quads for selection reticle");
+        assert!(
+            quads_selected > quads_unselected,
+            "selected target must emit extra quads for selection reticle"
+        );
     }
 
     #[test]
@@ -987,7 +1001,14 @@ mod tests {
             ..Default::default()
         });
         ui.begin(1280, 720);
-        draw_radar(&mut ui, &crate::hud::palette(0), &st, [0.0, 0.0, 128.0, 128.0], false, &mut out);
+        draw_radar(
+            &mut ui,
+            &crate::hud::palette(0),
+            &st,
+            [0.0, 0.0, 128.0, 128.0],
+            false,
+            &mut out,
+        );
 
         st.target = Some(crate::hud::TargetHud {
             actor_id: "target_alpha".into(),
@@ -997,9 +1018,19 @@ mod tests {
         });
         let mut ui_dead = UiBuilder::new(icons.meta);
         ui_dead.begin(1280, 720);
-        draw_radar(&mut ui_dead, &crate::hud::palette(0), &st, [0.0, 0.0, 128.0, 128.0], false, &mut out);
+        draw_radar(
+            &mut ui_dead,
+            &crate::hud::palette(0),
+            &st,
+            [0.0, 0.0, 128.0, 128.0],
+            false,
+            &mut out,
+        );
 
-        assert_ne!(ui.quads, ui_dead.quads, "dead contact rendering must differ from live contact");
+        assert_ne!(
+            ui.quads, ui_dead.quads,
+            "dead contact rendering must differ from live contact"
+        );
     }
 
     #[test]
@@ -1034,12 +1065,18 @@ mod tests {
         // Sub-cell movement inside same cell (100, 200) -> NO resample!
         let _ = get_or_update_terrain_cache(100.4, 200.4, 42, Biome::Desert, &pal);
         let count_after_subcell = terrain_cache_resample_count();
-        assert_eq!(count_after_subcell, count_after_first, "must not resample when player stayed in cell (100, 200)");
+        assert_eq!(
+            count_after_subcell, count_after_first,
+            "must not resample when player stayed in cell (100, 200)"
+        );
 
         // Crossing cell boundary to (101, 200) -> resample!
         let _ = get_or_update_terrain_cache(101.2, 200.1, 42, Biome::Desert, &pal);
         let count_after_move = terrain_cache_resample_count();
-        assert!(count_after_move > count_after_subcell, "must resample when crossing cell boundary");
+        assert!(
+            count_after_move > count_after_subcell,
+            "must resample when crossing cell boundary"
+        );
     }
 
     #[test]
@@ -1100,14 +1137,24 @@ mod tests {
             for &r in rings {
                 let label = format!("{:.0}m", r);
                 for ch in label.chars() {
-                    assert!(ch.is_ascii() && (ch as u8) >= 32 && (ch as u8) <= 126, "label '{label}' must be ASCII 32..=126");
+                    assert!(
+                        ch.is_ascii() && (ch as u8) >= 32 && (ch as u8) <= 126,
+                        "label '{label}' must be ASCII 32..=126"
+                    );
                 }
-                assert!(!labels.contains(&label), "duplicate ring label '{label}' at radius {radius}");
+                assert!(
+                    !labels.contains(&label),
+                    "duplicate ring label '{label}' at radius {radius}"
+                );
                 labels.push(label);
             }
 
             if (radius - 32.0).abs() < 1e-3 {
-                assert_eq!(rings.len(), 2, "32m step must drop intermediate rings to avoid crowding");
+                assert_eq!(
+                    rings.len(),
+                    2,
+                    "32m step must drop intermediate rings to avoid crowding"
+                );
             }
         }
     }
@@ -1135,6 +1182,9 @@ mod tests {
         let shift = (r_cell1 - r_cell2).abs();
         let expected_shift = (p2_x - p1_x) * scale;
 
-        assert!((shift - expected_shift).abs() < 1e-3, "grid shift {shift} must match player movement {expected_shift}");
+        assert!(
+            (shift - expected_shift).abs() < 1e-3,
+            "grid shift {shift} must match player movement {expected_shift}"
+        );
     }
 }

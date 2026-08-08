@@ -10,7 +10,7 @@
 use super::{accent, dim, slot, slot_edge, text, WindowAction, WindowModel};
 use crate::hud::Icons;
 use core::cell::{Cell, RefCell};
-use successor_engine_render::ui::{UiBuilder};
+use successor_engine_render::ui::UiBuilder;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum InventoryView {
@@ -833,7 +833,14 @@ fn draw_filter_and_sort_bar(
         SortMode::Category => "SORT: CAT",
         SortMode::Quantity => "SORT: QTY",
     };
-    if ui.button(sort_x, grid_y, sort_w, 18.0, sort_label, crate::hud::button_style()) {
+    if ui.button(
+        sort_x,
+        grid_y,
+        sort_w,
+        18.0,
+        sort_label,
+        crate::hud::button_style(),
+    ) {
         cycle_sort();
     }
 }
@@ -905,11 +912,7 @@ fn draw_segmented_usage_meter(
             y,
             segment_w,
             4.0,
-            if index < filled {
-                accent()
-            } else {
-                slot()
-            },
+            if index < filled { accent() } else { slot() },
         );
     }
 }
@@ -1099,7 +1102,13 @@ pub fn draw(
 
     draw_scrollbar(ui, rect, filtered_count, capacity, page, page_count);
     if filtered_count == 0 {
-        ui.text("NO HELD STACKS", gx + 6.0, gy + FILTER_BAR_H + 8.0, 1.15, dim());
+        ui.text(
+            "NO HELD STACKS",
+            gx + 6.0,
+            gy + FILTER_BAR_H + 8.0,
+            1.15,
+            dim(),
+        );
     }
     draw_page_navigation(ui, [gx, gy, gw, gh], page, page_count);
 
@@ -1119,7 +1128,9 @@ pub fn draw(
     // We report held_count honestly as HELD STACKS <N>, without inventing a fake capacity.
     let status = format!(
         "{} {} / HELD STACKS {}",
-        view_label, page_label, inv.held().count()
+        view_label,
+        page_label,
+        inv.held().count()
     );
     super::chrome::text_clipped(
         ui,
@@ -1181,9 +1192,9 @@ pub fn draw(
     // Keep split stepper in sync with selection
     let is_split_armed = current_selected_row.as_ref().is_some_and(|row| {
         SPLIT_STEPPER.with(|s| {
-            s.borrow()
-                .as_ref()
-                .is_some_and(|st| st.container == row.container && st.stack_id == row.stack_id && row.available > 1)
+            s.borrow().as_ref().is_some_and(|st| {
+                st.container == row.container && st.stack_id == row.stack_id && row.available > 1
+            })
         })
     });
 
@@ -1212,8 +1223,13 @@ pub fn draw(
             }
 
             if is_split_armed {
-                let stepper_qty = SPLIT_STEPPER.with(|s| s.borrow().as_ref().map(|st| st.quantity).unwrap_or(1));
-                details = format!("SPLIT STACK / QTY {} / MAX {}", stepper_qty, row.available - 1);
+                let stepper_qty =
+                    SPLIT_STEPPER.with(|s| s.borrow().as_ref().map(|st| st.quantity).unwrap_or(1));
+                details = format!(
+                    "SPLIT STACK / QTY {} / MAX {}",
+                    stepper_qty,
+                    row.available - 1
+                );
             }
 
             super::chrome::text_clipped(
@@ -1231,7 +1247,9 @@ pub fn draw(
 
             if is_split_armed {
                 let max_split = (row.available - 1).max(1) as u32;
-                let mut stepper_qty = SPLIT_STEPPER.with(|s| s.borrow().as_ref().map(|st| st.quantity).unwrap_or(1)).clamp(1, max_split);
+                let mut stepper_qty = SPLIT_STEPPER
+                    .with(|s| s.borrow().as_ref().map(|st| st.quantity).unwrap_or(1))
+                    .clamp(1, max_split);
                 let step = 1u32;
 
                 let [minus_x, minus_y, minus_w, minus_h] = buttons[0];
@@ -1275,7 +1293,9 @@ pub fn draw(
                 }
 
                 let [confirm_x, confirm_y, confirm_w, confirm_h] = buttons[4];
-                if ui.button(confirm_x, confirm_y, confirm_w, confirm_h, "CONFIRM", button) {
+                if ui.button(
+                    confirm_x, confirm_y, confirm_w, confirm_h, "CONFIRM", button,
+                ) {
                     out.push(WindowAction::Command(
                         successor_net::ClientCommand::SplitStack {
                             container: row.container.clone(),
@@ -1351,7 +1371,9 @@ pub fn draw(
                     ));
                 }
                 let [split_x, split_y, split_w, split_h] = buttons[3];
-                if row.available > 1 && ui.button(split_x, split_y, split_w, split_h, "SPLIT", button) {
+                if row.available > 1
+                    && ui.button(split_x, split_y, split_w, split_h, "SPLIT", button)
+                {
                     let max_split = (row.available - 1).max(1) as u32;
                     let initial_qty = ((row.available / 2).max(1) as u32).min(max_split);
                     SPLIT_STEPPER.with(|s| {
@@ -1380,7 +1402,9 @@ pub fn draw(
                     }
                 }
                 let [store_x, store_y, store_w, store_h] = buttons[5];
-                if row.available > 0 && ui.button(store_x, store_y, store_w, store_h, "STORE", button) {
+                if row.available > 0
+                    && ui.button(store_x, store_y, store_w, store_h, "STORE", button)
+                {
                     out.push(WindowAction::Command(
                         successor_net::ClientCommand::StoreToExchange {
                             item_id: row.item_id,
@@ -1766,11 +1790,29 @@ mod tests {
         let left_step = (panes.preview[3] - slot_size) / 5.0;
         let slot_y = panes.preview[1] + 2.0 * left_step;
 
-        let out = click(&mut ui, &model, &icons, slot_x + slot_size * 0.5, slot_y + slot_size * 0.5);
-        assert!(out.contains(&WindowAction::Select(2001)), "first slot click selects stack");
-        assert_eq!(selected_identity(), Some(("player:pack".into(), "vest-1".into())));
+        let out = click(
+            &mut ui,
+            &model,
+            &icons,
+            slot_x + slot_size * 0.5,
+            slot_y + slot_size * 0.5,
+        );
+        assert!(
+            out.contains(&WindowAction::Select(2001)),
+            "first slot click selects stack"
+        );
+        assert_eq!(
+            selected_identity(),
+            Some(("player:pack".into(), "vest-1".into()))
+        );
 
-        let out = click(&mut ui, &model, &icons, slot_x + slot_size * 0.5, slot_y + slot_size * 0.5);
+        let out = click(
+            &mut ui,
+            &model,
+            &icons,
+            slot_x + slot_size * 0.5,
+            slot_y + slot_size * 0.5,
+        );
         assert!(
             out.contains(&WindowAction::Command(
                 successor_net::ClientCommand::SetEquippedClothing {
@@ -1898,17 +1940,35 @@ mod tests {
 
         let buttons = action_button_rects(footer_layout(RECT));
         let [split_x, split_y, split_w, split_h] = buttons[3];
-        let _ = click(&mut ui, &model, &icons, split_x + split_w * 0.5, split_y + split_h * 0.5);
+        let _ = click(
+            &mut ui,
+            &model,
+            &icons,
+            split_x + split_w * 0.5,
+            split_y + split_h * 0.5,
+        );
 
         let armed_qty = SPLIT_STEPPER.with(|s| s.borrow().as_ref().map(|st| st.quantity));
         assert_eq!(armed_qty, Some(5));
 
-        let _ = click(&mut ui, &model, &icons, split_x + split_w * 0.5, split_y + split_h * 0.5);
+        let _ = click(
+            &mut ui,
+            &model,
+            &icons,
+            split_x + split_w * 0.5,
+            split_y + split_h * 0.5,
+        );
         let armed_qty = SPLIT_STEPPER.with(|s| s.borrow().as_ref().map(|st| st.quantity));
         assert_eq!(armed_qty, Some(9));
 
         let [confirm_x, confirm_y, confirm_w, confirm_h] = buttons[4];
-        let out = click(&mut ui, &model, &icons, confirm_x + confirm_w * 0.5, confirm_y + confirm_h * 0.5);
+        let out = click(
+            &mut ui,
+            &model,
+            &icons,
+            confirm_x + confirm_w * 0.5,
+            confirm_y + confirm_h * 0.5,
+        );
         assert!(
             out.contains(&WindowAction::Command(
                 successor_net::ClientCommand::SplitStack {

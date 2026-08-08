@@ -257,14 +257,7 @@ pub fn draw_status_plate(
 /// State flags as compact chips on the name row, right-aligned into the space
 /// the name did not use. Dropped entirely when the row is too narrow — a
 /// truncated flag is worse than none.
-fn draw_state_chips(
-    ui: &mut UiBuilder,
-    pal: &Palette,
-    st: &HudState,
-    x: f32,
-    y: f32,
-    row_w: f32,
-) {
+fn draw_state_chips(ui: &mut UiBuilder, pal: &Palette, st: &HudState, x: f32, y: f32, row_w: f32) {
     let mut right = x + 8.0 + row_w;
     let mut chip = |ui: &mut UiBuilder, text: &str, tint: [u8; 4]| {
         let w = ui.measure_text(text, 1.3) + 8.0;
@@ -351,7 +344,11 @@ pub fn draw_weapon_plate(ui: &mut UiBuilder, pal: &Palette, st: &HudState, rect:
         let pip_w = (bar_w / count as f32 - 2.0).clamp(2.0, 10.0);
         for index in 0..count {
             let px = bar_x + index as f32 * (pip_w + 2.0);
-            let tint = if index < filled { pal.accent } else { pal.bg_cell };
+            let tint = if index < filled {
+                pal.accent
+            } else {
+                pal.bg_cell
+            };
             ui.rect(px, cursor, pip_w, 6.0, tint);
         }
     }
@@ -482,22 +479,17 @@ pub fn draw_target_plate(ui: &mut UiBuilder, pal: &Palette, target: &TargetHud, 
     // Sub-row: Compact distance right-aligned under name (if present)
     if cursor + 10.0 <= bottom {
         if let Some(distance) = target.distance_m {
-            let (dist_text, dist_tint) = if !distance.is_finite() || distance > MAX_WEAPON_REACH_CELLS {
-                ("OUT OF RANGE".to_string(), pal.danger)
-            } else {
-                (
-                    format!("{:.0}M", distance.max(0.0)),
-                    if dead { pal.ink_dim } else { readable_dim(pal) },
-                )
-            };
+            let (dist_text, dist_tint) =
+                if !distance.is_finite() || distance > MAX_WEAPON_REACH_CELLS {
+                    ("OUT OF RANGE".to_string(), pal.danger)
+                } else {
+                    (
+                        format!("{:.0}M", distance.max(0.0)),
+                        if dead { pal.ink_dim } else { readable_dim(pal) },
+                    )
+                };
             let dist_w = ui.measure_text(&dist_text, 1.2);
-            ui.text(
-                &dist_text,
-                x + w - 8.0 - dist_w,
-                cursor,
-                1.2,
-                dist_tint,
-            );
+            ui.text(&dist_text, x + w - 8.0 - dist_w, cursor, 1.2, dist_tint);
             cursor += 12.0;
         }
     }
@@ -1098,11 +1090,26 @@ mod tests {
     #[test]
     fn relation_tints_match_the_owner_ruling() {
         let pal = palette(0);
-        assert_eq!(hostility_tint(RelationHud::Hostile, &pal), [0xd3, 0x3b, 0x32, 255]);
-        assert_eq!(hostility_tint(RelationHud::Attackable, &pal), [0xf1, 0xd0, 0x6b, 255]);
-        assert_eq!(hostility_tint(RelationHud::Social, &pal), [0xf8, 0xf7, 0xf1, 255]);
-        assert_eq!(hostility_tint(RelationHud::Player, &pal), [0x4a, 0xa9, 0xff, 255]);
-        assert_eq!(hostility_tint(RelationHud::Allied, &pal), [0xb0, 0x66, 0xff, 255]);
+        assert_eq!(
+            hostility_tint(RelationHud::Hostile, &pal),
+            [0xd3, 0x3b, 0x32, 255]
+        );
+        assert_eq!(
+            hostility_tint(RelationHud::Attackable, &pal),
+            [0xf1, 0xd0, 0x6b, 255]
+        );
+        assert_eq!(
+            hostility_tint(RelationHud::Social, &pal),
+            [0xf8, 0xf7, 0xf1, 255]
+        );
+        assert_eq!(
+            hostility_tint(RelationHud::Player, &pal),
+            [0x4a, 0xa9, 0xff, 255]
+        );
+        assert_eq!(
+            hostility_tint(RelationHud::Allied, &pal),
+            [0xb0, 0x66, 0xff, 255]
+        );
     }
 
     /// Relation ink is actor identity, so it must NOT follow the theme - a
@@ -1136,12 +1143,20 @@ mod tests {
             level: Some(80),
             distance_m: Some(14.2),
             alive: true,
-            health: GaugeHud { value: 100.0, max: 100.0 },
+            health: GaugeHud {
+                value: 100.0,
+                max: 100.0,
+            },
             ..Default::default()
         };
         let mut ui_pres = ui();
         ui_pres.begin(1280, 720);
-        draw_target_plate(&mut ui_pres, &pal, &t_present, [10.0, 10.0, PLATE_W, PLATE_H]);
+        draw_target_plate(
+            &mut ui_pres,
+            &pal,
+            &t_present,
+            [10.0, 10.0, PLATE_W, PLATE_H],
+        );
         let quads_pres = ui_pres.quads;
 
         let mut t_absent = t_present.clone();
@@ -1152,7 +1167,10 @@ mod tests {
         draw_target_plate(&mut ui_abs, &pal, &t_absent, [10.0, 10.0, PLATE_W, PLATE_H]);
         let quads_abs = ui_abs.quads;
 
-        assert!(quads_pres > quads_abs, "present level/distance must emit quads for level chip & distance text");
+        assert!(
+            quads_pres > quads_abs,
+            "present level/distance must emit quads for level chip & distance text"
+        );
     }
 
     #[test]
@@ -1162,7 +1180,10 @@ mod tests {
             name: "TARGET".into(),
             relation: RelationHud::Hostile,
             alive: true,
-            health: GaugeHud { value: 100.0, max: 100.0 },
+            health: GaugeHud {
+                value: 100.0,
+                max: 100.0,
+            },
             ..Default::default()
         };
         let mut t_dead = t_alive.clone();
@@ -1178,6 +1199,9 @@ mod tests {
 
         // Dead target plate draws empty pools (fewer filled quads than alive full health) and strike-through line
         assert!(ui_d.quads > 0, "dead target plate must render UI quads");
-        assert!(!ui_d.buf.is_empty(), "dead target plate must render vertex data");
+        assert!(
+            !ui_d.buf.is_empty(),
+            "dead target plate must render vertex data"
+        );
     }
 }

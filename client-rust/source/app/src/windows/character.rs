@@ -6,8 +6,9 @@
 //! onto `ClientCommand::SetProfessionTitle { title_id }`.
 
 use super::{accent, dim, slot, text, WindowAction, WindowModel};
-use crate::hud::Icons;
-use successor_engine_render::ui::{UiBuilder};
+use crate::hud::{Icons, TextBuffer};
+use core::fmt::Write;
+use successor_engine_render::ui::UiBuilder;
 
 /// Portrait column share of the sheet. The inventory's equipment column takes
 /// the original's 232/468 split; the sheet is text-heavy, so it takes a
@@ -71,16 +72,24 @@ pub fn draw(
     let x = text_origin(ctx.rect);
     let w = (ctx.rect[0] + ctx.rect[2] - x).max(0.0);
 
+    let mut label = TextBuffer::<160>::new();
     ui.text(&p.name, x, y, 3.0, accent());
     let title = p
         .active_title
         .as_ref()
         .map(|t| t.label.as_str())
         .unwrap_or("NONE");
-    ui.text(&format!("TITLE  {}", title), x, y + 30.0, 2.0, dim());
+    let _ = write!(&mut label, "TITLE  {}", title);
+    ui.text(label.as_str(), x, y + 30.0, 2.0, dim());
+    label.clear();
 
     // Vitals.
     let bw = w - 4.0;
+    let _ = write!(
+        &mut label,
+        "HEALTH {}/{}",
+        p.health as i32, p.health_max as i32
+    );
     bar(
         ui,
         x,
@@ -88,7 +97,13 @@ pub fn draw(
         bw,
         p.health / p.health_max.max(1.0),
         crate::hud::plate::POOL_HEALTH,
-        &format!("HEALTH {}/{}", p.health as i32, p.health_max as i32),
+        label.as_str(),
+    );
+    label.clear();
+    let _ = write!(
+        &mut label,
+        "ACTION {}/{}",
+        p.action as i32, p.action_max as i32
     );
     bar(
         ui,
@@ -97,14 +112,21 @@ pub fn draw(
         bw,
         p.action / p.action_max.max(1.0),
         crate::hud::plate::POOL_ACTION,
-        &format!("ACTION {}/{}", p.action as i32, p.action_max as i32),
+        label.as_str(),
     );
+    label.clear();
 
     // Ledger — live projection scalars only.
-    ui.text(&format!("AREA    {}", c.area_id), x, y + 108.0, 2.0, text());
-    ui.text(&format!("CREDITS {}", p.credits), x, y + 130.0, 2.0, accent());
+    let _ = write!(&mut label, "AREA    {}", c.area_id);
+    ui.text(label.as_str(), x, y + 108.0, 2.0, text());
+    label.clear();
+    let _ = write!(&mut label, "CREDITS {}", p.credits);
+    ui.text(label.as_str(), x, y + 130.0, 2.0, accent());
+    label.clear();
     let goal = c.career_goal_label.as_deref().unwrap_or("NONE");
-    ui.text(&format!("GOAL    {}", goal), x, y + 152.0, 2.0, text());
+    let _ = write!(&mut label, "GOAL    {}", goal);
+    ui.text(label.as_str(), x, y + 152.0, 2.0, text());
+    label.clear();
 
     // Professions (actor `professions[]`: label + accumulated XP).
     ui.text("PROFESSIONS", x, y + 182.0, 2.0, dim());
@@ -114,7 +136,9 @@ pub fn draw(
     for (i, prof) in p.professions.iter().enumerate() {
         let py = y + 206.0 + i as f32 * 22.0;
         ui.text(&prof.label, x + 8.0, py, 1.8, text());
-        ui.text(&format!("XP {}", prof.xp), x + 180.0, py, 1.8, accent());
+        let _ = write!(&mut label, "XP {}", prof.xp);
+        ui.text(label.as_str(), x + 180.0, py, 1.8, accent());
+        label.clear();
     }
 
     // Title selector — the sole action. Options are the earned titles the

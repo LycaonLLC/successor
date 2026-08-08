@@ -1216,7 +1216,9 @@ fn skill_box_profession_suffix(id: &str) -> Option<(AuthorityProfessionKind, &st
     None
 }
 
-pub(crate) fn authority_skill_box_tracks(profession: AuthorityProfessionKind) -> &'static [&'static str] {
+pub(crate) fn authority_skill_box_tracks(
+    profession: AuthorityProfessionKind,
+) -> &'static [&'static str] {
     match profession {
         AuthorityProfessionKind::Marksman => &["rifle", "pistol", "tactics", "fieldcraft"],
         AuthorityProfessionKind::Scout => {

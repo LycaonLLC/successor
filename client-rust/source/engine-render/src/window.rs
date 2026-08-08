@@ -1022,7 +1022,11 @@ impl WindowManager {
         // Three diagonal ticks, always present: a grip you can only find by
         // hovering is a grip players do not know exists. Hover brightens it to
         // the resize tone; at rest it sits at the perimeter's own weight.
-        let grip = if resize_hover { style.resize } else { style.edge };
+        let grip = if resize_hover {
+            style.resize
+        } else {
+            style.edge
+        };
         for reach in [12.0, 9.0, 6.0] {
             ui.line(
                 right - reach,

@@ -66,7 +66,10 @@ pub fn ws_poll(handle: &mut WsHandle, out_buf: &mut Vec<u8>) -> WsEvent {
         // it leaves only "reconnect 1/5" and hides an authority-side refusal.
         Ok(Message::Close(frame)) => {
             match frame {
-                Some(frame) => eprintln!("ws closed by peer: code={} reason={}", frame.code, frame.reason),
+                Some(frame) => eprintln!(
+                    "ws closed by peer: code={} reason={}",
+                    frame.code, frame.reason
+                ),
                 None => eprintln!("ws closed by peer: no close frame"),
             }
             WsEvent::Closed

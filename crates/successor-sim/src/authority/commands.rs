@@ -856,7 +856,10 @@ impl SliceAuthorityState {
         if amount >= 0 {
             actor.professions.add_credits(amount.unsigned_abs());
         } else {
-            let drained = actor.professions.credits.saturating_sub(amount.unsigned_abs());
+            let drained = actor
+                .professions
+                .credits
+                .saturating_sub(amount.unsigned_abs());
             actor.professions.set_credits(Some(drained));
         }
         Ok(())

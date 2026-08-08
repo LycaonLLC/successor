@@ -1,10 +1,11 @@
 //! Shared GLB mesh/material upload path.
 
 use alloc::collections::BTreeMap;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use successor_engine_core::glb::{AlphaMode, GlbDocument, GlbPrimitive, TextureRef};
-use successor_engine_core::image::decode_image;
+use successor_engine_core::image::{decode_image, RgbaImage};
 
 use crate::components::{MaterialId, MeshId};
 use crate::gpu::{Filter, Gpu, GpuError, MinFilter, TextureDesc, TextureFormat, TextureId, Wrap};
@@ -23,6 +24,7 @@ pub struct UploadedModel {
     pub primitives: Vec<UploadedPrimitive>,
     pub node_meshes: Vec<Option<usize>>,
     pub node_skins: Vec<Option<usize>>,
+    pub material_emissive_texture_means: Vec<Option<[f32; 3]>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -42,16 +44,28 @@ struct TextureCacheEntry {
     srgb: bool,
     uploaded: TextureId,
 }
+
+struct PreparedPrimitive {
+    source_mesh: usize,
+    source_primitive: usize,
+    vertices: Vec<u8>,
+    indices: Vec<u32>,
+}
+
+/// CPU-side validation and image decode completed before any renderer or GPU
+/// resource is registered. Callers may inspect emissive means and reject an
+/// invalid model without retaining partial uploads.
+pub struct PreparedModel {
+    primitives: Vec<PreparedPrimitive>,
+    decoded_images: Vec<Option<RgbaImage>>,
+    pub material_emissive_texture_means: Vec<Option<[f32; 3]>>,
+}
 /// PawnForge's shipped humanoid rigs use 50 joints. Keeping the shader palette
 /// at that authored maximum leaves room for the other vertex uniforms on
 /// WebGL2 implementations that expose only the required 256 uniform vectors.
 const MAX_SKIN_JOINTS: usize = 50;
 
-pub fn upload_glb<G: Gpu>(
-    renderer: &mut Renderer,
-    gpu: &mut G,
-    document: &GlbDocument,
-) -> Result<UploadedModel, ModelUploadError> {
+pub fn prepare_glb(document: &GlbDocument) -> Result<PreparedModel, ModelUploadError> {
     if document
         .skins
         .iter()
@@ -59,95 +73,160 @@ pub fn upload_glb<G: Gpu>(
     {
         return Err(ModelUploadError::JointPalette);
     }
-    let mut uploaded = UploadedModel {
+    let mut prepared = PreparedModel {
         primitives: Vec::new(),
-        node_meshes: document.nodes.iter().map(|node| node.mesh).collect(),
-        node_skins: document.nodes.iter().map(|node| node.skin).collect(),
+        decoded_images: vec![None; document.images.len()],
+        material_emissive_texture_means: vec![None; document.materials.len()],
     };
-    let mut texture_cache: Vec<TextureCacheEntry> = Vec::new();
     for (mesh_index, mesh) in document.meshes.iter().enumerate() {
         for (primitive_index, primitive) in mesh.primitives.iter().enumerate() {
             let (vertices, indices) = pack_primitive(primitive)?;
-            let mesh_id = renderer.upload_gltf_mesh(
-                gpu,
-                &vertices,
-                &indices,
-                !primitive.joints.is_empty(),
-                !primitive.colors.is_empty(),
-            );
-            let material = match primitive
-                .material
-                .and_then(|index| document.materials.get(index))
-            {
-                Some(source) => {
-                    let base_color_texture = upload_texture(
-                        document,
-                        gpu,
-                        &mut texture_cache,
-                        source.base_color_texture,
-                        true,
-                    )?;
-                    let metallic_roughness_texture = upload_texture(
-                        document,
-                        gpu,
-                        &mut texture_cache,
-                        source.metallic_roughness_texture,
-                        false,
-                    )?;
-                    let normal_texture = upload_texture(
-                        document,
-                        gpu,
-                        &mut texture_cache,
-                        source.normal_texture,
-                        false,
-                    )?;
-                    let occlusion_texture = upload_texture(
-                        document,
-                        gpu,
-                        &mut texture_cache,
-                        source.occlusion_texture,
-                        false,
-                    )?;
-                    let emissive_texture = upload_texture(
-                        document,
-                        gpu,
-                        &mut texture_cache,
-                        source.emissive_texture,
-                        true,
-                    )?;
-                    renderer.add_material_desc(MaterialDesc {
-                        base_color: source.base_color,
-                        base_color_texture,
-                        metallic_roughness_texture,
-                        normal_texture,
-                        occlusion_texture,
-                        emissive_texture,
-                        metallic: source.metallic,
-                        roughness: source.roughness,
-                        normal_scale: source.normal_scale,
-                        occlusion_strength: source.occlusion_strength,
-                        emissive_factor: source.emissive_factor,
-                        emissive_strength: source.emissive_strength,
-                        clearcoat: source.clearcoat,
-                        clearcoat_roughness: source.clearcoat_roughness,
-                        specular: source.specular,
-                        ior: source.ior,
-                        transmission: source.transmission,
-                        alpha_cutoff: source.alpha_cutoff,
-                        double_sided: source.double_sided,
-                        blend: source.alpha_mode == AlphaMode::Blend || source.transmission > 0.0,
-                        terrain: None,
-                    })
+            if let Some((material_index, material)) = primitive.material.and_then(|index| {
+                document
+                    .materials
+                    .get(index)
+                    .map(|material| (index, material))
+            }) {
+                for reference in [
+                    material.base_color_texture,
+                    material.metallic_roughness_texture,
+                    material.normal_texture,
+                    material.occlusion_texture,
+                ] {
+                    prepare_texture(document, &mut prepared.decoded_images, reference, false)?;
                 }
-                None => renderer.add_material_desc(MaterialDesc::default()),
-            };
-            uploaded.primitives.push(UploadedPrimitive {
-                mesh: mesh_id,
-                material,
+                prepared.material_emissive_texture_means[material_index] = prepare_texture(
+                    document,
+                    &mut prepared.decoded_images,
+                    material.emissive_texture,
+                    true,
+                )?;
+            }
+            prepared.primitives.push(PreparedPrimitive {
                 source_mesh: mesh_index,
                 source_primitive: primitive_index,
+                vertices,
+                indices,
             });
         }
+    }
+    Ok(prepared)
+}
+
+pub fn upload_glb<G: Gpu>(
+    renderer: &mut Renderer,
+    gpu: &mut G,
+    document: &GlbDocument,
+) -> Result<UploadedModel, ModelUploadError> {
+    let prepared = prepare_glb(document)?;
+    upload_prepared_glb(renderer, gpu, document, prepared)
+}
+
+pub fn upload_prepared_glb<G: Gpu>(
+    renderer: &mut Renderer,
+    gpu: &mut G,
+    document: &GlbDocument,
+    prepared: PreparedModel,
+) -> Result<UploadedModel, ModelUploadError> {
+    let PreparedModel {
+        primitives,
+        decoded_images,
+        material_emissive_texture_means,
+    } = prepared;
+    let mut uploaded = UploadedModel {
+        primitives: Vec::with_capacity(primitives.len()),
+        node_meshes: document.nodes.iter().map(|node| node.mesh).collect(),
+        node_skins: document.nodes.iter().map(|node| node.skin).collect(),
+        material_emissive_texture_means,
+    };
+    let mut texture_cache: Vec<TextureCacheEntry> = Vec::new();
+    for prepared in primitives {
+        let primitive =
+            &document.meshes[prepared.source_mesh].primitives[prepared.source_primitive];
+        let mesh_id = renderer.upload_gltf_mesh(
+            gpu,
+            &prepared.vertices,
+            &prepared.indices,
+            !primitive.joints.is_empty(),
+            !primitive.colors.is_empty(),
+        );
+        let material = match primitive
+            .material
+            .and_then(|index| document.materials.get(index))
+        {
+            Some(source) => {
+                let base_color_texture = upload_texture(
+                    document,
+                    &decoded_images,
+                    gpu,
+                    &mut texture_cache,
+                    source.base_color_texture,
+                    true,
+                )?;
+                let metallic_roughness_texture = upload_texture(
+                    document,
+                    &decoded_images,
+                    gpu,
+                    &mut texture_cache,
+                    source.metallic_roughness_texture,
+                    false,
+                )?;
+                let normal_texture = upload_texture(
+                    document,
+                    &decoded_images,
+                    gpu,
+                    &mut texture_cache,
+                    source.normal_texture,
+                    false,
+                )?;
+                let occlusion_texture = upload_texture(
+                    document,
+                    &decoded_images,
+                    gpu,
+                    &mut texture_cache,
+                    source.occlusion_texture,
+                    false,
+                )?;
+                let emissive_texture = upload_texture(
+                    document,
+                    &decoded_images,
+                    gpu,
+                    &mut texture_cache,
+                    source.emissive_texture,
+                    true,
+                )?;
+                renderer.add_material_desc(MaterialDesc {
+                    base_color: source.base_color,
+                    base_color_texture,
+                    metallic_roughness_texture,
+                    normal_texture,
+                    occlusion_texture,
+                    emissive_texture,
+                    metallic: source.metallic,
+                    roughness: source.roughness,
+                    normal_scale: source.normal_scale,
+                    occlusion_strength: source.occlusion_strength,
+                    emissive_factor: source.emissive_factor,
+                    emissive_strength: source.emissive_strength,
+                    clearcoat: source.clearcoat,
+                    clearcoat_roughness: source.clearcoat_roughness,
+                    specular: source.specular,
+                    ior: source.ior,
+                    transmission: source.transmission,
+                    alpha_cutoff: source.alpha_cutoff,
+                    double_sided: source.double_sided,
+                    blend: source.alpha_mode == AlphaMode::Blend || source.transmission > 0.0,
+                    terrain: None,
+                })
+            }
+            None => renderer.add_material_desc(MaterialDesc::default()),
+        };
+        uploaded.primitives.push(UploadedPrimitive {
+            mesh: mesh_id,
+            material,
+            source_mesh: prepared.source_mesh,
+            source_primitive: prepared.source_primitive,
+        });
     }
     if let Some(error) = gpu.take_error() {
         return Err(ModelUploadError::Gpu(error));
@@ -155,8 +234,41 @@ pub fn upload_glb<G: Gpu>(
     Ok(uploaded)
 }
 
+fn prepare_texture(
+    document: &GlbDocument,
+    decoded_images: &mut [Option<RgbaImage>],
+    reference: Option<TextureRef>,
+    emissive: bool,
+) -> Result<Option<[f32; 3]>, ModelUploadError> {
+    let Some(reference) = reference else {
+        return Ok(None);
+    };
+    if reference.tex_coord != 0 {
+        return Err(ModelUploadError::TextureIndex);
+    }
+    let texture = document
+        .textures
+        .get(reference.texture)
+        .ok_or(ModelUploadError::TextureIndex)?;
+    let image = document
+        .images
+        .get(texture.source)
+        .ok_or(ModelUploadError::ImageIndex)?;
+    let decoded = decoded_images
+        .get_mut(texture.source)
+        .ok_or(ModelUploadError::ImageIndex)?;
+    if decoded.is_none() {
+        *decoded = Some(
+            decode_image(&image.mime_type, &image.bytes).map_err(|_| ModelUploadError::Image)?,
+        );
+    }
+    Ok(emissive
+        .then(|| emissive_texture_mean_linear(&decoded.as_ref().expect("decoded image").pixels)))
+}
+
 fn upload_texture<G: Gpu>(
     document: &GlbDocument,
+    decoded_images: &[Option<RgbaImage>],
     gpu: &mut G,
     cache: &mut Vec<TextureCacheEntry>,
     reference: Option<TextureRef>,
@@ -172,20 +284,15 @@ fn upload_texture<G: Gpu>(
         .textures
         .get(reference.texture)
         .ok_or(ModelUploadError::TextureIndex)?;
-    // Blender emits one glTF texture object per material slot even when all
-    // slots reference the same image and sampler. Cache by the actual GPU
-    // resource identity so large modular assemblies do not exhaust handles.
     if let Some(entry) = cache.iter().find(|entry| {
         entry.source == texture.source && entry.sampler == texture.sampler && entry.srgb == srgb
     }) {
         return Ok(Some(entry.uploaded));
     }
-    let image = document
-        .images
+    let decoded = decoded_images
         .get(texture.source)
+        .and_then(Option::as_ref)
         .ok_or(ModelUploadError::ImageIndex)?;
-    let decoded =
-        decode_image(&image.mime_type, &image.bytes).map_err(|_| ModelUploadError::Image)?;
     let sampler = texture
         .sampler
         .and_then(|index| document.texture_samplers.get(index));
@@ -228,6 +335,30 @@ fn upload_texture<G: Gpu>(
     });
     Ok(Some(uploaded))
 }
+
+pub fn emissive_texture_mean_linear(pixels: &[u8]) -> [f32; 3] {
+    let mut sum = [0.0; 3];
+    let mut count = 0.0;
+    for rgba in pixels.chunks_exact(4) {
+        if rgba[0] == 0 && rgba[1] == 0 && rgba[2] == 0 {
+            continue;
+        }
+        for channel in 0..3 {
+            let c = rgba[channel] as f32 / 255.0;
+            sum[channel] += if c <= 0.04045 {
+                c / 12.92
+            } else {
+                libm::powf((c + 0.055) / 1.055, 2.4)
+            };
+        }
+        count += 1.0;
+    }
+    if count == 0.0 {
+        [0.0; 3]
+    } else {
+        [sum[0] / count, sum[1] / count, sum[2] / count]
+    }
+}
 fn pack_primitive(primitive: &GlbPrimitive) -> Result<(Vec<u8>, Vec<u32>), ModelUploadError> {
     let count = primitive.positions.len();
     if count == 0
@@ -238,7 +369,7 @@ fn pack_primitive(primitive: &GlbPrimitive) -> Result<(Vec<u8>, Vec<u32>), Model
     {
         return Err(ModelUploadError::VertexCount);
     }
-    let mut positions = primitive.positions.clone();
+    let positions = primitive.morphed_positions();
     let mut source_normals = primitive.normals.clone();
     let mut source_tangents = primitive.tangents.clone();
     for (target_index, target) in primitive.morph_targets.iter().enumerate() {
@@ -249,11 +380,6 @@ fn pack_primitive(primitive: &GlbPrimitive) -> Result<(Vec<u8>, Vec<u32>), Model
             .unwrap_or(0.0);
         if weight == 0.0 {
             continue;
-        }
-        for (value, delta) in positions.iter_mut().zip(&target.positions) {
-            for axis in 0..3 {
-                value[axis] += delta[axis] * weight;
-            }
         }
         for (value, delta) in source_normals.iter_mut().zip(&target.normals) {
             for axis in 0..3 {
@@ -438,6 +564,15 @@ mod tests {
         assert_eq!(indices.len(), primitive.indices.len());
         assert_eq!(vertices.len() % GLTF_MESH_LAYOUT.stride as usize, 0);
         assert!(vertices.len() / GLTF_MESH_LAYOUT.stride as usize >= 4);
+    }
+
+    #[test]
+    fn emissive_texture_mean_is_linear_and_ignores_black_texels() {
+        let pixels = [0, 0, 0, 255, 255, 128, 0, 255];
+        let mean = emissive_texture_mean_linear(&pixels);
+        assert!((mean[0] - 1.0).abs() < 1.0e-6);
+        assert!((mean[1] - 0.215_860_53).abs() < 1.0e-6);
+        assert_eq!(mean[2], 0.0);
     }
     #[test]
     fn upload_surfaces_backend_errors() {

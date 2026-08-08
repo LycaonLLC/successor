@@ -1021,8 +1021,8 @@ fn fallback_micro_reversal_allowed(
 
 #[cfg(test)]
 mod tests {
-    use successor_movement::CIRCLE_TRACE_SKIN_MILLI;
     use super::*;
+    use successor_movement::CIRCLE_TRACE_SKIN_MILLI;
     use successor_net::{ClientCommand, ClientCommandEnvelope, PlayerId, SessionId};
 
     fn door_collision_snapshot() -> crate::SliceSnapshot {
