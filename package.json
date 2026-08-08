@@ -29,6 +29,7 @@
     "release:package:tui": "node tools/release/package-tui.mjs",
     "test:release:tui": "node --test tools/release/package-tui.test.mjs",
     "deploy:contract": "bash ops/deploy/validate.sh",
+    "deploy:rust-beta": "node ops/deploy/scripts/deploy-rust-beta.mjs",
     "hygiene": "bash tools/hygiene/run.sh",
     "hygiene:rust": "bash tools/hygiene/run.sh --rust",
     "hygiene:ts": "bash tools/hygiene/run.sh --ts",

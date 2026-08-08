@@ -222,6 +222,16 @@ The implementation and lower-level protocol notes live in
 with the current implementation, update the guide and verification contract in
 the same change rather than adding a second control path.
 
+## Rust beta deployment wrapper
+
+Use `pnpm deploy:rust-beta --dry-run` to build and inspect a complete beta
+deployment plan. Use `--apply --aws-env <path>` to publish, allowlist, restart,
+promote, and verify it; add `--site` when the commit also changes the `/beta/`
+site shell. The wrapper composes the existing release scripts and stores its
+ignored evidence under `tmp/`; it is not another publication format or
+authority path. Exact options and operational guarantees are documented in
+`docs/OPERATIONS.md`.
+
 ## Observation harnesses
 
 Single-point probing is the slowest and least reliable way to understand a

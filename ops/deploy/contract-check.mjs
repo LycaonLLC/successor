@@ -34,6 +34,7 @@ for (const relative of [
   "ops/deploy/scripts/backup.sh",
   "ops/deploy/scripts/restore.sh",
   "ops/deploy/scripts/publish-client-assets.mjs",
+  "ops/deploy/scripts/deploy-rust-beta.mjs",
   "ops/deploy/terraform/bootstrap/main.tf",
   "tools/release/seal.mjs",
   "tools/release/promote-staging.mjs",

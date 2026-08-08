@@ -76,6 +76,45 @@ window ids, renderer health, and a bounded runtime-error tail. Both client and
 server redact secret-shaped keys and values; passwords, launch tickets,
 cookies, chat text, and inventory contents are intentionally not collected.
 
+## Rust web beta deployment
+
+`deploy-rust-beta.mjs` composes the existing build, immutable asset publisher,
+authority allowlist, and pointer promotion tools into one fail-closed command.
+It requires a clean HEAD that exactly matches the current branch on `origin`,
+derives the client release id from that commit, reads the live server protocol
+id from `/beta/release.json`, refuses to restart the authority while any
+session is connected, and verifies the promoted public pointer and immutable
+entry.
+
+Review the complete plan without changing AWS:
+
+```bash
+pnpm deploy:rust-beta --dry-run
+```
+
+Apply with a strict assignment-only AWS environment file:
+
+```bash
+pnpm deploy:rust-beta --apply --aws-env \"$SUCCESSOR_ACCESS_DIR/aws.env\"
+```
+
+Add `--site` when the same commit changes the `/beta/` site shell. That runs
+the site tests/build, publishes and promotes an immutable site release, and
+verifies the authenticated site pointer:
+
+```bash
+pnpm deploy:rust-beta --apply --site \
+  --aws-env \"$SUCCESSOR_ACCESS_DIR/aws.env\"
+```
+
+The wrapper runs all standalone Rust client gates by default. `--skip-gates`
+is only for an exact clean commit whose required gates already passed and were
+recorded separately. `--instance-id` overrides the default exact-one-instance
+lookup by the `successor-staging-1` Name tag. `--server-release-id` overrides
+the live beta pointer only for an intentional protocol selection. Generated
+plans, manifests, SSM parameters, and promotion proofs live under ignored
+`tmp/rust-beta-deploy-<commit-prefix>/`.
+
 ## Marketing-site publication
 
 Site publication is independent of gameplay deployment. From the repository
