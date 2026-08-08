@@ -146,6 +146,18 @@ function run(program, args, { env = process.env, capture = false } = {}) {
   return capture ? result.stdout.trim() : "";
 }
 
+async function writeJsonPlan(path, program, args) {
+  const output = run(program, args, { capture: true });
+  let plan;
+  try {
+    plan = JSON.parse(output);
+  } catch {
+    throw new Error(`${program} dry run did not return one JSON plan`);
+  }
+  await writeFile(path, `${JSON.stringify(plan, null, 2)}\n`);
+  return plan;
+}
+
 async function fetchJson(url, label) {
   const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
   if (!response.ok) throw new Error(`${label} returned HTTP ${response.status}`);
@@ -294,14 +306,22 @@ async function main() {
     `GAME_ORIGIN=wss://world.successorgame.com`,
     `CHAT_ORIGIN=wss://world.successorgame.com`,
   ]);
-  run("node", publisherArgs(paths, "--dry-run"));
-  run("node", betaPromotionArgs(paths, identity, serverReleaseId, "--dry-run"));
+  const betaPublishPlan = await writeJsonPlan(
+    join(paths.root, "beta-publish-plan.json"),
+    "node",
+    publisherArgs(paths, "--dry-run"),
+  );
+  await writeJsonPlan(
+    join(paths.root, "beta-promotion-plan.json"),
+    "node",
+    betaPromotionArgs(paths, identity, serverReleaseId, "--dry-run"),
+  );
 
   let siteIdentity = null;
   if (args.site) {
     const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
     const siteReleaseId = `site-${identity.sourceCommit.slice(0, 7)}-${date}`;
-    run("node", [
+    await writeJsonPlan(join(paths.root, "site-publish-plan.json"), "node", [
       "ops/deploy/scripts/publish-site.mjs",
       "--dist", "site/dist",
       "--output-dir", paths.sitePublish,
@@ -310,7 +330,7 @@ async function main() {
     ]);
     const siteManifest = JSON.parse(await readFile(join(paths.sitePublish, "site-manifest.json"), "utf8"));
     siteIdentity = { siteReleaseId, manifestSha256: siteManifest.manifest_sha256 };
-    run("node", [
+    await writeJsonPlan(join(paths.root, "site-promotion-plan.json"), "node", [
       "ops/deploy/scripts/promote-site.mjs",
       "--manifest", join(paths.sitePublish, "site-manifest.json"),
       "--bucket", `s3://${DEFAULT_SITE_BUCKET}`,
@@ -322,7 +342,7 @@ async function main() {
   }
 
   if (args.dryRun) {
-    console.log(JSON.stringify({ mode: "dry-run", ...identity, serverReleaseId, site: siteIdentity, evidenceDir: paths.root }, null, 2));
+    console.log(JSON.stringify({ mode: "dry-run", ...identity, serverReleaseId, manifestSha256: betaPublishPlan.manifest_sha256, site: siteIdentity, evidenceDir: paths.root }, null, 2));
     return;
   }
 
