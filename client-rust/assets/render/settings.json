@@ -71,7 +71,7 @@
     "medium": {
       "ambient_intensity": 0.78,
       "emissive_scalar": 1.0,
-      "auto_point_light_scale": 1.0,
+      "auto_point_light_scale": 0.37007576,
       "exposure": 1.08,
       "bloom": {
         "threshold": 1.0,
