@@ -284,6 +284,16 @@ movement, chat, combat narration, vitals, radar, inventory/crafting language,
 and automated journeys. The website preview uses a real 80x24 TUI fixture.
 There is no public TUI archive yet.
 
+The Rust pregame entry, roster, creation, and loading surfaces are implemented,
+but native account entry is not. In a `dev-tools` build, `--demo pregame`
+drives those screens with a simulated roster. The production-capability native
+binary still requires `--launch-context`; it has no callsign/password session
+client and does not fetch `/alpha-api/characters` or mint its own play ticket.
+The ticketed connected runtime itself is live-proven. Continuation details and
+the exact account boundary are in
+`HANDOFF_NATIVE_FIRST_ENTRY_20260807.md`.
+
+
 ## Repository recovery and retained plans
 
 The 2026-07-28 repository cleanup preserved old refs, dirty patches,
@@ -308,15 +318,18 @@ The next work should be chosen from these actual gaps:
 
 1. Split `server/src/game/shard.ts` behind stable, tested domain boundaries.
    This is maintainability work, not a rewrite of gameplay authority.
-2. Build new graphical/TUI packages from an accepted client release and prove
-   hosted device authorization before repopulating the download ledger.
-3. Run an independent isolated restore rehearsal of the latest complete
+2. Wire the existing Rust pregame surfaces to real native callsign login,
+   roster, creation, and play-ticket acquisition without creating a second game
+   runtime or credential path.
+3. Build new graphical/TUI packages from accepted client releases and prove
+   hosted authorization before changing the download ledger.
+4. Run an independent isolated restore rehearsal of the latest complete
    pre-reset archive.
-4. Repair the public `/current.json` CloudFront route, which currently returns
+5. Repair the public `/current.json` CloudFront route, which currently returns
    403 while the authenticated S3 pointer remains correct.
-5. Deliberately rework the archived property/farming changes or leave them
+6. Deliberately rework the archived property/farming changes or leave them
    archived; do not merge the old patch as if it were finished.
-6. Continue real game content, balance, onboarding, performance budgets, and
+7. Continue real game content, balance, onboarding, performance budgets, and
    focused visual gates. The systems breadth is ahead of the playable content.
 
 The development source may contain documentation or site changes newer than the deployed

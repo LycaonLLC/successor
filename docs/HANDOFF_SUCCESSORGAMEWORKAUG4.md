@@ -4,6 +4,10 @@ Status: development-source handoff. This note does not override
 `CANONICAL_CONTEXT.md`, `CURRENT_PROJECT_STATE.md`, `CURRENT_DEPLOYMENT.md`, or
 `VERIFICATION.md`.
 
+This is a historical wave record. For the current native login/roster/creator
+continuation, start with `HANDOFF_NATIVE_FIRST_ENTRY_20260807.md`; deployment
+claims below were superseded by `CURRENT_DEPLOYMENT.md`.
+
 ## Resume point
 
 - Working branch: `integration/rust-ui-runtime-20260803`

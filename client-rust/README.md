@@ -87,6 +87,12 @@ a loopback authority (`pnpm server:local:persistent`, port 28093).
 `--release <dir>` serves an assembled release directory instead, including its
 `/objects/<sha256>` content-addressed namespace.
 
+The production-capability native binary does not yet own account login. An
+ordinary launch requires `--launch-context <json-or-file>`; `--demo pregame`
+is a `dev-tools` presentation harness with no account or roster authority.
+Continue the real callsign/password, roster, creator, and play-ticket path from
+`../docs/HANDOFF_NATIVE_FIRST_ENTRY_20260807.md`.
+
 ## Web release assembly and staged loading
 
 `make web-release` (or `node tools/web-release.mjs ...`) assembles the
