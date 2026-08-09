@@ -706,18 +706,14 @@ impl WindowManager {
         self.captured
     }
 
-    /// Whether an open frame sits under this point right now.
+    /// Whether any visible open frame sits under this point right now.
     ///
-    /// `pointer_captured` only latches on the frame a press is processed, and
-    /// the host reads it before the windows run, so on the press itself it
-    /// still reads false and the click reaches the world behind the panel.
-    /// This is the same hit test the press uses, answerable at any time.
+    /// Interaction state controls workspace drag/resize behavior, not pointer
+    /// ownership. Locked HUD panes still contain live controls and must shield
+    /// the world from the same press.
     pub fn covers(&self, x: f32, y: f32) -> bool {
         self.wins.iter().any(|win| {
-            win.open
-                && win.interactive
-                && !win.iconified
-                && UiBuilder::hit(win.x, win.y, win.w, win.h, x, y)
+            win.open && !win.iconified && UiBuilder::hit(win.x, win.y, win.w, win.h, x, y)
         })
     }
 
@@ -1189,8 +1185,8 @@ mod tests {
         );
     }
 
-    /// HUD panes register chromeless and non-interactive: gameplay keeps the
-    /// pointer until the pane is unlocked, and then the whole body drags.
+    /// HUD panes register chromeless and non-interactive: locked panes shield
+    /// the world but do not move until explicitly unlocked.
     #[test]
     fn chromeless_pane_takes_no_pointer_until_unlocked() {
         let mut m = wm();
@@ -1203,7 +1199,14 @@ mod tests {
         ui.set_input(200.0, 200.0, true);
         ui.begin(1280, 720);
         m.update(&ui, 1280, 720);
-        assert!(!m.pointer_captured(), "a locked HUD pane must pass clicks");
+        assert!(
+            !m.pointer_captured(),
+            "a locked HUD pane must not start a workspace gesture"
+        );
+        assert!(
+            m.covers(200.0, 200.0),
+            "a visible HUD pane must shield the world"
+        );
         ui.set_input(240.0, 230.0, true);
         ui.begin(1280, 720);
         m.update(&ui, 1280, 720);

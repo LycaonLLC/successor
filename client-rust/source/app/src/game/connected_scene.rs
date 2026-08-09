@@ -3203,20 +3203,19 @@ impl ConnectedScene {
                 return None;
             }
         }
-        if captured || self.wm.covers(x, y) {
-            return None;
-        }
-        let picked_actor = self.actor_id_at_pointer(x, y).map(str::to_owned);
         if right_pressed && !left {
-            // A right-click on a HUD pane toggles that pane's layout lock, the
-            // original's per-window `window_lock` / `window_unlock` control.
-            // It is consumed here, before actor/context routing can see it.
+            // A right-click on a HUD pane toggles its layout lock and belongs
+            // to that pane regardless of its current interaction state.
             if hud::toggle_hud_surface_lock_at(&mut self.wm, x, y).is_some() {
                 self.window_layout_dirty = true;
                 self.hud_layout_input_consumed = true;
                 return None;
             }
         }
+        if captured || self.wm.covers(x, y) {
+            return None;
+        }
+        let picked_actor = self.actor_id_at_pointer(x, y).map(str::to_owned);
         if right_pressed && !left {
             if let Some(target_id) = picked_actor.clone() {
                 self.selected_actor_id = Some(target_id.clone());
@@ -3860,12 +3859,8 @@ impl ConnectedScene {
                     pending_equipment.push(worn_piece.item_id.clone());
                     continue;
                 }
-                crate::assets::stream::Streamed::Ready(piece) => piece.map(|piece| {
-                    (
-                        piece.part_meshes.clone(),
-                        piece.part_material_names.clone(),
-                    )
-                }),
+                crate::assets::stream::Streamed::Ready(piece) => piece
+                    .map(|piece| (piece.part_meshes.clone(), piece.part_material_names.clone())),
             };
             let Some((part_meshes, material_names)) = loaded else {
                 continue;
@@ -4005,9 +4000,7 @@ impl ConnectedScene {
                     .map(|bone| (bone, stow.mount, stow.arc_lift))
             });
         let weapon = resolved_weapon
-            .map(|(parts, held, _, plasma_blade_part, _)| {
-                (parts, held, plasma_blade_part)
-            })
+            .map(|(parts, held, _, plasma_blade_part, _)| (parts, held, plasma_blade_part))
             .zip(hand)
             .map(|((parts, held, plasma_blade_part), hand)| {
                 let mut weapon_entities = Vec::with_capacity(parts.len());

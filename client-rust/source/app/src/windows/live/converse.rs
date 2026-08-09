@@ -25,7 +25,7 @@ pub fn converse(ui: &mut UiBuilder, ctx: Ctx, model: &WindowModel, out: &mut Vec
         #[cfg(feature = "dev-tools")]
         {
             let mut rows = Rows::new([x, y + metrics.row_h, w, h - metrics.row_h], metrics);
-            if let Some(mut row) = rows.next(ui) {
+            if let Some(row) = rows.next(ui) {
                 row.label_tinted(ui, "CHARACTER BUILDER", crate::windows::accent());
                 if row.clicked(ui) {
                     super::builder::with_state(|state| state.opened = true);

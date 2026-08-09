@@ -71,11 +71,16 @@ fn main() {
     // A durable roster character must join by `characterId`: the shard rejects
     // the bare `{playerId, actorId}` dev shape for any id its character store
     // already owns ("durable character identity required").
+    #[cfg(feature = "dev-tools")]
     let character_arg = arg_value(&args, "--character-id");
-    let spawn_area_arg = arg_value(&args, "--spawn-area");
-    let spawn_x_arg = arg_value(&args, "--spawn-x");
-    let spawn_y_arg = arg_value(&args, "--spawn-y");
-    let spawn_facing_arg = arg_value(&args, "--spawn-facing");
+    #[cfg(feature = "dev-tools")]
+    let (spawn_area_arg, spawn_x_arg, spawn_y_arg, spawn_facing_arg) = (
+        arg_value(&args, "--spawn-area"),
+        arg_value(&args, "--spawn-x"),
+        arg_value(&args, "--spawn-y"),
+        arg_value(&args, "--spawn-facing"),
+    );
+    #[cfg(feature = "dev-tools")]
     let dev_spawn = match (
         spawn_area_arg.as_deref(),
         spawn_x_arg.as_deref(),

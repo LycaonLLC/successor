@@ -14,7 +14,7 @@ use std::cell::RefCell;
 
 use crate::windows::chrome::{self, Rows};
 use crate::windows::spec::Metrics;
-use crate::windows::{accent, dim, label, value, WindowAction};
+use crate::windows::{accent, dim, value, WindowAction};
 use successor_engine_render::ui::UiBuilder;
 use successor_net::ClientCommand;
 
@@ -290,20 +290,20 @@ fn draw_state(
                 ("SKILLS", Page::Professions),
                 ("CREDITS", Page::Credits),
             ] {
-                let Some(mut row) = rows.next(ui) else { break };
+                let Some(row) = rows.next(ui) else { break };
                 row.label(ui, title);
                 if row.clicked(ui) {
                     state.page = page;
                 }
             }
-            if let Some(mut row) = rows.next(ui) {
+            if let Some(row) = rows.next(ui) {
                 row.label(ui, "CLOSE BUILDER");
                 if row.clicked(ui) {
                     open = false;
                 }
             }
             if let Some(result) = &state.last_result {
-                if let Some(mut row) = rows.next(ui) {
+                if let Some(row) = rows.next(ui) {
                     row.label_tinted(ui, result, accent());
                 }
             }
@@ -362,7 +362,7 @@ fn draw_state(
         }
         Page::Professions => {
             for profession in state.catalog.professions.clone() {
-                let Some(mut row) = rows.next(ui) else { break };
+                let Some(row) = rows.next(ui) else { break };
                 row.label(ui, &profession.to_ascii_uppercase());
                 if row.clicked(ui) {
                     state.page = Page::Skills(profession);
@@ -379,7 +379,7 @@ fn draw_state(
                 .collect();
             // Whole-profession tick first: the common case is "give me this
             // profession", not twenty individual boxes.
-            if let Some(mut row) = rows.next(ui) {
+            if let Some(row) = rows.next(ui) {
                 let all = boxes.iter().all(|(id, _)| state.skills.contains(id));
                 row.label_tinted(ui, &format!("{} ENTIRE PROFESSION", tick(all)), accent());
                 if row.clicked(ui) {
@@ -392,7 +392,7 @@ fn draw_state(
                 }
             }
             for (id, title) in boxes {
-                let Some(mut row) = rows.next(ui) else { break };
+                let Some(row) = rows.next(ui) else { break };
                 let ticked = state.skills.contains(&id);
                 row.label(ui, &format!("{} {title}", tick(ticked)));
                 if row.clicked(ui) {
@@ -406,13 +406,13 @@ fn draw_state(
                 row.label(ui, "AMOUNT");
             }
             for amount in [1_000i64, 10_000, 100_000, 1_000_000] {
-                let Some(mut row) = rows.next(ui) else { break };
+                let Some(row) = rows.next(ui) else { break };
                 row.label(ui, &format!("SET {amount} CR"));
                 if row.clicked(ui) {
                     state.credits = amount;
                 }
             }
-            if let Some(mut row) = rows.next(ui) {
+            if let Some(row) = rows.next(ui) {
                 row.label_tinted(ui, "GIVE CREDITS", accent());
                 if row.clicked(ui) {
                     out.push(WindowAction::Command(ClientCommand::DebugGiveCredits {
@@ -421,7 +421,7 @@ fn draw_state(
                     state.last_result = Some(format!("GAVE {} CR", state.credits));
                 }
             }
-            if let Some(mut row) = rows.next(ui) {
+            if let Some(row) = rows.next(ui) {
                 row.label_tinted(ui, "DRAIN WALLET", dim());
                 if row.clicked(ui) {
                     out.push(WindowAction::Command(ClientCommand::DebugGiveCredits {
