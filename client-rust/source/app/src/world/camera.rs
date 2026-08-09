@@ -16,6 +16,8 @@ const BASE_FRUSTUM_HEIGHT_CELLS: f32 = 12.5;
 const MIN_ZOOM_PERCENT: f32 = 55.0;
 const MAX_ZOOM_PERCENT: f32 = 140.0;
 const FOLLOW_LERP_PER_SECOND: f32 = 12.0;
+const FOLLOW_HALF_LIFE_SECONDS: f32 = core::f32::consts::LN_2 / FOLLOW_LERP_PER_SECOND;
+
 pub const NEAR: f32 = 0.1;
 pub const FAR: f32 = 320.0;
 
@@ -31,6 +33,13 @@ pub fn camera_offset() -> Vec3 {
     let horizontal = pitch.cos() * distance;
     let height = pitch.sin() * distance;
     vec3(yaw.sin() * horizontal, height, yaw.cos() * horizontal)
+}
+/// Move a camera anchor toward its target with a frame-rate-independent
+/// exponential response.
+pub(crate) fn smooth_follow(current: Vec3, desired: Vec3, dt_seconds: f32) -> Vec3 {
+    let alpha =
+        1.0 - (-core::f32::consts::LN_2 * dt_seconds.max(0.0) / FOLLOW_HALF_LIFE_SECONDS).exp();
+    current.add(desired.sub(current).scale(alpha))
 }
 
 pub struct IsoCamera {
@@ -75,8 +84,7 @@ impl IsoCamera {
             self.center = desired;
             self.initialized = true;
         } else {
-            let alpha = 1.0 - (-FOLLOW_LERP_PER_SECOND * dt_seconds.max(0.0)).exp();
-            self.center = self.center.add(desired.sub(self.center).scale(alpha));
+            self.center = smooth_follow(self.center, desired, dt_seconds);
         }
     }
 
@@ -156,14 +164,31 @@ mod tests {
     }
 
     #[test]
-    fn follow_snaps_then_converges() {
+    fn follow_snaps_then_converges_without_overshoot() {
         let mut c = IsoCamera::default();
         c.update_focus(10.0, 20.0, 0.016);
-        assert_eq!(c.center(), vec3(10.0, 0.0, 20.0)); // first call snaps
-                                                       // Move target; center should approach but not overshoot.
-        for _ in 0..200 {
-            c.update_focus(30.0, 20.0, 0.016);
-        }
-        assert!((c.center().x - 30.0).abs() < 0.1);
+        assert_eq!(c.center(), vec3(10.0, 0.0, 20.0));
+        c.update_focus(30.0, 20.0, 0.016);
+        assert!(c.center().x > 10.0);
+        assert!(c.center().x < 30.0);
+    }
+
+    #[test]
+    fn exponential_follow_halves_error_each_half_life() {
+        let current = Vec3::ZERO;
+        let desired = vec3(10.0, -4.0, 2.0);
+        let next = smooth_follow(current, desired, FOLLOW_HALF_LIFE_SECONDS);
+        let expected = desired.scale(0.5);
+        assert!(next.sub(expected).length() < 1.0e-5);
+    }
+
+    #[test]
+    fn exponential_follow_is_frame_rate_independent() {
+        let current = vec3(-3.0, 2.0, 7.0);
+        let desired = vec3(12.0, -4.0, -5.0);
+        let one_step = smooth_follow(current, desired, 0.1);
+        let half_step = smooth_follow(current, desired, 0.05);
+        let two_steps = smooth_follow(half_step, desired, 0.05);
+        assert!(one_step.sub(two_steps).length() < 1.0e-5);
     }
 }

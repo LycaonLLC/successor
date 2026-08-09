@@ -44,6 +44,7 @@ use crate::pawn::animator::{weapon_hand_bone, PawnAnimator, WeaponLane};
 use crate::pawn::appearance::{faction_tinted, skin_tint, weapon_lane};
 use crate::pawn::catalog::{route_for, BodyRoute, PawnCatalog, SupportArmPosture};
 use crate::world::area::{biome_for_area, effective_world_seed};
+use crate::world::camera::smooth_follow;
 use crate::world::chunks::TerrainStreamer;
 use crate::world::collision_debug::CollisionDebugOverlay;
 use crate::world::environs::Environs;
@@ -851,6 +852,10 @@ pub struct ConnectedScene {
     carried_motion: HashMap<String, CarriedMotion>,
     stale_pawns: Vec<String>,
     center: Vec3,
+    /// Smoothed camera anchor. Gameplay, streaming, and GI continue to use
+    /// `center`, which is the player's exact rendered position.
+    camera_center: Vec3,
+    camera_follow_initialized: bool,
     follow: Entity,
     sun: Entity,
     combat_fx: CombatFx,
@@ -1453,6 +1458,8 @@ impl ConnectedScene {
             ambience_roll: 0,
             area_id: String::new(),
             center,
+            camera_center: center,
+            camera_follow_initialized: false,
             muzzle_lights: Vec::with_capacity(32),
             sim_time: 0.0,
             last_frame_dt: 0.0,
@@ -4184,6 +4191,9 @@ impl ConnectedScene {
             .rebuild(&self.slice, &area_id, &self.collision_debug);
         self.terrain = terrain;
         self.loaded_area_id = area_id;
+        // Crossing an area boundary is a teleport, not movement to trail.
+        self.camera_center = player;
+        self.camera_follow_initialized = true;
         // Region-streamed props: place whatever of the destination spawn
         // neighborhood is already cached, queue the rest, and hold the travel
         // transition until the neighborhood settles (deadline: fail-closed
@@ -4666,15 +4676,22 @@ impl ConnectedScene {
             }
         }
 
-        // 3) Cameras track the player's terrain elevation and eye-level focus.
+        // 3) Camera trails the player's rendered position exponentially while
+        // gameplay, streaming, and GI stay anchored to the exact position.
 
         let p = self.player_pos();
-        let focus = follow_focus(p);
         self.center = p;
         self.renderer.gi_set_focus([p.x, p.y, p.z]);
+        if self.camera_follow_initialized {
+            self.camera_center = smooth_follow(self.camera_center, p, dt);
+        } else {
+            self.camera_center = p;
+            self.camera_follow_initialized = true;
+        }
+        let focus = follow_focus(self.camera_center);
         let eye = match self.debug_camera {
-            Some(orbit) => orbit.eye(p),
-            None => follow_eye(p),
+            Some(orbit) => orbit.eye(self.camera_center),
+            None => follow_eye(self.camera_center),
         };
         if let Some(cam) = self.world.get_component::<Camera>(self.follow) {
             cam.look_at = focus;
@@ -5026,15 +5043,14 @@ impl ConnectedScene {
             .emit_into(self.combat_fx.pool_mut(), [p.x, 0.0, p.z], 40.0);
         self.combat_fx.update(dt);
         self.decay_muzzle_lights(dt);
-        let eye = follow_eye(p);
-        let fwd = focus.sub(eye).normalize();
-        let right = fwd.cross(Vec3::Y).normalize();
-        let up = right.cross(fwd);
         let camera = self
             .world
             .get_component::<Camera>(self.follow)
             .copied()
             .expect("follow camera exists");
+        let fwd = camera.look_at.sub(camera.eye).normalize();
+        let right = fwd.cross(Vec3::Y).normalize();
+        let up = right.cross(fwd);
         let Projection::Ortho {
             half_height,
             near,
