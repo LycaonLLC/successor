@@ -425,6 +425,10 @@ impl Gpu for GlGpu {
 
         let mut mask = 0;
         if let Some(color) = clear.color {
+            // glClear respects the active color write mask. A depth-only pass
+            // leaves it disabled, so restore it before clearing the next
+            // framebuffer; the next pipeline will apply its own mask.
+            gl::color_mask(true, true, true, true);
             gl::clear_color(color[0], color[1], color[2], color[3]);
             mask |= gl::COLOR_BUFFER_BIT;
         }
