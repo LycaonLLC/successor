@@ -36,6 +36,7 @@
    "id": "armor_harness",
    "slot": "armor_harness",
    "glb": "Armor/Harness.glb",
+   "glbFemale": "Female/Armor/Harness.glb",
    "meshes": [
     "harness"
    ]
@@ -47,6 +48,7 @@
    "id": "armor_nape_reinforcement",
    "slot": "armor_nape_reinforcement",
    "glb": "Armor/Nape_Reinforcement.glb",
+   "glbFemale": "Female/Armor/Nape_Reinforcement.glb",
    "meshes": [
     "backtop"
    ],
@@ -61,6 +63,7 @@
    "id": "armor_reinforcement",
    "slot": "armor_reinforcement",
    "glb": "Armor/Reinforcement.glb",
+   "glbFemale": "Female/Armor/Reinforcement.glb",
    "meshes": [
     "bp"
    ],
@@ -75,6 +78,7 @@
    "id": "armor_gorget",
    "slot": "armor_gorget",
    "glb": "Armor/Gorget.glb",
+   "glbFemale": "Female/Armor/Gorget.glb",
    "meshes": [
     "collar_l",
     "collar_r",
@@ -92,6 +96,7 @@
    "id": "armor_bicep_l",
    "slot": "armor_bicep_l",
    "glb": "Armor/Bicep_L.glb",
+   "glbFemale": "Female/Armor/Bicep_L.glb",
    "meshes": [
     "shoulderpad_l",
     "uparm_l"
@@ -104,6 +109,7 @@
    "id": "armor_bicep_r",
    "slot": "armor_bicep_r",
    "glb": "Armor/Bicep_R.glb",
+   "glbFemale": "Female/Armor/Bicep_R.glb",
    "meshes": [
     "shoulderpad_r",
     "uparm_r"
@@ -116,6 +122,7 @@
    "id": "helmet_a",
    "slot": "cranium",
    "glb": "Armor/Helmet_A.glb",
+   "glbFemale": "Female/Armor/Helmet_A.glb",
    "meshes": [
     "helmet"
    ]
@@ -127,6 +134,7 @@
    "id": "helmet_b",
    "slot": "cranium",
    "glb": "Armor/Helmet_B.glb",
+   "glbFemale": "Female/Armor/Helmet_B.glb",
    "meshes": [
     "helmet"
    ]
@@ -138,6 +146,7 @@
    "id": "helmet_c",
    "slot": "cranium",
    "glb": "Armor/Helmet_C.glb",
+   "glbFemale": "Female/Armor/Helmet_C.glb",
    "meshes": [
     "helmet"
    ]
@@ -149,6 +158,7 @@
    "id": "helmet_d",
    "slot": "cranium",
    "glb": "Armor/Helmet_D.glb",
+   "glbFemale": "Female/Armor/Helmet_D.glb",
    "meshes": [
     "helmet"
    ]
@@ -160,6 +170,7 @@
    "id": "helmet_v1port",
    "slot": "cranium",
    "glb": "Armor/Helmet_V1PORT.glb",
+   "glbFemale": "Female/Armor/Helmet_V1PORT.glb",
    "meshes": [
     "helmet"
    ]
@@ -171,6 +182,7 @@
    "id": "helmet_s1",
    "slot": "cranium",
    "glb": "Armor/Helmet_S1.glb",
+   "glbFemale": "Female/Armor/Helmet_S1.glb",
    "meshes": [
     "helmet"
    ]
@@ -182,6 +194,7 @@
    "id": "helmet_s2",
    "slot": "cranium",
    "glb": "Armor/Helmet_S2.glb",
+   "glbFemale": "Female/Armor/Helmet_S2.glb",
    "meshes": [
     "helmet"
    ]
@@ -193,6 +206,7 @@
    "id": "helmet_s3",
    "slot": "cranium",
    "glb": "Armor/Helmet_S3.glb",
+   "glbFemale": "Female/Armor/Helmet_S3.glb",
    "meshes": [
     "helmet"
    ]
@@ -205,6 +219,7 @@
    "slot": "cranium",
    "mat": "wool_felt",
    "glb": "Under/Hat_Warm.glb",
+   "glbFemale": "Female/Under/Hat_Warm.glb",
    "meshes": [
     "warmhat"
    ]
@@ -226,6 +241,7 @@
    "id": "under_tank",
    "slot": "under_torso",
    "glb": "Under/Tank.glb",
+   "glbFemale": "Female/Under/Tank.glb",
    "meshes": [
     "tank"
    ]
@@ -237,6 +253,7 @@
    "id": "under_shorts",
    "slot": "under_legs",
    "glb": "Under/Shorts.glb",
+   "glbFemale": "Female/Under/Shorts.glb",
    "meshes": [
     "shorts"
    ]
@@ -249,6 +266,7 @@
    "slot": "cranium",
    "mat": "hair_umber",
    "glb": "Under/Hair_Mop.glb",
+   "glbFemale": "Female/Under/Hair_Mop.glb",
    "meshes": [
     "hair_mop_shell"
    ]
@@ -261,6 +279,7 @@
    "slot": "cranium",
    "mat": "hair_umber",
    "glb": "Under/Hair_Afro.glb",
+   "glbFemale": "Female/Under/Hair_Afro.glb",
    "meshes": [
     "hair_afro2"
    ]
@@ -273,6 +292,7 @@
    "slot": "cranium",
    "mat": "hair_chestnut",
    "glb": "Under/Hair_Crop.glb",
+   "glbFemale": "Female/Under/Hair_Crop.glb",
    "meshes": [
     "hair_crop2"
    ]
@@ -285,6 +305,7 @@
    "slot": "under_full",
    "mat": "cotton_jersey",
    "glb": "Under/under_bodysuit.glb",
+   "glbFemale": "Female/Under/under_bodysuit.glb",
    "meshes": [
     "bodysuit"
    ],
@@ -300,7 +321,19 @@
      }
     ]
    },
-   "note": "full-body under garment (neck->wrists->ankles); fixed-issue starter suit — occupies the whole under layer (under_full slot)"
+   "note": "full-body under garment (neck->wrists->ankles); fixed-issue starter suit — occupies the whole under layer (under_full slot)",
+   "hideBodyZones": [
+    "torso",
+    "pelvis",
+    "left_upper_arm",
+    "right_upper_arm",
+    "left_forearm",
+    "right_forearm",
+    "left_thigh",
+    "right_thigh",
+    "left_calf",
+    "right_calf"
+   ]
   },
   {
    "layer": "Armor",
@@ -310,6 +343,7 @@
    "slot": "cranium",
    "mat": "smooth_steel",
    "glb": "Armor/trial_helm_a.glb",
+   "glbFemale": "Female/Armor/trial_helm_a.glb",
    "meshes": [
     "trial_helm_a"
    ],
@@ -323,6 +357,7 @@
    "slot": "cranium",
    "mat": "smooth_steel",
    "glb": "Armor/trial_helm_b.glb",
+   "glbFemale": "Female/Armor/trial_helm_b.glb",
    "meshes": [
     "trial_helm_b"
    ],
@@ -336,6 +371,7 @@
    "slot": "cranium",
    "mat": "smooth_steel",
    "glb": "Armor/trial_helm_c.glb",
+   "glbFemale": "Female/Armor/trial_helm_c.glb",
    "meshes": [
     "trial_helm_c"
    ],
@@ -349,6 +385,7 @@
    "slot": "cranium",
    "mat": "smooth_steel",
    "glb": "Armor/trial_helm_d.glb",
+   "glbFemale": "Female/Armor/trial_helm_d.glb",
    "meshes": [
     "trial_helm_d"
    ],
@@ -362,6 +399,7 @@
    "slot": "cranium",
    "mat": "cotton_jersey",
    "glb": "Armor/trial_hood_a.glb",
+   "glbFemale": "Female/Armor/trial_hood_a.glb",
    "meshes": [
     "trial_hood_a"
    ],
@@ -375,6 +413,7 @@
    "slot": "face",
    "mat": "smooth_steel",
    "glb": "Armor/trial_visor_a.glb",
+   "glbFemale": "Female/Armor/trial_visor_a.glb",
    "meshes": [
     "trial_visor_a"
    ],
@@ -388,6 +427,7 @@
    "slot": "face",
    "mat": "smooth_steel",
    "glb": "Armor/trial_mask_b.glb",
+   "glbFemale": "Female/Armor/trial_mask_b.glb",
    "meshes": [
     "trial_mask_b"
    ],
@@ -401,6 +441,7 @@
    "slot": "back",
    "mat": "smooth_steel",
    "glb": "Armor/trial_back_a.glb",
+   "glbFemale": "Female/Armor/trial_back_a.glb",
    "meshes": [
     "trial_back_a"
    ],
@@ -414,6 +455,7 @@
    "slot": "back",
    "mat": "cotton_jersey",
    "glb": "Armor/trial_back_b.glb",
+   "glbFemale": "Female/Armor/trial_back_b.glb",
    "meshes": [
     "trial_back_b"
    ],
@@ -427,6 +469,7 @@
    "slot": "hip",
    "mat": "smooth_steel",
    "glb": "Armor/trial_hip_front_a.glb",
+   "glbFemale": "Female/Armor/trial_hip_front_a.glb",
    "meshes": [
     "trial_hip_front_a"
    ],
@@ -440,6 +483,7 @@
    "slot": "hip",
    "mat": "smooth_steel",
    "glb": "Armor/trial_hip_back_a.glb",
+   "glbFemale": "Female/Armor/trial_hip_back_a.glb",
    "meshes": [
     "trial_hip_back_a"
    ],
@@ -453,6 +497,7 @@
    "slot": "hip",
    "mat": "smooth_steel",
    "glb": "Armor/trial_hip_side_a.glb",
+   "glbFemale": "Female/Armor/trial_hip_side_a.glb",
    "meshes": [
     "trial_hip_side_a"
    ],
@@ -466,6 +511,7 @@
    "slot": "cranium",
    "mat": "hair_umber",
    "glb": "Armor/trial_hair_a.glb",
+   "glbFemale": "Female/Armor/trial_hair_a.glb",
    "meshes": [
     "trial_hair_a"
    ],
@@ -479,6 +525,7 @@
    "slot": "cranium",
    "mat": "hair_chestnut",
    "glb": "Armor/trial_hair_b.glb",
+   "glbFemale": "Female/Armor/trial_hair_b.glb",
    "meshes": [
     "trial_hair_b"
    ],
@@ -492,6 +539,7 @@
    "slot": "cranium",
    "mat": "hair_umber",
    "glb": "Armor/trial_hair_c.glb",
+   "glbFemale": "Female/Armor/trial_hair_c.glb",
    "meshes": [
     "trial_hair_c"
    ],
@@ -505,6 +553,7 @@
    "slot": "cranium",
    "mat": "hair_chestnut",
    "glb": "Armor/trial_hair_d.glb",
+   "glbFemale": "Female/Armor/trial_hair_d.glb",
    "meshes": [
     "trial_hair_d"
    ],
@@ -517,6 +566,7 @@
    "id": "under_scfi_top",
    "slot": "under_torso",
    "glb": "Under/SCFI_Top_Refit.glb",
+   "glbFemale": "Female/Under/SCFI_Top_Refit.glb",
    "meshes": [
     "SK_SCFI_CIVL_01_10TORS_HU01.fbx__Mesh",
     "SK_SCFI_CIVL_01_11AUPL_HU01.fbx__Mesh",
@@ -534,6 +584,7 @@
    "id": "under_scfi_pants",
    "slot": "under_legs",
    "glb": "Under/SCFI_Pants_Refit.glb",
+   "glbFemale": "Female/Under/SCFI_Pants_Refit.glb",
    "meshes": [
     "SK_SCFI_CIVL_01_17HIPS_HU01.fbx__Mesh",
     "SK_SCFI_CIVL_01_18LEGL_HU01.fbx__Mesh",
@@ -549,6 +600,7 @@
    "id": "top_rigged_tank",
    "slot": "under_torso",
    "glb": "Under/top_rigged_tank.glb",
+   "glbFemale": "Female/Under/top_rigged_tank.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -578,6 +630,7 @@
    "id": "top_frayed_tunic",
    "slot": "under_torso",
    "glb": "Under/top_frayed_tunic.glb",
+   "glbFemale": "Female/Under/top_frayed_tunic.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -599,6 +652,7 @@
    "id": "top_plated_rig_vest",
    "slot": "under_torso",
    "glb": "Under/top_plated_rig_vest.glb",
+   "glbFemale": "Female/Under/top_plated_rig_vest.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -636,6 +690,7 @@
    "id": "top_padded_leather_vest",
    "slot": "under_torso",
    "glb": "Under/top_padded_leather_vest.glb",
+   "glbFemale": "Female/Under/top_padded_leather_vest.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -665,6 +720,7 @@
    "id": "top_spiked_leather_vest",
    "slot": "under_torso",
    "glb": "Under/top_spiked_leather_vest.glb",
+   "glbFemale": "Female/Under/top_spiked_leather_vest.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -694,6 +750,7 @@
    "id": "top_reinforced_crop_vest",
    "slot": "under_torso",
    "glb": "Under/top_reinforced_crop_vest.glb",
+   "glbFemale": "Female/Under/top_reinforced_crop_vest.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -731,6 +788,7 @@
    "id": "top_scrap_plate_tunic",
    "slot": "under_torso",
    "glb": "Under/top_scrap_plate_tunic.glb",
+   "glbFemale": "Female/Under/top_scrap_plate_tunic.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -768,6 +826,7 @@
    "id": "top_laced_corset_vest",
    "slot": "under_torso",
    "glb": "Under/top_laced_corset_vest.glb",
+   "glbFemale": "Female/Under/top_laced_corset_vest.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -805,6 +864,7 @@
    "id": "legs_wrapped_workpants",
    "slot": "under_legs",
    "glb": "Under/legs_wrapped_workpants.glb",
+   "glbFemale": "Female/Under/legs_wrapped_workpants.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -842,6 +902,7 @@
    "id": "legs_reinforced_denim_pants",
    "slot": "under_legs",
    "glb": "Under/legs_reinforced_denim_pants.glb",
+   "glbFemale": "Female/Under/legs_reinforced_denim_pants.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -871,6 +932,7 @@
    "id": "legs_plated_trousers",
    "slot": "under_legs",
    "glb": "Under/legs_plated_trousers.glb",
+   "glbFemale": "Female/Under/legs_plated_trousers.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -900,6 +962,7 @@
    "id": "legs_layered_shorts",
    "slot": "under_legs",
    "glb": "Under/legs_layered_shorts.glb",
+   "glbFemale": "Female/Under/legs_layered_shorts.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -938,6 +1001,7 @@
    "id": "legs_strapped_trousers",
    "slot": "under_legs",
    "glb": "Under/legs_strapped_trousers.glb",
+   "glbFemale": "Female/Under/legs_strapped_trousers.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -975,6 +1039,7 @@
    "id": "legs_skirted_workpants",
    "slot": "under_legs",
    "glb": "Under/legs_skirted_workpants.glb",
+   "glbFemale": "Female/Under/legs_skirted_workpants.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1012,6 +1077,7 @@
    "id": "legs_gaitered_cargo_pants",
    "slot": "under_legs",
    "glb": "Under/legs_gaitered_cargo_pants.glb",
+   "glbFemale": "Female/Under/legs_gaitered_cargo_pants.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1041,6 +1107,7 @@
    "id": "legs_padded_canvas_trousers",
    "slot": "under_legs",
    "glb": "Under/legs_padded_canvas_trousers.glb",
+   "glbFemale": "Female/Under/legs_padded_canvas_trousers.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1070,6 +1137,7 @@
    "id": "legs_sashed_patrol_pants",
    "slot": "under_legs",
    "glb": "Under/legs_sashed_patrol_pants.glb",
+   "glbFemale": "Female/Under/legs_sashed_patrol_pants.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1107,6 +1175,7 @@
    "id": "legs_layered_wrap_skirt",
    "slot": "under_legs",
    "glb": "Under/legs_layered_wrap_skirt.glb",
+   "glbFemale": "Female/Under/legs_layered_wrap_skirt.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1144,6 +1213,7 @@
    "id": "boots_canvas_ankle",
    "slot": "under_feet",
    "glb": "Under/boots_canvas_ankle.glb",
+   "glbFemale": "Female/Under/boots_canvas_ankle.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1164,7 +1234,11 @@
       "default": "#808080"
      }
     ]
-   }
+   },
+   "hideBodyZones": [
+    "left_foot",
+    "right_foot"
+   ]
   },
   {
    "layer": "Under",
@@ -1173,6 +1247,7 @@
    "id": "boots_layered_sneakers",
    "slot": "under_feet",
    "glb": "Under/boots_layered_sneakers.glb",
+   "glbFemale": "Female/Under/boots_layered_sneakers.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1202,6 +1277,7 @@
    "id": "boots_split_toe",
    "slot": "under_feet",
    "glb": "Under/boots_split_toe.glb",
+   "glbFemale": "Female/Under/boots_split_toe.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1231,6 +1307,7 @@
    "id": "boots_trail_shoes",
    "slot": "under_feet",
    "glb": "Under/boots_trail_shoes.glb",
+   "glbFemale": "Female/Under/boots_trail_shoes.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1260,6 +1337,7 @@
    "id": "boots_double_strap",
    "slot": "under_feet",
    "glb": "Under/boots_double_strap.glb",
+   "glbFemale": "Female/Under/boots_double_strap.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1289,6 +1367,7 @@
    "id": "boots_rubberized_canvas",
    "slot": "under_feet",
    "glb": "Under/boots_rubberized_canvas.glb",
+   "glbFemale": "Female/Under/boots_rubberized_canvas.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1318,6 +1397,7 @@
    "id": "boots_toe_capped",
    "slot": "under_feet",
    "glb": "Under/boots_toe_capped.glb",
+   "glbFemale": "Female/Under/boots_toe_capped.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1339,6 +1419,7 @@
    "id": "boots_combat_sneakers",
    "slot": "under_feet",
    "glb": "Under/boots_combat_sneakers.glb",
+   "glbFemale": "Female/Under/boots_combat_sneakers.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1368,6 +1449,7 @@
    "id": "boots_cuffed_runners",
    "slot": "under_feet",
    "glb": "Under/boots_cuffed_runners.glb",
+   "glbFemale": "Female/Under/boots_cuffed_runners.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1397,6 +1479,7 @@
    "id": "boots_reinforced_street",
    "slot": "under_feet",
    "glb": "Under/boots_reinforced_street.glb",
+   "glbFemale": "Female/Under/boots_reinforced_street.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1426,6 +1509,7 @@
    "id": "gloves_knuckled_half",
    "slot": "under_hands",
    "glb": "Under/gloves_knuckled_half.glb",
+   "glbFemale": "Female/Under/gloves_knuckled_half.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1455,6 +1539,7 @@
    "id": "gloves_guarded_leather",
    "slot": "under_hands",
    "glb": "Under/gloves_guarded_leather.glb",
+   "glbFemale": "Female/Under/gloves_guarded_leather.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1484,6 +1569,7 @@
    "id": "gloves_plain_work",
    "slot": "under_hands",
    "glb": "Under/gloves_plain_work.glb",
+   "glbFemale": "Female/Under/gloves_plain_work.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1505,6 +1591,7 @@
    "id": "gloves_reinforced_knit",
    "slot": "under_hands",
    "glb": "Under/gloves_reinforced_knit.glb",
+   "glbFemale": "Female/Under/gloves_reinforced_knit.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1542,6 +1629,7 @@
    "id": "gloves_light_utility",
    "slot": "under_hands",
    "glb": "Under/gloves_light_utility.glb",
+   "glbFemale": "Female/Under/gloves_light_utility.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1571,6 +1659,7 @@
    "id": "gloves_tipped_work",
    "slot": "under_hands",
    "glb": "Under/gloves_tipped_work.glb",
+   "glbFemale": "Female/Under/gloves_tipped_work.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1600,6 +1689,7 @@
    "id": "gloves_plated_handwraps",
    "slot": "under_hands",
    "glb": "Under/gloves_plated_handwraps.glb",
+   "glbFemale": "Female/Under/gloves_plated_handwraps.glb",
    "meshes": [],
    "palette": {
     "zones": [
@@ -1629,6 +1719,7 @@
    "id": "hair_banded_mohawk",
    "slot": "cranium",
    "glb": "Under/hair_banded_mohawk.glb",
+   "glbFemale": "Female/Under/hair_banded_mohawk.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1639,6 +1730,7 @@
    "id": "hair_spiked_topknot",
    "slot": "cranium",
    "glb": "Under/hair_spiked_topknot.glb",
+   "glbFemale": "Female/Under/hair_spiked_topknot.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1649,6 +1741,7 @@
    "id": "hair_twin_pigtails",
    "slot": "cranium",
    "glb": "Under/hair_twin_pigtails.glb",
+   "glbFemale": "Female/Under/hair_twin_pigtails.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1659,6 +1752,7 @@
    "id": "hair_swept_spikes",
    "slot": "cranium",
    "glb": "Under/hair_swept_spikes.glb",
+   "glbFemale": "Female/Under/hair_swept_spikes.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1669,6 +1763,7 @@
    "id": "hair_short_ponytail",
    "slot": "cranium",
    "glb": "Under/hair_short_ponytail.glb",
+   "glbFemale": "Female/Under/hair_short_ponytail.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1679,6 +1774,7 @@
    "id": "hair_spiked_mohawk",
    "slot": "cranium",
    "glb": "Under/hair_spiked_mohawk.glb",
+   "glbFemale": "Female/Under/hair_spiked_mohawk.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1689,6 +1785,7 @@
    "id": "hair_flared_wings",
    "slot": "cranium",
    "glb": "Under/hair_flared_wings.glb",
+   "glbFemale": "Female/Under/hair_flared_wings.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1699,6 +1796,7 @@
    "id": "hair_low_tufts",
    "slot": "cranium",
    "glb": "Under/hair_low_tufts.glb",
+   "glbFemale": "Female/Under/hair_low_tufts.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1709,6 +1807,7 @@
    "id": "hair_swept_bob",
    "slot": "cranium",
    "glb": "Under/hair_swept_bob.glb",
+   "glbFemale": "Female/Under/hair_swept_bob.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1719,6 +1818,7 @@
    "id": "hair_braided_crown",
    "slot": "cranium",
    "glb": "Under/hair_braided_crown.glb",
+   "glbFemale": "Female/Under/hair_braided_crown.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1729,6 +1829,7 @@
    "id": "hair_ridge_mohawk",
    "slot": "cranium",
    "glb": "Under/hair_ridge_mohawk.glb",
+   "glbFemale": "Female/Under/hair_ridge_mohawk.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1739,6 +1840,7 @@
    "id": "hair_side_ponytail",
    "slot": "cranium",
    "glb": "Under/hair_side_ponytail.glb",
+   "glbFemale": "Female/Under/hair_side_ponytail.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1749,6 +1851,7 @@
    "id": "hair_split_mohawk",
    "slot": "cranium",
    "glb": "Under/hair_split_mohawk.glb",
+   "glbFemale": "Female/Under/hair_split_mohawk.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1759,6 +1862,7 @@
    "id": "hair_fauxhawk",
    "slot": "cranium",
    "glb": "Under/hair_fauxhawk.glb",
+   "glbFemale": "Female/Under/hair_fauxhawk.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1769,6 +1873,7 @@
    "id": "hair_slicked_crop",
    "slot": "cranium",
    "glb": "Under/hair_slicked_crop.glb",
+   "glbFemale": "Female/Under/hair_slicked_crop.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1779,6 +1884,7 @@
    "id": "hair_side_sweep",
    "slot": "cranium",
    "glb": "Under/hair_side_sweep.glb",
+   "glbFemale": "Female/Under/hair_side_sweep.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1789,6 +1895,7 @@
    "id": "hair_flared_shag",
    "slot": "cranium",
    "glb": "Under/hair_flared_shag.glb",
+   "glbFemale": "Female/Under/hair_flared_shag.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1799,6 +1906,7 @@
    "id": "hair_cropped_buzz",
    "slot": "cranium",
    "glb": "Under/hair_cropped_buzz.glb",
+   "glbFemale": "Female/Under/hair_cropped_buzz.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1809,6 +1917,7 @@
    "id": "hair_messy_crop",
    "slot": "cranium",
    "glb": "Under/hair_messy_crop.glb",
+   "glbFemale": "Female/Under/hair_messy_crop.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1819,6 +1928,7 @@
    "id": "hair_textured_crop",
    "slot": "cranium",
    "glb": "Under/hair_textured_crop.glb",
+   "glbFemale": "Female/Under/hair_textured_crop.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1829,6 +1939,7 @@
    "id": "hair_shoulder_shag",
    "slot": "cranium",
    "glb": "Under/hair_shoulder_shag.glb",
+   "glbFemale": "Female/Under/hair_shoulder_shag.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1839,6 +1950,7 @@
    "id": "hair_messy_side_part",
    "slot": "cranium",
    "glb": "Under/hair_messy_side_part.glb",
+   "glbFemale": "Female/Under/hair_messy_side_part.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1849,6 +1961,7 @@
    "id": "hair_flat_top",
    "slot": "cranium",
    "glb": "Under/hair_flat_top.glb",
+   "glbFemale": "Female/Under/hair_flat_top.glb",
    "meshes": [],
    "mat": "hair_umber"
   },
@@ -1859,6 +1972,7 @@
    "id": "hair_top_patch",
    "slot": "cranium",
    "glb": "Under/hair_top_patch.glb",
+   "glbFemale": "Female/Under/hair_top_patch.glb",
    "meshes": [],
    "mat": "hair_umber"
   }

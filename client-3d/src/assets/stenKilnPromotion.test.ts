@@ -6,7 +6,7 @@ import itemModels from "../ui/inventory/itemModels.json";
 import { weaponModelAssetKey } from "./weaponModelRegistry";
 
 type WeaponManifest = {
-  items: Array<{ id: string; glb: string; attach: string; class: string; track: string; tier_hint: string }>;
+  items: Array<{ id: string; item_ids?: number[]; glb: string; attach: string; class: string; track: string; tier_hint: string }>;
 };
 
 type Attach = {
@@ -39,22 +39,53 @@ function glbMeshCount(glbPath: string): number {
   return gltf.meshes?.length ?? 0;
 }
 
-describe("approved-weapon cutover: STEN Mk II + Kiln Energy Cell", () => {
-  it("keeps only 3111/3112 from the old 3110-3117 ranged item band and maps them to the custom GLBs", () => {
-    expect(itemModels["3111"]).toBe("/assets/pawn-pack/weapons/custom/wpn_smg_sten_mk2.glb");
-    expect(itemModels["3112"]).toBe("/assets/pawn-pack/weapons/custom/wpn_carbine_kiln.glb");
-    expect(itemModels["3101"]).toBe("/assets/pawn-pack/weapons/custom/wpn_smg_sten_mk2.glb");
-    expect(itemModels["3121"]).toBe("/assets/pawn-pack/weapons/custom/lightning_carbine.glb");
+describe("concrete weapon inventory catalog", () => {
+  it("maps every concrete ranged inventory id to its authored preview while leaving retired ids absent", () => {
+    const modelPaths = [
+      [3101, "/assets/pawn-pack/weapons/custom/wpn_smg_sten_mk2.glb"],
+      [3111, "/assets/pawn-pack/weapons/custom/wpn_smg_sten_mk2.glb"],
+      [3112, "/assets/pawn-pack/weapons/custom/wpn_carbine_kiln.glb"],
+      [3121, "/assets/pawn-pack/weapons/custom/lightning_carbine.glb"],
+      [3122, "/assets/pawn-pack/weapons/custom/wpn_pistol_badge_bolt.glb"],
+      [3123, "/assets/pawn-pack/weapons/custom/wpn_rifle_slagrail_vanguard.glb"],
+      [3124, "/assets/pawn-pack/weapons/custom/wpn_shotgun_coilgate_scatter.glb"],
+      [3125, "/assets/pawn-pack/weapons/custom/wpn_carbine_kiln.glb"],
+      [3126, "/assets/pawn-pack/weapons/custom/wpn_heavy_bastion_lmg.glb"],
+      [3127, "/assets/pawn-pack/weapons/custom/wpn_launcher_flare_net.glb"],
+    ] as const;
+    for (const [itemId, modelPath] of modelPaths) {
+      expect((itemModels as Readonly<Record<string, string>>)[String(itemId)]).toBe(modelPath);
+    }
+    for (const [modelKey, itemId] of [
+      ["wpn_pistol", 3122],
+      ["wpn_assault", 3123],
+      ["wpn_shotgun", 3124],
+      ["wpn_sniper", 3125],
+      ["wpn_heavy", 3126],
+      ["wpn_launcher", 3127],
+    ] as const) {
+      expect(weapon(modelKey).item_ids).toEqual([itemId]);
+    }
     for (const id of REMOVED_ITEM_IDS) {
       expect(itemModels).not.toHaveProperty(String(id));
     }
   });
 
-  it("resolves only the approved item ids through the weapon registry; removed ids fall back to nothing", () => {
-    expect(weaponModelAssetKey(3111, "slugthrower")).toBe("wpn_smg");
-    expect(weaponModelAssetKey(3112, "slugthrower")).toBe("wpn_carbine");
-    expect(weaponModelAssetKey(3101, "slugthrower")).toBe("wpn_smg");
-    expect(weaponModelAssetKey(3121, "lightning-carbine")).toBe("lightning_carbine");
+  it("resolves every concrete ranged item through the weapon registry and leaves retired ids unmapped", () => {
+    for (const [itemId, weaponId, modelKey] of [
+      [3101, "slugthrower", "wpn_smg"],
+      [3111, "wpn-smg", "wpn_smg"],
+      [3112, "wpn-carbine", "wpn_carbine"],
+      [3121, "lightning-carbine", "lightning_carbine"],
+      [3122, "wpn-pistol", "wpn_pistol"],
+      [3123, "wpn-assault", "wpn_assault"],
+      [3124, "wpn-shotgun", "wpn_shotgun"],
+      [3125, "wpn-sniper", "wpn_sniper"],
+      [3126, "wpn-heavy", "wpn_heavy"],
+      [3127, "wpn-launcher", "wpn_launcher"],
+    ] as const) {
+      expect(weaponModelAssetKey(itemId, weaponId)).toBe(modelKey);
+    }
     for (const id of REMOVED_ITEM_IDS) {
       expect(weaponModelAssetKey(id, "slugthrower")).toBeNull();
     }

@@ -10,7 +10,9 @@ WORKDIR /workspace
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY server/package.json ./server/package.json
 COPY client/package.json ./client/package.json
-RUN pnpm install --frozen-lockfile --filter @successor/server... --filter @successor/client...
+# pnpm store cache: dependency tarballs survive source-only rebuilds.
+RUN --mount=type=cache,id=successor-pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --store-dir=/pnpm/store --filter @successor/server... --filter @successor/client...
 COPY server ./server
 COPY client ./client
 COPY tools/codegen/generated ./tools/codegen/generated
@@ -31,8 +33,16 @@ COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 COPY client/public/successor-slice ./client/public/successor-slice
 COPY tools/denylist/denylist.txt ./tools/denylist/denylist.txt
-RUN cargo build --locked --release -p successor-sim --example authority_bridge_server
-RUN file target/release/examples/authority_bridge_server | grep -q "ELF 64-bit.*x86-64"
+# Cargo registry + target caches: a TypeScript-only change must not replay a
+# full Rust dependency build. The target dir is a cache mount, so the finished
+# bridge is copied out of it into the stage filesystem for the runtime COPY.
+RUN --mount=type=cache,id=successor-cargo-registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=successor-cargo-git,target=/usr/local/cargo/git \
+    --mount=type=cache,id=successor-cargo-target,target=/workspace/target \
+    mkdir -p /out \
+    && cargo build --locked --release -p successor-sim --example authority_bridge_server \
+    && cp target/release/examples/authority_bridge_server /out/authority_bridge_server \
+    && file /out/authority_bridge_server | grep -q "ELF 64-bit.*x86-64"
 
 FROM --platform=$TARGETPLATFORM node:22-bookworm-slim@sha256:f32b81066cde10a75dbac96646099533316d94bac4150c55da1636e1f0ffdc46 AS runtime
 ARG TARGETARCH
@@ -53,7 +63,7 @@ ENV NODE_ENV=production \
     GAME_SLICE_PATH=/app/client/public/successor-slice/open-desert-slice.json
 
 COPY --from=node-build --chown=successor:successor /out/server/ ./
-COPY --from=rust-build --chown=successor:successor /workspace/target/release/examples/authority_bridge_server ./bin/authority_bridge_server
+COPY --from=rust-build --chown=successor:successor /out/authority_bridge_server ./bin/authority_bridge_server
 
 USER successor
 EXPOSE 28093

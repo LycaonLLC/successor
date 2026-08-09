@@ -2349,7 +2349,7 @@ def write_provenance(asset_id, glb_path: Path, tri_count: int):
         },
         "seed": "deterministic numpy seeds 2026071801..05 + per-screen layout constants",
         "input_assets": [
-            {"path": "tools/successor/assets/build_cloning_facility.py", "purpose": "design-language + gate/manifest contract reference (shoulder-house civic props)"},
+            {"path": "tools/successor/assets/cloning-facility-opus5/", "purpose": "design-language + gate/manifest contract reference (formerly build_cloning_facility.py, replaced by that package)"},
         ],
         "human_edits": [],
         "rights": {

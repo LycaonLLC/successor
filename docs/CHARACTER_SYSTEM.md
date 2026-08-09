@@ -1,7 +1,7 @@
 # Successor Character System
 
-Status: current `main` character contract. The public alpha may trail this
-source; exact production identity lives in `CURRENT_DEPLOYMENT.md`.
+Status: current development-source character contract. The public alpha may
+trail this source; exact production identity lives in `CURRENT_DEPLOYMENT.md`.
 
 ## Ownership
 

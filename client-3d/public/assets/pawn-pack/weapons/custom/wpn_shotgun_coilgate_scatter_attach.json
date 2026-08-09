@@ -27,6 +27,11 @@
       0.0,
       0.07
     ],
+    "foregrip_contact": [
+      0,
+      -0.0272,
+      0.072
+    ],
     "muzzle": [
       0.0,
       0.0,
@@ -76,7 +81,17 @@
       -45,
       0
     ],
+    "arc_lift": 0.14,
     "derivation": "Copied from accepted STEN back-carry contract; geometry-independent root mount."
   },
-  "provenance": "reset-zero-01 modular family; textured via STEN 2048 atlas bake pattern (bake_modular.py, deterministic)."
+  "hold": {
+    "support_arm": {
+      "min_elbow_bend_deg": 34,
+      "shoulder_advance_max_m": 0.05,
+      "elbow_pole_deg": 56,
+      "derivation": "This model's support contact sits BEYOND the support arm: measured shoulder-to-contact distance is 605.6 mm idle / 613.7 walk / 657.9 run against an arm of upperarm 325 mm + lowerarm 259 mm = 584.0 mm, so the two-bone solver clamped to a+b and locked the arm dead straight (elbow only 1.7 mm off the shoulder-wrist line, versus 85.1 mm on the accepted Kiln carbine and 119-152 mm on the accepted Slugthrower). A rod-straight support arm is what drove the forearm through Module_receiver. min_elbow_bend_deg 34 restores the accepted carbine's elbow offset exactly (84.2 mm measured); shoulder_advance_max_m 0.05 is the girdle swing that pays for the 26.6 mm of reach that bend costs (measured shoulder travel 49.9 mm, 17.2 deg of clavicle rotation) so the palm stays on the handguard instead of falling short; elbow_pole_deg 56 was swept 20-64 and 52-60 is the plateau where the elbow clears the receiver on both bodies (48 deg still grazed at -0.4 mm on the launcher). Measured on male+female across idle/walk/run/fire/reload x3/stow: forearm-vs-receiver worst went from -6.8 mm to +47.2 mm, support wrist stays seated at -3.6..+0.5 mm, bore weld and firing-hand grip untouched (the posture only rotates clavicle_l and upperarm_l about axes through the shoulder and the wrist)."
+    }
+  },
+  "provenance": "reset-zero-01 modular family; textured via STEN 2048 atlas bake pattern (bake_modular.py, deterministic).",
+  "support_hand_derivation": "Authored support-WRIST target measured from THIS model's own shroud, replacing the global foregrip contact offset (which assumes the legacy handguard radius at scale 1 and buried the wrist inside fat / scaled / caged housings). y = -(shroud half-height - 0.003) leaves the wrist ~3 mm inside the shroud shell, matching the measured contact on the accepted Kiln carbine (-2.9 mm); z = shroud mid-length, which also walks the forearm forward off the side magazine and the front canister cage. Support z moved 0.065 -> 0.095 after the full sweep: at rifle_run_f the support FOREARM still crossed Module_receiver by -6.8 mm, and walking the hand forward along the handguard is what lifts the forearm clear without moving the palm off the housing."
 }

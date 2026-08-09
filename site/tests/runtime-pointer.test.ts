@@ -23,6 +23,17 @@ describe("runtime pointer validation", () => {
     expect(url?.origin).toBe("https://cdn.example");
   });
 
+  it("accepts the canonical beta server release identity", () => {
+    const serverReleaseId =
+      "planetfall-v5-seed-424242-size-1024-rogues-18-desert-critters-48-verdance-critters-24-areas-open-desert-overworld-verdance-forest-overworld";
+    expect(parseRuntimePointer({
+      ...POINTER,
+      clientReleaseId: "successor-rust-beta@b99dfb6b5f5ee644",
+      serverReleaseId,
+      channel: "beta",
+    }, BASE)?.href).toBe(ENTRY);
+  });
+
   it("demands the exact versioned schema", () => {
     expect(parseRuntimePointer({ entry: ENTRY }, BASE)).toBeNull();
     expect(parseRuntimePointer({ ...POINTER, schema: "successor.client-runtime-pointer.v2" }, BASE)).toBeNull();

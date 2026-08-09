@@ -1,0 +1,110 @@
+{
+  "schema": "successor-weapon-attach/1",
+  "weapon": "plasma_sword",
+  "item_id": 3104,
+  "source_glb": "pawn-pack/plasma_hilt.glb",
+  "silhouette_class": "melee",
+  "coordinate_space": "weapon_glb_local_gltf",
+  "units": "m",
+  "scale_to_pawn": 1,
+  "space_notes": "Shares the Vibrosword family frame: +Z toward the emitter/blade, +Y up, +X right face. Measured runtime bounds z -0.058 (pommel cap) .. +0.090 (emitter tip), 0.068 square section. PlasmaBlade's EMITTER_OFFSET_M of 0.09 is exactly this emitter tip, which is what confirms the shared axis convention.",
+  "attach": "one_hand",
+  "handedness": "right",
+  "hands": {
+    "grip": "hand_r"
+  },
+  "nodes": {
+    "frame": "Gear_plasma_hilt"
+  },
+  "sockets": {
+    "grip": [
+      0,
+      0,
+      0.006
+    ],
+    "foregrip": [
+      0,
+      0,
+      0.03
+    ],
+    "muzzle": [
+      0,
+      0,
+      0.84
+    ],
+    "stock": [
+      0,
+      0,
+      -0.058
+    ],
+    "emitter": [
+      0,
+      0,
+      0.09
+    ],
+    "pommel": [
+      0,
+      0,
+      -0.058
+    ]
+  },
+  "orientation": {
+    "forward": [
+      0,
+      0,
+      1
+    ],
+    "up": [
+      0,
+      1,
+      0
+    ]
+  },
+  "mount_hand_r_local": {
+    "pos": [
+      -0.01213,
+      0.06998,
+      0.01134
+    ],
+    "quat": [
+      0.1213,
+      -0.24455,
+      -0.23404,
+      -0.93312
+    ],
+    "derivation": "FIXES the 15.25 cm floating hilt. The plasma presentation used to have no model of its own: it borrowed the Vibrosword's spec and parented plasma_hilt.glb straight onto the weaponRoot. That root sits at the Vibrosword's ORIGIN, which is 0.1525 m up the blade from its grip midpoint, so a hilt whose own origin is at its grip centre hung 15.25 cm out in mid-air ahead of hand_r. Quat is the Vibrosword weld verbatim (identical +Z-blade family frame). Pos is re-solved with the same rule the rest of the family uses: p = p_vibro + R(q) @ (0,0, gripZ_vibro - gripZ_hilt) = p_vibro + R(q) @ (0,0,-0.1585), so THIS hilt's grip midpoint (z=+0.006, the centre of the graspable column between the pommel cap at -0.058 and the emitter collar at +0.070) lands on the same hand_r-local palm point the accepted Vibrosword grip occupies."
+  },
+  "stow_socket": {
+    "space": "spine_03_local",
+    "pos": [
+      -0.205,
+      -0.26,
+      -0.085
+    ],
+    "rot_deg": [
+      -104,
+      0,
+      -13
+    ],
+    "arc_lift": 0.08,
+    "derivation": "Retracted carry is a BELT CLIP, not the over-the-shoulder sword socket: a 148 mm hilt on the back sword carry reads as a floating stub. spine_03-local axes are +X anatomical left, +Y up the spine, -Z behind, so [-0.16,-0.28,-0.055] is the weapon-hand (right) hip, slightly behind the hip crest. rot_deg is R_x(-90) plus cant, mapping the hilt's +Z emitter axis onto +Y (0, 0.970, -0.242) so the hilt stands upright with the emitter up and tipped back. Pommel lands at spine-local y=-0.336 and the emitter at y=-0.193. arc_lift is reduced to 0.08 because the draw is a short hip-to-hand sweep, not a shoulder unsling."
+  },
+  "measured_runtime": {
+    "mesh_count": 1,
+    "triangles": 224,
+    "bbox_min_m": [
+      -0.034,
+      -0.034,
+      -0.058
+    ],
+    "bbox_max_m": [
+      0.034,
+      0.034,
+      0.09
+    ],
+    "overall_length_m": 0.148,
+    "grip_reference": "grip midpoint z=+0.006 (pommel cap -0.058 .. emitter collar +0.070)",
+    "blade_reference": "pure-effect blade: PlasmaBlade emits at z=+0.09 and runs 0.75 m to the muzzle socket at z=+0.84"
+  },
+  "provenance": "Registry promotion of the existing pack asset plasma_hilt.glb. The GLB is untouched; only the previously-missing attach packet is new, so the plasma sword now resolves through the same per-model path as every other catalogue weapon instead of borrowing the Vibrosword's."
+}

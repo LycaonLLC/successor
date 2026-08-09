@@ -13,6 +13,7 @@ import { ChatHub, type ChatSocket } from "./hub.js";
 const standaloneAuthenticateSchema = z.object({
   type: z.literal("chat.authenticate"),
   chatTicket: z.string().min(32).max(256),
+  release: z.string().trim().min(1).max(128),
 }).strict();
 const CHAT_AUTH_FRAME_MAX_BYTES = 1_024;
 
@@ -55,7 +56,10 @@ export async function registerChatRoutes(app: FastifyInstance, options: ChatRout
     }
     if (!devIdentityAllowed()) { socket.close(1008, "session ticket required"); return; }
     const userId = normalizeUserId(query.playerId ?? query.userId ?? "");
-    const displayName = normalizeDisplayName(query.displayName ?? "", userId || "Guest");
+    // Empty fallback on purpose. Defaulting to the user id here would hand the
+    // hub a name that looks supplied, so its live-shard and character-store
+    // lookups would never run and every line would read `char_...`.
+    const displayName = normalizeDisplayName(query.displayName ?? "", "");
     const zoneId = normalizeUserId(query.zoneId ?? query.zone ?? "open-desert") || "open-desert";
     const partyId = query.partyId ? normalizeUserId(query.partyId) : undefined;
     const devOnlyGuildId = query.guildId ? normalizeUserId(query.guildId) : undefined;
@@ -87,7 +91,7 @@ async function authenticateStandaloneSocket(
       const parsed = standaloneAuthenticateSchema.safeParse(parseFrame(data));
       if (!parsed.success) { socket.close(1008, "chat authentication required"); return; }
       try {
-        const identity = await redeemStandaloneLaunch(parsed.data.chatTicket, "chat", controlStore, characterStore, runtimeAuth);
+        const identity = await redeemStandaloneLaunch(parsed.data.chatTicket, "chat", controlStore, characterStore, runtimeAuth, undefined, parsed.data.release);
         // The URL/query was intentionally never consulted; only the bounded
         // first frame supplies the one-use chat capability.
         const hubIdentity = { ...identity, userId: normalizeUserId(identity.characterId) };

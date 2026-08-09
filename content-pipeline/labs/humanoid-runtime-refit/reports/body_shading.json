@@ -1,0 +1,26 @@
+{
+  "male": {
+    "npy": "content-pipeline/labs/humanoid-runtime-refit/build/male_vertex_ao.npy",
+    "sha256": "eef073140b4e73146ab950430a35baec3b870ea6003e5c571610bedd1092d994",
+    "vertices": 13277,
+    "welded": 3064,
+    "rays": 64,
+    "distance_m": 0.07,
+    "floor": 0.87,
+    "gamma": 0.9,
+    "min": 0.87,
+    "mean": 0.9375081542561331
+  },
+  "female": {
+    "npy": "content-pipeline/labs/humanoid-runtime-refit/build/female_vertex_ao.npy",
+    "sha256": "6788aa5e66f04d9e5060898844a1566fc038c9548b02ace384828382689fc719",
+    "vertices": 13354,
+    "welded": 3080,
+    "rays": 64,
+    "distance_m": 0.07,
+    "floor": 0.87,
+    "gamma": 0.9,
+    "min": 0.87,
+    "mean": 0.9381034717047285
+  }
+}

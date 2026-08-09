@@ -11,7 +11,11 @@ const CONTENT_TYPES = new Map([
   [".woff", "font/woff"], [".woff2", "font/woff2"], [".ttf", "font/ttf"], [".otf", "font/otf"], [".mp3", "audio/mpeg"], [".ogg", "audio/ogg"], [".wav", "audio/wav"], [".mp4", "video/mp4"], [".webm", "video/webm"],
 ]);
 const SMOKE_EXTENSIONS = new Set([".html", ".mp3", ".ogg", ".wav", ".woff", ".woff2", ".ttf", ".otf"]);
-export const RESERVED_SITE_PATHS = new Set(["downloads/manifest.json"]);
+export const RESERVED_SITE_PATHS = new Set([
+  "downloads/manifest.json",
+  "client/release.json",
+  "beta/release.json",
+]);
 
 export const PUBLIC_SITE_POINTER_PATH = "/current.json";
 export const PUBLIC_SITE_POINTER_OBJECT_KEY = "site/current.json";

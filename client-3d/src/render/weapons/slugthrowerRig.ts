@@ -13,7 +13,7 @@
 //   for the effects layer.
 import { Bone, Euler, Group, Mesh, Object3D, Quaternion, Vector3 } from "three";
 import { SUCCESSOR_3D_CONFIG } from "../../config";
-import type { PawnPack, SlugthrowerAttachSpec } from "../../assets/pawnRigTypes";
+import type { PawnPack, SlugthrowerAttachSpec, SupportArmSpec } from "../../assets/pawnRigTypes";
 import { TwoBoneIk } from "../anim/twoBoneIk";
 
 interface AxisDials {
@@ -30,9 +30,16 @@ export interface Successor3dWeaponDials {
   restingYawRad: number;
   /** Weapon-local offset from the foregrip socket to the support-hand WRIST target. */
   foregripContactOffset: AxisDials;
-  /** Spine-local stow socket (out-of-combat back carry) — live-tunable. */
-  stowPosOffset: AxisDials;
-  stowRotOffsetDeg: AxisDials;
+  /**
+   * Live stow tuning. These are DELTAS applied on top of the selected model's
+   * OWN authored stow socket, never a replacement base — otherwise switching
+   * weapons would silently drag the previous model's carry onto the new one.
+   * Zero = "use exactly what this model authored".
+   */
+  stowPosDelta: AxisDials;
+  stowRotDeltaDeg: AxisDials;
+  /** Drop every live stow delta back to the authored per-model base. */
+  resetStow: () => void;
 }
 
 declare global {
@@ -72,15 +79,16 @@ const weaponDials: Successor3dWeaponDials = {
     y: SUCCESSOR_3D_CONFIG.pawnPack.foregripContactOffset.y,
     z: SUCCESSOR_3D_CONFIG.pawnPack.foregripContactOffset.z,
   },
-  stowPosOffset: {
-    x: SUCCESSOR_3D_CONFIG.pawnPack.weaponStow.posOffset.x,
-    y: SUCCESSOR_3D_CONFIG.pawnPack.weaponStow.posOffset.y,
-    z: SUCCESSOR_3D_CONFIG.pawnPack.weaponStow.posOffset.z,
-  },
-  stowRotOffsetDeg: {
-    x: SUCCESSOR_3D_CONFIG.pawnPack.weaponStow.rotOffsetDeg.x,
-    y: SUCCESSOR_3D_CONFIG.pawnPack.weaponStow.rotOffsetDeg.y,
-    z: SUCCESSOR_3D_CONFIG.pawnPack.weaponStow.rotOffsetDeg.z,
+  // Deltas start at zero: the authored per-model socket IS the base pose.
+  stowPosDelta: { x: 0, y: 0, z: 0 },
+  stowRotDeltaDeg: { x: 0, y: 0, z: 0 },
+  resetStow: () => {
+    weaponDials.stowPosDelta.x = 0;
+    weaponDials.stowPosDelta.y = 0;
+    weaponDials.stowPosDelta.z = 0;
+    weaponDials.stowRotDeltaDeg.x = 0;
+    weaponDials.stowRotDeltaDeg.y = 0;
+    weaponDials.stowRotDeltaDeg.z = 0;
   },
 };
 let weaponDialUsers = 0;
@@ -155,6 +163,19 @@ export class SlugthrowerRig {
   private stowT = 0;
   private stowTarget = 0;
   private readonly spine: Bone | null;
+  /** This model's own back carry: authored socket, else the legacy default. */
+  private readonly stowBasePos = new Vector3();
+  private readonly stowBaseRotDeg = new Vector3();
+  private readonly stowArcLift: number;
+  /** This model's non-aiming bore yaw; authored per weapon, else config. */
+  private readonly restingYawRad: number;
+  private readonly hasAuthoredContact: boolean;
+  /**
+   * Authored support-arm hold posture, or null for the legacy unposed solve.
+   * Only the two-handed foregrip hold uses it — a reload reach is choreography
+   * and owns its own elbow.
+   */
+  private readonly supportArm: SupportArmSpec | null;
 
   constructor(
     private readonly pack: PawnPack,
@@ -214,8 +235,33 @@ export class SlugthrowerRig {
     let bodyRef: Object3D = handR;
     while (bodyRef.parent && (bodyRef instanceof Bone || bodyRef.parent instanceof Bone)) bodyRef = bodyRef.parent;
     this.bodyRef = bodyRef;
-    this.ik = upperArmL && lowerArmL && handL ? new TwoBoneIk(upperArmL, lowerArmL, handL) : null;
+    // The shoulder girdle above upperarm_l is what buys reach for a support
+    // socket authored past the arm; take it from the rig hierarchy rather than
+    // another ctor argument every presentation surface would have to repeat.
+    // Name-checked so a body without a clavicle simply gets no reach assist.
+    const girdle = upperArmL?.parent;
+    const clavicleL = girdle instanceof Bone && girdle.name === "clavicle_l" ? girdle : null;
+    this.ik = upperArmL && lowerArmL && handL
+      ? new TwoBoneIk(upperArmL, lowerArmL, handL, clavicleL)
+      : null;
     this.spine = spineBone;
+
+    const stowDefaults = SUCCESSOR_3D_CONFIG.pawnPack.weaponStow;
+    const authoredStow = this.spec.stow;
+    if (authoredStow) {
+      this.stowBasePos.copy(authoredStow.pos);
+      this.stowBaseRotDeg.copy(authoredStow.rotDeg);
+      this.stowArcLift = authoredStow.arcLift;
+    } else {
+      this.stowBasePos.set(stowDefaults.posOffset.x, stowDefaults.posOffset.y, stowDefaults.posOffset.z);
+      this.stowBaseRotDeg.set(stowDefaults.rotOffsetDeg.x, stowDefaults.rotOffsetDeg.y, stowDefaults.rotOffsetDeg.z);
+      this.stowArcLift = stowDefaults.arcLift;
+    }
+    this.restingYawRad = this.spec.restingYawRad ?? SUCCESSOR_3D_CONFIG.pawnPack.boreLevel.restingYawRad;
+    this.hasAuthoredContact = this.spec.sockets.foregripContact !== undefined;
+    this.supportArm = this.spec.supportArm ?? null;
+    // A new model must never inherit the previous one's live stow tuning.
+    (window.__successor3dWeapon ?? weaponDials).resetStow();
     retainWeaponDials();
   }
 
@@ -320,6 +366,8 @@ export class SlugthrowerRig {
   ): void {
     this.updateFallenMag(dtSeconds);
     if (this.dropped) {
+      // The corpse's arms belong to the death montage; give the girdle back.
+      this.ik?.relax();
       this.updateDropped(dtSeconds);
       return;
     }
@@ -327,9 +375,8 @@ export class SlugthrowerRig {
     this.lastLevelAppliedRad = 0; // set by the leveling block when it corrects
 
     // ── Out-of-combat stow ease (owner spec 2026-07-03) ─────────────────────
-    const stow = config.weaponStow;
     if (this.stowT !== this.stowTarget) {
-      const stowStep = dtSeconds / Math.max(1e-3, stow.blendSeconds);
+      const stowStep = dtSeconds / Math.max(1e-3, config.weaponStow.blendSeconds);
       this.stowT += Math.min(stowStep, Math.abs(this.stowTarget - this.stowT)) * Math.sign(this.stowTarget - this.stowT);
     }
     const stowEase = this.stowT * this.stowT * (3 - 2 * this.stowT); // smoothstep
@@ -396,7 +443,11 @@ export class SlugthrowerRig {
     const dials = window.__successor3dWeapon ?? weaponDials;
     const yawStrength = finiteDial(dials.yawStrength, level.yawStrength);
     const maxYawCorrectionRad = Math.max(0, finiteDial(dials.maxYawCorrectionRad, level.maxYawCorrectionRad));
-    const restingYawRad = finiteDial(dials.restingYawRad, level.restingYawRad);
+    // The model's authored resting yaw is the base; the live dial contributes
+    // its own displacement from the config default so A/B tuning still works
+    // without erasing per-weapon authoring.
+    const restingYawRad = this.restingYawRad
+      + (finiteDial(dials.restingYawRad, level.restingYawRad) - level.restingYawRad);
     const weldTarget = level.strength > 0 || yawStrength > 0 ? 1 : 0;
     if (this.weldBlend !== weldTarget) {
       const weldStep = Math.min(1, dtSeconds / WELD_BLEND_SECONDS);
@@ -508,19 +559,21 @@ export class SlugthrowerRig {
     // spine socket), so the flourish is a pure morph between moving anchors —
     // the same live-endpoint rule the IK targets follow.
     if (this.stowT > 0 && this.spine) {
-      const stowPosDial = dials.stowPosOffset;
-      const stowRotDial = dials.stowRotOffsetDeg;
+      // Authored per-model socket + live DELTA. Zero deltas reproduce the
+      // model's own carry exactly; the dials never impose another model's base.
+      const stowPosDelta = dials.stowPosDelta;
+      const stowRotDelta = dials.stowRotDeltaDeg;
       stowEulerScratch.set(
-        finiteDial(stowRotDial.x, 0) * DEG_TO_RAD,
-        finiteDial(stowRotDial.y, 0) * DEG_TO_RAD,
-        finiteDial(stowRotDial.z, 0) * DEG_TO_RAD,
+        (this.stowBaseRotDeg.x + finiteDial(stowRotDelta.x, 0)) * DEG_TO_RAD,
+        (this.stowBaseRotDeg.y + finiteDial(stowRotDelta.y, 0)) * DEG_TO_RAD,
+        (this.stowBaseRotDeg.z + finiteDial(stowRotDelta.z, 0)) * DEG_TO_RAD,
         "XYZ",
       );
       stowLocalQuatScratch.setFromEuler(stowEulerScratch);
       stowWorldPosScratch.set(
-        finiteDial(stowPosDial.x, 0),
-        finiteDial(stowPosDial.y, 0),
-        finiteDial(stowPosDial.z, 0),
+        this.stowBasePos.x + finiteDial(stowPosDelta.x, 0),
+        this.stowBasePos.y + finiteDial(stowPosDelta.y, 0),
+        this.stowBasePos.z + finiteDial(stowPosDelta.z, 0),
       );
       this.spine.localToWorld(stowWorldPosScratch);
       this.spine.getWorldQuaternion(stowWorldQuatScratch).multiply(stowLocalQuatScratch);
@@ -532,7 +585,7 @@ export class SlugthrowerRig {
         this.weaponRoot.getWorldQuaternion(heldWorldQuatScratch);
         blendWorldPosScratch.lerpVectors(heldWorldPosScratch, stowWorldPosScratch, stowEase);
         // Arc over the shoulder, never through the torso.
-        blendWorldPosScratch.y += stow.arcLift * Math.sin(Math.PI * stowEase);
+        blendWorldPosScratch.y += this.stowArcLift * Math.sin(Math.PI * stowEase);
         blendWorldQuatScratch.copy(heldWorldQuatScratch).slerp(stowWorldQuatScratch, stowEase);
       }
       this.handR.getWorldQuaternion(handQuatScratch);
@@ -552,6 +605,9 @@ export class SlugthrowerRig {
       this.ikWeight += Math.min(step, Math.abs(ikTargetWeight - this.ikWeight)) * Math.sign(ikTargetWeight - this.ikWeight);
     }
     if (!this.ik || this.ikWeight < 1e-3) {
+      // Stowed / montage-owned / unarmed: hand the shoulder girdle back before
+      // the arm stops being driven, or a hold posture leaves it shrugged.
+      this.ik?.relax();
       return;
     }
 
@@ -571,6 +627,10 @@ export class SlugthrowerRig {
       this.targetBlendRemaining = this.targetBlendSeconds;
     }
     this.computeTargetWorld(this.targetMode, targetScratch);
+    // The hold posture belongs to the two-handed grip on THIS weapon, so it
+    // rides the same morph as the target: a mag/pouch reach fades it out and
+    // hands the support elbow back to the reload choreography.
+    let holdShare = this.targetMode === "foregrip" ? 1 : 0;
     if (this.targetBlendRemaining > 0) {
       const blendSeconds = Math.max(1e-3, this.targetBlendSeconds || config.ikEaseSeconds);
       this.targetBlendRemaining = Math.max(0, this.targetBlendRemaining - dtSeconds);
@@ -578,10 +638,12 @@ export class SlugthrowerRig {
       const blend = linearBlend * linearBlend * (3 - 2 * linearBlend); // smoothstep
       this.computeTargetWorld(this.previousMode, previousScratch);
       this.currentTarget.lerpVectors(previousScratch, targetScratch, blend);
+      const previousShare = this.previousMode === "foregrip" ? 1 : 0;
+      holdShare = previousShare + (holdShare - previousShare) * blend;
     } else {
       this.currentTarget.copy(targetScratch);
     }
-    this.ik.solve(this.currentTarget, this.ikWeight);
+    this.ik.solve(this.currentTarget, this.ikWeight, this.supportArm, this.ikWeight * holdShare);
   }
 
   /** Muzzle socket world position. Requires current world matrices. */
@@ -603,6 +665,7 @@ export class SlugthrowerRig {
   }
 
   dispose(): void {
+    this.ik?.relax();
     this.weaponRoot.parent?.remove(this.weaponRoot);
     if (this.fallenMag) {
       this.fallenMag.parent?.remove(this.fallenMag);
@@ -713,13 +776,20 @@ export class SlugthrowerRig {
       this.bodyRef.localToWorld(out);
       return;
     }
-    // Wrist target = foregrip socket + palm-contact offset (weapon-local),
-    // so the palm cups the foregrip instead of the barrel riding the wrist.
-    const contact = weaponDials.foregripContactOffset;
-    out.copy(this.spec.sockets.foregrip);
-    out.x += contact.x;
-    out.y += contact.y;
-    out.z += contact.z;
+    // Wrist target for the support hand. An authored per-model contact point
+    // wins outright: the global offset assumes the legacy handguard radius at
+    // scale 1, so on a fat, scaled or caged shroud it buries the wrist inside
+    // the housing instead of cupping it.
+    const authored = this.spec.sockets.foregripContact;
+    if (this.hasAuthoredContact && authored) {
+      out.copy(authored);
+    } else {
+      const contact = weaponDials.foregripContactOffset;
+      out.copy(this.spec.sockets.foregrip);
+      out.x += contact.x;
+      out.y += contact.y;
+      out.z += contact.z;
+    }
     this.frame.localToWorld(out);
   }
 }

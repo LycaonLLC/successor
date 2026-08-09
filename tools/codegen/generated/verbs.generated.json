@@ -2,8 +2,8 @@
   "schema": "successor.command-verbs.generated.v1",
   "sourceManifest": "tools/codegen/generated/successor.commands.manifest.v1.json",
   "regenerationCommand": "cargo run -p successor-sim --bin emit_command_manifest -- tools/codegen/generated/successor.commands.manifest.v1.json && node tools/codegen/commands.mjs",
-  "commandCount": 117,
-  "debugGatedCount": 2,
+  "commandCount": 118,
+  "debugGatedCount": 3,
   "durableIntentCount": 10,
   "verbs": [
     {
@@ -460,6 +460,36 @@
           "required": true,
           "domain": "skill_box_id",
           "repeated": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "debug_authority_command_disabled",
+        "ingress_budget_exhausted",
+        "unknown_item",
+        "item_unavailable",
+        "container_full",
+        "unknown_skill_box",
+        "skill_already_learned",
+        "skill_prerequisite_missing"
+      ]
+    },
+    {
+      "kind": "DebugGiveCredits",
+      "verb": "debug-give-credits",
+      "defaultVerb": "debug-give-credits",
+      "aliases": [],
+      "debugGated": true,
+      "budgetClass": "authority-debug",
+      "durableIntent": null,
+      "args": [
+        {
+          "name": "amount",
+          "type": "int",
+          "required": true
         }
       ],
       "reasonCodes": [

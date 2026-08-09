@@ -1,0 +1,167 @@
+{
+  "schema": "successor-asset-provenance/1",
+  "asset_id": "valley_market",
+  "asset_kind": "model_glb",
+  "asset_path": "runtime-buildings/market/valley_market.glb",
+  "asset_hash": "sha256:1f4e5e0d52e4fe504dcd70ed7b6590e45dc5c2cb69781ac7bab7e530ca40a1a3",
+  "source_blend_or_script": "tools/successor/assets/market-opus5-rebuild/src/build_market.py (deterministic Blender authoring source)",
+  "package_script": "tools/successor/assets/market-opus5-rebuild/src/package_runtime.mjs",
+  "regeneration_command": "cd tools/successor/assets/market-opus5-rebuild && python3 src/gen_textures.py && blender -b --factory-startup -noaudio --python-exit-code 1 -P src/build_market.py -- --stage full && node src/post_gltf.mjs build/market_house_furnished.glb 1.0 && python3 src/manifest.py && node src/package_runtime.mjs",
+  "source_inputs": {
+    "source_manifest_sha256": "sha256:965ba1f1bc7b3fd148b5b6849a337b67dec54aad1f9864e9d241ddf9fc4d150b",
+    "source_collision_sha256": "sha256:4fc7c186fc5dcb7da97e51939958bbf3fc1ebdfa88b90a91d6ce4ba0d74d0e4d",
+    "furnished_source_sha256": "sha256:1f4e5e0d52e4fe504dcd70ed7b6590e45dc5c2cb69781ac7bab7e530ca40a1a3",
+    "imported_props": [
+      {
+        "file": "client-3d/public/assets/world-items/bank_terminal_civic.glb",
+        "sha256": "eb825f81370b014660499bcb7fc67480895b3734683ba6647234203b996c2151",
+        "bytes": 1034480,
+        "provenance": "client-3d/public/assets/world-items/bank_terminal_civic.provenance.json",
+        "manifest": "client-3d/public/assets/world-items/bank_terminal_civic_manifest.json",
+        "role": "bank / private-value service point, docked in its niche, screens facing the customer approach (+Z)",
+        "placement_asset_space": {
+          "x": -2.375,
+          "y": 0.02,
+          "z": -1.927,
+          "yaw_deg_about_Y": 0
+        },
+        "note": "asset space is glTF: +Y up, +Z public front"
+      },
+      {
+        "file": "client-3d/public/assets/world-items/trade_terminal.glb",
+        "sha256": "90a2602192261b3e5f14cc738c49d240ae44776166acf1779239527d23179805",
+        "bytes": 955232,
+        "provenance": "client-3d/public/assets/world-items/trade_terminal.provenance.json",
+        "manifest": "client-3d/public/assets/world-items/trade_terminal_manifest.json",
+        "role": "trade / exchange service point, docked in its niche, scan bed and readout facing the customer approach (+Z)",
+        "placement_asset_space": {
+          "x": 0.475,
+          "y": 0.02,
+          "z": -1.9,
+          "yaw_deg_about_Y": 0
+        },
+        "note": "asset space is glTF: +Y up, +Z public front"
+      },
+      {
+        "file": "client-3d/public/assets/world-items/pa_terminal.glb",
+        "sha256": "237c21c6284b7f6617ae4bc7fbff3e8230888064a6bf5f240c3389abce15086a",
+        "bytes": 939596,
+        "provenance": "client-3d/public/assets/world-items/pa_terminal.provenance.json",
+        "manifest": "client-3d/public/assets/world-items/pa_terminal_manifest.json",
+        "role": "player-association registry point, docked in its niche, roster screen and reader podium facing the customer approach (+Z)",
+        "placement_asset_space": {
+          "x": 3.325,
+          "y": 0.02,
+          "z": -1.931,
+          "yaw_deg_about_Y": 0
+        },
+        "note": "asset space is glTF: +Y up, +Z public front"
+      },
+      {
+        "file": "client-3d/public/assets/world-items/chair_frontier_a.glb",
+        "sha256": "04575d7fe54e7762bedcf1622a15aa31f2b76decca8c2c6f6ce2305a3d03bcb6",
+        "bytes": 3423744,
+        "provenance": "client-3d/public/assets/world-items/chair_frontier_a.provenance.json",
+        "manifest": "client-3d/public/assets/world-items/chair_frontier_a_manifest.json",
+        "role": "trainer's seat behind the consultation table, facing the customer approach",
+        "placement_asset_space": {
+          "x": 4.3,
+          "y": 0.02,
+          "z": 3.3,
+          "yaw_deg_about_Y": -180
+        },
+        "note": "asset space is glTF: +Y up, +Z public front"
+      },
+      {
+        "file": "client-3d/public/assets/world-items/chair_frontier_b.glb",
+        "sha256": "ba6d6901bfde01a5c858fb80db89b29f5e18dd5cb42bb59946fe5d55893c15f2",
+        "bytes": 3384220,
+        "provenance": "client-3d/public/assets/world-items/chair_frontier_b.provenance.json",
+        "manifest": "client-3d/public/assets/world-items/chair_frontier_b_manifest.json",
+        "role": "visitor seat drawn up to the north side of the consultation table",
+        "placement_asset_space": {
+          "x": 3.43,
+          "y": 0.02,
+          "z": 2.14,
+          "yaw_deg_about_Y": 0
+        },
+        "note": "asset space is glTF: +Y up, +Z public front"
+      },
+      {
+        "file": "client-3d/public/assets/world-items/crate_planked.glb",
+        "sha256": "d5ac6f0d9a939d0f4cb77ced8594b013db1d40ebe895c0e1871c1543ea83dfa6",
+        "bytes": 2336804,
+        "provenance": "client-3d/public/assets/world-items/crate_planked.provenance.json",
+        "manifest": null,
+        "role": "vendor goods delivered at the display line's south end, clear of the counter, the south wall and the queue",
+        "placement_asset_space": {
+          "x": -3.2,
+          "y": 0.02,
+          "z": 2.1,
+          "yaw_deg_about_Y": -12
+        },
+        "note": "asset space is glTF: +Y up, +Z public front"
+      },
+      {
+        "file": "client-3d/public/assets/world-items/footlocker_frontier.glb",
+        "sha256": "f8bbc53ff96b0020466da861e6cdce2ac43090db6384d14e8656fa83a71e75ad",
+        "bytes": 3178584,
+        "provenance": "client-3d/public/assets/world-items/footlocker_frontier.provenance.json",
+        "manifest": "client-3d/public/assets/world-items/footlocker_frontier_manifest.json",
+        "role": "back-of-house storage locker, against the rear wall west of the staff route, clear of the proven corridor",
+        "placement_asset_space": {
+          "x": -4.7,
+          "y": 0.02,
+          "z": -3.293,
+          "yaw_deg_about_Y": 0
+        },
+        "note": "asset space is glTF: +Y up, +Z public front"
+      }
+    ]
+  },
+  "contract": {
+    "runtime_key": "valley_market",
+    "footprint_cells": [
+      12,
+      9
+    ],
+    "footprint_m": [
+      11.4,
+      8.55
+    ],
+    "floor_top_y_m": 0.02,
+    "exterior_entry_facing": "south",
+    "terminal_cells_kept_clear": {
+      "bank_terminal_civic": [
+        3,
+        3
+      ],
+      "trade_terminal": [
+        6,
+        3
+      ],
+      "pa_terminal": [
+        9,
+        3
+      ],
+      "trainer_npc": [
+        10,
+        6
+      ]
+    },
+    "door_node": "door_slide"
+  },
+  "validation": {
+    "image_embedding": {
+      "image_count": 41,
+      "external_image_uri_count": 0
+    },
+    "authored_clearance_checks": 23,
+    "authored_clearance_issues": [],
+    "verifier": "tools/successor/assets/market-opus5-rebuild/src/verify_runtime_package.mjs"
+  },
+  "rights": {
+    "redistribution_status": "authorized for Successor runtime distribution only; no standalone reuse grant",
+    "source_license": "Successor proprietary project asset; all rights reserved"
+  }
+}

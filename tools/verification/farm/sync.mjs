@@ -314,8 +314,11 @@ export async function reconcileCheckout({
   if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) {
     throw new FarmError("farm checkout root is not a real directory", { code: "UNSAFE_RECONCILE_ROOT" });
   }
-  const canonicalRoot = await realpath(absoluteRoot);
-  if (canonicalRoot !== absoluteRequiredRoot) {
+  const [canonicalRoot, canonicalRequiredRoot] = await Promise.all([
+    realpath(absoluteRoot),
+    realpath(absoluteRequiredRoot),
+  ]);
+  if (canonicalRoot !== canonicalRequiredRoot) {
     throw new FarmError("farm checkout resolves outside the fixed farm root", { code: "UNSAFE_RECONCILE_ROOT" });
   }
   if (!Array.isArray(allowedPaths)) {

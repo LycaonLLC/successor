@@ -83,7 +83,7 @@ export async function createApp() {
     const originPattern = process.env.NODE_ENV === "production" ? /^https:\/\/[^/]+$/u : /^https?:\/\/[^/]+$/u;
     if (!origin || !originPattern.test(origin)) throw new Error("SUCCESSOR_ALPHA_ORIGIN must be an exact origin");
     const requiredLegalVersions = alphaLegalVersionsFromEnv();
-    const allowlist = (process.env.SUCCESSOR_ALPHA_CLIENT_RELEASE_ALLOWLIST ?? runtimeAuth.clientReleaseId).split(",").map((value) => value.trim()).filter(Boolean);
+    const allowlist = runtimeAuth.acceptedClientReleaseIds ?? [runtimeAuth.clientReleaseId];
     const gameEndpoint = process.env.SUCCESSOR_ALPHA_GAME_ENDPOINT?.trim();
     const chatEndpoint = process.env.SUCCESSOR_ALPHA_CHAT_ENDPOINT?.trim();
     assertStandaloneSocketEndpoints(origin, gameEndpoint, chatEndpoint, process.env.NODE_ENV === "production");
@@ -94,6 +94,7 @@ export async function createApp() {
   configureTicketLogger(app.log);
   let liveGuildIdForActor: (actorId: string) => string | null = () => null;
   let liveChatPositionForActor: (actorId: string) => { areaId: string; x: number; y: number } | null = () => null;
+  let liveDisplayNameForActor: (actorId: string) => string | null = () => null;
   const chatHub = new ChatHub({
     logger: app.log,
     social: characterStore,
@@ -102,6 +103,9 @@ export async function createApp() {
     },
     spatialAuthority: {
       positionForActor: (actorId) => liveChatPositionForActor(actorId),
+    },
+    nameAuthority: {
+      displayNameForActor: (actorId) => liveDisplayNameForActor(actorId),
     },
     localRadiusCells: numberEnv("CHAT_LOCAL_RADIUS_CELLS", 24),
     maxSessions: numberEnv("CHAT_MAX_SESSIONS", 10_000),
@@ -157,6 +161,7 @@ export async function createApp() {
   });
   liveGuildIdForActor = (actorId) => gameShard.guildIdForActor(actorId);
   liveChatPositionForActor = (actorId) => gameShard.chatPositionForActor(actorId);
+  liveDisplayNameForActor = (actorId) => gameShard.chatDisplayNameForActor(actorId);
   await registerGameRoutes(app, {
     shard: gameShard,
     characterStore,

@@ -2,23 +2,327 @@
   "schema": "successor-asset-provenance/1",
   "asset_id": "pawn_male_bare",
   "asset_path": "client-3d/public/assets/pawn-pack/pawn_male_bare.glb",
-  "asset_hash": "sha256:5c182b3f7dcbb33a61965f633e66e820342f6d0f46746e30bce591a5b3182bca",
+  "asset_hash": "sha256:a865e80f3fe740c135633c2c03b94afcfb0d10def3756cb7ca43fec5e51e7f9c",
   "asset_kind": "pawn_body_glb",
   "source": {
-    "derived_from": "verification/anchors/body-20260721/pawn_male_W.glb (sha256:5c182b3f7dcbb33a61965f633e66e820342f6d0f46746e30bce591a5b3182bca)",
-    "body_state": "full-volume pre-shrink geometry with accommodation weight-field; the anchor preserves the shipped pawn_male skeleton, joints, clips, and 50-bone contract",
-    "generator": "byte copy of the verified W anchor; no runtime mesh, skeleton, or animation edits",
-    "anchor_reference": "verification/anchors/body-20260721/pawn_male_W.glb"
+    "approved_body": "content-pipeline/labs/humanoid-runtime-refit/source/male/pawn_male_refined.glb",
+    "approved_body_hash": "sha256:d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
+    "promotion_input": "content-pipeline/labs/humanoid-runtime-refit/source/male/pawn_male_refined.glb",
+    "promotion_input_hash": "sha256:d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
+    "runtime_shell": "content-pipeline/labs/humanoid-runtime-refit/build/reference/male.glb",
+    "runtime_shell_hash": "sha256:6eaac9062bcfbc5efdf40c64f9e3236402a0d81832f1e0e8f4ce9a0a4dacac42",
+    "sidecar": {
+      "body": "pawn_male_refined.glb",
+      "source_repository": "ssh://bunker/home/lycaon/git/successor.git",
+      "source_branch": "body-refine-20260802",
+      "source_commit": "d3fdfa2831bf938c0d9c8bf06f8796a00a935af5",
+      "source_sha256": "d5cb14b321a5f6024820e6c49eaa7f4200dca303336c95758792847f34211401",
+      "clips_from": "hash-pinned runtime shell during promotion",
+      "actions": 0,
+      "runtime_actions": 47,
+      "verts": 3226,
+      "tris": 5818,
+      "height": 1.7525,
+      "vertex_groups": 50,
+      "head": {
+        "method": "reviewed shared-topology 10-ring, 16-column faceted head and neck graft",
+        "face_panel_faces": 56,
+        "art_gates": {
+          "depth_over_height": true,
+          "rear_fill": true,
+          "occiput_peak": true
+        }
+      },
+      "hands": {
+        "source": "verified legacy runtime hands",
+        "unchanged_by_body_refinement": true,
+        "islands_per_side": 36
+      },
+      "review": "Final Bunker humanoid refinement; immutable, head, transition, animation-proof, and viewer gates completed before commit."
+    },
+    "canonical_hands": "content-pipeline/labs/humanoid-runtime-refit/build/reference/male.glb",
+    "canonical_hands_hash": "sha256:6eaac9062bcfbc5efdf40c64f9e3236402a0d81832f1e0e8f4ce9a0a4dacac42",
+    "generator": "successor content-pipeline/labs/humanoid-runtime-refit/promote_bodies.py",
+    "pipeline": [
+      "reference_bodies.py (hash-pinned shell + approved sources)",
+      "bake_body_shading.py (per-vertex AO)",
+      "bake_face_texture.py (background-erased RGBA components)",
+      "promote_bodies.py (refined body + canonical animated hands + zone split + face skin base/overlay + accessor transplant)"
+    ],
+    "alias_of": "client-3d/public/assets/pawn-pack/pawn_male.glb",
+    "reason": "game_pack.json pawns.male.bare_file; the refit unified the accommodation body and its full-volume sibling, so the bare path is the same mesh and must carry the same zone primitives"
   },
-  "promotion": {
-    "method": "optional worn-state body variant in the pawn pack",
-    "promoted_at": "2026-07-21",
-    "reason": "render full-volume male body when no leg-covering equipment is worn; retain accommodation body under legwear to prevent clipping"
+  "segmentation": {
+    "vocabulary": [
+      "torso",
+      "pelvis",
+      "neck",
+      "head",
+      "left_upper_arm",
+      "right_upper_arm",
+      "left_forearm",
+      "right_forearm",
+      "left_hand",
+      "right_hand",
+      "left_thigh",
+      "right_thigh",
+      "left_calf",
+      "right_calf",
+      "left_foot",
+      "right_foot"
+    ],
+    "material_pattern": "BodyZone_<zone>",
+    "face_overlay_primitive": "RB_Face",
+    "face_skin_base_material": "BodyZone_head",
+    "method": "per-tree-edge weight cuts, relaxed over the welded dual graph, descended from the pelvis",
+    "seams": [
+      [
+        "head",
+        "neck"
+      ],
+      [
+        "left_calf",
+        "left_foot"
+      ],
+      [
+        "left_calf",
+        "left_thigh"
+      ],
+      [
+        "left_thigh",
+        "pelvis"
+      ],
+      [
+        "left_upper_arm",
+        "torso"
+      ],
+      [
+        "neck",
+        "torso"
+      ],
+      [
+        "pelvis",
+        "right_thigh"
+      ],
+      [
+        "pelvis",
+        "torso"
+      ],
+      [
+        "right_calf",
+        "right_foot"
+      ],
+      [
+        "right_calf",
+        "right_thigh"
+      ],
+      [
+        "right_upper_arm",
+        "torso"
+      ]
+    ],
+    "specks_absorbed": [],
+    "zones": {
+      "torso": {
+        "triangles": 311,
+        "patches": 1,
+        "area_cm2": 3855.826,
+        "centroid_y_range_m": [
+          1.0634,
+          1.5253
+        ]
+      },
+      "pelvis": {
+        "triangles": 121,
+        "patches": 1,
+        "area_cm2": 1609.484,
+        "centroid_y_range_m": [
+          0.8399,
+          1.109
+        ]
+      },
+      "neck": {
+        "triangles": 77,
+        "patches": 1,
+        "area_cm2": 87.306,
+        "centroid_y_range_m": [
+          1.4937,
+          1.5338
+        ]
+      },
+      "head": {
+        "triangles": 230,
+        "patches": 1,
+        "area_cm2": 958.522,
+        "centroid_y_range_m": [
+          1.5309,
+          1.7453
+        ]
+      },
+      "left_upper_arm": {
+        "triangles": 97,
+        "patches": 1,
+        "area_cm2": 1212.401,
+        "centroid_y_range_m": [
+          1.3889,
+          1.5114
+        ]
+      },
+      "right_upper_arm": {
+        "triangles": 97,
+        "patches": 1,
+        "area_cm2": 1212.401,
+        "centroid_y_range_m": [
+          1.3889,
+          1.5114
+        ]
+      },
+      "left_forearm": {
+        "triangles": 145,
+        "patches": 2,
+        "area_cm2": 518.889,
+        "centroid_y_range_m": [
+          1.4176,
+          1.4926
+        ]
+      },
+      "right_forearm": {
+        "triangles": 145,
+        "patches": 2,
+        "area_cm2": 518.889,
+        "centroid_y_range_m": [
+          1.4176,
+          1.4926
+        ]
+      },
+      "left_hand": {
+        "triangles": 2032,
+        "patches": 36,
+        "area_cm2": 480.673,
+        "centroid_y_range_m": [
+          1.3825,
+          1.4483
+        ],
+        "vertices": 1088,
+        "geometry_source": "content-pipeline/labs/humanoid-runtime-refit/build/reference/male.glb"
+      },
+      "right_hand": {
+        "triangles": 2032,
+        "patches": 36,
+        "area_cm2": 480.673,
+        "centroid_y_range_m": [
+          1.3825,
+          1.4483
+        ],
+        "vertices": 1088,
+        "geometry_source": "content-pipeline/labs/humanoid-runtime-refit/build/reference/male.glb"
+      },
+      "left_thigh": {
+        "triangles": 94,
+        "patches": 1,
+        "area_cm2": 1648.396,
+        "centroid_y_range_m": [
+          0.5055,
+          0.9329
+        ]
+      },
+      "right_thigh": {
+        "triangles": 95,
+        "patches": 1,
+        "area_cm2": 1676.093,
+        "centroid_y_range_m": [
+          0.5055,
+          0.9329
+        ]
+      },
+      "left_calf": {
+        "triangles": 87,
+        "patches": 1,
+        "area_cm2": 1293.324,
+        "centroid_y_range_m": [
+          0.1049,
+          0.5279
+        ]
+      },
+      "right_calf": {
+        "triangles": 87,
+        "patches": 1,
+        "area_cm2": 1293.324,
+        "centroid_y_range_m": [
+          0.1049,
+          0.5279
+        ]
+      },
+      "left_foot": {
+        "triangles": 56,
+        "patches": 1,
+        "area_cm2": 742.925,
+        "centroid_y_range_m": [
+          0.0,
+          0.1082
+        ]
+      },
+      "right_foot": {
+        "triangles": 56,
+        "patches": 1,
+        "area_cm2": 742.925,
+        "centroid_y_range_m": [
+          0.0,
+          0.1082
+        ]
+      }
+    }
+  },
+  "metrics": {
+    "bytes": 2867012,
+    "joints": 50,
+    "animations": 47,
+    "primitives": 18,
+    "triangles": 5874,
+    "expected_hybrid_triangles": 5818,
+    "refined_source_triangles": 5818,
+    "height_max_y_m": 1.7525
   },
   "validation": {
-    "gltf_errors": 0,
-    "byte_identical_to_anchor": true,
-    "joints": 50,
-    "provenance_anchor_sha256": "sha256:5c182b3f7dcbb33a61965f633e66e820342f6d0f46746e30bce591a5b3182bca"
-  }
+    "materials_exact": true,
+    "joint_order_identical_to_shell": true,
+    "clip_names_identical_to_shell": true,
+    "inverse_bind_max_delta": 0.0,
+    "index_accessor_types": [
+      "SCALAR"
+    ],
+    "zone_material_pbr_variants": 1,
+    "welded_points_match_hybrid_sources": true,
+    "canonical_hands_exact": {
+      "left_hand": true,
+      "right_hand": true
+    },
+    "canonical_hand_compatibility": {
+      "rest_translation_drift_m": 0.0,
+      "rest_rotation_drift_deg": 0.038466318374601585,
+      "inverse_bind_drift": 0.0
+    },
+    "gate": "content-pipeline/labs/humanoid-runtime-refit/verify_body_zones.py",
+    "reports": [
+      "content-pipeline/labs/humanoid-runtime-refit/reports/apparel_refit.json",
+      "content-pipeline/labs/humanoid-runtime-refit/reports/body_shading.json",
+      "content-pipeline/labs/humanoid-runtime-refit/reports/body_zone_coverage.json",
+      "content-pipeline/labs/humanoid-runtime-refit/reports/body_zone_verification.json",
+      "content-pipeline/labs/humanoid-runtime-refit/reports/coverage_triage.json",
+      "content-pipeline/labs/humanoid-runtime-refit/reports/female_posterior.json",
+      "content-pipeline/labs/humanoid-runtime-refit/reports/female_source_comparison.json",
+      "content-pipeline/labs/humanoid-runtime-refit/reports/promotion.json",
+      "content-pipeline/labs/humanoid-runtime-refit/reports/proof_manifest.json",
+      "content-pipeline/labs/humanoid-runtime-refit/reports/starter_apparel.json",
+      "content-pipeline/labs/humanoid-runtime-refit/reports/starter_fit.json"
+    ]
+  },
+  "coverage": {
+    "manifest": "client-3d/public/assets/pawn-pack/equipment/manifest.json",
+    "manifest_hash": "sha256:459e3a566ba60c9de993ab4ac42fc233f89b38ee6ef7382381957c07b5c9c156",
+    "items": 99,
+    "items_with_coverage": 2,
+    "items_with_female_variant": 98
+  },
+  "generator": "successor content-pipeline/labs/humanoid-runtime-refit/write_provenance.py"
 }

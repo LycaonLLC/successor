@@ -1,654 +1,307 @@
-/* ---- Home: paced cinematic sequence ----
-   Full-viewport motion hero, then scroll-earned acts with varied rhythm.
-   Monochrome only. No card grids, no glass, no gradient text. */
+/* Home: cinema hero, field record plates, terminal, chrome deck. */
 
-.home-main {
-  position: relative;
-  z-index: var(--z-content);
-}
-
-.home-section {
-  margin-top: clamp(4.5rem, 12vw, 8.5rem);
-}
-
-.home-section h2 {
-  font-size: var(--step-4);
-  max-width: 18ch;
-  letter-spacing: -0.02em;
-}
-
-.home-section .lede,
-.home-section .prose {
-  margin-top: 1.125rem;
-  color: var(--dust);
-}
-
-/* ---- Cinema hero ---- */
-
-.cinema-hero {
+/* ── hero cinema ──────────────────────────────────────────────────────── */
+.cinema {
   position: relative;
   min-height: calc(100svh - var(--topbar-h));
-  min-height: calc(100dvh - var(--topbar-h));
   display: grid;
   align-items: end;
-  background: var(--frame);
-  overflow: hidden;
-  isolation: isolate;
+  overflow: clip;
+  border-bottom: 1px solid var(--line);
 }
 
-.cinema-stage {
+.cinema picture,
+.cinema video {
   position: absolute;
   inset: 0;
-  z-index: var(--z-base);
-  margin: 0;
-  background: var(--frame);
-}
-
-.cinema-stage picture,
-.cinema-stage img,
-.cinema-stage video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 42%;
 }
 
-/* Poster stays under the reel; video overlays it when playing. */
-.cinema-stage .cinema-poster {
+.cinema picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cinema video {
+  opacity: 0;
+  transition: opacity var(--speed-scene) var(--ease);
+}
+
+.cinema[data-media-mode="video"] video { opacity: 1; }
+
+/* Readability floor: theme-keyed, so DAWN veils in pale glass and the game
+ * chromes veil in their own field color. */
+.cinema::after {
+  content: "";
   position: absolute;
   inset: 0;
-  z-index: 0;
-}
-
-.cinema-stage video {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  opacity: 0;
-  transition: opacity 280ms var(--ease-out);
-}
-
-.cinema-hero[data-media-mode="video"] video {
-  opacity: 1;
-}
-
-.cinema-hero[data-media-mode="static"] video {
-  opacity: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--field) 12%, transparent),
+    transparent 34%,
+    color-mix(in oklab, var(--field-deep) 88%, transparent) 96%
+  );
   pointer-events: none;
-}
-
-.cinema-hero[data-media-mode="static"] .cinema-sound {
-  display: none;
 }
 
 .cinema-veil {
-  position: absolute;
-  inset: 0;
-  z-index: calc(var(--z-base) + 2);
-  pointer-events: none;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--frame) 22%, transparent) 0%,
-      color-mix(in oklab, var(--frame) 6%, transparent) 34%,
-      color-mix(in oklab, var(--frame) 48%, transparent) 68%,
-      color-mix(in oklab, var(--frame) 94%, transparent) 100%
-    ),
-    linear-gradient(
-      105deg,
-      color-mix(in oklab, var(--frame) 62%, transparent) 0%,
-      color-mix(in oklab, var(--frame) 28%, transparent) 28%,
-      transparent 54%
-    );
-}
-
-.cinema-copy {
   position: relative;
   z-index: var(--z-hero-ui);
-  width: min(100% - 2 * var(--gutter), var(--page-max));
-  margin-inline: auto;
-  padding-block: clamp(2rem, 8vh, 5rem) clamp(2.25rem, 7vh, 4.5rem);
-  max-width: 40rem;
-  margin-left: max(
-    var(--gutter),
-    calc((100% - min(100% - 2 * var(--gutter), var(--page-max))) / 2)
-  );
+  padding: 0 var(--gutter) clamp(1.2rem, 4vh, 2.6rem);
+  max-width: var(--page-max);
+  width: 100%;
+  margin: 0 auto;
 }
 
-.cinema-wordmark {
-  display: block;
-  width: clamp(15rem, 32vw, 26rem);
+.cinema-veil .wordmark-hero {
+  width: min(30rem, 72vw);
   height: auto;
-  margin-bottom: clamp(1.25rem, 3vh, 2rem);
+  margin-bottom: 0.9rem;
+  filter: drop-shadow(0 2px 14px color-mix(in oklab, var(--field-deep) 60%, transparent));
 }
 
-.cinema-copy h1 {
-  font-size: var(--step-5);
-  letter-spacing: -0.03em;
-  max-width: 12ch;
-  color: var(--chalk);
+.cinema-veil h1 {
+  margin: 0 0 1.1rem;
+  font-size: var(--step-4);
+  color: var(--ink);
+  text-shadow: 0 1px 10px color-mix(in oklab, var(--field-deep) 70%, transparent);
 }
 
-.cinema-support {
-  margin-top: 1.125rem;
-  font-size: var(--step-2);
-  line-height: 1.45;
-  color: color-mix(in oklab, var(--chalk) 88%, var(--dust));
-  max-width: 34ch;
-}
-
-.cinema-actions {
+.cinema-ctas {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.875rem;
-  margin-top: 1.75rem;
-}
-
-.cinema-actions .btn-secondary {
-  background: color-mix(in oklab, var(--frame) 72%, transparent);
-  border-color: color-mix(in oklab, var(--chalk) 72%, transparent);
-}
-
-.cinema-actions .btn-secondary:hover {
-  background: color-mix(in oklab, var(--frame) 86%, transparent);
+  gap: 0.7rem;
+  margin-bottom: 1rem;
 }
 
 .cinema-sound {
   position: absolute;
-  z-index: var(--z-hero-ui);
-  right: max(var(--gutter), env(safe-area-inset-right));
-  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  right: var(--gutter);
+  bottom: clamp(1.2rem, 4vh, 2.6rem);
 }
 
-.cinema-sound[hidden] {
-  display: none;
-}
+.cinema-sound[hidden] { display: none; }
 
-/* Hard edge on the hero floor. */
-.cinema-hero::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: var(--z-hero-ui);
-  height: 1px;
-  background: var(--active-border);
-  box-shadow: 0 0 14px var(--edge-glow);
-  pointer-events: none;
-}
-
-@media (max-width: 47.99rem) {
-  .cinema-stage picture,
-  .cinema-stage img,
-  .cinema-stage video {
-    object-position: center 18%;
-  }
-
-  .cinema-veil {
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--frame) 12%, transparent) 0%,
-        color-mix(in oklab, var(--frame) 4%, transparent) 22%,
-        color-mix(in oklab, var(--frame) 34%, transparent) 46%,
-        color-mix(in oklab, var(--frame) 82%, transparent) 60%,
-        color-mix(in oklab, var(--frame) 96%, transparent) 74%,
-        color-mix(in oklab, var(--frame) 98%, transparent) 100%
-      );
-  }
-
-  .cinema-copy {
-    margin-left: auto;
-    margin-right: auto;
-    width: min(100% - 2 * var(--gutter), var(--page-max));
-    max-width: min(100% - 2 * var(--gutter), var(--page-max));
-    padding-block: clamp(1.5rem, 6vh, 2.5rem) clamp(1.75rem, 5vh, 2.75rem);
-  }
-
-  .cinema-copy h1 {
-    max-width: 11ch;
-  }
-
-  .cinema-support {
-    color: color-mix(in oklab, var(--chalk) 88%, var(--dust));
-    max-width: none;
-  }
-
-  .cinema-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
-    width: 100%;
-  }
-
-  .cinema-actions .btn {
-    width: 100%;
-    min-height: 2.875rem;
-  }
-
-  .cinema-sound {
-    right: max(var(--gutter), env(safe-area-inset-right));
-    bottom: max(0.85rem, env(safe-area-inset-bottom));
-  }
-}
-
-/* ---- Shared act primitives ---- */
-
-.act {
-  position: relative;
-  background: var(--frame);
-  border-bottom: 1px solid var(--seam);
-}
-
-.act-copy h2 {
-  font-size: var(--step-3);
-  max-width: 14ch;
-  letter-spacing: -0.02em;
-}
-
-.act-copy p {
-  margin-top: 0.9rem;
-  color: var(--dust);
-  max-width: 34ch;
-}
-
-.act-media {
-  margin: 0;
-  min-width: 0;
-  background: var(--frame-2);
-}
-
-.act-media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  border: 0;
-}
-
-/* ---- World-scale act: full-bleed plate + floor rail ---- */
-
-.act-world {
-  display: grid;
-  grid-template-rows: minmax(18rem, 62vh) auto;
-}
-
-.act-media-bleed {
-  position: relative;
-  min-height: 18rem;
-  overflow: hidden;
-}
-
-.act-media-bleed img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  aspect-ratio: auto;
-  object-position: center 40%;
-}
-
-.act-rail {
-  border-top: 1px solid var(--seam);
-  background: var(--frame);
-}
-
-.act-world .act-copy {
-  width: min(100% - 2 * var(--gutter), var(--page-max));
-  margin-inline: auto;
-  padding-block: clamp(1.75rem, 5vw, 2.75rem);
-  max-width: none;
-}
-
-.act-world .act-copy h2 {
-  font-size: var(--step-4);
-  max-width: 12ch;
-}
-
-.act-world .act-copy p {
-  max-width: 38ch;
-  font-size: var(--step-2);
-}
-
-/* ---- Craft act: copy-led split, media secondary ---- */
-
-.act-craft {
-  background: var(--frame-2);
-}
-
-.act-split {
-  display: grid;
-  gap: 0;
-}
-
-.act-craft .act-copy {
-  padding: clamp(2rem, 6vw, 4rem) var(--gutter);
-  max-width: 36rem;
-}
-
-.act-craft .act-media img {
-  aspect-ratio: 16 / 10;
-  border-top: 1px solid var(--seam);
-}
-
-@media (min-width: 56rem) {
-  .act-craft .act-split {
-    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-    align-items: stretch;
-    min-height: clamp(24rem, 52vh, 36rem);
-  }
-
-  .act-craft .act-copy {
-    display: grid;
-    align-content: center;
-    padding-inline: clamp(2.25rem, 6vw, 5rem);
-    max-width: none;
-  }
-
-  .act-craft .act-media img {
-    aspect-ratio: auto;
-    height: 100%;
-    border-top: 0;
-    border-inline-start: 1px solid var(--seam);
-  }
-}
-
-/* ---- Tension act: media-led, heavier floor ---- */
-
-.act-tension {
-  background: var(--frame);
-}
-
-.act-tension .act-copy {
-  padding: clamp(2rem, 6vw, 3.5rem) var(--gutter);
-  max-width: 34rem;
-}
-
-.act-tension .act-copy h2 {
-  max-width: 11ch;
-}
-
-.act-tension .act-media img {
-  aspect-ratio: 16 / 10;
-  object-position: center 55%;
-  border-bottom: 1px solid var(--seam);
-}
-
-@media (min-width: 56rem) {
-  .act-split-invert {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-    min-height: clamp(24rem, 54vh, 38rem);
-  }
-
-  .act-tension .act-copy {
-    display: grid;
-    align-content: center;
-    justify-self: stretch;
-    padding-inline: clamp(2.25rem, 5vw, 4.5rem);
-    max-width: none;
-    border-inline-start: 1px solid var(--seam);
-    background: color-mix(in oklab, var(--frame-3) 72%, var(--frame));
-  }
-
-  .act-tension .act-media img {
-    aspect-ratio: auto;
-    height: 100%;
-    border-bottom: 0;
-  }
-}
-
-/* ---- Dustgate plate ---- */
-
-.act-dustgate {
-  margin-top: clamp(3.5rem, 9vw, 6.5rem);
-  border-top: 1px solid var(--seam);
-}
-
-.dustgate-frame {
-  position: relative;
-  margin: 0;
-  min-height: clamp(22rem, 70vh, 52rem);
-  overflow: hidden;
-  background: var(--frame-2);
-}
-
-.dustgate-frame img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 46%;
-}
-
-.dustgate-frame figcaption {
-  position: absolute;
-  left: var(--gutter);
-  bottom: var(--gutter);
-  padding: 0.35rem 0.55rem;
-  color: var(--chalk);
-  background: color-mix(in oklab, var(--frame) 84%, transparent);
-  border: 1px solid var(--seam);
-  font-size: 0.8125rem;
-}
-
-/* ---- Real terminal client ---- */
-
-.terminal-act {
-  border-block: 1px solid var(--seam);
-  background: var(--frame-2);
-}
-
-.terminal-head {
+/* Evidence strip: the hero is a live capture, and says so. */
+.cinema-plaque {
   display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding-block: clamp(2rem, 5vw, 3.5rem);
+  flex-wrap: wrap;
+  gap: 0.4rem 1.4rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid color-mix(in oklab, var(--ink) 26%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--ink) 82%, transparent);
 }
 
-.terminal-head h2 {
-  font-size: var(--step-4);
-  max-width: 15ch;
+/* ── sections ─────────────────────────────────────────────────────────── */
+.home-section {
+  max-width: var(--page-max);
+  margin: clamp(3rem, 9vh, 5.5rem) auto 0;
+  padding: 0 var(--gutter);
 }
 
-.terminal-head p {
-  margin-top: 0.9rem;
-  max-width: 38ch;
-  color: var(--dust);
-  font-size: var(--step-2);
+.home-section > h2 {
+  margin-bottom: clamp(1.1rem, 3vh, 1.8rem);
 }
 
-.terminal-replay {
-  flex: 0 0 auto;
+.home-section .section-lede {
+  color: var(--ink-dim);
+  margin-top: -0.6rem;
+  margin-bottom: 1.4rem;
 }
 
-.terminal-viewport {
+/* ── field record plates ──────────────────────────────────────────────── */
+.plate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: clamp(0.9rem, 2.2vw, 1.5rem);
+}
+
+.plate {
   position: relative;
-  height: clamp(29rem, 74vh, 54rem);
-  margin: 0;
-  overflow: hidden;
-  border-top: 1px solid var(--seam);
-  background: #050505;
-  color: #e7e2d7;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
-.terminal-screen {
-  position: absolute;
-  inset: 0;
-  box-sizing: border-box;
+.plate img {
   width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: clamp(1rem, 3vw, 2rem);
-  overflow: auto;
-  color: #e7e2d7;
-  background: #050505;
-  font-family: var(--font-mono);
-  font-size: clamp(0.6875rem, 1.1vw, 0.9375rem);
-  line-height: 1.3;
-  white-space: pre;
-  transition: opacity 220ms linear;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-bottom: 0;
 }
 
-.terminal-viewport figcaption {
-  position: absolute;
-  right: 0.75rem;
-  bottom: 0.75rem;
-  z-index: 3;
-  padding: 0.25rem 0.4rem;
-  color: #b9b3a7;
-  background: #050505;
-  border: 1px solid #4b4944;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-}
+.plate.is-tall img { aspect-ratio: 4 / 5; }
 
-.terminal-crawl {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  overflow: hidden;
-  perspective: 46rem;
-  perspective-origin: 50% 10%;
-  opacity: 0;
-  pointer-events: none;
-  background: #050505;
-}
+.plate .plaque { border-top: 1px solid var(--line-strong); }
 
-.terminal-crawl::after {
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: 3;
-  height: 10.5%;
-  background: #050505;
-  content: "";
-}
+/* One wide plate can anchor a row. */
+.plate.is-wide { grid-column: 1 / -1; }
+.plate.is-wide img { aspect-ratio: 21 / 9; }
 
-.terminal-crawl-plane {
-  position: absolute;
-  left: 50%;
-  top: 62%;
-  width: min(34rem, 76vw);
-  color: #e7e2d7;
-  font-family: var(--font-mono);
-  font-size: clamp(0.875rem, 1.9vw, 1.35rem);
-  font-weight: 700;
-  line-height: 1.65;
-  text-align: justify;
-  transform-origin: 50% 100%;
-  backface-visibility: hidden;
-}
-
-.terminal-crawl-plane p {
-  margin: 0 0 2.25rem;
-}
-
-.terminal-crawl-kicker {
-  letter-spacing: 0.14em;
-  text-align: center;
-}
-
-.terminal-act[data-crawl-state="playing"] .terminal-crawl {
+/* Reveal: content is visible by default; JS+motion only adds the drift in. */
+html.js .plate[data-reveal] {
   opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--speed-scene) var(--ease),
+    transform var(--speed-scene) var(--ease);
 }
-
-.terminal-act[data-crawl-state="playing"] .terminal-screen {
-  opacity: 0;
-}
-
-.terminal-act[data-crawl-state="playing"] .terminal-crawl-plane {
-  animation: terminal-opening-crawl 10.5s linear both;
-  will-change: transform;
-}
-
-@keyframes terminal-opening-crawl {
-  from {
-    transform: translateX(-50%) rotateX(56deg) translateY(42%);
-  }
-
-  78% {
-    transform: translateX(-50%) rotateX(56deg) translateY(-175%);
-  }
-
-  100% {
-    transform: translateX(-50%) rotateX(56deg) translateY(-520%);
-  }
-}
-
-@media (max-width: 47.99rem) {
-  .terminal-head {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  .terminal-viewport {
-    height: 34rem;
-  }
-
-  .terminal-screen {
-    font-size: 0.6875rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .terminal-replay,
-  .terminal-crawl {
-    display: none;
-  }
-}
-
-/* ---- Alpha close ---- */
-
-.alpha-close {
-  margin-top: clamp(4.5rem, 12vw, 8rem);
-  padding-block: clamp(3rem, 8vw, 5rem);
-  border-top: 1px solid var(--seam);
-  border-bottom: 1px solid var(--seam);
-  background: var(--frame-2);
-}
-
-.alpha-close h2 {
-  font-size: var(--step-4);
-  max-width: 16ch;
-}
-
-.alpha-close .lede {
-  margin-top: 1.125rem;
-  color: var(--dust);
-  max-width: 42ch;
-}
-
-.alpha-close .cta-row {
-  margin-top: 1.75rem;
-}
-
-/* ---- Scroll-earned entrance (enhancement only; content visible by default) ---- */
 
 @media (prefers-reduced-motion: no-preference) {
-  html.js .act[data-reveal] .act-media img,
-  html.js .act[data-reveal] .dustgate-frame img {
-    opacity: 0.001;
-  }
-
-  html.js .act[data-reveal].is-in .act-media img,
-  html.js .act[data-reveal].is-in .dustgate-frame img {
-    opacity: 1;
-    transition: opacity 480ms var(--ease-out);
-  }
-
-  html.js .act[data-reveal] .act-copy {
-    transform: translateY(0);
-  }
-
-  html.js .act[data-reveal]:not(.is-in) .act-copy {
-    opacity: 0.72;
-  }
-
-  html.js .act[data-reveal].is-in .act-copy {
-    opacity: 1;
-    transition: opacity 420ms var(--ease-out) 60ms;
+  html.js .plate[data-reveal]:not(.is-in) {
+    opacity: 0;
+    transform: translateY(10px);
   }
 }
+
+/* ── terminal ─────────────────────────────────────────────────────────── */
+.term {
+  font-family: var(--font-mono);
+  font-size: clamp(0.72rem, 0.62rem + 0.5vw, 0.9rem);
+  line-height: 1.6;
+}
+
+.term .frame-body {
+  padding: clamp(0.8rem, 2vw, 1.3rem);
+  overflow-x: auto;
+}
+
+.term pre {
+  margin: 0;
+  white-space: pre;
+}
+
+.term .t-accent { color: var(--accent); }
+.term .t-dim { color: var(--ink-dim); }
+.term .t-danger { color: var(--danger); }
+.term .t-ok { color: var(--ok); }
+
+.term-intro,
+.term-field { display: block; }
+
+/* Default and settled state: the field frame. Intro crawl only while playing. */
+.term [data-crawl] { display: none; }
+.term[data-crawl-state="playing"] [data-crawl] { display: block; }
+.term[data-crawl-state="playing"] .term-field { display: none; }
+
+.term[data-crawl-state="playing"] [data-crawl] .crawl-line {
+  opacity: 0;
+  animation: crawl-in 480ms var(--ease) forwards;
+}
+
+/* The stagger rides source order; the last line settles inside the 10.5s
+ * window home.ts holds before handing back the field frame. */
+.term[data-crawl-state="playing"] [data-crawl] .crawl-line:nth-child(1) { animation-delay: 0ms; }
+.term[data-crawl-state="playing"] [data-crawl] .crawl-line:nth-child(2) { animation-delay: 1050ms; }
+.term[data-crawl-state="playing"] [data-crawl] .crawl-line:nth-child(3) { animation-delay: 3150ms; }
+.term[data-crawl-state="playing"] [data-crawl] .crawl-line:nth-child(4) { animation-delay: 6300ms; }
+
+@keyframes crawl-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+
+.term-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.6rem;
+}
+
+/* ── chrome deck section ─────────────────────────────────────────────── */
+.chrome-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: clamp(1.2rem, 3vw, 2.4rem);
+  align-items: start;
+}
+
+@media (max-width: 47.99rem) {
+  .chrome-line { grid-template-columns: 1fr; }
+}
+
+.chrome-copy .theme-deck { margin-top: 0.9rem; }
+
+/* The demo window: the client's inventory frame, one order of fidelity up. */
+.demo-window .frame-body {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.45rem;
+}
+
+.demo-cell {
+  aspect-ratio: 1;
+  background: var(--cell);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+}
+
+.demo-cell.is-live {
+  border-color: var(--edge);
+  color: var(--accent);
+  box-shadow: inset 0 0 0.6rem color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+.demo-vitals {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+
+.demo-bar {
+  height: 6px;
+  background: var(--cell);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+}
+
+.demo-bar > span {
+  position: absolute;
+  inset: 0;
+  width: 60%;
+  background: color-mix(in oklab, var(--accent) 78%, transparent);
+}
+
+.demo-bar-health > span { width: 82%; }
+.demo-bar-action > span { width: 64%; }
+.demo-bar-mind > span { width: 91%; }
+
+.demo-bar.is-danger > span { background: color-mix(in oklab, var(--danger) 82%, transparent); }
+
+/* ── join band ───────────────────────────────────────────────────────── */
+.join-band {
+  margin-top: clamp(3rem, 9vh, 5.5rem);
+  border-top: 1px solid var(--line);
+  background: color-mix(in oklab, var(--panel) 55%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.join-band .inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: clamp(2rem, 6vh, 3.4rem) var(--gutter);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+}
+
+.join-band h2 { margin: 0; font-size: var(--step-3); }

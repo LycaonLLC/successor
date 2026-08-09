@@ -1,0 +1,35 @@
+{
+  "_comment": "Synthetic fixture representing game.snapshot",
+  "type": "game.snapshot",
+  "snapshot": {
+    "schema": "successor.authoritative-shard-snapshot.v1",
+    "shardId": "open-desert-persistent",
+    "tick": 43,
+    "playerActorId": "actor-player-1",
+    "actors": {
+      "actor-player-1": {
+        "id": "actor-player-1",
+        "label": "player",
+        "display_name": "Dev Player",
+        "areaId": "open-desert-overworld",
+        "x": 522.0,
+        "y": 520.0,
+        "direction": "right",
+        "vitals": {
+          "health": 100.0,
+          "action": 79.0,
+          "spirit": 50.0
+        },
+        "lifeState": "alive"
+      }
+    }
+  },
+  "receipts": [
+    {
+      "commandId": 101,
+      "accepted": true,
+      "tick": 42
+    }
+  ],
+  "events": []
+}

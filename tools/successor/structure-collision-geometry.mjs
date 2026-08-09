@@ -109,9 +109,25 @@ export function transformStructureCollision(sidecar, cellSize, rotation = 0) {
   if (floorTopM !== undefined && !Number.isFinite(floorTopM)) {
     throw new Error("structure collision sidecar floor top must be finite");
   }
+  // The merged `walls` array flattens a door module into one solid box and
+  // loses the fact that part of it is an opening. The fine `boxes` array still
+  // carries that: every panel is tagged `structure` or `door`. Surfacing the
+  // door-tagged ones lets the caller cut the aperture back out, so a doorway is
+  // governed by the door rather than paved over by its own module.
+  const apertures = (sidecar.boxes ?? [])
+    .filter((box) => box?.kind === "door"
+      && Array.isArray(box.center) && Array.isArray(box.size))
+    .map((box) => toBox({
+      minX: box.center[0] - box.size[0] / 2,
+      maxX: box.center[0] + box.size[0] / 2,
+      minZ: box.center[2] - box.size[2] / 2,
+      maxZ: box.center[2] + box.size[2] / 2,
+    }))
+    .filter(hasArea);
   return {
     walls,
     door,
+    apertures,
     interiorRegions,
     furniture,
     floorTopM: floorTopM === undefined ? undefined : floorTopM * scale,

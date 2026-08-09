@@ -4,13 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Get the client | Successor</title>
-    <meta
-      name="description"
-      content="Successor for Linux and macOS."
-    />
+    <meta name="description" content="Successor for Linux and macOS." />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#F8F8F8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#eef4f7" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Karrik-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link
@@ -26,51 +22,26 @@
   <body data-page="download">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
-      <div class="shell">
-        <a class="wordmark" href="/">
-          <img
-            class="wordmark-mark"
-            src="/brand/successor-mark.svg"
-            width="20"
-            height="20"
-            alt=""
-            decoding="async"
-          />
-          <img
-            class="wordmark-type"
-            src="/brand/successor-wordmark.svg"
-            width="132"
-            height="16"
-            alt="Successor"
-            decoding="async"
-          />
-        </a>
-                <nav class="site-nav" aria-label="Site">
-          <ul class="nav-inline">
-            <li><a href="/">Home</a></li>
-            <li><a href="/roadmap/">Roadmap</a></li>
-            <li><a href="/alpha/">Alpha</a></li>
-            <li><a href="/account/">Account</a></li>
-            <li><a href="/play/">Play</a></li>
-          </ul>
-          <details class="nav-menu">
-            <summary>Menu</summary>
-            <ul class="nav-list">
-            <li><a href="/">Home</a></li>
-            <li><a href="/roadmap/">Roadmap</a></li>
-            <li><a href="/alpha/">Alpha</a></li>
-            <li><a href="/account/">Account</a></li>
-            <li><a href="/play/">Play</a></li>
-            </ul>
-          </details>
-        </nav>
+      <a class="brand" href="/" aria-label="Successor home">
+        <img src="/brand/successor-mark.svg" width="20" height="20" alt="" decoding="async" />
+        <img src="/brand/successor-wordmark.svg" width="132" height="16" alt="Successor" decoding="async" />
+      </a>
+      <nav aria-label="Site">
+        <a href="/roadmap/">Roadmap</a>
+        <a href="/alpha/">Alpha</a>
+        <a href="/account/">Account</a>
+        <a href="/download/" aria-current="page">Download</a>
+        <a href="/play/">Play</a>
+      </nav>
+      <div class="side">
+        <div data-theme-deck></div>
       </div>
     </header>
 
     <main id="main" class="shell">
       <div class="page-head">
         <h1>Get the client</h1>
-        <p class="lede">Play in your browser, or install the 3D and terminal clients on Linux and macOS.</p>
+        <p class="lede">Browser, or native for Linux and macOS.</p>
       </div>
 
       <section class="page-section" aria-labelledby="h-builds">
@@ -87,26 +58,24 @@
         <h2 id="h-devices-note">Use the code</h2>
         <div class="prose">
           <p>
-            A real Successor build asks for a code, never your password.
+            A real build asks for a code, never your password.
             Approve it on the <a href="/connect/">connect page</a>.
           </p>
         </div>
       </section>
     </main>
 
-        <footer class="site-foot">
-      <div class="shell">
-        <p>Invite alpha. Saves may reset.</p>
-        <ul class="foot-links">
-          <li><a href="/roadmap/">Roadmap</a></li>
-          <li><a href="/alpha/">Alpha</a></li>
-          <li><a href="/legal/terms/">Terms</a></li>
-          <li><a href="/legal/privacy/">Privacy</a></li>
-          <li><a href="/download/">Downloads</a></li>
-          <li><a href="/legal/terms/#contact">Contact</a></li>
-        </ul>
-        <p class="foot-credit">From Lycaon LLC, in partnership with ROYCORP GAME STUDIOS.</p>
-      </div>
+    <footer class="site-foot">
+      <p class="fine">Invite alpha. Saves may reset.</p>
+      <nav aria-label="Footer">
+        <a href="/roadmap/">Roadmap</a>
+        <a href="/alpha/">Alpha</a>
+        <a href="/legal/terms/">Terms</a>
+        <a href="/legal/privacy/">Privacy</a>
+        <a href="/download/">Downloads</a>
+        <a href="/legal/terms/#contact">Contact</a>
+      </nav>
+      <p class="fine">From Lycaon LLC, in partnership with ROYCORP GAME STUDIOS.</p>
     </footer>
   </body>
 </html>

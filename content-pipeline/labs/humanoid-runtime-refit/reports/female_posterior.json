@@ -1,0 +1,217 @@
+{
+  "generator": "successor content-pipeline/labs/humanoid-runtime-refit/reduce_female_posterior.py",
+  "source": "content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v3_anim.glb",
+  "source_sha256": "8c1aefa701b6f6560cd9cb87f979c25a3bb4227fd9da6cde9f29f464f5da1650",
+  "output": "content-pipeline/labs/humanoid-runtime-refit/build/female_posterior/rbf_v3_reduced.glb",
+  "output_sha256": "a2d270b11ce9e22b3813dd96cbf45739496af50948e7f32afbd8f6761a2eaab7",
+  "bytes": 2622236,
+  "gates": {
+    "peak_m": 0.015,
+    "height_in": [
+      0.845,
+      0.9
+    ],
+    "height_out": [
+      1.0,
+      1.06
+    ],
+    "lateral_hold_m": 0.075,
+    "lateral_out_m": 0.115,
+    "depth_in": [
+      -0.045,
+      -0.07
+    ]
+  },
+  "metrics": {
+    "glute_band_y_m": [
+      0.86,
+      1.02
+    ],
+    "rear_projection_before_mm": -93.767,
+    "rear_projection_after_mm": -78.767,
+    "reduction_mm": 15.0,
+    "audit_bands_mm": [
+      {
+        "y_m": [
+          0.85,
+          0.95
+        ],
+        "before": -89.94,
+        "after": -77.94,
+        "reduction": 12.0
+      },
+      {
+        "y_m": [
+          0.95,
+          1.05
+        ],
+        "before": -93.767,
+        "after": -78.767,
+        "reduction": 15.0
+      }
+    ],
+    "vertices_moved": 31,
+    "vertices_total": 1219,
+    "max_move_mm": 15.0,
+    "mean_move_moved_mm": 4.854,
+    "height_span_moved_m": [
+      0.8549,
+      1.0524
+    ],
+    "abs_x_span_moved_m": [
+      0.0,
+      0.1121
+    ],
+    "stature_delta_mm": 0.0,
+    "hip_width_delta_mm": 0.0,
+    "front_silhouette_delta_mm": 0.0
+  },
+  "rear_profile_before_mm": [
+    [
+      0.73,
+      -57.07
+    ],
+    [
+      0.74,
+      -52.23
+    ],
+    [
+      0.85,
+      -53.75
+    ],
+    [
+      0.86,
+      -69.31
+    ],
+    [
+      0.87,
+      -65.38
+    ],
+    [
+      0.88,
+      -57.85
+    ],
+    [
+      0.9,
+      -89.94
+    ],
+    [
+      0.92,
+      -15.67
+    ],
+    [
+      0.95,
+      -66.27
+    ],
+    [
+      0.96,
+      -92.93
+    ],
+    [
+      0.97,
+      -93.77
+    ],
+    [
+      0.99,
+      -15.01
+    ],
+    [
+      1.0,
+      -78.87
+    ],
+    [
+      1.05,
+      -57.39
+    ],
+    [
+      1.09,
+      -34.32
+    ],
+    [
+      1.1,
+      -27.83
+    ],
+    [
+      1.12,
+      -35.44
+    ],
+    [
+      1.13,
+      -37.45
+    ]
+  ],
+  "rear_profile_after_mm": [
+    [
+      0.73,
+      -57.07
+    ],
+    [
+      0.74,
+      -52.23
+    ],
+    [
+      0.85,
+      -53.63
+    ],
+    [
+      0.86,
+      -66.19
+    ],
+    [
+      0.87,
+      -61.92
+    ],
+    [
+      0.88,
+      -54.85
+    ],
+    [
+      0.9,
+      -77.94
+    ],
+    [
+      0.92,
+      -15.67
+    ],
+    [
+      0.95,
+      -66.27
+    ],
+    [
+      0.96,
+      -77.93
+    ],
+    [
+      0.97,
+      -78.77
+    ],
+    [
+      0.99,
+      -15.01
+    ],
+    [
+      1.0,
+      -63.88
+    ],
+    [
+      1.05,
+      -57.16
+    ],
+    [
+      1.09,
+      -34.32
+    ],
+    [
+      1.1,
+      -27.83
+    ],
+    [
+      1.12,
+      -35.44
+    ],
+    [
+      1.13,
+      -37.45
+    ]
+  ]
+}

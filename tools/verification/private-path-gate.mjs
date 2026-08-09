@@ -36,7 +36,23 @@ if (failures.length) {
 console.log(`Private path gate passed (${files.length} changed tracked files checked).`);
 
 function changedFiles() {
-  const result = childProcess.spawnSync("git", ["diff", "--name-only", `${baseRef}...HEAD`], { cwd: repoRoot, encoding: "utf8" });
-  if (result.status !== 0) throw new Error(`git diff against ${baseRef} failed: ${result.stderr}`);
-  return result.stdout.split(/\r?\n/).filter(Boolean);
+  const exists = childProcess.spawnSync("git", ["rev-parse", "--verify", "--quiet", baseRef], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+  const resolvedBase = exists.status === 0 ? baseRef : "HEAD";
+  const commands = [
+    ["diff", "--name-only", `${resolvedBase}...HEAD`],
+    ["diff", "--name-only", "HEAD"],
+    ["ls-files", "--others", "--exclude-standard"],
+  ];
+  const files = new Set();
+  for (const args of commands) {
+    const result = childProcess.spawnSync("git", args, { cwd: repoRoot, encoding: "utf8" });
+    if (result.status !== 0) {
+      throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+    }
+    for (const file of result.stdout.split(/\r?\n/).filter(Boolean)) files.add(file);
+  }
+  return [...files].sort();
 }

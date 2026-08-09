@@ -1495,6 +1495,82 @@ fn authority_plasma_sword_debug_give_equips_as_vibrosword_and_encodes_item_id() 
 }
 
 #[test]
+fn authority_concrete_ranged_inventory_items_equip_with_certification_and_encode_identity() {
+    let (config, mut state) = roll_combat_test_state();
+    let player_id = config.player_actor_id.clone();
+    clear_test_professions(&mut state, &player_id);
+    p12_grant_boxes(
+        &mut state,
+        &player_id,
+        &[
+            "marksman-pistol-i",
+            "marksman-rifle-ii",
+            "marksman-rifle-iii",
+            "commando-heavy-weapons-ii",
+            "commando-heavy-weapons-iv",
+            "commando-demolitions-ii",
+        ],
+    );
+
+    for (command_id, weapon_id, item_id) in [
+        (
+            1,
+            AuthorityWeaponId::WpnPistol,
+            BADGE_BOLT_PISTOL_ITEM_ID,
+        ),
+        (
+            2,
+            AuthorityWeaponId::WpnAssault,
+            SLAGRAIL_VANGUARD_ITEM_ID,
+        ),
+        (
+            3,
+            AuthorityWeaponId::WpnShotgun,
+            COILGATE_SCATTER_ITEM_ID,
+        ),
+        (
+            4,
+            AuthorityWeaponId::WpnSniper,
+            KILN_LONG_PATTERN_ITEM_ID,
+        ),
+        (5, AuthorityWeaponId::WpnHeavy, BASTION_LMG_ITEM_ID),
+        (
+            6,
+            AuthorityWeaponId::WpnLauncher,
+            FLARE_NET_LAUNCHER_ITEM_ID,
+        ),
+    ] {
+        let variant_id = 90_000 + command_id as u32;
+        state
+            .apply_debug_give_item(&config, item_id, variant_id, 1, false)
+            .expect("concrete weapon added to inventory");
+        let frame = state.apply_envelope(
+            &config,
+            command(
+                command_id,
+                ClientCommand::SetEquippedWeapon {
+                    weapon_id: Some(weapon_id),
+                    weapon_item_id: Some(item_id),
+                    weapon_variant_id: Some(variant_id),
+                },
+            ),
+        );
+        assert_eq!(
+            frame.status,
+            AuthorityCommandStatus::Accepted,
+            "{weapon_id:?} rejected: {:?}",
+            frame.reason_code
+        );
+
+        let snapshot = state.actor_snapshot(&player_id).expect("player snapshot");
+        let weapon = snapshot.weapon.expect("equipped concrete weapon snapshot");
+        assert_eq!(weapon.weapon_id, authority_weapon_id_label(weapon_id));
+        assert_eq!(weapon.weapon_item_id, item_id);
+        assert_eq!(weapon.weapon_variant_id, variant_id);
+    }
+}
+
+#[test]
 fn authority_combat_helm_debug_give_creates_real_inventory_row() {
     let (config, mut state) = roll_combat_test_state();
 
@@ -1692,6 +1768,29 @@ fn authority_debug_grant_skill_boxes_adds_brawler_ranged_block_boxes() {
         assert!(player.professions.has_skill_box(skill_box_id));
     }
     assert_eq!(player.professions.brawler_ranged_block_chance_milli(), 950);
+}
+
+#[test]
+fn authority_debug_give_credits_adjusts_and_saturates_wallet() {
+    let (config, mut state) = roll_combat_test_state();
+    let initial_credits = state.actors.get("player").unwrap().professions.credits;
+
+    let grant = state.apply_envelope(
+        &config,
+        command(1, ClientCommand::DebugGiveCredits { amount: 250 }),
+    );
+    assert_eq!(grant.status, AuthorityCommandStatus::Accepted);
+    assert_eq!(
+        state.actors.get("player").unwrap().professions.credits,
+        initial_credits + 250
+    );
+
+    let drain = state.apply_envelope(
+        &config,
+        command(2, ClientCommand::DebugGiveCredits { amount: i64::MIN }),
+    );
+    assert_eq!(drain.status, AuthorityCommandStatus::Accepted);
+    assert_eq!(state.actors.get("player").unwrap().professions.credits, 0);
 }
 
 #[test]

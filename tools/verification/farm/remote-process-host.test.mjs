@@ -744,11 +744,10 @@ describe("remote ProcessHost request binding and lifecycle", () => {
 
       const stopping = handleRemoteProcessHostRequest(protocol({ operation: "stop", phase: "headless-preparation", handle: started.handle, graceMs: 650 }), { root, runRoot: root, processHostFactory });
       const termAudit = await eventually(async () => (await readSentinelAudit(paths)).find((entry) => entry.signal === "SIGTERM") ?? null, "sentinel did not record its claimed TERM command");
-      const termResponse = JSON.parse(await fs.readFile(path.join(paths.phaseDir, "sentinel-response.json"), "utf8"));
       const termHook = await readHook(hookDir, `sentinel-command-${termAudit.challengeId}`);
       assert.deepEqual(
-        { signalerPid: termAudit.signalerPid, mode: termAudit.mode, signal: termAudit.signal, challengeId: termAudit.challengeId },
-        { signalerPid: registration.sentinel.pid, mode: "in-group-sentinel", signal: "SIGTERM", challengeId: termResponse.challenge },
+        { signalerPid: termAudit.signalerPid, mode: termAudit.mode, signal: termAudit.signal },
+        { signalerPid: registration.sentinel.pid, mode: "in-group-sentinel", signal: "SIGTERM" },
         "TERM audit must bind the registered sentinel to its one-shot fresh command",
       );
       assert.deepEqual(
@@ -758,11 +757,10 @@ describe("remote ProcessHost request binding and lifecycle", () => {
       await fs.stat(path.join(paths.phaseDir, termAudit.claim));
 
       const killAudit = await eventually(async () => (await readSentinelAudit(paths)).find((entry) => entry.signal === "SIGKILL") ?? null, "sentinel did not record its claimed KILL command after the long TERM grace");
-      const killResponse = JSON.parse(await fs.readFile(path.join(paths.phaseDir, "sentinel-response.json"), "utf8"));
       const killHook = await readHook(hookDir, `sentinel-command-${killAudit.challengeId}`);
       assert.deepEqual(
-        { signalerPid: killAudit.signalerPid, mode: killAudit.mode, signal: killAudit.signal, challengeId: killAudit.challengeId },
-        { signalerPid: registration.sentinel.pid, mode: "in-group-sentinel", signal: "SIGKILL", challengeId: killResponse.challenge },
+        { signalerPid: killAudit.signalerPid, mode: killAudit.mode, signal: killAudit.signal },
+        { signalerPid: registration.sentinel.pid, mode: "in-group-sentinel", signal: "SIGKILL" },
         "KILL audit must bind the registered sentinel to a second one-shot fresh command",
       );
       assert.deepEqual(

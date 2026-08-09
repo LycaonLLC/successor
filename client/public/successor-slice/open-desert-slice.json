@@ -3657,8 +3657,8 @@
       "poseSet": "walk",
       "direction": "front",
       "cell": {
-        "x": 512,
-        "y": 513
+        "x": 516,
+        "y": 511
       },
       "route": [],
       "vitals": {
@@ -3841,9 +3841,9 @@
       "id": "dustgate-commerce-facility",
       "entity": "prop:open-desert-overworld:dustgate-commerce-facility",
       "areaId": "open-desert-overworld",
-      "label": "Dustgate Commerce Facility",
+      "label": "Valley Market",
       "kind": "building",
-      "assetKey": "commerce_facility",
+      "assetKey": "valley_market",
       "cell": {
         "x": 500,
         "y": 498
@@ -3857,190 +3857,563 @@
       "visible": true,
       "collisionBounds": [
         {
-          "xMilli": 0,
-          "yMilli": 237,
-          "wMilli": 579,
-          "hMilli": 8368,
-          "id": "outer_shell_left"
+          "xMilli": 147,
+          "yMilli": 7237,
+          "wMilli": 358,
+          "hMilli": 547,
+          "id": "shell__wall_west_0"
         },
         {
-          "xMilli": 11421,
-          "yMilli": 237,
-          "wMilli": 579,
-          "hMilli": 8368,
-          "id": "outer_shell_right"
+          "xMilli": 147,
+          "yMilli": 342,
+          "wMilli": 358,
+          "hMilli": 2747,
+          "id": "shell__wall_west_1"
         },
         {
-          "xMilli": 263,
-          "yMilli": 0,
-          "wMilli": 11474,
-          "hMilli": 553,
-          "id": "outer_shell_back"
+          "xMilli": 653,
+          "yMilli": 3089,
+          "wMilli": 168,
+          "hMilli": 4148,
+          "id": "shell__wall_west_back_0"
         },
         {
-          "xMilli": 263,
-          "yMilli": 8289,
-          "wMilli": 1579,
-          "hMilli": 316,
-          "id": "front_wall_left"
+          "xMilli": 11495,
+          "yMilli": 7300,
+          "wMilli": 358,
+          "hMilli": 1474,
+          "id": "shell__wall_east_0"
         },
         {
-          "xMilli": 8158,
-          "yMilli": 8289,
-          "wMilli": 3579,
-          "hMilli": 316,
-          "id": "front_wall_right"
+          "xMilli": 11495,
+          "yMilli": 2142,
+          "wMilli": 358,
+          "hMilli": 3011,
+          "id": "shell__wall_east_1"
         },
         {
-          "xMilli": 1842,
-          "yMilli": 8605,
-          "wMilli": 316,
-          "hMilli": 395,
-          "id": "entry_bay_return_left"
+          "xMilli": 11495,
+          "yMilli": 342,
+          "wMilli": 358,
+          "hMilli": 305,
+          "id": "shell__wall_east_2"
         },
         {
-          "xMilli": 7842,
-          "yMilli": 8605,
-          "wMilli": 316,
-          "hMilli": 395,
-          "id": "entry_bay_return_right"
+          "xMilli": 11200,
+          "yMilli": 5153,
+          "wMilli": 168,
+          "hMilli": 2147,
+          "id": "shell__wall_east_back_0"
         },
         {
-          "xMilli": 2158,
-          "yMilli": 8616,
-          "wMilli": 2542,
-          "hMilli": 384,
-          "id": "entry_bay_front_left"
+          "xMilli": 11495,
+          "yMilli": 647,
+          "wMilli": 105,
+          "hMilli": 1495,
+          "id": "shell__wall_east_back_1"
         },
         {
-          "xMilli": 7300,
-          "yMilli": 8616,
-          "wMilli": 542,
-          "hMilli": 384,
-          "id": "entry_bay_front_right"
+          "xMilli": 147,
+          "yMilli": 7237,
+          "wMilli": 674,
+          "hMilli": 358,
+          "id": "shell__cheek_w0_s"
         },
         {
-          "xMilli": 2368,
-          "yMilli": 2500,
-          "wMilli": 2264,
-          "hMilli": 495,
-          "id": "counter_bank"
+          "xMilli": 147,
+          "yMilli": 2732,
+          "wMilli": 674,
+          "hMilli": 357,
+          "id": "shell__cheek_w0_n"
         },
         {
-          "xMilli": 5368,
-          "yMilli": 2500,
-          "wMilli": 2264,
-          "hMilli": 495,
-          "id": "counter_trade"
+          "xMilli": 11200,
+          "yMilli": 7300,
+          "wMilli": 653,
+          "hMilli": 358,
+          "id": "shell__cheek_e0_s"
         },
         {
-          "xMilli": 8368,
-          "yMilli": 2500,
-          "wMilli": 2264,
-          "hMilli": 495,
-          "id": "counter_pa"
+          "xMilli": 11200,
+          "yMilli": 4795,
+          "wMilli": 653,
+          "hMilli": 358,
+          "id": "shell__cheek_e0_n"
         },
         {
-          "xMilli": 1053,
-          "yMilli": 553,
-          "wMilli": 3263,
-          "hMilli": 515,
-          "id": "bank_vault_face"
+          "xMilli": 11495,
+          "yMilli": 2142,
+          "wMilli": 358,
+          "hMilli": 358,
+          "id": "shell__cheek_e1_s"
         },
         {
-          "xMilli": 5263,
-          "yMilli": 553,
-          "wMilli": 2526,
-          "hMilli": 347,
-          "id": "trade_shelving"
+          "xMilli": 11495,
+          "yMilli": 289,
+          "wMilli": 358,
+          "hMilli": 358,
+          "id": "shell__cheek_e1_n"
         },
         {
-          "xMilli": 2558,
-          "yMilli": 5037,
-          "wMilli": 1884,
-          "hMilli": 84,
-          "id": "queue_rail_bank"
+          "xMilli": 147,
+          "yMilli": 5216,
+          "wMilli": 506,
+          "hMilli": 379,
+          "id": "shell__arc_pier"
         },
         {
-          "xMilli": 5558,
-          "yMilli": 5037,
-          "wMilli": 1884,
-          "hMilli": 84,
-          "id": "queue_rail_trade"
+          "xMilli": 11600,
+          "yMilli": 1100,
+          "wMilli": 253,
+          "hMilli": 305,
+          "id": "shell__plb_mullion"
         },
         {
-          "xMilli": 8558,
-          "yMilli": 5037,
-          "wMilli": 1884,
-          "hMilli": 84,
-          "id": "queue_rail_pa"
+          "xMilli": 147,
+          "yMilli": 342,
+          "wMilli": 6616,
+          "hMilli": 358,
+          "id": "shell__wall_north_w"
         },
         {
-          "xMilli": 579,
-          "yMilli": 3395,
+          "xMilli": 7974,
+          "yMilli": 342,
+          "wMilli": 3879,
+          "hMilli": 358,
+          "id": "shell__wall_north_e"
+        },
+        {
+          "xMilli": 147,
+          "yMilli": 7426,
+          "wMilli": 4042,
+          "hMilli": 358,
+          "id": "shell__wall_south_w"
+        },
+        {
+          "xMilli": 7179,
+          "yMilli": 7426,
+          "wMilli": 1684,
+          "hMilli": 358,
+          "id": "shell__wall_south_e"
+        },
+        {
+          "xMilli": 8863,
+          "yMilli": 8416,
+          "wMilli": 2990,
+          "hMilli": 358,
+          "id": "shell__bay_south"
+        },
+        {
+          "xMilli": 8863,
+          "yMilli": 7426,
+          "wMilli": 358,
+          "hMilli": 1348,
+          "id": "shell__bay_west"
+        },
+        {
+          "xMilli": 3684,
+          "yMilli": 7784,
+          "wMilli": 505,
+          "hMilli": 1095,
+          "id": "shell__hood_pier_w"
+        },
+        {
+          "xMilli": 7179,
+          "yMilli": 7784,
+          "wMilli": 505,
+          "hMilli": 1095,
+          "id": "shell__hood_pier_e"
+        },
+        {
+          "xMilli": 179,
+          "yMilli": 8447,
+          "wMilli": 484,
+          "hMilli": 485,
+          "id": "shell__loggia_pier_0"
+        },
+        {
+          "xMilli": 1737,
+          "yMilli": 8489,
+          "wMilli": 400,
+          "hMilli": 400,
+          "id": "shell__loggia_pier_1"
+        },
+        {
+          "xMilli": 3074,
+          "yMilli": 8521,
+          "wMilli": 337,
+          "hMilli": 337,
+          "id": "shell__loggia_pier_2"
+        },
+        {
+          "xMilli": 58,
+          "yMilli": 7426,
+          "wMilli": 447,
+          "hMilli": 448,
+          "id": "shell__lowcorner_corner_sw"
+        },
+        {
+          "xMilli": 58,
+          "yMilli": 253,
+          "wMilli": 447,
+          "hMilli": 447,
+          "id": "shell__lowcorner_corner_nw"
+        },
+        {
+          "xMilli": 11495,
+          "yMilli": 253,
+          "wMilli": 447,
+          "hMilli": 447,
+          "id": "shell__lowcorner_corner_ne"
+        },
+        {
+          "xMilli": 11495,
+          "yMilli": 8416,
+          "wMilli": 447,
+          "hMilli": 447,
+          "id": "shell__lowcorner_corner_bay_se"
+        },
+        {
+          "xMilli": 8774,
+          "yMilli": 8416,
+          "wMilli": 447,
+          "hMilli": 447,
+          "id": "shell__lowcorner_corner_bay_sw"
+        },
+        {
+          "xMilli": 8774,
+          "yMilli": 7426,
+          "wMilli": 447,
+          "hMilli": 448,
+          "id": "shell__lowcorner_corner_bay_re"
+        },
+        {
+          "xMilli": 42,
+          "yMilli": 2374,
+          "wMilli": 105,
+          "hMilli": 715,
+          "id": "shell__west_buttress"
+        },
+        {
+          "xMilli": 505,
+          "yMilli": 2195,
+          "wMilli": 90,
+          "hMilli": 358,
+          "id": "shell__service_wall_0"
+        },
+        {
+          "xMilli": 1595,
+          "yMilli": 2195,
+          "wMilli": 1200,
+          "hMilli": 358,
+          "id": "shell__service_wall_1"
+        },
+        {
+          "xMilli": 4205,
+          "yMilli": 2195,
+          "wMilli": 1590,
+          "hMilli": 358,
+          "id": "shell__service_wall_2"
+        },
+        {
+          "xMilli": 7205,
+          "yMilli": 2195,
+          "wMilli": 1590,
+          "hMilli": 358,
+          "id": "shell__service_wall_3"
+        },
+        {
+          "xMilli": 10205,
+          "yMilli": 2195,
+          "wMilli": 1290,
+          "hMilli": 358,
+          "id": "shell__service_wall_4"
+        },
+        {
+          "xMilli": 2616,
+          "yMilli": 2058,
+          "wMilli": 179,
+          "hMilli": 137,
+          "id": "shell__niche_bank_cheek_w"
+        },
+        {
+          "xMilli": 4205,
+          "yMilli": 2058,
+          "wMilli": 179,
+          "hMilli": 137,
+          "id": "shell__niche_bank_cheek_e"
+        },
+        {
+          "xMilli": 2795,
+          "yMilli": 1921,
+          "wMilli": 1410,
+          "hMilli": 137,
+          "id": "shell__niche_bank_back"
+        },
+        {
+          "xMilli": 5616,
+          "yMilli": 2058,
+          "wMilli": 179,
+          "hMilli": 137,
+          "id": "shell__niche_trade_cheek_w"
+        },
+        {
+          "xMilli": 7205,
+          "yMilli": 2058,
+          "wMilli": 179,
+          "hMilli": 137,
+          "id": "shell__niche_trade_cheek_e"
+        },
+        {
+          "xMilli": 5795,
+          "yMilli": 1921,
+          "wMilli": 1410,
+          "hMilli": 137,
+          "id": "shell__niche_trade_back"
+        },
+        {
+          "xMilli": 8616,
+          "yMilli": 2058,
+          "wMilli": 179,
+          "hMilli": 137,
+          "id": "shell__niche_assoc_cheek_w"
+        },
+        {
+          "xMilli": 10205,
+          "yMilli": 2058,
+          "wMilli": 179,
+          "hMilli": 137,
+          "id": "shell__niche_assoc_cheek_e"
+        },
+        {
+          "xMilli": 8795,
+          "yMilli": 1921,
+          "wMilli": 1410,
+          "hMilli": 137,
+          "id": "shell__niche_assoc_back"
+        },
+        {
+          "xMilli": 2642,
+          "yMilli": 2553,
+          "wMilli": 126,
+          "hMilli": 368,
+          "id": "fixture__dock_bank_fin_w"
+        },
+        {
+          "xMilli": 4232,
+          "yMilli": 2553,
+          "wMilli": 126,
+          "hMilli": 368,
+          "id": "fixture__dock_bank_fin_e"
+        },
+        {
+          "xMilli": 2342,
+          "yMilli": 2553,
+          "wMilli": 421,
+          "hMilli": 263,
+          "id": "fixture__dock_bank_drawer"
+        },
+        {
+          "xMilli": 4205,
+          "yMilli": 2553,
+          "wMilli": 484,
+          "hMilli": 358,
+          "id": "fixture__dock_bank_ledge"
+        },
+        {
+          "xMilli": 5511,
+          "yMilli": 2753,
+          "wMilli": 63,
+          "hMilli": 63,
+          "id": "fixture__dock_trade_leg_w"
+        },
+        {
+          "xMilli": 7426,
+          "yMilli": 2753,
+          "wMilli": 63,
+          "hMilli": 63,
+          "id": "fixture__dock_trade_leg_e"
+        },
+        {
+          "xMilli": 7289,
+          "yMilli": 2553,
+          "wMilli": 422,
+          "hMilli": 315,
+          "id": "fixture__dock_trade_shelf"
+        },
+        {
+          "xMilli": 8247,
+          "yMilli": 2553,
+          "wMilli": 611,
+          "hMilli": 94,
+          "id": "fixture__dock_assoc_notice"
+        },
+        {
+          "xMilli": 10163,
+          "yMilli": 2553,
+          "wMilli": 569,
+          "hMilli": 421,
+          "id": "fixture__dock_assoc_bench"
+        },
+        {
+          "xMilli": 821,
+          "yMilli": 3321,
+          "wMilli": 779,
+          "hMilli": 3495,
+          "id": "fixture__vendor_counter"
+        },
+        {
+          "xMilli": 253,
+          "yMilli": 3247,
+          "wMilli": 400,
+          "hMilli": 1390,
+          "id": "fixture__goods_counter"
+        },
+        {
+          "xMilli": 253,
+          "yMilli": 5658,
+          "wMilli": 400,
+          "hMilli": 1305,
+          "id": "fixture__stock_ledge"
+        },
+        {
+          "xMilli": 11368,
+          "yMilli": 6005,
           "wMilli": 474,
-          "hMilli": 2842,
-          "id": "bench_west"
+          "hMilli": 906,
+          "id": "fixture__water_basin"
         },
         {
-          "xMilli": 789,
-          "yMilli": 7932,
-          "wMilli": 2211,
-          "hMilli": 336,
-          "id": "bench_front"
-        },
-        {
-          "xMilli": 4032,
-          "yMilli": 7795,
-          "wMilli": 357,
+          "xMilli": 11600,
+          "yMilli": 742,
+          "wMilli": 242,
           "hMilli": 358,
-          "id": "vestibule_pier_left"
+          "id": "fixture__isolator_cabinet"
         },
         {
-          "xMilli": 7611,
-          "yMilli": 7795,
-          "wMilli": 357,
-          "hMilli": 358,
-          "id": "vestibule_pier_right"
+          "xMilli": 9684,
+          "yMilli": 7132,
+          "wMilli": 1474,
+          "hMilli": 442,
+          "id": "fixture__trainer_table"
         },
         {
-          "xMilli": 2758,
-          "yMilli": 6574,
-          "wMilli": 484,
-          "hMilli": 484,
-          "id": "column_west"
+          "xMilli": 9263,
+          "yMilli": 8016,
+          "wMilli": 800,
+          "hMilli": 337,
+          "id": "fixture__trainer_credenza"
         },
         {
-          "xMilli": 8758,
-          "yMilli": 6574,
-          "wMilli": 484,
-          "hMilli": 484,
-          "id": "column_east"
+          "xMilli": 10432,
+          "yMilli": 1795,
+          "wMilli": 1094,
+          "hMilli": 389,
+          "id": "fixture__boh_bench"
         },
         {
-          "xMilli": 11011,
-          "yMilli": 5805,
-          "wMilli": 410,
-          "hMilli": 1432,
-          "id": "trainer_desk"
+          "xMilli": 1642,
+          "yMilli": 1795,
+          "wMilli": 926,
+          "hMilli": 389,
+          "id": "fixture__boh_shelving"
+        },
+        {
+          "xMilli": 11211,
+          "yMilli": 763,
+          "wMilli": 284,
+          "hMilli": 842,
+          "id": "fixture__boh_switchgear"
+        },
+        {
+          "xMilli": 4532,
+          "yMilli": 1789,
+          "wMilli": 431,
+          "hMilli": 432,
+          "id": "fixture__boh_filter_0"
+        },
+        {
+          "xMilli": 5037,
+          "yMilli": 1789,
+          "wMilli": 431,
+          "hMilli": 432,
+          "id": "fixture__boh_filter_1"
+        },
+        {
+          "xMilli": 5684,
+          "yMilli": 1795,
+          "wMilli": 358,
+          "hMilli": 126,
+          "id": "fixture__boh_valve_panel"
+        },
+        {
+          "xMilli": 3316,
+          "yMilli": 700,
+          "wMilli": 526,
+          "hMilli": 116,
+          "id": "fixture__boh_ladder"
+        },
+        {
+          "xMilli": 10937,
+          "yMilli": 3237,
+          "wMilli": 558,
+          "hMilli": 1347,
+          "id": "fixture__nook_bench"
+        },
+        {
+          "xMilli": 4326,
+          "yMilli": 6089,
+          "wMilli": 3453,
+          "hMilli": 85,
+          "id": "fixture__queue_rail"
+        },
+        {
+          "xMilli": 474,
+          "yMilli": 8005,
+          "wMilli": 2421,
+          "hMilli": 653,
+          "id": "fixture__loggia_ledge"
+        },
+        {
+          "xMilli": 2053,
+          "yMilli": 7995,
+          "wMilli": 1158,
+          "hMilli": 463,
+          "id": "fixture__loggia_bench"
         }
       ],
       "interiorRegions": [
         {
-          "id": "main_walkable_interior",
-          "xMilli": 579,
-          "yMilli": 553,
-          "wMilli": 10842,
-          "hMilli": 7715,
+          "id": "hall",
+          "xMilli": 505,
+          "yMilli": 2553,
+          "wMilli": 10990,
+          "hMilli": 4873,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "back_of_house",
+          "xMilli": 505,
+          "yMilli": 700,
+          "wMilli": 10990,
+          "hMilli": 1358,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "trainer_bay",
+          "xMilli": 9221,
+          "yMilli": 7426,
+          "wMilli": 2274,
+          "hMilli": 990,
           "floorTopM": 0.021052631578947368
         }
       ],
       "door": {
         "blocker": {
-          "xMilli": 4700,
-          "yMilli": 8616,
-          "wMilli": 2600,
-          "hMilli": 316,
+          "xMilli": 4400,
+          "yMilli": 7300,
+          "wMilli": 2568,
+          "hMilli": 95,
           "id": "closed_door_panel"
         },
         "interactRadiusCells": 3.1
@@ -4050,10 +4423,2183 @@
         "floorHeightM": 0.021052631578947368,
         "interiorBounds": [
           {
-            "xMilli": 579,
-            "yMilli": 553,
-            "wMilli": 10842,
-            "hMilli": 7715
+            "xMilli": 505,
+            "yMilli": 2553,
+            "wMilli": 10990,
+            "hMilli": 4873
+          },
+          {
+            "xMilli": 505,
+            "yMilli": 700,
+            "wMilli": 10990,
+            "hMilli": 1358
+          },
+          {
+            "xMilli": 9221,
+            "yMilli": 7426,
+            "wMilli": 2274,
+            "hMilli": 990
+          }
+        ]
+      }
+    },
+    {
+      "id": "dustgate-home-starter",
+      "entity": "prop:open-desert-overworld:dustgate-home-starter",
+      "areaId": "open-desert-overworld",
+      "label": "Modular Starter Home",
+      "kind": "building",
+      "assetKey": "home_modular_starter",
+      "cell": {
+        "x": 512,
+        "y": 512
+      },
+      "size": {
+        "w": 8,
+        "h": 6
+      },
+      "interactive": false,
+      "solid": false,
+      "visible": true,
+      "collisionBounds": [
+        {
+          "xMilli": 0,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 1000,
+          "id": "wall_096_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 5000,
+          "wMilli": 1000,
+          "hMilli": 1000,
+          "id": "wall_097_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 7000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 1000,
+          "id": "wall_098_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 7000,
+          "yMilli": 5000,
+          "wMilli": 1000,
+          "hMilli": 1000,
+          "id": "wall_099_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 5000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_100_wall_1c__sintered"
+        },
+        {
+          "xMilli": 6000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_101_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 1000,
+          "yMilli": 0,
+          "wMilli": 2000,
+          "hMilli": 84,
+          "id": "wall_102_window_tall_2c__sintered"
+        },
+        {
+          "xMilli": 3000,
+          "yMilli": 0,
+          "wMilli": 943,
+          "hMilli": 84,
+          "id": "wall_103_door_slide_2c__sintered__jamb_lo"
+        },
+        {
+          "xMilli": 4891,
+          "yMilli": 0,
+          "wMilli": 109,
+          "hMilli": 84,
+          "id": "wall_103_door_slide_2c__sintered__jamb_hi"
+        },
+        {
+          "xMilli": 1000,
+          "yMilli": 5916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_106_wall_1c__sintered"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 5916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_107_wall_1c__sintered"
+        },
+        {
+          "xMilli": 5000,
+          "yMilli": 5916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_108_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 6000,
+          "yMilli": 5916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_109_wall_1c__sintered"
+        },
+        {
+          "xMilli": 2000,
+          "yMilli": 5916,
+          "wMilli": 2000,
+          "hMilli": 84,
+          "id": "wall_110_window_tall_2c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 1000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_111_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 2000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_112_window_cler_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 3000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_113_wall_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 4000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_114_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 1000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_115_window_cler_1c__sintered"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 2000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_116_wall_1c__sintered"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 3000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_117_wall_1c__sintered"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 4000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_118_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_119_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 3000,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_120_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_121_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 7000,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_122_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 1000,
+          "yMilli": 2916,
+          "wMilli": 152,
+          "hMilli": 168,
+          "id": "wall_123_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 2057,
+          "yMilli": 2916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_123_door_inner_2c__plasterlined__jamb_hi"
+        },
+        {
+          "xMilli": 5000,
+          "yMilli": 2916,
+          "wMilli": 152,
+          "hMilli": 168,
+          "id": "wall_124_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 6057,
+          "yMilli": 2916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_124_door_inner_2c__plasterlined__jamb_hi"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 2844,
+          "wMilli": 156,
+          "hMilli": 312,
+          "id": "wall_125_wall_tee__sintered"
+        },
+        {
+          "xMilli": 7844,
+          "yMilli": 2844,
+          "wMilli": 156,
+          "hMilli": 312,
+          "id": "wall_126_wall_tee__sintered"
+        },
+        {
+          "xMilli": 3916,
+          "yMilli": 3000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_127_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 3916,
+          "yMilli": 4000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_128_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 3916,
+          "yMilli": 5000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_129_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 3844,
+          "yMilli": 2844,
+          "wMilli": 312,
+          "hMilli": 312,
+          "id": "wall_130_wall_tee__plasterlined"
+        },
+        {
+          "xMilli": 3844,
+          "yMilli": 5844,
+          "wMilli": 312,
+          "hMilli": 156,
+          "id": "wall_131_wall_tee__sintered"
+        },
+        {
+          "xMilli": 5916,
+          "yMilli": 0,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_132_wall_1c__panelclad"
+        },
+        {
+          "xMilli": 5916,
+          "yMilli": 1000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_133_wall_1c__panelclad"
+        },
+        {
+          "xMilli": 5844,
+          "yMilli": 0,
+          "wMilli": 312,
+          "hMilli": 156,
+          "id": "wall_134_wall_tee__sintered"
+        },
+        {
+          "xMilli": 1089,
+          "yMilli": 1153,
+          "wMilli": 822,
+          "hMilli": 694,
+          "id": "furniture_135_furn_table_1c__panelclad"
+        },
+        {
+          "xMilli": 2326,
+          "yMilli": 1326,
+          "wMilli": 348,
+          "hMilli": 348,
+          "id": "furniture_136_furn_stool__panelclad"
+        },
+        {
+          "xMilli": 1274,
+          "yMilli": 2237,
+          "wMilli": 452,
+          "hMilli": 526,
+          "id": "furniture_137_furn_chair_1c__panelclad"
+        },
+        {
+          "xMilli": 1258,
+          "yMilli": 1258,
+          "wMilli": 484,
+          "hMilli": 484,
+          "id": "furniture_138_furn_pendant_1c__panelclad"
+        },
+        {
+          "xMilli": 2326,
+          "yMilli": 326,
+          "wMilli": 348,
+          "hMilli": 348,
+          "id": "furniture_139_furn_stool__panelclad"
+        },
+        {
+          "xMilli": 3547,
+          "yMilli": 2684,
+          "wMilli": 1906,
+          "hMilli": 632,
+          "id": "furniture_140_furn_counter_2c__panelclad"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 1026,
+          "wMilli": 316,
+          "hMilli": 948,
+          "id": "furniture_141_furn_sink_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 2026,
+          "wMilli": 316,
+          "hMilli": 948,
+          "id": "furniture_142_furn_stove_1c__sintered"
+        },
+        {
+          "xMilli": 5398,
+          "yMilli": 0,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_143_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 398,
+          "yMilli": 2749,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_144_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 7663,
+          "yMilli": 1595,
+          "wMilli": 337,
+          "hMilli": 1810,
+          "id": "furniture_145_furn_desk_2c__panelclad"
+        },
+        {
+          "xMilli": 6237,
+          "yMilli": 2274,
+          "wMilli": 526,
+          "hMilli": 452,
+          "id": "furniture_146_furn_chair_1c__panelclad"
+        },
+        {
+          "xMilli": 6163,
+          "yMilli": 0,
+          "wMilli": 674,
+          "hMilli": 295,
+          "id": "furniture_147_furn_crate_stack__panelclad"
+        },
+        {
+          "xMilli": 7398,
+          "yMilli": 2749,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_148_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 1553,
+          "yMilli": 5537,
+          "wMilli": 1894,
+          "hMilli": 463,
+          "id": "furniture_149_furn_bed_2c__panelclad"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 3305,
+          "wMilli": 189,
+          "hMilli": 390,
+          "id": "furniture_150_furn_nightstand__panelclad"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 4079,
+          "wMilli": 221,
+          "hMilli": 842,
+          "id": "furniture_151_furn_chest_1c__panelclad"
+        },
+        {
+          "xMilli": 1398,
+          "yMilli": 5749,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_152_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 3584,
+          "wMilli": 842,
+          "hMilli": 1832,
+          "id": "furniture_153_xs_san_soaktub_2c__panelclad"
+        },
+        {
+          "xMilli": 6142,
+          "yMilli": 5516,
+          "wMilli": 716,
+          "hMilli": 484,
+          "id": "furniture_154_xs_san_basin_1c__panelclad"
+        },
+        {
+          "xMilli": 6037,
+          "yMilli": 5764,
+          "wMilli": 926,
+          "hMilli": 137,
+          "id": "furniture_155_xs_san_mirrorcab_1c__panelclad"
+        },
+        {
+          "xMilli": 4268,
+          "yMilli": 3000,
+          "wMilli": 464,
+          "hMilli": 537,
+          "id": "furniture_156_xs_san_reclaimer_1c__panelclad"
+        },
+        {
+          "xMilli": 4105,
+          "yMilli": 5806,
+          "wMilli": 790,
+          "hMilli": 110,
+          "id": "furniture_157_xs_san_towelbar_1c__panelclad"
+        },
+        {
+          "xMilli": 6184,
+          "yMilli": 4353,
+          "wMilli": 632,
+          "hMilli": 294,
+          "id": "furniture_158_xs_san_drain_1c__panelclad"
+        },
+        {
+          "xMilli": 7779,
+          "yMilli": 4079,
+          "wMilli": 221,
+          "hMilli": 842,
+          "id": "furniture_159_furn_chest_1c__panelclad"
+        },
+        {
+          "xMilli": 7749,
+          "yMilli": 3398,
+          "wMilli": 251,
+          "hMilli": 204,
+          "id": "furniture_160_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 181,
+          "yMilli": 181,
+          "wMilli": 695,
+          "hMilli": 695,
+          "id": "furniture_161_furn_corner_hearth__panelclad"
+        },
+        {
+          "xMilli": 7124,
+          "yMilli": 313,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_162_furn_corner_shelf__panelclad"
+        },
+        {
+          "xMilli": 313,
+          "yMilli": 5124,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_163_furn_corner_bench__panelclad"
+        },
+        {
+          "xMilli": 7124,
+          "yMilli": 5124,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_164_furn_corner_store__panelclad"
+        }
+      ],
+      "interiorRegions": [
+        {
+          "id": "living",
+          "xMilli": 0,
+          "yMilli": 0,
+          "wMilli": 6000,
+          "hMilli": 3000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "study",
+          "xMilli": 6000,
+          "yMilli": 0,
+          "wMilli": 2000,
+          "hMilli": 3000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "bedroom",
+          "xMilli": 0,
+          "yMilli": 3000,
+          "wMilli": 4000,
+          "hMilli": 3000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "bath",
+          "xMilli": 4000,
+          "yMilli": 3000,
+          "wMilli": 4000,
+          "hMilli": 3000,
+          "floorTopM": 0.021052631578947368
+        }
+      ],
+      "door": {
+        "blocker": {
+          "xMilli": 3943,
+          "yMilli": 0,
+          "wMilli": 948,
+          "hMilli": 26,
+          "id": "closed_exterior_entry"
+        },
+        "interactRadiusCells": 3.1
+      },
+      "shelter": true,
+      "enterable": {
+        "floorHeightM": 0.021052631578947368,
+        "interiorBounds": [
+          {
+            "xMilli": 0,
+            "yMilli": 0,
+            "wMilli": 6000,
+            "hMilli": 3000
+          },
+          {
+            "xMilli": 6000,
+            "yMilli": 0,
+            "wMilli": 2000,
+            "hMilli": 3000
+          },
+          {
+            "xMilli": 0,
+            "yMilli": 3000,
+            "wMilli": 4000,
+            "hMilli": 3000
+          },
+          {
+            "xMilli": 4000,
+            "yMilli": 3000,
+            "wMilli": 4000,
+            "hMilli": 3000
+          }
+        ]
+      }
+    },
+    {
+      "id": "dustgate-home-court",
+      "entity": "prop:open-desert-overworld:dustgate-home-court",
+      "areaId": "open-desert-overworld",
+      "label": "Modular Court Home",
+      "kind": "building",
+      "assetKey": "home_modular_court",
+      "cell": {
+        "x": 493,
+        "y": 520
+      },
+      "size": {
+        "w": 10,
+        "h": 8
+      },
+      "interactive": false,
+      "solid": false,
+      "visible": true,
+      "collisionBounds": [
+        {
+          "xMilli": 0,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 1000,
+          "id": "wall_112_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 7000,
+          "wMilli": 1000,
+          "hMilli": 1000,
+          "id": "wall_113_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 3000,
+          "yMilli": 0,
+          "wMilli": 1084,
+          "hMilli": 1000,
+          "id": "wall_114_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 9000,
+          "yMilli": 3916,
+          "wMilli": 1000,
+          "hMilli": 1084,
+          "id": "wall_115_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 9000,
+          "yMilli": 7000,
+          "wMilli": 1000,
+          "hMilli": 1000,
+          "id": "wall_116_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 1000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_117_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 2000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_118_wall_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 1000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_119_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 2000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_120_wall_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 3000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_121_window_cler_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 4000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_122_wall_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 5000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_123_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 6000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_124_window_cler_1c__sintered"
+        },
+        {
+          "xMilli": 1000,
+          "yMilli": 7916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_125_wall_1c__sintered"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 7916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_126_wall_1c__sintered"
+        },
+        {
+          "xMilli": 5000,
+          "yMilli": 7916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_127_wall_1c__sintered"
+        },
+        {
+          "xMilli": 6000,
+          "yMilli": 7916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_128_wall_1c__sintered"
+        },
+        {
+          "xMilli": 7000,
+          "yMilli": 7916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_129_wall_1c__sintered"
+        },
+        {
+          "xMilli": 8000,
+          "yMilli": 7916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_130_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 2000,
+          "yMilli": 7916,
+          "wMilli": 2000,
+          "hMilli": 84,
+          "id": "wall_131_window_tall_2c__sintered"
+        },
+        {
+          "xMilli": 9916,
+          "yMilli": 5000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_132_window_cler_1c__sintered"
+        },
+        {
+          "xMilli": 9916,
+          "yMilli": 6000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_133_wall_1c__sintered"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 3916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_134_wall_1c__sintered"
+        },
+        {
+          "xMilli": 7000,
+          "yMilli": 3916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_135_wall_1c__sintered"
+        },
+        {
+          "xMilli": 8000,
+          "yMilli": 3916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_136_window_cler_1c__sintered"
+        },
+        {
+          "xMilli": 5000,
+          "yMilli": 3916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_137_door_slide_2c__sintered__jamb_lo"
+        },
+        {
+          "xMilli": 6891,
+          "yMilli": 3916,
+          "wMilli": 109,
+          "hMilli": 168,
+          "id": "wall_137_door_slide_2c__sintered__jamb_hi"
+        },
+        {
+          "xMilli": 3916,
+          "yMilli": 1000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_138_wall_1c__sintered"
+        },
+        {
+          "xMilli": 3916,
+          "yMilli": 2000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_139_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 3916,
+          "yMilli": 3000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_140_wall_1c__sintered"
+        },
+        {
+          "xMilli": 3844,
+          "yMilli": 3844,
+          "wMilli": 312,
+          "hMilli": 312,
+          "id": "wall_142_wall_tee__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 3916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_143_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 3000,
+          "yMilli": 3916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_144_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 1000,
+          "yMilli": 3916,
+          "wMilli": 152,
+          "hMilli": 168,
+          "id": "wall_145_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 2057,
+          "yMilli": 3916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_145_door_inner_2c__plasterlined__jamb_hi"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 3844,
+          "wMilli": 156,
+          "hMilli": 312,
+          "id": "wall_146_wall_tee__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 1916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_147_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 3000,
+          "yMilli": 1916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_148_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 1000,
+          "yMilli": 1916,
+          "wMilli": 152,
+          "hMilli": 168,
+          "id": "wall_149_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 2057,
+          "yMilli": 1916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_149_door_inner_2c__plasterlined__jamb_hi"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 1844,
+          "wMilli": 156,
+          "hMilli": 312,
+          "id": "wall_150_wall_tee__sintered"
+        },
+        {
+          "xMilli": 3844,
+          "yMilli": 1844,
+          "wMilli": 312,
+          "hMilli": 312,
+          "id": "wall_151_wall_tee__sintered"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 4000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_152_wall_1c__panelclad"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 7000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_153_wall_1c__panelclad"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 5000,
+          "wMilli": 168,
+          "hMilli": 943,
+          "id": "wall_154_door_inner_2c__panelclad__jamb_lo"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 6848,
+          "wMilli": 168,
+          "hMilli": 152,
+          "id": "wall_154_door_inner_2c__panelclad__jamb_hi"
+        },
+        {
+          "xMilli": 7844,
+          "yMilli": 3844,
+          "wMilli": 312,
+          "hMilli": 312,
+          "id": "wall_155_wall_tee__sintered"
+        },
+        {
+          "xMilli": 7844,
+          "yMilli": 7844,
+          "wMilli": 312,
+          "hMilli": 156,
+          "id": "wall_156_wall_tee__sintered"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_157_wall_half_1c__sintered"
+        },
+        {
+          "xMilli": 5000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_158_wall_half_1c__sintered"
+        },
+        {
+          "xMilli": 8000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_159_wall_half_1c__sintered"
+        },
+        {
+          "xMilli": 9000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_160_wall_half_1c__sintered"
+        },
+        {
+          "xMilli": 9916,
+          "yMilli": 0,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_161_wall_half_1c__sintered"
+        },
+        {
+          "xMilli": 9916,
+          "yMilli": 1000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_162_wall_half_1c__sintered"
+        },
+        {
+          "xMilli": 9916,
+          "yMilli": 2000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_163_wall_half_1c__sintered"
+        },
+        {
+          "xMilli": 9916,
+          "yMilli": 3000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_164_wall_half_1c__sintered"
+        },
+        {
+          "xMilli": 5816,
+          "yMilli": 0,
+          "wMilli": 368,
+          "hMilli": 184,
+          "id": "wall_165_column__sintered"
+        },
+        {
+          "xMilli": 7816,
+          "yMilli": 0,
+          "wMilli": 368,
+          "hMilli": 184,
+          "id": "wall_166_column__sintered"
+        },
+        {
+          "xMilli": 9816,
+          "yMilli": 0,
+          "wMilli": 184,
+          "hMilli": 184,
+          "id": "wall_167_column__sintered"
+        },
+        {
+          "xMilli": 181,
+          "yMilli": 7124,
+          "wMilli": 695,
+          "hMilli": 695,
+          "id": "furniture_168_furn_corner_hearth__panelclad"
+        },
+        {
+          "xMilli": 2089,
+          "yMilli": 6153,
+          "wMilli": 822,
+          "hMilli": 694,
+          "id": "furniture_169_furn_table_1c__panelclad"
+        },
+        {
+          "xMilli": 1237,
+          "yMilli": 6274,
+          "wMilli": 526,
+          "hMilli": 452,
+          "id": "furniture_170_furn_chair_1c__panelclad"
+        },
+        {
+          "xMilli": 3237,
+          "yMilli": 6274,
+          "wMilli": 526,
+          "hMilli": 452,
+          "id": "furniture_171_furn_chair_1c__panelclad"
+        },
+        {
+          "xMilli": 2258,
+          "yMilli": 6258,
+          "wMilli": 484,
+          "hMilli": 484,
+          "id": "furniture_172_furn_pendant_1c__panelclad"
+        },
+        {
+          "xMilli": 2326,
+          "yMilli": 5326,
+          "wMilli": 348,
+          "hMilli": 348,
+          "id": "furniture_173_furn_stool__panelclad"
+        },
+        {
+          "xMilli": 3553,
+          "yMilli": 7768,
+          "wMilli": 1894,
+          "hMilli": 232,
+          "id": "furniture_174_furn_bench_2c__panelclad"
+        },
+        {
+          "xMilli": 5574,
+          "yMilli": 7747,
+          "wMilli": 1852,
+          "hMilli": 253,
+          "id": "furniture_175_furn_sideboard_2c__panelclad"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 4079,
+          "wMilli": 147,
+          "hMilli": 842,
+          "id": "furniture_176_furn_shelf_1c__panelclad"
+        },
+        {
+          "xMilli": 5398,
+          "yMilli": 7749,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_177_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 6167,
+          "yMilli": 6254,
+          "wMilli": 666,
+          "hMilli": 492,
+          "id": "furniture_178_furn_planter_1c__panelclad"
+        },
+        {
+          "xMilli": 9124,
+          "yMilli": 7124,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_179_furn_corner_store__panelclad"
+        },
+        {
+          "xMilli": 9124,
+          "yMilli": 4313,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_180_furn_corner_shelf__panelclad"
+        },
+        {
+          "xMilli": 9684,
+          "yMilli": 5026,
+          "wMilli": 316,
+          "hMilli": 948,
+          "id": "furniture_181_furn_stove_1c__panelclad"
+        },
+        {
+          "xMilli": 9684,
+          "yMilli": 6026,
+          "wMilli": 316,
+          "hMilli": 948,
+          "id": "furniture_182_furn_sink_1c__panelclad"
+        },
+        {
+          "xMilli": 7832,
+          "yMilli": 7026,
+          "wMilli": 336,
+          "hMilli": 948,
+          "id": "furniture_183_furn_wall_cab_1c__panelclad"
+        },
+        {
+          "xMilli": 8000,
+          "yMilli": 4398,
+          "wMilli": 251,
+          "hMilli": 204,
+          "id": "furniture_184_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 9258,
+          "yMilli": 6258,
+          "wMilli": 484,
+          "hMilli": 484,
+          "id": "furniture_185_furn_pendant_1c__panelclad"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 2553,
+          "wMilli": 463,
+          "hMilli": 1894,
+          "id": "furniture_186_furn_bed_2c__panelclad"
+        },
+        {
+          "xMilli": 305,
+          "yMilli": 3811,
+          "wMilli": 390,
+          "hMilli": 378,
+          "id": "furniture_187_furn_nightstand__panelclad"
+        },
+        {
+          "xMilli": 3853,
+          "yMilli": 3079,
+          "wMilli": 294,
+          "hMilli": 842,
+          "id": "furniture_188_furn_shelf_1c__panelclad"
+        },
+        {
+          "xMilli": 79,
+          "yMilli": 1779,
+          "wMilli": 842,
+          "hMilli": 442,
+          "id": "furniture_189_furn_chest_1c__panelclad"
+        },
+        {
+          "xMilli": 3398,
+          "yMilli": 2000,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_190_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 3124,
+          "yMilli": 313,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_191_furn_corner_store__panelclad"
+        },
+        {
+          "xMilli": 1163,
+          "yMilli": 0,
+          "wMilli": 674,
+          "hMilli": 295,
+          "id": "furniture_192_furn_crate_stack__panelclad"
+        },
+        {
+          "xMilli": 142,
+          "yMilli": 1516,
+          "wMilli": 716,
+          "hMilli": 484,
+          "id": "furniture_193_xs_san_basin_1c__panelclad"
+        },
+        {
+          "xMilli": 37,
+          "yMilli": 1764,
+          "wMilli": 926,
+          "hMilli": 137,
+          "id": "furniture_194_xs_san_mirrorcab_1c__panelclad"
+        },
+        {
+          "xMilli": 268,
+          "yMilli": 0,
+          "wMilli": 464,
+          "hMilli": 537,
+          "id": "furniture_195_xs_san_reclaimer_1c__panelclad"
+        },
+        {
+          "xMilli": 1184,
+          "yMilli": 1353,
+          "wMilli": 632,
+          "hMilli": 294,
+          "id": "furniture_196_xs_san_drain_1c__panelclad"
+        },
+        {
+          "xMilli": 2398,
+          "yMilli": 0,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_197_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 4398,
+          "yMilli": 3749,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_198_furn_lamp_wall__sintered"
+        },
+        {
+          "xMilli": 7398,
+          "yMilli": 3749,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_199_furn_lamp_wall__sintered"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 1398,
+          "wMilli": 251,
+          "hMilli": 204,
+          "id": "furniture_200_furn_lamp_wall__sintered"
+        }
+      ],
+      "interiorRegions": [
+        {
+          "id": "living",
+          "xMilli": 0,
+          "yMilli": 4000,
+          "wMilli": 8000,
+          "hMilli": 4000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "kitchen",
+          "xMilli": 8000,
+          "yMilli": 4000,
+          "wMilli": 2000,
+          "hMilli": 4000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "bed",
+          "xMilli": 0,
+          "yMilli": 2000,
+          "wMilli": 4000,
+          "hMilli": 2000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "bath",
+          "xMilli": 0,
+          "yMilli": 0,
+          "wMilli": 4000,
+          "hMilli": 2000,
+          "floorTopM": 0.021052631578947368
+        }
+      ],
+      "door": {
+        "blocker": {
+          "xMilli": 5943,
+          "yMilli": 3973,
+          "wMilli": 948,
+          "hMilli": 52,
+          "id": "closed_exterior_entry"
+        },
+        "interactRadiusCells": 3.1
+      },
+      "shelter": true,
+      "enterable": {
+        "floorHeightM": 0.021052631578947368,
+        "interiorBounds": [
+          {
+            "xMilli": 0,
+            "yMilli": 4000,
+            "wMilli": 8000,
+            "hMilli": 4000
+          },
+          {
+            "xMilli": 8000,
+            "yMilli": 4000,
+            "wMilli": 2000,
+            "hMilli": 4000
+          },
+          {
+            "xMilli": 0,
+            "yMilli": 2000,
+            "wMilli": 4000,
+            "hMilli": 2000
+          },
+          {
+            "xMilli": 0,
+            "yMilli": 0,
+            "wMilli": 4000,
+            "hMilli": 2000
+          }
+        ]
+      }
+    },
+    {
+      "id": "dustgate-home-wing",
+      "entity": "prop:open-desert-overworld:dustgate-home-wing",
+      "areaId": "open-desert-overworld",
+      "label": "Modular Wing Home",
+      "kind": "building",
+      "assetKey": "home_modular_wing",
+      "cell": {
+        "x": 519,
+        "y": 520
+      },
+      "size": {
+        "w": 12,
+        "h": 10
+      },
+      "interactive": false,
+      "solid": false,
+      "visible": true,
+      "collisionBounds": [
+        {
+          "xMilli": 0,
+          "yMilli": 6916,
+          "wMilli": 1000,
+          "hMilli": 1084,
+          "id": "wall_144_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 9000,
+          "wMilli": 1000,
+          "hMilli": 1000,
+          "id": "wall_145_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 2916,
+          "yMilli": 0,
+          "wMilli": 1084,
+          "hMilli": 1000,
+          "id": "wall_146_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 6000,
+          "yMilli": 9000,
+          "wMilli": 1084,
+          "hMilli": 1000,
+          "id": "wall_147_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 7000,
+          "yMilli": 0,
+          "wMilli": 1084,
+          "hMilli": 1000,
+          "id": "wall_148_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 11000,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 1084,
+          "id": "wall_149_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 11000,
+          "yMilli": 6000,
+          "wMilli": 1000,
+          "hMilli": 1084,
+          "id": "wall_150_wall_cham_1c__sintered"
+        },
+        {
+          "xMilli": 2916,
+          "yMilli": 1000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_151_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 2916,
+          "yMilli": 2000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_152_wall_1c__sintered"
+        },
+        {
+          "xMilli": 2916,
+          "yMilli": 3000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_153_window_cler_1c__sintered"
+        },
+        {
+          "xMilli": 2916,
+          "yMilli": 6000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_154_wall_1c__sintered"
+        },
+        {
+          "xMilli": 2916,
+          "yMilli": 4000,
+          "wMilli": 168,
+          "hMilli": 109,
+          "id": "wall_155_door_slide_2c__sintered__jamb_lo"
+        },
+        {
+          "xMilli": 2916,
+          "yMilli": 5057,
+          "wMilli": 168,
+          "hMilli": 943,
+          "id": "wall_155_door_slide_2c__sintered__jamb_hi"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_158_wall_1c__sintered"
+        },
+        {
+          "xMilli": 5000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_159_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 6000,
+          "yMilli": 0,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_160_wall_1c__sintered"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 1000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_161_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 7916,
+          "yMilli": 2000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_162_wall_1c__sintered"
+        },
+        {
+          "xMilli": 8000,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_163_wall_1c__sintered"
+        },
+        {
+          "xMilli": 9000,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_164_wall_1c__sintered"
+        },
+        {
+          "xMilli": 10000,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_165_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 11916,
+          "yMilli": 4000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_166_window_cler_1c__sintered"
+        },
+        {
+          "xMilli": 11916,
+          "yMilli": 5000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_167_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 7000,
+          "yMilli": 6916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_168_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 10000,
+          "yMilli": 6916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_169_wall_1c__sintered"
+        },
+        {
+          "xMilli": 8000,
+          "yMilli": 6916,
+          "wMilli": 2000,
+          "hMilli": 168,
+          "id": "wall_170_window_tall_2c__sintered"
+        },
+        {
+          "xMilli": 6916,
+          "yMilli": 7000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_171_wall_1c__sintered"
+        },
+        {
+          "xMilli": 6916,
+          "yMilli": 8000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_172_window_cler_1c__sintered"
+        },
+        {
+          "xMilli": 1000,
+          "yMilli": 9916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_173_wall_1c__sintered"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 9916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_174_wall_1c__sintered"
+        },
+        {
+          "xMilli": 5000,
+          "yMilli": 9916,
+          "wMilli": 1000,
+          "hMilli": 84,
+          "id": "wall_175_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 2000,
+          "yMilli": 9916,
+          "wMilli": 2000,
+          "hMilli": 84,
+          "id": "wall_176_window_tall_2c__sintered"
+        },
+        {
+          "xMilli": 0,
+          "yMilli": 8000,
+          "wMilli": 84,
+          "hMilli": 1000,
+          "id": "wall_177_window_cler_1c__sintered"
+        },
+        {
+          "xMilli": 1000,
+          "yMilli": 6916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_178_window_slot_1c__sintered"
+        },
+        {
+          "xMilli": 2000,
+          "yMilli": 6916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_179_wall_1c__sintered"
+        },
+        {
+          "xMilli": 2816,
+          "yMilli": 6816,
+          "wMilli": 368,
+          "hMilli": 368,
+          "id": "wall_180_corner_inner__sintered"
+        },
+        {
+          "xMilli": 6816,
+          "yMilli": 6816,
+          "wMilli": 368,
+          "hMilli": 368,
+          "id": "wall_181_corner_inner__sintered"
+        },
+        {
+          "xMilli": 7816,
+          "yMilli": 2816,
+          "wMilli": 368,
+          "hMilli": 368,
+          "id": "wall_182_corner_inner__sintered"
+        },
+        {
+          "xMilli": 3000,
+          "yMilli": 6916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_183_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 6000,
+          "yMilli": 6916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_184_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 6916,
+          "wMilli": 152,
+          "hMilli": 168,
+          "id": "wall_185_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 5057,
+          "yMilli": 6916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_185_door_inner_2c__plasterlined__jamb_hi"
+        },
+        {
+          "xMilli": 6916,
+          "yMilli": 3000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_186_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 6916,
+          "yMilli": 6000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_187_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 6916,
+          "yMilli": 4000,
+          "wMilli": 168,
+          "hMilli": 943,
+          "id": "wall_188_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 6916,
+          "yMilli": 5848,
+          "wMilli": 168,
+          "hMilli": 152,
+          "id": "wall_188_door_inner_2c__plasterlined__jamb_hi"
+        },
+        {
+          "xMilli": 6844,
+          "yMilli": 2844,
+          "wMilli": 312,
+          "hMilli": 312,
+          "id": "wall_189_wall_tee__sintered"
+        },
+        {
+          "xMilli": 3000,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_190_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 6000,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_191_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 4000,
+          "yMilli": 2916,
+          "wMilli": 152,
+          "hMilli": 168,
+          "id": "wall_192_door_inner_2c__plasterlined__jamb_lo"
+        },
+        {
+          "xMilli": 5057,
+          "yMilli": 2916,
+          "wMilli": 943,
+          "hMilli": 168,
+          "id": "wall_192_door_inner_2c__plasterlined__jamb_hi"
+        },
+        {
+          "xMilli": 2844,
+          "yMilli": 2844,
+          "wMilli": 312,
+          "hMilli": 312,
+          "id": "wall_193_wall_tee__sintered"
+        },
+        {
+          "xMilli": 7000,
+          "yMilli": 2916,
+          "wMilli": 1000,
+          "hMilli": 168,
+          "id": "wall_194_wall_1c__plasterlined"
+        },
+        {
+          "xMilli": 8916,
+          "yMilli": 3000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_195_wall_1c__panelclad"
+        },
+        {
+          "xMilli": 8916,
+          "yMilli": 6000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_196_wall_1c__panelclad"
+        },
+        {
+          "xMilli": 8916,
+          "yMilli": 4000,
+          "wMilli": 168,
+          "hMilli": 943,
+          "id": "wall_197_door_inner_2c__panelclad__jamb_lo"
+        },
+        {
+          "xMilli": 8916,
+          "yMilli": 5848,
+          "wMilli": 168,
+          "hMilli": 152,
+          "id": "wall_197_door_inner_2c__panelclad__jamb_hi"
+        },
+        {
+          "xMilli": 8844,
+          "yMilli": 2844,
+          "wMilli": 312,
+          "hMilli": 312,
+          "id": "wall_198_wall_tee__sintered"
+        },
+        {
+          "xMilli": 8844,
+          "yMilli": 6844,
+          "wMilli": 312,
+          "hMilli": 312,
+          "id": "wall_199_wall_tee__sintered"
+        },
+        {
+          "xMilli": 4916,
+          "yMilli": 8000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_200_wall_1c__panelclad"
+        },
+        {
+          "xMilli": 4916,
+          "yMilli": 9000,
+          "wMilli": 168,
+          "hMilli": 1000,
+          "id": "wall_201_wall_1c__panelclad"
+        },
+        {
+          "xMilli": 4844,
+          "yMilli": 9844,
+          "wMilli": 312,
+          "hMilli": 156,
+          "id": "wall_202_wall_tee__sintered"
+        },
+        {
+          "xMilli": 181,
+          "yMilli": 9124,
+          "wMilli": 695,
+          "hMilli": 695,
+          "id": "furniture_203_furn_corner_hearth__panelclad"
+        },
+        {
+          "xMilli": 313,
+          "yMilli": 7313,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_204_furn_corner_bench__panelclad"
+        },
+        {
+          "xMilli": 2089,
+          "yMilli": 8153,
+          "wMilli": 822,
+          "hMilli": 694,
+          "id": "furniture_205_furn_table_1c__panelclad"
+        },
+        {
+          "xMilli": 1237,
+          "yMilli": 8274,
+          "wMilli": 526,
+          "hMilli": 452,
+          "id": "furniture_206_furn_chair_1c__panelclad"
+        },
+        {
+          "xMilli": 3237,
+          "yMilli": 8274,
+          "wMilli": 526,
+          "hMilli": 452,
+          "id": "furniture_207_furn_chair_1c__panelclad"
+        },
+        {
+          "xMilli": 2258,
+          "yMilli": 8258,
+          "wMilli": 484,
+          "hMilli": 484,
+          "id": "furniture_208_furn_pendant_1c__panelclad"
+        },
+        {
+          "xMilli": 1553,
+          "yMilli": 6768,
+          "wMilli": 1894,
+          "hMilli": 464,
+          "id": "furniture_209_furn_bench_2c__panelclad"
+        },
+        {
+          "xMilli": 4079,
+          "yMilli": 9779,
+          "wMilli": 842,
+          "hMilli": 221,
+          "id": "furniture_210_furn_chest_1c__panelclad"
+        },
+        {
+          "xMilli": 3079,
+          "yMilli": 6853,
+          "wMilli": 842,
+          "hMilli": 294,
+          "id": "furniture_211_furn_shelf_1c__panelclad"
+        },
+        {
+          "xMilli": 4167,
+          "yMilli": 8254,
+          "wMilli": 666,
+          "hMilli": 492,
+          "id": "furniture_212_furn_planter_1c__panelclad"
+        },
+        {
+          "xMilli": 1398,
+          "yMilli": 9749,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_213_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 6124,
+          "yMilli": 9124,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_214_furn_corner_store__panelclad"
+        },
+        {
+          "xMilli": 6684,
+          "yMilli": 7026,
+          "wMilli": 632,
+          "hMilli": 948,
+          "id": "furniture_215_furn_sink_1c__panelclad"
+        },
+        {
+          "xMilli": 6684,
+          "yMilli": 8026,
+          "wMilli": 632,
+          "hMilli": 948,
+          "id": "furniture_216_furn_stove_1c__panelclad"
+        },
+        {
+          "xMilli": 4832,
+          "yMilli": 8026,
+          "wMilli": 336,
+          "hMilli": 948,
+          "id": "furniture_217_furn_wall_cab_1c__panelclad"
+        },
+        {
+          "xMilli": 5000,
+          "yMilli": 9398,
+          "wMilli": 251,
+          "hMilli": 204,
+          "id": "furniture_218_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 7595,
+          "yMilli": 6663,
+          "wMilli": 1810,
+          "hMilli": 674,
+          "id": "furniture_219_furn_desk_2c__panelclad"
+        },
+        {
+          "xMilli": 8274,
+          "yMilli": 5237,
+          "wMilli": 452,
+          "hMilli": 526,
+          "id": "furniture_220_furn_chair_1c__panelclad"
+        },
+        {
+          "xMilli": 7705,
+          "yMilli": 3163,
+          "wMilli": 590,
+          "hMilli": 674,
+          "id": "furniture_221_furn_crate_stack__panelclad"
+        },
+        {
+          "xMilli": 8079,
+          "yMilli": 2853,
+          "wMilli": 842,
+          "hMilli": 294,
+          "id": "furniture_222_furn_shelf_1c__panelclad"
+        },
+        {
+          "xMilli": 7000,
+          "yMilli": 3398,
+          "wMilli": 251,
+          "hMilli": 204,
+          "id": "furniture_223_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 11124,
+          "yMilli": 3313,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_224_furn_corner_shelf__panelclad"
+        },
+        {
+          "xMilli": 11124,
+          "yMilli": 6124,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_225_furn_corner_desk__panelclad"
+        },
+        {
+          "xMilli": 8553,
+          "yMilli": 2537,
+          "wMilli": 1894,
+          "hMilli": 926,
+          "id": "furniture_226_furn_bed_2c__panelclad"
+        },
+        {
+          "xMilli": 8811,
+          "yMilli": 3305,
+          "wMilli": 378,
+          "hMilli": 390,
+          "id": "furniture_227_furn_nightstand__panelclad"
+        },
+        {
+          "xMilli": 10398,
+          "yMilli": 6749,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_228_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 3313,
+          "yMilli": 313,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_229_furn_corner_shelf__panelclad"
+        },
+        {
+          "xMilli": 7124,
+          "yMilli": 313,
+          "wMilli": 563,
+          "hMilli": 563,
+          "id": "furniture_230_furn_corner_bench__panelclad"
+        },
+        {
+          "xMilli": 5163,
+          "yMilli": 0,
+          "wMilli": 674,
+          "hMilli": 295,
+          "id": "furniture_231_furn_crate_stack__panelclad"
+        },
+        {
+          "xMilli": 6142,
+          "yMilli": 2516,
+          "wMilli": 716,
+          "hMilli": 484,
+          "id": "furniture_232_xs_san_basin_1c__panelclad"
+        },
+        {
+          "xMilli": 6037,
+          "yMilli": 2764,
+          "wMilli": 926,
+          "hMilli": 137,
+          "id": "furniture_233_xs_san_mirrorcab_1c__panelclad"
+        },
+        {
+          "xMilli": 6268,
+          "yMilli": 0,
+          "wMilli": 464,
+          "hMilli": 537,
+          "id": "furniture_234_xs_san_reclaimer_1c__panelclad"
+        },
+        {
+          "xMilli": 7095,
+          "yMilli": 2037,
+          "wMilli": 905,
+          "hMilli": 926,
+          "id": "furniture_235_xs_san_stall_1c__panelclad"
+        },
+        {
+          "xMilli": 3105,
+          "yMilli": 2806,
+          "wMilli": 790,
+          "hMilli": 110,
+          "id": "furniture_236_xs_san_towelbar_1c__panelclad"
+        },
+        {
+          "xMilli": 5184,
+          "yMilli": 1353,
+          "wMilli": 632,
+          "hMilli": 294,
+          "id": "furniture_237_xs_san_drain_1c__panelclad"
+        },
+        {
+          "xMilli": 4398,
+          "yMilli": 0,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_238_furn_lamp_wall__panelclad"
+        },
+        {
+          "xMilli": 3167,
+          "yMilli": 6254,
+          "wMilli": 666,
+          "hMilli": 492,
+          "id": "furniture_239_furn_planter_1c__panelclad"
+        },
+        {
+          "xMilli": 6258,
+          "yMilli": 3258,
+          "wMilli": 484,
+          "hMilli": 484,
+          "id": "furniture_240_furn_pendant_1c__panelclad"
+        },
+        {
+          "xMilli": 3079,
+          "yMilli": 2853,
+          "wMilli": 842,
+          "hMilli": 294,
+          "id": "furniture_241_furn_shelf_1c__panelclad"
+        },
+        {
+          "xMilli": 6398,
+          "yMilli": 6749,
+          "wMilli": 204,
+          "hMilli": 251,
+          "id": "furniture_242_furn_lamp_wall__panelclad"
+        }
+      ],
+      "interiorRegions": [
+        {
+          "id": "hall",
+          "xMilli": 3000,
+          "yMilli": 3000,
+          "wMilli": 4000,
+          "hMilli": 4000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "living",
+          "xMilli": 0,
+          "yMilli": 7000,
+          "wMilli": 5000,
+          "hMilli": 3000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "kitchen",
+          "xMilli": 5000,
+          "yMilli": 7000,
+          "wMilli": 2000,
+          "hMilli": 3000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "study",
+          "xMilli": 7000,
+          "yMilli": 3000,
+          "wMilli": 2000,
+          "hMilli": 4000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "bed",
+          "xMilli": 9000,
+          "yMilli": 3000,
+          "wMilli": 3000,
+          "hMilli": 4000,
+          "floorTopM": 0.021052631578947368
+        },
+        {
+          "id": "bath",
+          "xMilli": 3000,
+          "yMilli": 0,
+          "wMilli": 5000,
+          "hMilli": 3000,
+          "floorTopM": 0.021052631578947368
+        }
+      ],
+      "door": {
+        "blocker": {
+          "xMilli": 2974,
+          "yMilli": 4109,
+          "wMilli": 52,
+          "hMilli": 948,
+          "id": "closed_exterior_entry"
+        },
+        "interactRadiusCells": 3.1
+      },
+      "shelter": true,
+      "enterable": {
+        "floorHeightM": 0.021052631578947368,
+        "interiorBounds": [
+          {
+            "xMilli": 3000,
+            "yMilli": 3000,
+            "wMilli": 4000,
+            "hMilli": 4000
+          },
+          {
+            "xMilli": 0,
+            "yMilli": 7000,
+            "wMilli": 5000,
+            "hMilli": 3000
+          },
+          {
+            "xMilli": 5000,
+            "yMilli": 7000,
+            "wMilli": 2000,
+            "hMilli": 3000
+          },
+          {
+            "xMilli": 7000,
+            "yMilli": 3000,
+            "wMilli": 2000,
+            "hMilli": 4000
+          },
+          {
+            "xMilli": 9000,
+            "yMilli": 3000,
+            "wMilli": 3000,
+            "hMilli": 4000
+          },
+          {
+            "xMilli": 3000,
+            "yMilli": 0,
+            "wMilli": 5000,
+            "hMilli": 3000
           }
         ]
       }
@@ -4240,8 +6786,8 @@
       "kind": "clone_pod",
       "assetKey": "clone_pod",
       "cell": {
-        "x": 518,
-        "y": 504
+        "x": 515,
+        "y": 500
       },
       "size": {
         "w": 1,
@@ -4260,184 +6806,6 @@
         }
       ],
       "rotation": 0
-    },
-    {
-      "id": "open-desert-shelter-house",
-      "entity": "prop:open-desert-overworld:open-desert-shelter-house",
-      "areaId": "open-desert-overworld",
-      "label": "Shelter House",
-      "kind": "prop",
-      "assetKey": "house_shoulder",
-      "cell": {
-        "x": 509,
-        "y": 508
-      },
-      "size": {
-        "w": 5,
-        "h": 4
-      },
-      "interactive": false,
-      "solid": false,
-      "visible": true,
-      "collisionBounds": [
-        {
-          "xMilli": 474,
-          "yMilli": 105,
-          "wMilli": 4052,
-          "hMilli": 290
-        },
-        {
-          "xMilli": 184,
-          "yMilli": 395,
-          "wMilli": 290,
-          "hMilli": 2684
-        },
-        {
-          "xMilli": 4526,
-          "yMilli": 395,
-          "wMilli": 290,
-          "hMilli": 1737
-        },
-        {
-          "xMilli": 4526,
-          "yMilli": 2132,
-          "wMilli": 263,
-          "hMilli": 947
-        },
-        {
-          "xMilli": 4816,
-          "yMilli": 2132,
-          "wMilli": 26,
-          "hMilli": 105
-        },
-        {
-          "xMilli": 4789,
-          "yMilli": 2237,
-          "wMilli": 27,
-          "hMilli": 842
-        },
-        {
-          "xMilli": 474,
-          "yMilli": 3079,
-          "wMilli": 1158,
-          "hMilli": 289
-        },
-        {
-          "xMilli": 4447,
-          "yMilli": 3079,
-          "wMilli": 79,
-          "hMilli": 289
-        },
-        {
-          "xMilli": 1632,
-          "yMilli": 3368,
-          "wMilli": 289,
-          "hMilli": 27
-        },
-        {
-          "xMilli": 4158,
-          "yMilli": 3368,
-          "wMilli": 289,
-          "hMilli": 237
-        },
-        {
-          "xMilli": 1632,
-          "yMilli": 3395,
-          "wMilli": 26,
-          "hMilli": 52
-        },
-        {
-          "xMilli": 1921,
-          "yMilli": 3395,
-          "wMilli": 921,
-          "hMilli": 52
-        },
-        {
-          "xMilli": 2868,
-          "yMilli": 3421,
-          "wMilli": 53,
-          "hMilli": 184
-        },
-        {
-          "xMilli": 4026,
-          "yMilli": 3421,
-          "wMilli": 79,
-          "hMilli": 184
-        },
-        {
-          "xMilli": 1605,
-          "yMilli": 3447,
-          "wMilli": 27,
-          "hMilli": 158
-        },
-        {
-          "xMilli": 1658,
-          "yMilli": 3447,
-          "wMilli": 263,
-          "hMilli": 158
-        },
-        {
-          "xMilli": 1921,
-          "yMilli": 3605,
-          "wMilli": 947,
-          "hMilli": 237
-        },
-        {
-          "xMilli": 4105,
-          "yMilli": 3605,
-          "wMilli": 53,
-          "hMilli": 237
-        },
-        {
-          "xMilli": 1921,
-          "yMilli": 3842,
-          "wMilli": 737,
-          "hMilli": 53
-        },
-        {
-          "xMilli": 4158,
-          "yMilli": 3842,
-          "wMilli": 131,
-          "hMilli": 158
-        },
-        {
-          "xMilli": 2658,
-          "yMilli": 3895,
-          "wMilli": 263,
-          "hMilli": 26
-        },
-        {
-          "xMilli": 4026,
-          "yMilli": 3895,
-          "wMilli": 132,
-          "hMilli": 26
-        },
-        {
-          "xMilli": 2658,
-          "yMilli": 3921,
-          "wMilli": 210,
-          "hMilli": 79
-        },
-        {
-          "xMilli": 4105,
-          "yMilli": 3921,
-          "wMilli": 53,
-          "hMilli": 79
-        }
-      ],
-      "door": {
-        "blocker": {
-          "xMilli": 2921,
-          "yMilli": 3453,
-          "wMilli": 1116,
-          "hMilli": 100
-        },
-        "interactRadiusCells": 3.1
-      },
-      "shelter": true,
-      "enterable": {
-        "floorHeightM": 0.14736842105263157
-      }
     },
     {
       "id": "dustgate-occupation-vendor-awning",
@@ -8629,8 +10997,8 @@
             "label": "Dustgate",
             "terminalPropId": "travel-terminal-dustgate",
             "spawn": {
-              "x": 512,
-              "y": 513
+              "x": 516,
+              "y": 511
             }
           }
         ]
@@ -8695,6 +11063,123 @@
       "container": "player:field-pack",
       "item": "Vibrosword",
       "itemId": 3103,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Plasma Sword",
+      "itemId": 3104,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Scrapline Machete",
+      "itemId": 3105,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Field Saber",
+      "itemId": 3106,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Quarry Chopper",
+      "itemId": 3107,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "STEN Mk II",
+      "itemId": 3111,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Kiln Energy Cell Carbine",
+      "itemId": 3112,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Lightning Carbine",
+      "itemId": 3121,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Badge Bolt Pistol",
+      "itemId": 3122,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Slagrail Vanguard",
+      "itemId": 3123,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Coilgate Scatter",
+      "itemId": 3124,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Kiln Long Pattern",
+      "itemId": 3125,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Bastion LMG",
+      "itemId": 3126,
+      "variantId": 0,
+      "quantity": 1,
+      "reserved": 0,
+      "available": 1
+    },
+    {
+      "container": "player:field-pack",
+      "item": "Flare Net Launcher",
+      "itemId": 3127,
       "variantId": 0,
       "quantity": 1,
       "reserved": 0,

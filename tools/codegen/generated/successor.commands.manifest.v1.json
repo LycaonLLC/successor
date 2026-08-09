@@ -2,9 +2,9 @@
   "schema": "successor.commands.manifest.v1",
   "source": "crates/successor-sim command_manifest over successor_net::ClientCommand plus current TypeScript authority wire commands",
   "regenerationCommand": "cargo run -p successor-sim --bin emit_command_manifest -- tools/codegen/generated/successor.commands.manifest.v1.json && node tools/codegen/commands.mjs",
-  "commandCount": 117,
-  "rustCommandCount": 114,
-  "debugGatedCount": 2,
+  "commandCount": 118,
+  "rustCommandCount": 115,
+  "debugGatedCount": 3,
   "commands": [
     {
       "kind": "Move",
@@ -457,6 +457,35 @@
           "required": true,
           "domain": "skill_box_id",
           "repeated": true
+        }
+      ],
+      "reasonCodes": [
+        "wrong_session",
+        "wrong_player",
+        "duplicate_command",
+        "unknown_actor",
+        "debug_authority_command_disabled",
+        "ingress_budget_exhausted",
+        "unknown_item",
+        "item_unavailable",
+        "container_full",
+        "unknown_skill_box",
+        "skill_already_learned",
+        "skill_prerequisite_missing"
+      ]
+    },
+    {
+      "kind": "DebugGiveCredits",
+      "source": "rust-client-command",
+      "verb": "debug-give-credits",
+      "doc": "Debug-only wallet adjustment gated by GAME_DEBUG_AUTHORITY_COMMANDS. Negative amounts drain and clamp at zero.",
+      "budgetClass": "authority-debug",
+      "debugGated": true,
+      "args": [
+        {
+          "name": "amount",
+          "type": "int",
+          "required": true
         }
       ],
       "reasonCodes": [

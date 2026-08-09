@@ -4,13 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Play in the browser | Successor</title>
-    <meta
-      name="description"
-      content="Play Successor in a browser tab. No install."
-    />
+    <meta name="description" content="Play Successor in a browser tab. No install." />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#F8F8F8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#eef4f7" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Karrik-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link
@@ -26,44 +22,19 @@
   <body data-page="play" data-requires-session data-session-state="unknown">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
-      <div class="shell">
-        <a class="wordmark" href="/">
-          <img
-            class="wordmark-mark"
-            src="/brand/successor-mark.svg"
-            width="20"
-            height="20"
-            alt=""
-            decoding="async"
-          />
-          <img
-            class="wordmark-type"
-            src="/brand/successor-wordmark.svg"
-            width="132"
-            height="16"
-            alt="Successor"
-            decoding="async"
-          />
-        </a>
-                <nav class="site-nav" aria-label="Site">
-          <ul class="nav-inline">
-            <li><a href="/">Home</a></li>
-            <li><a href="/roadmap/">Roadmap</a></li>
-            <li><a href="/alpha/">Alpha</a></li>
-            <li><a href="/account/">Account</a></li>
-            <li><a href="/play/" aria-current="page">Play</a></li>
-          </ul>
-          <details class="nav-menu">
-            <summary>Menu</summary>
-            <ul class="nav-list">
-            <li><a href="/">Home</a></li>
-            <li><a href="/roadmap/">Roadmap</a></li>
-            <li><a href="/alpha/">Alpha</a></li>
-            <li><a href="/account/">Account</a></li>
-            <li><a href="/play/" aria-current="page">Play</a></li>
-            </ul>
-          </details>
-        </nav>
+      <a class="brand" href="/" aria-label="Successor home">
+        <img src="/brand/successor-mark.svg" width="20" height="20" alt="" decoding="async" />
+        <img src="/brand/successor-wordmark.svg" width="132" height="16" alt="Successor" decoding="async" />
+      </a>
+      <nav aria-label="Site">
+        <a href="/roadmap/">Roadmap</a>
+        <a href="/alpha/">Alpha</a>
+        <a href="/account/">Account</a>
+        <a href="/download/">Download</a>
+        <a href="/play/" aria-current="page">Play</a>
+      </nav>
+      <div class="side">
+        <div data-theme-deck></div>
       </div>
     </header>
 
@@ -72,9 +43,10 @@
            client is handed the tickets, the iframe owns the view while a
            parent-level exit control stays reachable above it. -->
       <section class="game-stage" id="launch-section" data-stage-state="idle" aria-labelledby="h-launch">
-        <div class="stage-panel">
+        <div class="stage-panel ticked">
+          <span class="tick" aria-hidden="true"></span>
           <h1 id="h-launch">Enter the field</h1>
-          <p class="stage-lede">The browser client opens here. WebGL and a steady connection are required.</p>
+          <p class="stage-lede">The client opens here. WebGL and a steady connection required.</p>
           <noscript>
             <p class="note">Playing in the browser needs JavaScript, which is fair enough.</p>
           </noscript>
@@ -97,17 +69,13 @@
                 <span class="form-status" role="status" aria-live="polite"></span>
               </div>
             </form>
-            <p class="stage-hint" id="launch-hint">Choose a character. One action starts the client.</p>
+            <p class="stage-hint" id="launch-hint">One action starts the client.</p>
             <p class="note" id="launch-result" role="status" aria-live="polite" hidden></p>
           </div>
         </div>
         <div class="play-frame-controls" id="play-frame-controls" aria-label="Game view">
-          <button class="play-frame-control" id="play-frame-exit" type="button">
-            Exit
-          </button>
-          <button class="play-frame-control" id="play-frame-enter" type="button">
-            Full screen
-          </button>
+          <button class="play-frame-control" id="play-frame-exit" type="button">Exit</button>
+          <button class="play-frame-control" id="play-frame-enter" type="button">Full screen</button>
         </div>
       </section>
     </main>

@@ -7,9 +7,13 @@
       "pipes",
       "windows",
       "floor_guides",
-      "roof_gear"
+      "roof_gear",
+      "vats",
+      "process_plant",
+      "gantry",
+      "control_bank"
     ],
-    "geometrySource": "P",
+    "geometrySource": "cf_spec.STRUCTURAL_WALLS",
     "structuralRoles": [
       "outer_shell",
       "entry_bay_returns",
@@ -41,7 +45,7 @@
     "spanX": 9.5,
     "spanZ": 7.6
   },
-  "generatedBy": "tools/successor/assets/build_cloning_facility.py",
+  "generatedBy": "tools/successor/assets/cloning-facility-opus5/src/build_clone_suite.py",
   "interiorRegions": [
     {
       "floorTopY": 0.02,

@@ -1,0 +1,5 @@
+# Standalone clippy config for the Rust client workspace.
+#
+# This file exists so clippy does NOT walk up to the repository-root clippy.toml,
+# whose deterministic-sim bans (HashMap, Instant::now, float arithmetic) do not
+# apply to a rendering client. No sim bans are inherited here.

@@ -47,7 +47,7 @@ describe("/play/ is a game shell", () => {
     expect(body).toContain("min-height: 100dvh");
     // The header is one shared token, so stage math can never drift from it.
     expect(tokensCss).toContain("--topbar-h: 3.5rem;");
-    expect(block(componentsCss, ".topbar .shell")).toContain("min-height: var(--topbar-h)");
+    expect(block(componentsCss, ".topbar")).toContain("min-height: var(--topbar-h)");
   });
 
   it("fills the stage edge to edge with the frame — no box, no ratio, no border", () => {
@@ -93,6 +93,16 @@ describe("/play/ is a game shell", () => {
         'body[data-page="play"][data-play-state="live"][data-play-view="full"] .game-stage',
       ),
     ).toContain("height: 100%");
+  });
+
+  it("removes the entry panel when the live frame owns the stage", () => {
+    expect(pagesCss).toContain(
+      '.game-stage[data-stage-state="live"] .stage-panel { display: none; }',
+    );
+    expect(pagesCss).toContain(
+      '.game-stage[data-stage-state="live"] .play-frame-controls { display: flex; }',
+    );
+    expect(pagesCss).not.toContain('.game-stage[data-stage-state="running"]');
   });
 
   it("keeps an exit control above the cross-origin frame and a framed return state", () => {

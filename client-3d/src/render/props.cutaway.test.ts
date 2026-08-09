@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Mesh, MeshBasicMaterial, Object3D } from "three";
 import {
@@ -15,6 +17,7 @@ import {
   type RevealFadeMesh,
 } from "./props";
 import { SUN_SHADOW_CASTER_LAYER } from "./environment/sunShadow";
+import propsMapping from "./props-mapping.json";
 
 // One 10x8-cell interior in prop-local milli coordinates.
 const REGIONS: CutawayRegionMilli[] = [{ xMilli: 0, yMilli: 0, wMilli: 10000, hMilli: 8000 }];
@@ -240,11 +243,83 @@ describe("enterable part classification — floor/door invariant", () => {
     expect(classifyEnterablePart(meshUnder("Floor_main"), "body", ["Floor_"])).toBe("floor");
   });
 
+  it("keeps floor and door precedence over literal reveal-name fragments", () => {
+    expect(classifyEnterablePart(
+      meshUnder("interior__floor_ceiling_panel"),
+      "body",
+      null,
+      ["_ceiling_"],
+    )).toBe("floor");
+    expect(classifyEnterablePart(
+      meshUnder("door_slide_ceiling_panel"),
+      "body",
+      null,
+      ["ceiling"],
+    )).toBe("door");
+  });
+
   it("keeps roof and camera-facing wall groups in the reveal set", () => {
     const prefixes = ["roof__", "wall_front__", "wall_right__"];
     expect(classifyEnterablePart(meshUnder("roof__a"), "body", prefixes)).toBe("reveal");
     expect(classifyEnterablePart(meshUnder("wall_front__a"), "body", prefixes)).toBe("reveal");
     expect(classifyEnterablePart(meshUnder("wall_back__a"), "body", prefixes)).toBe("keep");
     expect(classifyEnterablePart(meshUnder("wall_back__a"), "body", null)).toBe("keep");
+  });
+
+  it("selects every shipped modular ceiling and courtyard-wall mesh", () => {
+    const worldItems = resolve(process.cwd(), "public/assets/world-items");
+    const expectedCeilings: Record<string, number> = {
+      home_modular_starter: 48,
+      home_modular_court: 54,
+      home_modular_wing: 70,
+    };
+    const entries = propsMapping.entries as Record<string, {
+      glb?: string;
+      enterable?: { revealPrefixes?: string[]; revealNameIncludes?: string[] };
+    }>;
+
+    for (const [assetKey, expected] of Object.entries(expectedCeilings)) {
+      const entry = entries[assetKey];
+      expect(entry?.enterable?.revealNameIncludes).toEqual(["_ceiling_"]);
+      expect(entry?.enterable?.revealPrefixes).toContain("wall_court__");
+      const bytes = readFileSync(resolve(worldItems, entry?.glb ?? ""));
+      expect(bytes.toString("ascii", 0, 4)).toBe("glTF");
+      const jsonLength = bytes.readUInt32LE(12);
+      const gltf = JSON.parse(
+        bytes.subarray(20, 20 + jsonLength).toString("utf8").replace(/\0+$/u, ""),
+      ) as { nodes?: Array<{ mesh?: number; name?: string }> };
+      const meshNames = (gltf.nodes ?? [])
+        .filter((node) => node.mesh !== undefined)
+        .map((node) => node.name ?? "");
+      const ceilingNames = meshNames.filter((name) => name.includes("_ceiling_"));
+      expect(ceilingNames).toHaveLength(expected);
+      expect(ceilingNames.every((name) => classifyEnterablePart(
+        meshUnder(name),
+        "body",
+        entry?.enterable?.revealPrefixes ?? null,
+        entry?.enterable?.revealNameIncludes ?? null,
+      ) === "reveal")).toBe(true);
+      const ordinaryInterior = meshNames.find((name) => (
+        name.startsWith("interior__") && !name.includes("_ceiling_") && !name.toLowerCase().includes("floor")
+      ));
+      expect(ordinaryInterior).toBeDefined();
+      expect(classifyEnterablePart(
+        meshUnder(ordinaryInterior ?? ""),
+        "body",
+        entry?.enterable?.revealPrefixes ?? null,
+        entry?.enterable?.revealNameIncludes ?? null,
+      )).toBe("keep");
+
+      if (assetKey === "home_modular_court") {
+        const courtyardWalls = meshNames.filter((name) => name.startsWith("wall_court__"));
+        expect(courtyardWalls).toHaveLength(67);
+        expect(courtyardWalls.every((name) => classifyEnterablePart(
+          meshUnder(name),
+          "body",
+          entry?.enterable?.revealPrefixes ?? null,
+          entry?.enterable?.revealNameIncludes ?? null,
+        ) === "reveal")).toBe(true);
+      }
+    }
   });
 });

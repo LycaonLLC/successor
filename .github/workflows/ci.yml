@@ -48,7 +48,7 @@ jobs:
       - name: hydrate LFS assets exercised by tests
         run: >
           git lfs pull
-          --include="client-3d/public/assets/pawn-pack/equipment/Under/boots_canvas_ankle.glb,client-3d/public/assets/pawn-pack/equipment/Under/under_bodysuit.glb,client-3d/public/assets/pawn-pack/equipment/Under/gloves_knuckled_half.glb,client-3d/public/assets/pawn-pack/weapons/custom/scrapline_machete.glb,client-3d/public/assets/pawn-pack/weapons/custom/field_saber.glb,client-3d/public/assets/pawn-pack/weapons/custom/quarry_chopper.glb,client-3d/public/assets/pawn-pack/weapons/custom/wpn_smg_sten_mk2.glb,client-3d/public/assets/pawn-pack/weapons/custom/wpn_carbine_kiln.glb,client-3d/public/assets/pawn-pack/weapons/custom/lightning_carbine.glb,client-3d/public/assets/pawn-pack/vibrosword.glb,client-3d/public/assets/pawn-pack/pawn_male.glb,client-3d/public/assets/pawn-pack/special/droid_grok_humanoid.glb,client-3d/public/assets/world-items/travel_terminal_grok_wedge.glb,client-3d/public/assets/world-items/travel_terminal_grok_wedge_screen.png"
+          --include="client-3d/public/assets/pawn-pack/equipment/Under/boots_canvas_ankle.glb,client-3d/public/assets/pawn-pack/equipment/Female/Under/boots_canvas_ankle.glb,client-3d/public/assets/pawn-pack/equipment/Under/under_bodysuit.glb,client-3d/public/assets/pawn-pack/equipment/Under/gloves_knuckled_half.glb,client-3d/public/assets/pawn-pack/weapons/custom/scrapline_machete.glb,client-3d/public/assets/pawn-pack/weapons/custom/field_saber.glb,client-3d/public/assets/pawn-pack/weapons/custom/quarry_chopper.glb,client-3d/public/assets/pawn-pack/weapons/custom/wpn_smg_sten_mk2.glb,client-3d/public/assets/pawn-pack/weapons/custom/wpn_carbine_kiln.glb,client-3d/public/assets/pawn-pack/weapons/custom/lightning_carbine.glb,client-3d/public/assets/pawn-pack/vibrosword.glb,client-3d/public/assets/pawn-pack/pawn_male.glb,client-3d/public/assets/pawn-pack/pawn_female.glb,client-3d/public/assets/pawn-pack/special/droid_grok_humanoid.glb,client-3d/public/assets/world-items/travel_terminal_grok_wedge.glb,client-3d/public/assets/world-items/travel_terminal_grok_wedge_screen.png"
           --exclude=""
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -84,6 +84,11 @@ jobs:
     needs: denylist
     steps:
       - uses: actions/checkout@v4
+      - name: hydrate audited LFS sources
+        run: >
+          git lfs pull
+          --include="content-pipeline/labs/humanoid-runtime-refit/source/male/rb_v4_anim.glb,content-pipeline/labs/humanoid-runtime-refit/source/male/pawn_male_refined.glb,content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v2_anim.glb,content-pipeline/labs/humanoid-runtime-refit/source/female/rbf_v3_anim.glb,content-pipeline/labs/humanoid-runtime-refit/source/female/pawn_female_refined.glb"
+          --exclude=""
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

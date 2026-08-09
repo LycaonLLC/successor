@@ -36,6 +36,7 @@ describe("equipment manifest rigid-accessory contract", () => {
     expect(isPawnEquipmentManifestJson(manifestWithItem({ authorityItemId: 7203, rigidAnchorBone: "head" }))).toBe(true);
     // Both fields stay optional — classic skinned entries are untouched.
     expect(isPawnEquipmentManifestJson(manifestWithItem({}))).toBe(true);
+    expect(isPawnEquipmentManifestJson(manifestWithItem({ glbFemale: "Female/Under/Hat_Warm.glb" }))).toBe(true);
   });
 
   it("rejects malformed authorityItemId (string, fraction, non-positive)", () => {
@@ -48,6 +49,16 @@ describe("equipment manifest rigid-accessory contract", () => {
   it("rejects malformed rigidAnchorBone (empty, non-string)", () => {
     expect(isPawnEquipmentManifestJson(manifestWithItem({ rigidAnchorBone: "" }))).toBe(false);
     expect(isPawnEquipmentManifestJson(manifestWithItem({ rigidAnchorBone: 12 }))).toBe(false);
+  });
+
+  it("rejects malformed female variant paths", () => {
+    expect(isPawnEquipmentManifestJson(manifestWithItem({ glbFemale: 12 }))).toBe(false);
+  });
+
+  it("accepts optional string coverage arrays but rejects malformed entries", () => {
+    expect(isPawnEquipmentManifestJson(manifestWithItem({ hideBodyZones: ["torso", "not_a_zone"] }))).toBe(true);
+    expect(isPawnEquipmentManifestJson(manifestWithItem({ hideBodyZones: "torso" }))).toBe(false);
+    expect(isPawnEquipmentManifestJson(manifestWithItem({ hideBodyZones: ["torso", 3] }))).toBe(false);
   });
 });
 
@@ -65,6 +76,16 @@ describe("toPawnEquipmentItem (load-path mapping)", () => {
       authorityItemId: 7203,
       rigidAnchorBone: "head",
     });
+    const femaleVariant = toPawnEquipmentItem({
+      id: "under_tank",
+      name: "Tank",
+      layer: "Under",
+      group: "Torso",
+      slot: "under_tank",
+      glb: "Under/Tank.glb",
+      glbFemale: "Female/Under/Tank.glb",
+    });
+    expect(femaleVariant.glbFemale).toBe("Female/Under/Tank.glb");
     expect(item.authorityItemId).toBe(7203);
     expect(item.rigidAnchorBone).toBe("head");
     expect(item.requires).toEqual([]);
@@ -74,6 +95,18 @@ describe("toPawnEquipmentItem (load-path mapping)", () => {
     });
     expect(classic.authorityItemId).toBeUndefined();
     expect(classic.rigidAnchorBone).toBeUndefined();
+  });
+
+  it("keeps only canonical coverage zones and reports unknown declarations", () => {
+    const manifest = manifestWithItem({ hideBodyZones: ["torso", "not_a_zone", "left_hand"] });
+    if (!isPawnEquipmentManifestJson(manifest)) throw new Error("coverage manifest guard rejected string array");
+    const reported: string[] = [];
+    const item = toPawnEquipmentItem(
+      manifest.items[0]!,
+      (itemId, zone) => reported.push(`${itemId}:${zone}`),
+    );
+    expect(item.hideBodyZones).toEqual(["torso", "left_hand"]);
+    expect(reported).toEqual(["hat_field_cap:not_a_zone"]);
   });
 });
 

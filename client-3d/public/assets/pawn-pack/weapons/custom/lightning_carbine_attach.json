@@ -30,6 +30,11 @@
       0.001,
       0.07
     ],
+    "foregrip_contact": [
+      0,
+      -0.0234,
+      0.07
+    ],
     "muzzle": [
       0,
       0,
@@ -144,5 +149,26 @@
       ]
     },
     "deterministic": true
+  },
+  "support_hand_derivation": "Authored support-WRIST target measured from THIS model's own shroud, replacing the global foregrip contact offset (which assumes the legacy handguard radius at scale 1 and buried the wrist inside fat / scaled / caged housings). y = -(shroud half-height - 0.003) leaves the wrist ~3 mm inside the shroud shell, matching the measured contact on the accepted Kiln carbine (-2.9 mm); z = shroud mid-length, which also walks the forearm forward off the side magazine and the front canister cage.",
+  "stow_socket": {
+    "space": "spine_03_local",
+    "pos": [
+      0.16,
+      0,
+      -0.14
+    ],
+    "rot_deg": [
+      85,
+      -45,
+      0
+    ],
+    "arc_lift": 0.14,
+    "derivation": "This file previously had NO stow_socket at all, so it fell through to the class default and the native port had nothing to read. These are exactly that rifle class default, made concrete so Three and native share one endpoint; the rendered carry is unchanged."
+  },
+  "hold": {
+    "resting_yaw_deg": 26.0,
+    "rebaseline_2026-08-03": "Re-swept against the pawn bodies now on disk (the retro rb_v4/rbf_v3 sources replaced the older higher-poly humanoid-lab body, changing the upper-arm silhouette). At the previous 17.19 deg this model's Module_stock read -1.9 mm into upperarm_r at male/rifle_run_f on the new body. This is NOT related to the support-arm IK work: the identical -1.9 mm is measured with and without the support_arm posture, on every weapon, because no posture is authored here. Re-swept 17.19/22/26/30/34/38 deg on both bodies across idle/walk/run/fire/reload x3/stow: 22 deg is the first that clears (+1.1 mm), 26 deg gives +16.3 mm - the same margin band the original tuning accepted - and the support-hand contact is unchanged at -0.9 mm at every value. The bore correction still pivots on the grip socket, so the firing-hand weld is untouched.",
+    "derivation": "Lightning Carbine carries one of the longest tails behind the grip in the catalogue, and at the class-default resting yaw (0.1 rad / 5.7 deg) its Module_stock PENETRATED the right upper arm (-14.1 mm worst, during rifle_run_f). Bore leveling pins pitch and yaw about the grip socket, so the tail can only be moved by the resting bore yaw - and because the correction pivots ON the grip, the firing-hand weld is untouched. Swept 0.10-0.60 rad in the live Lab across idle/walk/run(x2)/fire/reload(eject,pouch,seat) on both bodies. 0.30 rad (17.19 deg) is the smallest value that clears every pose on BOTH bodies with real margin (male 84.5 mm, female 100.4 mm) while leaving the support-hand contact unchanged at -0.9 mm; larger values (0.40+) buy nothing because the yaw correction saturates at boreLevel.maxYawCorrectionRad = 0.45, and they visibly over-cant the hold."
   }
 }

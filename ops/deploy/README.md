@@ -16,7 +16,11 @@ state inputs, command output, or another host.
 
 - `../docker/Dockerfile` builds the TypeScript server, client slice, and Rust
   `authority_bridge_server` in a multi-stage image. The runtime is Node 22 on
-  Debian, UID 10001, and expects `linux/amd64`.
+  Debian, UID 10001, and expects `linux/amd64`. Builds require BuildKit
+  (default since Docker 23): the pnpm store and Cargo registry/target dirs are
+  `RUN --mount=type=cache` volumes, so source-only rebuilds skip dependency
+  fetches and crate recompiles; the finished bridge is copied out of the
+  target cache to `/out/authority_bridge_server` for the runtime stage.
 - `terraform/bootstrap` creates the versioned, encrypted private state bucket
   and Route53 hosted zone selected by operator tfvars. The committed
   `successor.compress.biz` default is historical scaffolding, not the current
@@ -67,14 +71,38 @@ copy the staging backend values into `../envs/staging/backend.hcl`. Configure
 AWS credentials through the approved account boundary; never put access keys in
 this repository.
 
-## Client 3D asset release (operator-run)
+## Client asset release (operator-run)
 
 `publish-client-assets.mjs` is provider-free until `--apply`. It hashes every
-file under `client-3d/dist`, writes a deterministic manifest, uploads immutable
-objects at  (one immutable tree preserving dist layout)`assets/<sha256>/<relative-path>`, uploads the immutable manifest at
+file under the dist directory, writes a deterministic manifest, uploads
+immutable objects, uploads the immutable manifest at
 `manifests/<manifest-sha256>.json`, and uploads `current.json` last with
-`no-store,no-cache,must-revalidate`. Every upload sets an explicit Content-Type;
-modules, CSS, fonts, media, and GLB are covered.
+`no-store,no-cache,must-revalidate`. Every upload sets an explicit
+Content-Type; modules, CSS, fonts, media, GLB, and `.spak` packs are covered.
+
+Two storage layouts exist:
+
+- **Path layout (stable `client-3d` releases).** Immutable tree at
+  `releases/<manifest-sha256>/<relative-path>` preserving dist layout. Pass
+  `--baseline-manifest <url-or-file>` pointing at the currently live manifest:
+  files whose sha256 matches the baseline at the same path are copied
+  server-side from the previous release prefix (`s3api copy-object`,
+  zero transfer) instead of re-uploaded. A code-only release uploads only its
+  changed files.
+- **Content-addressed object store (`--object-store`, Rust beta releases).**
+  Streamed payloads (paths under `assets/`, `successor-audio/`,
+  `successor-slice/`, `render/`, `packs/`) upload exactly once ever as
+  `objects/<sha256-of-uncompressed-content>`, gzipped at level 9 with
+  `Content-Encoding: gzip` for text/GLB/wasm/pack types (content identity
+  stays the uncompressed hash; browsers decode transparently). Entry files
+  (`index.html`, `successor.js`, `successor.wasm`, `release-manifest.json`)
+  remain release-scoped under `releases/<manifest-sha256>/`. Objects already
+  present in the bucket are skipped (listing `objects/` once up front), so an
+  incremental beta publish uploads only newly minted content. The object store
+  is append-only: objects are never garbage-collected by the publisher.
+
+Uploads run 16-wide; ordering is objects, then release-scoped files, then the
+manifest, and `current.json` strictly last.
 
 ```bash
 node ops/deploy/scripts/publish-client-assets.mjs \
@@ -83,7 +111,9 @@ node ops/deploy/scripts/publish-client-assets.mjs \
   --cdn-origin https://REPLACE_WITH_ASSET_CDN_ORIGIN \
   --store-origin https://REPLACE_WITH_COMPRESS_SUCCESSOR_STORE_ORIGIN \
   --dry-run
-# Review the printed operations and manifest, then use --apply with the approved bucket.
+# Rust beta dists add --object-store. Repeat stable publishes add
+# --baseline-manifest <current manifest URL>. Review the printed operations
+# and manifest, then use --apply with the approved bucket.
 ```
 
 `asset_cdn_origin` and `asset_manifest_url` Terraform outputs provide the CDN

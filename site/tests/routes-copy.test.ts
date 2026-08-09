@@ -62,7 +62,7 @@ describe("alpha access route", () => {
     expect(alpha).toContain('href="/account/"');
     expect(alpha).toContain(">Account<");
     expect(alpha).toContain('href="/connect/"');
-    expect(alpha).toContain("Connect Device");
+    expect(alpha).toContain("Connect device");
     expect(alpha).toContain('href="/play/"');
     expect(alpha).toContain(">Play<");
     expect(alpha).toContain('href="/download/"');
@@ -84,12 +84,12 @@ describe("roadmap route", () => {
   });
 
   it("separates the three status groups and does not sell deferred work as live", () => {
-    for (const label of ["LIVE IN ALPHA", "IN PLAYTESTING", "LATER"]) {
+    for (const label of ["Live in alpha", "In playtesting", "Later"]) {
       expect(roadmap).toContain(label);
     }
-    const liveAt = roadmap.indexOf("LIVE IN ALPHA");
-    const playAt = roadmap.indexOf("IN PLAYTESTING");
-    const horizonAt = roadmap.indexOf("LATER");
+    const liveAt = roadmap.indexOf("Live in alpha");
+    const playAt = roadmap.indexOf("In playtesting");
+    const horizonAt = roadmap.indexOf(">Later<");
     expect(liveAt).toBeGreaterThan(0);
     expect(playAt).toBeGreaterThan(liveAt);
     expect(horizonAt).toBeGreaterThan(playAt);
@@ -103,7 +103,7 @@ describe("roadmap route", () => {
   it("grounds live claims in current world facts only", () => {
     expect(roadmap).toContain("Open desert and Verdance forest");
     expect(roadmap).toContain("Browser play, Linux, and macOS builds are live.");
-    expect(roadmap).toContain("Public Linux and macOS packages are available now.");
+    expect(roadmap).toContain("A native and web client, rebuilt from the metal up.");
     expect(roadmap).not.toMatch(/sea travel|territorial claims|two planets|marketplace is live/i);
   });
 });

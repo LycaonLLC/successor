@@ -27,9 +27,9 @@ changes their owned contracts.
   issuance in ComPress Postgres/Redis. Keep gameplay truth in exactly one Rust
   `successor-sim` authority child behind the TypeScript transport and lifecycle
   parent.
-- Keep live authority and irreplaceable player state out of the single-node
-  Bunker K3s cluster. Use K3s for clean-source verifier Jobs, disposable previews,
-  load generators, and isolated restore rehearsals.
+- Keep live authority and irreplaceable player state out of development and
+  verification infrastructure. Use disposable infrastructure for clean-source
+  verifier jobs, previews, load generators, and isolated restore rehearsals.
 - Start a fresh alpha world before the first external invitation. Preserve
   player state through migrations and tested recovery from that point onward.
 - Deploy stateful releases sequentially under maintenance. Never run two writers
@@ -72,7 +72,7 @@ friend browser
 
 ComPress: account/invite/entitlement/ticket truth in existing Postgres/Redis.
 AWS: gameplay runtime, private shard state, snapshots, logs, metrics, alarms.
-Bunker K3s: verifiers, previews, load, and restore rehearsals only.
+Disposable infrastructure: verifiers, previews, load, and restore rehearsals only.
 ```
 
 ## Alpha player contract
@@ -100,10 +100,9 @@ after first entry until an authority-aware retirement protocol exists.
 
 ### Phase 0 — Preserve and seal
 
-1. Create encrypted off-box backups for Successor Git/worktree and the 98 GiB
-   shared source-assets library.
+1. Create encrypted off-site backups for the repository and source-assets library.
 2. Restore-test both into isolated locations.
-3. Freeze broad work in the shared dirty worktree and use dedicated worktrees.
+3. Freeze broad work in any shared dirty checkout and use isolated checkouts.
 4. Reconcile the v8 fixture/map, Synty eviction, authored code, generated files,
    labs, proof output, and scratch material into deliberate slices.
 5. Repair command manifest coverage for `BuildPlace`, `BuildRemove`, and
@@ -154,7 +153,7 @@ interruption, and attempted second writer all fail safely.
 
 Terraform owns VPC/security groups, ECR, private immutable asset storage/CDN,
 ALB/ACM, EC2, encrypted EBS, KMS/IAM, snapshot/archive storage, CloudWatch,
-alarms, and budgets. No public SSH; use SSM for break-glass access. Only ALB may
+alarms, and budgets. No public remote shell; use the provider session path for break-glass access. Only ALB may
 reach the private listener. Build once and promote the same image digest from
 synthetic staging to alpha.
 
@@ -164,7 +163,7 @@ settings from tester geography and representative load.
 
 Exit: immutable staging deploy, residential TLS/WSS proof, private game port,
 hard-restart persistence, and a snapshot restored to an isolated playable
-shard without SSH or copied secrets.
+shard without copied secrets or public remote-shell access.
 
 ### Phase 4 — Browser alpha
 
@@ -184,9 +183,9 @@ CDN serves only required payload, and release diagnostics accompany feedback.
 
 ### Phase 5 — Release loop
 
-Inner loop: dedicated worktree, package-local proof, `verify:fast` against the
-sealed baseline, surface-specific gate, real runtime smoke, and Fable visual
-proof for player-visible changes.
+Inner loop: isolated checkout, package-local proof, `verify:fast` against the
+sealed baseline, surface-specific gate, real runtime smoke, and visual proof
+for player-visible changes.
 
 Outer loop: clean detached seal, full existing verification farm, immutable
 server/client artifacts, same digest to staging, protocol/durability/WSS/load/
@@ -250,16 +249,15 @@ forward fix; emergency S1 restore explicitly loses post-cutover progress.
 - Product: two humans complete the durable core loop and choose to return.
 - Promotion: explicit human release decision.
 
-## K3s boundary
+## Disposable verification infrastructure
 
-Allowed: clean-source verifier Jobs, disposable synthetic shards, compatibility
-matrices, load-client fleets, asset/GPU validation, isolated copied-state
-restore rehearsals, scheduled validators, and private previews.
+Allowed: clean-source verifier jobs, disposable synthetic shards,
+compatibility matrices, load-client fleets, asset/GPU validation, isolated
+copied-state restore rehearsals, scheduled validators, and private previews.
 
-Before expansion, reduce Bunker root usage from the observed 91%, prove K3s
-backup/isolated restore, set resource requests/limits and TTL cleanup, and use
-separate namespaces. Never mount alpha player data or make live admission depend
-on Bunker.
+Set resource requests and limits, enforce TTL cleanup, and isolate workloads.
+Never mount alpha player data or make live admission depend on development or
+verification infrastructure.
 
 Reconsider Kubernetes for live authority only when several independently
 schedulable shards/services exist and fencing, PVC behavior, drain/shutdown,

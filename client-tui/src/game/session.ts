@@ -296,6 +296,7 @@ export async function createGameSession(options: SessionOptions): Promise<GameSe
       // one-use split capability: first frame only, then gone (chatClient
       // clears its copy on send; ours goes right here)
       ...(options.chatTicket ? { authTicket: options.chatTicket } : {}),
+      ...(options.chatTicket ? { authReleaseId: options.clientReleaseId } : {}),
       onFailure: () => emit({ kind: "status", status: "chat-failed", message: "the chat leg closed" }),
       ...(options.origin ? { socketFactory: (wsUrl: string) => hostedChatSocket(wsUrl, options.origin!) } : {}),
     });

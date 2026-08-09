@@ -8,7 +8,7 @@ import { devIdentityAllowed, identityFromOptions } from "./colyseusRoom.js";
 // @ts-expect-error — the verification script is JavaScript without a declaration file.
 import { writeLoadCharacterStore } from "../../../tools/verification/load/player-load.mjs";
 
-const validAppearance = { skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null };
+const validAppearance = { body: "female" as const, skinTone: "#c78f62", hair: "hair_mop", hairMat: "hair_raven", face: null };
 
 function currentIdentityRecord(overrides: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -481,6 +481,7 @@ describe("colyseusRoom identity resolution (W2 ticket gate)", () => {
       characterId: "char-ticket",
       returningCharacter: false,
       displayName: "Atlas-Prime",
+      sprite: "adventurer-premium-female",
       zoneId: "open-desert-overworld",
       entitlement: { access: true, characterSlots: 3, activeUntil: "2026-08-09T00:00:00.000Z" },
     });

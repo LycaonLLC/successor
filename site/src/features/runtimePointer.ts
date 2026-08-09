@@ -6,6 +6,15 @@
 export const RUNTIME_POINTER_PATH = "/client/release.json";
 export const RUNTIME_POINTER_SCHEMA = "successor.client-runtime-pointer.v1";
 
+export interface RuntimePointer {
+  readonly entry: URL;
+  /** Compatibility URL string for existing stable pointer consumers. */
+  readonly href: string;
+  readonly clientReleaseId?: string;
+  readonly serverReleaseId?: string;
+  readonly channel?: "beta";
+}
+
 /**
  * Validates the published pointer document and resolves its entry URL.
  * Requirements, all hard:
@@ -15,6 +24,10 @@ export const RUNTIME_POINTER_SCHEMA = "successor.client-runtime-pointer.v1";
  * Returns the resolved entry URL, or null for anything malformed.
  */
 export function parseRuntimePointer(value: unknown, baseURI: string): URL | null {
+  return parseRuntimePointerDocument(value, baseURI)?.entry ?? null;
+}
+
+export function parseRuntimePointerDocument(value: unknown, baseURI: string): RuntimePointer | null {
   if (value === null || typeof value !== "object") return null;
   const doc = value as Record<string, unknown>;
   if (doc.schema !== RUNTIME_POINTER_SCHEMA) return null;
@@ -28,15 +41,35 @@ export function parseRuntimePointer(value: unknown, baseURI: string): URL | null
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") return null;
   if (url.username !== "" || url.password !== "") return null;
-  return url;
+  const boundedRelease = (field: unknown, maxLength: number): string | undefined =>
+    typeof field === "string"
+      && field.length <= maxLength
+      && /^[A-Za-z0-9][A-Za-z0-9._@-]*$/u.test(field)
+      ? field
+      : undefined;
+  const clientReleaseId = boundedRelease(doc.clientReleaseId, 128);
+  const serverReleaseId = boundedRelease(doc.serverReleaseId, 512);
+  if (doc.clientReleaseId !== undefined && clientReleaseId === undefined) return null;
+  if (doc.serverReleaseId !== undefined && serverReleaseId === undefined) return null;
+  if (doc.channel !== undefined && doc.channel !== "beta") return null;
+  return {
+    entry: url,
+    href: url.href,
+    clientReleaseId,
+    serverReleaseId,
+    channel: doc.channel === "beta" ? "beta" : undefined,
+  };
 }
 
-/** Fetches and validates the pointer. Network trouble reads as "no pointer". */
-export async function loadRuntimePointer(baseURI: string): Promise<URL | null> {
+/** Fetches and validates a runtime pointer. Network trouble reads as unavailable. */
+export async function loadRuntimePointer(
+  baseURI: string,
+  path = RUNTIME_POINTER_PATH,
+): Promise<RuntimePointer | null> {
   try {
-    const res = await fetch(RUNTIME_POINTER_PATH, { cache: "no-store" });
+    const res = await fetch(path, { cache: "no-store" });
     if (!res.ok) return null;
-    return parseRuntimePointer((await res.json()) as unknown, baseURI);
+    return parseRuntimePointerDocument((await res.json()) as unknown, baseURI);
   } catch {
     return null;
   }

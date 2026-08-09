@@ -26,7 +26,7 @@ const runId = args.get("run-id") ?? createRunId("play-gate");
 const startedAt = new Date().toISOString();
 const started = performance.now();
 const artifactRoot = path.join("verification", "ledgers", "artifacts", "play-gate", runId);
-const runtimeRoot = path.join(repoRoot, artifactRoot, "runtime");
+const runtimeRoot = path.join(os.tmpdir(), "successor-play-gate", runId);
 let sourceIdentity = null;
 let sourceIdentityAfter = null;
 
@@ -229,10 +229,23 @@ try {
   console.error(message);
   process.exitCode = 1;
 } finally {
-  await Promise.all([
-    fs.rm(path.join(runtimeRoot, "server-dist", "node_modules"), { force: true }),
-    fs.rm(path.join(runtimeRoot, "client-headless", "node_modules"), { force: true }),
-  ]);
+  await archiveRuntimeEvidence();
+}
+
+async function archiveRuntimeEvidence() {
+  const durableRuntimeRoot = path.join(repoRoot, artifactRoot, "runtime");
+  try {
+    await Promise.all([
+      fs.rm(path.join(runtimeRoot, "server-dist", "node_modules"), { force: true }),
+      fs.rm(path.join(runtimeRoot, "client-headless", "node_modules"), { force: true }),
+    ]);
+    await fs.rm(durableRuntimeRoot, { recursive: true, force: true });
+    await fs.cp(runtimeRoot, durableRuntimeRoot, { recursive: true });
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  } finally {
+    await fs.rm(runtimeRoot, { recursive: true, force: true });
+  }
 }
 
 async function scenarioSelection(parsed) {

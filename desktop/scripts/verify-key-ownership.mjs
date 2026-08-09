@@ -10,9 +10,13 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptDir, "..");
+const packageRoot = path.join(desktopRoot, "release", `successor-${process.platform}-${process.arch}`);
+const defaultAppBinary = process.platform === "darwin"
+  ? path.join(packageRoot, "Successor.app", "Contents", "MacOS", "Electron")
+  : path.join(packageRoot, "successor");
 const appBinary = process.env.SUCCESSOR_DESKTOP_BINARY
   ? path.resolve(process.env.SUCCESSOR_DESKTOP_BINARY)
-  : path.join(desktopRoot, "release", `successor-${process.platform}-${process.arch}`, "successor");
+  : defaultAppBinary;
 
 main().catch((error) => {
   console.error(error);
@@ -273,6 +277,7 @@ function desktopVerificationEnvironment({ configRoot, cacheRoot, runtimeLogPath,
     ...env,
     XDG_CONFIG_HOME: configRoot,
     XDG_CACHE_HOME: cacheRoot,
+    SUCCESSOR_DESKTOP_STATE_DIR: path.join(configRoot, "successor", "game-state"),
     SUCCESSOR_DESKTOP_MODE: "offline",
     SUCCESSOR_DESKTOP_ENABLE_DEVTOOLS: "0",
     SUCCESSOR_DESKTOP_RUNTIME_LOG: runtimeLogPath,
@@ -410,32 +415,35 @@ async function runtimeViewportProof(page) {
 }
 
 function runtimeViewportFillsDisplay(proof) {
-  const display = proof?.windowState?.displayBounds;
+  const content = proof?.windowState?.contentBounds;
   const viewport = proof?.viewport;
   const stage = proof?.stage;
-  if (!display || !viewport || !stage) return false;
+  if (!content || !viewport || !stage) return false;
   return (
-    viewport.innerWidth >= display.width - 2
-    && viewport.innerHeight >= display.height - 2
-    && viewport.clientWidth >= display.width - 2
-    && viewport.clientHeight >= display.height - 2
+    viewport.innerWidth >= content.width - 2
+    && viewport.innerHeight >= content.height - 2
+    && viewport.clientWidth >= content.width - 2
+    && viewport.clientHeight >= content.height - 2
     && stage.x <= 1
     && stage.y <= 1
-    && stage.width >= display.width - 2
-    && stage.height >= display.height - 2
+    && stage.width >= content.width - 2
+    && stage.height >= content.height - 2
   );
 }
 
 function contentFillsDisplay(state) {
   const contentBounds = state?.contentBounds;
   const displayBounds = state?.displayBounds;
+  const targetBounds = process.platform === "darwin"
+    ? state?.workArea ?? displayBounds
+    : displayBounds;
   return Boolean(
     contentBounds
-    && displayBounds
-    && contentBounds.x <= displayBounds.x
-    && contentBounds.y <= displayBounds.y
-    && contentBounds.x + contentBounds.width >= displayBounds.x + displayBounds.width
-    && contentBounds.y + contentBounds.height >= displayBounds.y + displayBounds.height
+    && targetBounds
+    && contentBounds.x <= targetBounds.x
+    && contentBounds.y <= targetBounds.y
+    && contentBounds.x + contentBounds.width >= targetBounds.x + targetBounds.width
+    && contentBounds.y + contentBounds.height >= targetBounds.y + targetBounds.height
   );
 }
 

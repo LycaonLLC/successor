@@ -3,7 +3,7 @@
   "source": {
     "schema": "successor.slice.v1",
     "path": "client/public/successor-slice/open-desert-slice.json",
-    "hash": "ad43d53f",
+    "hash": "09ef5115",
     "stateHash": "planetfall-v5-seed-424242-size-1024-rogues-18-desert-critters-48-verdance-critters-24-areas-open-desert-overworld-verdance-forest-overworld"
   },
   "grid": {
@@ -40443,8 +40443,7 @@
             "dustgate-occupation-vendor-awning",
             "dustgate-occupation-wicker-display",
             "dustgate-pa-terminal",
-            "dustgate-trade-terminal",
-            "open-desert-shelter-house"
+            "dustgate-trade-terminal"
           ],
           "transitionIds": [],
           "cloneFacilityIds": [],
@@ -40470,14 +40469,14 @@
           "propIds": [
             "dustgate-clone-pod",
             "dustgate-clone-terminal",
-            "dustgate-cloning-facility",
-            "open-desert-shelter-house"
+            "dustgate-cloning-facility"
           ],
           "transitionIds": [],
           "cloneFacilityIds": [
             "dustgate-cloning-facility"
           ],
           "spawnPointIds": [
+            "camera-follow:player",
             "clone-respawn:dustgate-cloning-facility"
           ]
         },
@@ -41718,7 +41717,9 @@
           },
           "cellCount": 256,
           "collisionCellCount": 0,
-          "propIds": [],
+          "propIds": [
+            "dustgate-home-court"
+          ],
           "transitionIds": [],
           "cloneFacilityIds": [],
           "spawnPointIds": []
@@ -41738,7 +41739,9 @@
           },
           "cellCount": 256,
           "collisionCellCount": 0,
-          "propIds": [],
+          "propIds": [
+            "dustgate-home-court"
+          ],
           "transitionIds": [],
           "cloneFacilityIds": [],
           "spawnPointIds": [
@@ -41761,13 +41764,13 @@
           "cellCount": 256,
           "collisionCellCount": 1,
           "propIds": [
+            "dustgate-home-starter",
+            "dustgate-home-wing",
             "travel-terminal-dustgate"
           ],
           "transitionIds": [],
           "cloneFacilityIds": [],
-          "spawnPointIds": [
-            "camera-follow:player"
-          ]
+          "spawnPointIds": []
         },
         {
           "id": "open-desert-overworld:33,32",
@@ -41784,7 +41787,9 @@
           },
           "cellCount": 256,
           "collisionCellCount": 0,
-          "propIds": [],
+          "propIds": [
+            "dustgate-home-wing"
+          ],
           "transitionIds": [],
           "cloneFacilityIds": [],
           "spawnPointIds": []
@@ -43052,7 +43057,9 @@
           },
           "cellCount": 256,
           "collisionCellCount": 0,
-          "propIds": [],
+          "propIds": [
+            "dustgate-home-wing"
+          ],
           "transitionIds": [],
           "cloneFacilityIds": [],
           "spawnPointIds": []
@@ -43072,7 +43079,9 @@
           },
           "cellCount": 256,
           "collisionCellCount": 0,
-          "propIds": [],
+          "propIds": [
+            "dustgate-home-wing"
+          ],
           "transitionIds": [],
           "cloneFacilityIds": [],
           "spawnPointIds": []
@@ -83177,6 +83186,18 @@
           ]
         },
         {
+          "key": "515,500",
+          "areaId": "open-desert-overworld",
+          "x": 515,
+          "y": 500,
+          "sources": [
+            {
+              "kind": "solid_prop",
+              "id": "dustgate-clone-pod"
+            }
+          ]
+        },
+        {
           "key": "503,501",
           "areaId": "open-desert-overworld",
           "x": 503,
@@ -83221,18 +83242,6 @@
             {
               "kind": "solid_prop",
               "id": "dustgate-clone-terminal"
-            }
-          ]
-        },
-        {
-          "key": "518,504",
-          "areaId": "open-desert-overworld",
-          "x": 518,
-          "y": 504,
-          "sources": [
-            {
-              "kind": "solid_prop",
-              "id": "dustgate-clone-pod"
             }
           ]
         },
@@ -84224,20 +84233,20 @@
           "kind": "clone_pod",
           "assetKey": "clone_pod",
           "cell": {
-            "x": 518,
-            "y": 504
+            "x": 515,
+            "y": 500
           },
           "size": {
             "w": 1,
             "h": 1
           },
           "center": {
-            "x": 518.5,
-            "y": 504.5
+            "x": 515.5,
+            "y": 500.5
           },
           "foot": {
-            "x": 518.5,
-            "y": 505
+            "x": 515.5,
+            "y": 501
           },
           "interactive": true,
           "solid": true,
@@ -84300,9 +84309,9 @@
         {
           "id": "dustgate-commerce-facility",
           "areaId": "open-desert-overworld",
-          "label": "Dustgate Commerce Facility",
+          "label": "Valley Market",
           "kind": "building",
-          "assetKey": "commerce_facility",
+          "assetKey": "valley_market",
           "cell": {
             "x": 500,
             "y": 498
@@ -84318,6 +84327,84 @@
           "foot": {
             "x": 506,
             "y": 507
+          },
+          "interactive": false,
+          "solid": false,
+          "visible": true
+        },
+        {
+          "id": "dustgate-home-court",
+          "areaId": "open-desert-overworld",
+          "label": "Modular Court Home",
+          "kind": "building",
+          "assetKey": "home_modular_court",
+          "cell": {
+            "x": 493,
+            "y": 520
+          },
+          "size": {
+            "w": 10,
+            "h": 8
+          },
+          "center": {
+            "x": 498,
+            "y": 524
+          },
+          "foot": {
+            "x": 498,
+            "y": 528
+          },
+          "interactive": false,
+          "solid": false,
+          "visible": true
+        },
+        {
+          "id": "dustgate-home-starter",
+          "areaId": "open-desert-overworld",
+          "label": "Modular Starter Home",
+          "kind": "building",
+          "assetKey": "home_modular_starter",
+          "cell": {
+            "x": 512,
+            "y": 512
+          },
+          "size": {
+            "w": 8,
+            "h": 6
+          },
+          "center": {
+            "x": 516,
+            "y": 515
+          },
+          "foot": {
+            "x": 516,
+            "y": 518
+          },
+          "interactive": false,
+          "solid": false,
+          "visible": true
+        },
+        {
+          "id": "dustgate-home-wing",
+          "areaId": "open-desert-overworld",
+          "label": "Modular Wing Home",
+          "kind": "building",
+          "assetKey": "home_modular_wing",
+          "cell": {
+            "x": 519,
+            "y": 520
+          },
+          "size": {
+            "w": 12,
+            "h": 10
+          },
+          "center": {
+            "x": 525,
+            "y": 525
+          },
+          "foot": {
+            "x": 525,
+            "y": 530
           },
           "interactive": false,
           "solid": false,
@@ -87680,32 +87767,6 @@
           "rotation": 180
         },
         {
-          "id": "open-desert-shelter-house",
-          "areaId": "open-desert-overworld",
-          "label": "Shelter House",
-          "kind": "prop",
-          "assetKey": "house_shoulder",
-          "cell": {
-            "x": 509,
-            "y": 508
-          },
-          "size": {
-            "w": 5,
-            "h": 4
-          },
-          "center": {
-            "x": 511.5,
-            "y": 510
-          },
-          "foot": {
-            "x": 511.5,
-            "y": 512
-          },
-          "interactive": false,
-          "solid": false,
-          "visible": true
-        },
-        {
           "id": "open-desert-sparring-zone-campfire",
           "areaId": "open-desert-overworld",
           "label": "campfire",
@@ -87935,8 +87996,8 @@
           "actorId": "player",
           "label": "Field Observer",
           "cell": {
-            "x": 512,
-            "y": 513
+            "x": 516,
+            "y": 511
           },
           "facing": "front"
         },
@@ -87972,8 +88033,8 @@
           "areaId": "open-desert-overworld",
           "kind": "solid_prop",
           "cell": {
-            "x": 518,
-            "y": 504
+            "x": 515,
+            "y": 500
           },
           "size": {
             "w": 1,
@@ -88017,6 +88078,45 @@
           "size": {
             "w": 12,
             "h": 9
+          }
+        },
+        {
+          "id": "dustgate-home-court",
+          "areaId": "open-desert-overworld",
+          "kind": "building",
+          "cell": {
+            "x": 493,
+            "y": 520
+          },
+          "size": {
+            "w": 10,
+            "h": 8
+          }
+        },
+        {
+          "id": "dustgate-home-starter",
+          "areaId": "open-desert-overworld",
+          "kind": "building",
+          "cell": {
+            "x": 512,
+            "y": 512
+          },
+          "size": {
+            "w": 8,
+            "h": 6
+          }
+        },
+        {
+          "id": "dustgate-home-wing",
+          "areaId": "open-desert-overworld",
+          "kind": "building",
+          "cell": {
+            "x": 519,
+            "y": 520
+          },
+          "size": {
+            "w": 12,
+            "h": 10
           }
         },
         {
@@ -171614,6 +171714,9 @@
         "dustgate-clone-terminal",
         "dustgate-cloning-facility",
         "dustgate-commerce-facility",
+        "dustgate-home-court",
+        "dustgate-home-starter",
+        "dustgate-home-wing",
         "dustgate-occupation-brick-stack",
         "dustgate-occupation-bucket",
         "dustgate-occupation-burlap-sack",
@@ -171739,7 +171842,6 @@
         "open-desert-rogue-zone-018-footlocker",
         "open-desert-rogue-zone-018-grill",
         "open-desert-rogue-zone-018-shelter",
-        "open-desert-shelter-house",
         "open-desert-sparring-zone-campfire",
         "open-desert-sparring-zone-chair-a",
         "open-desert-sparring-zone-chair-b",
@@ -179975,11 +180077,11 @@
     "totalCells": 2097152,
     "chunkCount": 8192,
     "collisionCells": 168,
-    "propAnchors": 139,
+    "propAnchors": 141,
     "transitionTriggers": 0,
     "cloneFacilities": 1,
     "spawnPoints": 4,
-    "occluders": 123,
+    "occluders": 126,
     "lightingZones": 2,
     "audioZones": 2
   }

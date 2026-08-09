@@ -8,7 +8,7 @@ const dockerignore = await readFile(new URL("../../.dockerignore", import.meta.u
 test("authority image uses a narrow cacheable Node build context", () => {
   assert.doesNotMatch(dockerfile, /COPY \. \./);
   const manifests = dockerfile.indexOf("COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./");
-  const install = dockerfile.indexOf("pnpm install --frozen-lockfile --filter @successor/server... --filter @successor/client...");
+  const install = dockerfile.indexOf("pnpm install --frozen-lockfile --store-dir=/pnpm/store --filter @successor/server... --filter @successor/client...");
   const serverSource = dockerfile.indexOf("COPY server ./server");
   assert.ok(manifests >= 0 && install > manifests && serverSource > install);
   assert.match(dockerfile, /COPY client \.\/client/);

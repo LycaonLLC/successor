@@ -1,0 +1,6 @@
+{
+  "_comment": "Synthetic fixture representing game.error",
+  "type": "game.error",
+  "code": "INVALID_COMMAND",
+  "message": "The move intent parameters are invalid."
+}

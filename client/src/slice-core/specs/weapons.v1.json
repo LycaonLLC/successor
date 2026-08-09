@@ -19,6 +19,24 @@
       "iconKey": "slugthrower",
       "reloadSfx": "slugthrower_reload"
     },
+    "wpn-pistol": {
+      "id": "wpn-pistol",
+      "name": "Badge Bolt Pistol",
+      "shortName": "Badge Bolt",
+      "slot": "longGun",
+      "caliber": "slug",
+      "compatibleAmmoTypes": [
+        "slug_iron",
+        "slug_shard",
+        "slug_spike"
+      ],
+      "defaultAmmoType": "slug_iron",
+      "requiredCert": "cert_rifle",
+      "magazineSize": 30,
+      "reloadMs": 2000,
+      "iconKey": "slugthrower",
+      "reloadSfx": "slugthrower_reload"
+    },
     "wpn-smg": {
       "id": "wpn-smg",
       "name": "STEN Mk II",
@@ -59,6 +77,96 @@
       "id": "lightning-carbine",
       "name": "Lightning Carbine",
       "shortName": "Lightning",
+      "slot": "longGun",
+      "caliber": "slug",
+      "compatibleAmmoTypes": [
+        "slug_iron",
+        "slug_shard",
+        "slug_spike"
+      ],
+      "defaultAmmoType": "slug_iron",
+      "requiredCert": "cert_rifle",
+      "magazineSize": 30,
+      "reloadMs": 2000,
+      "iconKey": "slugthrower",
+      "reloadSfx": "slugthrower_reload"
+    },
+    "wpn-assault": {
+      "id": "wpn-assault",
+      "name": "Slagrail Vanguard",
+      "shortName": "Slagrail",
+      "slot": "longGun",
+      "caliber": "slug",
+      "compatibleAmmoTypes": [
+        "slug_iron",
+        "slug_shard",
+        "slug_spike"
+      ],
+      "defaultAmmoType": "slug_iron",
+      "requiredCert": "cert_rifle",
+      "magazineSize": 30,
+      "reloadMs": 2000,
+      "iconKey": "slugthrower",
+      "reloadSfx": "slugthrower_reload"
+    },
+    "wpn-shotgun": {
+      "id": "wpn-shotgun",
+      "name": "Coilgate Scatter",
+      "shortName": "Coilgate",
+      "slot": "longGun",
+      "caliber": "slug",
+      "compatibleAmmoTypes": [
+        "slug_iron",
+        "slug_shard",
+        "slug_spike"
+      ],
+      "defaultAmmoType": "slug_iron",
+      "requiredCert": "cert_rifle",
+      "magazineSize": 30,
+      "reloadMs": 2000,
+      "iconKey": "slugthrower",
+      "reloadSfx": "slugthrower_reload"
+    },
+    "wpn-sniper": {
+      "id": "wpn-sniper",
+      "name": "Kiln Long Pattern",
+      "shortName": "Kiln Long",
+      "slot": "longGun",
+      "caliber": "slug",
+      "compatibleAmmoTypes": [
+        "slug_iron",
+        "slug_shard",
+        "slug_spike"
+      ],
+      "defaultAmmoType": "slug_iron",
+      "requiredCert": "cert_rifle",
+      "magazineSize": 30,
+      "reloadMs": 2000,
+      "iconKey": "slugthrower",
+      "reloadSfx": "slugthrower_reload"
+    },
+    "wpn-heavy": {
+      "id": "wpn-heavy",
+      "name": "Bastion LMG",
+      "shortName": "Bastion",
+      "slot": "longGun",
+      "caliber": "slug",
+      "compatibleAmmoTypes": [
+        "slug_iron",
+        "slug_shard",
+        "slug_spike"
+      ],
+      "defaultAmmoType": "slug_iron",
+      "requiredCert": "cert_rifle",
+      "magazineSize": 30,
+      "reloadMs": 2000,
+      "iconKey": "slugthrower",
+      "reloadSfx": "slugthrower_reload"
+    },
+    "wpn-launcher": {
+      "id": "wpn-launcher",
+      "name": "Flare Net Launcher",
+      "shortName": "Flare Net",
       "slot": "longGun",
       "caliber": "slug",
       "compatibleAmmoTypes": [

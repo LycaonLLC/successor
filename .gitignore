@@ -2,6 +2,8 @@
 /target/
 **/target/
 **/*.rs.bk
+# Rust client build products (target/ already covered above)
+client-rust/out/
 Cargo.lock.bak
 
 # Node
@@ -83,6 +85,7 @@ logs/
 
 # Local runtime persistence
 server/.local-state/
+server/.local-state-archive-*/
 server/data/
 
 .game-lab/

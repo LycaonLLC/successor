@@ -16,6 +16,23 @@ const TRAINER_MIN_WALK_CELLS = 4;
 const TRAINER_WALK_CELLS = 12;
 
 const player = slice.actors.find((actor) => actor.role === "player");
+const playerWeaponPresentations = [
+  [3101, "Slugthrower"],
+  [3103, "Vibrosword"],
+  [3104, "Plasma Sword"],
+  [3105, "Scrapline Machete"],
+  [3106, "Field Saber"],
+  [3107, "Quarry Chopper"],
+  [3111, "STEN Mk II"],
+  [3112, "Kiln Energy Cell Carbine"],
+  [3121, "Lightning Carbine"],
+  [3122, "Badge Bolt Pistol"],
+  [3123, "Slagrail Vanguard"],
+  [3124, "Coilgate Scatter"],
+  [3125, "Kiln Long Pattern"],
+  [3126, "Bastion LMG"],
+  [3127, "Flare Net Launcher"],
+];
 
 describe("open-desert first-session legibility", () => {
   test("player spawns in the camp area", () => {
@@ -46,6 +63,17 @@ describe("open-desert first-session legibility", () => {
     ];
     assert.deepStrictEqual(slice.props.filter((prop) => bannedIds.includes(prop.id)), []);
     assert.deepStrictEqual(slice.inventory.filter((row) => row.container.startsWith("cache:")), []);
+  });
+
+  test("player owns exactly one row for every concrete weapon presentation", () => {
+    const playerWeapons = slice.inventory
+      .filter((row) => row.container === "player:field-pack" && row.itemId >= 3101 && row.itemId <= 3127)
+      .map((row) => [row.itemId, row.item, row.variantId, row.quantity, row.reserved, row.available]);
+    assert.strictEqual(playerWeapons.length, playerWeaponPresentations.length);
+    assert.deepStrictEqual(
+      playerWeapons,
+      playerWeaponPresentations.map(([itemId, item]) => [itemId, item, 0, 1, 0, 1]),
+    );
   });
 
   test("GR0K stays a social presence, never a role-bearing authority", () => {

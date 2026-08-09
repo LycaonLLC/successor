@@ -1,0 +1,4697 @@
+{
+  "generator": "successor content-pipeline/labs/humanoid-runtime-refit/refit_apparel.py",
+  "fields": {
+    "male": {
+      "residual_mean_mm": 0.795,
+      "residual_p90_mm": 2.277,
+      "raw_mean_mm": 2.516
+    },
+    "female": {
+      "residual_mean_mm": 0.822,
+      "residual_p90_mm": 2.146,
+      "raw_mean_mm": 2.802
+    }
+  },
+  "audited": 99,
+  "refit_male": 96,
+  "female_variants": 95,
+  "shared": 1,
+  "not_applicable": 1,
+  "items": [
+    {
+      "id": "armor_harness",
+      "group": "Torso",
+      "layer": "Armor",
+      "slot": "armor_harness",
+      "glb": "Armor/Harness.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "1786729157ecab5fac5e9d429a056e8f95cce8b3cff9bb235c90f6407752ac1a",
+      "male": {
+        "path": "Armor/Harness.glb",
+        "bytes": 847256,
+        "sha256": "866b80b1b589e22fc12129079756801fe641da04ac68365b331953bc56b7a0fe",
+        "moved_mean_mm": 24.974,
+        "moved_max_mm": 42.075,
+        "penetrating": 686,
+        "max_penetration_mm": 38.09,
+        "drift_p95_mm": 35.864,
+        "clearance_min_mm": -25.2,
+        "pushed": 185,
+        "max_push_mm": 28.325,
+        "shells": [
+          {
+            "vertices": 508,
+            "scale": 1.0581,
+            "shift_mm": [
+              -2.15,
+              -78.9,
+              72.21
+            ]
+          },
+          {
+            "vertices": 6,
+            "scale": 1.0127,
+            "shift_mm": [
+              -170.25,
+              1.6,
+              421.58
+            ]
+          },
+          {
+            "vertices": 474,
+            "scale": 1.0545,
+            "shift_mm": [
+              -1.62,
+              -74.26,
+              70.45
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 435,
+        "max_penetration_mm": 34.581,
+        "drift_p95_mm": 41.181
+      },
+      "female": {
+        "path": "Female/Armor/Harness.glb",
+        "bytes": 847256,
+        "sha256": "9c4f3c702936c7e0871b6f415214e2cc09d574456792fef100edfc81e9d23540",
+        "moved_mean_mm": 23.112,
+        "moved_max_mm": 36.137,
+        "penetrating": 580,
+        "max_penetration_mm": 40.428,
+        "drift_p95_mm": 33.599,
+        "clearance_min_mm": -26.0,
+        "pushed": 101,
+        "max_push_mm": 18.953
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 34.6 mm into the female body over 435 vertices with 41.2 mm p95 clearance drift"
+    },
+    {
+      "id": "armor_nape_reinforcement",
+      "group": "Torso",
+      "layer": "Armor",
+      "slot": "armor_nape_reinforcement",
+      "glb": "Armor/Nape_Reinforcement.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "f6543b93363fe48162166be8e1aca606f3977ce914ac82ed700bc7b369e71cae",
+      "male": {
+        "path": "Armor/Nape_Reinforcement.glb",
+        "bytes": 862988,
+        "sha256": "7bce6fb3da0931c6ae2d94cf68642183ffd8d894162c26afd7bcdb6013a8daa6",
+        "moved_mean_mm": 10.045,
+        "moved_max_mm": 19.543,
+        "penetrating": 1117,
+        "max_penetration_mm": 14.671,
+        "drift_p95_mm": 14.671,
+        "clearance_min_mm": 4.645,
+        "pushed": 0,
+        "max_push_mm": 0.0,
+        "shells": [
+          {
+            "vertices": 1148,
+            "scale": 1.0065,
+            "shift_mm": [
+              0.83,
+              31.23,
+              -440.95
+            ]
+          },
+          {
+            "vertices": 120,
+            "scale": 1.0444,
+            "shift_mm": [
+              1.34,
+              -67.23,
+              -205.76
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 0,
+        "max_penetration_mm": 0.0,
+        "drift_p95_mm": 20.139
+      },
+      "female": {
+        "path": "Female/Armor/Nape_Reinforcement.glb",
+        "bytes": 862988,
+        "sha256": "d5856ea6190938b79efb1b359dbdd4de5aad5080af22dc3471b7549f1fef2d0d",
+        "moved_mean_mm": 10.283,
+        "moved_max_mm": 17.678,
+        "penetrating": 985,
+        "max_penetration_mm": 11.421,
+        "drift_p95_mm": 10.05,
+        "clearance_min_mm": 9.93,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 0.0 mm into the female body over 0 vertices with 20.1 mm p95 clearance drift"
+    },
+    {
+      "id": "armor_reinforcement",
+      "group": "Torso",
+      "layer": "Armor",
+      "slot": "armor_reinforcement",
+      "glb": "Armor/Reinforcement.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "98d8326d01fe37ba1a65ca55e0c05c82bac90c5a2b05e88e588f83d45d5fc22d",
+      "male": {
+        "path": "Armor/Reinforcement.glb",
+        "bytes": 802584,
+        "sha256": "db35a86cbfd4a7d36ee8b2bc5bbb92eb9d8887330113948a2da945cac24e6b6a",
+        "moved_mean_mm": 14.866,
+        "moved_max_mm": 31.671,
+        "penetrating": 104,
+        "max_penetration_mm": 35.46,
+        "drift_p95_mm": 34.705,
+        "clearance_min_mm": 3.325,
+        "pushed": 0,
+        "max_push_mm": 0.0,
+        "shells": [
+          {
+            "vertices": 160,
+            "scale": 1.0384,
+            "shift_mm": [
+              -6.1,
+              -61.13,
+              168.06
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 104,
+        "max_penetration_mm": 33.21,
+        "drift_p95_mm": 32.754
+      },
+      "female": {
+        "path": "Female/Armor/Reinforcement.glb",
+        "bytes": 802584,
+        "sha256": "dc0edb59eee39d904d571d83c78c8b89bf8a604916ec58f7bf64b40c58331a80",
+        "moved_mean_mm": 15.133,
+        "moved_max_mm": 25.979,
+        "penetrating": 104,
+        "max_penetration_mm": 39.939,
+        "drift_p95_mm": 39.702,
+        "clearance_min_mm": 16.569,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 33.2 mm into the female body over 104 vertices with 32.8 mm p95 clearance drift"
+    },
+    {
+      "id": "armor_gorget",
+      "group": "Torso",
+      "layer": "Armor",
+      "slot": "armor_gorget",
+      "glb": "Armor/Gorget.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "1cc4d6635242ef2240f9413685615ee41e6ac02bd70f5a35450fda82e4add98a",
+      "male": {
+        "path": "Armor/Gorget.glb",
+        "bytes": 816244,
+        "sha256": "bbd326dd734126a52d2b8f8a839fb0d00c66eba07788bbefa19ea27af9cd40c1",
+        "moved_mean_mm": 10.649,
+        "moved_max_mm": 12.98,
+        "penetrating": 253,
+        "max_penetration_mm": 32.394,
+        "drift_p95_mm": 30.462,
+        "clearance_min_mm": 2.5,
+        "pushed": 6,
+        "max_push_mm": 8.342,
+        "shells": [
+          {
+            "vertices": 100,
+            "scale": 0.9891,
+            "shift_mm": [
+              59.09,
+              16.54,
+              -64.75
+            ]
+          },
+          {
+            "vertices": 104,
+            "scale": 0.9894,
+            "shift_mm": [
+              -55.6,
+              16.41,
+              -69.35
+            ]
+          },
+          {
+            "vertices": 58,
+            "scale": 0.954,
+            "shift_mm": [
+              -6.58,
+              79.81,
+              -108.85
+            ]
+          },
+          {
+            "vertices": 58,
+            "scale": 0.952,
+            "shift_mm": [
+              9.19,
+              82.51,
+              -106.1
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 78,
+        "max_penetration_mm": 13.35,
+        "drift_p95_mm": 21.26
+      },
+      "female": {
+        "path": "Female/Armor/Gorget.glb",
+        "bytes": 816248,
+        "sha256": "abfb88344d8b9ed0de7575aca9101f1445404e4aec72103c328643bc383590f3",
+        "moved_mean_mm": 16.535,
+        "moved_max_mm": 21.104,
+        "penetrating": 165,
+        "max_penetration_mm": 20.64,
+        "drift_p95_mm": 19.303,
+        "clearance_min_mm": 12.503,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 13.3 mm into the female body over 78 vertices with 21.3 mm p95 clearance drift"
+    },
+    {
+      "id": "armor_bicep_l",
+      "group": "Bicep_L",
+      "layer": "Armor",
+      "slot": "armor_bicep_l",
+      "glb": "Armor/Bicep_L.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "ac1e7ae21162578960adb70ae3c37a55b9aeed0f591ec7b7ec3d78025b2a3742",
+      "male": {
+        "path": "Armor/Bicep_L.glb",
+        "bytes": 803268,
+        "sha256": "bd02ae1ec190042bb1015a367784d75dbd469218ed39f8d663a26783db7924d9",
+        "moved_mean_mm": 13.968,
+        "moved_max_mm": 20.777,
+        "penetrating": 84,
+        "max_penetration_mm": 36.354,
+        "drift_p95_mm": 33.866,
+        "clearance_min_mm": 1.07,
+        "pushed": 9,
+        "max_push_mm": 3.602,
+        "shells": [
+          {
+            "vertices": 72,
+            "scale": 1.0494,
+            "shift_mm": [
+              44.78,
+              -79.06,
+              -13.8
+            ]
+          },
+          {
+            "vertices": 72,
+            "scale": 1.0179,
+            "shift_mm": [
+              -6.28,
+              -20.37,
+              -21.64
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 3,
+        "max_penetration_mm": 2.094,
+        "drift_p95_mm": 22.149
+      },
+      "female": {
+        "path": "Female/Armor/Bicep_L.glb",
+        "bytes": 803268,
+        "sha256": "add5e1b26672d5371bf19e6aa34b669828d3a23125cc24318c26e5bfd44bbcf2",
+        "moved_mean_mm": 8.913,
+        "moved_max_mm": 11.686,
+        "penetrating": 24,
+        "max_penetration_mm": 8.947,
+        "drift_p95_mm": 10.312,
+        "clearance_min_mm": 9.74,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 2.1 mm into the female body over 3 vertices with 22.1 mm p95 clearance drift"
+    },
+    {
+      "id": "armor_bicep_r",
+      "group": "Bicep_R",
+      "layer": "Armor",
+      "slot": "armor_bicep_r",
+      "glb": "Armor/Bicep_R.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "8ad3bdfae32aeebb7f520545941543adab73519beba8e5ed077c666e79c56f65",
+      "male": {
+        "path": "Armor/Bicep_R.glb",
+        "bytes": 803272,
+        "sha256": "0dc1cf487873f6e94e3db7aee09b194bf088de8f36a3ee766864726bb7283ba1",
+        "moved_mean_mm": 14.759,
+        "moved_max_mm": 21.535,
+        "penetrating": 84,
+        "max_penetration_mm": 39.059,
+        "drift_p95_mm": 36.845,
+        "clearance_min_mm": 1.467,
+        "pushed": 9,
+        "max_push_mm": 3.297,
+        "shells": [
+          {
+            "vertices": 72,
+            "scale": 1.0493,
+            "shift_mm": [
+              -44.23,
+              -78.75,
+              -14.13
+            ]
+          },
+          {
+            "vertices": 72,
+            "scale": 1.0187,
+            "shift_mm": [
+              6.34,
+              -21.51,
+              -22.67
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 12,
+        "max_penetration_mm": 14.65,
+        "drift_p95_mm": 21.973
+      },
+      "female": {
+        "path": "Female/Armor/Bicep_R.glb",
+        "bytes": 803272,
+        "sha256": "eb7b2e1ec9fe715a70f0b0d3f3e5fd9301f7a36fb1083cfe428431bc6c6ff4fb",
+        "moved_mean_mm": 8.794,
+        "moved_max_mm": 11.645,
+        "penetrating": 27,
+        "max_penetration_mm": 15.843,
+        "drift_p95_mm": 14.614,
+        "clearance_min_mm": 10.091,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 14.7 mm into the female body over 12 vertices with 22.0 mm p95 clearance drift"
+    },
+    {
+      "id": "helmet_a",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/Helmet_A.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "1c8e80e0bc8d143c07c6db0925ab14cd106fc2b6a7ba276b464bca85afc482ff",
+      "male": {
+        "path": "Armor/Helmet_A.glb",
+        "bytes": 858356,
+        "sha256": "e91d1a3344c172683d907d58e993854c00830f4ecbfd098da2f6cf139c51f159",
+        "moved_mean_mm": 14.877,
+        "moved_max_mm": 19.102,
+        "penetrating": 646,
+        "max_penetration_mm": 31.916,
+        "drift_p95_mm": 31.229,
+        "clearance_min_mm": -18.928,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 260,
+        "max_penetration_mm": 19.324,
+        "drift_p95_mm": 18.666
+      },
+      "female": {
+        "path": "Female/Armor/Helmet_A.glb",
+        "bytes": 858360,
+        "sha256": "bf11eab6dfec60de110360d6a12f0c3901b5d23ae857a66796a777341fffc309",
+        "moved_mean_mm": 17.337,
+        "moved_max_mm": 24.345,
+        "penetrating": 746,
+        "max_penetration_mm": 26.175,
+        "drift_p95_mm": 25.242,
+        "clearance_min_mm": -13.51,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 19.3 mm into the female body over 260 vertices with 18.7 mm p95 clearance drift"
+    },
+    {
+      "id": "helmet_b",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/Helmet_B.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "469a1c3b3a63187a68a6fdce7fb7426fa90bb7def7e297f6b7721d29e9747686",
+      "male": {
+        "path": "Armor/Helmet_B.glb",
+        "bytes": 864660,
+        "sha256": "110362f84da176b9bb24a2c4d929dd114a987767200d119a27e4f7aba14bfbfe",
+        "moved_mean_mm": 14.417,
+        "moved_max_mm": 19.958,
+        "penetrating": 839,
+        "max_penetration_mm": 33.048,
+        "drift_p95_mm": 28.904,
+        "clearance_min_mm": -18.28,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 722,
+        "max_penetration_mm": 20.159,
+        "drift_p95_mm": 13.852
+      },
+      "female": {
+        "path": "Female/Armor/Helmet_B.glb",
+        "bytes": 864660,
+        "sha256": "54797dda442a0437bb66eee40ba8e22379d0f7a5736cecea4fd9b0f7d8f413d4",
+        "moved_mean_mm": 17.88,
+        "moved_max_mm": 29.136,
+        "penetrating": 837,
+        "max_penetration_mm": 28.877,
+        "drift_p95_mm": 17.887,
+        "clearance_min_mm": -12.129,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 20.2 mm into the female body over 722 vertices with 13.9 mm p95 clearance drift"
+    },
+    {
+      "id": "helmet_c",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/Helmet_C.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "3872e6c4cb8a14fd4a3f8103ff72e7163c0a9005392dce5a179cd7281ea8ad0c",
+      "male": {
+        "path": "Armor/Helmet_C.glb",
+        "bytes": 871152,
+        "sha256": "2c71b4be39da29ceed169a31f3e85298e5f88b1997252752ad7a810a35b6f105",
+        "moved_mean_mm": 14.0,
+        "moved_max_mm": 18.548,
+        "penetrating": 756,
+        "max_penetration_mm": 32.382,
+        "drift_p95_mm": 31.619,
+        "clearance_min_mm": -6.387,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 678,
+        "max_penetration_mm": 17.825,
+        "drift_p95_mm": 17.091
+      },
+      "female": {
+        "path": "Female/Armor/Helmet_C.glb",
+        "bytes": 871148,
+        "sha256": "fc5108a822700fdcb834ca28c00ee7301d0a0b0859e957a2c17d1fb648a747c3",
+        "moved_mean_mm": 16.823,
+        "moved_max_mm": 25.598,
+        "penetrating": 970,
+        "max_penetration_mm": 26.914,
+        "drift_p95_mm": 25.968,
+        "clearance_min_mm": -1.554,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 17.8 mm into the female body over 678 vertices with 17.1 mm p95 clearance drift"
+    },
+    {
+      "id": "helmet_d",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/Helmet_D.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "56540be82ab5c012f51dc52abb2c3d5cc048142b0d2fea09f834ccc783ec9d1f",
+      "male": {
+        "path": "Armor/Helmet_D.glb",
+        "bytes": 875220,
+        "sha256": "bd92a85d8351c820423232cf099e6693107c66e057ae0d9aa1c4b0c18c86669e",
+        "moved_mean_mm": 15.54,
+        "moved_max_mm": 21.303,
+        "penetrating": 731,
+        "max_penetration_mm": 39.309,
+        "drift_p95_mm": 36.005,
+        "clearance_min_mm": -9.65,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 548,
+        "max_penetration_mm": 25.794,
+        "drift_p95_mm": 24.575
+      },
+      "female": {
+        "path": "Female/Armor/Helmet_D.glb",
+        "bytes": 875220,
+        "sha256": "601390f6a1c96bd539d4fa2f5166c4f1ae05a1df296da876bbbf3b1184491d7d",
+        "moved_mean_mm": 18.619,
+        "moved_max_mm": 29.616,
+        "penetrating": 1002,
+        "max_penetration_mm": 35.1,
+        "drift_p95_mm": 31.548,
+        "clearance_min_mm": -8.87,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 25.8 mm into the female body over 548 vertices with 24.6 mm p95 clearance drift"
+    },
+    {
+      "id": "helmet_v1port",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/Helmet_V1PORT.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "f3d8fe6acd690a86fc3538bd1f550f35c28c650217bc2880909be93ce3c7177b",
+      "male": {
+        "path": "Armor/Helmet_V1PORT.glb",
+        "bytes": 839832,
+        "sha256": "ba99836a98bc3062c14a7a20a68fe3abba32d811a9e6dda16b1bc0752ec648e7",
+        "moved_mean_mm": 13.494,
+        "moved_max_mm": 19.737,
+        "penetrating": 405,
+        "max_penetration_mm": 36.721,
+        "drift_p95_mm": 25.83,
+        "clearance_min_mm": -16.336,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 208,
+        "max_penetration_mm": 25.435,
+        "drift_p95_mm": 18.957
+      },
+      "female": {
+        "path": "Female/Armor/Helmet_V1PORT.glb",
+        "bytes": 839832,
+        "sha256": "09f201aebc6e5766387b866f833bfab0a9ffd777f3d40ba03b691cd7dccaa4c4",
+        "moved_mean_mm": 17.178,
+        "moved_max_mm": 28.399,
+        "penetrating": 442,
+        "max_penetration_mm": 34.353,
+        "drift_p95_mm": 19.154,
+        "clearance_min_mm": -11.487,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 25.4 mm into the female body over 208 vertices with 19.0 mm p95 clearance drift"
+    },
+    {
+      "id": "helmet_s1",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/Helmet_S1.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "3294d62dbfb02d8933da34c7717a6f75cb9c016035f4f63963dcc6a8c93a6b06",
+      "male": {
+        "path": "Armor/Helmet_S1.glb",
+        "bytes": 846792,
+        "sha256": "dc3e6e3b836b64ce25f62cd6ad7f1fbdc6980cd6ee16cad7cdc4cdd1ad7c8289",
+        "moved_mean_mm": 13.57,
+        "moved_max_mm": 19.737,
+        "penetrating": 424,
+        "max_penetration_mm": 36.721,
+        "drift_p95_mm": 26.43,
+        "clearance_min_mm": -14.071,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 224,
+        "max_penetration_mm": 25.435,
+        "drift_p95_mm": 18.721
+      },
+      "female": {
+        "path": "Female/Armor/Helmet_S1.glb",
+        "bytes": 846792,
+        "sha256": "e55e575213528eb4cdaf08d937f28bde11ad8b517f31a1e25cb9a73cd558fe5c",
+        "moved_mean_mm": 17.042,
+        "moved_max_mm": 28.173,
+        "penetrating": 482,
+        "max_penetration_mm": 34.353,
+        "drift_p95_mm": 20.511,
+        "clearance_min_mm": -9.92,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 25.4 mm into the female body over 224 vertices with 18.7 mm p95 clearance drift"
+    },
+    {
+      "id": "helmet_s2",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/Helmet_S2.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "be800c6e1786b89553a7c29184be1c9ccb8cd9e031f82278dada6a039062c76f",
+      "male": {
+        "path": "Armor/Helmet_S2.glb",
+        "bytes": 883276,
+        "sha256": "1a13f6243c4c1b29c042b6ecb0acd080c148b6a2d03b1e6b8d35a36ddd4f5f9c",
+        "moved_mean_mm": 14.061,
+        "moved_max_mm": 18.867,
+        "penetrating": 688,
+        "max_penetration_mm": 34.049,
+        "drift_p95_mm": 19.004,
+        "clearance_min_mm": -19.317,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 398,
+        "max_penetration_mm": 22.114,
+        "drift_p95_mm": 15.952
+      },
+      "female": {
+        "path": "Female/Armor/Helmet_S2.glb",
+        "bytes": 883276,
+        "sha256": "9e53fd8f8b668494d4932d1b9e98f958647bd2605422a454af3ec2ad4f0f826d",
+        "moved_mean_mm": 17.716,
+        "moved_max_mm": 24.641,
+        "penetrating": 878,
+        "max_penetration_mm": 29.117,
+        "drift_p95_mm": 17.559,
+        "clearance_min_mm": -13.295,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 22.1 mm into the female body over 398 vertices with 16.0 mm p95 clearance drift"
+    },
+    {
+      "id": "helmet_s3",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/Helmet_S3.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "bb1de47526ca216059b6645e05082c14de2887278c70b0e31dc0e0aed4207f4a",
+      "male": {
+        "path": "Armor/Helmet_S3.glb",
+        "bytes": 888140,
+        "sha256": "ab961cc4a6a56098d52d5ae86c580545c98a55cd3b1251f9ff1199e1e3ec01c4",
+        "moved_mean_mm": 15.146,
+        "moved_max_mm": 20.147,
+        "penetrating": 656,
+        "max_penetration_mm": 35.105,
+        "drift_p95_mm": 27.17,
+        "clearance_min_mm": -12.863,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 556,
+        "max_penetration_mm": 23.477,
+        "drift_p95_mm": 17.038
+      },
+      "female": {
+        "path": "Female/Armor/Helmet_S3.glb",
+        "bytes": 888140,
+        "sha256": "4b6f91dc50c854010a5bef05c67d295f864d4de0b48575db571b7b27f61da09d",
+        "moved_mean_mm": 19.682,
+        "moved_max_mm": 27.605,
+        "penetrating": 861,
+        "max_penetration_mm": 32.142,
+        "drift_p95_mm": 20.028,
+        "clearance_min_mm": -9.024,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 23.5 mm into the female body over 556 vertices with 17.0 mm p95 clearance drift"
+    },
+    {
+      "id": "hat_warm",
+      "group": "Headwear \u2014 baseline",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/Hat_Warm.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "25207acfda673de0dcf6079fc6fe51f3d94a3cce3f7d9f05593e2a8ec7b6a366",
+      "male": {
+        "path": "Under/Hat_Warm.glb",
+        "bytes": 810984,
+        "sha256": "911eb6ecbb61be32cc79f3a0d56bcb7680362c5399e7325352cf43d7385d5569",
+        "moved_mean_mm": 19.102,
+        "moved_max_mm": 27.267,
+        "penetrating": 115,
+        "max_penetration_mm": 17.709,
+        "drift_p95_mm": 12.549,
+        "clearance_min_mm": -12.243,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 140,
+        "max_penetration_mm": 24.375,
+        "drift_p95_mm": 17.619
+      },
+      "female": {
+        "path": "Female/Under/Hat_Warm.glb",
+        "bytes": 810984,
+        "sha256": "641ee4a279b9c8334fbd078defa94550d580192dbc74f91a699aa2eb3f84b6a9",
+        "moved_mean_mm": 23.153,
+        "moved_max_mm": 35.863,
+        "penetrating": 179,
+        "max_penetration_mm": 33.029,
+        "drift_p95_mm": 25.252,
+        "clearance_min_mm": -12.333,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 24.4 mm into the female body over 140 vertices with 17.6 mm p95 clearance drift"
+    },
+    {
+      "id": "hat_field_cap",
+      "group": "Headwear \u2014 baseline",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "../../items/custom/accessories/field_cap.glb",
+      "policy": "head",
+      "skinned": false,
+      "source_sha256": "3de7e61851e11d4ae62b04c5b3aec654413f8b06f4e612b904f488de89c1a84f",
+      "decision": "not_applicable",
+      "reason": "rigid bone-anchored accessory with no skin binding; its placement follows the unchanged rest skeleton"
+    },
+    {
+      "id": "under_tank",
+      "group": "Torso",
+      "layer": "Under",
+      "slot": "under_torso",
+      "glb": "Under/Tank.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "6614c478ab20f7691276040c3dde6e42e703e3534cce65f17711044f17cef87c",
+      "male": {
+        "path": "Under/Tank.glb",
+        "bytes": 824212,
+        "sha256": "f5f6e6845beb1a6df8b0a065fc726709b1d52912629868fe7a95e40764d6f987",
+        "moved_mean_mm": 21.187,
+        "moved_max_mm": 65.595,
+        "penetrating": 184,
+        "max_penetration_mm": 16.631,
+        "drift_p95_mm": 9.496,
+        "clearance_min_mm": -7.443,
+        "pushed": 61,
+        "max_push_mm": 16.353
+      },
+      "shared_on_female": {
+        "penetrating": 72,
+        "max_penetration_mm": 11.615,
+        "drift_p95_mm": 25.338
+      },
+      "female": {
+        "path": "Female/Under/Tank.glb",
+        "bytes": 824212,
+        "sha256": "12037a9ab00367cf14c4f017732c78117c81600f45d74ab165e7506d5618e20b",
+        "moved_mean_mm": 19.298,
+        "moved_max_mm": 64.338,
+        "penetrating": 156,
+        "max_penetration_mm": 7.609,
+        "drift_p95_mm": 8.064,
+        "clearance_min_mm": -8.605,
+        "pushed": 57,
+        "max_push_mm": 4.937
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 11.6 mm into the female body over 72 vertices with 25.3 mm p95 clearance drift"
+    },
+    {
+      "id": "under_shorts",
+      "group": "Legs",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/Shorts.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "e52ff60e170b790941205daebd2f794b1299ad8898b81082afed4fad01adfe1b",
+      "male": {
+        "path": "Under/Shorts.glb",
+        "bytes": 819736,
+        "sha256": "1d8a902ea281d760335044630d37444fbc7b35643a276b06437a0836f15d158a",
+        "moved_mean_mm": 19.365,
+        "moved_max_mm": 71.084,
+        "penetrating": 200,
+        "max_penetration_mm": 25.141,
+        "drift_p95_mm": 15.147,
+        "clearance_min_mm": 1.5,
+        "pushed": 21,
+        "max_push_mm": 8.857
+      },
+      "shared_on_female": {
+        "penetrating": 28,
+        "max_penetration_mm": 9.655,
+        "drift_p95_mm": 34.668
+      },
+      "female": {
+        "path": "Female/Under/Shorts.glb",
+        "bytes": 819732,
+        "sha256": "6c013321f2c6f7dd743bcf7618df6c842665ad6d26f797c3bbf3a6f294576c95",
+        "moved_mean_mm": 23.879,
+        "moved_max_mm": 57.282,
+        "penetrating": 88,
+        "max_penetration_mm": 30.941,
+        "drift_p95_mm": 7.272,
+        "clearance_min_mm": -5.018,
+        "pushed": 103,
+        "max_push_mm": 25.711
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 9.7 mm into the female body over 28 vertices with 34.7 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_mop",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/Hair_Mop.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "6279e55849198be5f761e472c5736a10cd76d8bd422902940396d95fb11a249f",
+      "male": {
+        "path": "Under/Hair_Mop.glb",
+        "bytes": 814548,
+        "sha256": "c7f32850960d89a53b2ac4fefbf288c5b8e4fc36527886d585275118b5b21508",
+        "moved_mean_mm": 13.149,
+        "moved_max_mm": 17.495,
+        "penetrating": 98,
+        "max_penetration_mm": 40.205,
+        "drift_p95_mm": 35.675,
+        "clearance_min_mm": -42.813,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 112,
+        "max_penetration_mm": 22.3,
+        "drift_p95_mm": 20.89
+      },
+      "female": {
+        "path": "Female/Under/Hair_Mop.glb",
+        "bytes": 814548,
+        "sha256": "221090cd837ff313c6978c7f5ed6d98f5637a0c107195c35709b030ccdba4c8b",
+        "moved_mean_mm": 15.061,
+        "moved_max_mm": 19.085,
+        "penetrating": 160,
+        "max_penetration_mm": 30.144,
+        "drift_p95_mm": 26.638,
+        "clearance_min_mm": -33.024,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 22.3 mm into the female body over 112 vertices with 20.9 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_afro2",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/Hair_Afro.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "c752c7e1a081f46b57028650b72d527173ba84bed7f0d8a039ec85c645e3500f",
+      "male": {
+        "path": "Under/Hair_Afro.glb",
+        "bytes": 807244,
+        "sha256": "ce18a7ff31f40b0ed0149ccb4fa7b14b3dd8f343814ecf112ba44ae55b17ef44",
+        "moved_mean_mm": 14.606,
+        "moved_max_mm": 20.848,
+        "penetrating": 136,
+        "max_penetration_mm": 40.003,
+        "drift_p95_mm": 36.103,
+        "clearance_min_mm": -40.103,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 152,
+        "max_penetration_mm": 25.694,
+        "drift_p95_mm": 21.358
+      },
+      "female": {
+        "path": "Female/Under/Hair_Afro.glb",
+        "bytes": 807244,
+        "sha256": "20415a8e276a7af39d0124d921a8576f30dad4e7b9bf8752f8fb6453c4c7c27f",
+        "moved_mean_mm": 17.644,
+        "moved_max_mm": 24.743,
+        "penetrating": 184,
+        "max_penetration_mm": 32.75,
+        "drift_p95_mm": 28.637,
+        "clearance_min_mm": -32.487,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 25.7 mm into the female body over 152 vertices with 21.4 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_crop2",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/Hair_Crop.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "2feafd76bec48d40e86ebe8154e66d273468260fbba95c448b735b83a278d380",
+      "male": {
+        "path": "Under/Hair_Crop.glb",
+        "bytes": 807248,
+        "sha256": "725bbd31bcffeb041507d5fee1149502af90ed893b0ef8f4850142f9c2d10722",
+        "moved_mean_mm": 13.287,
+        "moved_max_mm": 17.653,
+        "penetrating": 100,
+        "max_penetration_mm": 40.101,
+        "drift_p95_mm": 35.011,
+        "clearance_min_mm": -42.751,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 102,
+        "max_penetration_mm": 21.635,
+        "drift_p95_mm": 19.627
+      },
+      "female": {
+        "path": "Female/Under/Hair_Crop.glb",
+        "bytes": 807248,
+        "sha256": "7ef20dc9bfe55e590ff870b87cada16ec5fc8d7a36cea4eaa1c97c365a03dd75",
+        "moved_mean_mm": 14.856,
+        "moved_max_mm": 19.101,
+        "penetrating": 146,
+        "max_penetration_mm": 29.346,
+        "drift_p95_mm": 26.571,
+        "clearance_min_mm": -33.074,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 21.6 mm into the female body over 102 vertices with 19.6 mm p95 clearance drift"
+    },
+    {
+      "id": "under_bodysuit",
+      "group": "Underlayer",
+      "layer": "Under",
+      "slot": "under_full",
+      "glb": "Under/under_bodysuit.glb",
+      "policy": "authored",
+      "skinned": true,
+      "decision": "authored",
+      "reason": "generated per body by author_starter_apparel.py"
+    },
+    {
+      "id": "trial_helm_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/trial_helm_a.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "3d8a92650200bd296d2878cbbd94fec817a80871e85169acc5bcfa341b61bc5d",
+      "male": {
+        "path": "Armor/trial_helm_a.glb",
+        "bytes": 822892,
+        "sha256": "d418e83ebe51177f304cb3ebefd4260a58cd98cb3a43b3094cba0a82d8c421df",
+        "moved_mean_mm": 10.325,
+        "moved_max_mm": 16.555,
+        "penetrating": 322,
+        "max_penetration_mm": 40.302,
+        "drift_p95_mm": 34.92,
+        "clearance_min_mm": -67.63,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 239,
+        "max_penetration_mm": 26.164,
+        "drift_p95_mm": 18.198
+      },
+      "female": {
+        "path": "Female/Armor/trial_helm_a.glb",
+        "bytes": 822892,
+        "sha256": "d1ebbfdf30724bbaddf95c582a5da0d9da5e6c0568433f699fad368bc908b3cb",
+        "moved_mean_mm": 12.738,
+        "moved_max_mm": 17.52,
+        "penetrating": 346,
+        "max_penetration_mm": 33.394,
+        "drift_p95_mm": 24.822,
+        "clearance_min_mm": -66.321,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 26.2 mm into the female body over 239 vertices with 18.2 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_helm_b",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/trial_helm_b.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "cb8cdd60c7044029aa2b84184c13e3f7ff8f44e4494cc81a40d7f1d103b1b963",
+      "male": {
+        "path": "Armor/trial_helm_b.glb",
+        "bytes": 823316,
+        "sha256": "8c33891fcadff624358b5b90fa3f685fc0e1e088fe9498ee850801e6984aad92",
+        "moved_mean_mm": 9.078,
+        "moved_max_mm": 20.333,
+        "penetrating": 417,
+        "max_penetration_mm": 41.902,
+        "drift_p95_mm": 38.461,
+        "clearance_min_mm": -61.266,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 333,
+        "max_penetration_mm": 25.56,
+        "drift_p95_mm": 20.837
+      },
+      "female": {
+        "path": "Female/Armor/trial_helm_b.glb",
+        "bytes": 823312,
+        "sha256": "8bfb118fe67c2f0420199171c326c23fbad43418f504e058547fdf9fd00d62d3",
+        "moved_mean_mm": 14.875,
+        "moved_max_mm": 23.663,
+        "penetrating": 404,
+        "max_penetration_mm": 36.12,
+        "drift_p95_mm": 31.257,
+        "clearance_min_mm": -63.783,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 25.6 mm into the female body over 333 vertices with 20.8 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_helm_c",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/trial_helm_c.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "e03df252b53cfaeb1078e407d0572e075ffe4ca2b7b2473cb525b70aa4916d93",
+      "male": {
+        "path": "Armor/trial_helm_c.glb",
+        "bytes": 812312,
+        "sha256": "58c5e227d409e63cf2f8ee22a7d810cdaf5b1ee93a5147ac143afeba784088cc",
+        "moved_mean_mm": 12.418,
+        "moved_max_mm": 18.999,
+        "penetrating": 120,
+        "max_penetration_mm": 36.101,
+        "drift_p95_mm": 28.565,
+        "clearance_min_mm": -31.319,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 71,
+        "max_penetration_mm": 20.051,
+        "drift_p95_mm": 15.548
+      },
+      "female": {
+        "path": "Female/Armor/trial_helm_c.glb",
+        "bytes": 812312,
+        "sha256": "a224d93c2d67eaff6e2fce7f18a0796cd8b089a623a098b11b7211381239351a",
+        "moved_mean_mm": 15.653,
+        "moved_max_mm": 21.738,
+        "penetrating": 140,
+        "max_penetration_mm": 33.67,
+        "drift_p95_mm": 23.073,
+        "clearance_min_mm": -31.253,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 20.1 mm into the female body over 71 vertices with 15.5 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_helm_d",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/trial_helm_d.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "1c63048f66c2826e7a5cbaee3b146b160097b1c92ec39d6db9b7317aa92816b3",
+      "male": {
+        "path": "Armor/trial_helm_d.glb",
+        "bytes": 826336,
+        "sha256": "c3989eb44be7d409e49b1c84b9690562f3729f283963000cad196ad9f3cd00ff",
+        "moved_mean_mm": 10.246,
+        "moved_max_mm": 21.432,
+        "penetrating": 291,
+        "max_penetration_mm": 40.073,
+        "drift_p95_mm": 36.09,
+        "clearance_min_mm": -62.813,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 240,
+        "max_penetration_mm": 24.201,
+        "drift_p95_mm": 19.864
+      },
+      "female": {
+        "path": "Female/Armor/trial_helm_d.glb",
+        "bytes": 826340,
+        "sha256": "2d7364e115f4efe9d791d83e66ae09e52e99b0224ea753a5b9976aadfbdf9870",
+        "moved_mean_mm": 12.834,
+        "moved_max_mm": 26.423,
+        "penetrating": 302,
+        "max_penetration_mm": 34.761,
+        "drift_p95_mm": 29.463,
+        "clearance_min_mm": -53.504,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 24.2 mm into the female body over 240 vertices with 19.9 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_hood_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/trial_hood_a.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "9fdecfb7c02381edc7ecdc40fa1d5ba7ec434dee1fddcfc370aeb3beb73d6db8",
+      "male": {
+        "path": "Armor/trial_hood_a.glb",
+        "bytes": 835860,
+        "sha256": "d59f5229bcc41bb23ae03c2c8b45de747c70fdb58cc3158a3bf5603105f49eff",
+        "moved_mean_mm": 9.212,
+        "moved_max_mm": 19.094,
+        "penetrating": 521,
+        "max_penetration_mm": 41.444,
+        "drift_p95_mm": 38.23,
+        "clearance_min_mm": -66.247,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 464,
+        "max_penetration_mm": 23.114,
+        "drift_p95_mm": 20.768
+      },
+      "female": {
+        "path": "Female/Armor/trial_hood_a.glb",
+        "bytes": 835864,
+        "sha256": "fac7e289caa79808fe037c68777a4cef83a055798cf1bc723e15c426fc7ad8f1",
+        "moved_mean_mm": 14.386,
+        "moved_max_mm": 24.682,
+        "penetrating": 550,
+        "max_penetration_mm": 34.449,
+        "drift_p95_mm": 31.335,
+        "clearance_min_mm": -62.38,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 23.1 mm into the female body over 464 vertices with 20.8 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_visor_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "face",
+      "glb": "Armor/trial_visor_a.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "99fc2f8488cf43592aca41499f8653063981cab493abf08bc345d9365838ecc8",
+      "male": {
+        "path": "Armor/trial_visor_a.glb",
+        "bytes": 814040,
+        "sha256": "43efdcf0c5dbb1c7643b68d85261df2963daec8c70e248d3f7ef437c95839be7",
+        "moved_mean_mm": 4.617,
+        "moved_max_mm": 9.751,
+        "penetrating": 398,
+        "max_penetration_mm": 41.314,
+        "drift_p95_mm": 39.326,
+        "clearance_min_mm": -31.799,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 304,
+        "max_penetration_mm": 24.634,
+        "drift_p95_mm": 22.525
+      },
+      "female": {
+        "path": "Female/Armor/trial_visor_a.glb",
+        "bytes": 814044,
+        "sha256": "8718fbecc49e18a8fb285ebec090b7777ca3b59444f51425b30af77afac1fbf8",
+        "moved_mean_mm": 14.083,
+        "moved_max_mm": 18.531,
+        "penetrating": 393,
+        "max_penetration_mm": 37.526,
+        "drift_p95_mm": 34.993,
+        "clearance_min_mm": -22.919,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 24.6 mm into the female body over 304 vertices with 22.5 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_mask_b",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "face",
+      "glb": "Armor/trial_mask_b.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "9f2b186136009289f07f1b5428272c35010512702e1d9b80ccdfa81c3ffe54a1",
+      "male": {
+        "path": "Armor/trial_mask_b.glb",
+        "bytes": 799420,
+        "sha256": "af5e259d76ed2d3a3b8aa206f5cae873a886abfae731d82d32b311ca0aee4e62",
+        "moved_mean_mm": 9.482,
+        "moved_max_mm": 18.051,
+        "penetrating": 99,
+        "max_penetration_mm": 38.995,
+        "drift_p95_mm": 37.513,
+        "clearance_min_mm": -42.413,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 84,
+        "max_penetration_mm": 20.559,
+        "drift_p95_mm": 19.052
+      },
+      "female": {
+        "path": "Female/Armor/trial_mask_b.glb",
+        "bytes": 799420,
+        "sha256": "7a871b54359a0892f230ba2f829ab3ebe6c0f36e26e3a58afb318f8afb338e6a",
+        "moved_mean_mm": 11.894,
+        "moved_max_mm": 20.41,
+        "penetrating": 104,
+        "max_penetration_mm": 28.689,
+        "drift_p95_mm": 27.234,
+        "clearance_min_mm": -32.144,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 20.6 mm into the female body over 84 vertices with 19.1 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_back_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "back",
+      "glb": "Armor/trial_back_a.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "a4bbf92c0dd4bfe1b12a0afc44518835343358aab49583184da4aa50df60214e",
+      "male": {
+        "path": "Armor/trial_back_a.glb",
+        "bytes": 848284,
+        "sha256": "e588875fed99a7b4b8e2d6f1e1fbc1abd1e2318b06f5d74388e9d1f27f4f831b",
+        "moved_mean_mm": 13.381,
+        "moved_max_mm": 30.293,
+        "penetrating": 799,
+        "max_penetration_mm": 29.883,
+        "drift_p95_mm": 18.988,
+        "clearance_min_mm": 19.741,
+        "pushed": 0,
+        "max_push_mm": 0.0,
+        "shells": [
+          {
+            "vertices": 572,
+            "scale": 1.0334,
+            "shift_mm": [
+              -0.49,
+              -18.44,
+              127.35
+            ]
+          },
+          {
+            "vertices": 61,
+            "scale": 1.0418,
+            "shift_mm": [
+              -0.45,
+              -76.65,
+              -200.64
+            ]
+          },
+          {
+            "vertices": 311,
+            "scale": 1.0409,
+            "shift_mm": [
+              -15.54,
+              -62.58,
+              -41.91
+            ]
+          },
+          {
+            "vertices": 36,
+            "scale": 0.9633,
+            "shift_mm": [
+              -1.56,
+              53.15,
+              -47.04
+            ]
+          },
+          {
+            "vertices": 17,
+            "scale": 1.0656,
+            "shift_mm": [
+              -82.83,
+              -61.66,
+              -609.7
+            ]
+          },
+          {
+            "vertices": 17,
+            "scale": 1.0602,
+            "shift_mm": [
+              105.69,
+              -36.48,
+              -670.2
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 52,
+        "max_penetration_mm": 8.667,
+        "drift_p95_mm": 19.408
+      },
+      "female": {
+        "path": "Female/Armor/trial_back_a.glb",
+        "bytes": 848284,
+        "sha256": "b823fd6a0b3678d20a05879a7703ec1dad02decfd0315e2345c089baa0bb5566",
+        "moved_mean_mm": 8.261,
+        "moved_max_mm": 37.152,
+        "penetrating": 831,
+        "max_penetration_mm": 21.563,
+        "drift_p95_mm": 15.284,
+        "clearance_min_mm": 22.771,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 8.7 mm into the female body over 52 vertices with 19.4 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_back_b",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "back",
+      "glb": "Armor/trial_back_b.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "263978126f9642f19d76921dbbd8d613e40599334bfd750c0b5a15723cb78dec",
+      "male": {
+        "path": "Armor/trial_back_b.glb",
+        "bytes": 855012,
+        "sha256": "27a1f09536585ec93ad7efb8f5f6cdfae97efeb9c90f0a4ddc5fc3dc271c6ad6",
+        "moved_mean_mm": 16.483,
+        "moved_max_mm": 26.434,
+        "penetrating": 802,
+        "max_penetration_mm": 28.294,
+        "drift_p95_mm": 10.568,
+        "clearance_min_mm": 5.528,
+        "pushed": 0,
+        "max_push_mm": 0.0,
+        "shells": [
+          {
+            "vertices": 254,
+            "scale": 1.0182,
+            "shift_mm": [
+              33.91,
+              -7.37,
+              68.17
+            ]
+          },
+          {
+            "vertices": 22,
+            "scale": 1.0174,
+            "shift_mm": [
+              69.53,
+              31.43,
+              160.19
+            ]
+          },
+          {
+            "vertices": 12,
+            "scale": 0.9939,
+            "shift_mm": [
+              54.61,
+              16.88,
+              38.21
+            ]
+          },
+          {
+            "vertices": 33,
+            "scale": 0.9861,
+            "shift_mm": [
+              56.86,
+              45.43,
+              126.29
+            ]
+          },
+          {
+            "vertices": 114,
+            "scale": 0.9899,
+            "shift_mm": [
+              32.39,
+              41.57,
+              143.42
+            ]
+          },
+          {
+            "vertices": 34,
+            "scale": 0.9616,
+            "shift_mm": [
+              -2.55,
+              83.72,
+              172.16
+            ]
+          },
+          {
+            "vertices": 16,
+            "scale": 1.0275,
+            "shift_mm": [
+              1.55,
+              -26.22,
+              46.95
+            ]
+          },
+          {
+            "vertices": 38,
+            "scale": 0.9873,
+            "shift_mm": [
+              -0.49,
+              13.34,
+              12.85
+            ]
+          },
+          {
+            "vertices": 16,
+            "scale": 1.0316,
+            "shift_mm": [
+              -1.47,
+              -25.58,
+              86.68
+            ]
+          },
+          {
+            "vertices": 16,
+            "scale": 1.0184,
+            "shift_mm": [
+              0.6,
+              -17.19,
+              35.38
+            ]
+          },
+          {
+            "vertices": 62,
+            "scale": 0.9889,
+            "shift_mm": [
+              -5.34,
+              10.51,
+              4.35
+            ]
+          },
+          {
+            "vertices": 265,
+            "scale": 1.0162,
+            "shift_mm": [
+              -19.27,
+              -9.61,
+              50.11
+            ]
+          },
+          {
+            "vertices": 127,
+            "scale": 1.0002,
+            "shift_mm": [
+              -50.04,
+              32.89,
+              150.53
+            ]
+          },
+          {
+            "vertices": 38,
+            "scale": 0.9873,
+            "shift_mm": [
+              -12.28,
+              14.64,
+              19.03
+            ]
+          },
+          {
+            "vertices": 12,
+            "scale": 1.0027,
+            "shift_mm": [
+              -79.82,
+              10.19,
+              46.15
+            ]
+          },
+          {
+            "vertices": 52,
+            "scale": 1.0079,
+            "shift_mm": [
+              -80.21,
+              15.06,
+              94.91
+            ]
+          },
+          {
+            "vertices": 28,
+            "scale": 1.0265,
+            "shift_mm": [
+              -58.35,
+              8.14,
+              131.92
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 90,
+        "max_penetration_mm": 15.203,
+        "drift_p95_mm": 17.625
+      },
+      "female": {
+        "path": "Female/Armor/trial_back_b.glb",
+        "bytes": 855016,
+        "sha256": "c3d0e6820fe99c89fea325d86555b462872002477ab2274e8345ecb5db4ff456",
+        "moved_mean_mm": 15.964,
+        "moved_max_mm": 38.259,
+        "penetrating": 947,
+        "max_penetration_mm": 23.823,
+        "drift_p95_mm": 14.785,
+        "clearance_min_mm": 4.907,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 15.2 mm into the female body over 90 vertices with 17.6 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_hip_front_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "hip",
+      "glb": "Armor/trial_hip_front_a.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "029f530b1f386f4371a7e94e4a392d596ee51ba1b2b8638552a761ff68efcc8f",
+      "male": {
+        "path": "Armor/trial_hip_front_a.glb",
+        "bytes": 824104,
+        "sha256": "2381b7528854c68e73ce94a1ac6c44aaa6e75fda9642c1c335d497412b0b38bb",
+        "moved_mean_mm": 77.131,
+        "moved_max_mm": 120.43,
+        "penetrating": 459,
+        "max_penetration_mm": 131.384,
+        "drift_p95_mm": 101.013,
+        "clearance_min_mm": 4.122,
+        "pushed": 0,
+        "max_push_mm": 0.0,
+        "shells": [
+          {
+            "vertices": 48,
+            "scale": 1.15,
+            "shift_mm": [
+              -6.96,
+              -179.88,
+              -249.47
+            ]
+          },
+          {
+            "vertices": 112,
+            "scale": 1.1444,
+            "shift_mm": [
+              93.93,
+              -33.83,
+              -266.41
+            ]
+          },
+          {
+            "vertices": 48,
+            "scale": 1.15,
+            "shift_mm": [
+              240.13,
+              66.73,
+              -553.69
+            ]
+          },
+          {
+            "vertices": 50,
+            "scale": 1.15,
+            "shift_mm": [
+              135.84,
+              45.35,
+              -514.96
+            ]
+          },
+          {
+            "vertices": 48,
+            "scale": 1.15,
+            "shift_mm": [
+              46.75,
+              35.42,
+              -494.83
+            ]
+          },
+          {
+            "vertices": 119,
+            "scale": 1.1499,
+            "shift_mm": [
+              -105.17,
+              -39.72,
+              -261.87
+            ]
+          },
+          {
+            "vertices": 55,
+            "scale": 1.15,
+            "shift_mm": [
+              -73.88,
+              70.73,
+              -530.64
+            ]
+          },
+          {
+            "vertices": 48,
+            "scale": 1.15,
+            "shift_mm": [
+              -158.22,
+              52.66,
+              -533.73
+            ]
+          },
+          {
+            "vertices": 53,
+            "scale": 1.15,
+            "shift_mm": [
+              -266.71,
+              67.61,
+              -548.03
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 379,
+        "max_penetration_mm": 114.558,
+        "drift_p95_mm": 87.796
+      },
+      "female": {
+        "path": "Female/Armor/trial_hip_front_a.glb",
+        "bytes": 824104,
+        "sha256": "e21a4d4dd4f03916c874744677108a8ca2855c67643c2e9e609e16e8985d5b7b",
+        "moved_mean_mm": 43.453,
+        "moved_max_mm": 88.244,
+        "penetrating": 489,
+        "max_penetration_mm": 97.415,
+        "drift_p95_mm": 79.889,
+        "clearance_min_mm": 4.469,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 114.6 mm into the female body over 379 vertices with 87.8 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_hip_back_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "hip",
+      "glb": "Armor/trial_hip_back_a.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "2283421a1702e636401ccff25704978dcf4161ce1d9e279b0fc32df5fb4b8406",
+      "male": {
+        "path": "Armor/trial_hip_back_a.glb",
+        "bytes": 804564,
+        "sha256": "c4a6ddf7e970a2b54ce5fe24c4576548915bfb16ae4177b86e25554ca6ef1e48",
+        "moved_mean_mm": 23.566,
+        "moved_max_mm": 34.728,
+        "penetrating": 168,
+        "max_penetration_mm": 23.203,
+        "drift_p95_mm": 15.639,
+        "clearance_min_mm": 10.921,
+        "pushed": 0,
+        "max_push_mm": 0.0,
+        "shells": [
+          {
+            "vertices": 71,
+            "scale": 1.1251,
+            "shift_mm": [
+              14.08,
+              -91.59,
+              88.61
+            ]
+          },
+          {
+            "vertices": 112,
+            "scale": 1.0705,
+            "shift_mm": [
+              66.32,
+              -64.13,
+              -32.51
+            ]
+          },
+          {
+            "vertices": 10,
+            "scale": 1.113,
+            "shift_mm": [
+              -198.05,
+              -26.23,
+              226.12
+            ]
+          },
+          {
+            "vertices": 14,
+            "scale": 1.136,
+            "shift_mm": [
+              -32.27,
+              -133.69,
+              -78.51
+            ]
+          },
+          {
+            "vertices": 8,
+            "scale": 1.15,
+            "shift_mm": [
+              80.2,
+              -143.28,
+              -121.44
+            ]
+          },
+          {
+            "vertices": 19,
+            "scale": 1.1153,
+            "shift_mm": [
+              47.94,
+              -112.03,
+              -98.7
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 6,
+        "max_penetration_mm": 5.063,
+        "drift_p95_mm": 41.837
+      },
+      "female": {
+        "path": "Female/Armor/trial_hip_back_a.glb",
+        "bytes": 804564,
+        "sha256": "3ade262cda136e9e7cb8a934e0f1bad31a561437f5d0777b99e51a528be79dcb",
+        "moved_mean_mm": 6.556,
+        "moved_max_mm": 16.629,
+        "penetrating": 187,
+        "max_penetration_mm": 24.765,
+        "drift_p95_mm": 16.911,
+        "clearance_min_mm": 6.363,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 5.1 mm into the female body over 6 vertices with 41.8 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_hip_side_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "hip",
+      "glb": "Armor/trial_hip_side_a.glb",
+      "policy": "shell",
+      "skinned": true,
+      "source_sha256": "61716ad6fcc867cf1ef92b5321e2e1a1bc3ee5244b5774c851f89138f3203bfd",
+      "male": {
+        "path": "Armor/trial_hip_side_a.glb",
+        "bytes": 820332,
+        "sha256": "6868d5b8ee590a919a7a334e5dfe667d30dc42b3cb60fd5e935b39638e160e2a",
+        "moved_mean_mm": 40.595,
+        "moved_max_mm": 78.102,
+        "penetrating": 433,
+        "max_penetration_mm": 39.423,
+        "drift_p95_mm": 33.101,
+        "clearance_min_mm": 2.5,
+        "pushed": 4,
+        "max_push_mm": 6.301,
+        "shells": [
+          {
+            "vertices": 128,
+            "scale": 1.0221,
+            "shift_mm": [
+              122.13,
+              28.4,
+              -13.36
+            ]
+          },
+          {
+            "vertices": 128,
+            "scale": 1.0882,
+            "shift_mm": [
+              277.88,
+              58.69,
+              -126.29
+            ]
+          },
+          {
+            "vertices": 128,
+            "scale": 1.0917,
+            "shift_mm": [
+              -266.76,
+              49.98,
+              -128.74
+            ]
+          },
+          {
+            "vertices": 128,
+            "scale": 1.0281,
+            "shift_mm": [
+              -145.17,
+              31.1,
+              -9.99
+            ]
+          }
+        ]
+      },
+      "shared_on_female": {
+        "penetrating": 98,
+        "max_penetration_mm": 17.471,
+        "drift_p95_mm": 17.257
+      },
+      "female": {
+        "path": "Female/Armor/trial_hip_side_a.glb",
+        "bytes": 820336,
+        "sha256": "4e2d946e0727589bd2f518dcf4df09686718e104e90403ce1f6b275ca0c868e5",
+        "moved_mean_mm": 38.676,
+        "moved_max_mm": 81.271,
+        "penetrating": 247,
+        "max_penetration_mm": 31.536,
+        "drift_p95_mm": 23.237,
+        "clearance_min_mm": -7.286,
+        "pushed": 17,
+        "max_push_mm": 29.763
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 17.5 mm into the female body over 98 vertices with 17.3 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_hair_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/trial_hair_a.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "3bd987e7f9c130bbfbc092fa7279d08848f5218742167450ce8910204e4d5de6",
+      "male": {
+        "path": "Armor/trial_hair_a.glb",
+        "bytes": 824564,
+        "sha256": "94a0117b701d97fdc6c92703ea878bd33b942a4ab20c50dbc4c45cc1c8b1bdac",
+        "moved_mean_mm": 13.927,
+        "moved_max_mm": 19.235,
+        "penetrating": 182,
+        "max_penetration_mm": 31.552,
+        "drift_p95_mm": 25.208,
+        "clearance_min_mm": -34.296,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 195,
+        "max_penetration_mm": 21.596,
+        "drift_p95_mm": 16.303
+      },
+      "female": {
+        "path": "Female/Armor/trial_hair_a.glb",
+        "bytes": 824564,
+        "sha256": "0003abdd6fdcb49e312f41d7e507dcc56246e833ef805bbaf600dbd51a98f709",
+        "moved_mean_mm": 14.595,
+        "moved_max_mm": 21.767,
+        "penetrating": 264,
+        "max_penetration_mm": 28.865,
+        "drift_p95_mm": 21.991,
+        "clearance_min_mm": -31.884,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 21.6 mm into the female body over 195 vertices with 16.3 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_hair_b",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/trial_hair_b.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "86bd3c4df11967f5a40c70c1edf8ddccc1d912dcfdecc4a18a42785b422c2776",
+      "male": {
+        "path": "Armor/trial_hair_b.glb",
+        "bytes": 832380,
+        "sha256": "8e0732537545185b5926440bf41f0d09a03af4955020e2cd0ea3cc62a135e59e",
+        "moved_mean_mm": 14.551,
+        "moved_max_mm": 17.824,
+        "penetrating": 213,
+        "max_penetration_mm": 25.529,
+        "drift_p95_mm": 16.104,
+        "clearance_min_mm": -45.291,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 239,
+        "max_penetration_mm": 19.243,
+        "drift_p95_mm": 12.132
+      },
+      "female": {
+        "path": "Female/Armor/trial_hair_b.glb",
+        "bytes": 832384,
+        "sha256": "9b519b4d7498c4de5ff9f23dae5837d0972364ca6ea062f1e2c0b0f8f3c8cfd2",
+        "moved_mean_mm": 15.714,
+        "moved_max_mm": 19.556,
+        "penetrating": 350,
+        "max_penetration_mm": 26.349,
+        "drift_p95_mm": 17.336,
+        "clearance_min_mm": -45.492,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 19.2 mm into the female body over 239 vertices with 12.1 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_hair_c",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/trial_hair_c.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "7a3f45ab5982f8d4b09fc1ee30fed5abcf7024ad9fe4ad76e7e444ba6e851f9a",
+      "male": {
+        "path": "Armor/trial_hair_c.glb",
+        "bytes": 822124,
+        "sha256": "b20a1d22780fe89400bb3ea2eb6d09b5359d595e25cc57965d2f0f72d9386451",
+        "moved_mean_mm": 15.166,
+        "moved_max_mm": 19.477,
+        "penetrating": 195,
+        "max_penetration_mm": 33.372,
+        "drift_p95_mm": 18.705,
+        "clearance_min_mm": -17.075,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 223,
+        "max_penetration_mm": 23.45,
+        "drift_p95_mm": 15.851
+      },
+      "female": {
+        "path": "Female/Armor/trial_hair_c.glb",
+        "bytes": 822124,
+        "sha256": "df61a9791496cbb96695a86e5a45ebc1ee8392b40dcbf13d4c8183aa7424bd84",
+        "moved_mean_mm": 17.161,
+        "moved_max_mm": 22.366,
+        "penetrating": 287,
+        "max_penetration_mm": 30.451,
+        "drift_p95_mm": 19.795,
+        "clearance_min_mm": -23.117,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 23.5 mm into the female body over 223 vertices with 15.9 mm p95 clearance drift"
+    },
+    {
+      "id": "trial_hair_d",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "slot": "cranium",
+      "glb": "Armor/trial_hair_d.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "e209192be8a538f5deda88dfa27bbe66079361898d7f7ccf7b22130a2bf4ca0b",
+      "male": {
+        "path": "Armor/trial_hair_d.glb",
+        "bytes": 878008,
+        "sha256": "217faa7a8a259a951cf97137a43dea78696248795170d2138cfa11a364abef12",
+        "moved_mean_mm": 14.195,
+        "moved_max_mm": 18.828,
+        "penetrating": 459,
+        "max_penetration_mm": 37.575,
+        "drift_p95_mm": 19.214,
+        "clearance_min_mm": -35.217,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 580,
+        "max_penetration_mm": 20.217,
+        "drift_p95_mm": 13.697
+      },
+      "female": {
+        "path": "Female/Armor/trial_hair_d.glb",
+        "bytes": 878012,
+        "sha256": "2f7a49687fb549adec77f6eb7f2559b0e5a8002274069c97c6ab2dffc9702062",
+        "moved_mean_mm": 15.575,
+        "moved_max_mm": 21.225,
+        "penetrating": 774,
+        "max_penetration_mm": 28.754,
+        "drift_p95_mm": 16.091,
+        "clearance_min_mm": -33.221,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 20.2 mm into the female body over 580 vertices with 13.7 mm p95 clearance drift"
+    },
+    {
+      "id": "under_scfi_top",
+      "group": "SYNTY TRIALS",
+      "layer": "Under",
+      "slot": "under_torso",
+      "glb": "Under/SCFI_Top_Refit.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "0a78bc7762ed533dfd5bf067a107df91b823924a1716aff65cc7174355efe009",
+      "male": {
+        "path": "Under/SCFI_Top_Refit.glb",
+        "bytes": 308232,
+        "sha256": "52e123b9f6443b38646a07543c7c47896f2689f9e40fbd034789a08f789dd6ee",
+        "moved_mean_mm": 57.653,
+        "moved_max_mm": 76.561,
+        "penetrating": 2434,
+        "max_penetration_mm": 35.125,
+        "drift_p95_mm": 14.352,
+        "clearance_min_mm": -5.253,
+        "pushed": 34,
+        "max_push_mm": 13.934
+      },
+      "shared_on_female": {
+        "penetrating": 584,
+        "max_penetration_mm": 25.576,
+        "drift_p95_mm": 28.912
+      },
+      "female": {
+        "path": "Female/Under/SCFI_Top_Refit.glb",
+        "bytes": 308232,
+        "sha256": "193e2204da23605a27d23d7a41b0462f9853302e8d4ea483a357cbfed81231e6",
+        "moved_mean_mm": 46.575,
+        "moved_max_mm": 64.08,
+        "penetrating": 2017,
+        "max_penetration_mm": 26.287,
+        "drift_p95_mm": 11.264,
+        "clearance_min_mm": 1.461,
+        "pushed": 29,
+        "max_push_mm": 15.08
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 25.6 mm into the female body over 584 vertices with 28.9 mm p95 clearance drift"
+    },
+    {
+      "id": "under_scfi_pants",
+      "group": "SYNTY TRIALS",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/SCFI_Pants_Refit.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "dc436e4fc9377ce0ad2250e0e2427abbcce5ac5233184f41614c1553d05d742e",
+      "male": {
+        "path": "Under/SCFI_Pants_Refit.glb",
+        "bytes": 217452,
+        "sha256": "ff6bdf8d8f41f90a5246177f1d31a8058f44b97fbfd2314812c663f4c4f7d6eb",
+        "moved_mean_mm": 39.671,
+        "moved_max_mm": 85.812,
+        "penetrating": 1976,
+        "max_penetration_mm": 44.235,
+        "drift_p95_mm": 39.388,
+        "clearance_min_mm": 1.5,
+        "pushed": 8,
+        "max_push_mm": 24.921
+      },
+      "shared_on_female": {
+        "penetrating": 274,
+        "max_penetration_mm": 26.23,
+        "drift_p95_mm": 38.372
+      },
+      "female": {
+        "path": "Female/Under/SCFI_Pants_Refit.glb",
+        "bytes": 217472,
+        "sha256": "848ed1bb3763817690c69cb602fc2d1b0b85b69c3df0a2418a54ad10c0b58a52",
+        "moved_mean_mm": 34.613,
+        "moved_max_mm": 55.891,
+        "penetrating": 1937,
+        "max_penetration_mm": 34.064,
+        "drift_p95_mm": 30.838,
+        "clearance_min_mm": 1.5,
+        "pushed": 172,
+        "max_push_mm": 30.414
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 26.2 mm into the female body over 274 vertices with 38.4 mm p95 clearance drift"
+    },
+    {
+      "id": "top_rigged_tank",
+      "group": "Tops",
+      "layer": "Under",
+      "slot": "under_torso",
+      "glb": "Under/top_rigged_tank.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "c5e69f50d480631960b682f961306731309db19ccc3264fb0f389df8a9c4c48a",
+      "male": {
+        "path": "Under/top_rigged_tank.glb",
+        "bytes": 100380,
+        "sha256": "f77061b829a38c539bd40e1029aa1e0fcac3327d0f43962974e4b7bca5f6c2a5",
+        "moved_mean_mm": 36.275,
+        "moved_max_mm": 72.353,
+        "penetrating": 865,
+        "max_penetration_mm": 12.964,
+        "drift_p95_mm": 7.819,
+        "clearance_min_mm": 1.5,
+        "pushed": 28,
+        "max_push_mm": 14.044
+      },
+      "shared_on_female": {
+        "penetrating": 224,
+        "max_penetration_mm": 11.807,
+        "drift_p95_mm": 35.062
+      },
+      "female": {
+        "path": "Female/Under/top_rigged_tank.glb",
+        "bytes": 100380,
+        "sha256": "5a70dd0dbeb4be3b09321c55a9ae61bfef4619ecfc151885511c8a48b3c59e66",
+        "moved_mean_mm": 23.839,
+        "moved_max_mm": 65.556,
+        "penetrating": 812,
+        "max_penetration_mm": 14.272,
+        "drift_p95_mm": 9.22,
+        "clearance_min_mm": 1.479,
+        "pushed": 59,
+        "max_push_mm": 15.425
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 11.8 mm into the female body over 224 vertices with 35.1 mm p95 clearance drift"
+    },
+    {
+      "id": "top_frayed_tunic",
+      "group": "Tops",
+      "layer": "Under",
+      "slot": "under_torso",
+      "glb": "Under/top_frayed_tunic.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "d702b136584cbaef4ce9ca4864a921f4e83d2360258eb968a2c215f1bca1073f",
+      "male": {
+        "path": "Under/top_frayed_tunic.glb",
+        "bytes": 135784,
+        "sha256": "089528b03c801a6ee56e286909e983b9f6c13c1517ed90a3ce727bd01f18c0fb",
+        "moved_mean_mm": 32.207,
+        "moved_max_mm": 71.392,
+        "penetrating": 1587,
+        "max_penetration_mm": 16.959,
+        "drift_p95_mm": 12.057,
+        "clearance_min_mm": 1.5,
+        "pushed": 118,
+        "max_push_mm": 12.912
+      },
+      "shared_on_female": {
+        "penetrating": 455,
+        "max_penetration_mm": 14.032,
+        "drift_p95_mm": 27.186
+      },
+      "female": {
+        "path": "Female/Under/top_frayed_tunic.glb",
+        "bytes": 135788,
+        "sha256": "23b09c267ef9fc11b05601c8441521527a3171ed63bdaaa73cdbc682129a317a",
+        "moved_mean_mm": 27.4,
+        "moved_max_mm": 66.443,
+        "penetrating": 1585,
+        "max_penetration_mm": 14.247,
+        "drift_p95_mm": 8.743,
+        "clearance_min_mm": 1.5,
+        "pushed": 13,
+        "max_push_mm": 3.437
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 14.0 mm into the female body over 455 vertices with 27.2 mm p95 clearance drift"
+    },
+    {
+      "id": "top_plated_rig_vest",
+      "group": "Tops",
+      "layer": "Under",
+      "slot": "under_torso",
+      "glb": "Under/top_plated_rig_vest.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "bb36685c30ac86f34c941cffe7f618c109a285945d7a28c5f9f8be9617109832",
+      "male": {
+        "path": "Under/top_plated_rig_vest.glb",
+        "bytes": 133088,
+        "sha256": "9f3d4e246a335d589657fd8b5fb907c7e1f6c7e22146a20f4c889acdaceab988",
+        "moved_mean_mm": 46.471,
+        "moved_max_mm": 65.527,
+        "penetrating": 1619,
+        "max_penetration_mm": 32.02,
+        "drift_p95_mm": 19.478,
+        "clearance_min_mm": 1.5,
+        "pushed": 76,
+        "max_push_mm": 13.186
+      },
+      "shared_on_female": {
+        "penetrating": 556,
+        "max_penetration_mm": 22.256,
+        "drift_p95_mm": 36.256
+      },
+      "female": {
+        "path": "Female/Under/top_plated_rig_vest.glb",
+        "bytes": 133084,
+        "sha256": "671e17ced76ffa3aae9c8375d6ff2dcbe5a124382c0def14042ba5c1d016cb26",
+        "moved_mean_mm": 37.883,
+        "moved_max_mm": 65.333,
+        "penetrating": 1628,
+        "max_penetration_mm": 19.645,
+        "drift_p95_mm": 13.945,
+        "clearance_min_mm": 1.5,
+        "pushed": 8,
+        "max_push_mm": 2.191
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 22.3 mm into the female body over 556 vertices with 36.3 mm p95 clearance drift"
+    },
+    {
+      "id": "top_padded_leather_vest",
+      "group": "Tops",
+      "layer": "Under",
+      "slot": "under_torso",
+      "glb": "Under/top_padded_leather_vest.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "c95c5e0f4334551ff5608d2fb772e6ee1bee4cae2cda597fb9f69d9603cccf75",
+      "male": {
+        "path": "Under/top_padded_leather_vest.glb",
+        "bytes": 134780,
+        "sha256": "e7e7739eff8497da89917d0242301ecd57ce3de90dd0fcae7042dbbd80e7482f",
+        "moved_mean_mm": 57.002,
+        "moved_max_mm": 77.605,
+        "penetrating": 1463,
+        "max_penetration_mm": 12.994,
+        "drift_p95_mm": 10.073,
+        "clearance_min_mm": 6.462,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 566,
+        "max_penetration_mm": 12.788,
+        "drift_p95_mm": 31.012
+      },
+      "female": {
+        "path": "Female/Under/top_padded_leather_vest.glb",
+        "bytes": 134784,
+        "sha256": "5410decab7f79b452fdd5712c7da81160847e38958a0bfe76ce8d6775003957b",
+        "moved_mean_mm": 49.952,
+        "moved_max_mm": 66.728,
+        "penetrating": 1782,
+        "max_penetration_mm": 18.735,
+        "drift_p95_mm": 11.927,
+        "clearance_min_mm": 5.866,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 12.8 mm into the female body over 566 vertices with 31.0 mm p95 clearance drift"
+    },
+    {
+      "id": "top_spiked_leather_vest",
+      "group": "Tops",
+      "layer": "Under",
+      "slot": "under_torso",
+      "glb": "Under/top_spiked_leather_vest.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "fb048dc96984f8d27f3d310c140477539ccf556c215dad3898be427de0363b9a",
+      "male": {
+        "path": "Under/top_spiked_leather_vest.glb",
+        "bytes": 123044,
+        "sha256": "d08c1a6a21f5793c4929c775677a98cb2b892c36192c8069a238fdd52e8cfc4b",
+        "moved_mean_mm": 34.139,
+        "moved_max_mm": 77.687,
+        "penetrating": 1212,
+        "max_penetration_mm": 12.512,
+        "drift_p95_mm": 11.335,
+        "clearance_min_mm": 1.473,
+        "pushed": 7,
+        "max_push_mm": 13.477
+      },
+      "shared_on_female": {
+        "penetrating": 601,
+        "max_penetration_mm": 19.735,
+        "drift_p95_mm": 33.38
+      },
+      "female": {
+        "path": "Female/Under/top_spiked_leather_vest.glb",
+        "bytes": 123044,
+        "sha256": "8e4864467293ca27596f4136bdb767201c607bb6a353bfaa4f25e327b54fccb5",
+        "moved_mean_mm": 29.721,
+        "moved_max_mm": 66.285,
+        "penetrating": 1318,
+        "max_penetration_mm": 18.711,
+        "drift_p95_mm": 15.849,
+        "clearance_min_mm": 1.462,
+        "pushed": 5,
+        "max_push_mm": 13.632
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 19.7 mm into the female body over 601 vertices with 33.4 mm p95 clearance drift"
+    },
+    {
+      "id": "top_reinforced_crop_vest",
+      "group": "Tops",
+      "layer": "Under",
+      "slot": "under_torso",
+      "glb": "Under/top_reinforced_crop_vest.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "a7871edd26fef18d4c552c1bccf5ec4ebfa10495f27adf2ebd3cbb3fe61010e9",
+      "male": {
+        "path": "Under/top_reinforced_crop_vest.glb",
+        "bytes": 92040,
+        "sha256": "963eaf7a8c3aa9770a6fed7bc0a7209c8b0bc4b67348b78cb5843b7034eaec07",
+        "moved_mean_mm": 38.332,
+        "moved_max_mm": 70.27,
+        "penetrating": 929,
+        "max_penetration_mm": 13.335,
+        "drift_p95_mm": 10.945,
+        "clearance_min_mm": 4.695,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 358,
+        "max_penetration_mm": 16.025,
+        "drift_p95_mm": 32.189
+      },
+      "female": {
+        "path": "Female/Under/top_reinforced_crop_vest.glb",
+        "bytes": 92044,
+        "sha256": "69580f1aa4e2946a375ab7db6d4304f803716f9dcbce1fdf5b81db6718129f58",
+        "moved_mean_mm": 27.982,
+        "moved_max_mm": 64.278,
+        "penetrating": 931,
+        "max_penetration_mm": 17.885,
+        "drift_p95_mm": 15.776,
+        "clearance_min_mm": 3.8,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 16.0 mm into the female body over 358 vertices with 32.2 mm p95 clearance drift"
+    },
+    {
+      "id": "top_scrap_plate_tunic",
+      "group": "Tops",
+      "layer": "Under",
+      "slot": "under_torso",
+      "glb": "Under/top_scrap_plate_tunic.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "dce7327976b0fdd39effc33978ff341cc83b4970fdd14a29753c6f017946aaef",
+      "male": {
+        "path": "Under/top_scrap_plate_tunic.glb",
+        "bytes": 131444,
+        "sha256": "846ee6fcbe24c2dc78087759c2e2486ee956149a4c408be8aabdd950ff335488",
+        "moved_mean_mm": 41.595,
+        "moved_max_mm": 78.542,
+        "penetrating": 1314,
+        "max_penetration_mm": 25.892,
+        "drift_p95_mm": 10.554,
+        "clearance_min_mm": 1.459,
+        "pushed": 34,
+        "max_push_mm": 20.549
+      },
+      "shared_on_female": {
+        "penetrating": 302,
+        "max_penetration_mm": 13.161,
+        "drift_p95_mm": 29.392
+      },
+      "female": {
+        "path": "Female/Under/top_scrap_plate_tunic.glb",
+        "bytes": 131440,
+        "sha256": "9ba04553f2ed4623c06f8181eeca7726aa351a82666faf18b1592c312290e7e8",
+        "moved_mean_mm": 37.505,
+        "moved_max_mm": 71.025,
+        "penetrating": 1325,
+        "max_penetration_mm": 21.771,
+        "drift_p95_mm": 12.526,
+        "clearance_min_mm": 1.364,
+        "pushed": 24,
+        "max_push_mm": 18.536
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 13.2 mm into the female body over 302 vertices with 29.4 mm p95 clearance drift"
+    },
+    {
+      "id": "top_laced_corset_vest",
+      "group": "Tops",
+      "layer": "Under",
+      "slot": "under_torso",
+      "glb": "Under/top_laced_corset_vest.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "298366a81ef8284daa76cd5c0f3258f212f5737a7cd143b3059f07c9c2ef627f",
+      "male": {
+        "path": "Under/top_laced_corset_vest.glb",
+        "bytes": 142932,
+        "sha256": "789bad6e14d8fba7e9a1a1dd81c68b3d0c9caebd532b15e6d18849dbb1380967",
+        "moved_mean_mm": 30.506,
+        "moved_max_mm": 76.543,
+        "penetrating": 1191,
+        "max_penetration_mm": 13.916,
+        "drift_p95_mm": 10.038,
+        "clearance_min_mm": 4.537,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 235,
+        "max_penetration_mm": 15.386,
+        "drift_p95_mm": 35.138
+      },
+      "female": {
+        "path": "Female/Under/top_laced_corset_vest.glb",
+        "bytes": 142924,
+        "sha256": "2da263833c592aea0992d2b5f2da4797df8cc98a87d4780f64ecee7b24323ac2",
+        "moved_mean_mm": 21.096,
+        "moved_max_mm": 65.459,
+        "penetrating": 1163,
+        "max_penetration_mm": 14.028,
+        "drift_p95_mm": 11.055,
+        "clearance_min_mm": 4.574,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 15.4 mm into the female body over 235 vertices with 35.1 mm p95 clearance drift"
+    },
+    {
+      "id": "legs_wrapped_workpants",
+      "group": "Bottoms",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/legs_wrapped_workpants.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "c984bd9c04681f4e2b6f29f9ff21caccc026fb78e582cc4c1c5651f111ae5285",
+      "male": {
+        "path": "Under/legs_wrapped_workpants.glb",
+        "bytes": 190916,
+        "sha256": "5e257e96e0c0738222f91f9cda2124c22bf0e0ee1a76ad378a5175bc9f99ce67",
+        "moved_mean_mm": 25.39,
+        "moved_max_mm": 92.268,
+        "penetrating": 1690,
+        "max_penetration_mm": 53.342,
+        "drift_p95_mm": 46.813,
+        "clearance_min_mm": 1.5,
+        "pushed": 31,
+        "max_push_mm": 26.293
+      },
+      "shared_on_female": {
+        "penetrating": 351,
+        "max_penetration_mm": 36.158,
+        "drift_p95_mm": 46.169
+      },
+      "female": {
+        "path": "Female/Under/legs_wrapped_workpants.glb",
+        "bytes": 190912,
+        "sha256": "5d6bb546bee4354d7546b1c9f725c32d535e6efe79c49e75867bfc960a4856fc",
+        "moved_mean_mm": 29.599,
+        "moved_max_mm": 100.598,
+        "penetrating": 1729,
+        "max_penetration_mm": 60.91,
+        "drift_p95_mm": 51.902,
+        "clearance_min_mm": 1.478,
+        "pushed": 133,
+        "max_push_mm": 62.952
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 36.2 mm into the female body over 351 vertices with 46.2 mm p95 clearance drift"
+    },
+    {
+      "id": "legs_reinforced_denim_pants",
+      "group": "Bottoms",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/legs_reinforced_denim_pants.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "4d464faa1a3677fea6ab92efa7ce8116ff8a20c703dc882d89f922f1de5049c3",
+      "male": {
+        "path": "Under/legs_reinforced_denim_pants.glb",
+        "bytes": 199004,
+        "sha256": "ae56e4e4910aefb89878fc4142d60b7e87cee3f0cd894f575185fe36bb6693ee",
+        "moved_mean_mm": 37.109,
+        "moved_max_mm": 86.241,
+        "penetrating": 2235,
+        "max_penetration_mm": 52.265,
+        "drift_p95_mm": 45.567,
+        "clearance_min_mm": 1.5,
+        "pushed": 214,
+        "max_push_mm": 38.513
+      },
+      "shared_on_female": {
+        "penetrating": 482,
+        "max_penetration_mm": 36.267,
+        "drift_p95_mm": 35.21
+      },
+      "female": {
+        "path": "Female/Under/legs_reinforced_denim_pants.glb",
+        "bytes": 198992,
+        "sha256": "92b8eb19e3edff310bef9b3e6563d60825d5a0664815c63c71638deca55aca3d",
+        "moved_mean_mm": 33.23,
+        "moved_max_mm": 121.742,
+        "penetrating": 1927,
+        "max_penetration_mm": 43.956,
+        "drift_p95_mm": 29.454,
+        "clearance_min_mm": -14.441,
+        "pushed": 428,
+        "max_push_mm": 67.71
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 36.3 mm into the female body over 482 vertices with 35.2 mm p95 clearance drift"
+    },
+    {
+      "id": "legs_plated_trousers",
+      "group": "Bottoms",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/legs_plated_trousers.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "eddbabbe2b0bd9627b4be050ceaf13b2cd6f0943817dd1e0b56709e2ea978e81",
+      "male": {
+        "path": "Under/legs_plated_trousers.glb",
+        "bytes": 172516,
+        "sha256": "1ea63718f63259d93d297e35116d265e9057d12b7a44d57d370f67605495c67a",
+        "moved_mean_mm": 39.956,
+        "moved_max_mm": 90.39,
+        "penetrating": 1757,
+        "max_penetration_mm": 49.838,
+        "drift_p95_mm": 44.754,
+        "clearance_min_mm": 1.5,
+        "pushed": 107,
+        "max_push_mm": 25.158
+      },
+      "shared_on_female": {
+        "penetrating": 410,
+        "max_penetration_mm": 36.828,
+        "drift_p95_mm": 41.564
+      },
+      "female": {
+        "path": "Female/Under/legs_plated_trousers.glb",
+        "bytes": 172524,
+        "sha256": "27d8c5775f1ad50c04d38f29f31e5098dd952b73490e4beb91166d5087861afc",
+        "moved_mean_mm": 104.254,
+        "moved_max_mm": 119.403,
+        "penetrating": 1725,
+        "max_penetration_mm": 55.839,
+        "drift_p95_mm": 46.591,
+        "clearance_min_mm": 1.33,
+        "pushed": 379,
+        "max_push_mm": 67.49
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 36.8 mm into the female body over 410 vertices with 41.6 mm p95 clearance drift"
+    },
+    {
+      "id": "legs_layered_shorts",
+      "group": "Bottoms",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/legs_layered_shorts.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "a24bc77d6df37da9c083734c374e413e54df8b6197313eed594884494eef912b",
+      "male": {
+        "path": "Under/legs_layered_shorts.glb",
+        "bytes": 226952,
+        "sha256": "cbb79c60671cec8b20a337edc3622390b2e1376d9b6d1e94e5d4e294f424a29e",
+        "moved_mean_mm": 39.424,
+        "moved_max_mm": 87.469,
+        "penetrating": 3105,
+        "max_penetration_mm": 53.826,
+        "drift_p95_mm": 48.16,
+        "clearance_min_mm": 1.463,
+        "pushed": 423,
+        "max_push_mm": 51.241
+      },
+      "shared_on_female": {
+        "penetrating": 1103,
+        "max_penetration_mm": 36.045,
+        "drift_p95_mm": 35.315
+      },
+      "female": {
+        "path": "Female/Under/legs_layered_shorts.glb",
+        "bytes": 226952,
+        "sha256": "7d52bc8d7cdaf003a79b18281dedd59e9850a5331d1f4ce1c9d12df33aeb104b",
+        "moved_mean_mm": 32.464,
+        "moved_max_mm": 122.927,
+        "penetrating": 2891,
+        "max_penetration_mm": 58.152,
+        "drift_p95_mm": 55.877,
+        "clearance_min_mm": 0.485,
+        "pushed": 1013,
+        "max_push_mm": 64.909
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 36.0 mm into the female body over 1103 vertices with 35.3 mm p95 clearance drift"
+    },
+    {
+      "id": "legs_strapped_trousers",
+      "group": "Bottoms",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/legs_strapped_trousers.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "2f329df2c336712b2d7097f9508b1eebae3f571bc8204c5a5682397579296bb8",
+      "male": {
+        "path": "Under/legs_strapped_trousers.glb",
+        "bytes": 222368,
+        "sha256": "414043cda6c0231c9ab4056860d207ee5d600dc3fc05772947329acc08bb507b",
+        "moved_mean_mm": 33.214,
+        "moved_max_mm": 91.752,
+        "penetrating": 2629,
+        "max_penetration_mm": 50.671,
+        "drift_p95_mm": 48.364,
+        "clearance_min_mm": 1.473,
+        "pushed": 350,
+        "max_push_mm": 40.381
+      },
+      "shared_on_female": {
+        "penetrating": 645,
+        "max_penetration_mm": 36.398,
+        "drift_p95_mm": 37.458
+      },
+      "female": {
+        "path": "Female/Under/legs_strapped_trousers.glb",
+        "bytes": 222364,
+        "sha256": "e6ad6879d49d0c528fecf84b29b5d1ce9e55817ec59e9152b001836764ab8da4",
+        "moved_mean_mm": 40.297,
+        "moved_max_mm": 122.068,
+        "penetrating": 2293,
+        "max_penetration_mm": 64.747,
+        "drift_p95_mm": 61.112,
+        "clearance_min_mm": -0.583,
+        "pushed": 566,
+        "max_push_mm": 66.195
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 36.4 mm into the female body over 645 vertices with 37.5 mm p95 clearance drift"
+    },
+    {
+      "id": "legs_skirted_workpants",
+      "group": "Bottoms",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/legs_skirted_workpants.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "241e35a84f6590bd81ab8cae28d1ca4b1f2232894576d763a171e021fa59d68a",
+      "male": {
+        "path": "Under/legs_skirted_workpants.glb",
+        "bytes": 184652,
+        "sha256": "24371513c72469daa5574d4218339110e70a35e1199296c7d963f8c30680e6e1",
+        "moved_mean_mm": 37.286,
+        "moved_max_mm": 87.704,
+        "penetrating": 1876,
+        "max_penetration_mm": 48.318,
+        "drift_p95_mm": 42.297,
+        "clearance_min_mm": 1.452,
+        "pushed": 113,
+        "max_push_mm": 24.95
+      },
+      "shared_on_female": {
+        "penetrating": 430,
+        "max_penetration_mm": 28.862,
+        "drift_p95_mm": 36.453
+      },
+      "female": {
+        "path": "Female/Under/legs_skirted_workpants.glb",
+        "bytes": 184644,
+        "sha256": "7a8ca2d6aad62a38ed77a6f4b549028e9a7d72a9d82f1db3daa10d55101eb38f",
+        "moved_mean_mm": 30.549,
+        "moved_max_mm": 126.313,
+        "penetrating": 1839,
+        "max_penetration_mm": 57.069,
+        "drift_p95_mm": 39.973,
+        "clearance_min_mm": 1.476,
+        "pushed": 287,
+        "max_push_mm": 67.144
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 28.9 mm into the female body over 430 vertices with 36.5 mm p95 clearance drift"
+    },
+    {
+      "id": "legs_gaitered_cargo_pants",
+      "group": "Bottoms",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/legs_gaitered_cargo_pants.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "72c0f31bb8c8cff7655a1344a8ebfe542b15ee0ac2ca14de0f330c36d745cefa",
+      "male": {
+        "path": "Under/legs_gaitered_cargo_pants.glb",
+        "bytes": 199300,
+        "sha256": "f97e97f3f95fc02eef6c3b3ca4a273e84aee6de516a6c9cd640710ecd1e88008",
+        "moved_mean_mm": 25.052,
+        "moved_max_mm": 91.524,
+        "penetrating": 2308,
+        "max_penetration_mm": 50.053,
+        "drift_p95_mm": 44.509,
+        "clearance_min_mm": 1.5,
+        "pushed": 133,
+        "max_push_mm": 25.158
+      },
+      "shared_on_female": {
+        "penetrating": 471,
+        "max_penetration_mm": 32.619,
+        "drift_p95_mm": 33.469
+      },
+      "female": {
+        "path": "Female/Under/legs_gaitered_cargo_pants.glb",
+        "bytes": 199300,
+        "sha256": "a867c6b839451a3e53c68afd0dac2cbe0c143899683bfac3f3caba1f2a89b797",
+        "moved_mean_mm": 29.826,
+        "moved_max_mm": 109.843,
+        "penetrating": 2129,
+        "max_penetration_mm": 45.431,
+        "drift_p95_mm": 32.951,
+        "clearance_min_mm": 1.485,
+        "pushed": 332,
+        "max_push_mm": 63.821
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 32.6 mm into the female body over 471 vertices with 33.5 mm p95 clearance drift"
+    },
+    {
+      "id": "legs_padded_canvas_trousers",
+      "group": "Bottoms",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/legs_padded_canvas_trousers.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "c571859921b586bd5042fee88cf8d4d39b139d35663673cb2c42041ee7e9d7e3",
+      "male": {
+        "path": "Under/legs_padded_canvas_trousers.glb",
+        "bytes": 180924,
+        "sha256": "cc436e9e7b780968b42efcd795be8be0ad5608efba3d91535425ee8c67be130f",
+        "moved_mean_mm": 34.417,
+        "moved_max_mm": 81.109,
+        "penetrating": 1968,
+        "max_penetration_mm": 46.623,
+        "drift_p95_mm": 44.181,
+        "clearance_min_mm": 1.5,
+        "pushed": 150,
+        "max_push_mm": 25.657
+      },
+      "shared_on_female": {
+        "penetrating": 456,
+        "max_penetration_mm": 27.623,
+        "drift_p95_mm": 40.182
+      },
+      "female": {
+        "path": "Female/Under/legs_padded_canvas_trousers.glb",
+        "bytes": 180932,
+        "sha256": "d0db94d4d1e2da0764dedb602179e0931edbaa82688cc415be7157d555bfea6f",
+        "moved_mean_mm": 28.986,
+        "moved_max_mm": 105.62,
+        "penetrating": 1672,
+        "max_penetration_mm": 45.9,
+        "drift_p95_mm": 27.071,
+        "clearance_min_mm": 1.5,
+        "pushed": 355,
+        "max_push_mm": 57.727
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 27.6 mm into the female body over 456 vertices with 40.2 mm p95 clearance drift"
+    },
+    {
+      "id": "legs_sashed_patrol_pants",
+      "group": "Bottoms",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/legs_sashed_patrol_pants.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "bf6d4ce3e473b3aebadbd76b8d3f488f84d48fa82e591fe716940b8332d2cded",
+      "male": {
+        "path": "Under/legs_sashed_patrol_pants.glb",
+        "bytes": 202104,
+        "sha256": "467f2a7cf1bfc2b57929ff5b453cd5f4ddf0b6d0abedbd0a66c5fe04c2cbabe8",
+        "moved_mean_mm": 37.503,
+        "moved_max_mm": 86.605,
+        "penetrating": 2171,
+        "max_penetration_mm": 54.65,
+        "drift_p95_mm": 47.086,
+        "clearance_min_mm": 1.46,
+        "pushed": 139,
+        "max_push_mm": 48.078
+      },
+      "shared_on_female": {
+        "penetrating": 536,
+        "max_penetration_mm": 35.776,
+        "drift_p95_mm": 38.983
+      },
+      "female": {
+        "path": "Female/Under/legs_sashed_patrol_pants.glb",
+        "bytes": 202112,
+        "sha256": "7fd35fe70c2dd6828840fcf44925490803a833a0b274f3a8b0a4939ef93ddf7d",
+        "moved_mean_mm": 32.851,
+        "moved_max_mm": 123.917,
+        "penetrating": 2085,
+        "max_penetration_mm": 58.718,
+        "drift_p95_mm": 42.982,
+        "clearance_min_mm": 1.478,
+        "pushed": 397,
+        "max_push_mm": 63.119
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 35.8 mm into the female body over 536 vertices with 39.0 mm p95 clearance drift"
+    },
+    {
+      "id": "legs_layered_wrap_skirt",
+      "group": "Bottoms",
+      "layer": "Under",
+      "slot": "under_legs",
+      "glb": "Under/legs_layered_wrap_skirt.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "18eda0142d283a889a9f1b5e8a0a646600d925b94be7234cdecbca223dfd6372",
+      "male": {
+        "path": "Under/legs_layered_wrap_skirt.glb",
+        "bytes": 184420,
+        "sha256": "2cc84068c65fc832e3d61a7129b69667f431a80163527eef79272d707fd4f41e",
+        "moved_mean_mm": 35.799,
+        "moved_max_mm": 84.904,
+        "penetrating": 2005,
+        "max_penetration_mm": 48.733,
+        "drift_p95_mm": 44.475,
+        "clearance_min_mm": 1.5,
+        "pushed": 66,
+        "max_push_mm": 27.659
+      },
+      "shared_on_female": {
+        "penetrating": 537,
+        "max_penetration_mm": 36.169,
+        "drift_p95_mm": 38.338
+      },
+      "female": {
+        "path": "Female/Under/legs_layered_wrap_skirt.glb",
+        "bytes": 184428,
+        "sha256": "7b7a3b13bc32e3133a9b36bd7eb9b80caf2f5e6481937a0d52b5da4b8cd2f504",
+        "moved_mean_mm": 37.197,
+        "moved_max_mm": 127.118,
+        "penetrating": 2013,
+        "max_penetration_mm": 62.222,
+        "drift_p95_mm": 57.368,
+        "clearance_min_mm": 1.489,
+        "pushed": 302,
+        "max_push_mm": 65.122
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 36.2 mm into the female body over 537 vertices with 38.3 mm p95 clearance drift"
+    },
+    {
+      "id": "boots_canvas_ankle",
+      "group": "Footwear",
+      "layer": "Under",
+      "slot": "under_feet",
+      "glb": "Under/boots_canvas_ankle.glb",
+      "policy": "authored",
+      "skinned": true,
+      "decision": "authored",
+      "reason": "generated per body by author_starter_apparel.py"
+    },
+    {
+      "id": "boots_layered_sneakers",
+      "group": "Footwear",
+      "layer": "Under",
+      "slot": "under_feet",
+      "glb": "Under/boots_layered_sneakers.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "1839530ac47eb0b3dd4c12c4ec490662f3620713b376430f64c24ad50db08d48",
+      "male": {
+        "path": "Under/boots_layered_sneakers.glb",
+        "bytes": 55416,
+        "sha256": "da6615015193fd6f2aea75fa9924b42029cc35f07ca5c9f9b1774f549cc0f811",
+        "moved_mean_mm": 27.49,
+        "moved_max_mm": 49.491,
+        "penetrating": 288,
+        "max_penetration_mm": 16.357,
+        "drift_p95_mm": 42.266,
+        "clearance_min_mm": 1.5,
+        "pushed": 2,
+        "max_push_mm": 16.742
+      },
+      "shared_on_female": {
+        "penetrating": 105,
+        "max_penetration_mm": 19.538,
+        "drift_p95_mm": 55.789
+      },
+      "female": {
+        "path": "Female/Under/boots_layered_sneakers.glb",
+        "bytes": 55404,
+        "sha256": "26b3b3b3599fe6ef20a03bd6492f2e9c8321a7c2102d4577fe6baf20817898e2",
+        "moved_mean_mm": 33.284,
+        "moved_max_mm": 42.672,
+        "penetrating": 277,
+        "max_penetration_mm": 20.829,
+        "drift_p95_mm": 41.819,
+        "clearance_min_mm": 1.5,
+        "pushed": 11,
+        "max_push_mm": 9.811
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 19.5 mm into the female body over 105 vertices with 55.8 mm p95 clearance drift"
+    },
+    {
+      "id": "boots_split_toe",
+      "group": "Footwear",
+      "layer": "Under",
+      "slot": "under_feet",
+      "glb": "Under/boots_split_toe.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "4bfa7784f959c9ac37e67f80464fc2cd2594ada1a688135b555969c7a2ed7682",
+      "male": {
+        "path": "Under/boots_split_toe.glb",
+        "bytes": 64444,
+        "sha256": "65fc2884690fb135e001ab7982e7bf4f3e2f4461fc3ea320aace328a3493b834",
+        "moved_mean_mm": 15.958,
+        "moved_max_mm": 47.714,
+        "penetrating": 318,
+        "max_penetration_mm": 17.848,
+        "drift_p95_mm": 22.184,
+        "clearance_min_mm": -5.975,
+        "pushed": 38,
+        "max_push_mm": 10.047
+      },
+      "shared_on_female": {
+        "penetrating": 149,
+        "max_penetration_mm": 26.123,
+        "drift_p95_mm": 37.394
+      },
+      "female": {
+        "path": "Female/Under/boots_split_toe.glb",
+        "bytes": 64444,
+        "sha256": "c6f49a6b4e5d032618da37300f3d4772a4230a71f909115330e412483f10ec4b",
+        "moved_mean_mm": 34.543,
+        "moved_max_mm": 42.475,
+        "penetrating": 298,
+        "max_penetration_mm": 17.073,
+        "drift_p95_mm": 25.685,
+        "clearance_min_mm": -3.658,
+        "pushed": 14,
+        "max_push_mm": 4.039
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 26.1 mm into the female body over 149 vertices with 37.4 mm p95 clearance drift"
+    },
+    {
+      "id": "boots_trail_shoes",
+      "group": "Footwear",
+      "layer": "Under",
+      "slot": "under_feet",
+      "glb": "Under/boots_trail_shoes.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "8b638d2a65126b71cc14e291fb01a6ea1d5a23f0e5f96e478cfcb3cecbf8d461",
+      "male": {
+        "path": "Under/boots_trail_shoes.glb",
+        "bytes": 68556,
+        "sha256": "53e6757a88c9f2de42003b00a5e9de2f9c235363d4b1684e80544667db8e903b",
+        "moved_mean_mm": 19.695,
+        "moved_max_mm": 43.816,
+        "penetrating": 246,
+        "max_penetration_mm": 20.212,
+        "drift_p95_mm": 37.876,
+        "clearance_min_mm": 1.499,
+        "pushed": 50,
+        "max_push_mm": 19.443
+      },
+      "shared_on_female": {
+        "penetrating": 122,
+        "max_penetration_mm": 19.577,
+        "drift_p95_mm": 47.31
+      },
+      "female": {
+        "path": "Female/Under/boots_trail_shoes.glb",
+        "bytes": 68568,
+        "sha256": "4b11796a3562da66670baba2823a5909b008bcc1aa725bbe1a395d35cb5df4a4",
+        "moved_mean_mm": 33.99,
+        "moved_max_mm": 43.55,
+        "penetrating": 239,
+        "max_penetration_mm": 22.747,
+        "drift_p95_mm": 38.212,
+        "clearance_min_mm": 1.462,
+        "pushed": 31,
+        "max_push_mm": 14.654
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 19.6 mm into the female body over 122 vertices with 47.3 mm p95 clearance drift"
+    },
+    {
+      "id": "boots_double_strap",
+      "group": "Footwear",
+      "layer": "Under",
+      "slot": "under_feet",
+      "glb": "Under/boots_double_strap.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "1d2181a0fac74a15847356fa39dd528dc5249549febc7441449603d979d0f3f1",
+      "male": {
+        "path": "Under/boots_double_strap.glb",
+        "bytes": 79728,
+        "sha256": "2854cc8fbf384bd2ddb12fb726857a660d88a45f738b8235e54604538a34b0d8",
+        "moved_mean_mm": 16.024,
+        "moved_max_mm": 47.876,
+        "penetrating": 573,
+        "max_penetration_mm": 18.791,
+        "drift_p95_mm": 30.138,
+        "clearance_min_mm": 1.5,
+        "pushed": 26,
+        "max_push_mm": 22.432
+      },
+      "shared_on_female": {
+        "penetrating": 186,
+        "max_penetration_mm": 16.198,
+        "drift_p95_mm": 41.134
+      },
+      "female": {
+        "path": "Female/Under/boots_double_strap.glb",
+        "bytes": 79724,
+        "sha256": "e00ec720c0c5f00af6680a83499a48b8a32807400ca3237864966528e0f54835",
+        "moved_mean_mm": 30.143,
+        "moved_max_mm": 43.386,
+        "penetrating": 499,
+        "max_penetration_mm": 20.314,
+        "drift_p95_mm": 30.164,
+        "clearance_min_mm": 1.452,
+        "pushed": 26,
+        "max_push_mm": 13.174
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 16.2 mm into the female body over 186 vertices with 41.1 mm p95 clearance drift"
+    },
+    {
+      "id": "boots_rubberized_canvas",
+      "group": "Footwear",
+      "layer": "Under",
+      "slot": "under_feet",
+      "glb": "Under/boots_rubberized_canvas.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "45e6a3f591b3750d11174c05489cb87ae3e05536a9da2c6315d9b5bcfddc76aa",
+      "male": {
+        "path": "Under/boots_rubberized_canvas.glb",
+        "bytes": 91504,
+        "sha256": "1297f17fa95fead6c099a72de7f8a4512c1c883959ee8149acacdf35e1787ee4",
+        "moved_mean_mm": 20.172,
+        "moved_max_mm": 47.584,
+        "penetrating": 582,
+        "max_penetration_mm": 29.877,
+        "drift_p95_mm": 36.73,
+        "clearance_min_mm": 1.5,
+        "pushed": 30,
+        "max_push_mm": 17.849
+      },
+      "shared_on_female": {
+        "penetrating": 304,
+        "max_penetration_mm": 29.18,
+        "drift_p95_mm": 48.647
+      },
+      "female": {
+        "path": "Female/Under/boots_rubberized_canvas.glb",
+        "bytes": 91504,
+        "sha256": "0245dc1cef9e6587a63e3216092bacec37e8339e93cfb898d83f7d51a12c667b",
+        "moved_mean_mm": 29.632,
+        "moved_max_mm": 43.682,
+        "penetrating": 596,
+        "max_penetration_mm": 23.956,
+        "drift_p95_mm": 34.172,
+        "clearance_min_mm": 1.5,
+        "pushed": 28,
+        "max_push_mm": 9.56
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 29.2 mm into the female body over 304 vertices with 48.6 mm p95 clearance drift"
+    },
+    {
+      "id": "boots_toe_capped",
+      "group": "Footwear",
+      "layer": "Under",
+      "slot": "under_feet",
+      "glb": "Under/boots_toe_capped.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "2185ae8984fa8c0c2bcf434dc369eee59f3696885d4180bf0ecd1f8c85438008",
+      "male": {
+        "path": "Under/boots_toe_capped.glb",
+        "bytes": 44016,
+        "sha256": "ed3967d438467d1c249426563c78355bbd7bb134e7190fe4c9ad2798bb46e17d",
+        "moved_mean_mm": 16.062,
+        "moved_max_mm": 47.447,
+        "penetrating": 253,
+        "max_penetration_mm": 18.376,
+        "drift_p95_mm": 25.408,
+        "clearance_min_mm": 1.479,
+        "pushed": 38,
+        "max_push_mm": 23.962
+      },
+      "shared_on_female": {
+        "penetrating": 107,
+        "max_penetration_mm": 17.647,
+        "drift_p95_mm": 35.015
+      },
+      "female": {
+        "path": "Female/Under/boots_toe_capped.glb",
+        "bytes": 44016,
+        "sha256": "6eab43391eb0ff3d1901fd511d253255c884b48697c5154cfca57c7accfaf917",
+        "moved_mean_mm": 35.815,
+        "moved_max_mm": 43.686,
+        "penetrating": 224,
+        "max_penetration_mm": 18.967,
+        "drift_p95_mm": 30.417,
+        "clearance_min_mm": 1.489,
+        "pushed": 18,
+        "max_push_mm": 7.836
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 17.6 mm into the female body over 107 vertices with 35.0 mm p95 clearance drift"
+    },
+    {
+      "id": "boots_combat_sneakers",
+      "group": "Footwear",
+      "layer": "Under",
+      "slot": "under_feet",
+      "glb": "Under/boots_combat_sneakers.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "122a32ce463931f2b4a5ed8e935ae2e783b7f1cdbd09a7904787ac657607d1ea",
+      "male": {
+        "path": "Under/boots_combat_sneakers.glb",
+        "bytes": 61276,
+        "sha256": "2e79aa8ada888a5d0e55647330b0dd1bde00728bc7af08a449b9d64df8d9dd5f",
+        "moved_mean_mm": 22.136,
+        "moved_max_mm": 46.837,
+        "penetrating": 273,
+        "max_penetration_mm": 24.083,
+        "drift_p95_mm": 46.96,
+        "clearance_min_mm": 1.5,
+        "pushed": 14,
+        "max_push_mm": 17.674
+      },
+      "shared_on_female": {
+        "penetrating": 109,
+        "max_penetration_mm": 47.071,
+        "drift_p95_mm": 57.899
+      },
+      "female": {
+        "path": "Female/Under/boots_combat_sneakers.glb",
+        "bytes": 61280,
+        "sha256": "40b1f316ccba557d7105ea9890b427034cb0997b735ecf75c34f545cde0675b0",
+        "moved_mean_mm": 31.006,
+        "moved_max_mm": 42.73,
+        "penetrating": 224,
+        "max_penetration_mm": 20.731,
+        "drift_p95_mm": 37.613,
+        "clearance_min_mm": 1.5,
+        "pushed": 2,
+        "max_push_mm": 10.268
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 47.1 mm into the female body over 109 vertices with 57.9 mm p95 clearance drift"
+    },
+    {
+      "id": "boots_cuffed_runners",
+      "group": "Footwear",
+      "layer": "Under",
+      "slot": "under_feet",
+      "glb": "Under/boots_cuffed_runners.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "a41a5716e510c2431f16ce50f077f65e0927a2a19a9f45bd17c5fbddf38b8149",
+      "male": {
+        "path": "Under/boots_cuffed_runners.glb",
+        "bytes": 62648,
+        "sha256": "9b0ea8a76b09bb04da560b24f9c528193a564c39e2ccc4828879fe298161ca34",
+        "moved_mean_mm": 18.388,
+        "moved_max_mm": 50.395,
+        "penetrating": 185,
+        "max_penetration_mm": 22.245,
+        "drift_p95_mm": 39.004,
+        "clearance_min_mm": 1.5,
+        "pushed": 11,
+        "max_push_mm": 19.076
+      },
+      "shared_on_female": {
+        "penetrating": 86,
+        "max_penetration_mm": 21.57,
+        "drift_p95_mm": 48.218
+      },
+      "female": {
+        "path": "Female/Under/boots_cuffed_runners.glb",
+        "bytes": 62648,
+        "sha256": "cf70bcf65d23305d03d2cfc6a92809d183d874e35abff485496a84f4cdcfe9ff",
+        "moved_mean_mm": 32.166,
+        "moved_max_mm": 40.982,
+        "penetrating": 187,
+        "max_penetration_mm": 21.325,
+        "drift_p95_mm": 32.588,
+        "clearance_min_mm": 1.488,
+        "pushed": 22,
+        "max_push_mm": 15.319
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 21.6 mm into the female body over 86 vertices with 48.2 mm p95 clearance drift"
+    },
+    {
+      "id": "boots_reinforced_street",
+      "group": "Footwear",
+      "layer": "Under",
+      "slot": "under_feet",
+      "glb": "Under/boots_reinforced_street.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "f9ec0acbab606fdd70706896a8b1f6608885a9079d5be3b7490471704201d581",
+      "male": {
+        "path": "Under/boots_reinforced_street.glb",
+        "bytes": 72384,
+        "sha256": "c70e667130be62226b4e98fac381658fa2ebe51fd5ca746679dcd10b1efb327d",
+        "moved_mean_mm": 18.726,
+        "moved_max_mm": 46.323,
+        "penetrating": 457,
+        "max_penetration_mm": 23.639,
+        "drift_p95_mm": 25.195,
+        "clearance_min_mm": 1.5,
+        "pushed": 68,
+        "max_push_mm": 15.478
+      },
+      "shared_on_female": {
+        "penetrating": 226,
+        "max_penetration_mm": 22.955,
+        "drift_p95_mm": 36.048
+      },
+      "female": {
+        "path": "Female/Under/boots_reinforced_street.glb",
+        "bytes": 72388,
+        "sha256": "bc70685489254e4bcbe6fc8593da1b2cfc1457db0d022269c66b12fd19336b5c",
+        "moved_mean_mm": 33.397,
+        "moved_max_mm": 43.423,
+        "penetrating": 428,
+        "max_penetration_mm": 19.767,
+        "drift_p95_mm": 34.288,
+        "clearance_min_mm": 1.464,
+        "pushed": 46,
+        "max_push_mm": 10.25
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 23.0 mm into the female body over 226 vertices with 36.0 mm p95 clearance drift"
+    },
+    {
+      "id": "gloves_knuckled_half",
+      "group": "Gloves",
+      "layer": "Under",
+      "slot": "under_hands",
+      "glb": "Under/gloves_knuckled_half.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "9ed6e75b3d437f8245c46836428450b23b931ccf9634f2ddb9284be33499f691",
+      "male": {
+        "path": "Under/gloves_knuckled_half.glb",
+        "bytes": 43396,
+        "sha256": "fd60ddaf6f51b96f820b394460c4afed179f90a5143f0d7b0e68a8d2e1fc4437",
+        "moved_mean_mm": 0.374,
+        "moved_max_mm": 6.133,
+        "penetrating": 8,
+        "max_penetration_mm": 7.485,
+        "drift_p95_mm": 2.997,
+        "clearance_min_mm": 5.094,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 8,
+        "max_penetration_mm": 7.484,
+        "drift_p95_mm": 2.997
+      },
+      "female": {
+        "path": "Female/Under/gloves_knuckled_half.glb",
+        "bytes": 43396,
+        "sha256": "82dc4642a2007d8dcd2c275cbf165ed8ffc0f94cfecf987850bed12cb5bbcebd",
+        "moved_mean_mm": 0.356,
+        "moved_max_mm": 5.836,
+        "penetrating": 8,
+        "max_penetration_mm": 6.551,
+        "drift_p95_mm": 2.494,
+        "clearance_min_mm": 5.116,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 7.5 mm into the female body over 8 vertices with 3.0 mm p95 clearance drift"
+    },
+    {
+      "id": "gloves_guarded_leather",
+      "group": "Gloves",
+      "layer": "Under",
+      "slot": "under_hands",
+      "glb": "Under/gloves_guarded_leather.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "cdbef349a980b4bd587a9e0b65e72f0edae53b2f7f7136efa2207eb4c1ecd7cf",
+      "male": {
+        "path": "Under/gloves_guarded_leather.glb",
+        "bytes": 75172,
+        "sha256": "b30715b22e2931cb8f22eb060c12f17ee39311b4d94729ec46cdae8c2bc2dbf4",
+        "moved_mean_mm": 1.095,
+        "moved_max_mm": 13.611,
+        "penetrating": 34,
+        "max_penetration_mm": 9.846,
+        "drift_p95_mm": 6.363,
+        "clearance_min_mm": 4.416,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 34,
+        "max_penetration_mm": 9.845,
+        "drift_p95_mm": 8.058
+      },
+      "female": {
+        "path": "Female/Under/gloves_guarded_leather.glb",
+        "bytes": 75172,
+        "sha256": "4f7cfca859f4da855dca1d85eea37f19386e60c9d6cd4295a4540d35e9e0db5d",
+        "moved_mean_mm": 0.859,
+        "moved_max_mm": 9.641,
+        "penetrating": 21,
+        "max_penetration_mm": 9.729,
+        "drift_p95_mm": 8.263,
+        "clearance_min_mm": 4.421,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 9.8 mm into the female body over 34 vertices with 8.1 mm p95 clearance drift"
+    },
+    {
+      "id": "gloves_plain_work",
+      "group": "Gloves",
+      "layer": "Under",
+      "slot": "under_hands",
+      "glb": "Under/gloves_plain_work.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "7e8d737a267c626d8be0ea3e0ffa4baabb651065987b0ca8020bfbbc8c3abab8",
+      "male": {
+        "path": "Under/gloves_plain_work.glb",
+        "bytes": 46360,
+        "sha256": "16db1c2c83a7965a179fbebe1ccf36d7dbac02a83bc55ee41bfa0e8cc6cf89b9",
+        "moved_mean_mm": 1.777,
+        "moved_max_mm": 15.079,
+        "penetrating": 49,
+        "max_penetration_mm": 10.398,
+        "drift_p95_mm": 7.583,
+        "clearance_min_mm": 1.5,
+        "pushed": 1,
+        "max_push_mm": 8.601
+      },
+      "shared_on_female": {
+        "penetrating": 47,
+        "max_penetration_mm": 10.397,
+        "drift_p95_mm": 9.01
+      },
+      "female": {
+        "path": "Female/Under/gloves_plain_work.glb",
+        "bytes": 46356,
+        "sha256": "816b28bb67f4b65cdf0727b99930902764014a96b30f655b44818fd1900d964d",
+        "moved_mean_mm": 1.696,
+        "moved_max_mm": 15.044,
+        "penetrating": 39,
+        "max_penetration_mm": 9.108,
+        "drift_p95_mm": 8.052,
+        "clearance_min_mm": 1.5,
+        "pushed": 1,
+        "max_push_mm": 8.5
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 10.4 mm into the female body over 47 vertices with 9.0 mm p95 clearance drift"
+    },
+    {
+      "id": "gloves_reinforced_knit",
+      "group": "Gloves",
+      "layer": "Under",
+      "slot": "under_hands",
+      "glb": "Under/gloves_reinforced_knit.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "3e106066d5843ee33818c16450d6209bf6007b3173fe290f4e5fbb4a7abb25ca",
+      "male": {
+        "path": "Under/gloves_reinforced_knit.glb",
+        "bytes": 49012,
+        "sha256": "bbf327d07de9d39024964404a3f03c95c18baaa02c350f1aecf82b91bc40dd38",
+        "moved_mean_mm": 0.008,
+        "moved_max_mm": 0.341,
+        "penetrating": 0,
+        "max_penetration_mm": 0.189,
+        "drift_p95_mm": 0.03,
+        "clearance_min_mm": 5.221,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 0,
+        "max_penetration_mm": 0.189,
+        "drift_p95_mm": 0.03
+      },
+      "decision": "refit_shared",
+      "reason": "the male fit holds on the female body: 0.2 mm penetration over 0 vertices, 0.0 mm p95 clearance drift"
+    },
+    {
+      "id": "gloves_light_utility",
+      "group": "Gloves",
+      "layer": "Under",
+      "slot": "under_hands",
+      "glb": "Under/gloves_light_utility.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "b115fa0e9e2a701fec68a483dfac0f3f1bae65e01d78b04908aace36ea31ed00",
+      "male": {
+        "path": "Under/gloves_light_utility.glb",
+        "bytes": 56624,
+        "sha256": "1d266af174b0dcae56cfafef9a11901b4cf233496474ef6e6877d9b2eef13218",
+        "moved_mean_mm": 0.181,
+        "moved_max_mm": 7.993,
+        "penetrating": 15,
+        "max_penetration_mm": 9.888,
+        "drift_p95_mm": 0.131,
+        "clearance_min_mm": 4.843,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 15,
+        "max_penetration_mm": 9.887,
+        "drift_p95_mm": 0.131
+      },
+      "female": {
+        "path": "Female/Under/gloves_light_utility.glb",
+        "bytes": 56628,
+        "sha256": "d8c13d15cb2ddad823f87b952c855b07151bc256fc2f36c2dd0025dff5737de1",
+        "moved_mean_mm": 0.155,
+        "moved_max_mm": 6.322,
+        "penetrating": 9,
+        "max_penetration_mm": 2.755,
+        "drift_p95_mm": 0.118,
+        "clearance_min_mm": 5.076,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 9.9 mm into the female body over 15 vertices with 0.1 mm p95 clearance drift"
+    },
+    {
+      "id": "gloves_tipped_work",
+      "group": "Gloves",
+      "layer": "Under",
+      "slot": "under_hands",
+      "glb": "Under/gloves_tipped_work.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "c0c2c3b2f5bd574ddb824775dbe50c3ee9c4a31c5305e894c33ea0e0ce194487",
+      "male": {
+        "path": "Under/gloves_tipped_work.glb",
+        "bytes": 76788,
+        "sha256": "042a2c177295afce9d1ae322a54bfc2567846975013840adf69bd66e61e2a803",
+        "moved_mean_mm": 5.093,
+        "moved_max_mm": 17.204,
+        "penetrating": 119,
+        "max_penetration_mm": 13.476,
+        "drift_p95_mm": 10.07,
+        "clearance_min_mm": 3.595,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 112,
+        "max_penetration_mm": 13.475,
+        "drift_p95_mm": 10.773
+      },
+      "female": {
+        "path": "Female/Under/gloves_tipped_work.glb",
+        "bytes": 76784,
+        "sha256": "666cf7dbd00905e1143b3e49f368c55317fbb6b8fc087af70d1a167f0a3d891d",
+        "moved_mean_mm": 4.607,
+        "moved_max_mm": 11.727,
+        "penetrating": 99,
+        "max_penetration_mm": 10.734,
+        "drift_p95_mm": 12.689,
+        "clearance_min_mm": 4.401,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 13.5 mm into the female body over 112 vertices with 10.8 mm p95 clearance drift"
+    },
+    {
+      "id": "gloves_plated_handwraps",
+      "group": "Gloves",
+      "layer": "Under",
+      "slot": "under_hands",
+      "glb": "Under/gloves_plated_handwraps.glb",
+      "policy": "soft",
+      "skinned": true,
+      "source_sha256": "172905566d7f05b6ab75e33f39d094eb3ebbfd81cd092e8106b1360e401735e4",
+      "male": {
+        "path": "Under/gloves_plated_handwraps.glb",
+        "bytes": 59280,
+        "sha256": "64cce264f147acfc00f79de986176a811898ce7c4e018b30ee0fe19751cd4fff",
+        "moved_mean_mm": 3.562,
+        "moved_max_mm": 17.533,
+        "penetrating": 81,
+        "max_penetration_mm": 13.767,
+        "drift_p95_mm": 11.453,
+        "clearance_min_mm": 3.496,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 79,
+        "max_penetration_mm": 13.766,
+        "drift_p95_mm": 11.453
+      },
+      "female": {
+        "path": "Female/Under/gloves_plated_handwraps.glb",
+        "bytes": 59276,
+        "sha256": "b99b16c3f6366fd0212396254ef7b7759e989b0cef8203ebadb1e53837deacae",
+        "moved_mean_mm": 2.829,
+        "moved_max_mm": 13.823,
+        "penetrating": 79,
+        "max_penetration_mm": 11.341,
+        "drift_p95_mm": 16.722,
+        "clearance_min_mm": 3.343,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 13.8 mm into the female body over 79 vertices with 11.5 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_banded_mohawk",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_banded_mohawk.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "77fa5bc24aa4088633401d8e87d0fda6441eb038838b89af20cb1cccc8dcf1d6",
+      "male": {
+        "path": "Under/hair_banded_mohawk.glb",
+        "bytes": 70284,
+        "sha256": "27cdd4fe31b15360a8e69ba60748fc69c9eb3d5159af09303b4530dcb5b8e22a",
+        "moved_mean_mm": 16.645,
+        "moved_max_mm": 23.103,
+        "penetrating": 633,
+        "max_penetration_mm": 25.919,
+        "drift_p95_mm": 22.834,
+        "clearance_min_mm": -19.606,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 812,
+        "max_penetration_mm": 23.656,
+        "drift_p95_mm": 19.685
+      },
+      "female": {
+        "path": "Female/Under/hair_banded_mohawk.glb",
+        "bytes": 70284,
+        "sha256": "3d1367502d47ed1b46d49d11bfd59a04cdf5cbaec146cc204f47b02e217783aa",
+        "moved_mean_mm": 19.871,
+        "moved_max_mm": 29.195,
+        "penetrating": 912,
+        "max_penetration_mm": 29.452,
+        "drift_p95_mm": 27.874,
+        "clearance_min_mm": -19.356,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 23.7 mm into the female body over 812 vertices with 19.7 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_spiked_topknot",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_spiked_topknot.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "8417ae03d48154486d3a59d12a4a9e3cb27362b06c4677fbe3764b5a5a30d140",
+      "male": {
+        "path": "Under/hair_spiked_topknot.glb",
+        "bytes": 80860,
+        "sha256": "77665c29ba83f0e31a712c690a4f2517bc279903e068a8e6989dac1d06074ce6",
+        "moved_mean_mm": 16.802,
+        "moved_max_mm": 22.14,
+        "penetrating": 541,
+        "max_penetration_mm": 23.872,
+        "drift_p95_mm": 15.82,
+        "clearance_min_mm": -29.656,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 697,
+        "max_penetration_mm": 22.316,
+        "drift_p95_mm": 16.675
+      },
+      "female": {
+        "path": "Female/Under/hair_spiked_topknot.glb",
+        "bytes": 80860,
+        "sha256": "68e6fb86bf1a26baa77f7ca2e7023d2c307c427c22e6d37285a1a00a21d42b5d",
+        "moved_mean_mm": 19.374,
+        "moved_max_mm": 27.798,
+        "penetrating": 929,
+        "max_penetration_mm": 26.777,
+        "drift_p95_mm": 21.664,
+        "clearance_min_mm": -29.652,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 22.3 mm into the female body over 697 vertices with 16.7 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_twin_pigtails",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_twin_pigtails.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "a63d3bc4e480042d246e686889b6b36d1569f59541018a67d956ace17f8aacfd",
+      "male": {
+        "path": "Under/hair_twin_pigtails.glb",
+        "bytes": 136452,
+        "sha256": "e86e8877ac0af6f1e17a10426c4c6a0a83ecfaa09bafce4d6b8bbe2abd7e1266",
+        "moved_mean_mm": 14.342,
+        "moved_max_mm": 22.831,
+        "penetrating": 727,
+        "max_penetration_mm": 34.817,
+        "drift_p95_mm": 21.235,
+        "clearance_min_mm": -27.924,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 362,
+        "max_penetration_mm": 22.878,
+        "drift_p95_mm": 24.155
+      },
+      "female": {
+        "path": "Female/Under/hair_twin_pigtails.glb",
+        "bytes": 136448,
+        "sha256": "c8c7a85139a13d60520fa5fc188b515c41211d2bdd2029acbfadab0fbeb5b05b",
+        "moved_mean_mm": 17.331,
+        "moved_max_mm": 29.344,
+        "penetrating": 1169,
+        "max_penetration_mm": 29.396,
+        "drift_p95_mm": 20.88,
+        "clearance_min_mm": -23.413,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 22.9 mm into the female body over 362 vertices with 24.2 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_swept_spikes",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_swept_spikes.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "d8fc059ae40380c7fef018e1802bc516dab26de27ba35b94ae02bae59838ed58",
+      "male": {
+        "path": "Under/hair_swept_spikes.glb",
+        "bytes": 87292,
+        "sha256": "18ffb36ec2782a328b0bc15bc364c93d522b7a18fd2f9cb193e107da72376b32",
+        "moved_mean_mm": 15.597,
+        "moved_max_mm": 22.948,
+        "penetrating": 712,
+        "max_penetration_mm": 38.415,
+        "drift_p95_mm": 25.46,
+        "clearance_min_mm": -24.335,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 726,
+        "max_penetration_mm": 25.349,
+        "drift_p95_mm": 19.261
+      },
+      "female": {
+        "path": "Female/Under/hair_swept_spikes.glb",
+        "bytes": 87292,
+        "sha256": "6c914a76b9cfc2fbdfc60e6b8a971bec68cd4bcd2e3e2486f209e4dd52af4996",
+        "moved_mean_mm": 18.795,
+        "moved_max_mm": 28.966,
+        "penetrating": 986,
+        "max_penetration_mm": 34.477,
+        "drift_p95_mm": 24.339,
+        "clearance_min_mm": -30.704,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 25.3 mm into the female body over 726 vertices with 19.3 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_short_ponytail",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_short_ponytail.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "42c96c4c7a4499c14d33454f217e6362dfe11dc1d5eb0d5a81da8c81decc3b53",
+      "male": {
+        "path": "Under/hair_short_ponytail.glb",
+        "bytes": 116144,
+        "sha256": "b2ee66523c98b592b2fe260aadb4c1acbe4db233d55f3a17d9c2912c4413f2ed",
+        "moved_mean_mm": 16.262,
+        "moved_max_mm": 24.944,
+        "penetrating": 720,
+        "max_penetration_mm": 34.66,
+        "drift_p95_mm": 21.93,
+        "clearance_min_mm": -25.223,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 915,
+        "max_penetration_mm": 24.609,
+        "drift_p95_mm": 17.471
+      },
+      "female": {
+        "path": "Female/Under/hair_short_ponytail.glb",
+        "bytes": 116144,
+        "sha256": "ff7400251e99018b37a4035ee942c1a04176fb8047bfcb432118be4034be649f",
+        "moved_mean_mm": 18.743,
+        "moved_max_mm": 33.649,
+        "penetrating": 1211,
+        "max_penetration_mm": 30.762,
+        "drift_p95_mm": 19.854,
+        "clearance_min_mm": -24.322,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 24.6 mm into the female body over 915 vertices with 17.5 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_spiked_mohawk",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_spiked_mohawk.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "5a9ab2659875bf090774876b9d33596323d3bae2fd4cf77890260485e830dbfe",
+      "male": {
+        "path": "Under/hair_spiked_mohawk.glb",
+        "bytes": 97172,
+        "sha256": "2e399dc712bd179d5de5de8ae95c8e25f4bf7e6ffe98d3124bac20f86799bb93",
+        "moved_mean_mm": 16.855,
+        "moved_max_mm": 28.775,
+        "penetrating": 223,
+        "max_penetration_mm": 10.913,
+        "drift_p95_mm": 14.055,
+        "clearance_min_mm": -28.252,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 295,
+        "max_penetration_mm": 22.015,
+        "drift_p95_mm": 17.854
+      },
+      "female": {
+        "path": "Female/Under/hair_spiked_mohawk.glb",
+        "bytes": 97172,
+        "sha256": "c145f4e629ab625499e360b342a29239bf79a7c3e64a6d0e0ab723f8c0b2b075",
+        "moved_mean_mm": 19.687,
+        "moved_max_mm": 39.051,
+        "penetrating": 479,
+        "max_penetration_mm": 28.712,
+        "drift_p95_mm": 17.995,
+        "clearance_min_mm": -27.97,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 22.0 mm into the female body over 295 vertices with 17.9 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_flared_wings",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_flared_wings.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "6562615cf7b1d211484d27e5d84a627bab4915b89ad73caa4cb86c35763afb07",
+      "male": {
+        "path": "Under/hair_flared_wings.glb",
+        "bytes": 56140,
+        "sha256": "6fd705c4faec1125f39aca1352780bb0c5102187db811f02d387ec7987ce5f52",
+        "moved_mean_mm": 13.832,
+        "moved_max_mm": 22.527,
+        "penetrating": 135,
+        "max_penetration_mm": 13.364,
+        "drift_p95_mm": 14.442,
+        "clearance_min_mm": -41.262,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 24,
+        "max_penetration_mm": 5.154,
+        "drift_p95_mm": 13.378
+      },
+      "female": {
+        "path": "Female/Under/hair_flared_wings.glb",
+        "bytes": 56140,
+        "sha256": "ec897a91bcc7516cd8c1b1608d8fda725d8a6d30cc3e6355dcc9d29b53c860fd",
+        "moved_mean_mm": 15.435,
+        "moved_max_mm": 29.01,
+        "penetrating": 259,
+        "max_penetration_mm": 9.675,
+        "drift_p95_mm": 10.777,
+        "clearance_min_mm": -44.843,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 5.2 mm into the female body over 24 vertices with 13.4 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_low_tufts",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_low_tufts.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "b2f2ec9c5b9fc2916d26b0ab494e85ad7e68d4199140d01089536e088176c17a",
+      "male": {
+        "path": "Under/hair_low_tufts.glb",
+        "bytes": 67944,
+        "sha256": "4d0bb206001e0556edf3a06e2260621678cce7e2fccf3c68712dfceb6822a381",
+        "moved_mean_mm": 13.022,
+        "moved_max_mm": 19.018,
+        "penetrating": 160,
+        "max_penetration_mm": 22.38,
+        "drift_p95_mm": 15.395,
+        "clearance_min_mm": -32.153,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 90,
+        "max_penetration_mm": 9.617,
+        "drift_p95_mm": 15.398
+      },
+      "female": {
+        "path": "Female/Under/hair_low_tufts.glb",
+        "bytes": 67944,
+        "sha256": "f3190e8946803d88faa3decb518b8384a1b0049fac526ccee4aec1136460ac56",
+        "moved_mean_mm": 14.627,
+        "moved_max_mm": 23.419,
+        "penetrating": 327,
+        "max_penetration_mm": 16.104,
+        "drift_p95_mm": 12.207,
+        "clearance_min_mm": -36.555,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 9.6 mm into the female body over 90 vertices with 15.4 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_swept_bob",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_swept_bob.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "718881953f946bb30fef671b2d5a6930cd661b6f4576842637c3e7ac855bdca7",
+      "male": {
+        "path": "Under/hair_swept_bob.glb",
+        "bytes": 91032,
+        "sha256": "f0dbe1af613a6a79309e8171bd8bc751acba3217a4fe5bffe31f247c65880e0a",
+        "moved_mean_mm": 16.227,
+        "moved_max_mm": 22.496,
+        "penetrating": 906,
+        "max_penetration_mm": 39.755,
+        "drift_p95_mm": 38.069,
+        "clearance_min_mm": -34.155,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 862,
+        "max_penetration_mm": 26.259,
+        "drift_p95_mm": 21.136
+      },
+      "female": {
+        "path": "Female/Under/hair_swept_bob.glb",
+        "bytes": 91032,
+        "sha256": "6448df045f9fb1af9886ab1d3d15d7d636ad3338def198bb6a812e57ce12f847",
+        "moved_mean_mm": 23.067,
+        "moved_max_mm": 39.654,
+        "penetrating": 1060,
+        "max_penetration_mm": 28.213,
+        "drift_p95_mm": 21.762,
+        "clearance_min_mm": -25.035,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 26.3 mm into the female body over 862 vertices with 21.1 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_braided_crown",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_braided_crown.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "e3fd895b8dbcb2597e993597f05a57d0157d201a733748f9975c3b78e4674be4",
+      "male": {
+        "path": "Under/hair_braided_crown.glb",
+        "bytes": 229464,
+        "sha256": "c5cff7249e4862ce276fb4d68f639de36bf815f65b30741f58cfa7a4c6059445",
+        "moved_mean_mm": 14.852,
+        "moved_max_mm": 22.463,
+        "penetrating": 1781,
+        "max_penetration_mm": 42.457,
+        "drift_p95_mm": 33.112,
+        "clearance_min_mm": -18.247,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 1311,
+        "max_penetration_mm": 25.201,
+        "drift_p95_mm": 26.314
+      },
+      "female": {
+        "path": "Female/Under/hair_braided_crown.glb",
+        "bytes": 229464,
+        "sha256": "a391a95ae7963c35b85da8bf80641815f623b8f3cbd1c71bd9ae44ea3d76f7d8",
+        "moved_mean_mm": 24.735,
+        "moved_max_mm": 38.508,
+        "penetrating": 1650,
+        "max_penetration_mm": 32.168,
+        "drift_p95_mm": 31.65,
+        "clearance_min_mm": -21.266,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 25.2 mm into the female body over 1311 vertices with 26.3 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_ridge_mohawk",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_ridge_mohawk.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "5aa872cdbdc556f3c7578966b7cbb0366de9f5d62ff4f104570d254f8a8f4fe4",
+      "male": {
+        "path": "Under/hair_ridge_mohawk.glb",
+        "bytes": 28444,
+        "sha256": "c125ceb5895d5f4d530aaea7efc8b5149e99bfdc228f4c70729531a7ebd35cee",
+        "moved_mean_mm": 18.4,
+        "moved_max_mm": 22.093,
+        "penetrating": 180,
+        "max_penetration_mm": 34.788,
+        "drift_p95_mm": 32.147,
+        "clearance_min_mm": -18.561,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 197,
+        "max_penetration_mm": 23.14,
+        "drift_p95_mm": 20.59
+      },
+      "female": {
+        "path": "Female/Under/hair_ridge_mohawk.glb",
+        "bytes": 28444,
+        "sha256": "7713355fbaa50afbf2f9950f670b265347fd557e506e971f9e6737e88b585254",
+        "moved_mean_mm": 21.953,
+        "moved_max_mm": 27.204,
+        "penetrating": 256,
+        "max_penetration_mm": 30.668,
+        "drift_p95_mm": 28.284,
+        "clearance_min_mm": -18.896,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 23.1 mm into the female body over 197 vertices with 20.6 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_side_ponytail",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_side_ponytail.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "9a50da68be8f7bf54e0456cefbea93359cb0f08bce876927ec5bf0b92fbad24d",
+      "male": {
+        "path": "Under/hair_side_ponytail.glb",
+        "bytes": 152532,
+        "sha256": "fb67f9ff6a87730b86952b24505eda736fe727af8dab5b2e760c2749abd6554c",
+        "moved_mean_mm": 18.456,
+        "moved_max_mm": 24.353,
+        "penetrating": 801,
+        "max_penetration_mm": 36.849,
+        "drift_p95_mm": 27.917,
+        "clearance_min_mm": -19.18,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 1104,
+        "max_penetration_mm": 21.044,
+        "drift_p95_mm": 17.701
+      },
+      "female": {
+        "path": "Female/Under/hair_side_ponytail.glb",
+        "bytes": 152536,
+        "sha256": "a681147bb58c4a8f7aac5c8c9fd8f6bf119025fea3d7b53f3725d71bb38eee1d",
+        "moved_mean_mm": 24.818,
+        "moved_max_mm": 34.693,
+        "penetrating": 1787,
+        "max_penetration_mm": 25.596,
+        "drift_p95_mm": 20.254,
+        "clearance_min_mm": -19.756,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 21.0 mm into the female body over 1104 vertices with 17.7 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_split_mohawk",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_split_mohawk.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "7c947fa126b1292deeb918f6120a34e5413b045f9c7241a783cea9bae8ba149f",
+      "male": {
+        "path": "Under/hair_split_mohawk.glb",
+        "bytes": 105764,
+        "sha256": "a9c25fa690062f4997de172ba48ac0f7343335d4aca9cfd78ee5e83251fbb8df",
+        "moved_mean_mm": 16.987,
+        "moved_max_mm": 28.917,
+        "penetrating": 791,
+        "max_penetration_mm": 39.71,
+        "drift_p95_mm": 30.55,
+        "clearance_min_mm": -10.969,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 852,
+        "max_penetration_mm": 27.463,
+        "drift_p95_mm": 22.459
+      },
+      "female": {
+        "path": "Female/Under/hair_split_mohawk.glb",
+        "bytes": 105764,
+        "sha256": "ac9a62123470bb55c67f32a6bede4c880385e46d5dc31d97af1b1961f7575b53",
+        "moved_mean_mm": 20.741,
+        "moved_max_mm": 38.834,
+        "penetrating": 1151,
+        "max_penetration_mm": 38.138,
+        "drift_p95_mm": 31.649,
+        "clearance_min_mm": -12.113,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 27.5 mm into the female body over 852 vertices with 22.5 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_fauxhawk",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_fauxhawk.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "1cf9bfa3d96fb1e0cc0b4a6761963039b8a143ecab3b024d61de3adc2709ee16",
+      "male": {
+        "path": "Under/hair_fauxhawk.glb",
+        "bytes": 95248,
+        "sha256": "e031817cc6af60e25a4905591c402be73702a928e2feae14d6c281138208481e",
+        "moved_mean_mm": 18.305,
+        "moved_max_mm": 25.023,
+        "penetrating": 794,
+        "max_penetration_mm": 22.726,
+        "drift_p95_mm": 22.039,
+        "clearance_min_mm": -21.17,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 955,
+        "max_penetration_mm": 23.691,
+        "drift_p95_mm": 18.729
+      },
+      "female": {
+        "path": "Female/Under/hair_fauxhawk.glb",
+        "bytes": 95244,
+        "sha256": "a8dad284948ef7729a9972d719960f1c1c5113dbe3c66ebded604f624f345072",
+        "moved_mean_mm": 21.552,
+        "moved_max_mm": 31.869,
+        "penetrating": 1274,
+        "max_penetration_mm": 29.355,
+        "drift_p95_mm": 26.089,
+        "clearance_min_mm": -21.663,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 23.7 mm into the female body over 955 vertices with 18.7 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_slicked_crop",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_slicked_crop.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "e102bedd662f6e8934ad28d96e57e5a0dacf22dfdc2adb94a7b44e5fc3e47ec3",
+      "male": {
+        "path": "Under/hair_slicked_crop.glb",
+        "bytes": 59760,
+        "sha256": "74f11589238a01d98426fb978cd9c94dc703cff3aadfeb77f40aba483f4f3330",
+        "moved_mean_mm": 13.899,
+        "moved_max_mm": 18.382,
+        "penetrating": 372,
+        "max_penetration_mm": 38.882,
+        "drift_p95_mm": 26.667,
+        "clearance_min_mm": -13.732,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 356,
+        "max_penetration_mm": 26.087,
+        "drift_p95_mm": 17.334
+      },
+      "female": {
+        "path": "Female/Under/hair_slicked_crop.glb",
+        "bytes": 59760,
+        "sha256": "ce0d62c1e64befdf0abca520bd88c0a1b474b7694280b0bdc3b8f9bbee107ab6",
+        "moved_mean_mm": 15.513,
+        "moved_max_mm": 20.467,
+        "penetrating": 494,
+        "max_penetration_mm": 35.617,
+        "drift_p95_mm": 24.524,
+        "clearance_min_mm": -20.104,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 26.1 mm into the female body over 356 vertices with 17.3 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_side_sweep",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_side_sweep.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "9594aed5534cea94f86d58740a166c1e2f54f3fce5047657c572edcf460cb461",
+      "male": {
+        "path": "Under/hair_side_sweep.glb",
+        "bytes": 74400,
+        "sha256": "70ec019b681390bb120761199d6f68d89227f5983b6df86ef3581f32f79434b2",
+        "moved_mean_mm": 13.933,
+        "moved_max_mm": 20.36,
+        "penetrating": 609,
+        "max_penetration_mm": 32.196,
+        "drift_p95_mm": 24.531,
+        "clearance_min_mm": -29.451,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 502,
+        "max_penetration_mm": 21.688,
+        "drift_p95_mm": 17.305
+      },
+      "female": {
+        "path": "Female/Under/hair_side_sweep.glb",
+        "bytes": 74400,
+        "sha256": "1ca0ee05f3b62fc19900897266036a93418fbd23cddac825242526f5570bcb1f",
+        "moved_mean_mm": 17.415,
+        "moved_max_mm": 26.15,
+        "penetrating": 765,
+        "max_penetration_mm": 28.501,
+        "drift_p95_mm": 20.36,
+        "clearance_min_mm": -26.682,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 21.7 mm into the female body over 502 vertices with 17.3 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_flared_shag",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_flared_shag.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "a537fca5d4bb898a79a065d2d3a38bd91538f9e459fe06f8c7ed03c244a472ae",
+      "male": {
+        "path": "Under/hair_flared_shag.glb",
+        "bytes": 91004,
+        "sha256": "f0ead5fa46a311342a529388bb2c76e7cc60fd9a7b4967e655bd3a39fbbf0d2d",
+        "moved_mean_mm": 15.289,
+        "moved_max_mm": 19.344,
+        "penetrating": 419,
+        "max_penetration_mm": 30.331,
+        "drift_p95_mm": 15.633,
+        "clearance_min_mm": -24.688,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 504,
+        "max_penetration_mm": 20.127,
+        "drift_p95_mm": 17.355
+      },
+      "female": {
+        "path": "Female/Under/hair_flared_shag.glb",
+        "bytes": 91004,
+        "sha256": "e62cddfcdb7b07a6fbd9e88e552640da68e29b503556c0f44b97129546d54e17",
+        "moved_mean_mm": 17.945,
+        "moved_max_mm": 24.249,
+        "penetrating": 805,
+        "max_penetration_mm": 27.785,
+        "drift_p95_mm": 16.549,
+        "clearance_min_mm": -30.464,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 20.1 mm into the female body over 504 vertices with 17.4 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_cropped_buzz",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_cropped_buzz.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "195315a136eb21f6186dfd4ede2c715b8768aaa4ec8832c7a85e42ebe765f212",
+      "male": {
+        "path": "Under/hair_cropped_buzz.glb",
+        "bytes": 87740,
+        "sha256": "23743304b951906298f41082d1ac8dce5405fc9c1ad76c51e57ce8896a6fee73",
+        "moved_mean_mm": 15.919,
+        "moved_max_mm": 21.078,
+        "penetrating": 394,
+        "max_penetration_mm": 33.668,
+        "drift_p95_mm": 22.553,
+        "clearance_min_mm": -17.679,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 591,
+        "max_penetration_mm": 23.604,
+        "drift_p95_mm": 18.773
+      },
+      "female": {
+        "path": "Female/Under/hair_cropped_buzz.glb",
+        "bytes": 87740,
+        "sha256": "4eab51b641b8ed98cef15755622fb8cc6ebca232dc3449212d72a195f6fe39c6",
+        "moved_mean_mm": 17.727,
+        "moved_max_mm": 24.98,
+        "penetrating": 788,
+        "max_penetration_mm": 31.402,
+        "drift_p95_mm": 23.339,
+        "clearance_min_mm": -27.18,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 23.6 mm into the female body over 591 vertices with 18.8 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_messy_crop",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_messy_crop.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "bbbb56a57609b38eeb7ef6f0cc49e1869d32e077ec92ddfbfeb02079054526fd",
+      "male": {
+        "path": "Under/hair_messy_crop.glb",
+        "bytes": 77440,
+        "sha256": "6b0fb5805244ab504dae872de50f22632a8ff2db3fb494019236dec6e06e5669",
+        "moved_mean_mm": 14.619,
+        "moved_max_mm": 19.497,
+        "penetrating": 395,
+        "max_penetration_mm": 33.024,
+        "drift_p95_mm": 15.638,
+        "clearance_min_mm": -37.409,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 455,
+        "max_penetration_mm": 19.618,
+        "drift_p95_mm": 14.813
+      },
+      "female": {
+        "path": "Female/Under/hair_messy_crop.glb",
+        "bytes": 77444,
+        "sha256": "b26ec0cd1345593933a2ffed18cc3d64320fd4638a1c7409d32c0d1e7e0fe1ca",
+        "moved_mean_mm": 16.014,
+        "moved_max_mm": 22.329,
+        "penetrating": 651,
+        "max_penetration_mm": 26.461,
+        "drift_p95_mm": 15.722,
+        "clearance_min_mm": -34.701,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 19.6 mm into the female body over 455 vertices with 14.8 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_textured_crop",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_textured_crop.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "df2c49a8d52d345fbd5e02d63343e4d9901087e75c4837049b5e9b14069ac880",
+      "male": {
+        "path": "Under/hair_textured_crop.glb",
+        "bytes": 89336,
+        "sha256": "c1171d17bdef052ae4163f04e1104aaa03b787dd5a95061a9692963e796f0c04",
+        "moved_mean_mm": 14.466,
+        "moved_max_mm": 21.905,
+        "penetrating": 492,
+        "max_penetration_mm": 33.069,
+        "drift_p95_mm": 20.802,
+        "clearance_min_mm": -35.501,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 519,
+        "max_penetration_mm": 22.417,
+        "drift_p95_mm": 19.056
+      },
+      "female": {
+        "path": "Female/Under/hair_textured_crop.glb",
+        "bytes": 89336,
+        "sha256": "84a5b79962fecf784b99b1288145d728cd0b3a9d61af6c2f6463d2c3ad209faa",
+        "moved_mean_mm": 16.405,
+        "moved_max_mm": 26.489,
+        "penetrating": 764,
+        "max_penetration_mm": 29.374,
+        "drift_p95_mm": 23.515,
+        "clearance_min_mm": -32.959,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 22.4 mm into the female body over 519 vertices with 19.1 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_shoulder_shag",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_shoulder_shag.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "7865ea57918ba3bdcbf420bad2cd1c4b33a0a85ca774e1dd44b197e4b2f4cc55",
+      "male": {
+        "path": "Under/hair_shoulder_shag.glb",
+        "bytes": 99936,
+        "sha256": "1b2dd243ea74319a89e2f7ab5c9164a817eba82406ba63d4de1001bd377ff768",
+        "moved_mean_mm": 13.393,
+        "moved_max_mm": 18.903,
+        "penetrating": 574,
+        "max_penetration_mm": 38.211,
+        "drift_p95_mm": 30.752,
+        "clearance_min_mm": -24.69,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 382,
+        "max_penetration_mm": 24.02,
+        "drift_p95_mm": 18.741
+      },
+      "female": {
+        "path": "Female/Under/hair_shoulder_shag.glb",
+        "bytes": 99940,
+        "sha256": "3c23cab55b9d38cdc741666a58880443a707fbf123df7ae5dae4828d32822975",
+        "moved_mean_mm": 15.751,
+        "moved_max_mm": 24.569,
+        "penetrating": 715,
+        "max_penetration_mm": 31.021,
+        "drift_p95_mm": 25.812,
+        "clearance_min_mm": -22.813,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 24.0 mm into the female body over 382 vertices with 18.7 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_messy_side_part",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_messy_side_part.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "9a01587de17bcf92a315c4f5a4b2770ad1eed8f57fc0ff5a4502a12edf7f15cb",
+      "male": {
+        "path": "Under/hair_messy_side_part.glb",
+        "bytes": 103500,
+        "sha256": "5851f781fdd308a35db26f734eaf76e858c5ef705123101e709a90717bff3b06",
+        "moved_mean_mm": 14.617,
+        "moved_max_mm": 20.401,
+        "penetrating": 513,
+        "max_penetration_mm": 38.874,
+        "drift_p95_mm": 35.112,
+        "clearance_min_mm": -33.974,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 596,
+        "max_penetration_mm": 23.194,
+        "drift_p95_mm": 21.869
+      },
+      "female": {
+        "path": "Female/Under/hair_messy_side_part.glb",
+        "bytes": 103500,
+        "sha256": "250408e83f0721cdcef46d7965977b6aeac7fed2835c3d34bfa0926d7fa6741d",
+        "moved_mean_mm": 16.262,
+        "moved_max_mm": 24.528,
+        "penetrating": 925,
+        "max_penetration_mm": 31.934,
+        "drift_p95_mm": 29.771,
+        "clearance_min_mm": -33.008,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 23.2 mm into the female body over 596 vertices with 21.9 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_flat_top",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_flat_top.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "4c635041305009ebdf760749c0e3c89617642c937c61544133466057fca68b50",
+      "male": {
+        "path": "Under/hair_flat_top.glb",
+        "bytes": 90980,
+        "sha256": "ff7599cd17bcb2cb903ce3703b37ffaa62f1a8099cb052d267dff481904d1ed5",
+        "moved_mean_mm": 13.563,
+        "moved_max_mm": 21.62,
+        "penetrating": 496,
+        "max_penetration_mm": 33.821,
+        "drift_p95_mm": 21.748,
+        "clearance_min_mm": -41.86,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 431,
+        "max_penetration_mm": 21.668,
+        "drift_p95_mm": 18.479
+      },
+      "female": {
+        "path": "Female/Under/hair_flat_top.glb",
+        "bytes": 90980,
+        "sha256": "d4c8434f7d48344ed4dc27bfe0b11734e545ab4b670ff1ad54246ae021d72bd9",
+        "moved_mean_mm": 15.122,
+        "moved_max_mm": 26.862,
+        "penetrating": 645,
+        "max_penetration_mm": 29.278,
+        "drift_p95_mm": 21.891,
+        "clearance_min_mm": -45.603,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 21.7 mm into the female body over 431 vertices with 18.5 mm p95 clearance drift"
+    },
+    {
+      "id": "hair_top_patch",
+      "group": "Hair",
+      "layer": "Under",
+      "slot": "cranium",
+      "glb": "Under/hair_top_patch.glb",
+      "policy": "head",
+      "skinned": true,
+      "source_sha256": "3ad4ddf9a297c58559d48ea020278813ff8658a416e8601f3c692c425ea2c523",
+      "male": {
+        "path": "Under/hair_top_patch.glb",
+        "bytes": 47576,
+        "sha256": "1c92bc6ab7eeb0315368b21a9865c9cf77d9f42c44b08288d54a0795fa8d95dc",
+        "moved_mean_mm": 15.014,
+        "moved_max_mm": 18.202,
+        "penetrating": 297,
+        "max_penetration_mm": 29.805,
+        "drift_p95_mm": 20.923,
+        "clearance_min_mm": -19.034,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "shared_on_female": {
+        "penetrating": 332,
+        "max_penetration_mm": 20.285,
+        "drift_p95_mm": 15.248
+      },
+      "female": {
+        "path": "Female/Under/hair_top_patch.glb",
+        "bytes": 47580,
+        "sha256": "a0127d217e942c86ec597e0012a4430099a61ca5ea48741f4e58961cd7ef0aa1",
+        "moved_mean_mm": 16.325,
+        "moved_max_mm": 19.952,
+        "penetrating": 400,
+        "max_penetration_mm": 27.894,
+        "drift_p95_mm": 22.211,
+        "clearance_min_mm": -19.722,
+        "pushed": 0,
+        "max_push_mm": 0.0
+      },
+      "decision": "refit_both",
+      "reason": "the male fit reads 20.3 mm into the female body over 332 vertices with 15.2 mm p95 clearance drift"
+    }
+  ]
+}

@@ -36,14 +36,14 @@ const minimalSiteCharacter = {
   name: "Mara",
   initialProfessionId: "scout" as const,
   worldEntryClaimed: false,
-  appearance: { skinTone: "#d1a679", hair: null, hairMat: "hair_umber", face: null },
+  appearance: { body: "female" as const, skinTone: "#d1a679", hair: null, hairMat: "hair_umber", face: null },
   worn: [],
 };
 
 const character = {
   id: "char-1",
   name: "Marlow",
-  appearance: { skinTone: "#d1a679", hair: null, hairMat: "hair_umber", face: null },
+  appearance: { body: "male" as const, skinTone: "#d1a679", hair: null, hairMat: "hair_umber", face: null },
   position: null,
   lastLogoutAt: null,
   lastSeenAt: null,
@@ -73,6 +73,7 @@ describe("hosted creator protocol", () => {
     fake.emit({ source: fake.parent, origin: "https://attacker.example", data: { type: CREATOR_STATE, characters: [character] } } as MessageEvent);
     fake.emit({ source: {} as Window, origin: ORIGIN, data: { type: CREATOR_STATE, characters: [character] } } as MessageEvent);
     fake.emit({ source: fake.parent, origin: ORIGIN, data: { type: CREATOR_STATE, characters: [{ ...character, ownerRef: "secret" }] } } as MessageEvent);
+    fake.emit({ source: fake.parent, origin: ORIGIN, data: { type: CREATOR_STATE, characters: [{ ...character, appearance: { ...character.appearance, body: "synthetic" } }] } } as MessageEvent);
     fake.emit({ source: fake.parent, origin: ORIGIN, data: { type: CREATOR_STATE, characters: [minimalSiteCharacter] } } as MessageEvent);
     await expect(pending).resolves.toMatchObject({ characters: [{ id: "char-min", position: null, totalPlayMs: 0, liveState: "offline" }] });
     expect(fake.sent[0]).toEqual({ value: { type: "successor.creator.ready.v1" }, origin: ORIGIN });

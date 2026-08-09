@@ -301,24 +301,24 @@ describe("structure-collision-geometry", () => {
     assert.strictEqual(wallCenter.y, expectedCenterY);
   });
 
-  test("Open Desert default player and travel spawn clear immediate W and D routes around the closed shelter", () => {
+  test("Open Desert default player and travel spawn clear immediate W and D routes around the closed starter home", () => {
     const slice = JSON.parse(readFileSync(openDesertSlicePath, "utf8"));
     const player = slice.actors?.find((actor) => actor.id === "player");
-    const shelter = slice.props?.find((prop) => prop.id === "open-desert-shelter-house");
+    const starter = slice.props?.find((prop) => prop.id === "dustgate-home-starter");
     const travelPlanet = slice.travelCatalog?.planets?.find((planet) => planet.areaId === player?.areaId);
     const travelSpawn = travelPlanet?.cities?.find((city) => city.id === "dustgate")?.spawn;
 
     assert.ok(player, "Open Desert fixture must contain the player actor");
-    assert.ok(shelter, "Open Desert fixture must contain open-desert-shelter-house");
-    assert.deepStrictEqual(shelter.cell, { x: 509, y: 508 }, "Shelter House must be anchored at the Open Desert spawn-safe coordinates (509, 508)");
-    assert.deepStrictEqual(player.cell, { x: 512, y: 513 }, "Default player spawn must be (512, 513)");
-    assert.deepStrictEqual(travelSpawn, { x: 512, y: 513 }, "Dustgate travel spawn must be (512, 513)");
-    assert.ok(Array.isArray(shelter.collisionBounds) && shelter.collisionBounds.length > 0, "Shelter House must retain mesh-derived collisionBounds");
-    assert.ok(shelter.door?.blocker, "Shelter House must retain its closed-door blocker");
+    assert.ok(starter, "Open Desert fixture must contain dustgate-home-starter");
+    assert.deepStrictEqual(starter.cell, { x: 512, y: 512 }, "Modular Starter Home must be anchored at (512, 512)");
+    assert.deepStrictEqual(player.cell, { x: 516, y: 511 }, "Default player spawn must be (516, 511)");
+    assert.deepStrictEqual(travelSpawn, { x: 516, y: 511 }, "Dustgate travel spawn must be (516, 511)");
+    assert.ok(Array.isArray(starter.collisionBounds) && starter.collisionBounds.length > 0, "Modular Starter Home must retain authored collisionBounds");
+    assert.ok(starter.door?.blocker, "Modular Starter Home must retain its closed-door blocker");
 
     const blockers = [
-      ...shelter.collisionBounds.map((bounds, index) => ({ ...bounds, label: `collisionBounds[${index}]` })),
-      { ...shelter.door.blocker, label: "door.blocker" },
+      ...starter.collisionBounds.map((bounds, index) => ({ ...bounds, label: `collisionBounds[${index}]` })),
+      { ...starter.door.blocker, label: "door.blocker" },
     ];
     const start = { xMilli: player.cell.x * 1000, yMilli: player.cell.y * 1000 };
     for (const { label, dx, dy } of [
@@ -346,6 +346,6 @@ describe("structure-collision-geometry", () => {
     assert.ok(parsed.probe, "probe stdout should contain probe data");
     assert.ok(parsed.probe.exterior, "probe data should have exterior point");
     assert.ok(parsed.probe.interior, "probe data should have interior point");
-    assert.strictEqual(parsed.probe.outwardSign, 1, "probe data outwardSign should match expected");
+    assert.strictEqual(parsed.probe.outwardSign, -1, "starter-home entry must face outward toward local -Z");
   });
 });

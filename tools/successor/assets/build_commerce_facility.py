@@ -1490,7 +1490,7 @@ def write_provenance(tri_count: int):
         "seed": "deterministic numpy texture seeds 2026071801..05 (shared with commerce terminals)",
         "input_assets": [
             {"path": "tools/successor/assets/build_commerce_terminals.py", "purpose": "shared premium design language, palette, materials, UV texture maps, mesh helpers"},
-            {"path": "tools/successor/assets/build_cloning_facility.py", "purpose": "facility door/cutaway/collision/manifest contract reference"},
+            {"path": "tools/successor/assets/cloning-facility-opus5/", "purpose": "facility door/cutaway/collision/manifest contract reference (formerly build_cloning_facility.py, replaced by that package)"},
         ],
         "human_edits": [],
         "rights": {

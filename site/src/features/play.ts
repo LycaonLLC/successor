@@ -22,6 +22,13 @@ const CLIENT_EXIT_WORLD_TIMEOUT_MS = 1_250;
 // Fixed safe copy: never echo client- or server-provided failure detail.
 const LAUNCH_FAILED_NOTICE =
   "Entry failed before the world opened. The tickets expire unused within a minute — try again for fresh ones.";
+
+export interface PlayPageOptions {
+  readonly runtimePointerPath?: string;
+  readonly beta?: boolean;
+  readonly consumeCharacterHandoff?: boolean;
+  readonly enableMacroBridge?: boolean;
+}
 const SESSION_REPLACED_NOTICE =
   "This character was opened in another client, so this view stopped. Enter again here to take control in this browser.";
 
@@ -161,7 +168,11 @@ function bindPlayViewControls(doc: Document): void {
   );
 }
 
-export function initPlayPage(doc: Document, api: Api = realApi): Promise<void> {
+export function initPlayPage(
+  doc: Document,
+  api: Api = realApi,
+  options: PlayPageOptions = {},
+): Promise<void> {
   let liveFrame: LiveFrameSession | null = null;
   let launchInFlight = false;
   bindPlayViewControls(doc);
@@ -236,7 +247,9 @@ export function initPlayPage(doc: Document, api: Api = realApi): Promise<void> {
     // Consume the workshop/roster handoff exactly once, even when it cannot
     // be used, so a stale id never lingers into a later visit.
     const win = doc.defaultView;
-    const handedOff = win === null ? null : consumeSelectedCharacterId(win);
+    const handedOff = options.consumeCharacterHandoff === false || win === null
+      ? null
+      : consumeSelectedCharacterId(win);
 
     if (roster.value.characters.length === 0) {
       setFormStatus(form, "No characters yet — make one on the account page.", "error");
@@ -282,14 +295,22 @@ export function initPlayPage(doc: Document, api: Api = realApi): Promise<void> {
           // Runtime first: no pointer, no ticket spent and the current world
           // stays intact when no replacement client is published.
           const stage = doc.getElementById("launch-section");
-          const entry = await loadRuntimePointer(doc.baseURI);
-          if (entry === null) {
+          const runtime = await loadRuntimePointer(
+            doc.baseURI,
+            options.runtimePointerPath,
+          );
+          const invalidBetaPointer = options.beta === true && (
+            runtime?.channel !== "beta"
+            || runtime.clientReleaseId === undefined
+            || runtime.serverReleaseId === undefined
+          );
+          if (runtime === null || invalidBetaPointer) {
             if (button) setBusy(button, false);
             restoreDirectEntrySurface(stage instanceof HTMLElement ? stage : null);
             if (resultNote) {
               resultNote.hidden = false;
               resultNote.textContent =
-                "The browser client is not available at this address yet, so no ticket was spent. The world is up; try the installed client while this gets sorted.";
+                "The browser client is not available at this address yet, so no ticket was spent. The world is up; try the supported client while this gets sorted.";
             }
             return;
           }
@@ -299,34 +320,16 @@ export function initPlayPage(doc: Document, api: Api = realApi): Promise<void> {
           // of /camp, not an unclean WebSocket disappearance.
           await retireLiveFrame();
 
-          const ticket = await api.playTicket(characterId);
-          if (!ticket.ok) {
-            if (button) setBusy(button, false);
-            restoreDirectEntrySurface(stage instanceof HTMLElement ? stage : null);
-            if (ticket.error.kind === "unavailable") {
-              showApiStatus(doc, ticket.error);
-              setFormStatus(form, "Service unreachable — see the notice above.", "error");
-            } else {
-              setFormStatus(form, ticket.error.message, "error");
-            }
-            return;
-          }
-          let pendingContext: LaunchContext | null = ticket.value;
-          if (!isLaunchContext(pendingContext)) {
-            if (button) setBusy(button, false);
-            restoreDirectEntrySurface(stage instanceof HTMLElement ? stage : null);
-            if (resultNote) {
-              resultNote.hidden = false;
-              resultNote.textContent =
-                "The server answered with an entry format this client does not understand. The tickets expire unused — try again or reload the page.";
-            }
-            return;
-          }
+          // The immutable client must finish its cold asset preload before the
+          // short-lived capabilities are minted. Otherwise a first visit can
+          // spend both tickets while downloading the release and reach the
+          // authority only after they have expired.
+          let pendingContext: LaunchContext | null = null;
 
           // Hand off to the immutable client iframe. The context travels over
           // postMessage to the exact origin and window only — never in the URL,
           // never in storage, never in logs.
-          const clientUrl = new URL(entry.href);
+          const clientUrl = new URL(runtime.entry.href);
           const clientOrigin = clientUrl.origin;
           const iframe = doc.createElement("iframe");
           iframe.id = "game-frame";
@@ -340,6 +343,7 @@ export function initPlayPage(doc: Document, api: Api = realApi): Promise<void> {
           // in-memory envelope. A fast cached iframe can otherwise miss the
           // first cross-origin delivery and wait forever on a blank frame.
           let launched = false;
+          let ticketRequestInFlight = false;
           let macroBridge: MacroPortBridge | null = null;
           let readyDeadline: number | null = null;
           const session: LiveFrameSession = {
@@ -369,49 +373,97 @@ export function initPlayPage(doc: Document, api: Api = realApi): Promise<void> {
                 reason === "session-replaced" ? SESSION_REPLACED_NOTICE : LAUNCH_FAILED_NOTICE;
             }
           };
+          const prepareLaunch = async (): Promise<void> => {
+            if (launched || ticketRequestInFlight) return;
+            ticketRequestInFlight = true;
+            const ticket = runtime.clientReleaseId === undefined
+              ? await api.playTicket(characterId)
+              : await api.playTicket(characterId, runtime.clientReleaseId);
+            ticketRequestInFlight = false;
+            if (liveFrame !== session || !iframe.isConnected) return;
+            if (!ticket.ok) {
+              fail();
+              if (ticket.error.kind === "unavailable") {
+                showApiStatus(doc, ticket.error);
+                setFormStatus(form, "Service unreachable — see the notice above.", "error");
+              } else {
+                setFormStatus(form, ticket.error.message, "error");
+              }
+              return;
+            }
+            const launch = ticket.value;
+            const releaseMismatch = (
+              runtime.clientReleaseId !== undefined
+              && launch.release.client !== runtime.clientReleaseId
+            ) || (
+              runtime.serverReleaseId !== undefined
+              && launch.release.server !== runtime.serverReleaseId
+            );
+            if (!isLaunchContext(launch) || releaseMismatch) {
+              fail();
+              if (resultNote) {
+                resultNote.hidden = false;
+                resultNote.textContent =
+                  "The server answered with an entry format this client does not understand. The tickets expire unused — try again or reload the page.";
+              }
+              return;
+            }
+            pendingContext = launch;
+            iframe.contentWindow?.postMessage(
+              { type: LAUNCH_MESSAGE_TYPE, launch },
+              clientOrigin,
+            );
+            launched = true;
+            // Character-bound macro data remains disabled for beta until
+            // the Rust client consumes the established MessagePort contract.
+            if (options.enableMacroBridge !== false) {
+              macroBridge?.dispose();
+              macroBridge = attachMacroPortBridge({
+                api,
+                iframe,
+                clientOrigin,
+                characterId: launch.characterId,
+              });
+            }
+            iframe.focus({ preventScroll: true });
+            if (button) setBusy(button, false);
+            setFormStatus(form, "Handed off to the client.", "success");
+          };
           const onMessage = (message: MessageEvent): void => {
             if (message.origin !== clientOrigin || message.source !== iframe.contentWindow) return;
             const data: unknown = message.data;
             if (data === null || typeof data !== "object" || !("type" in data)) return;
-            if (data.type === CLIENT_READY_TYPE && pendingContext !== null) {
-              const launch = pendingContext;
-              // Keep the bounded listener and envelope alive while this exact
-              // child continues to retry. The ticket is minted once and never
-              // leaves memory; duplicate READY does not create another launch.
-              iframe.contentWindow?.postMessage(
-                { type: LAUNCH_MESSAGE_TYPE, launch },
-                clientOrigin,
-              );
-              if (!launched) {
-                launched = true;
-                // Character-bound macro data port: parent holds cookie/CSRF.
-                macroBridge?.dispose();
-                macroBridge = attachMacroPortBridge({
-                  api,
-                  iframe,
+            if (
+              data.type === CLIENT_READY_TYPE
+              && (
+                runtime.clientReleaseId === undefined
+                || ("releaseId" in data && data.releaseId === runtime.clientReleaseId)
+              )
+            ) {
+              if (pendingContext !== null) {
+                iframe.contentWindow?.postMessage(
+                  { type: LAUNCH_MESSAGE_TYPE, launch: pendingContext },
                   clientOrigin,
-                  characterId: launch.characterId,
-                });
-                // The launch form deliberately focused the character selector.
-                // Transfer keyboard ownership to the cross-origin client only
-                // after its authenticated READY handshake, so Enter, WASD, and
-                // window hotkeys work without a sacrificial click in the frame.
-                iframe.focus({ preventScroll: true });
-                if (button) setBusy(button, false);
-                setFormStatus(form, "Handed off to the client.", "success");
+                );
+              } else {
+                void prepareLaunch();
               }
             } else if (data.type === LAUNCH_FAILED_TYPE) {
               fail("reason" in data ? data.reason : undefined);
             }
           };
           window.addEventListener("message", onMessage);
+          // A cold Rust release currently streams the authored asset closure
+          // before READY. Keep this bounded without expiring in normal first
+          // loads; tickets are not minted until READY arrives.
           readyDeadline = window.setTimeout(() => {
             if (launched) {
               pendingContext = null;
               readyDeadline = null;
+            } else {
+              fail();
             }
-            else fail();
-          }, 30_000);
+          }, 15 * 60_000);
           liveFrame = session;
           if (stage) stage.dataset.stageState = "live";
           stage?.removeAttribute("aria-busy");

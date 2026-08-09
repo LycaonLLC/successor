@@ -2,7 +2,7 @@
 
 > Preserved on 2026-07-28. This is design source, not current runtime
 > documentation. Recheck every code path, hash, and implementation-status claim
-> against `main` before using it. Current truth lives in
+> against the current source tree before using it. Current truth lives in
 > `docs/CANONICAL_CONTEXT.md`, `docs/CURRENT_PROJECT_STATE.md`, and
 > `docs/VERIFICATION.md`.
 

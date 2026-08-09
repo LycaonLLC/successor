@@ -197,6 +197,50 @@ describe("ChatHub websocket routes", () => {
     ).toBe(false);
   });
 
+  it("names a sender from the live shard when the client sends no display name", () => {
+    const hub = new ChatHub({
+      sendHelloOnConnect: false,
+      nameAuthority: { displayNameForActor: (id) => (id === "char_grug" ? "Grugtest" : null) },
+    });
+    const socket = new FakeChatSocket();
+    const session = hub.connect(socket, { userId: "char_grug", displayName: "", zoneId: "open-desert" });
+
+    hub.handlePacketForTest(session.id, { type: "chat.send", channel: "local", body: "hello" });
+
+    const line = socket.messages.find(
+      (packet) => packet.type === "chat.message" && packet.message.body === "hello",
+    );
+    expect(line?.type).toBe("chat.message");
+    if (line?.type === "chat.message") {
+      expect(line.message.sender.displayName).toBe("Grugtest");
+      expect(line.message.sender.id).toBe("char_grug");
+    }
+  });
+
+  it("upgrades a session named after its raw id once the actor reaches the shard", () => {
+    let resident = false;
+    const hub = new ChatHub({
+      sendHelloOnConnect: false,
+      nameAuthority: { displayNameForActor: () => (resident ? "Grugtest" : null) },
+    });
+    const socket = new FakeChatSocket();
+    // Chat can open before the actor exists, which is when the raw id leaks.
+    const session = hub.connect(socket, { userId: "char_grug", displayName: "", zoneId: "open-desert" });
+
+    hub.handlePacketForTest(session.id, { type: "chat.send", channel: "local", body: "early" });
+    resident = true;
+    hub.handlePacketForTest(session.id, { type: "chat.send", channel: "local", body: "later" });
+
+    const named = (body: string) => {
+      const packet = socket.messages.find(
+        (entry) => entry.type === "chat.message" && entry.message.body === body,
+      );
+      return packet?.type === "chat.message" ? packet.message.sender.displayName : "";
+    };
+    expect(named("early")).toBe("char_grug");
+    expect(named("later")).toBe("Grugtest");
+  });
+
   it("keeps directed presence character-scoped and masks ignored viewers without stale state", () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), "successor-chat-social-"));
     try {

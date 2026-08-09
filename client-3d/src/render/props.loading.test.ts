@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SliceSnapshot } from "@successor/client/src/slice-core/gameState";
 import {
   WORLD_PROP_ASSET_LOAD_TIMEOUT_MS,
+  resolvePropFitFootprint,
   WorldPropsRenderer,
   withWorldPropAssetLoadTimeout,
 } from "./props";
@@ -20,6 +21,13 @@ interface RendererSeam {
 afterEach(() => {
   vi.useRealTimers();
 });
+describe("world-prop authored footprint", () => {
+  it("keeps decorative overhangs from shrinking gameplay scale", () => {
+    expect(resolvePropFitFootprint(8.056, 7.454, [7.6, 5.7])).toEqual([7.6, 5.7]);
+    expect(resolvePropFitFootprint(8.056, 7.454)).toEqual([8.056, 7.454]);
+  });
+});
+
 
 describe("world-prop asset load boundary", () => {
   it("rejects a never-settling load with the exact asset path", async () => {

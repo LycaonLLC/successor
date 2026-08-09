@@ -1772,6 +1772,10 @@ pub enum AuthorityBridgeCommandInput {
         #[serde(rename = "DebugGrantSkillBoxes")]
         command: AuthorityBridgeDebugGrantSkillBoxesInput,
     },
+    DebugGiveCredits {
+        #[serde(rename = "DebugGiveCredits")]
+        command: AuthorityBridgeDebugGiveCreditsInput,
+    },
     EnterTransition {
         #[serde(rename = "EnterTransition")]
         command: AuthorityBridgeTransitionInput,
@@ -2251,6 +2255,9 @@ impl AuthorityBridgeCommandInput {
             }),
             Self::DebugGrantSkillBoxes { command } => Ok(ClientCommand::DebugGrantSkillBoxes {
                 skill_box_ids: command.skill_box_ids,
+            }),
+            Self::DebugGiveCredits { command } => Ok(ClientCommand::DebugGiveCredits {
+                amount: command.amount,
             }),
             Self::EnterTransition { command } => Ok(ClientCommand::EnterTransition {
                 transition_id: command.transition_id,
@@ -2917,6 +2924,11 @@ pub struct AuthorityBridgeDebugGiveItemInput {
 pub struct AuthorityBridgeDebugGrantSkillBoxesInput {
     #[serde(alias = "skillBoxIds")]
     pub skill_box_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct AuthorityBridgeDebugGiveCreditsInput {
+    pub amount: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

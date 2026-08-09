@@ -19,5 +19,8 @@ describe("hosted durability lease", () => {
     first.child.kill("SIGKILL");
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(hostedStateLockHealthy()).toBe(false);
+    const replacement = await acquireHostedStateLock(stateDir);
+    leases.push(replacement);
+    expect(hostedStateLockHealthy()).toBe(true);
   });
 });

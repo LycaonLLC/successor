@@ -1,0 +1,636 @@
+{
+  "generator": "successor content-pipeline/labs/humanoid-runtime-refit/triage_coverage.py",
+  "near_miss_floor": 0.9,
+  "counts": {
+    "masked": 2,
+    "unattached": 1,
+    "exposes_by_design": 94,
+    "near_miss": 2
+  },
+  "masked": [
+    {
+      "id": "under_bodysuit",
+      "zones": [
+        "torso",
+        "pelvis",
+        "left_upper_arm",
+        "right_upper_arm",
+        "left_forearm",
+        "right_forearm",
+        "left_thigh",
+        "right_thigh",
+        "left_calf",
+        "right_calf"
+      ]
+    },
+    {
+      "id": "boots_canvas_ankle",
+      "zones": [
+        "left_foot",
+        "right_foot"
+      ]
+    }
+  ],
+  "unattached": [
+    {
+      "id": "hat_field_cap",
+      "reason": "no skinned mesh and no rigidAnchorBone: the runtime attaches nothing, so it encloses no skin"
+    }
+  ],
+  "exposes_by_design": [
+    {
+      "id": "armor_harness",
+      "group": "Torso",
+      "layer": "Armor",
+      "best_zone_coverage": 0.41646
+    },
+    {
+      "id": "armor_nape_reinforcement",
+      "group": "Torso",
+      "layer": "Armor",
+      "best_zone_coverage": 0.01855
+    },
+    {
+      "id": "armor_reinforcement",
+      "group": "Torso",
+      "layer": "Armor",
+      "best_zone_coverage": 0.07284
+    },
+    {
+      "id": "armor_gorget",
+      "group": "Torso",
+      "layer": "Armor",
+      "best_zone_coverage": 0.0
+    },
+    {
+      "id": "armor_bicep_l",
+      "group": "Bicep_L",
+      "layer": "Armor",
+      "best_zone_coverage": 0.36363
+    },
+    {
+      "id": "armor_bicep_r",
+      "group": "Bicep_R",
+      "layer": "Armor",
+      "best_zone_coverage": 0.42089
+    },
+    {
+      "id": "helmet_a",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "best_zone_coverage": 0.57856
+    },
+    {
+      "id": "helmet_b",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "best_zone_coverage": 0.39884
+    },
+    {
+      "id": "helmet_c",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "best_zone_coverage": 0.60606
+    },
+    {
+      "id": "helmet_d",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "best_zone_coverage": 0.52923
+    },
+    {
+      "id": "helmet_v1port",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "best_zone_coverage": 0.39119
+    },
+    {
+      "id": "helmet_s1",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "best_zone_coverage": 0.50511
+    },
+    {
+      "id": "helmet_s2",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "best_zone_coverage": 0.59435
+    },
+    {
+      "id": "helmet_s3",
+      "group": "Helmet \u2014 bake-off",
+      "layer": "Armor",
+      "best_zone_coverage": 0.48028
+    },
+    {
+      "id": "hat_warm",
+      "group": "Headwear \u2014 baseline",
+      "layer": "Under",
+      "best_zone_coverage": 0.21586
+    },
+    {
+      "id": "under_tank",
+      "group": "Torso",
+      "layer": "Under",
+      "best_zone_coverage": 0.85401
+    },
+    {
+      "id": "under_shorts",
+      "group": "Legs",
+      "layer": "Under",
+      "best_zone_coverage": 0.8086
+    },
+    {
+      "id": "hair_mop",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.67816
+    },
+    {
+      "id": "hair_afro2",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.15808
+    },
+    {
+      "id": "hair_crop2",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.6246
+    },
+    {
+      "id": "trial_helm_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.89747
+    },
+    {
+      "id": "trial_helm_b",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.79243
+    },
+    {
+      "id": "trial_helm_c",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.45382
+    },
+    {
+      "id": "trial_helm_d",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.37646
+    },
+    {
+      "id": "trial_hood_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.33601
+    },
+    {
+      "id": "trial_visor_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.12845
+    },
+    {
+      "id": "trial_mask_b",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.0907
+    },
+    {
+      "id": "trial_back_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.01403
+    },
+    {
+      "id": "trial_back_b",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.02594
+    },
+    {
+      "id": "trial_hip_front_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.0
+    },
+    {
+      "id": "trial_hip_back_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.00819
+    },
+    {
+      "id": "trial_hip_side_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.01099
+    },
+    {
+      "id": "trial_hair_a",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.4258
+    },
+    {
+      "id": "trial_hair_b",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.22165
+    },
+    {
+      "id": "trial_hair_c",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.41925
+    },
+    {
+      "id": "trial_hair_d",
+      "group": "SYNTY TRIALS",
+      "layer": "Armor",
+      "best_zone_coverage": 0.25512
+    },
+    {
+      "id": "under_scfi_top",
+      "group": "SYNTY TRIALS",
+      "layer": "Under",
+      "best_zone_coverage": 0.79847
+    },
+    {
+      "id": "under_scfi_pants",
+      "group": "SYNTY TRIALS",
+      "layer": "Under",
+      "best_zone_coverage": 0.89167
+    },
+    {
+      "id": "top_rigged_tank",
+      "group": "Tops",
+      "layer": "Under",
+      "best_zone_coverage": 0.43507
+    },
+    {
+      "id": "top_frayed_tunic",
+      "group": "Tops",
+      "layer": "Under",
+      "best_zone_coverage": 0.3815
+    },
+    {
+      "id": "top_plated_rig_vest",
+      "group": "Tops",
+      "layer": "Under",
+      "best_zone_coverage": 0.14574
+    },
+    {
+      "id": "top_padded_leather_vest",
+      "group": "Tops",
+      "layer": "Under",
+      "best_zone_coverage": 0.18073
+    },
+    {
+      "id": "top_spiked_leather_vest",
+      "group": "Tops",
+      "layer": "Under",
+      "best_zone_coverage": 0.34784
+    },
+    {
+      "id": "top_reinforced_crop_vest",
+      "group": "Tops",
+      "layer": "Under",
+      "best_zone_coverage": 0.19133
+    },
+    {
+      "id": "top_scrap_plate_tunic",
+      "group": "Tops",
+      "layer": "Under",
+      "best_zone_coverage": 0.18624
+    },
+    {
+      "id": "top_laced_corset_vest",
+      "group": "Tops",
+      "layer": "Under",
+      "best_zone_coverage": 0.24031
+    },
+    {
+      "id": "legs_wrapped_workpants",
+      "group": "Bottoms",
+      "layer": "Under",
+      "best_zone_coverage": 0.87083
+    },
+    {
+      "id": "legs_reinforced_denim_pants",
+      "group": "Bottoms",
+      "layer": "Under",
+      "best_zone_coverage": 0.88623
+    },
+    {
+      "id": "legs_layered_shorts",
+      "group": "Bottoms",
+      "layer": "Under",
+      "best_zone_coverage": 0.89739
+    },
+    {
+      "id": "legs_strapped_trousers",
+      "group": "Bottoms",
+      "layer": "Under",
+      "best_zone_coverage": 0.84021
+    },
+    {
+      "id": "legs_skirted_workpants",
+      "group": "Bottoms",
+      "layer": "Under",
+      "best_zone_coverage": 0.81915
+    },
+    {
+      "id": "legs_gaitered_cargo_pants",
+      "group": "Bottoms",
+      "layer": "Under",
+      "best_zone_coverage": 0.871
+    },
+    {
+      "id": "legs_padded_canvas_trousers",
+      "group": "Bottoms",
+      "layer": "Under",
+      "best_zone_coverage": 0.88475
+    },
+    {
+      "id": "legs_layered_wrap_skirt",
+      "group": "Bottoms",
+      "layer": "Under",
+      "best_zone_coverage": 0.86605
+    },
+    {
+      "id": "boots_layered_sneakers",
+      "group": "Footwear",
+      "layer": "Under",
+      "best_zone_coverage": 0.65058
+    },
+    {
+      "id": "boots_split_toe",
+      "group": "Footwear",
+      "layer": "Under",
+      "best_zone_coverage": 0.6806
+    },
+    {
+      "id": "boots_trail_shoes",
+      "group": "Footwear",
+      "layer": "Under",
+      "best_zone_coverage": 0.61209
+    },
+    {
+      "id": "boots_double_strap",
+      "group": "Footwear",
+      "layer": "Under",
+      "best_zone_coverage": 0.72363
+    },
+    {
+      "id": "boots_rubberized_canvas",
+      "group": "Footwear",
+      "layer": "Under",
+      "best_zone_coverage": 0.6835
+    },
+    {
+      "id": "boots_toe_capped",
+      "group": "Footwear",
+      "layer": "Under",
+      "best_zone_coverage": 0.62431
+    },
+    {
+      "id": "boots_combat_sneakers",
+      "group": "Footwear",
+      "layer": "Under",
+      "best_zone_coverage": 0.66287
+    },
+    {
+      "id": "boots_cuffed_runners",
+      "group": "Footwear",
+      "layer": "Under",
+      "best_zone_coverage": 0.69841
+    },
+    {
+      "id": "boots_reinforced_street",
+      "group": "Footwear",
+      "layer": "Under",
+      "best_zone_coverage": 0.78495
+    },
+    {
+      "id": "gloves_knuckled_half",
+      "group": "Gloves",
+      "layer": "Under",
+      "best_zone_coverage": 0.321
+    },
+    {
+      "id": "gloves_guarded_leather",
+      "group": "Gloves",
+      "layer": "Under",
+      "best_zone_coverage": 0.81513
+    },
+    {
+      "id": "gloves_plain_work",
+      "group": "Gloves",
+      "layer": "Under",
+      "best_zone_coverage": 0.44319
+    },
+    {
+      "id": "gloves_reinforced_knit",
+      "group": "Gloves",
+      "layer": "Under",
+      "best_zone_coverage": 0.24727
+    },
+    {
+      "id": "gloves_light_utility",
+      "group": "Gloves",
+      "layer": "Under",
+      "best_zone_coverage": 0.81759
+    },
+    {
+      "id": "gloves_tipped_work",
+      "group": "Gloves",
+      "layer": "Under",
+      "best_zone_coverage": 0.83141
+    },
+    {
+      "id": "gloves_plated_handwraps",
+      "group": "Gloves",
+      "layer": "Under",
+      "best_zone_coverage": 0.232
+    },
+    {
+      "id": "hair_banded_mohawk",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.1592
+    },
+    {
+      "id": "hair_spiked_topknot",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.16837
+    },
+    {
+      "id": "hair_twin_pigtails",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.6193
+    },
+    {
+      "id": "hair_swept_spikes",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.25049
+    },
+    {
+      "id": "hair_short_ponytail",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.29356
+    },
+    {
+      "id": "hair_spiked_mohawk",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.18162
+    },
+    {
+      "id": "hair_flared_wings",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.15128
+    },
+    {
+      "id": "hair_low_tufts",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.1993
+    },
+    {
+      "id": "hair_swept_bob",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.456
+    },
+    {
+      "id": "hair_braided_crown",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.4629
+    },
+    {
+      "id": "hair_ridge_mohawk",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.15063
+    },
+    {
+      "id": "hair_side_ponytail",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.23273
+    },
+    {
+      "id": "hair_split_mohawk",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.57844
+    },
+    {
+      "id": "hair_fauxhawk",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.18325
+    },
+    {
+      "id": "hair_slicked_crop",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.61126
+    },
+    {
+      "id": "hair_side_sweep",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.60785
+    },
+    {
+      "id": "hair_flared_shag",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.33632
+    },
+    {
+      "id": "hair_cropped_buzz",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.55135
+    },
+    {
+      "id": "hair_messy_crop",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.51945
+    },
+    {
+      "id": "hair_textured_crop",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.56255
+    },
+    {
+      "id": "hair_shoulder_shag",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.69978
+    },
+    {
+      "id": "hair_messy_side_part",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.34989
+    },
+    {
+      "id": "hair_flat_top",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.43673
+    },
+    {
+      "id": "hair_top_patch",
+      "group": "Hair",
+      "layer": "Under",
+      "best_zone_coverage": 0.1463
+    }
+  ],
+  "near_miss": [
+    {
+      "id": "legs_plated_trousers",
+      "group": "Bottoms",
+      "layer": "Under",
+      "near_zones": {
+        "right_calf": {
+          "female": [
+            0.91543,
+            86.011,
+            "kneel_loop@0.5"
+          ]
+        }
+      }
+    },
+    {
+      "id": "legs_sashed_patrol_pants",
+      "group": "Bottoms",
+      "layer": "Under",
+      "near_zones": {
+        "left_calf": {
+          "female": [
+            0.91606,
+            85.092,
+            "kneel_loop@0.5"
+          ]
+        }
+      }
+    }
+  ]
+}

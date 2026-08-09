@@ -1,0 +1,19 @@
+# Non-shipped, build-time asset baker: rasterizes the client-3d SVG icon
+# vocabulary into a committed A8 atlas consumed by the Rust client UI. Detached
+# from the client workspace (own [workspace] table) so it never enters the
+# size/alloc gates and pulls no deps into the shipped binary.
+[package]
+name = "bake-assets"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "bake-assets"
+path = "src/main.rs"
+
+[workspace]
+
+[profile.release]
+opt-level = 2

@@ -2,7 +2,7 @@
 
 > Preserved on 2026-07-28. This is design source, not current runtime
 > documentation. Recheck every code path, hash, and implementation-status claim
-> against `main` before using it. Current truth lives in
+> against the current source tree before using it. Current truth lives in
 > `docs/CANONICAL_CONTEXT.md`, `docs/CURRENT_PROJECT_STATE.md`, and
 > `docs/VERIFICATION.md`.
 
@@ -10,7 +10,7 @@
 **Sibling docs:** `docs/future/bioengineer-and-crop-engineering.md` (profession-shape precedent), `docs/future/grid-structure-framework.md` (placement primitive every device here rides on)
 **Owner directive:** a Network Engineer profession with real infrastructure and real economics, plus a bounded creative-logic layer with 2003-sandbox energy — the thing Wiremod gave Garry's Mod — without ever letting a player script run wild on the authority server.
 
-This doc separates **current runtime truth** (cited to files in `successor` as of today's worktree) from **proposal** (everything in §1 onward). No proposed type, command, or item id in this document exists in the codebase. Numeric item ids are deliberately not assigned here; the taken bands are listed in §12.6 and allocation happens at implementation time against the live `authority.rs` constants.
+This doc separates **observed runtime truth** (cited to files at the studied source revision) from **proposal** (everything in §1 onward). No proposed type, command, or item id in this document exists in the codebase. Numeric item ids are deliberately not assigned here; the taken bands are listed in §12.6 and allocation happens at implementation time against the live `authority.rs` constants.
 
 Primary external source: the live Wiremod repository, `wiremod/wire`, pinned at commit `67cbe4a96caf7ab2aaf00df0b525710a2e80155e` (master as of 2026-07-19T01:47:46Z). All Wiremod citations below are blob URLs pinned to that commit, not mutable master.
 

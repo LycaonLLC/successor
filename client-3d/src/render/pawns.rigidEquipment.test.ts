@@ -15,7 +15,14 @@ import {
   Vector3,
   type Object3D,
 } from "three";
-import type { PawnEquipmentItem, PawnPack } from "../assets/pawnPack";
+import {
+  applyPawnBodyZoneMask,
+  buildPawnEquipmentLookup,
+  collectPawnBodyZoneMeshes,
+  resolvePawnBodyZoneMask,
+  type PawnEquipmentItem,
+  type PawnPack,
+} from "../assets/pawnPack";
 import { attachPawnEquipmentSet, type PawnEquipmentMaterialResolver } from "./pawns";
 
 /**
@@ -106,18 +113,21 @@ function makeCapScene(): CapFixture {
   return { scene, atlasTexture, atlasMaterial };
 }
 
-function makeSkinnedTankScene(): Group {
+function makeSkinnedTankScene(name = "tank"): Group {
   const sourceBone = new Bone();
   sourceBone.name = "pelvis";
   const mesh = new SkinnedMesh(new BoxGeometry(0.3, 0.4, 0.2), new MeshStandardMaterial());
-  mesh.name = "tank";
+  mesh.name = name;
   mesh.bind(new Skeleton([sourceBone]));
   const scene = new Group();
   scene.add(mesh);
   return scene;
 }
 
-function makePack(scenes: ReadonlyMap<string, Group>): PawnPack {
+function makePack(
+  scenes: ReadonlyMap<string, Group>,
+  femaleScenes?: ReadonlyMap<string, Group>,
+): PawnPack {
   // attachPawnEquipmentSet only consumes pack.equipment; building a full
   // cooked PawnPack (clips, masks, attach specs) is impossible in a unit test.
   const pack = {
@@ -125,6 +135,7 @@ function makePack(scenes: ReadonlyMap<string, Group>): PawnPack {
       basePath: "/assets/pawn-pack/equipment",
       items: [CAP_ITEM, TANK_ITEM],
       scenes,
+      ...(femaleScenes ? { femaleScenes } : {}),
     },
   } as unknown as PawnPack;
   return pack;
@@ -222,9 +233,10 @@ describe("rigid authority accessory attachment (7203 field cap)", () => {
   it("marks and returns the owned attachment root; removal detaches everything", () => {
     const { bodyRoot, head } = makeBody();
     const attached: Object3D[] = [];
-    attachPawnEquipmentSet(capPack(), bodyRoot, ["hat_field_cap"], () => new MeshBasicMaterial(), attached);
+    const attachedItemIds = attachPawnEquipmentSet(capPack(), bodyRoot, ["hat_field_cap"], () => new MeshBasicMaterial(), attached);
 
     expect(attached).toHaveLength(1);
+    expect(attachedItemIds).toEqual(["hat_field_cap"]);
     const root = attached[0]!;
     expect(root.userData.successorEquipmentItemId).toBe("hat_field_cap");
     expect(root.userData.successorEquipmentLayer).toBe("Under");
@@ -239,12 +251,14 @@ describe("rigid authority accessory attachment (7203 field cap)", () => {
     const { bodyRoot } = makeBody(false);
     const attached: Object3D[] = [];
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let attachedItemIds: readonly string[] = [];
     try {
-      attachPawnEquipmentSet(capPack(), bodyRoot, ["hat_field_cap"], () => new MeshBasicMaterial(), attached);
+      attachedItemIds = attachPawnEquipmentSet(capPack(), bodyRoot, ["hat_field_cap"], () => new MeshBasicMaterial(), attached);
     } finally {
       warn.mockRestore();
     }
     expect(attached).toHaveLength(0);
+    expect(attachedItemIds).toEqual([]);
     expect(findAttachedCap(bodyRoot)).toBeNull();
   });
 
@@ -272,5 +286,71 @@ describe("rigid authority accessory attachment (7203 field cap)", () => {
     // Both attachments reported for cleanup; the rigid one rides the bone.
     expect(attached).toHaveLength(2);
     expect(findAttachedCap(bodyRoot)).not.toBeNull();
+  });
+
+  it("selects an authored female garment for a female body clone", () => {
+    const pack = makePack(
+      new Map([["under_tank", makeSkinnedTankScene("male_tank")]]),
+      new Map([["under_tank", makeSkinnedTankScene("female_tank")]]),
+    );
+    const { bodyRoot } = makeBody();
+    bodyRoot.userData.successorPawnBody = "female";
+    attachPawnEquipmentSet(pack, bodyRoot, ["under_tank"], () => new MeshBasicMaterial());
+
+    const tank = bodyRoot.children.find((child): child is SkinnedMesh => child instanceof SkinnedMesh);
+    expect(tank?.name).toBe("equipment:under_tank:female_tank");
+  });
+});
+
+describe("segmented body coverage", () => {
+  it("hides only the union of exact body-zone primitives and restores removed coverage", () => {
+    const bodyRoot = new Group();
+    const torsoMaterial = new MeshStandardMaterial();
+    torsoMaterial.name = "BodyZone_torso";
+    const pelvisMaterial = new MeshStandardMaterial();
+    pelvisMaterial.name = "BodyZone_pelvis";
+    const faceMaterial = new MeshStandardMaterial();
+    faceMaterial.name = "RB_Face";
+    const unknownMaterial = new MeshStandardMaterial();
+    unknownMaterial.name = "BodyZone_unknown";
+    const torso = new SkinnedMesh(new BoxGeometry(), torsoMaterial);
+    const pelvis = new SkinnedMesh(new BoxGeometry(), pelvisMaterial);
+    const face = new SkinnedMesh(new BoxGeometry(), faceMaterial);
+    const unknown = new SkinnedMesh(new BoxGeometry(), unknownMaterial);
+    bodyRoot.add(torso, pelvis, face, unknown);
+    const bodyZoneMeshes = collectPawnBodyZoneMeshes(bodyRoot);
+    const apparel = new SkinnedMesh(new BoxGeometry(), torsoMaterial);
+    bodyRoot.add(apparel);
+
+    const equipment = {
+      basePath: "/assets/pawn-pack/equipment",
+      items: [
+        { ...TANK_ITEM, id: "cover_torso", hideBodyZones: ["torso"] as const },
+        { ...TANK_ITEM, id: "cover_pelvis", hideBodyZones: ["pelvis"] as const },
+      ],
+      scenes: new Map<string, Group>(),
+    };
+    const lookup = buildPawnEquipmentLookup(equipment);
+
+    applyPawnBodyZoneMask(
+      bodyZoneMeshes,
+      resolvePawnBodyZoneMask(equipment, ["cover_torso", "cover_pelvis"], lookup),
+    );
+    expect(torso.visible).toBe(false);
+    expect(pelvis.visible).toBe(false);
+    expect(face.visible).toBe(true);
+    expect(unknown.visible).toBe(true);
+    expect(apparel.visible).toBe(true);
+
+    applyPawnBodyZoneMask(
+      bodyZoneMeshes,
+      resolvePawnBodyZoneMask(equipment, ["cover_torso"], lookup),
+    );
+    expect(torso.visible).toBe(false);
+    expect(pelvis.visible).toBe(true);
+
+    applyPawnBodyZoneMask(bodyZoneMeshes, resolvePawnBodyZoneMask(equipment, [], lookup));
+    expect(torso.visible).toBe(true);
+    expect(pelvis.visible).toBe(true);
   });
 });

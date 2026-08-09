@@ -121,6 +121,7 @@ test("production plan reruns deterministically and omits catalogs/labs", () => {
     assert.ok(second.manifest.entries.some((item) => item.path === "assets/pawn-pack/plasma_hilt.glb"));
     assert.ok(second.manifest.entries.some((item) => item.path === "assets/pawn-pack/weapons/custom/wpn_launcher_flare_net.glb"));
     assert.ok(second.manifest.entries.some((item) => item.path === "assets/pawn-pack/equipment/Under/top_frayed_tunic.glb"));
+    assert.ok(second.manifest.entries.some((item) => item.path === "assets/pawn-pack/equipment/Female/Under/top_frayed_tunic.glb"));
     assert.ok(second.manifest.entries.some((item) => item.path === "assets/items/custom/crops/world/nightplum/laden.glb"));
     assert.equal(second.manifest.entries.some((item) => item.path.endsWith("food/dishes/ashgrain_hearth_loaf.glb")), false);
     assert.ok(second.manifest.entries.every((item) => Array.isArray(item.category) && item.category.length > 0 && Array.isArray(item.reason) && item.reason.length > 0));

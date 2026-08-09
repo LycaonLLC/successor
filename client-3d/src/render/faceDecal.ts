@@ -144,6 +144,12 @@ function headWeightOf(
   return weight;
 }
 
+function isAuthoredFaceMesh(source: SkinnedMesh): boolean {
+  const materials = Array.isArray(source.material) ? source.material : [source.material];
+  return materials.length > 0 && materials.every((material) =>
+    material.name === "RB_Face" || material.name.startsWith("RB_Face:"));
+}
+
 /**
  * Cut the paintable face patch out of a body's skinned geometry: triangles
  * whose three vertices are head-dominant and whose mean bind normal faces
@@ -158,28 +164,37 @@ function buildFaceOverlayGeometry(source: SkinnedMesh): BufferGeometry | null {
   const normal = geometry.attributes.normal as BufferAttribute | undefined;
   const skinIndex = geometry.attributes.skinIndex as BufferAttribute | undefined;
   const skinWeight = geometry.attributes.skinWeight as BufferAttribute | undefined;
+  const authoredUv = geometry.attributes.uv as BufferAttribute | undefined;
+  const authoredPanel = isAuthoredFaceMesh(source);
   if (!index || !position || !normal || !skinIndex || !skinWeight) return null;
-  const headBoneIndex = source.skeleton.bones.findIndex((bone) => bone.name.toLowerCase() === "head");
-  if (headBoneIndex < 0) return null;
+  if (authoredPanel && !authoredUv) return null;
 
-  const vertexCount = position.count;
-  const isHeadVertex = new Uint8Array(vertexCount);
-  for (let vertex = 0; vertex < vertexCount; vertex += 1) {
-    if (headWeightOf(skinIndex, skinWeight, vertex, headBoneIndex) >= FACE_HEAD_WEIGHT_MIN) {
-      isHeadVertex[vertex] = 1;
+  let isHeadVertex: Uint8Array | null = null;
+  if (!authoredPanel) {
+    const headBoneIndex = source.skeleton.bones.findIndex((bone) => bone.name.toLowerCase() === "head");
+    if (headBoneIndex < 0) return null;
+    isHeadVertex = new Uint8Array(position.count);
+    for (let vertex = 0; vertex < position.count; vertex += 1) {
+      if (headWeightOf(skinIndex, skinWeight, vertex, headBoneIndex) >= FACE_HEAD_WEIGHT_MIN) {
+        isHeadVertex[vertex] = 1;
+      }
     }
   }
 
-  // Select forward-facing all-head triangles; collect the used vertex set.
+  // A promoted body has an exact, normalised RB_Face panel: use all of it and
+  // preserve its authored UVs. Legacy bodies fall back to cutting forward-facing
+  // head triangles and planar-projecting the measured face rectangle.
   const keptTriangles: number[] = [];
   const remap = new Map<number, number>();
   for (let triangle = 0; triangle < index.count; triangle += 3) {
     const a = index.getX(triangle);
     const b = index.getX(triangle + 1);
     const c = index.getX(triangle + 2);
-    if (!isHeadVertex[a] || !isHeadVertex[b] || !isHeadVertex[c]) continue;
-    const meanNormalZ = (normal.getZ(a) + normal.getZ(b) + normal.getZ(c)) / 3;
-    if (meanNormalZ < FACE_FORWARD_NORMAL_MIN) continue;
+    if (!authoredPanel) {
+      if (!isHeadVertex![a] || !isHeadVertex![b] || !isHeadVertex![c]) continue;
+      const meanNormalZ = (normal.getZ(a) + normal.getZ(b) + normal.getZ(c)) / 3;
+      if (meanNormalZ < FACE_FORWARD_NORMAL_MIN) continue;
+    }
     for (const vertex of [a, b, c]) {
       if (!remap.has(vertex)) remap.set(vertex, remap.size);
     }
@@ -200,8 +215,12 @@ function buildFaceOverlayGeometry(source: SkinnedMesh): BufferGeometry | null {
     positions[overlayVertex * 3] = x + normal.getX(vertex) * FACE_OVERLAY_INFLATE;
     positions[overlayVertex * 3 + 1] = y + normal.getY(vertex) * FACE_OVERLAY_INFLATE;
     positions[overlayVertex * 3 + 2] = z + normal.getZ(vertex) * FACE_OVERLAY_INFLATE;
-    uvs[overlayVertex * 2] = (x + rectHalf) / FACE_RECT_SIZE;
-    uvs[overlayVertex * 2 + 1] = (y - (FACE_RECT_CENTER_Y - rectHalf)) / FACE_RECT_SIZE;
+    uvs[overlayVertex * 2] = authoredPanel
+      ? authoredUv!.getX(vertex)
+      : (x + rectHalf) / FACE_RECT_SIZE;
+    uvs[overlayVertex * 2 + 1] = authoredPanel
+      ? authoredUv!.getY(vertex)
+      : (y - (FACE_RECT_CENTER_Y - rectHalf)) / FACE_RECT_SIZE;
     for (let component = 0; component < 4; component += 1) {
       joints[overlayVertex * 4 + component] = skinIndex.getComponent(vertex, component);
       weights[overlayVertex * 4 + component] = skinWeight.getComponent(vertex, component);
@@ -228,20 +247,40 @@ export function attachPawnFaceDecal(
   face: PawnFaceConfig | null | undefined,
   attachedOut?: Object3D[],
 ): void {
-  if (!face) return;
-  let sourceMesh: SkinnedMesh | null = null;
+  const candidates: SkinnedMesh[] = [];
   bodyRoot.traverse((object) => {
-    if (!sourceMesh && object instanceof SkinnedMesh) sourceMesh = object;
+    if (object instanceof SkinnedMesh) candidates.push(object);
   });
-  if (!sourceMesh) return;
-  const body = sourceMesh as SkinnedMesh;
+  const authoredPanels = candidates.filter(isAuthoredFaceMesh);
+  for (const panel of authoredPanels) panel.visible = true;
+  if (!face) return;
 
-  let overlayGeometry = faceOverlayGeometryCache.get(body.geometry.uuid);
-  if (overlayGeometry === undefined) {
-    overlayGeometry = buildFaceOverlayGeometry(body);
-    faceOverlayGeometryCache.set(body.geometry.uuid, overlayGeometry);
+  // Prefer the exact authored panel over the legacy head-triangle projection.
+  // It tracks the reviewed head/neck sculpt and eliminates stale hard-coded
+  // placement whenever body proportions change.
+  const ordered = [
+    ...authoredPanels,
+    ...candidates.filter((candidate) => !isAuthoredFaceMesh(candidate)),
+  ];
+  let body: SkinnedMesh | null = null;
+  let overlayGeometry: BufferGeometry | null = null;
+  for (const candidate of ordered) {
+    let candidateGeometry = faceOverlayGeometryCache.get(candidate.geometry.uuid);
+    if (candidateGeometry === undefined) {
+      candidateGeometry = buildFaceOverlayGeometry(candidate);
+      faceOverlayGeometryCache.set(candidate.geometry.uuid, candidateGeometry);
+    }
+    if (!candidateGeometry) continue;
+    body = candidate;
+    overlayGeometry = candidateGeometry;
+    break;
   }
-  if (!overlayGeometry) return;
+  if (!body || !overlayGeometry) return;
+
+  // The shipped static panel supplies a default face for plain GLB consumers.
+  // A live appearance replaces it per pawn; hiding only this mesh preserves the
+  // opaque skin panel immediately beneath it.
+  if (isAuthoredFaceMesh(body)) body.visible = false;
 
   const entry = facePaintEntry(face, faceSignature(face));
   const overlay = new SkinnedMesh(overlayGeometry, entry.material);

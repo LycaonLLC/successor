@@ -14,6 +14,7 @@ import type { BugReportWriter } from "../support/bugReports.js";
 
 const standaloneMatchmakeSchema = z.object({
   gameTicket: z.string().trim().min(32).max(256),
+  release: z.string().trim().min(1).max(128),
 }).strict();
 const MATCHMAKE_RATE_WINDOW_MS = 1_000;
 const MATCHMAKE_RATE_LIMIT = 32;
@@ -218,7 +219,7 @@ export function createStandaloneAuthenticatedRoomClass(options: ColyseusGameServ
       const parsed = standaloneMatchmakeSchema.safeParse(clientOptions);
       if (!parsed.success) return false;
       try {
-        return await redeemStandaloneLaunch(parsed.data.gameTicket, "game", controlStore, options.characterStore, runtimeAuth, options.shard.isReservedCharacterId.bind(options.shard));
+        return await redeemStandaloneLaunch(parsed.data.gameTicket, "game", controlStore, options.characterStore, runtimeAuth, options.shard.isReservedCharacterId.bind(options.shard), parsed.data.release);
       } catch {
         return false;
       }

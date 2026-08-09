@@ -1,0 +1,24 @@
+{
+  "_comment": "Synthetic fixture representing game.acks",
+  "type": "game.acks",
+  "acks": [
+    [104, 1, 45]
+  ],
+  "playerActor": {
+    "id": "actor-player-1",
+    "label": "player",
+    "display_name": "Dev Player",
+    "areaId": "open-desert-overworld",
+    "x": 524.0,
+    "y": 520.0,
+    "direction": "right",
+    "vitals": {
+      "health": 100.0,
+      "action": 77.0,
+      "spirit": 50.0
+    },
+    "lifeState": "alive"
+  },
+  "playerPosition": [524.0, 520.0],
+  "events": []
+}

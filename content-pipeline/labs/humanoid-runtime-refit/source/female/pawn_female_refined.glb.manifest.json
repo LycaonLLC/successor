@@ -1,0 +1,31 @@
+{
+  "asset_id": "successor_humanoid_source_pawn_female_refined",
+  "asset_path": "content-pipeline/labs/humanoid-runtime-refit/source/female/pawn_female_refined.glb",
+  "asset_hash": "sha256:bd99fdb32fc40291780d92b1494f07a428c439204b306a2a6d32d2bc403c0c8b",
+  "asset_kind": "model_glb",
+  "tool": {
+    "name": "Khronos glTF Blender I/O",
+    "version": "5.2.39",
+    "tool_snapshot_id": null
+  },
+  "prompt": {
+    "text": "Promote the final reviewed Successor female body with its hand-shaped shared-topology head and neck graft, verified runtime hands, and exact 50-joint bind rig.",
+    "denylist_audit": "passed:tools/denylist/check.sh",
+    "negative_terms": []
+  },
+  "seed": null,
+  "request_id": null,
+  "human_edits": [
+    {
+      "by": "Successor Bunker humanoid refinement lane",
+      "date": "2026-08-02T23:11:48Z",
+      "summary": "Replaced the damaged head and neck with the reviewed shared-topology sculpt, preserved the verified hands, and refined the torso, pelvis, and upper-leg transition."
+    }
+  ],
+  "review": {
+    "art_director": "Michael Kelly",
+    "approved_at": "2026-08-02T23:11:48Z",
+    "notes": "Exact artifact from body-refine-20260802 commit d3fdfa2831bf938c0d9c8bf06f8796a00a935af5; selected over the older rbf_v3 runtime-refit source."
+  },
+  "regeneration_command": null
+}

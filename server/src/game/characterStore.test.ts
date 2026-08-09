@@ -21,6 +21,7 @@ import { FACE_BROW_COLORS, FACE_EYE_COLORS, FACE_LIP_COLORS } from "./face.gen.j
 import type { GameActorSnapshot } from "./protocol.js";
 
 const appearance = {
+  body: "male" as const,
   skinTone: "#aabbcc",
   hair: "hair_mop" as const,
   hairMat: "hair_raven",
@@ -699,14 +700,14 @@ describe("CharacterStore", () => {
 });
 describe("character appearance (hair is an appearance property, not an item)", () => {
   it("accepts any well-formed hair style id — validation is a pattern, not a fixed enum", () => {
-    const normalized = normalizeCharacterAppearance({ skinTone: "#aabbcc", hair: "hair_ponytail_long", hairMat: "hair_silver", face: null });
-    expect(normalized).toEqual({ skinTone: "#aabbcc", hair: "hair_ponytail_long", hairMat: "hair_silver", face: null });
+    const normalized = normalizeCharacterAppearance({ body: "female", skinTone: "#aabbcc", hair: "hair_ponytail_long", hairMat: "hair_silver", face: null });
+    expect(normalized).toEqual({ body: "female", skinTone: "#aabbcc", hair: "hair_ponytail_long", hairMat: "hair_silver", face: null });
   });
 
   it("uses explicit null for bald and rejects an empty current hair field", () => {
-    const bald = normalizeCharacterAppearance({ skinTone: "#aabbcc", hair: null, hairMat: "hair_raven", face: null });
-    expect(bald).toEqual({ skinTone: "#aabbcc", hair: null, hairMat: "hair_raven", face: null });
-    expect(normalizeCharacterAppearance({ skinTone: "#aabbcc", hair: "", hairMat: "hair_raven", face: null })).toBeNull();
+    const bald = normalizeCharacterAppearance({ body: "male", skinTone: "#aabbcc", hair: null, hairMat: "hair_raven", face: null });
+    expect(bald).toEqual({ body: "male", skinTone: "#aabbcc", hair: null, hairMat: "hair_raven", face: null });
+    expect(normalizeCharacterAppearance({ body: "male", skinTone: "#aabbcc", hair: "", hairMat: "hair_raven", face: null })).toBeNull();
     expect(characterAppearanceToActorAppearance(bald!)).toEqual({ skin: "#aabbcc", hair: null, hair_mat: "hair_raven", face: null });
   });
 
@@ -715,13 +716,18 @@ describe("character appearance (hair is an appearance property, not an item)", (
     expect(normalizeCharacterAppearance({ skinTone: "#aabbcc", hair: 42, hairMat: "hair_raven", face: null })).toBeNull();
   });
 
-  it("round-trips a created character's hair through the store and back to actor appearance", () => withStore((store) => {
-    const created = store.create({ name: "Coily", appearance: { skinTone: "#4a3223", hair: "hair_crop2", hairMat: "hair_chestnut", face: null } });
+  it("round-trips a created character's body and hair through the store and actor identity", () => withStore((store) => {
+    const created = store.create({ name: "Coily", appearance: { body: "female", skinTone: "#4a3223", hair: "hair_crop2", hairMat: "hair_chestnut", face: null } });
     if (!created.ok) throw new Error("expected create to succeed");
-    expect(created.record.appearance).toEqual({ skinTone: "#4a3223", hair: "hair_crop2", hairMat: "hair_chestnut", face: null });
+    expect(created.record.appearance).toEqual({ body: "female", skinTone: "#4a3223", hair: "hair_crop2", hairMat: "hair_chestnut", face: null });
     expect(characterAppearanceToActorAppearance(created.record.appearance)).toEqual({ skin: "#4a3223", hair: "hair_crop2", hair_mat: "hair_chestnut", face: null });
-    expect(defaultCharacterAppearance().hair).toBe("hair_mop");
+    expect(defaultCharacterAppearance()).toMatchObject({ body: "male", hair: "hair_mop" });
   }));
+
+  it("defaults pre-body records to type 1 and rejects unknown body ids", () => {
+    expect(normalizeCharacterAppearance({ skinTone: "#aabbcc", hair: null, hairMat: "hair_raven", face: null })?.body).toBe("male");
+    expect(normalizeCharacterAppearance({ body: "other", skinTone: "#aabbcc", hair: null, hairMat: "hair_raven", face: null })).toBeNull();
+  });
 });
 
 describe("character face (face-kit selection validated against the generated registry)", () => {

@@ -31,12 +31,19 @@ const initialProfessionIdSet = new Set<string>(initialProfessionIds);
  * material id. Style ids are pattern-validated, NOT an enum — new hairs added to
  * the pawn pack + creation picker work without touching this file.
  */
+export type CharacterBody = "male" | "female";
+
 export interface CharacterAppearance {
+  body: CharacterBody;
   skinTone: string;
   hair: string | null;
   hairMat: string;
   /** Facial feature selection (face kit); null is an explicit blank face. */
   face: CharacterFaceConfig | null;
+}
+
+export function characterSpriteForAppearance(appearance: CharacterAppearance): string {
+  return appearance.body === "female" ? "adventurer-premium-female" : "adventurer-premium-male";
 }
 
 export interface CharacterWornEntry {
@@ -243,6 +250,7 @@ const defaultSkinTone = "#c78f62";
 const defaultHairStyleId = "hair_mop";
 const defaultHairMat = "hair_raven";
 const defaultAppearance: CharacterAppearance = {
+  body: "male",
   skinTone: defaultSkinTone,
   hair: defaultHairStyleId,
   hairMat: defaultHairMat,
@@ -807,6 +815,11 @@ export function normalizeCharacterAppearance(value: unknown): CharacterAppearanc
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const input = value as Record<string, unknown>;
   if (!["skinTone", "hair", "hairMat", "face"].every((key) => Object.prototype.hasOwnProperty.call(input, key))) return null;
+  const body = input.body === undefined
+    ? "male"
+    : input.body === "male" || input.body === "female"
+      ? input.body
+      : null;
   const rawSkinTone = typeof input.skinTone === "string" ? input.skinTone.trim().toLowerCase() : "";
   const skinTone = skinTonePattern.test(rawSkinTone) ? rawSkinTone : null;
   const rawHair = input.hair;
@@ -817,8 +830,8 @@ export function normalizeCharacterAppearance(value: unknown): CharacterAppearanc
       : undefined;
   const hairMat = typeof input.hairMat === "string" ? input.hairMat.trim() : "";
   const face = normalizeCharacterFaceAppearance(input.face);
-  if (!skinTone || hair === undefined || face === undefined || !hairIdentifierPattern.test(hairMat)) return null;
-  return { skinTone, hair, hairMat, face };
+  if (!body || !skinTone || hair === undefined || face === undefined || !hairIdentifierPattern.test(hairMat)) return null;
+  return { body, skinTone, hair, hairMat, face };
 }
 
 export function defaultCharacterAppearance(): CharacterAppearance {
@@ -847,6 +860,7 @@ export function characterAppearanceToActorAppearance(appearance: CharacterAppear
 export function actorAppearanceToCharacterAppearance(appearance: GameActorAppearanceSnapshot | undefined): CharacterAppearance {
   if (!appearance) return defaultCharacterAppearance();
   return normalizeCharacterAppearance({
+    body: "male",
     skinTone: appearance.skin,
     hair: appearance.hair,
     hairMat: appearance.hair_mat,

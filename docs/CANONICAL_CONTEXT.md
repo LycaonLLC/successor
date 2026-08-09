@@ -1,6 +1,6 @@
 # Successor Canonical Context
 
-Status: current supported architecture as of 2026-07-28.
+Status: current supported architecture as of 2026-07-31.
 
 This is the repository's source of truth for product scope and ownership. Code
 and tests define exact behavior; when they change this contract, update this
@@ -21,10 +21,50 @@ focused design detail and cannot introduce another active runtime path.
 | Gameplay authority | `crates/successor-sim/` | Deterministic world simulation and gameplay mutations |
 | Shared Rust contracts | `crates/successor-{core,inventory,net,wasm}/` | Types, inventory primitives, wire commands, and platform bindings |
 | Public deployment | `ops/deploy/` | Immutable client/site publication, AWS infrastructure, and single-writer server operation |
+| Rust web beta | `client-rust/` | no_std Rust engine plus one authority-driven connected runtime on desktop GL and WebGL2; the WebGL2 build is an opt-in beta at `/beta/`; native remains development-only |
 
-There are two supported player-facing clients. `client/` is a shared package,
-not a third visual client. Both clients submit the same server commands and
-render the same authoritative state.
+There are two stable player-facing clients. `client/` is a shared package, not
+a third visual client. The Rust WebGL2 client is a separately versioned,
+opt-in beta surface; it does not replace the stable graphical or terminal
+clients.
+
+`client-rust/` runs the same streamed-state projection and command path as the
+stable clients. Its public WebGL2 artifact is selected only by
+`/beta/release.json`; `/play/` continues to select `/client/release.json`.
+Both surfaces use the same accounts, character roster, world, one-use
+capabilities, server protocol identity, single authority, and durable state.
+The native Rust build remains development-only and stays out of the download
+ledger.
+
+The native client's desktop platform has one developer-only agent-control
+surface. Explicit opt-in starts a loopback-only text protocol; the companion
+`successor-control` CLI can override keyboard, pointer, text, and scroll input,
+request completed-frame screenshots, and drive or inspect a live connected
+client. The same platform boundary records effective input to the current-only
+`successor.input.v1` frame command format and replays it deterministically.
+This tooling is disabled by default, is absent from the web backend, and
+submits gameplay through the ordinary client/server command path; it is not a
+second gameplay authority or a public control endpoint.
+
+The browser backend consumes a strict launch context from the exact storefront
+parent, stable-id assets, and the same connected scene as native. Public builds
+exclude URL/global launch capabilities and bind the storefront, game, chat,
+client-release, and server-release identities at build time. The runtime may
+rebuild renderer resources after WebGL context loss while retaining the
+session and last valid authority projection; it must not replay launch
+capabilities or synthesize gameplay state. The deterministic
+half-float-disabled mode is verification-only.
+
+The native renderer also has one developer graphics-mastering layer over the
+existing immediate-mode UI. Backquote toggles it; its validated Low, Medium,
+and High presets live at `client-rust/assets/render/settings.json`. Native
+development may tune and atomically save sun, shadows, ambient/AO/emissive,
+bloom, FXAA, exposure, color grade, and palette quantization. Web builds apply
+the checked-in settings read-only. Missing or invalid settings fall back to
+compiled defaults. This is presentation tooling only: it creates no gameplay
+authority, public surface, or alternate renderer.
+
+
 
 ## Public alpha topology
 
@@ -33,21 +73,28 @@ The supported public alpha is live:
 ```text
 www.successorgame.com
   -> S3/CloudFront site shell
-  -> immutable browser-client release on CloudFront
+  -> stable `/play/` pointer and opt-in `/beta/` pointer
+  -> separate immutable browser-client releases on CloudFront
+  -> content-addressed `objects/<sha256>` payloads for streamed Rust-beta assets
+     (immutable `SPAK1` packs plus standalone wardrobe/creature files; boot
+     closure + spawn-region packs staged first, region packs and wardrobe
+     streamed on demand through the async asset channel)
   -> same-origin account/control routes
-  -> one-use game and chat tickets
+  -> release-bound one-use game and chat tickets
   -> world.successorgame.com ALB
   -> one private EC2 host
   -> one digest-pinned TypeScript/Rust authority container
   -> one encrypted persistent state domain
 ```
 
-The marketing site and browser-client pointer are separately promotable. A site
-release does not deploy gameplay, and a game release does not imply a site or
-native-download promotion. The public EC2 authority remains single-writer and
-has no public SSH ingress. SSM is the operator path. S3/CloudFront owns the
-site, browser client, and native archives; the ALB owns public game/chat
-ingress.
+The site, stable browser pointer, and Rust beta pointer are independently
+promotable. A beta promotion never mutates `/client/release.json`; disabling or
+rolling back beta changes only `/beta/release.json` or removes the exact beta
+release from the server allowlist. Stable and beta releases must name the same
+server protocol identity. The public EC2 authority remains single-writer and
+has no public remote-shell ingress. The provider session service is the
+operator path. S3/CloudFront owns the site, browser clients, and native
+archives; the ALB owns public game/chat ingress.
 
 `CURRENT_DEPLOYMENT.md` owns the exact current site release, client manifest,
 source commit, server image digest, state generation, and download manifest.
@@ -128,15 +175,23 @@ forces a `world-transition` checkpoint before the server acknowledges it, then
 refreshes the character-store projection.
 
 The current file format is `successor.character-store.v2`. Every record carries
-its owner, complete appearance (including an explicit nullable face), worn
-projection, position/vitals, profession/profile fields, bounded record kinds,
-world-entry marker, and timestamps. The standalone account database head is
+its owner, complete appearance (explicit `male`/`female` body route and explicit
+nullable face), worn projection, position/vitals, profession/profile fields,
+bounded record kinds, world-entry marker, and timestamps. The standalone
+account database head is
 `alpha-control-bug-reports-v2`; startup has one explicit, checksum-pinned
 upgrade from `alpha-control-current-v1` that preserves accounts and adds the
 player-report ledger. Every browser or device launch carries immutable
 provenance. Older character formats, unknown account migration heads,
 claim-code ownership repair, and synthesized ticket identity are not supported
 inputs.
+
+Character creation requires one of the two canonical PawnForge humanoid bodies.
+The character store persists that choice, and the server projects it
+deterministically as `adventurer-premium-male` or
+`adventurer-premium-female`; clients do not infer body type from names, roles,
+hair, or clothing. Both bodies use the same 50-joint/47-clip runtime contract
+and accept the fixed starter outfit without a separate gameplay identity.
 
 The bridge keeps the wire request names `exportState` and `importState`, but the
 payload is the current-only `authority.checkpoint.v1` schema at version `1`.
@@ -183,7 +238,7 @@ Dapplepod.
 
 The fixture identity string remains
 `planetfall-v5-seed-424242-size-1024-rogues-18-desert-critters-48-verdance-critters-24-areas-open-desert-overworld-verdance-forest-overworld`.
-The compiled slice contains 139 stable logical props/anchors, including the humanoid
+The compiled slice contains 141 stable logical props/anchors, including the humanoid
 camps' solid props, 19 take-only footlockers, sparse 15-prop Dustgate occupation,
 and the interactive factory `dustgate-occupation-workbench` at cell (494, 508).
 Dustgate hammer was removed instead of increasing asset caps. Bank and clone anchors
@@ -193,9 +248,9 @@ are `dustgate-bank-terminal`, `dustgate-cloning-facility`,
 `dustgate-pa-terminal`.
 
 The identity string is unchanged. The checked-in slice hash is
-`69a19db8289b0d4711ccca5d4febef39b8dcd2ef662f9f70539935e49af8680e` and the
+`bd489338c0d65535f4fc1d8cfe7f0dcb3f532ced7f658c756c39913ffea00c02` and the
 map-bundle hash is
-`01df5d1d178a8199b5bbd62f7e2107f017f5ae2ba1ca45081bb0ecdbb8f65795`. The clone
+`df23df6a59f555040f607b7ac5218d0472e6921df2132b2ed2828f2daedf9ef5`. The clone
 facility sits at cell (513, 499), size 10 by 8, yaw 0, on the north edge of the
 Dustgate plaza with its entrance facing south into the plaza. Its authored
 floor is 0.02 m; the runtime floor after the fixture's uniform fit is
@@ -439,9 +494,8 @@ emitted `index.html`, keeps Three.js on the eager vendor path while the emitted
 index has no static `feature-*` JS/CSS, and loads features dynamically.
 
 The public browser release, authority image, native manifest, and site release
-are recorded in `CURRENT_DEPLOYMENT.md`. The primary development branch is
-`main` and may be ahead of the production game source; integrated does not mean
-promoted.
+are recorded in `CURRENT_DEPLOYMENT.md`. The current development source may be
+ahead of the production game source; integrated does not mean promoted.
 
 Use these maturity labels when discussing content:
 
@@ -513,6 +567,6 @@ fixture for end-to-end proof. Add a new product surface only through an explicit
 decision recorded here.
 
 `docs/future/` contains retained design briefs, not current contracts or
-implementation claims. Revalidate a brief against `main` before using it, then
-move any implemented contract into the canonical docs or a focused current
-specification in the same change.
+implementation claims. Revalidate a brief against the current source tree
+before using it, then move any implemented contract into the canonical docs or
+a focused current specification in the same change.

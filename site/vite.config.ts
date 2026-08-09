@@ -16,6 +16,7 @@ export default defineConfig({
         account: resolve(__dirname, "account/index.html"),
         connect: resolve(__dirname, "connect/index.html"),
         play: resolve(__dirname, "play/index.html"),
+        beta: resolve(__dirname, "beta/index.html"),
         download: resolve(__dirname, "download/index.html"),
         legalTerms: resolve(__dirname, "legal/terms/index.html"),
         legalPrivacy: resolve(__dirname, "legal/privacy/index.html"),

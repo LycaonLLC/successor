@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/successor-core",
     "crates/successor-inventory",
+    "crates/successor-movement",
     "crates/successor-sim",
     "crates/successor-net",
     "crates/successor-wasm",

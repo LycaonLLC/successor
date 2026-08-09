@@ -77,6 +77,11 @@ import { SUCCESSOR_3D_CONFIG } from "../config";
 import { requireRuntimePublicPath } from "@successor/client/src/slice-core/runtimePublicPaths";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { PlasmaBlade } from "./weapons/plasmaBlade";
+import {
+  PlasmaPresentation,
+  PLASMA_SWORD_COLOR,
+  PLASMA_SWORD_ITEM_ID,
+} from "./weapons/plasmaPresentation";
 import { makeGlowSprite } from "./fx/particles";
 import {
   ensureEquipmentUv,
@@ -88,12 +93,16 @@ import {
   type EquipmentSlotMaterialSource,
 } from "../assets/equipmentMaterials";
 import {
+  applyPawnBodyZoneMask,
   clonePawnBody,
   cloneSpecialPawnBody,
+  collectPawnBodyZoneMeshes,
   equipmentIdsCoverLegs,
   pawnEquipmentLookupFor,
+  resolvePawnBodyZoneMask,
   sane,
   type PawnBody,
+  type PawnBodyZoneMesh,
   type PawnEquipmentItem,
   type PawnEquipmentLookup,
   type PawnPack,
@@ -163,12 +172,7 @@ const MELEE_BASE_CLIP_NAMES: readonly string[] = [
   "melee_run_f",
 ];
 
-/** Plasma sword inventory item (equips as vibrosword; look is presentation). */
-const PLASMA_SWORD_ITEM_ID = 3104;
-const PLASMA_SWORD_COLOR = 0x63f0ff;
-/** Ignition ramp: full blade in ~0.13s, retract slightly faster (~0.10s). */
-const PLASMA_IGNITE_PER_SECOND = 1 / 0.13;
-const PLASMA_RETRACT_PER_SECOND = 1 / 0.1;
+/** Plasma ignition ramp now lives with the shared presentation module. */
 
 const RIFLE_AIM_UPPER_CLIP = "rifle_aim";
 const GUN_GRIP_HAND_CLIP = "gun_grip_trigger_discipline";
@@ -337,9 +341,13 @@ interface PawnVisual extends VisualBase {
   animator: PawnAnimator;
   slugthrower: SlugthrowerRig | null;
   sword: SwordRig | null;
-  /** Live plasma-sword presentation (weaponItemId 3104). */
-  plasma: { blade: PlasmaBlade; hilt: Object3D | null; extension: number; targetExtension: number; debugDrawnOverride: boolean | null } | null;
+  /** Live plasma-sword blade FX (weaponItemId 3104). */
+  plasma: { presentation: PlasmaPresentation; debugDrawnOverride: boolean | null } | null;
   skinnedMeshes: SkinnedMesh[];
+  /** Authored body materials, aligned with skinnedMeshes; runtime tinting never discards their maps. */
+  bodySourceMaterials: ReadonlyArray<Material | Material[]>;
+  /** Exact segmented base-body primitives, collected once before apparel attaches. */
+  bodyZoneMeshes: readonly PawnBodyZoneMesh[];
   equipmentAttachments: Object3D[];
   equipmentMaterialGeneration: number;
   /** Resolved ids are rebuilt only when gear or authority appearance changes. */
@@ -691,19 +699,16 @@ function slotColorProofEnabled(): boolean {
 
 export type PawnEquipmentMaterialResolver = (item: PawnEquipmentItem, source: EquipmentSlotMaterialSource) => Material | Material[];
 
-export function attachPawnEquipmentSet(
-  pack: PawnPack,
-  bodyRoot: Group,
-  itemIds: readonly string[],
-  resolveMaterial: PawnEquipmentMaterialResolver,
-  attachedOut?: Object3D[],
-): void {
-  if (itemIds.length === 0 || pack.equipment.items.length === 0) return;
+/** Resolve the single runtime apparel convention: requirement expansion,
+ * slot winners, then requirement integrity. The result stays in manifest
+ * order; attachment reports the subset that actually rendered. */
+export function resolvePawnEquipmentIds(pack: PawnPack, itemIds: readonly string[]): string[] {
+  if (itemIds.length === 0 || pack.equipment.items.length === 0) return [];
   const requested = new Set<string>();
   for (let i = 0; i < itemIds.length; i += 1) {
     addEquipmentWithRequirements(pack, itemIds[i]!, requested);
   }
-  if (requested.size === 0) return;
+  if (requested.size === 0) return [];
   // Slot-exclusive AFTER requirement expansion. Appearance hair has its own
   // pseudo-slot, so helmets and hats never erase the character's saved hair.
   const winnerBySlot = new Map<string, string>();
@@ -728,8 +733,25 @@ export function attachPawnEquipmentSet(
       }
     }
   }
-  if (requested.size === 0) return;
+  if (requested.size === 0) return [];
+  const resolved: string[] = [];
+  for (const item of pack.equipment.items) {
+    if (requested.has(item.id)) resolved.push(item.id);
+  }
+  return resolved;
+}
 
+/** Attach the resolved apparel and return only items with visible geometry;
+ * callers use that exact set for body-zone coverage. */
+export function attachPawnEquipmentSet(
+  pack: PawnPack,
+  bodyRoot: Group,
+  itemIds: readonly string[],
+  resolveMaterial: PawnEquipmentMaterialResolver,
+  attachedOut?: Object3D[],
+): readonly string[] {
+  const resolvedItemIds = resolvePawnEquipmentIds(pack, itemIds);
+  if (resolvedItemIds.length === 0) return resolvedItemIds;
   const liveBones = new Map<string, Bone>();
   bodyRoot.traverse((object) => {
     if (object instanceof Bone) {
@@ -737,10 +759,15 @@ export function attachPawnEquipmentSet(
       liveBones.set(sane(object.name).toLowerCase(), object);
     }
   });
-
-  for (const item of pack.equipment.items) {
-    if (requested.has(item.id)) attachEquipmentItemToBody(pack, bodyRoot, item, liveBones, resolveMaterial, attachedOut);
+  const itemById = pawnEquipmentLookupFor(pack.equipment).itemById;
+  const attachedItemIds: string[] = [];
+  for (let i = 0; i < resolvedItemIds.length; i += 1) {
+    const item = itemById.get(resolvedItemIds[i]!);
+    if (item && attachEquipmentItemToBody(pack, bodyRoot, item, liveBones, resolveMaterial, attachedOut)) {
+      attachedItemIds.push(item.id);
+    }
   }
+  return attachedItemIds;
 }
 
 function addEquipmentWithRequirements(pack: PawnPack, itemId: string, out: Set<string>): void {
@@ -789,11 +816,11 @@ function attachRigidEquipmentItem(
   anchorBone: string,
   liveBones: ReadonlyMap<string, Bone>,
   attachedOut?: Object3D[],
-): void {
+): boolean {
   const bone = liveBones.get(anchorBone.toLowerCase()) ?? liveBones.get(sane(anchorBone).toLowerCase());
   if (!bone) {
     console.warn(`pawn equipment: rigid anchor bone "${anchorBone}" missing for "${item.id}" — not attached`);
-    return;
+    return false;
   }
   // clone(true) keeps the whole node tree AND per-node userData/metadata.
   const root = source.clone(true);
@@ -819,6 +846,7 @@ function attachRigidEquipmentItem(
   root.scale.setScalar(1 / worldScale);
   root.updateMatrixWorld(true);
   attachedOut?.push(root);
+  return true;
 }
 
 function attachEquipmentItemToBody(
@@ -828,18 +856,20 @@ function attachEquipmentItemToBody(
   liveBones: ReadonlyMap<string, Bone>,
   resolveMaterial: PawnEquipmentMaterialResolver,
   attachedOut?: Object3D[],
-): void {
-  const source = pack.equipment.scenes.get(item.id);
-  if (!source) return;
+): boolean {
+  const source = bodyRoot.userData.successorPawnBody === "female"
+    ? pack.equipment.femaleScenes?.get(item.id) ?? pack.equipment.scenes.get(item.id)
+    : pack.equipment.scenes.get(item.id);
+  if (!source) return false;
   if (item.rigidAnchorBone) {
-    attachRigidEquipmentItem(source, item, item.rigidAnchorBone, liveBones, attachedOut);
-    return;
+    return attachRigidEquipmentItem(source, item, item.rigidAnchorBone, liveBones, attachedOut);
   }
   const root = source.clone(true);
   const meshes: SkinnedMesh[] = [];
   root.traverse((object) => {
     if (object instanceof SkinnedMesh) meshes.push(object);
   });
+  let attached = false;
   for (const mesh of meshes) {
     const bones: Bone[] = [];
     let missingBone = false;
@@ -866,7 +896,9 @@ function attachEquipmentItemToBody(
     bodyRoot.add(mesh);
     mesh.bind(skeleton, mesh.bindMatrix.clone());
     attachedOut?.push(mesh);
+    attached = true;
   }
+  return attached;
 }
 
 // Live LOD A/B dial (window.__successor3dLod): when non-null, overrides
@@ -992,6 +1024,7 @@ export class PawnRenderer {
   private plasmaPreview: PlasmaBlade | null = null;
   private plasmaHiltScene: Group | null = null;
   private plasmaHiltInstance: Object3D | null = null;
+  private plasmaPreviewMount: Object3D | null = null;
   private plasmaHiltLoading = false;
   private plasmaHostSword: SwordRig | null = null;
   private plasmaPreviewColorIdx = 0;
@@ -1102,13 +1135,7 @@ export class PawnRenderer {
     if (this.plasmaPreview) this.plasmaPreview.update(dtSeconds);
     for (const visual of this.visuals.values()) {
       if (visual.kind !== "pawn" || !visual.plasma) continue;
-      const plasma = visual.plasma;
-      if (plasma.extension !== plasma.targetExtension) {
-        const rate = plasma.targetExtension > plasma.extension ? PLASMA_IGNITE_PER_SECOND : -PLASMA_RETRACT_PER_SECOND;
-        plasma.extension = Math.min(1, Math.max(0, plasma.extension + rate * dtSeconds));
-        plasma.blade.setExtension(plasma.extension);
-      }
-      plasma.blade.update(dtSeconds);
+      visual.plasma.presentation.update(dtSeconds);
     }
     this.frame += 1;
     this.lodHiFiCount = 0;
@@ -2016,6 +2043,10 @@ export class PawnRenderer {
     bodyRoot.traverse((object) => {
       if (object instanceof SkinnedMesh) skinnedMeshes.push(object);
     });
+    const bodySourceMaterials = skinnedMeshes.map((mesh) => mesh.material);
+    // Do this before any material conversion or apparel attachment: only exact
+    // base-body `BodyZone_<zone>` materials enter the cache.
+    const bodyZoneMeshes = requestedSpecialBodyKey ? [] : collectPawnBodyZoneMeshes(bodyRoot);
 
     const shadow = new Mesh(shadowGeometry, this.shadowMaterial(SUCCESSOR_3D_CONFIG.pawn.defaultTint));
     shadow.name = `pawn-shadow:${actorId}`;
@@ -2040,8 +2071,10 @@ export class PawnRenderer {
       plasma: null,
       shadow,
       skinnedMeshes,
+      bodySourceMaterials,
       equipmentMaterialGeneration: 0,
       equipmentAttachments: [],
+      bodyZoneMeshes,
       resolvedEquipmentIds: itemIds,
       equipmentAppearance: null,
       hairMaterialId: null,
@@ -2126,8 +2159,9 @@ export class PawnRenderer {
     const out: Array<{ actorId: string; extension: number }> = [];
     for (const [actorId, visual] of this.visuals) {
       if (visual.kind !== "pawn" || !visual.plasma) continue;
-      if (visual.plasma.extension <= 0.35) continue;
-      out.push({ actorId, extension: visual.plasma.extension });
+      const extension = visual.plasma.presentation.currentExtension();
+      if (extension <= 0.35) continue;
+      out.push({ actorId, extension });
     }
     return out;
   }
@@ -2152,14 +2186,19 @@ export class PawnRenderer {
 
   /**
    * REAL plasma-sword presentation (not the dev preview): when the actor's
-   * equipped weapon snapshot carries weaponItemId 3104, the modeled vibrosword
-   * hides and the hilt + blade FX ride the sword rig. Per-visual — any number
-   * of pawns can ignite at once. energy blade doctrine: hilt + light only.
+   * equipped weapon snapshot carries weaponItemId 3104, the SwordRig is
+   * already carrying the authored plasma hilt model (weaponModelRegistry maps
+   * 3104 -> plasma_sword), so all this adds is the pure-effect blade.
+   * Per-visual — any number of pawns can ignite at once.
    */
   private syncPlasmaEquip(visual: PawnVisual, weapon: unknown, meleeArmed: boolean, stowed: boolean): void {
-    const itemId = weapon !== null && typeof weapon === "object" && "weaponItemId" in weapon
-      ? Number((weapon as { weaponItemId?: unknown }).weaponItemId ?? 0)
-      : 0;
+    // `in` narrows weaponItemId to unknown, so the read is actually checked
+    // rather than asserted against a fabricated shape.
+    let itemId = 0;
+    if (weapon !== null && typeof weapon === "object" && "weaponItemId" in weapon) {
+      const raw = weapon.weaponItemId;
+      if (typeof raw === "number" && Number.isFinite(raw)) itemId = raw;
+    }
     const want = meleeArmed && itemId === PLASMA_SWORD_ITEM_ID && visual.sword !== null;
     if (!want) {
       if (visual.plasma) this.detachPlasmaEquip(visual);
@@ -2167,43 +2206,20 @@ export class PawnRenderer {
     }
     const sword = visual.sword!;
     if (!visual.plasma) {
-      sword.setFrameVisible(false);
-      const blade = new PlasmaBlade(sword.frameRoot(), this.glowSpriteTexture, PLASMA_SWORD_COLOR);
-      blade.setExtension(0); // ignites via the ramp — never pops in fully lit
-      visual.plasma = { blade, hilt: null, extension: 0, targetExtension: stowed ? 0 : 1, debugDrawnOverride: null };
+      // Ignites via the ramp — never pops in fully lit.
+      visual.plasma = {
+        presentation: new PlasmaPresentation(sword, this.glowSpriteTexture, PLASMA_SWORD_COLOR, false),
+        debugDrawnOverride: null,
+      };
     }
     const drawn = visual.plasma.debugDrawnOverride ?? !stowed;
-    visual.plasma.targetExtension = drawn ? 1 : 0;
-    if (!visual.plasma.hilt) {
-      if (this.plasmaHiltScene) {
-        visual.plasma.hilt = this.plasmaHiltScene.clone(true);
-        sword.frameRoot().add(visual.plasma.hilt);
-      } else {
-        this.ensurePlasmaHiltLoaded();
-      }
-    }
+    visual.plasma.presentation.setIgnited(drawn);
   }
 
   private detachPlasmaEquip(visual: PawnVisual): void {
     if (!visual.plasma) return;
-    visual.plasma.blade.dispose();
-    visual.plasma.hilt?.parent?.remove(visual.plasma.hilt);
+    visual.plasma.presentation.dispose();
     visual.plasma = null;
-    visual.sword?.setFrameVisible(true);
-  }
-
-  private ensurePlasmaHiltLoaded(): void {
-    if (this.plasmaHiltScene || this.plasmaHiltLoading) return;
-    this.plasmaHiltLoading = true;
-    void new GLTFLoader().loadAsync(requireRuntimePublicPath(`${SUCCESSOR_3D_CONFIG.pawnPack.basePath}/plasma_hilt.glb`)).then(
-      (gltf) => {
-        this.plasmaHiltScene = gltf.scene;
-      },
-      (error: unknown) => {
-        console.warn("plasma hilt load failed", error);
-        this.plasmaHiltLoading = false;
-      },
-    );
   }
 
   /**
@@ -2217,7 +2233,9 @@ export class PawnRenderer {
     for (const visual of this.visuals.values()) {
       if (visual.kind !== "pawn" || !visual.plasma) continue;
       const plasma = visual.plasma;
-      plasma.debugDrawnOverride = plasma.debugDrawnOverride === null ? plasma.targetExtension < 0.5 : plasma.debugDrawnOverride ? false : true;
+      plasma.debugDrawnOverride = plasma.debugDrawnOverride === null
+        ? !plasma.presentation.isIgnited()
+        : !plasma.debugDrawnOverride;
       return true;
     }
     return false;
@@ -2237,11 +2255,18 @@ export class PawnRenderer {
       const color = colorHex ?? palette[this.plasmaPreviewColorIdx % palette.length]!;
       this.plasmaPreviewColorIdx += 1;
       const sword = visual.sword;
-      // energy blade doctrine: modeled weapon hidden — hilt GLB + light only
+      // energy blade doctrine: modeled weapon hidden — hilt GLB + light only.
+      // Both ride a mount at the host weapon's PALM point; parenting them to
+      // the weaponRoot origin floats them up the blade axis.
       sword.setFrameVisible(false);
       this.plasmaHostSword = sword;
-      this.plasmaPreview = new PlasmaBlade(sword.frameRoot(), this.glowSpriteTexture, color);
-      this.attachPlasmaHilt(sword);
+      const mount = new Group();
+      mount.name = "plasma:preview-mount";
+      sword.gripLocal(mount.position);
+      sword.frameRoot().add(mount);
+      this.plasmaPreviewMount = mount;
+      this.plasmaPreview = new PlasmaBlade(mount, this.glowSpriteTexture, color);
+      this.attachPlasmaHilt(mount);
       sword.setStowed(false, { snap: true });
       return true;
     }
@@ -2255,25 +2280,45 @@ export class PawnRenderer {
       this.plasmaHiltInstance.parent?.remove(this.plasmaHiltInstance);
       this.plasmaHiltInstance = null;
     }
+    if (this.plasmaPreviewMount) {
+      this.plasmaPreviewMount.parent?.remove(this.plasmaPreviewMount);
+      this.plasmaPreviewMount = null;
+    }
     this.plasmaHostSword?.setFrameVisible(true);
     this.plasmaHostSword = null;
   }
 
-  private attachPlasmaHilt(sword: SwordRig): void {
+  /** Shared hilt scene for the DEV colour-cycle preview only. The equipped
+   * plasma sword loads its hilt through the weapons registry like any other
+   * catalogue model. */
+  private ensurePlasmaHiltLoaded(): void {
+    if (this.plasmaHiltScene || this.plasmaHiltLoading) return;
+    this.plasmaHiltLoading = true;
+    void new GLTFLoader().loadAsync(requireRuntimePublicPath(`${SUCCESSOR_3D_CONFIG.pawnPack.basePath}/plasma_hilt.glb`)).then(
+      (gltf) => {
+        this.plasmaHiltScene = gltf.scene;
+      },
+      (error: unknown) => {
+        console.warn("plasma hilt load failed", error);
+        this.plasmaHiltLoading = false;
+      },
+    );
+  }
+
+  private attachPlasmaHilt(mount: Object3D): void {
     if (this.plasmaHiltScene) {
       this.plasmaHiltInstance = this.plasmaHiltScene.clone(true);
-      sword.frameRoot().add(this.plasmaHiltInstance);
+      mount.add(this.plasmaHiltInstance);
       return;
     }
     this.ensurePlasmaHiltLoaded();
     // late attach when the shared scene lands (next preview click also works)
-    const host = sword;
     const retry = window.setInterval(() => {
       if (!this.plasmaHiltScene) return;
       window.clearInterval(retry);
-      if (this.plasmaPreview && this.plasmaHostSword === host && !this.plasmaHiltInstance) {
+      if (this.plasmaPreview && this.plasmaPreviewMount === mount && !this.plasmaHiltInstance) {
         this.plasmaHiltInstance = this.plasmaHiltScene.clone(true);
-        host.frameRoot().add(this.plasmaHiltInstance);
+        mount.add(this.plasmaHiltInstance);
       }
     }, 250);
   }
@@ -2682,12 +2727,16 @@ export class PawnRenderer {
           : null,
       });
     }
-    attachPawnEquipmentSet(
+    const attachedItemIds = attachPawnEquipmentSet(
       this.pack,
       visual.bodyRoot,
       itemIds,
       (item, source) => this.equipmentMaterial(item, source, visual.hairMaterialId, visual.wornColorsByPiece),
       visual.equipmentAttachments,
+    );
+    applyPawnBodyZoneMask(
+      visual.bodyZoneMeshes,
+      resolvePawnBodyZoneMask(this.pack.equipment, attachedItemIds, this.equipmentLookup),
     );
     attachPawnFaceDecal(visual.bodyRoot, appearance?.face ?? null, visual.equipmentAttachments);
     markSunShadowCaster(visual.bodyRoot);
@@ -2763,8 +2812,13 @@ export class PawnRenderer {
     const colorKey = `${skinTone}|${relation}${selected ? "!s" : ""}`;
     if (colorKey === visual.colorKey) return;
     visual.colorKey = colorKey;
-    const material = this.bodyMaterial(skinTone, relation, selected);
-    for (const mesh of visual.skinnedMeshes) mesh.material = material;
+    for (let i = 0; i < visual.skinnedMeshes.length; i += 1) {
+      const mesh = visual.skinnedMeshes[i]!;
+      const source = visual.bodySourceMaterials[i]!;
+      mesh.material = Array.isArray(source)
+        ? source.map((material) => this.bodyMaterial(material, skinTone, relation, selected))
+        : this.bodyMaterial(source, skinTone, relation, selected);
+    }
     if (visual.deathState === "none" && !visual.sleeping) {
       visual.shadow.material = this.shadowMaterial(relation);
     }
@@ -2785,14 +2839,40 @@ export class PawnRenderer {
     visual.shadow.material = this.shadowMaterial(relation);
   }
 
-  private bodyMaterial(skinTone: string, relationColor: string, selected: boolean): MeshMatcapMaterial {
-    const key = `${skinTone}|${relationColor}${selected ? "!s" : ""}`;
+  private bodyMaterial(
+    source: Material,
+    skinTone: string,
+    relationColor: string,
+    selected: boolean,
+  ): MeshMatcapMaterial {
+    const authoredFace = source.name === "RB_Face";
+    const key = authoredFace
+      ? `${source.uuid}|authored`
+      : `${source.uuid}|${skinTone}|${relationColor}${selected ? "!s" : ""}`;
     const existing = this.bodyMaterials.get(key);
     if (existing) return existing;
-    scratchColor.set(relationColor);
-    const color = new Color(skinTone).lerp(scratchColor, SUCCESSOR_3D_CONFIG.pawnPack.bodyTintLerp);
-    if (selected) color.lerp(scratchColor.set(SUCCESSOR_3D_CONFIG.pawn.selectedTint), 0.35);
-    const material = new MeshMatcapMaterial({ matcap: this.matcap, color });
+    const map = "map" in source && source.map instanceof Texture ? source.map : null;
+    if (map) map.colorSpace = SRGBColorSpace;
+    let color = "color" in source && source.color instanceof Color
+      ? source.color.clone()
+      : new Color(0xffffff);
+    if (!authoredFace) {
+      scratchColor.set(relationColor);
+      color = new Color(skinTone).lerp(scratchColor, SUCCESSOR_3D_CONFIG.pawnPack.bodyTintLerp);
+      if (selected) color.lerp(scratchColor.set(SUCCESSOR_3D_CONFIG.pawn.selectedTint), 0.35);
+    }
+    const material = new MeshMatcapMaterial({
+      matcap: this.matcap,
+      map,
+      color,
+      side: source.side,
+      transparent: source.transparent,
+      opacity: source.opacity,
+      alphaTest: source.alphaTest,
+      depthWrite: source.depthWrite,
+      vertexColors: "vertexColors" in source && source.vertexColors === true,
+    });
+    material.name = `${source.name || "body"}:successor`;
     installPawnRim(material);
     this.bodyMaterials.set(key, material);
     return material;

@@ -1,58 +1,49 @@
+// The home terminal: a real 80-column TUI frame inside a game window frame.
+// The opening crawl is a staggered instrument readout that settles back to
+// the field screen; content is never gated on JS having run.
+import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readPage, sitePath } from "./helpers";
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { initTerminalPreview } from "../src/features/home";
-
-const homeCss = readFileSync(resolve(process.cwd(), "src/styles/home.css"), "utf8");
+const home = readPage("index.html");
+const homeCss = readFileSync(sitePath("src/styles/home.css"), "utf8");
+const homeTs = readFileSync(sitePath("src/features/home.ts"), "utf8");
 
 describe("home terminal opening", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.stubGlobal("IntersectionObserver", undefined);
-    document.body.innerHTML = `
-      <section data-terminal-preview>
-        <button data-terminal-replay>Replay opening</button>
-      </section>
-    `;
+  it("ships the preview, replay control, crawl, and field frame", () => {
+    expect(home).toContain("data-terminal-preview");
+    expect(home).toContain("data-terminal-replay");
+    expect(home).toContain("data-crawl");
+    expect(home).toContain('data-slot="home-terminal-tui"');
+    expect(home).toContain("DUSTGATE / FIRST CYCLE");
+    expect(home).toContain("SUCCESSOR · OPEN DESERT");
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.useRealTimers();
-    document.body.innerHTML = "";
+  it("field frame is the default; the crawl only exists while playing", () => {
+    expect(homeCss).toContain(".term [data-crawl] { display: none; }");
+    expect(homeCss).toContain('.term[data-crawl-state="playing"] [data-crawl] { display: block; }');
+    expect(homeCss).toContain('.term[data-crawl-state="playing"] .term-field { display: none; }');
   });
 
-  it("plays, returns to the field, and can replay", () => {
-    initTerminalPreview(document, false);
-    const preview = document.querySelector<HTMLElement>("[data-terminal-preview]");
-    const replay = document.querySelector<HTMLButtonElement>("[data-terminal-replay]");
-    expect(preview?.dataset.crawlState).toBe("playing");
-    expect(replay?.disabled).toBe(true);
-    vi.advanceTimersByTime(10_500);
-    expect(preview?.dataset.crawlState).toBe("field");
-    expect(replay?.disabled).toBe(false);
-    replay?.click();
-    expect(preview?.dataset.crawlState).toBe("playing");
+  it("the stagger settles inside the replay window home.ts holds", () => {
+    const intro = Number(/TERMINAL_INTRO_MS = ([\d_]+)/.exec(homeTs)?.[1]?.replaceAll("_", ""));
+    expect(intro).toBeGreaterThan(0);
+    const delays = [...homeCss.matchAll(/\.crawl-line:nth-child\(\d\) \{ animation-delay: (\d+)ms; \}/g)]
+      .map((match) => Number(match[1]));
+    expect(delays.length).toBeGreaterThanOrEqual(4);
+    const duration = Number(/crawl-in (\d+)ms/.exec(homeCss)?.[1]);
+    expect(duration).toBeGreaterThan(0);
+    expect(Math.max(...delays) + duration).toBeLessThanOrEqual(intro);
   });
 
-  it("does not animate when reduced motion is requested", () => {
-    initTerminalPreview(document, true);
-    const preview = document.querySelector<HTMLElement>("[data-terminal-preview]");
-    expect(preview?.dataset.crawlState).toBeUndefined();
+  it("uses this world's resource names, not reference-world ones", () => {
+    expect(home).toContain("Daxmere iron");
+    expect(home.toLowerCase()).not.toContain("dantooine");
   });
 
-  it("recedes along the tilted plane and exits behind a hard horizon", () => {
-    expect(homeCss).toContain("perspective-origin: 50% 10%;");
-    expect(homeCss).toMatch(/\.terminal-crawl::after\s*\{[\s\S]*?height:\s*10\.5%;/);
-    expect(homeCss).toContain(
-      "transform: translateX(-50%) rotateX(56deg) translateY(42%);",
-    );
-    expect(homeCss).toContain(
-      "transform: translateX(-50%) rotateX(56deg) translateY(-520%);",
-    );
-    expect(homeCss).not.toContain("mask-image");
-    expect(homeCss).not.toContain("translate(-50%, 36%) rotateX(58deg)");
+  it("keeps the real 80x24 frame as text, not a bitmap", () => {
+    expect(home).toContain("<pre");
+    expect(home).toContain("/attack rogue-1");
+    expect(home).not.toMatch(/terminal[^"]*\.(webp|png|jpg)/);
   });
 });
