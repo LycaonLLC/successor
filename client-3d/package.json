@@ -14,7 +14,7 @@
     "three": "^0.185.0"
   },
   "devDependencies": {
-    "@types/node": "^22.19.18",
+    "@types/node": "^26.0.1",
     "@types/three": "^0.185.0",
     "happy-dom": "^20.10.6",
     "typescript": "^5.9.3",
